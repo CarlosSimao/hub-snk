@@ -69,3 +69,35 @@ docker compose down
 O histórico fica no volume `monitor-data` e sobrevive. Para zerar também o histórico:
 `docker compose down -v`.
 
+---
+
+## Segurança
+
+Ferramenta de uso pessoal/local, **sem autenticação em lugar nenhum** — decisão
+explícita, não descuido:
+
+- **Painel (porta 4000):** exposto só em `127.0.0.1` no `docker-compose.yml`. Não
+  publique em `0.0.0.0`; quem alcançar essa porta reescreve credenciais salvas no
+  cofre. Para acesso remoto, use túnel SSH.
+- **Helpers do WildFly** (`scripts/wildfly-helper.ps1`, porta 4100, e
+  `scripts/wildfly-log-helper.ps1`, porta 4101): escutam em **todas as interfaces**
+  da máquina Windows, sem token. Qualquer dispositivo na mesma rede local consegue
+  iniciar/parar/reiniciar o WildFly ou ler o `server.log`. Não exponha essas portas
+  além da rede confiável.
+- Segredos dos alvos monitorados (senha do Oracle, etc.) ficam só no volume
+  `monitor-data` (cofre local), nunca no `services.yaml` versionado.
+
+## Adaptando para sua máquina
+
+`config/services.yaml` vem com o ambiente de exemplo do autor original — ajuste
+antes de usar:
+
+- Ação **DataGrip** (`datagrip://open`) depende do protocolo registrado no seu
+  Windows e do caminho de instalação; se não usar DataGrip, remova a ação.
+- Caminhos do WildFly (`C:\Sankhya\wildfly_producao`) têm fallback automático,
+  mas confirme que batem com sua instalação.
+
+## Licença
+
+MIT — uso livre, inclusive comercial, sem garantia. Ver [LICENSE](LICENSE).
+

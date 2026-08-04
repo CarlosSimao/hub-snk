@@ -2,6 +2,7 @@
   "name": "sankhya-hub",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Painel de monitoramento do ambiente local do Sankhya: WildFly + Oracle",
   "type": "module",
   "engines": {
