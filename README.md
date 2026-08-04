@@ -11,7 +11,7 @@ próprio card.
 | Item | Para quê |
 |---|---|
 | **Docker Desktop** (Windows) | O hub roda em container; é ele quem sobe o `sankhya-hub` |
-| **WildFly do Sankhya instalado localmente** | `C:\Sankhya\wildfly_producao\bin\standalone.bat` — o hub controla o processo, não o instala |
+| **WildFly do Sankhya instalado localmente** | `C:\Sankhya\wildfly_producao\bin\standalone.bat` (fallback `C:\wildfly_producao`) — o hub controla o processo, não o instala |
 | **Oracle do Sankhya rodando em container Docker** | Neste ambiente o banco é o container `skdev-oracle`, no mesmo Docker Desktop do hub |
 | **PowerShell 5.1** | Já vem no Windows — roda o atalho e os helpers do WildFly, sem instalar nada extra |
 

@@ -26,7 +26,9 @@
 [CmdletBinding()]
 param(
     [int] $Porta = 4101,
-    [string] $ArquivoLog = 'C:\Sankhya\wildfly_producao\standalone\log\server.log',
+    # Mesmo fallback do wildfly-helper.ps1: C:\Sankhya\wildfly_producao primeiro,
+    # senao C:\wildfly_producao.
+    [string] $ArquivoLog = $(if (Test-Path -LiteralPath 'C:\Sankhya\wildfly_producao\standalone\log\server.log') { 'C:\Sankhya\wildfly_producao\standalone\log\server.log' } else { 'C:\wildfly_producao\standalone\log\server.log' }),
     # Quantas linhas mandar assim que o popup conecta, antes de comecar a seguir o arquivo.
     [int] $LinhasIniciais = 200,
     [int] $IntervaloPollMs = 500

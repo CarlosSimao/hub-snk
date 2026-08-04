@@ -26,7 +26,9 @@
 [CmdletBinding()]
 param(
     [int] $Porta = 4100,
-    [string] $PastaWildfly = 'C:\Sankhya\wildfly_producao\bin',
+    # Tenta C:\Sankhya\wildfly_producao primeiro (instalacao padrao) e cai para
+    # C:\wildfly_producao se a primeira nao existir (outro host, outro checkout).
+    [string] $PastaWildfly = $(if (Test-Path -LiteralPath 'C:\Sankhya\wildfly_producao\bin') { 'C:\Sankhya\wildfly_producao\bin' } else { 'C:\wildfly_producao\bin' }),
     # Casa a linha de comando do java.exe do WildFly entre outras JVMs da maquina —
     # o nome do processo sozinho ("java.exe") nao distingue uma da outra.
     [string] $FiltroProcesso = 'jboss-modules.jar'
