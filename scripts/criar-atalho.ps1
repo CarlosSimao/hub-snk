@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    Cria o atalho "Monitor Hub" no Desktop.
+    Cria o atalho "Sankhya Hub" no Desktop.
 
 .DESCRIPTION
     Roda uma vez. O atalho aponta para `iniciar-monitor.ps1` neste mesmo diretorio,
@@ -12,11 +12,12 @@
 
 [CmdletBinding()]
 param(
-    [string] $Nome = 'Monitor Hub'
+    [string] $Nome = 'Sankhya Hub'
 )
 
 $ErrorActionPreference = 'Stop'
 
+$RaizRepo = Split-Path -Parent $PSScriptRoot
 $ScriptDeInicio = Join-Path $PSScriptRoot 'iniciar-monitor.ps1'
 if (-not (Test-Path -LiteralPath $ScriptDeInicio)) {
     throw "nao encontrei $ScriptDeInicio"
@@ -28,19 +29,11 @@ if (-not (Test-Path -LiteralPath $ScriptDeInicio)) {
 $Desktop = [Environment]::GetFolderPath('Desktop')
 $CaminhoAtalho = Join-Path $Desktop "$Nome.lnk"
 
-<#
-    O icone do Docker Desktop, quando instalado. Um atalho sem icone proprio herda o
-    do PowerShell e some no meio dos outros no Desktop.
-#>
-function Get-IconeDocker {
-    $candidatos = @(
-        (Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\Docker Desktop.exe'),
-        (Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe')
-    )
-    foreach ($caminho in $candidatos) {
-        if ($caminho -and (Test-Path -LiteralPath $caminho)) { return "$caminho,0" }
-    }
-    return $null
+# Marca Sankhya + semaforo, gerado por scripts\gerar-icone-atalho.ps1. Um atalho
+# sem icone proprio herda o do PowerShell e some no meio dos outros no Desktop.
+$IconeAtalho = Join-Path $RaizRepo 'public\img\sankhya-hub.ico'
+if (-not (Test-Path -LiteralPath $IconeAtalho)) {
+    throw "nao encontrei $IconeAtalho — rode scripts\gerar-icone-atalho.ps1 primeiro"
 }
 
 $shell = New-Object -ComObject WScript.Shell
@@ -59,8 +52,7 @@ $atalho.WorkingDirectory = Split-Path -Parent $PSScriptRoot
 $atalho.Description = 'Sobe o Docker, o sankhya-hub e abre o painel no navegador'
 $atalho.WindowStyle = 1   # janela normal: e nela que o progresso aparece
 
-$icone = Get-IconeDocker
-if ($icone) { $atalho.IconLocation = $icone }
+$atalho.IconLocation = "$IconeAtalho,0"
 
 $atalho.Save()
 

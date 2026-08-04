@@ -30,7 +30,7 @@ Painel em <http://localhost:4000>. Não existe arquivo de configuração para ed
 antes — as credenciais do Oracle são preenchidas **no próprio painel**, no card
 **Sankhya - Local**.
 
-Para o dia a dia, o atalho `scripts\criar-atalho.ps1` cria **Monitor Hub** no Desktop:
+Para o dia a dia, o atalho `scripts\criar-atalho.ps1` cria **Sankhya Hub** no Desktop:
 duplo clique sobe o Docker Desktop (se estiver parado), o container do hub e os
 helpers nativos que controlam o WildFly, e abre o painel — tudo numa ação. Não roda
 sozinho no `docker compose up`, precisa criar uma vez:
