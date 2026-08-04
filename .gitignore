@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.log
+
+# O cofre de credenciais vive aqui (data/segredos.json). Nunca versionar.
+data/
+
+# O hub não usa arquivo .env — a configuração é pelo painel. Estas entradas ficam
+# como rede de segurança: se um .env for criado por hábito, não vai para o repositório.
+.env
+.env.*
+!.env.example

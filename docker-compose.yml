@@ -1,0 +1,51 @@
+services:
+  monitor-hub:
+    build: .
+    container_name: monitor-hub
+    restart: unless-stopped
+    ports:
+      # Preso ao localhost: o painel grava credenciais pelo formulario de configuracao
+      # e nao tem autenticacao nenhuma. Publicado em 0.0.0.0, qualquer aparelho da rede
+      # poderia sobrescrever a senha do banco de producao.
+      # Para acessar de outro aparelho, use um tunel SSH em vez de abrir a porta.
+      - "127.0.0.1:4000:4000"
+    # Nao ha `env_file`, e isso e proposital: os segredos dos alvos monitorados sao
+    # preenchidos pelo botao "Configurar" no card do projeto e ficam no cofre, dentro
+    # do volume `monitor-data`.
+    #
+    # Um `.env` seria pior aqui: variavel de ambiente e lida uma unica vez, na criacao
+    # do container, entao cada correcao de senha exigiria `docker compose up -d`. O
+    # cofre e relido a cada carga da config — salvar no formulario ja vale.
+    #
+    # As variaveis abaixo sao do HUB, nao dos alvos: caminhos e porta, nada secreto.
+    environment:
+      PORT: "4000"
+      # Caminhos dentro do container.
+      CONFIG_PATH: /app/config/services.yaml
+      DATA_DIR: /app/data
+      TZ: America/Sao_Paulo
+      # Deixe vazio para desligar as acoes de docker (start/stop/restart de container).
+      DOCKER_SOCKET: /var/run/docker.sock
+    volumes:
+      # services.yaml montado do host: editar o arquivo + POST /api/reload (ou o botao
+      # "Recarregar config" no dashboard) aplica sem rebuild da imagem.
+      - ./config:/app/config:ro
+      # Historico (SQLite) sobrevive a recriacao do container.
+      - monitor-data:/app/data
+      # Socket do Docker — necessario para o check `type: docker` e as acoes de
+      # container/sequence (o container do Oracle local, skdev-oracle). Quem tem
+      # esse socket tem controle do daemon inteiro, entao so fica montado porque
+      # este projeto usa mesmo.
+      #
+      # O `group_add: ["0"]` abaixo e obrigatorio: o socket e root:root 0660 e o
+      # processo roda como `node` (uid 1000).
+      - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - "0"
+    extra_hosts:
+      # Alcanca servicos rodando direto no host (WildFly na 8080, Oracle na 1521...).
+      # No Docker Desktop ja existe por padrao; declarado aqui para funcionar tambem no Linux.
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  monitor-data:

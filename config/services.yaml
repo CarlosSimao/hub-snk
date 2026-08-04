@@ -1,0 +1,300 @@
+# =============================================================================
+# monitor-hub — catálogo de serviços monitorados
+# =============================================================================
+# Este arquivo é a única fonte de verdade. Adicionar um projeto ao hub = adicionar
+# um item em `services`. Nenhum código precisa mudar.
+#
+# Para aplicar mudanças: clique em "Recarregar config" no dashboard, ou
+#   curl -X POST http://localhost:4000/api/reload
+# O arquivo é montado do host, então não é preciso rebuildar a imagem.
+#
+# Segredos: use `${VAR}` ou `${VAR:default}`. Os valores são preenchidos pelo botão
+# "⚙ Configurar" no card do projeto, no próprio painel — não há arquivo `.env`.
+#
+# Cada projeto tem seu próprio espaço de nomes, então dois projetos podem usar
+# `ORACLE_HOST` apontando para bancos diferentes sem colidir. Nada de segredo entra
+# neste arquivo, que é versionado.
+#
+# Tipos de check disponíveis:
+#   http    GET/HEAD/POST numa URL; valida status e conteúdo
+#   tcp     porta aceita conexão
+#   oracle  conecta de verdade e coleta sessões, uptime, status da instância
+#   docker  estado do container (running/exited/unhealthy) + restarts
+#
+# Tipos de ação (as "funções" do card):
+#   link    abre uma URL no navegador
+#   http    o hub dispara uma requisição
+#   docker  start | stop | restart de um container nomeado
+# =============================================================================
+
+retentionHours: 72
+startupDelayMs: 500
+
+# Alertas: um alerta é uma MUDANÇA de estado, não um estado. Semáforo vermelho há duas
+# horas não notifica a cada ciclo — notificou quando ficou vermelho, e vai notificar
+# quando voltar. É o que separa aviso de ruído.
+#
+# Nunca alertam, por design: transições envolvendo `unknown` (variável faltando ou cota
+# de API estourada é problema de config, não incidente) e checks `muted` (silenciar na
+# tela e continuar apitando no celular seria o pior dos dois mundos).
+alerts:
+  enabled: true
+  onDegraded: false   # `true` avisa também no amarelo — costuma ser ruidoso
+  onRecovery: true    # sem isto você sabe que caiu, mas não que voltou
+  retentionHours: 168
+
+services:
+  # ---------------------------------------------------------------------------
+  # Sankhya — AMBIENTE LOCAL. WildFly e Oracle rodando na sua máquina.
+  #
+  # O hub roda dentro do Docker, então tudo aqui é alcançado por
+  # `host.docker.internal` — `localhost` seria o próprio container do hub.
+  # As URLs das ações `link` são abertas pelo NAVEGADOR, então nelas o
+  # `localhost` é o certo.
+  #
+  # Credenciais: botão "⚙ Configurar" no card do projeto. Sem elas o semáforo do
+  # banco fica CINZA com a instrução, não vermelho.
+  # ---------------------------------------------------------------------------
+  - id: sankhya-local
+    name: Sankhya - Local
+    description: Ambiente local — WildFly (JBoss) + Oracle
+    # Só o símbolo da marca, em SVG: o avatar é quadrado e a logo horizontal
+    # (símbolo + "Sankhya" escrito) ficaria ilegível em 48px.
+    image: /img/sankhya.svg
+    icon: 🏢
+    accent: "#f59e0b"
+    tags: [local, sankhya, wildfly, oracle]
+    links:
+      - label: Sankhya
+        url: http://localhost:8080/mge/
+      - label: Console do WildFly
+        url: http://localhost:9990/
+
+    checks:
+      # GET na aplicação, não só handshake na porta: WildFly com o deploy do
+      # Sankhya quebrado mantém a 8080 aberta e responde 404/500. Um check `tcp`
+      # ficaria verde nesse caso — este não fica.
+      #
+      # 302 é aceito porque a raiz do contexto costuma redirecionar para a tela
+      # de login; redirecionar já prova que a aplicação está de pé.
+      - id: wildfly
+        name: WildFly
+        description: GET no contexto do Sankhya — prova que o deploy está servindo
+        type: http
+        url: ${WILDFLY_URL:http://host.docker.internal:8080/mge/}
+        expectStatus: [200, 302]
+        intervalMs: 30000
+        timeoutMs: 10000
+        degradedAboveMs: 2000
+
+      # "Test connection" de verdade, igual ao do DataGrip: abre o socket, faz o
+      # handshake TNS, AUTENTICA e roda uma consulta. Independente do WildFly — se a
+      # aplicação cair, este semáforo continua dizendo se o problema é o servidor ou
+      # o banco.
+      #
+      # Distingue os estados que um check de porta confunde: listener fora do ar
+      # (vermelho), instância MOUNTED mas não aberta (amarelo — o listener responde e
+      # nenhuma consulta funciona) e credencial recusada (vermelho).
+      #
+      # Este ambiente é Oracle XE 11.2, que o driver Thin não alcança (exige 12.1+).
+      # A imagem traz o Oracle Instant Client 19 e o check roda em Thick mode.
+      #
+      # `serviceName` e não `sid`: o listener deste XE só tem registro dinâmico
+      # (PMON), que expõe SERVICE_NAME — sintaxe `host:porta:SID` volta ORA-12545
+      # quando conectado de fora do host (ex.: daqui, via host.docker.internal).
+      # Sem grant nas views v$ o check cai para `SELECT 1 FROM dual` — perde os
+      # indicadores e continua verde, porque conectar é o sinal que importa.
+      - id: oracle
+        name: Banco Oracle
+        description: Test connection — autentica no listener e roda consulta de sonda
+        type: oracle
+        host: ${ORACLE_HOST}
+        port: ${ORACLE_PORT:1521}
+        serviceName: ${ORACLE_SID:XE}
+        user: ${ORACLE_USER}
+        password: ${ORACLE_PASSWORD}
+        intervalMs: 60000
+        timeoutMs: 15000
+        degradedAboveMs: 1500
+        sessionsWarnPct: 80
+
+    actions:
+      # Sobe o container do Oracle, espera o check `oracle` sair de down/unknown (até
+      # 120s, sondando a cada 3s) e só então chama o helper do WildFly na 4100 —
+      # subir o WildFly contra um banco que ainda não abriu é o cenário que este
+      # passo evita.
+      - id: iniciar-tudo
+        label: Iniciar
+        description: Container do Oracle → espera o banco responder → inicia o WildFly
+        type: sequence
+        steps:
+          - type: docker
+            container: skdev-oracle
+            operation: start
+          - type: waitForCheck
+            checkId: oracle
+            timeoutMs: 120000
+            pollMs: 3000
+          - type: http
+            url: http://host.docker.internal:4100/iniciar
+            timeoutMs: 10000
+
+      # Ordem inversa da subida: para o WildFly primeiro (solta as conexões com o
+      # banco de forma limpa) e só depois derruba o container do Oracle.
+      - id: parar-tudo
+        label: Parar
+        description: Para o WildFly e então o container do Oracle
+        type: sequence
+        danger: true
+        steps:
+          - type: http
+            url: http://host.docker.internal:4100/parar
+            timeoutMs: 15000
+          - type: docker
+            container: skdev-oracle
+            operation: stop
+
+      # Restart do container do Oracle é mais brusco que um docker stop/start
+      # limpo, então a espera do check aqui importa tanto quanto na subida.
+      - id: reiniciar-tudo
+        label: Reiniciar
+        description: Reinicia o container do Oracle → espera o banco responder → reinicia o WildFly
+        type: sequence
+        danger: true
+        steps:
+          - type: docker
+            container: skdev-oracle
+            operation: restart
+          - type: waitForCheck
+            checkId: oracle
+            timeoutMs: 120000
+            pollMs: 3000
+          - type: http
+            url: http://host.docker.internal:4100/reiniciar
+            timeoutMs: 30000
+
+      - id: sankhya
+        label: Sankhya
+        type: link
+        url: http://localhost:8080/mge/
+
+      - id: wpm
+        label: WPM
+        type: link
+        url: http://localhost:8080/wpm/
+
+      # As três abaixo chamam scripts/wildfly-helper.ps1, um listener nativo do
+      # Windows — o hub roda em container Linux e não alcança processo do host
+      # diretamente. Sem token: qualquer um na rede local que chegue nessa porta
+      # consegue disparar. Ver README > Sankhya em ambiente local.
+      #
+      # `checkId: wildfly` amarra as três ao check do WildFly — aparecem nas ações
+      # do serviço, não nas do projeto.
+      - id: wildfly-iniciar
+        label: Iniciar
+        description: Sobe o standalone.bat oculto e destacado — mesmo efeito do start_wildfly.vbs
+        type: http
+        url: http://host.docker.internal:4100/iniciar
+        timeoutMs: 10000
+        checkId: wildfly
+      - id: wildfly-reiniciar
+        label: Reiniciar
+        description: Mata o processo e sobe de novo — espera até 20s o processo morrer antes de reiniciar
+        type: http
+        url: http://host.docker.internal:4100/reiniciar
+        timeoutMs: 30000
+        danger: true
+        checkId: wildfly
+      - id: wildfly-parar
+        label: Parar
+        description: Mata o processo java do WildFly
+        type: http
+        url: http://host.docker.internal:4100/parar
+        timeoutMs: 15000
+        danger: true
+        checkId: wildfly
+
+      # Helper separado (scripts/wildfly-log-helper.ps1, porta 4101) que serve o
+      # server.log ao vivo. `localhost`, não `host.docker.internal`: quem abre esta
+      # URL é o navegador, na mesma máquina do helper — não o container.
+      # `popup: true` abre numa janela separada, redimensionável, em vez de aba nova.
+      - id: wildfly-log
+        label: Log
+        description: server.log ao vivo, tipo tail -f
+        type: link
+        url: http://localhost:4101/log
+        popup: true
+        checkId: wildfly
+
+      - id: oracle-iniciar
+        label: Iniciar
+        description: docker start no container skdev-oracle
+        type: docker
+        container: skdev-oracle
+        operation: start
+        danger: false
+        checkId: oracle
+
+      - id: oracle-reiniciar
+        label: Reiniciar
+        description: docker restart no container skdev-oracle
+        type: docker
+        container: skdev-oracle
+        operation: restart
+        checkId: oracle
+
+      - id: oracle-parar
+        label: Parar
+        description: docker stop no container skdev-oracle
+        type: docker
+        container: skdev-oracle
+        operation: stop
+        checkId: oracle
+
+      # Protocolo `datagrip://` registrado em HKCU (só o seu usuário, sem admin) na
+      # máquina Windows que roda o navegador — aponta pro datagrip64.exe instalado
+      # em "C:\Program Files\JetBrains\DataGrip 2026.2.1\bin". `checkId: oracle`
+      # amarra a ação ao card do banco, não ao projeto inteiro.
+      - id: datagrip
+        label: DataGrip
+        type: link
+        url: datagrip://open
+        checkId: oracle
+
+# -----------------------------------------------------------------------------
+# Modelo para o próximo projeto — descomente e ajuste.
+#
+# Serviços que rodam na SUA MÁQUINA são alcançados por `host.docker.internal`
+# (o hub roda dentro do Docker), não por `localhost`. URLs de ações do tipo
+# `link` são abertas pelo navegador, então nelas `localhost` funciona normal.
+# -----------------------------------------------------------------------------
+#  - id: outro-projeto
+#    name: Outro Projeto
+#    description: O que ele faz
+#    icon: 🚀
+#    accent: "#818cf8"
+#    tags: [node]
+#    checks:
+#      - id: api
+#        name: API
+#        type: http
+#        url: http://host.docker.internal:3000/health
+#        intervalMs: 15000
+#        expectStatus: [200]
+#        expectBodyContains: '"ok":true'
+#        degradedAboveMs: 500
+#      - id: container
+#        name: Container
+#        type: docker
+#        container: outro-projeto-app-1
+#      - id: redis
+#        name: Redis
+#        type: tcp
+#        host: host.docker.internal
+#        port: 6379
+#    actions:
+#      - id: restart
+#        label: Reiniciar container
+#        type: docker
+#        container: outro-projeto-app-1
+#        operation: restart

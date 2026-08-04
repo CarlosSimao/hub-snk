@@ -1,0 +1,10 @@
+{
+  // Os testes NAO entram no build (o tsconfig.json principal so inclui src/, e o
+  // Dockerfile so copia src/). Este arquivo existe apenas para o typecheck cobri-los.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

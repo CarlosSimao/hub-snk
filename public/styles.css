@@ -1,0 +1,1271 @@
+/* =========================================================================
+   monitor-hub — folha de estilo única.
+   Sem framework, sem build. Tema escuro por padrão, claro via [data-theme].
+   ========================================================================= */
+
+:root {
+  --up: #22c55e;
+  --degraded: #f59e0b;
+  --down: #ef4444;
+  --unknown: #64748b;
+
+  --bg: #070b14;
+  --bg-soft: #0d1425;
+  --surface: rgba(20, 29, 48, 0.72);
+  --surface-solid: #131c30;
+  --border: rgba(148, 163, 184, 0.14);
+  --border-strong: rgba(148, 163, 184, 0.26);
+  --text: #e8eefc;
+  --text-dim: #97a5c0;
+  --text-faint: #64748b;
+  --accent: #60a5fa;
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 20px 50px -24px rgba(0, 0, 0, 0.85);
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+  --sans: Arial, "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+}
+
+[data-theme='light'] {
+  --bg: #f1f5f9;
+  --bg-soft: #e8eef7;
+  --surface: rgba(255, 255, 255, 0.86);
+  --surface-solid: #ffffff;
+  --border: rgba(15, 23, 42, 0.1);
+  --border-strong: rgba(15, 23, 42, 0.18);
+  --text: #0f172a;
+  --text-dim: #475569;
+  --text-faint: #94a3b8;
+  --shadow: 0 18px 40px -28px rgba(15, 23, 42, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Brilho de fundo — puramente decorativo, fica atrás de tudo. */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 32rem at 12% -10%, rgba(56, 189, 248, 0.16), transparent 60%),
+    radial-gradient(48rem 28rem at 92% 4%, rgba(129, 140, 248, 0.14), transparent 62%),
+    radial-gradient(40rem 26rem at 50% 108%, rgba(34, 197, 94, 0.1), transparent 65%);
+}
+
+/* ------------------------------- topbar -------------------------------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px clamp(16px, 4vw, 40px);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-text h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand-text h1 span {
+  color: var(--text-faint);
+  font-weight: 500;
+}
+
+.brand-text p {
+  margin: 1px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* --------------------------- semáforo (lamps) --------------------------- */
+
+.semaphore,
+.brand-mark {
+  display: inline-flex;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(2, 6, 16, 0.55);
+  border: 1px solid var(--border);
+}
+
+.brand-mark {
+  flex-direction: column;
+  padding: 6px 5px;
+  border-radius: 12px;
+}
+
+.semaphore.vertical {
+  flex-direction: column;
+  border-radius: 12px;
+}
+
+.lamp {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  color: var(--unknown);
+  opacity: 0.16;
+  transition: opacity 0.25s ease, box-shadow 0.25s ease;
+}
+
+.semaphore.lg .lamp,
+.brand-mark .lamp {
+  width: 11px;
+  height: 11px;
+}
+
+.lamp.red { color: var(--down); }
+.lamp.amber { color: var(--degraded); }
+.lamp.green { color: var(--up); }
+
+/*
+ * A lâmpada correspondente ao status acende; as outras ficam apagadas.
+ *
+ * O `>` é obrigatório, não estilo. `.card` também carrega `data-status`, então com o
+ * seletor descendente um card cinza alcançava as lâmpadas de TODOS os checks dentro
+ * dele: o semáforo de um check verde acendia com a cor de `unknown`, porque
+ * `.lamp.green` e `[data-status='unknown'] .lamp` empatam em especificidade e a
+ * segunda vem depois. As lâmpadas são filhas diretas do `.semaphore` / `.brand-mark`,
+ * nunca do card — o filho direto isola cada semáforo do status dos ancestrais.
+ */
+[data-status='down'] > .lamp.red,
+[data-status='degraded'] > .lamp.amber,
+[data-status='up'] > .lamp.green {
+  opacity: 1;
+  box-shadow: 0 0 10px 1px currentColor;
+}
+
+[data-status='unknown'] > .lamp {
+  opacity: 0.3;
+  color: var(--unknown);
+}
+
+/* Vermelho pisca — chama atenção sem precisar de som. */
+[data-status='down'] > .lamp.red {
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; box-shadow: 0 0 12px 2px currentColor; }
+  50% { opacity: 0.35; box-shadow: 0 0 4px 0 currentColor; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-status='down'] > .lamp.red { animation: none; }
+}
+
+/* -------------------------------- botões -------------------------------- */
+
+.btn {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+  white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-solid));
+}
+
+.btn:active:not(:disabled) { transform: translateY(1px); }
+
+.btn:disabled { opacity: 0.45; cursor: progress; }
+
+.btn.ghost { background: transparent; }
+
+.btn.icon { padding: 7px 10px; }
+
+.btn.danger:hover:not(:disabled) {
+  border-color: var(--down);
+  background: color-mix(in srgb, var(--down) 16%, transparent);
+}
+
+.btn.tiny {
+  font-size: 11px;
+  padding: 4px 9px;
+  border-radius: 7px;
+}
+
+/* ----------------------------- conexão SSE ------------------------------ */
+
+.conn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.conn-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--unknown);
+}
+
+.conn[data-state='live'] .conn-dot {
+  background: var(--up);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--up) 60%, transparent);
+  animation: ping 2s ease-out infinite;
+}
+
+.conn[data-state='down'] .conn-dot { background: var(--down); }
+
+@keyframes ping {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--up) 55%, transparent); }
+  100% { box-shadow: 0 0 0 7px transparent; }
+}
+
+/* -------------------------------- layout -------------------------------- */
+
+main {
+  flex: 1;
+  padding: 24px clamp(16px, 4vw, 40px) 40px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/*
+ * Duas colunas: lista de projetos fixa à esquerda, detalhe do projeto selecionado
+ * ocupando o resto. `align-items: flex-start` para a lista não esticar pela altura
+ * do detalhe quando este tem poucos checks.
+ */
+.layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 22px;
+}
+
+.layout[hidden] {
+  display: none;
+}
+
+.project-list {
+  flex: none;
+  width: min(300px, 100%);
+  position: sticky;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100vh - 108px);
+}
+
+.project-list-head {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 0 2px;
+}
+
+.project-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.project-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 11px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.project-item:hover {
+  border-color: var(--border-strong);
+}
+
+.project-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.project-item.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+
+.project-item[data-status='down'] {
+  border-color: color-mix(in srgb, var(--down) 45%, var(--border));
+}
+
+.project-item.disabled { opacity: 0.55; }
+
+.project-item .avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 15px;
+  border-radius: 9px;
+}
+
+.li-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.li-title h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.li-summary {
+  margin: 2px 0 0;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-item .dots,
+.project-item .semaphore {
+  flex: none;
+}
+
+.detail {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-empty {
+  color: var(--text-dim);
+  text-align: center;
+  padding: 60px 0;
+}
+
+.warnings {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.warning {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--degraded) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--degraded) 40%, transparent);
+}
+
+.empty {
+  color: var(--text-dim);
+  text-align: center;
+  padding: 60px 0;
+}
+
+/* ---------------------------- card de serviço --------------------------- */
+
+.card {
+  background: var(--surface);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.3s ease;
+}
+
+.detail-card.disabled .detail-head { opacity: 0.55; }
+
+/* Faixa superior colorida pelo status agregado do serviço. */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--status-color, var(--unknown));
+  opacity: 0.9;
+}
+
+.card[data-status='up'] { --status-color: var(--up); }
+.card[data-status='degraded'] { --status-color: var(--degraded); }
+.card[data-status='down'] { --status-color: var(--down); }
+.card[data-status='unknown'] { --status-color: var(--unknown); }
+
+.card[data-status='down'] {
+  border-color: color-mix(in srgb, var(--down) 45%, var(--border));
+}
+
+/* Tom sutil separa o cabeçalho (projeto) da lista de checks logo abaixo. */
+.detail-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Mesmo modelo do .check-actions: borda sutil separando o botão do resto do cabeçalho. */
+.detail-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: none;
+  gap: 6px;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+}
+
+.detail-actions .btn {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+/* Tira de pontos: um por check, para bater o olho e ver qual está fora sem abrir. */
+.dots {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+
+.dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--unknown);
+}
+
+.dots i.up { background: var(--up); }
+.dots i.degraded { background: var(--degraded); }
+.dots i.down { background: var(--down); }
+.dots i.muted { opacity: 0.35; }
+.dots i.disabled { opacity: 0.35; background: var(--text-faint); }
+
+.card-summary {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.card-summary .bad { color: color-mix(in srgb, var(--down) 80%, var(--text)); font-weight: 600; }
+.card-summary .warn { color: color-mix(in srgb, var(--degraded) 80%, var(--text)); font-weight: 600; }
+
+.avatar {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  border-radius: 13px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--accent-color, var(--accent)) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-color, var(--accent)) 32%, transparent);
+}
+
+/*
+ * `contain` e nao `cover`: as logos sao marcas, e recortar a borda de uma marca para
+ * preencher o quadrado a descaracteriza. O padding evita que a arte encoste na borda
+ * arredondada do avatar.
+ */
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 5px;
+}
+
+.card-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title h2 {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+/*
+ * Falta configurar: menor que o texto do titulo e sem cor de alarme.
+ *
+ * Usa o cinza de `unknown`, nao o ambar de `degraded`, justamente para NAO competir
+ * com o semaforo — variavel faltando e pendencia de setup, nao incidente. O simbolo so
+ * precisa ser notado por quem procura, e a explicacao vem do tooltip.
+ */
+.cfg-pendente {
+  margin-left: 7px;
+  font-size: 11px;
+  vertical-align: 1px;
+  color: var(--unknown);
+  opacity: 0.75;
+  cursor: help;
+}
+
+.cfg-pendente:hover {
+  opacity: 1;
+}
+
+.card-title p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.tag {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 6px;
+}
+
+/* ------------------------------ lista de checks -------------------------- */
+
+.checks {
+  display: flex;
+  flex-direction: column;
+}
+
+.check {
+  display: flex;
+  align-items: stretch;
+  gap: 11px;
+  padding: 13px 18px;
+  border-top: 1px solid var(--border);
+  transition: background 0.5s ease;
+}
+
+.check.muted { opacity: 0.62; }
+.check.disabled { opacity: 0.5; }
+
+/* Pulso ao chegar uma medição nova pelo SSE. */
+.check.flash {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  transition: background 0.12s ease;
+}
+
+.check-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.check-main {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.check-id {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Status na mesma linha do uptime/latência, logo abaixo do nome — os dois ficam
+   colados ao semáforo em vez de espalhados pela altura do card. */
+.check-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.check-name {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex-wrap: wrap;
+  min-width: 0;
+  margin-top: 6px;
+}
+
+.check-name strong {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.check-type {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+/*
+ * Botão "como verifica": um `i` num círculo do tamanho do badge de tipo ao lado.
+ *
+ * Discreto por padrão e só ganha contraste no hover/foco — a explicação é consulta
+ * eventual, não algo que compete com o semáforo e a mensagem do check.
+ */
+.btn-info {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-style: italic;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-info:hover,
+.btn-info[aria-expanded='true'] {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+.btn-info:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.check-info {
+  margin: 8px 0 2px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.check-info ul {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 4px;
+}
+
+.check-info li {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.badge-muted {
+  font-size: 10px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-disabled {
+  font-size: 10px;
+  color: color-mix(in srgb, var(--degraded) 55%, var(--text-faint));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-left: 4px;
+}
+
+.check-msg {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+
+.check[data-status='down'] .check-msg { color: color-mix(in srgb, var(--down) 78%, var(--text)); }
+.check[data-status='degraded'] .check-msg { color: color-mix(in srgb, var(--degraded) 72%, var(--text)); }
+
+/* Sempre visíveis: testar e ações não dependem de hover, então funcionam em touch.
+   Borda sutil separa da informação do check em vez de flutuar solto na coluna. */
+.check-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  flex: none;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+}
+
+.check-actions .btn {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+/* ------------------------- histórico e sparkline ------------------------- */
+
+.viz {
+  margin-top: 8px;
+}
+
+/* Uptime e latência no mesmo nível do nome do check, à direita dele. */
+.viz-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: none;
+}
+
+.uptime {
+  text-align: left;
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.3;
+}
+
+.uptime b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.bars {
+  display: flex;
+  gap: 2px;
+  flex: none;
+  height: 22px;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.bars i {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 2px;
+  background: var(--unknown);
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+.bars i.up { background: var(--up); }
+.bars i.degraded { background: var(--degraded); }
+.bars i.down { background: var(--down); }
+.bars i:hover { opacity: 1; }
+
+.spark-wrap {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  cursor: help;
+}
+
+.spark-caption {
+  font-style: normal;
+  font-size: 9px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.spark {
+  flex: none;
+  width: 92px;
+  height: 24px;
+  overflow: visible;
+}
+
+.spark path.line {
+  fill: none;
+  stroke: var(--status-color, var(--accent));
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.spark path.area {
+  fill: var(--status-color, var(--accent));
+  opacity: 0.14;
+  stroke: none;
+}
+
+.check[data-status='up'] { --status-color: var(--up); }
+.check[data-status='degraded'] { --status-color: var(--degraded); }
+.check[data-status='down'] { --status-color: var(--down); }
+.check[data-status='unknown'] { --status-color: var(--unknown); }
+
+/* ------------------------ indicadores e componentes ---------------------- */
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-solid) 60%, transparent);
+  color: var(--text-dim);
+}
+
+.pill b {
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pill.warn { border-color: color-mix(in srgb, var(--degraded) 45%, transparent); }
+.pill.bad { border-color: color-mix(in srgb, var(--down) 50%, transparent); }
+
+/* Barra dentro do pill quando o indicador tem `max`. */
+.pill .meter {
+  width: 42px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+  overflow: hidden;
+}
+
+.pill .meter span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--up);
+  transition: width 0.4s ease;
+}
+
+.pill.warn .meter span { background: var(--degraded); }
+.pill.bad .meter span { background: var(--down); }
+
+.components {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.component {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.component i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--unknown);
+}
+
+.component[data-status='up'] i { background: var(--up); }
+.component[data-status='degraded'] i { background: var(--degraded); }
+.component[data-status='down'] i { background: var(--down); }
+.component[data-status='down'] {
+  border-color: color-mix(in srgb, var(--down) 45%, transparent);
+  color: var(--text);
+}
+
+/*
+ * ------------------------------ ações --------------------------------------
+ * Duas categorias: ações do projeto (painel sob o cabeçalho do detalhe) e
+ * ações do serviço (painel sob o check ao qual elas pertencem). Mesmo
+ * componente visual, `.inline` só ajusta a moldura para caber dentro da
+ * lista de checks em vez de ocupar a largura toda do card.
+ */
+
+.actions-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 13px 18px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-soft) 40%, transparent);
+}
+
+.actions-panel.inline {
+  margin: 8px 0 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+/* --------------------------------- rodapé -------------------------------- */
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px clamp(16px, 4vw, 40px);
+  border-top: 1px solid var(--border);
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend .chip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 8px;
+}
+
+.legend .chip.up { background: var(--up); }
+.legend .chip.degraded { background: var(--degraded); }
+.legend .chip.down { background: var(--down); }
+.legend .chip.unknown { background: var(--unknown); }
+
+/* --------------------------- botao de notificacoes ----------------------- */
+#btn-notify[data-state='on'] {
+  border-color: color-mix(in srgb, var(--up) 55%, transparent);
+  color: var(--up);
+}
+
+#btn-notify[data-state='blocked'] {
+  border-color: color-mix(in srgb, var(--down) 50%, transparent);
+  color: var(--down);
+}
+
+/* ------------------------ modal de configuração -------------------------- */
+
+/*
+ * `<dialog>` nativo: foco preso, Esc fechando e fundo inerte vêm de graça.
+ *
+ * O seletor precisa ser `.modal[open]` para o `display: grid`. Um `display` aplicado ao
+ * `.modal` cru venceria o `display: none` que o próprio elemento tem enquanto fechado —
+ * o mesmo erro que deixava a antiga gaveta de alertas presa na tela.
+ */
+.modal {
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-solid);
+  color: var(--text);
+  width: min(480px, 92vw);
+  max-height: 86vh;
+  box-shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.9);
+}
+
+.modal[open] {
+  display: grid;
+}
+
+.modal::backdrop {
+  background: rgba(2, 6, 23, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.modal form {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 0;
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.modal-head p {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.modal-body {
+  overflow-y: auto;
+  min-height: 0;
+  padding: 14px 16px;
+  display: grid;
+  gap: 13px;
+}
+
+.campo {
+  display: grid;
+  gap: 5px;
+}
+
+.campo-nome {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+}
+
+.campo-nome code {
+  font-family: var(--mono);
+  color: var(--text-dim);
+}
+
+.campo input {
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.campo input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.campo input::placeholder {
+  color: var(--text-faint);
+  font-family: var(--font);
+  font-style: italic;
+}
+
+.selo {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.selo.ok {
+  color: var(--up);
+  border-color: color-mix(in srgb, var(--up) 35%, transparent);
+}
+
+.selo.falta {
+  color: var(--degraded);
+  border-color: color-mix(in srgb, var(--degraded) 35%, transparent);
+}
+
+.modal-foot {
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 10px;
+}
+
+.modal-nota {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--text-faint);
+}
+
+.modal-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modal-acoes-spacer { flex: 1; }
+
+/* --------------------------------- toasts -------------------------------- */
+
+.toasts {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(90vw, 420px);
+}
+
+.toast {
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-solid);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  font-size: 12.5px;
+  animation: slide-in 0.22s ease;
+}
+
+.toast.ok { border-color: color-mix(in srgb, var(--up) 50%, transparent); }
+.toast.err { border-color: color-mix(in srgb, var(--down) 55%, transparent); }
+
+.toast pre {
+  margin: 6px 0 0;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 120px;
+  overflow: auto;
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ------------------------------- responsivo ------------------------------ */
+
+@media (max-width: 900px) {
+  .spark { width: 64px; }
+}
+
+/* Lista lateral e detalhe empilham: lado a lado não cabe no tablet/celular. */
+@media (max-width: 860px) {
+  .layout { flex-direction: column; }
+
+  .project-list {
+    position: static;
+    width: 100%;
+    max-height: none;
+  }
+
+  .project-list-items {
+    max-height: 260px;
+  }
+}
+
+/* Rótulo textual x ícone: só um dos dois aparece, conforme a largura. */
+.so-estreito { display: none; }
+
+@media (max-width: 640px) {
+  body { font-size: 13.5px; }
+
+  .topbar {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+
+  /* Rótulos longos fazem a topbar quebrar em três linhas e comer a tela.
+     No estreito viram ícone, e o `title` preserva o significado. */
+  .rotulo { display: none; }
+  .so-estreito { display: inline; }
+  .conn-label { display: none; }
+  .conn { padding: 5px 8px; }
+
+  main { padding: 16px 14px 32px; }
+
+  .layout { gap: 14px; }
+
+  .detail-head { padding: 13px; gap: 10px; }
+  .avatar { width: 34px; height: 34px; font-size: 17px; }
+  .card-title h2 { font-size: 14.5px; }
+
+  .check { padding: 12px 13px; }
+  .actions-panel { padding: 12px 13px; }
+
+  /* Latência e uptime viram ruído numa tela estreita — o semáforo e a mensagem
+     são o que importa. */
+  .viz-top { display: none; }
+
+  .footer { font-size: 11px; }
+  .legend { display: none; }
+}
+
+@media (max-width: 380px) {
+  .card-title p { display: none; }
+  .tags { display: none; }
+}

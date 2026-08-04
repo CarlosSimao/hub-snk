@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Permite rodar sob demanda pela aba Actions.
+  workflow_dispatch:
+
+# Push novo na mesma branch cancela o run anterior. Em repo privado os minutos do
+# Actions sao cota (2.000/mes no plano Free), entao nao vale pagar por run obsoleto.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # Teto de seguranca: os testes do engine dependem de tempo real, e um travamento
+    # sem timeout queimaria horas da cota ate o limite padrao de 6h do GitHub.
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 24 nao e capricho: o projeto usa `node:sqlite` e roda TypeScript
+          # direto por type stripping. Versao menor quebra os dois.
+          node-version: '24'
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Typecheck (src + test)
+        run: npm run typecheck
+
+      - name: Testes
+        # Só a suíte padrão. Os testes de `test/network/` batem em badssl.com e ficam
+        # de fora: falha por rede de terceiros treina a ignorar CI vermelho.
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  # A imagem tem seu próprio `npm ci` + build, então pode quebrar mesmo com o job
+  # acima verde. Só no main: em PR o custo não se paga.
+  docker:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build da imagem
+        run: docker build -t monitor-hub:ci .
+
+      - name: A imagem sobe e responde ao healthcheck
+        run: |
+          # Config própria do CI. A que vem na imagem aponta para a máquina local
+          # (WildFly/Oracle), que o runner do GitHub não enxerga. Aqui um único
+          # check em loopback basta para confirmar que a imagem sobe e responde.
+          mkdir -p ci-config
+          cat > ci-config/services.yaml <<'YAML'
+          services:
+            - id: ci
+              name: Smoke test
+              checks:
+                - id: loopback
+                  name: Loopback
+                  type: tcp
+                  host: 127.0.0.1
+                  port: 4000
+                  intervalMs: 5000
+          YAML
+
+          docker run -d --name hub -p 4000:4000 \
+            -e DOCKER_SOCKET= \
+            -e CONFIG_PATH=/app/ci-config/services.yaml \
+            -v "$PWD/ci-config:/app/ci-config:ro" \
+            monitor-hub:ci
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4000/api/healthz > /dev/null 2>&1; then
+              echo "hub respondeu"
+              curl -fsS http://127.0.0.1:4000/api/healthz
+              echo
+              curl -fsS -o /dev/null -w 'dashboard: HTTP %{http_code}\n' http://127.0.0.1:4000/
+              docker rm -f hub > /dev/null
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "hub não respondeu em 60s — logs:"
+          docker logs hub
+          docker rm -f hub > /dev/null
+          exit 1

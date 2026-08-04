@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+*.log
+
+# O cofre de credenciais fica no volume `monitor-data`, nunca dentro da imagem.
+data
+
+# O hub não usa .env; a entrada permanece para que um arquivo criado por hábito
+# não acabe copiado para a imagem.
+.env
+.env.*
