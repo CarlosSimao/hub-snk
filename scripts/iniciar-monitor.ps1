@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    Sobe o monitor-hub do zero: Docker, containers, navegador.
+    Sobe o sankhya-hub do zero: Docker, containers, navegador.
 
 .DESCRIPTION
     Feito para ser disparado por um atalho no Desktop, com um duplo clique e nada mais.
@@ -160,13 +160,13 @@ function Start-DockerDesktop {
 }
 
 function Start-Containers {
-    Escrever-Etapa 'Subindo o monitor-hub'
+    Escrever-Etapa 'Subindo o sankhya-hub'
 
     # `up -d` e idempotente: com o container ja no ar e a config igual, ele nao faz nada.
     Push-Location $RaizProjeto
     try {
         # O docker compose escreve o PROGRESSO em stderr, nao so os erros ("Container
-        # monitor-hub Running" chega por la). Com o ErrorActionPreference em 'Stop', o
+        # sankhya-hub Running" chega por la). Com o ErrorActionPreference em 'Stop', o
         # `2>&1` transforma essas linhas normais em excecao e o script aborta com o
         # container no ar. Aqui a preferencia cai para 'Continue' e quem decide sucesso
         # e o exit code, que e o unico sinal confiavel.
@@ -214,7 +214,7 @@ function Wait-Hub {
         # stderr, e aqui abortar seria pior ainda — e justamente o log do erro.
         $preferenciaAnterior = $ErrorActionPreference
         $ErrorActionPreference = 'Continue'
-        docker logs --tail 30 monitor-hub 2>&1 | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+        docker logs --tail 30 sankhya-hub 2>&1 | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
         $ErrorActionPreference = $preferenciaAnterior
         return $false
     }
@@ -297,7 +297,7 @@ function Start-WildflyLogHelper {
 # --- fluxo -------------------------------------------------------------------
 
 Write-Host ''
-Write-Host '  monitor-hub' -ForegroundColor White
+Write-Host '  sankhya-hub' -ForegroundColor White
 Write-Host '  -----------' -ForegroundColor DarkGray
 
 try {

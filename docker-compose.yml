@@ -1,7 +1,7 @@
 services:
-  monitor-hub:
+  sankhya-hub:
     build: .
-    container_name: monitor-hub
+    container_name: sankhya-hub
     restart: unless-stopped
     ports:
       # Preso ao localhost: o painel grava credenciais pelo formulario de configuracao

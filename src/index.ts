@@ -1,4 +1,4 @@
-/** Bootstrap do monitor-hub: config -> store -> engine -> HTTP. */
+/** Bootstrap do sankhya-hub: config -> store -> engine -> HTTP. */
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import Fastify from 'fastify';
@@ -88,12 +88,12 @@ async function main(): Promise<void> {
 
   await app.listen({ port: PORT, host: HOST });
   app.log.info(
-    `monitor-hub em http://localhost:${PORT} — ${config.services.length} serviço(s), ` +
+    `sankhya-hub em http://localhost:${PORT} — ${config.services.length} serviço(s), ` +
       `docker ${docker.available ? 'disponível' : 'indisponível'}`,
   );
 }
 
 main().catch((err) => {
-  console.error('falha ao subir o monitor-hub:', err);
+  console.error('falha ao subir o sankhya-hub:', err);
   process.exit(1);
 });

@@ -56,7 +56,7 @@ $atalho.TargetPath = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\
 $atalho.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$ScriptDeInicio`""
 
 $atalho.WorkingDirectory = Split-Path -Parent $PSScriptRoot
-$atalho.Description = 'Sobe o Docker, o monitor-hub e abre o painel no navegador'
+$atalho.Description = 'Sobe o Docker, o sankhya-hub e abre o painel no navegador'
 $atalho.WindowStyle = 1   # janela normal: e nela que o progresso aparece
 
 $icone = Get-IconeDocker

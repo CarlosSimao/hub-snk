@@ -64,7 +64,7 @@ export function servidorTcp(): Promise<Servidor<NetServer>> {
 
 /** Diretorio temporario descartavel, para o SQLite dos testes de store/engine. */
 export function dirTemporario(): { path: string; remove: () => void } {
-  const path = mkdtempSync(join(tmpdir(), 'monitor-hub-test-'));
+  const path = mkdtempSync(join(tmpdir(), 'sankhya-hub-test-'));
   return { path, remove: () => rmSync(path, { recursive: true, force: true }) };
 }
 

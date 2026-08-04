@@ -3,7 +3,7 @@
     Helper HTTP nativo do Windows para iniciar/parar/reiniciar o WildFly do Sankhya.
 
 .DESCRIPTION
-    O monitor-hub roda dentro de um container Docker Linux e nao tem como enxergar nem
+    O sankhya-hub roda dentro de um container Docker Linux e nao tem como enxergar nem
     controlar um processo Windows diretamente — SO e espaco de processo diferentes, nao
     e limitacao de codigo. Este script preenche essa lacuna: escuta HTTP em todas as
     interfaces e o hub chama via `host.docker.internal`, usando o tipo de acao `http`

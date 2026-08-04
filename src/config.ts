@@ -18,7 +18,7 @@ import { z } from 'zod';
  * unico check. Com o marcador a config continua valida, e o engine transforma o
  * check afetado num semaforo cinza com a mensagem certa — o resto do painel vive.
  */
-export const UNSET_MARKER = 'monitor-hub-unset://';
+export const UNSET_MARKER = 'sankhya-hub-unset://';
 
 const PLACEHOLDER = /\$\{([A-Za-z_][A-Za-z0-9_]*)(?::([^}]*))?\}/g;
 

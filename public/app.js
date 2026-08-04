@@ -1,5 +1,5 @@
 /**
- * Dashboard do monitor-hub.
+ * Dashboard do sankhya-hub.
  *
  * O fluxo é: abre um SSE em /api/stream, recebe `snapshot` (tudo) uma vez e depois
  * `check` (um check por vez). O snapshot completo redesenha a grade; os deltas
@@ -360,10 +360,10 @@ const acoesServicoAbertas = new Set();
  * Só um por vez: a lista mostra a visão macro de todos os projetos, e o detalhe
  * completo de um único projeto ocupa o painel à direita.
  */
-let selecionado = localStorage.getItem('monitor-hub-selecionado') || null;
+let selecionado = localStorage.getItem('sankhya-hub-selecionado') || null;
 
 function salvarSelecao() {
-  if (selecionado) localStorage.setItem('monitor-hub-selecionado', selecionado);
+  if (selecionado) localStorage.setItem('sankhya-hub-selecionado', selecionado);
 }
 
 /** Uma linha honesta sobre o serviço, sem precisar abrir o card. */
@@ -976,7 +976,7 @@ el.btnNotify.addEventListener('click', async () => {
     // Já ativo: o clique vira uma prévia, para você ver como aparece.
     notifyDesktop({
       severity: 'recovery',
-      serviceName: 'monitor-hub',
+      serviceName: 'sankhya-hub',
       checkName: 'Notificações',
       detail: 'Está funcionando — é assim que um alerta vai aparecer.',
       serviceId: '_test',
@@ -1201,13 +1201,13 @@ el.btnReload.addEventListener('click', async () => {
   }
 });
 
-const savedTheme = localStorage.getItem('monitor-hub-theme');
+const savedTheme = localStorage.getItem('sankhya-hub-theme');
 if (savedTheme) document.documentElement.dataset.theme = savedTheme;
 
 el.btnTheme.addEventListener('click', () => {
   const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
   document.documentElement.dataset.theme = next;
-  localStorage.setItem('monitor-hub-theme', next);
+  localStorage.setItem('sankhya-hub-theme', next);
 });
 
 // Os textos "há Xmin" envelhecem sozinhos; um tick de segundo em segundo mantém

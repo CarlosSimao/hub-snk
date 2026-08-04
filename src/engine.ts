@@ -382,7 +382,7 @@ export class Engine extends EventEmitter {
       id: `test:${Date.now()}`,
       ts: Date.now(),
       serviceId: '_test',
-      serviceName: 'monitor-hub',
+      serviceName: 'sankhya-hub',
       checkId: 'test',
       checkName: 'Alerta de teste',
       from: 'up',

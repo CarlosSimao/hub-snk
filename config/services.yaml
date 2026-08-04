@@ -1,5 +1,5 @@
 # =============================================================================
-# monitor-hub — catálogo de serviços monitorados
+# sankhya-hub — catálogo de serviços monitorados
 # =============================================================================
 # Este arquivo é a única fonte de verdade. Adicionar um projeto ao hub = adicionar
 # um item em `services`. Nenhum código precisa mudar.

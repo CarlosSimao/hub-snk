@@ -58,7 +58,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build da imagem
-        run: docker build -t monitor-hub:ci .
+        run: docker build -t sankhya-hub:ci .
 
       - name: A imagem sobe e responde ao healthcheck
         run: |
@@ -83,7 +83,7 @@ jobs:
             -e DOCKER_SOCKET= \
             -e CONFIG_PATH=/app/ci-config/services.yaml \
             -v "$PWD/ci-config:/app/ci-config:ro" \
-            monitor-hub:ci
+            sankhya-hub:ci
 
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:4000/api/healthz > /dev/null 2>&1; then
