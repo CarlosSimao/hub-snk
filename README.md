@@ -54,6 +54,10 @@ sessões/uptime/versão). Cada card tem botões de **Ações** (subir/parar/rein
 serviço e banco), **Testar** (roda o check na hora) e **Configurações** (intervalo e
 timeout).
 
+Botão **Log** abre o `server.log` do WildFly ao vivo, direto no navegador:
+
+![Tela de log ao vivo do server.log do WildFly, aberta a partir do botão Log no card do check](docs/screenshots/server-log.png)
+
 ---
 
 ## Derrubar
