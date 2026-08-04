@@ -78,7 +78,7 @@ describe('validação do services.yaml', () => {
     assert.equal(cfg.alerts.enabled, true);
     assert.equal(cfg.alerts.onDegraded, false);
     assert.equal(cfg.alerts.onRecovery, true);
-    assert.equal(cfg.services[0]!.checks[0]!.intervalMs, 15000);
+    assert.equal(cfg.services[0]!.checks[0]!.intervalMs, 60000);
     assert.equal(cfg.services[0]!.checks[0]!.failureThreshold, 2);
   });
 

@@ -139,7 +139,7 @@ const baseCheck = {
   name: z.string().min(1),
   description: z.string().optional(),
   /** Periodo entre execucoes. Minimo 2s para nao virar DoS acidental no proprio serviço. */
-  intervalMs: z.number().int().min(2000).default(15000),
+  intervalMs: z.number().int().min(2000).default(60000),
   timeoutMs: z.number().int().min(250).max(120000).default(5000),
   /** Check silenciado nao contamina o semaforo do servico (mas continua sendo medido). */
   muted: z.boolean().default(false),

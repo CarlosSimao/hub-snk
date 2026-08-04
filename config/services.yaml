@@ -83,7 +83,7 @@ services:
         type: http
         url: ${WILDFLY_URL:http://host.docker.internal:8080/mge/}
         expectStatus: [200, 302]
-        intervalMs: 30000
+        intervalMs: 60000
         timeoutMs: 10000
         degradedAboveMs: 2000
 
