@@ -18,6 +18,10 @@ próprio card.
 O hub roda **dentro de um container Linux**, então alvos na sua máquina (WildFly,
 Oracle) são alcançados por `host.docker.internal`, nunca `localhost`.
 
+---
+
+## Instalação
+
 ```bash
 docker compose up -d --build
 ```
@@ -28,7 +32,12 @@ antes — as credenciais do Oracle são preenchidas **no próprio painel**, no c
 
 Para o dia a dia, o atalho `scripts\criar-atalho.ps1` cria **Monitor Hub** no Desktop:
 duplo clique sobe o Docker Desktop (se estiver parado), o container do hub e os
-helpers nativos que controlam o WildFly, e abre o painel — tudo numa ação.
+helpers nativos que controlam o WildFly, e abre o painel — tudo numa ação. Não roda
+sozinho no `docker compose up`, precisa criar uma vez:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\criar-atalho.ps1
+```
 
 ---
 
