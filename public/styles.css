@@ -2141,3 +2141,45 @@ button.selo-situacao:focus-visible {
     width: 100%;
   }
 }
+
+/*
+ * Desktop: a página inteira cabe na viewport, sem barra de rolagem do
+ * documento. Quem rola é cada coluna por dentro — a lista de clientes e o
+ * painel de detalhe. Abaixo de 860px o layout vira coluna única e a rolagem do
+ * documento volta a ser a natural.
+ */
+@media (min-width: 861px) {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  main {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-bottom: 16px;
+    overflow: hidden;
+  }
+
+  /* `stretch` faz as duas colunas irem até o fim da área útil. */
+  .layout {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  /* Sem `sticky`: a coluna já tem exatamente a altura disponível. */
+  .coluna-lista {
+    position: static;
+    max-height: none;
+  }
+
+  .detalhe,
+  #visualizacao-local {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
