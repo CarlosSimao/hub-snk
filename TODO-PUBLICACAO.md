@@ -117,10 +117,13 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 - [x] Início automático no logon pela pasta Inicializar, na sessão do usuário
 - [x] Desinstalação que encerra só o servidor da instalação e preserva o cadastro
 - [x] Workflow que compila o instalador e anexa à release a cada tag
+- [x] Gerar os pacotes de Linux e macOS (Intel e Apple Silicon), também com o Node embutido
+- [x] Usar `.tar.gz` em vez de `.zip` nos pacotes Unix — o zip não preserva o bit de execução do binário do Node
+- [x] Unificar a distribuição num workflow só, com um job de publicação no fim
 - [ ] **Testar o instalador de ponta a ponta numa máquina Windows** — instalar, reiniciar, conferir o início no logon, atualizar por cima e desinstalar
-- [ ] Definir o conteúdo e a geração do pacote `.zip` para Linux e macOS
+- [ ] **Testar os pacotes numa máquina Linux e numa macOS** — descompactar, `./hub-snk.sh`, `parar`, e o Gatekeeper no macOS
 - [ ] Documentar a verificação de integridade dos artefatos (checksum)
-- [ ] Avaliar assinatura digital do instalador — sem ela, o SmartScreen alerta na primeira execução
+- [ ] Avaliar assinatura digital — sem ela, o SmartScreen alerta no Windows e o Gatekeeper barra no macOS
 
 ## 10. Pós-publicação
 

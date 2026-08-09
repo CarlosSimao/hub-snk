@@ -1,0 +1,121 @@
+name: Distribuição
+
+# Monta o instalador do Windows e os pacotes do Linux e do macOS a cada tag de
+# versão, e anexa tudo à release correspondente.
+#
+# Um workflow só, com um job de publicação no fim: dois workflows disparados
+# pela mesma tag disputariam a criação da release.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.18'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Conferir tipos e testes
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Gerar os ícones
+        run: npm run gerar-icones
+
+      - name: Empacotar a distribuição
+        run: npm run empacotar-windows
+
+      # A imagem do runner costuma trazer o Inno Setup, mas depender disso deixa
+      # a release à mercê de uma mudança na imagem.
+      - name: Garantir o Inno Setup
+        shell: pwsh
+        run: |
+          $compilador = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $compilador)) {
+            choco install innosetup --no-progress -y
+          }
+          "COMPILADOR_INNO=$compilador" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Compilar o instalador
+        shell: pwsh
+        run: '& "$env:COMPILADOR_INNO" instalador\hub-snk.iss'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: instalador-windows
+          path: dist/hub-snk-*-windows-x64.exe
+          if-no-files-found: error
+
+  unix:
+    # No Linux para o `tar` preservar o bit de execução do binário do Node —
+    # empacotar no Windows entregaria um pacote que não roda do outro lado.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.18'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Empacotar Linux e macOS
+        run: npm run empacotar-unix
+
+      - name: Conferir se o binário do Node saiu executável
+        run: |
+          for pacote in dist/hub-snk-*.tar.gz; do
+            permissoes=$(tar -tzvf "$pacote" | grep -E "/node$" | awk '{print $1}')
+            echo "$pacote -> $permissoes"
+            case "$permissoes" in
+              -rwx*) ;;
+              *) echo "O binário do Node saiu sem permissão de execução." >&2; exit 1 ;;
+            esac
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pacotes-unix
+          path: dist/hub-snk-*.tar.gz
+          if-no-files-found: error
+
+  publicar:
+    needs: [windows, unix]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artefatos
+          merge-multiple: true
+
+      - name: Anexar os artefatos à release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          ls -lh artefatos
+
+          # A tag pode chegar antes de a release existir — nesse caso, cria.
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
+          fi
+
+          gh release upload "$TAG" artefatos/* --repo "$GITHUB_REPOSITORY" --clobber

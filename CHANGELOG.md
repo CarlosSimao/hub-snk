@@ -14,6 +14,8 @@ em [Versões](README.md#versões) o que cada parte do número significa aqui.
   administrador e não exige Node.js instalado — leva o próprio. Oferece atalho
   na área de trabalho e início automático no logon, e abre o HUB SNK em janela
   própria, sem barra de endereço.
+- Pacotes para Linux e macOS (Intel e Apple Silicon), também com o Node
+  embutido: descompactar e rodar `./hub-snk.sh`.
 
 ### Alterado
 

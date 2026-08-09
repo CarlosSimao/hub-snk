@@ -53,7 +53,42 @@ antes.
 
 ---
 
-## Instalação no Linux, no macOS e a partir do código
+## Instalação no Linux e no macOS
+
+Baixe o pacote da sua plataforma na
+[página de releases](https://github.com/CarlosSimao/hub-snk/releases):
+
+| Plataforma | Arquivo |
+|---|---|
+| Linux | `hub-snk-<versão>-linux-x64.tar.gz` |
+| macOS com Apple Silicon (M1 em diante) | `hub-snk-<versão>-macos-arm64.tar.gz` |
+| macOS com processador Intel | `hub-snk-<versão>-macos-x64.tar.gz` |
+
+```bash
+tar -xzf hub-snk-*-linux-x64.tar.gz
+cd hub-snk-*-linux-x64
+./hub-snk.sh
+```
+
+O pacote **já traz o Node** — não é preciso ter Node.js instalado.
+
+```bash
+./hub-snk.sh            # sobe o servidor e abre a janela
+./hub-snk.sh servidor   # sobe o servidor sem abrir nada
+./hub-snk.sh parar      # encerra o servidor
+```
+
+Seu cadastro fica em `~/.local/share/hub-snk/dados`, fora da pasta do pacote.
+Para atualizar, apague a pasta do pacote e descompacte a versão nova — o
+cadastro fica onde está.
+
+> No macOS, a primeira execução pode ser barrada pelo Gatekeeper, porque o
+> pacote não é assinado. Libere em *Ajustes do Sistema* › *Privacidade e
+> Segurança*, ou rode `xattr -dr com.apple.quarantine .` dentro da pasta.
+
+---
+
+## Rodar a partir do código
 
 | Item | Versão | Para quê |
 |---|---|---|
@@ -477,7 +512,7 @@ diagnóstico é a forma da mensagem, não os valores reais.
 Nada disto é necessário para usar o HUB SNK.
 
 - [Como contribuir](CONTRIBUTING.md) — rodar em modo de desenvolvimento, padrões do código, publicar uma versão
-- [Instalador do Windows](docs/instalador-windows.md) — como o `.exe` é montado e o que ele instala
+- [Distribuição](docs/distribuicao.md) — como o instalador e os pacotes são montados
 - [API HTTP](docs/api.md) — as rotas e os corpos aceitos
 - [Formato dos arquivos de dados](docs/formato-dos-dados.md) — o envelope, o esquema e a migração
 - [Estrutura do código](docs/estrutura-do-codigo.md) — mapa dos arquivos

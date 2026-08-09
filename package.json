@@ -24,6 +24,7 @@
     "test": "node --test",
     "gerar-icones": "node scripts/gerar-icones.mjs",
     "empacotar-windows": "node scripts/empacotar-windows.mjs",
+    "empacotar-unix": "node scripts/empacotar-unix.mjs",
     "version": "node scripts/sincronizar-versao-do-cache.mjs && git add public/sw.js"
   },
   "dependencies": {
