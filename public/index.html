@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#070b14" />
+    <title>HUB SNK</title>
+    <link rel="icon" href="/img/icone-192.png" />
+    <link rel="apple-touch-icon" href="/img/icone-192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="aurora" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-mark" src="/img/icone-192.png" alt="" width="36" height="36" />
+        <div class="brand-text">
+          <h1>HUB <span>SNK</span></h1>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <!-- Chave Clientes/Local: os ícones são montados pelo app.js. -->
+        <div class="seletor-visualizacao" role="group" aria-label="Visualização">
+          <button
+            class="btn ghost ativo"
+            id="btn-visualizacao-clientes"
+            type="button"
+            aria-pressed="true"
+          >
+            Clientes
+          </button>
+          <button
+            class="btn ghost"
+            id="btn-visualizacao-local"
+            type="button"
+            aria-pressed="false"
+          >
+            Local
+          </button>
+        </div>
+        <!-- O ícone de engrenagem é montado pelo app.js. -->
+        <button
+          class="btn ghost botao-icone"
+          id="btn-configuracao"
+          type="button"
+          title="Configurações"
+          aria-label="Configurações"
+        ></button>
+        <!-- O ícone de raio e os itens da lista são montados pelo app.js. -->
+        <div class="menu-atalhos" id="menu-atalhos">
+          <button
+            class="btn ghost botao-icone"
+            id="btn-atalhos"
+            type="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="lista-atalhos"
+            title="Atalhos"
+            aria-label="Atalhos"
+          ></button>
+          <div class="lista-atalhos" id="lista-atalhos" hidden></div>
+        </div>
+        <!-- Situação consolidada do Git de todos os clientes; a cor é aplicada pelo app.js. -->
+        <div
+          class="indicador-git-global"
+          id="indicador-git-global"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></div>
+      </div>
+    </header>
+
+    <main>
+      <div class="layout" id="visualizacao-clientes">
+        <aside class="coluna-lista">
+          <div class="busca-linha">
+            <input
+              class="busca"
+              id="campo-busca"
+              type="search"
+              placeholder="Filtrar clientes…"
+              aria-label="Filtrar clientes"
+            />
+            <!-- Os ícones de funil e de "+" são montados pelo app.js. -->
+            <button
+              class="btn ghost botao-icone botao-filtros"
+              id="btn-filtros"
+              type="button"
+              title="Filtros"
+              aria-label="Filtros"
+              aria-expanded="false"
+              aria-controls="painel-filtros"
+            ></button>
+            <button
+              class="btn primario botao-icone"
+              id="btn-novo-cliente"
+              type="button"
+              title="Cadastrar cliente"
+              aria-label="Cadastrar cliente"
+            ></button>
+
+            <div class="painel-filtros" id="painel-filtros" hidden>
+              <div class="painel-filtros-cabecalho">
+                <h3>Situação do Git</h3>
+                <button class="btn tiny ghost" id="btn-limpar-filtros" type="button">Limpar</button>
+              </div>
+              <!-- As opções de situação são montadas pelo app.js. -->
+              <div
+                class="filtros-situacao"
+                id="filtros-situacao"
+                role="group"
+                aria-label="Filtrar clientes pela situação do Git"
+              ></div>
+            </div>
+          </div>
+          <div class="lista-itens" id="lista-clientes"></div>
+        </aside>
+
+        <section class="detalhe" id="detalhe" aria-live="polite"></section>
+      </div>
+
+      <div class="card" id="visualizacao-local" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-identidade">
+            <h2>Local</h2>
+          </div>
+        </div>
+        <div class="secao-recursos" id="secao-bases-locais"></div>
+        <div class="secao-recursos" id="secao-bancos-locais"></div>
+      </div>
+    </main>
+
+    <dialog class="modal" id="modal-cliente">
+      <form method="dialog" id="formulario-cliente" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-titulo">Cadastrar cliente</h2>
+          <p id="modal-subtitulo">Informe o nome do cliente.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-nome">Nome do cliente</label>
+            <input
+              id="campo-nome"
+              name="nome"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Ex.: Indústria Alfa Ltda"
+              required
+            />
+          </div>
+          <p class="erro-formulario" id="erro-formulario" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-base">
+      <form method="dialog" id="formulario-base" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-base-titulo">Cadastrar base</h2>
+          <p id="modal-base-subtitulo">Informe os dados de acesso à base.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-url">URL</label>
+            <input
+              id="campo-url"
+              type="text"
+              inputmode="url"
+              maxlength="300"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Ex.: https://servidor:8180/mge"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-tipo">Tipo de base</label>
+            <select id="campo-tipo">
+              <option value="producao">Produção</option>
+              <option value="teste">Teste</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+
+          <div class="campo">
+            <label for="campo-usuario">Usuário (opcional)</label>
+            <input
+              id="campo-usuario"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-senha">Senha (opcional)</label>
+            <div class="campo-com-acao">
+              <input id="campo-senha" type="password" maxlength="200" autocomplete="new-password" />
+              <!-- O ícone (olho aberto/fechado) é montado pelo app.js conforme o estado. -->
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                id="btn-ver-senha"
+                aria-pressed="false"
+              ></button>
+            </div>
+          </div>
+
+          <p class="erro-formulario" id="erro-base" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-base">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-base">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-banco">
+      <form method="dialog" id="formulario-banco" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-banco-titulo">Vincular banco de dados</h2>
+          <p id="modal-banco-subtitulo">Dados de conexão do banco desta base.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo-duplo">
+            <div class="campo">
+              <label for="campo-host">Host</label>
+              <input
+                id="campo-host"
+                type="text"
+                maxlength="200"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: 192.168.0.10"
+              />
+            </div>
+
+            <div class="campo campo-estreito">
+              <label for="campo-porta">Port</label>
+              <input id="campo-porta" type="number" min="1" max="65535" autocomplete="off" />
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="campo-servico">Service Name</label>
+            <input
+              id="campo-servico"
+              type="text"
+              maxlength="200"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Ex.: ORCL"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-usuario-banco">User</label>
+            <input
+              id="campo-usuario-banco"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-senha-banco">Password</label>
+            <div class="campo-com-acao">
+              <input
+                id="campo-senha-banco"
+                type="password"
+                maxlength="200"
+                autocomplete="new-password"
+              />
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                id="btn-ver-senha-banco"
+                aria-pressed="false"
+              ></button>
+            </div>
+          </div>
+
+          <p class="erro-formulario" id="erro-banco" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn danger" type="button" id="btn-desvincular-banco" hidden>
+            Desvincular
+          </button>
+          <span class="rodape-espacador"></span>
+          <button class="btn ghost" type="button" id="btn-cancelar-banco">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-banco">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-repositorio">
+      <form method="dialog" id="formulario-repositorio" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-repositorio-titulo">Cadastrar repositório</h2>
+          <p id="modal-repositorio-subtitulo">Informe a URL do repositório remoto.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-nome-repositorio">Nome do repositório</label>
+            <input
+              id="campo-nome-repositorio"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Ex.: Addon de faturamento"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-url-repositorio">URL do repositório</label>
+            <input
+              id="campo-url-repositorio"
+              type="text"
+              inputmode="url"
+              maxlength="300"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Ex.: https://github.com/grupo/projeto"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-caminho-local">Caminho local <span class="opcional">opcional</span></label>
+            <div class="campo-com-acao">
+              <input
+                id="campo-caminho-local"
+                type="text"
+                maxlength="400"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: C:\Workspace\projeto"
+              />
+              <!-- O ícone de pasta é montado pelo app.js. -->
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                id="btn-escolher-caminho-local"
+              ></button>
+            </div>
+          </div>
+
+          <p class="erro-formulario" id="erro-repositorio" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-repositorio">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-repositorio">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-link">
+      <form method="dialog" id="formulario-link" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-link-titulo">Cadastrar link</h2>
+          <p id="modal-link-subtitulo">Informe o endereço a guardar.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-nome-link">Nome do link</label>
+            <input
+              id="campo-nome-link"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Ex.: Portal do chamado"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-url-link">URL</label>
+            <input
+              id="campo-url-link"
+              type="text"
+              inputmode="url"
+              maxlength="300"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Ex.: https://portal.cliente.com.br"
+            />
+          </div>
+
+          <p class="erro-formulario" id="erro-link" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-link">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-link">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-configuracao">
+      <form method="dialog" id="formulario-configuracao" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Configurações</h2>
+          <p>Ajustes que valem para todos os clientes.</p>
+        </div>
+
+        <div class="abas-modal" role="tablist" aria-label="Seções das configurações">
+          <button
+            class="aba ativa"
+            id="aba-configuracao-geral"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="painel-configuracao-geral"
+          >
+            Geral
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-mcp"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-mcp"
+          >
+            MCP
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-atalhos"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-atalhos"
+          >
+            Atalhos
+          </button>
+        </div>
+
+        <div class="modal-corpo abas-empilhadas">
+          <div
+            class="painel-aba"
+            id="painel-configuracao-geral"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-geral"
+          >
+            <div class="campo campo-em-linha">
+              <label for="btn-tema">
+                Tema
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Alterna entre o tema claro e o escuro. A escolha fica salva neste
+                    navegador.</span
+                  ></span
+                >
+              </label>
+              <!-- O ícone (sol ou lua, conforme o tema) é montado pelo app.js. -->
+              <button
+                class="btn ghost botao-icone"
+                id="btn-tema"
+                type="button"
+                title="Alternar tema"
+                aria-label="Alternar tema"
+              ></button>
+            </div>
+
+            <div class="campo">
+              <label for="campo-script-padrao">
+                Script padrão
+                <span class="opcional">opcional</span>
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Este texto é executado pelo shell ao abrir o terminal de um repositório, na sua
+                    máquina e com as suas permissões. Digite aqui só o que você mesmo rodaria no
+                    terminal.</span
+                  ></span
+                >
+              </label>
+              <input
+                id="campo-script-padrao"
+                type="text"
+                maxlength="500"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: git fetch --all"
+              />
+            </div>
+
+            <div class="campo campo-estreito">
+              <label for="campo-intervalo-execucao-automatica">
+                Intervalo de execução automática (segundos)
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >De quanto em quanto tempo a tela refaz sozinha, com a aba em primeiro plano:
+                    o diagnóstico Git dos repositórios (remoto ausente, alterações pendentes); a
+                    situação de cada banco local (container no Docker e login com as
+                    credenciais cadastradas); a situação de cada base local (serviço do WildFly e
+                    HTTP 200 em <code>localhost</code>); e a situação das bases do cliente
+                    selecionado (URL cadastrada). Cada tique também alimenta o gráfico de
+                    uptime.</span
+                  ></span
+                >
+              </label>
+              <input id="campo-intervalo-execucao-automatica" type="number" min="5" max="3600" />
+            </div>
+
+            <div class="campo campo-estreito">
+              <label for="campo-tempo-limite">
+                Tempo limite para timeout (segundos)
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Quanto tempo cada checagem de situação espera por resposta antes de desistir e
+                    marcar o alvo como fora do ar: URL da base do cliente, portas e página do
+                    WildFly local e os comandos <code>docker</code> do banco local. Vale aumentar se
+                    a rede até as bases de cliente for lenta. Não vale para os comandos
+                    <code>git</code>, que têm limites próprios.</span
+                  ></span
+                >
+              </label>
+              <input id="campo-tempo-limite" type="number" min="1" max="60" />
+            </div>
+          </div>
+
+          <div
+            class="painel-aba"
+            id="painel-configuracao-mcp"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-mcp"
+            hidden
+          >
+            <p class="linha-do-link-sobre">
+              <a
+                class="link-sobre"
+                href="https://github.com/frshaka/sankhya-schema-mcp"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Sobre</a
+              >
+            </p>
+
+            <div class="campo">
+              <label for="campo-caminho-schema-mcp">Caminho sankhya-schema-mcp</label>
+              <input
+                id="campo-caminho-schema-mcp"
+                type="text"
+                maxlength="400"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: C:\Workspace\sankhya-schema-mcp"
+              />
+            </div>
+
+            <div class="campo">
+              <label for="campo-config-mcp-host">SANKHYA_DB_HOST</label>
+              <input id="campo-config-mcp-host" type="text" maxlength="200" autocomplete="off" spellcheck="false" />
+            </div>
+
+            <div class="campo campo-estreito">
+              <label for="campo-config-mcp-port">SANKHYA_DB_PORT</label>
+              <input id="campo-config-mcp-port" type="number" min="1" max="65535" autocomplete="off" />
+            </div>
+
+            <div class="campo">
+              <label for="campo-config-mcp-service">SANKHYA_DB_SERVICE_NAME</label>
+              <input id="campo-config-mcp-service" type="text" maxlength="200" autocomplete="off" spellcheck="false" />
+            </div>
+
+            <div class="campo">
+              <label for="campo-config-mcp-user">SANKHYA_DB_USER</label>
+              <input id="campo-config-mcp-user" type="text" maxlength="120" autocomplete="off" spellcheck="false" />
+            </div>
+
+            <div class="campo">
+              <label for="campo-config-mcp-password">SANKHYA_DB_PASSWORD</label>
+              <div class="campo-com-acao">
+                <input id="campo-config-mcp-password" type="password" maxlength="200" autocomplete="new-password" />
+                <button
+                  class="btn tiny botao-icone"
+                  type="button"
+                  id="btn-ver-senha-config-mcp"
+                  aria-pressed="false"
+                ></button>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="painel-aba"
+            id="painel-configuracao-atalhos"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-atalhos"
+            hidden
+          >
+            <p class="texto-auxiliar">
+              Programas iniciados na sua máquina, com as suas permissões, pelo botão de raio da
+              barra do topo.
+            </p>
+
+            <!-- As linhas são montadas pelo app.js a partir da configuração salva. -->
+            <div class="lista-atalhos-config" id="lista-atalhos-config"></div>
+
+            <div>
+              <button class="btn ghost" type="button" id="btn-adicionar-atalho">
+                Adicionar atalho
+              </button>
+            </div>
+          </div>
+
+          <p class="erro-formulario" id="erro-configuracao" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-configuracao">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-configuracao">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal largo" id="modal-mcp">
+      <form method="dialog" id="formulario-mcp" novalidate>
+        <div class="modal-cabecalho">
+          <div class="cabecalho-com-link">
+            <h2>Banco de dados do MCP Claude</h2>
+            <a
+              class="link-sobre"
+              href="https://github.com/frshaka/sankhya-schema-mcp"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Sobre</a
+            >
+          </div>
+          <p id="modal-mcp-subtitulo">Gravado no repositório.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="importar">
+            <select id="campo-base-para-importar" aria-label="Base para importar"></select>
+            <button class="btn" type="button" id="btn-importar-base">Importar</button>
+          </div>
+
+          <div class="grade-de-campos">
+            <div class="campo">
+              <label for="campo-mcp-host">SANKHYA_DB_HOST</label>
+              <input id="campo-mcp-host" type="text" maxlength="200" autocomplete="off" spellcheck="false" />
+            </div>
+
+            <div class="campo">
+              <label for="campo-mcp-port">SANKHYA_DB_PORT</label>
+              <input id="campo-mcp-port" type="number" min="1" max="65535" autocomplete="off" />
+            </div>
+
+            <div class="campo">
+              <label for="campo-mcp-service">SANKHYA_DB_SERVICE_NAME</label>
+              <input id="campo-mcp-service" type="text" maxlength="200" autocomplete="off" spellcheck="false" />
+            </div>
+
+            <div class="campo">
+              <label for="campo-mcp-user">SANKHYA_DB_USER</label>
+              <input id="campo-mcp-user" type="text" maxlength="120" autocomplete="off" spellcheck="false" />
+            </div>
+
+            <div class="campo campo-largura-total">
+              <label for="campo-mcp-password">SANKHYA_DB_PASSWORD</label>
+              <div class="campo-com-acao">
+                <input id="campo-mcp-password" type="password" maxlength="200" autocomplete="new-password" />
+                <button class="btn tiny botao-icone" type="button" id="btn-ver-senha-mcp" aria-pressed="false"></button>
+              </div>
+            </div>
+          </div>
+
+          <p class="erro-formulario" id="erro-mcp" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-mcp">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-mcp">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-base-local">
+      <form method="dialog" id="formulario-base-local" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-base-local-titulo">Cadastrar base</h2>
+          <p>Base local do WildFly.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-nome-base-local">Nome</label>
+            <input
+              id="campo-nome-base-local"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Ex.: Sankhya OM 4.20"
+              required
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-caminho-wildfly">Caminho do WildFly</label>
+            <input
+              id="campo-caminho-wildfly"
+              type="text"
+              maxlength="400"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Ex.: C:\wildfly\sankhya"
+            />
+          </div>
+
+          <div class="campo campo-estreito">
+            <label for="campo-porta-base-local">Port</label>
+            <input id="campo-porta-base-local" type="number" min="1" max="65535" autocomplete="off" />
+          </div>
+
+          <p class="erro-formulario" id="erro-base-local" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-base-local">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-base-local">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-banco-local">
+      <form method="dialog" id="formulario-banco-local" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-banco-local-titulo">Cadastrar banco de dados</h2>
+          <p>Dados de conexão do banco.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-container-local">Container</label>
+            <input
+              id="campo-container-local"
+              type="text"
+              maxlength="200"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+
+          <div class="campo-duplo">
+            <div class="campo">
+              <label for="campo-host-local">Host</label>
+              <input
+                id="campo-host-local"
+                type="text"
+                maxlength="200"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: 192.168.0.10"
+              />
+            </div>
+
+            <div class="campo campo-estreito">
+              <label for="campo-porta-local">Port</label>
+              <input id="campo-porta-local" type="number" min="1" max="65535" autocomplete="off" />
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="campo-servico-local">Service Name</label>
+            <input
+              id="campo-servico-local"
+              type="text"
+              maxlength="200"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Ex.: ORCL"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-usuario-banco-local">User</label>
+            <input
+              id="campo-usuario-banco-local"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-senha-banco-local">Password</label>
+            <div class="campo-com-acao">
+              <input
+                id="campo-senha-banco-local"
+                type="password"
+                maxlength="200"
+                autocomplete="new-password"
+              />
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                id="btn-ver-senha-banco-local"
+                aria-pressed="false"
+              ></button>
+            </div>
+          </div>
+
+          <p class="erro-formulario" id="erro-banco-local" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-banco-local">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-banco-local">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!--
+      Assistente de importação de favoritos do navegador. As etapas moram no
+      mesmo formulário: só uma fica visível por vez, controlada pelo app.js.
+    -->
+    <dialog class="modal muito-largo" id="modal-importacao">
+      <form method="dialog" id="formulario-importacao" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Importar</h2>
+          <p id="modal-importacao-subtitulo">O que você quer importar?</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div id="etapa-importacao-origem">
+            <label class="opcao-de-importacao">
+              <input type="radio" name="origem-da-importacao" value="favoritos" />
+              <span class="opcao-de-importacao-texto">
+                <strong>Importar base de cliente dos favoritos do navegador</strong>
+                <span>Cada favorito escolhido vira uma base de um cliente do HUB SNK.</span>
+              </span>
+            </label>
+
+            <label class="opcao-de-importacao">
+              <input type="radio" name="origem-da-importacao" value="repositorios" />
+              <span class="opcao-de-importacao-texto">
+                <strong>Importar repositórios locais</strong>
+                <span>
+                  Aponte pastas da máquina; cada repositório Git encontrado vira um repositório de
+                  um cliente do HUB SNK.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <!--
+            O caminho absoluto da pasta só existe do lado do servidor: o
+            navegador entrega nomes relativos, e sem o caminho não dá para rodar
+            git ali dentro. Por isso a escolha passa pelo diálogo do sistema.
+          -->
+          <div id="etapa-importacao-pastas" hidden>
+            <div class="barra-da-arvore">
+              <span id="resumo-das-pastas-varridas">Nenhuma pasta adicionada.</span>
+              <div class="barra-da-arvore-acoes">
+                <button class="btn tiny" type="button" id="btn-adicionar-pasta-varrida">
+                  Selecionar pasta
+                </button>
+              </div>
+            </div>
+            <div class="pastas-varridas" id="pastas-varridas"></div>
+          </div>
+
+          <div id="etapa-importacao-repositorios" hidden>
+            <div class="barra-da-arvore">
+              <span id="resumo-dos-repositorios">Nenhum repositório selecionado.</span>
+              <div class="barra-da-arvore-acoes">
+                <button class="btn tiny" type="button" id="btn-marcar-repositorios">
+                  Marcar todos
+                </button>
+                <button class="btn tiny" type="button" id="btn-desmarcar-repositorios">
+                  Desmarcar todos
+                </button>
+              </div>
+            </div>
+            <div class="repositorios-encontrados" id="repositorios-encontrados"></div>
+          </div>
+
+          <div id="etapa-importacao-arquivo" hidden>
+            <div class="area-de-arquivo" id="area-de-arquivo" tabindex="0" role="button">
+              <p class="area-de-arquivo-titulo">Arraste o arquivo de favoritos aqui</p>
+              <p class="area-de-arquivo-ajuda">ou clique para escolher no explorador de arquivos</p>
+              <p class="area-de-arquivo-ajuda">
+                Chrome, Edge, Opera, Firefox e Safari — o formato é reconhecido automaticamente.
+              </p>
+              <p class="area-de-arquivo-selecionado" id="nome-do-arquivo-de-favoritos" hidden></p>
+            </div>
+            <!-- Sem `accept`: o arquivo dos navegadores Chromium não tem extensão e seria filtrado. -->
+            <input id="campo-arquivo-de-favoritos" type="file" hidden />
+          </div>
+
+          <div id="etapa-importacao-arvore" hidden>
+            <div class="barra-da-arvore">
+              <span id="resumo-da-selecao">Nenhum favorito selecionado.</span>
+              <div class="barra-da-arvore-acoes">
+                <button class="btn tiny" type="button" id="btn-marcar-favoritos">
+                  Marcar todos
+                </button>
+                <button class="btn tiny" type="button" id="btn-desmarcar-favoritos">
+                  Desmarcar todos
+                </button>
+              </div>
+            </div>
+            <div class="arvore-de-favoritos" id="arvore-de-favoritos"></div>
+          </div>
+
+          <div id="etapa-importacao-formulario" hidden>
+            <div class="linhas-de-importacao" id="linhas-de-importacao"></div>
+          </div>
+
+          <p class="erro-formulario" id="erro-importacao" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-importacao">Cancelar</button>
+          <button class="btn ghost" type="button" id="btn-voltar-importacao" hidden>Voltar</button>
+          <button class="btn primario" type="button" id="btn-avancar-importacao" hidden>
+            Avançar
+          </button>
+          <button class="btn primario" type="submit" id="btn-concluir-importacao" hidden>
+            Concluir
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal muito-largo" id="modal-exportacao">
+      <div class="modal-cabecalho">
+        <h2>Compartilhar bases</h2>
+        <p id="modal-exportacao-subtitulo">Escolha o que compartilhar de cada base.</p>
+      </div>
+
+      <div class="modal-corpo">
+        <!-- Só aparece com mais de uma base: com uma só, marcar "todas" é a própria linha. -->
+        <div class="barra-de-exportacao" id="barra-de-exportacao" hidden>
+          <span>Marcar todas</span>
+          <div class="linha-de-exportacao-opcoes" id="mestres-de-exportacao"></div>
+        </div>
+        <div class="linhas-de-exportacao" id="linhas-de-exportacao"></div>
+      </div>
+
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-fechar-exportacao">Fechar</button>
+        <button class="btn" type="button" id="btn-copiar-exportacao">Copiar</button>
+        <button class="btn primario" type="button" id="btn-baixar-exportacao">Baixar .txt</button>
+      </div>
+    </dialog>
+
+    <dialog class="modal" id="modal-exclusao">
+      <div class="modal-cabecalho">
+        <h2 id="titulo-exclusao">Excluir</h2>
+        <p id="texto-exclusao">Esta ação não pode ser desfeita.</p>
+      </div>
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-cancelar-exclusao">Cancelar</button>
+        <button class="btn danger" type="button" id="btn-confirmar-exclusao">Excluir</button>
+      </div>
+    </dialog>
+
+    <div class="avisos" id="avisos" aria-live="polite"></div>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

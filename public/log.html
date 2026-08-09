@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#070b14" />
+    <title>Log — HUB SNK</title>
+    <link rel="icon" href="/img/icone-192.png" />
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      /* O `styles.css` deixa o `body` com `min-height` — aqui a altura é fixa
+       * de propósito: sem isso o `flex: 1` do corpo do log não limita nada, o
+       * `<pre>` cresce com o conteúdo e quem rola passa a ser a página, não o
+       * elemento que o script controla. */
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      .log-topbar {
+        flex: 0 0 auto;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 20px;
+        background: var(--surface-solid);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .log-titulo {
+        font-weight: 600;
+      }
+
+      .log-status {
+        color: var(--text-dim);
+        font-size: 12px;
+      }
+
+      /* Título à esquerda; status e ações agrupados à direita. */
+      .log-controles {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .log-acoes {
+        display: flex;
+        gap: 6px;
+      }
+
+      /* Estado ligado da rolagem automática — o botão é uma chave, não um disparo. */
+      .btn.tiny.log-acao.ativo {
+        border-color: var(--marca);
+        color: var(--marca);
+      }
+
+      .log-corpo {
+        flex: 1;
+        /* Item de flex não encolhe abaixo do próprio conteúdo sem isto — é o
+         * que faz a barra de rolagem nascer aqui dentro. */
+        min-height: 0;
+        margin: 0;
+        padding: 16px 20px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: Consolas, 'Cascadia Code', 'Courier New', monospace;
+        font-size: 12.5px;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="log-topbar">
+      <span class="log-titulo" id="log-titulo">Log</span>
+      <div class="log-controles">
+        <span class="log-status" id="log-status">Conectando...</span>
+        <div class="log-acoes">
+          <button
+            type="button"
+            class="btn tiny log-acao ativo"
+            id="log-rolagem"
+            aria-pressed="true"
+            title="Manter a rolagem no final conforme o log cresce"
+          >
+            Rolagem automática
+          </button>
+          <button
+            type="button"
+            class="btn tiny log-acao"
+            id="log-pausar"
+            title="Parar ou continuar o acompanhamento em tempo real"
+          >
+            Pausar
+          </button>
+          <button
+            type="button"
+            class="btn tiny log-acao"
+            id="log-baixar"
+            title="Baixar o arquivo de log completo"
+          >
+            Baixar
+          </button>
+        </div>
+      </div>
+    </div>
+    <pre class="log-corpo" id="log-corpo"></pre>
+    <script src="/log.js" type="module"></script>
+  </body>
+</html>

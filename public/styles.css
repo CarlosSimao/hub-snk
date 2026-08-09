@@ -1,0 +1,2111 @@
+/* =========================================================================
+   HUB SNK — folha de estilo única.
+   Sem framework, sem build. Tema escuro por padrão, claro via [data-theme].
+   ========================================================================= */
+
+:root {
+  --marca: #66cb66;
+  --perigo: #ef4444;
+  --aviso: #f59e0b;
+
+  --bg: #070b14;
+  --bg-soft: #0d1425;
+  --surface: rgba(20, 29, 48, 0.72);
+  --surface-solid: #131c30;
+  --border: rgba(148, 163, 184, 0.14);
+  --border-strong: rgba(148, 163, 184, 0.26);
+  --text: #e8eefc;
+  --text-dim: #97a5c0;
+  --text-faint: #64748b;
+  --accent: #60a5fa;
+
+  /* Espaços fixos ao redor da coluna lateral, usados no cálculo da altura dela. */
+  --topo-coluna-lista: 88px;
+  --respiro-inferior: 40px;
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 20px 50px -24px rgba(0, 0, 0, 0.85);
+  --sans: Arial, 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+}
+
+[data-theme='light'] {
+  --bg: #f1f5f9;
+  --bg-soft: #e8eef7;
+  --surface: rgba(255, 255, 255, 0.86);
+  --surface-solid: #ffffff;
+  --border: rgba(15, 23, 42, 0.1);
+  --border-strong: rgba(15, 23, 42, 0.18);
+  --text: #0f172a;
+  --text-dim: #475569;
+  --text-faint: #94a3b8;
+  --shadow: 0 18px 40px -28px rgba(15, 23, 42, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Brilho de fundo — puramente decorativo, fica atrás de tudo. */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 32rem at 12% -10%, rgba(56, 189, 248, 0.16), transparent 60%),
+    radial-gradient(48rem 28rem at 92% 4%, rgba(129, 140, 248, 0.14), transparent 62%),
+    radial-gradient(40rem 26rem at 50% 108%, rgba(102, 203, 102, 0.12), transparent 65%);
+}
+
+/* ------------------------------- topbar -------------------------------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: block;
+}
+
+.brand-text h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand-text h1 span {
+  color: var(--text-faint);
+  font-weight: 500;
+}
+
+/*
+ * `stretch` iguala a altura dos botões de ícone à da chave. A altura é fixada
+ * aqui porque, em um flex row, a largura é resolvida antes da altura — sem a
+ * medida explícita não há como deixar os botões quadrados.
+ */
+.topbar-actions {
+  --altura-dos-controles: 33px;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.topbar-actions .seletor-visualizacao {
+  height: var(--altura-dos-controles);
+}
+
+.topbar-actions .botao-icone {
+  width: var(--altura-dos-controles);
+}
+
+/*
+ * Situação consolidada do Git, à direita do botão de atalhos. A cor sozinha não
+ * informa quem não distingue verde de vermelho: o `title`/`aria-label` vem do
+ * app.js. O `hidden` do HTML precisa vencer o `display`, daí o seletor negado.
+ */
+.indicador-git-global:not([hidden]) {
+  display: flex;
+  align-items: center;
+  height: var(--altura-dos-controles);
+  padding: 0 4px;
+}
+
+.indicador-git-global::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+/* Verde fica aceso e parado: só o que exige ação pisca. */
+.indicador-git-global.ok::after {
+  background: var(--marca);
+  box-shadow: 0 0 6px var(--marca);
+}
+
+/*
+ * O `!important` é a única exceção deliberada ao `prefers-reduced-motion` desta
+ * folha: a regra global do fim do arquivo zera a duração de toda animação, e
+ * sem a piscada o indicador vira só uma bolinha colorida — quem não distingue
+ * amarelo de verde perde o aviso. A especificidade do seletor (0,2,1) vence o
+ * `*` da regra global, então a ordem no arquivo não importa. Todo o resto da
+ * interface continua respeitando a preferência.
+ */
+.indicador-git-global.atencao::after {
+  background: var(--aviso);
+  box-shadow: 0 0 6px var(--aviso);
+  animation: piscar-indicador-git 1.8s ease-in-out infinite !important;
+}
+
+.indicador-git-global.erro::after {
+  background: var(--perigo);
+  box-shadow: 0 0 6px var(--perigo);
+  animation: piscar-indicador-git 1.2s ease-in-out infinite !important;
+}
+
+/*
+ * Além da opacidade, a bolinha cresce e ganha halo no pico: em tela clara a
+ * variação de opacidade sozinha quase não é percebida.
+ */
+@keyframes piscar-indicador-git {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  50% {
+    opacity: 0.1;
+    transform: scale(0.85);
+  }
+}
+
+/* ------------------------------- botões -------------------------------- */
+
+.btn {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+  white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-solid));
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: progress;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn.ghost {
+  background: transparent;
+}
+
+.btn.primario {
+  border-color: color-mix(in srgb, var(--marca) 55%, transparent);
+  background: color-mix(in srgb, var(--marca) 16%, var(--surface-solid));
+}
+
+.btn.primario:hover:not(:disabled) {
+  border-color: var(--marca);
+  background: color-mix(in srgb, var(--marca) 26%, var(--surface-solid));
+}
+
+.btn.danger:hover:not(:disabled) {
+  border-color: var(--perigo);
+  background: color-mix(in srgb, var(--perigo) 16%, transparent);
+}
+
+.btn.tiny {
+  font-size: 11px;
+  padding: 4px 9px;
+  border-radius: 7px;
+}
+
+/* Links com aparência de botão (a seta que abre a base em nova aba). */
+a.btn {
+  text-decoration: none;
+  color: var(--text);
+}
+
+/* Botão sem texto: quadrado, com o ícone herdando a cor do próprio botão. */
+.botao-icone {
+  display: inline-grid;
+  place-items: center;
+  padding: 7px;
+  line-height: 0;
+}
+
+.botao-icone svg {
+  width: 15px;
+  height: 15px;
+}
+
+.btn.tiny.botao-icone {
+  padding: 5px;
+}
+
+.btn.tiny.botao-icone svg {
+  width: 13px;
+  height: 13px;
+}
+
+.btn.danger.botao-icone {
+  color: color-mix(in srgb, var(--perigo) 70%, var(--text));
+}
+
+/* Sinaliza que a base já tem banco vinculado sem precisar abrir o formulário. */
+.btn.vinculado {
+  color: var(--marca);
+  border-color: color-mix(in srgb, var(--marca) 45%, transparent);
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
+}
+
+/* Chave Clientes/Local: dois botões colados, só um "ativo" por vez. */
+.seletor-visualizacao {
+  display: flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 9px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-solid);
+}
+
+/* Largura fixa: a chave não muda de tamanho conforme o rótulo de cada opção. */
+.seletor-visualizacao .btn {
+  width: 72px;
+  border: none;
+  border-radius: 7px;
+  padding: 5px 0;
+  text-align: center;
+}
+
+.seletor-visualizacao .btn.ativo {
+  color: var(--marca);
+  background: color-mix(in srgb, var(--marca) 16%, transparent);
+}
+
+/* ------------------------------- layout -------------------------------- */
+
+main {
+  flex: 1;
+  padding: 24px clamp(16px, 4vw, 40px) 40px;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/*
+ * Duas colunas: lista de clientes fixa à esquerda, detalhe do selecionado à
+ * direita. `align-items: flex-start` evita a lista esticar junto com o detalhe.
+ */
+.layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 22px;
+}
+
+/* `.layout` tem a mesma especificidade de `[hidden]`: sem isso o atributo perde. */
+.layout[hidden] {
+  display: none;
+}
+
+.coluna-lista {
+  flex: none;
+  width: min(320px, 100%);
+  position: sticky;
+  top: var(--topo-coluna-lista);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /*
+   * `100dvh` em vez de `100vh`: no mobile a barra de endereço retrátil faz
+   * `100vh` medir mais que a área visível e devolve a rolagem dupla.
+   */
+  max-height: calc(100dvh - var(--topo-coluna-lista) - var(--respiro-inferior));
+}
+
+/* Âncora do painel de filtros, que abre logo abaixo da linha de busca. */
+.busca-linha {
+  position: relative;
+  display: flex;
+  gap: 8px;
+}
+
+.busca-linha .busca {
+  flex: 1;
+  min-width: 0;
+}
+
+.busca {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.busca:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.busca::placeholder {
+  color: var(--text-faint);
+}
+
+/* Ponto de aviso no canto do funil: há filtro aplicado com o painel fechado. */
+.botao-filtros.com-filtro::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.botao-filtros {
+  position: relative;
+}
+
+.painel-filtros {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow);
+}
+
+/* `.painel-filtros` e `[hidden]` têm a mesma especificidade: sem isto o atributo perde. */
+.painel-filtros[hidden] {
+  display: none;
+}
+
+.painel-filtros-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.painel-filtros-cabecalho h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filtros-situacao {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.opcao-situacao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.opcao-situacao:hover {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
+.opcao-situacao.ativo {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
+}
+
+.opcao-rotulo {
+  flex: 1;
+}
+
+.opcao-contagem {
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.opcao-situacao:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.lista-itens {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.item-cliente {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 11px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.item-cliente:hover {
+  border-color: var(--border-strong);
+}
+
+.item-cliente:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.item-cliente.ativo {
+  border-color: var(--marca);
+  background: color-mix(in srgb, var(--marca) 10%, var(--surface));
+}
+
+.item-titulo {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-titulo h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------ detalhe -------------------------------- */
+
+.detalhe {
+  flex: 1;
+  min-width: 0;
+}
+
+.card {
+  background: var(--surface);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.detalhe-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 18px 20px;
+}
+
+.detalhe-identidade {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.detalhe-identidade h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.detalhe-acoes {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------------------- recursos do cliente (bases, repositórios) -------- */
+
+.secao-recursos {
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.secao-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.secao-cabecalho h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+/*
+ * Campo de anotações do cliente. Redimensionável só na vertical: largura livre
+ * esticaria o campo para fora do card.
+ */
+.campo-anotacoes {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.campo-anotacoes::placeholder {
+  color: var(--text-faint);
+}
+
+.campo-anotacoes:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.secao-vazia {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  padding: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+/*
+ * `minmax(0, 1fr)` em vez de `1fr`: sem isso a coluna nunca fica menor que o
+ * conteúdo mais largo da linha, e uma mensagem comprida estica o card inteiro.
+ */
+.lista-recursos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+/*
+ * O selo e as ações não encolhem; a coluna do meio leva `min-width: 0` para que
+ * uma URL longa quebre em vez de esticar a linha inteira.
+ */
+.linha-recurso {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-soft) 55%, transparent);
+}
+
+.recurso-info {
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * Bloco de situação do banco local (selo + gráfico de uptime): filho direto da
+ * linha, não encolhe. Largura fixa — não varia entre "Verificando…",
+ * "Operacional" e o texto mais longo ("Container ativo, banco não responde") —
+ * para o selo e o gráfico embaixo dele não pularem de tamanho a cada status.
+ */
+.situacao-banco-local {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+  width: 260px;
+}
+
+.situacao-banco-local > .selo-situacao {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/*
+ * Faixa de uptime: uma barra por amostra, mais antiga à esquerda. Quando não
+ * cabem todas, `justify-content: flex-end` empurra a mais nova pra dentro da
+ * área visível e corta a mais antiga à esquerda — nunca o contrário.
+ */
+.grafico-uptime {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 2px;
+  width: 100%;
+  height: 18px;
+  overflow: hidden;
+}
+
+.grafico-uptime-vazio {
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.barra-uptime {
+  flex: none;
+  width: 4px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--text-faint);
+}
+
+.barra-uptime.ok {
+  background: var(--marca);
+}
+
+.barra-uptime.atencao {
+  background: var(--aviso);
+}
+
+.barra-uptime.erro {
+  background: var(--perigo);
+}
+
+.recurso-nome {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+
+/* A seta acompanha a URL: se o endereço quebrar em várias linhas, ela desce junto. */
+.recurso-url {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 550;
+}
+
+/* Quando a URL é subtítulo de um nome, ela recua para segundo plano. */
+.recurso-url.secundaria {
+  margin-top: 3px;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.recurso-caminho {
+  margin: 3px 0 0;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11px;
+  color: var(--text-faint);
+  overflow-wrap: anywhere;
+}
+
+.recurso-url span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Usuário e senha usam fontes diferentes (proporcional × monoespaçada). Com
+ * `align-items: center` cada uma seria centralizada pela própria caixa de linha
+ * e as baselines não coincidiriam — daí o alinhamento por `baseline`, que casa
+ * os dois textos. Botões e separador voltam ao centro via `align-self`.
+ */
+.base-credencial {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+.base-credencial .separador {
+  width: 1px;
+  align-self: center;
+  height: 1.1em;
+  background: var(--text-faint);
+  opacity: 0.4;
+}
+
+.base-credencial .btn {
+  align-self: center;
+}
+
+.base-senha {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+
+.recurso-acoes {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/*
+ * Largura fixa só nas seções Local (bases e bancos), não o conteúdo mais
+ * largo (a fileira de extras da base, com 6 ícones, é mais larga que a do
+ * banco, com 4) — sem isso o selo e o gráfico de uptime, que ficam entre
+ * `.recurso-info` e esta coluna, cairiam em posições diferentes entre as duas
+ * seções.
+ */
+#secao-bases-locais .recurso-acoes,
+#secao-bancos-locais .recurso-acoes {
+  width: 205px;
+}
+
+.recurso-acoes-linha {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* Afasta o clique de excluir dos botões de uso, que são os de todo dia. */
+.recurso-acoes-extras {
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+/*
+ * Largura fixa: "PRODUÇÃO", "TESTE" e "OUTRO" ocupam o mesmo espaço, então as
+ * colunas seguintes ficam alinhadas entre as linhas. `align-self: center`
+ * centraliza o selo na altura da linha, que cresce conforme o conteúdo do meio.
+ */
+.selo-tipo {
+  flex: none;
+  align-self: center;
+  width: 80px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+}
+
+.selo-tipo.producao {
+  color: color-mix(in srgb, var(--perigo) 75%, var(--text));
+  border-color: color-mix(in srgb, var(--perigo) 40%, transparent);
+  background: color-mix(in srgb, var(--perigo) 12%, transparent);
+}
+
+.selo-tipo.teste {
+  color: color-mix(in srgb, var(--marca) 75%, var(--text));
+  border-color: color-mix(in srgb, var(--marca) 40%, transparent);
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
+}
+
+.selo-tipo.outro {
+  border-color: var(--border-strong);
+  background: color-mix(in srgb, var(--text-faint) 12%, transparent);
+}
+
+/* ------------------------- situação do repositório ---------------------- */
+
+/*
+ * Cor sozinha não informa nada a quem não distingue verde de vermelho: a
+ * bolinha sempre vem acompanhada do texto da pendência ou de um `title`.
+ */
+.ponto-situacao {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+.ponto-situacao.erro {
+  background: var(--perigo);
+}
+
+.ponto-situacao.atencao {
+  background: var(--aviso);
+}
+
+.ponto-situacao.ok {
+  background: var(--marca);
+}
+
+/* Sem repositório cadastrado: círculo vazado, para não se confundir com o cinza do "não verificado". */
+.ponto-situacao.sem-git {
+  background: transparent;
+  border: 1px solid var(--text-faint);
+}
+
+.situacao-git {
+  margin-top: 7px;
+}
+
+.selo-situacao {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  /* Pílula do tamanho do texto, até onde a coluna deixar. */
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px 9px;
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  color: var(--text-dim);
+  background: color-mix(in srgb, var(--text-faint) 8%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+/* O selo só vira botão quando há pendência para abrir. */
+button.selo-situacao {
+  cursor: pointer;
+}
+
+button.selo-situacao:hover {
+  border-color: var(--border-strong);
+}
+
+button.selo-situacao:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.selo-situacao.erro {
+  color: color-mix(in srgb, var(--perigo) 70%, var(--text));
+  border-color: color-mix(in srgb, var(--perigo) 40%, transparent);
+  background: color-mix(in srgb, var(--perigo) 10%, transparent);
+}
+
+.selo-situacao.atencao {
+  color: color-mix(in srgb, var(--aviso) 70%, var(--text));
+  border-color: color-mix(in srgb, var(--aviso) 40%, transparent);
+  background: color-mix(in srgb, var(--aviso) 10%, transparent);
+}
+
+.selo-situacao.ok {
+  color: color-mix(in srgb, var(--marca) 70%, var(--text));
+  border-color: color-mix(in srgb, var(--marca) 35%, transparent);
+  background: color-mix(in srgb, var(--marca) 8%, transparent);
+}
+
+.selo-branch {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.selo-branch svg {
+  width: 11px;
+  height: 11px;
+}
+
+/* Ícone solto dentro do selo, fora de um botao-icone. */
+.selo-situacao > svg {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+
+/* Botão de atualizar status do banco local, encostado na borda direita do selo. */
+.selo-situacao > .btn.tiny.botao-icone {
+  flex: none;
+  margin-left: auto;
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-faint);
+}
+
+.selo-situacao > .btn.tiny.botao-icone:hover:not(:disabled) {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--text-faint) 14%, transparent);
+  color: var(--text-dim);
+}
+
+/* O resumo cede espaço antes da branch: o nome dela não pode ser cortado. */
+.situacao-resumo {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lista-pendencias {
+  list-style: none;
+  margin: 7px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+/*
+ * Grade em vez de flex: a bolinha fica na primeira coluna e o comando alinhado
+ * sob a mensagem. Com flex, uma mensagem longa era jogada para a linha de baixo
+ * e a bolinha ficava sozinha.
+ */
+.pendencia {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 5px 7px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.pendencia .ponto-situacao {
+  margin-top: 5px;
+}
+
+.pendencia-mensagem {
+  overflow-wrap: anywhere;
+}
+
+.pendencia-comando {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pendencia-comando code {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11px;
+  color: var(--text);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--text-faint) 14%, transparent);
+  overflow-wrap: anywhere;
+}
+
+.vazio {
+  color: var(--text-dim);
+  text-align: center;
+  padding: 60px 20px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+}
+
+.vazio h2 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.vazio p {
+  margin: 0 0 16px;
+  font-size: 12.5px;
+}
+
+/* Cadastrar e importar lado a lado, centralizados como o resto do bloco. */
+.vazio-acoes {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/*
+ * Mesma caixa para os dois: o rótulo mais curto e o ícone do "Importar" o
+ * deixariam menor que o "Cadastrar cliente" ao lado.
+ */
+.vazio-acoes .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 160px;
+}
+
+/* Botão com ícone e texto: o ícone acompanha a linha do rótulo. */
+.btn.botao-com-icone {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.btn.botao-com-icone svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+/* -------------------------------- modal -------------------------------- */
+
+/*
+ * `<dialog>` nativo: foco preso, Esc fechando e fundo inerte vêm de graça.
+ * O seletor precisa ser `.modal[open]` — um `display` no `.modal` cru venceria
+ * o `display: none` que o próprio elemento aplica enquanto fechado.
+ */
+.modal {
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-solid);
+  color: var(--text);
+  width: min(440px, 92vw);
+  box-shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.9);
+}
+
+/* Formulários com rótulos longos (as variáveis do MCP) precisam de mais largura. */
+.modal.largo {
+  width: min(680px, 94vw);
+}
+
+.modal[open] {
+  display: grid;
+}
+
+.modal::backdrop {
+  background: rgba(2, 6, 23, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.modal-cabecalho {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-cabecalho h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.modal-cabecalho p {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+/* Título à esquerda, link "Sobre" encostado na borda direita do cabeçalho. */
+.cabecalho-com-link {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.linha-do-link-sobre {
+  margin: 0 0 10px;
+  text-align: right;
+}
+
+.link-sobre {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  text-decoration: none;
+  border-bottom: 1px dotted currentcolor;
+}
+
+.link-sobre:hover {
+  color: var(--text);
+}
+
+.abas-modal {
+  display: flex;
+  gap: 2px;
+  padding: 8px 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.aba {
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 7px 7px 0 0;
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.aba:hover {
+  color: var(--text);
+}
+
+.aba.ativa {
+  color: var(--marca);
+  border-bottom-color: var(--marca);
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
+}
+
+.painel-aba {
+  display: grid;
+  gap: 10px;
+}
+
+/* `display: grid` acima venceria o `display: none` que o atributo hidden aplica. */
+.painel-aba[hidden] {
+  display: none;
+}
+
+/*
+ * Painéis empilhados na mesma célula: a janela passa a ter sempre a altura do
+ * maior painel, então trocar de aba não a redimensiona. O painel inativo segue
+ * marcado com `hidden` — mas some por `visibility`, então continua ocupando o
+ * espaço, fora do tab order e dos leitores de tela.
+ */
+.abas-empilhadas > .painel-aba {
+  grid-column: 1;
+  grid-row: 1;
+  align-content: start;
+}
+
+.abas-empilhadas > .painel-aba[hidden] {
+  display: grid;
+  visibility: hidden;
+}
+
+.abas-empilhadas > .erro-formulario {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.modal-corpo {
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.modal-rodape {
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.campo {
+  display: grid;
+  gap: 5px;
+}
+
+/* Campo cujo controle é um botão de ícone: rótulo à esquerda, botão à direita. */
+.campo-em-linha {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.campo-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.campo-checkbox input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--marca);
+  cursor: pointer;
+}
+
+.campo label {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/*
+ * Ajuda por demanda: o texto que antes ocupava um parágrafo fixo abaixo do
+ * campo agora só aparece ao passar o mouse (ou focar pelo teclado) no "?".
+ * O balão é ancorado no `.campo`, e não no ícone, para nunca vazar da lateral
+ * do modal quando o rótulo é longo.
+ */
+.campo,
+.campo-checkbox {
+  position: relative;
+}
+
+.dica {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 9.5px;
+  line-height: 1;
+  color: var(--text-faint);
+  cursor: help;
+  user-select: none;
+}
+
+.dica:hover,
+.dica:focus-visible {
+  color: var(--text);
+  border-color: var(--marca);
+  outline: none;
+}
+
+.dica-texto {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Abre para baixo: para cima o balão escaparia da borda do modal. */
+  top: calc(100% + 6px);
+  z-index: 20;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-solid);
+  box-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.9);
+  font-size: 11px;
+  line-height: 1.45;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-dim);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 120ms ease;
+}
+
+.dica:hover .dica-texto,
+.dica:focus-visible .dica-texto {
+  opacity: 1;
+  visibility: visible;
+}
+
+.opcional {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 1px 6px;
+  margin-left: 4px;
+}
+
+.campo input,
+.campo select,
+.linha-atalho-config input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+/*
+ * Sem as setinhas de incremento nos campos numéricos: os valores aqui são
+ * portas, então subir de 1 em 1 no clique não serve para nada e a seta ainda
+ * rouba largura do campo. O `type="number"` fica — é ele que mantém a validação
+ * de min/max e o teclado numérico no celular.
+ */
+.campo input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.campo input[type='number']::-webkit-outer-spin-button,
+.campo input[type='number']::-webkit-inner-spin-button {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* O `<select>` nativo herda o fundo do sistema no menu aberto — em tema escuro
+   isso deixa o texto ilegível sem esta dica explícita. */
+.campo select {
+  color-scheme: inherit;
+}
+
+.campo input:focus-visible,
+.campo select:focus-visible,
+.linha-atalho-config input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+/* Linha para trazer os dados de uma base já cadastrada. */
+.importar {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.importar select {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.importar select:disabled {
+  opacity: 0.55;
+}
+
+/*
+ * Duas colunas de campos. Cortar as linhas pela metade é o que tira a barra de
+ * rolagem do formulário do MCP, que tem cinco campos.
+ */
+.grade-de-campos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.grade-de-campos .campo-largura-total {
+  grid-column: 1 / -1;
+}
+
+/* Dois campos na mesma linha, o segundo mais estreito (host + porta). */
+.campo-duplo {
+  display: flex;
+  gap: 10px;
+}
+
+.campo-duplo .campo {
+  flex: 1;
+  min-width: 0;
+}
+
+.campo-duplo .campo-estreito {
+  flex: none;
+  width: 96px;
+}
+
+/* Empurra Cancelar e Salvar para a direita, deixando Desvincular à esquerda. */
+.rodape-espacador {
+  flex: 1;
+}
+
+/* Campo com botão colado à direita (mostrar/ocultar senha). */
+.campo-com-acao {
+  display: flex;
+  gap: 6px;
+}
+
+.campo-com-acao input {
+  flex: 1;
+  min-width: 0;
+}
+
+.campo-com-acao .btn {
+  flex: none;
+}
+
+.campo input::placeholder {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.erro-formulario {
+  margin: 0;
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--perigo) 80%, var(--text));
+}
+
+.erro-formulario[hidden] {
+  display: none;
+}
+
+/* ------------------- importação de favoritos do Chrome ------------------- */
+
+/* O formulário final tem cinco campos por linha e não cabe na largura padrão. */
+.modal.muito-largo {
+  width: min(980px, 96vw);
+}
+
+/* Rodapé da lista lateral: entrada do assistente, abaixo dos clientes. */
+.botao-importar-favoritos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.botao-importar-favoritos svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.botao-importar-favoritos:hover:not(:disabled) {
+  color: var(--text);
+}
+
+/*
+ * Sem o empurrão de 1px do `:active`: este botão é o último filho da lista
+ * rolável, e o deslocamento transborda o container, fazendo nascer uma barra de
+ * rolagem enquanto o clique está pressionado.
+ */
+.botao-importar-favoritos:active:not(:disabled) {
+  transform: none;
+}
+
+/* Etapas de escolha (o que importar / de qual navegador): uma opção por linha. */
+.opcao-de-importacao {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.opcao-de-importacao:hover,
+.opcao-de-importacao:focus-within {
+  border-color: var(--marca);
+}
+
+.opcao-de-importacao:has(input:checked) {
+  border-color: var(--marca);
+  background: color-mix(in srgb, var(--marca) 10%, transparent);
+}
+
+.opcao-de-importacao input {
+  width: 15px;
+  height: 15px;
+  margin-top: 1px;
+  accent-color: var(--marca);
+  cursor: pointer;
+  flex: none;
+}
+
+.opcao-de-importacao-texto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.opcao-de-importacao-texto strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.opcao-de-importacao-texto > span {
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.area-de-arquivo {
+  display: grid;
+  gap: 3px;
+  justify-items: center;
+  padding: 26px 16px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-align: center;
+  cursor: pointer;
+}
+
+.area-de-arquivo:hover,
+.area-de-arquivo:focus-visible,
+.area-de-arquivo.recebendo {
+  border-color: var(--marca);
+  background: color-mix(in srgb, var(--marca) 8%, transparent);
+  outline: none;
+}
+
+.area-de-arquivo-titulo {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.area-de-arquivo-ajuda {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.area-de-arquivo-selecionado {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  color: var(--marca);
+  word-break: break-all;
+}
+
+.barra-da-arvore {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.barra-da-arvore-acoes {
+  display: flex;
+  gap: 6px;
+}
+
+.arvore-de-favoritos {
+  max-height: 46vh;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+
+/* O recuo é dado pelo aninhamento: cada nível de pasta empurra os filhos. */
+.no-de-pasta-filhos {
+  margin-left: 16px;
+  border-left: 1px solid var(--border);
+  padding-left: 8px;
+}
+
+.no-de-pasta-cabecalho,
+.no-de-favorito {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.no-de-pasta-cabecalho:hover,
+.no-de-favorito:hover {
+  background: var(--surface);
+}
+
+.no-de-pasta-cabecalho {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.no-de-pasta-cabecalho svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-dim);
+  flex: none;
+}
+
+.no-de-pasta-cabecalho input,
+.no-de-favorito input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--marca);
+  cursor: pointer;
+  flex: none;
+}
+
+.no-de-favorito.desabilitado {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.no-de-favorito-texto {
+  display: grid;
+  min-width: 0;
+}
+
+.no-de-favorito-texto strong {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.no-de-favorito-texto span {
+  font-size: 11px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linhas-de-importacao {
+  display: grid;
+  gap: 10px;
+  max-height: 52vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.linha-de-importacao {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.linha-de-importacao-campos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px 10px;
+}
+
+.linha-de-importacao-campos .campo-largura-total {
+  grid-column: 2 / -1;
+}
+
+@media (max-width: 860px) {
+  .linha-de-importacao-campos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .linha-de-importacao-campos .campo-largura-total {
+    grid-column: auto;
+  }
+}
+
+/* --------------------- importação de repositórios locais ----------------- */
+
+.pastas-varridas {
+  display: grid;
+  gap: 6px;
+  max-height: 30vh;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+
+.pasta-varrida {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.pasta-varrida svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-dim);
+  flex: none;
+}
+
+.pasta-varrida-caminho {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repositorios-encontrados {
+  display: grid;
+  gap: 10px;
+  max-height: 52vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.repositorio-encontrado {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.repositorio-encontrado.desabilitado {
+  opacity: 0.5;
+}
+
+.repositorio-encontrado-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.repositorio-encontrado.desabilitado .repositorio-encontrado-cabecalho {
+  cursor: not-allowed;
+}
+
+.repositorio-encontrado-cabecalho input {
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  accent-color: var(--marca);
+  cursor: inherit;
+  flex: none;
+}
+
+.repositorio-encontrado-identificacao {
+  display: grid;
+  min-width: 0;
+}
+
+.repositorio-encontrado-identificacao strong {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* O campo de cliente não acompanha a largura do cartão: nome de cliente é curto. */
+.campo-de-cliente-do-repositorio {
+  max-width: 340px;
+}
+
+.repositorio-encontrado-caminho,
+.repositorio-encontrado-detalhe {
+  font-size: 11px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------- exportação de bases ------------------------ */
+
+/*
+ * O padding lateral repete o da linha para os mestres caírem exatamente sobre
+ * os checkboxes das bases; a borda de baixo separa o cabeçalho da lista.
+ */
+.barra-de-exportacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 12px 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.linhas-de-exportacao {
+  display: grid;
+  gap: 8px;
+  max-height: 52vh;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.linha-de-exportacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.linha-de-exportacao-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* A URL é o que identifica a base: encolhe com reticências em vez de quebrar a linha. */
+.linha-de-exportacao-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.linha-de-exportacao-opcoes {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 0 0 auto;
+}
+
+/* Banco de dados ausente: a opção continua visível, mas claramente fora de alcance. */
+.linha-de-exportacao-opcoes .campo-checkbox:has(input:disabled) {
+  color: var(--text-dim);
+  cursor: not-allowed;
+}
+
+.linha-de-exportacao-opcoes .campo-checkbox input:disabled {
+  cursor: not-allowed;
+}
+
+@media (max-width: 860px) {
+  .linha-de-exportacao {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+}
+
+/* -------------------------------- atalhos ------------------------------- */
+
+.texto-auxiliar {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.lista-atalhos-config,
+.lista-atalhos {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+/*
+ * O caminho recebe o dobro da largura do nome, e as duas colunas levam
+ * `minmax(0, …)` para que um caminho longo role dentro do campo em vez de
+ * esticar o modal.
+ */
+.linha-atalho-config {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Bloco do botão + lista: `relative` ancora a lista logo abaixo do botão. */
+.menu-atalhos {
+  position: relative;
+  display: flex;
+}
+
+/*
+ * Fora do fluxo, por cima da tela: abrir e fechar não empurra nada. A largura
+ * mínima segura a lista quando o nome do atalho é curto.
+ */
+.lista-atalhos {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 220px;
+  max-width: 320px;
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow);
+}
+
+.lista-atalhos[hidden] {
+  display: none;
+}
+
+.lista-atalhos-vazia {
+  margin: 0;
+  padding: 4px 2px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+.item-atalho {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-soft) 55%, transparent);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item-atalho:hover:not(:disabled) {
+  border-color: var(--marca);
+  background: color-mix(in srgb, var(--marca) 10%, transparent);
+}
+
+.item-atalho:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.item-atalho:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Nome longo corta com reticências em vez de alargar a lista. */
+.atalho-nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+
+/* -------------------------------- avisos -------------------------------- */
+
+.avisos {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 40;
+  display: grid;
+  gap: 8px;
+  max-width: min(360px, calc(100vw - 32px));
+}
+
+.aviso {
+  padding: 10px 13px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  background: var(--surface-solid);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  animation: surgir 0.16s ease-out;
+}
+
+.aviso.erro {
+  border-color: color-mix(in srgb, var(--perigo) 45%, transparent);
+  background: color-mix(in srgb, var(--perigo) 14%, var(--surface-solid));
+}
+
+.aviso.sucesso {
+  border-color: color-mix(in srgb, var(--marca) 45%, transparent);
+  background: color-mix(in srgb, var(--marca) 14%, var(--surface-solid));
+}
+
+@keyframes surgir {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ------------------------------ responsivo ------------------------------ */
+
+@media (max-width: 860px) {
+  .layout {
+    flex-direction: column;
+  }
+
+  .coluna-lista {
+    position: static;
+    width: 100%;
+    max-height: none;
+  }
+
+  .detalhe {
+    width: 100%;
+  }
+}
