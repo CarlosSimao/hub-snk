@@ -81,21 +81,21 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 ## 6. README
 
 - [ ] Adicionar screenshot ou GIF da interface logo após o parágrafo de abertura
-- [ ] Adicionar badges de versão da release, licença e versão mínima do Node
-- [ ] Criar seção "Como atualizar", cobrindo instalador Windows e pacote `.zip`
-- [ ] Criar seção "Solução de problemas" (porta ocupada, Node antigo, PWA sem opção de instalar, git fora do PATH)
-- [ ] Criar seção "Suporte" com os canais de contato
-- [ ] Criar seção "Contribuindo" com link para o `CONTRIBUTING.md`
-- [ ] Criar seção "Licença" com link para o `LICENSE`
-- [ ] Adicionar link para o `CHANGELOG.md`
-- [ ] Avaliar mover as seções "API" e "Estrutura" para `docs/`, deixando o README focado no usuário final
+- [x] Adicionar badges de versão da release, licença e versão mínima do Node
+- [x] Criar seção "Como atualizar" (cobre `git pull`; falta a parte de instalador Windows e `.zip`, do bloco 9)
+- [x] Criar seção "Solução de problemas" (porta ocupada, Node antigo, PWA sem opção de instalar, git fora do PATH)
+- [x] Criar seção "Suporte" com os canais de contato
+- [x] Criar seção "Documentação técnica" com link para o `CONTRIBUTING.md` e os documentos de `docs/`
+- [x] Criar seção "Licença" com link para o `LICENSE`
+- [x] Adicionar link para o `CHANGELOG.md`
+- [x] Mover as seções técnicas para `docs/` — API, formato dos dados e estrutura do código saíram do README
 
 ## 7. Documentos de apoio
 
-- [ ] Criar `CONTRIBUTING.md`: como rodar localmente, padrão de commit, padrão de nomes em português, exigência de typecheck e testes antes do PR
-- [ ] Criar `SECURITY.md`: canal privado para reportar falhas e modelo de ameaça assumido (sem autenticação, senhas em texto puro, escuta apenas em loopback)
-- [ ] Avaliar a necessidade de `CODE_OF_CONDUCT.md`
-- [ ] Criar `CODEOWNERS`
+- [x] Criar `CONTRIBUTING.md`: como rodar localmente, padrão de commit, padrão de nomes em português, exigência de typecheck e testes antes do PR
+- [x] Criar `SECURITY.md`: canal privado para reportar falhas e modelo de ameaça assumido (sem autenticação, senhas em texto puro, escuta apenas em loopback)
+- [x] `CODE_OF_CONDUCT.md` — dispensado: projeto de um mantenedor, público restrito a colegas
+- [x] `CODEOWNERS` — dispensado: um mantenedor só
 
 ## 8. Qualidade e automação
 

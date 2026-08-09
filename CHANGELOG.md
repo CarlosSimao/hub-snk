@@ -4,10 +4,20 @@ Tudo que muda de uma versão para outra, escrito para quem usa o HUB SNK.
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e a
 numeração segue o [Versionamento Semântico](https://semver.org/lang/pt-BR/) — veja
-em [Versões e releases](README.md#versões-e-releases) o que cada parte do número
-significa aqui.
+em [Versões](README.md#versões) o que cada parte do número significa aqui.
 
 ## [Não publicado]
+
+### Alterado
+
+- O README passa a tratar só do uso do programa. A referência da API, o formato
+  dos arquivos de dados e o mapa do código foram para `docs/`, e o fluxo de
+  release para o `CONTRIBUTING.md`.
+
+### Adicionado
+
+- `CONTRIBUTING.md` e `SECURITY.md`.
+- Seção de solução de problemas e instruções de atualização no README.
 
 ## [1.0.0] - 2026-08-09
 
