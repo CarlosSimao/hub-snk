@@ -448,6 +448,8 @@ const elementos = {
   botaoCopiarExportacao: document.getElementById('btn-copiar-exportacao'),
   botaoBaixarExportacao: document.getElementById('btn-baixar-exportacao'),
 
+  rodapeVersao: document.getElementById('rodape-versao'),
+
   modalExclusao: document.getElementById('modal-exclusao'),
   tituloExclusao: document.getElementById('titulo-exclusao'),
   textoExclusao: document.getElementById('texto-exclusao'),
@@ -575,6 +577,7 @@ const api = {
   selecionarExecutavel: () =>
     requisitar(`${CAMINHO_DOS_ATALHOS}/selecionar-executavel`, { metodo: 'POST' }),
 
+  lerVersao: () => requisitar(`${CAMINHO_DO_SISTEMA}/versao`),
   selecionarPasta: () => requisitar(`${CAMINHO_DO_SISTEMA}/selecionar-pasta`, { metodo: 'POST' }),
   varrerRepositoriosLocais: (pastas) =>
     requisitar(`${CAMINHO_DO_SISTEMA}/repositorios-locais`, {
@@ -5008,10 +5011,24 @@ function registrarServiceWorker() {
   });
 }
 
+/*
+ * A versão só aparece se o servidor responder: rodapé com "vX.Y.Z" errado ou com
+ * um traço no lugar seria pior do que rodapé sem versão nenhuma.
+ */
+async function exibirVersaoNoRodape() {
+  try {
+    const { versao } = await api.lerVersao();
+    elementos.rodapeVersao.textContent = `v${versao}`;
+  } catch {
+    // Sem versão na tela; o resto do HUB SNK continua funcionando.
+  }
+}
+
 async function iniciar() {
   restaurarTema();
   registrarEventos();
   registrarServiceWorker();
+  void exibirVersaoNoRodape();
 
   try {
     await recarregarClientes();

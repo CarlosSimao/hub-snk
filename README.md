@@ -676,4 +676,33 @@ gravá-lo na configuração.
 
 ```bash
 npm run typecheck
+npm test
 ```
+
+---
+
+## Suporte
+
+A versão que você está rodando aparece no rodapé da tela — cite-a ao relatar
+qualquer coisa.
+
+| Para | Onde |
+|---|---|
+| Erro, comportamento estranho, algo que parou de funcionar | [Abrir uma issue](https://github.com/CarlosSimao/hub-snk/issues/new/choose) |
+| Ideia, pedido de melhoria, dúvida de uso | [Discussions](https://github.com/CarlosSimao/hub-snk/discussions) |
+| Falha de segurança | Não abra issue pública — mande e-mail para <carlos.nascimento@sankhya.com.br> |
+
+**Antes de colar qualquer coisa numa issue:** o repositório é público. Não
+publique o conteúdo do `clientes.json`, nem trechos de log com nome de cliente,
+host, usuário ou senha. Troque por `<cliente>` e `<host>` — o que importa para o
+diagnóstico é a forma da mensagem, não os valores reais.
+
+---
+
+## Licença
+
+[MIT](LICENSE) — use, altere e distribua à vontade, sem garantia nenhuma.
+
+## Autor
+
+Feito por [Carlos Nascimento](https://github.com/CarlosSimao).

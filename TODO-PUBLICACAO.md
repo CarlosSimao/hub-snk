@@ -27,25 +27,27 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 
 ## 2. Licença e metadados
 
-- [ ] Criar `LICENSE` (MIT) com ano e nome do autor
-- [ ] Adicionar `license`, `author`, `repository`, `bugs` e `homepage` ao `package.json`
-- [ ] Manter `"private": true` para impedir publicação acidental no npm
-- [ ] Definir descrição e tópicos (topics) do repositório no GitHub
+- [x] Criar `LICENSE` (MIT) com ano e nome do autor
+- [x] Adicionar `license`, `author`, `repository`, `bugs` e `homepage` ao `package.json`
+- [x] Manter `"private": true` para impedir publicação acidental no npm
+- [ ] Definir descrição e tópicos (topics) do repositório no GitHub — depois do push:
+      `gh repo edit CarlosSimao/hub-snk --description "Hub local de cadastro de clientes, bases e repositórios Git" --add-topic pwa --add-topic fastify --add-topic nodejs --add-topic ferramenta-interna`
 
 ## 3. Atribuição e contato
 
 ### Na aplicação
 
-- [ ] Criar rota `GET /api/sistema/versao` devolvendo a versão do `package.json`
-- [ ] Habilitar `resolveJsonModule` no `tsconfig.json` (se optar por importar o `package.json`)
-- [ ] Adicionar rodapé em `public/index.html` com: nome do app, versão, autor e link "Reportar problema"
-- [ ] Estilizar o rodapé em `public/styles.css` de forma discreta
-- [ ] Preencher a versão do rodapé no boot do `public/app.js`, consumindo a rota nova
+- [x] Criar rota `GET /api/sistema/versao` devolvendo a versão do `package.json`
+- [x] Habilitar `resolveJsonModule` no `tsconfig.json` (se optar por importar o `package.json`)
+- [x] Adicionar rodapé em `public/index.html` com: nome do app, versão, autor e link "Reportar problema"
+- [x] Estilizar o rodapé em `public/styles.css` de forma discreta
+- [x] Preencher a versão do rodapé no boot do `public/app.js`, consumindo a rota nova
 
 ### No repositório
 
-- [ ] Adicionar seção "Suporte" no README com link do Issues, do Discussions e e-mail de contato
-- [ ] Adicionar seção "Autor" ou linha de crédito no final do README
+- [x] Adicionar seção "Suporte" no README com link do Issues, do Discussions e e-mail de contato
+- [x] Adicionar seção "Autor" ou linha de crédito no final do README
+- [x] Adicionar seção "Licença" no README apontando para o `LICENSE`
 
 ## 4. Versionamento e releases
 
@@ -92,6 +94,7 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 - [ ] Criar os primeiros testes com `node:test`, cobrindo os repositórios de arquivo e a migração de esquema
 - [ ] Adicionar o script `test` ao `package.json`
 - [ ] Criar workflow do GitHub Actions rodando `npm ci`, `npm run typecheck` e `node --test` em push e pull request
+- [ ] Adicionar `.gitattributes` com `* text=auto eol=lf` (colegas em Linux e macOS clonam o mesmo repositório)
 - [ ] Adicionar `.editorconfig`
 - [ ] Adicionar Prettier com configuração versionada
 - [ ] Adicionar `.nvmrc` com a versão do Node

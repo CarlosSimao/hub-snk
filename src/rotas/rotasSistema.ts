@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { isAbsolute } from 'node:path';
 import { z } from 'zod';
+import pacote from '../../package.json' with { type: 'json' };
 import { PastaNaoEncontradaError } from '../sistema/pasta.ts';
 import {
   selecionarPastaNoSistema,
@@ -38,6 +39,13 @@ const esquemaDeVarreduraDeRepositorios = z.object({
  * WildFly, sankhya-schema-mcp —, por isso não mora nas rotas de cliente.
  */
 export function registrarRotasDeSistema(servidor: FastifyInstance): void {
+  /*
+   * A versão vem do package.json, fonte única também para o `npm version`. O
+   * rodapé a exibe para que um relato de problema já diga qual versão está
+   * rodando, sem o usuário ir procurar.
+   */
+  servidor.get('/api/sistema/versao', async () => ({ versao: pacote.version }));
+
   /*
    * O diálogo é aberto no servidor porque só ele enxerga o caminho absoluto: o
    * navegador entrega apenas nomes relativos. Cancelar responde 204, sem caminho.

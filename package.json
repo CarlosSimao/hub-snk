@@ -3,6 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "description": "HUB SNK — cadastro de clientes, roda local como PWA em janela separada",
+  "author": "Carlos Nascimento <carlos.nascimento@sankhya.com.br>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CarlosSimao/hub-snk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/CarlosSimao/hub-snk/issues"
+  },
+  "homepage": "https://github.com/CarlosSimao/hub-snk#readme",
   "type": "module",
   "engines": {
     "node": ">=22.18"
