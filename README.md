@@ -681,6 +681,52 @@ npm test
 
 ---
 
+## Versões e releases
+
+O número da versão diz o que esperar de uma atualização:
+
+| Parte | Sobe quando | Exemplo |
+|---|---|---|
+| **MAJOR** — `2`.0.0 | O formato dos arquivos de dados muda, ou a atualização exige alguma ação sua | `versaoDoEsquema` sobe; uma variável de ambiente passa a ser obrigatória |
+| **MINOR** — 1.`3`.0 | Entra funcionalidade nova e o cadastro continua compatível | Um tipo de atalho novo |
+| **PATCH** — 1.2.`4` | Correção de comportamento, sem nada novo | A situação do Git deixa de errar o nome da branch |
+
+Toda mudança visível fica registrada no [CHANGELOG](CHANGELOG.md).
+
+<details>
+<summary>Como publicar uma versão (para quem mantém o projeto)</summary>
+
+1. Mova o conteúdo de `## [Não publicado]` do `CHANGELOG.md` para uma seção com o
+   número e a data da versão, e atualize os links do rodapé do arquivo.
+2. Commite o CHANGELOG.
+3. Rode o `npm version` correspondente. Ele sobe o `package.json`, sincroniza o
+   nome do cache do service worker, cria o commit e a tag:
+
+   ```bash
+   npm version patch -m "chore(release): v%s"
+   # ou minor, ou major
+   ```
+
+4. Publique:
+
+   ```bash
+   git push --follow-tags
+   gh release create v1.2.0 --title "v1.2.0" --notes "$(sed -n '/## \[1.2.0\]/,/^## /p' CHANGELOG.md)"
+   ```
+
+As mensagens de commit seguem [Conventional Commits](https://www.conventionalcommits.org/pt-br/v1.0.0/)
+(`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`), o que torna mecânico montar o
+CHANGELOG a partir do `git log`.
+
+O nome do cache do service worker só é sincronizado no `npm version`. Entre
+releases, quem acompanha a branch pelo `git pull` pode continuar vendo o shell
+antigo na janela instalada — recarregue com o cache desabilitado, ou rode
+`npm run dev` no navegador comum.
+
+</details>
+
+---
+
 ## Suporte
 
 A versão que você está rodando aparece no rodapé da tela — cite-a ao relatar

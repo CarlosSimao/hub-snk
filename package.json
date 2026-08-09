@@ -22,7 +22,8 @@
     "start": "node src/index.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "node --test",
-    "gerar-icones": "node scripts/gerar-icones.mjs"
+    "gerar-icones": "node scripts/gerar-icones.mjs",
+    "version": "node scripts/sincronizar-versao-do-cache.mjs && git add public/sw.js"
   },
   "dependencies": {
     "@fastify/static": "^10.1.3",

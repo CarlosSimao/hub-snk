@@ -14,7 +14,9 @@
 
 - [ ] `npm run typecheck` passa
 - [ ] `npm test` passa
-- [ ] Se mudou algo em `public/`, subi a `VERSAO_DO_CACHE` em `public/sw.js`
 - [ ] Se mudou o formato dos arquivos de dados, subi a `VERSAO_ATUAL_DO_ESQUEMA` e escrevi a migração
-- [ ] Se mudou comportamento visível, atualizei o `README.md`
+- [ ] Se mudou comportamento visível, atualizei o `README.md` e o `CHANGELOG.md` (seção `Não publicado`)
+
 - [ ] Não há senha, host, nome de cliente ou caminho pessoal no diff
+
+<!-- A VERSAO_DO_CACHE do service worker não entra aqui: o `npm version` a sincroniza na release. -->

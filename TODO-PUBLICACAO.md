@@ -51,14 +51,15 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 
 ## 4. Versionamento e releases
 
-- [ ] Definir e documentar a regra de SemVer do projeto (o que caracteriza MAJOR, MINOR e PATCH aqui)
-- [ ] Subir a versão de `0.1.0` para `1.0.0` na primeira release pública
-- [ ] Criar `CHANGELOG.md` no padrão Keep a Changelog, em português, escrito para o usuário final
-- [ ] Adotar Conventional Commits nas mensagens de commit
-- [ ] Documentar o fluxo de release (`npm version` → `git push --follow-tags` → `gh release create`)
-- [ ] Automatizar o bump de `VERSAO_DO_CACHE` em `public/sw.js` a cada release (hook `version` no `package.json`)
-- [ ] Publicar a primeira release no GitHub Releases, com notas extraídas do CHANGELOG
-- [ ] Proteger a branch `main` exigindo pull request
+- [x] Definir e documentar a regra de SemVer do projeto (o que caracteriza MAJOR, MINOR e PATCH aqui)
+- [x] Subir a versão de `0.1.0` para `1.0.0` na primeira release pública
+- [x] Criar `CHANGELOG.md` no padrão Keep a Changelog, em português, escrito para o usuário final
+- [x] Adotar Conventional Commits nas mensagens de commit
+- [x] Documentar o fluxo de release (`npm version` → `git push --follow-tags` → `gh release create`)
+- [x] Automatizar o bump de `VERSAO_DO_CACHE` em `public/sw.js` a cada release (hook `version` no `package.json`)
+- [ ] Publicar a primeira release no GitHub Releases, depois do push:
+      `gh release create v1.0.0 --title "v1.0.0" --notes-file <notas extraídas do CHANGELOG>`
+- [ ] Proteger a branch `main` exigindo pull request (Settings › Branches, ou `gh api`)
 
 ## 5. Bugs e sugestões
 
