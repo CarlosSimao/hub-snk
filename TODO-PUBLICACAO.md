@@ -62,13 +62,20 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 
 ## 5. Bugs e sugestões
 
-- [ ] Habilitar Issues e Discussions no repositório
-- [ ] Criar `.github/ISSUE_TEMPLATE/config.yml` desabilitando issue em branco e apontando dúvidas para Discussions
-- [ ] Criar `.github/ISSUE_TEMPLATE/bug.yml` com campos obrigatórios: versão do HUB, sistema operacional, versão do Node, passos, resultado esperado e obtido, trecho do log
-- [ ] Criar `.github/ISSUE_TEMPLATE/melhoria.yml` com problema a resolver, solução proposta e alternativas consideradas
-- [ ] Incluir em todos os templates o aviso de não colar conteúdo de `clientes.json` nem logs com dados sensíveis
-- [ ] Criar as labels: `bug`, `melhoria`, `duvida`, `nao-vai-fazer`, `boa-primeira-issue`
-- [ ] Criar `.github/PULL_REQUEST_TEMPLATE.md`
+- [x] Criar `.github/ISSUE_TEMPLATE/config.yml` desabilitando issue em branco e apontando dúvidas para Discussions
+- [x] Criar `.github/ISSUE_TEMPLATE/bug.yml` com campos obrigatórios: versão do HUB, sistema operacional, versão do Node, passos, resultado esperado e obtido, trecho do log
+- [x] Criar `.github/ISSUE_TEMPLATE/melhoria.yml` com problema a resolver, solução proposta e alternativas consideradas
+- [x] Incluir em todos os templates o aviso de não colar conteúdo de `clientes.json` nem logs com dados sensíveis
+- [x] Criar `.github/PULL_REQUEST_TEMPLATE.md`
+- [ ] Habilitar Discussions no repositório (Issues já vem ligado) — sem isso o link do `config.yml` cai em página inexistente:
+      `gh repo edit CarlosSimao/hub-snk --enable-discussions`
+- [ ] Criar as labels, depois do push:
+      `gh label create melhoria --color 0e8a16 --description "Comportamento novo ou mudança de um existente"`
+      `gh label create duvida --color d876e3 --description "Pergunta de uso"`
+      `gh label create nao-vai-fazer --color ffffff --description "Fora do escopo, fechada de propósito"`
+      `gh label create boa-primeira-issue --color 7057ff --description "Bom ponto de entrada para quem quer contribuir"`
+      (`bug` já existe por padrão no GitHub)
+- [ ] Conferir na tela `.../issues/new/choose` que os dois formulários aparecem — a validação de sintaxe dos `.yml` só acontece no GitHub
 
 ## 6. README
 

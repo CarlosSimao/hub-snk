@@ -1,0 +1,45 @@
+name: Sugerir uma melhoria
+description: Um comportamento novo ou a mudança de um que já existe.
+title: '[melhoria]: '
+labels: ['melhoria']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Este repositório é público.** Descreva a situação sem citar nome de cliente, host ou
+        credencial. Se ainda não tem clareza do que pedir, comece pelas
+        [Discussions](https://github.com/CarlosSimao/hub-snk/discussions).
+
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qual problema isso resolve
+      description: O que hoje é trabalhoso, repetitivo ou impossível. Descreva a situação, não a solução.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solucao
+    attributes:
+      label: O que você propõe
+      description: Como o HUB SNK deveria se comportar.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas que você considerou (opcional)
+      description: Outro jeito de chegar no mesmo resultado, ou como você contorna isso hoje.
+
+  - type: dropdown
+    id: frequencia
+    attributes:
+      label: Com que frequência você esbarra nisso
+      options:
+        - Várias vezes por dia
+        - Algumas vezes por semana
+        - De vez em quando
+        - Foi uma vez só, mas doeu
+    validations:
+      required: true
