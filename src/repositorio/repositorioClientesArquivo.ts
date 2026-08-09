@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import type { BancoDeDados, Base, Cliente, LinkDoCliente, RepositorioGit } from '../tipos.ts';
+import {
+  ArquivoDeDadosInvalidoError,
+  gravarArquivoDeDados,
+  lerArquivoDeDados,
+  migrarArquivoDeDados,
+  precisaMigrar,
+} from './arquivoDeDados.ts';
 import {
   AcessoDeBaseDuplicadoError,
   BaseJaCadastradaError,
@@ -27,7 +33,7 @@ import {
 } from './repositorioClientes.ts';
 
 const NOME_DO_ARQUIVO = 'clientes.json';
-const IDENTACAO_JSON = 2;
+const CHAVE_DO_CORPO = 'clientes';
 
 function normalizarParaComparacao(valor: string): string {
   return valor.trim().toLocaleLowerCase('pt-BR');
@@ -668,26 +674,21 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
       return this.#clientes;
     }
 
-    let conteudo: string;
-    try {
-      conteudo = await readFile(this.#caminhoDoArquivo, 'utf8');
-    } catch (erro) {
-      if ((erro as NodeJS.ErrnoException).code === 'ENOENT') {
-        this.#clientes = [];
-        return this.#clientes;
-      }
-      throw erro;
+    const conteudo = await lerArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO);
+    if (conteudo === null) {
+      this.#clientes = [];
+      return this.#clientes;
     }
 
-    const dados: unknown = JSON.parse(conteudo);
-    if (!Array.isArray(dados)) {
-      throw new Error(
-        `Arquivo de clientes inválido em ${this.#caminhoDoArquivo}: esperado um array na raiz.`,
+    if (!Array.isArray(conteudo.corpo)) {
+      throw new ArquivoDeDadosInvalidoError(
+        this.#caminhoDoArquivo,
+        `esperado um array de clientes em "${CHAVE_DO_CORPO}"`,
       );
     }
 
     // Clientes gravados antes de anotações, bases, repositórios e links existirem não têm os campos.
-    this.#clientes = (dados as Cliente[]).map((cliente) => ({
+    this.#clientes = (conteudo.corpo as Cliente[]).map((cliente) => ({
       ...cliente,
       anotacoes: cliente.anotacoes ?? '',
       bases: cliente.bases ?? [],
@@ -697,16 +698,21 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
       })),
       links: cliente.links ?? [],
     }));
+
+    if (precisaMigrar(conteudo)) {
+      await migrarArquivoDeDados({
+        caminhoDoArquivo: this.#caminhoDoArquivo,
+        chaveDoCorpo: CHAVE_DO_CORPO,
+        corpo: this.#clientes,
+        versaoDeOrigem: conteudo.versaoDeOrigem,
+      });
+    }
+
     return this.#clientes;
   }
 
   async #persistir(clientes: Cliente[]): Promise<void> {
-    await mkdir(dirname(this.#caminhoDoArquivo), { recursive: true });
-
-    const caminhoTemporario = `${this.#caminhoDoArquivo}.tmp`;
-    await writeFile(caminhoTemporario, JSON.stringify(clientes, null, IDENTACAO_JSON), 'utf8');
-    await rename(caminhoTemporario, this.#caminhoDoArquivo);
-
+    await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, clientes);
     this.#clientes = clientes;
   }
 }

@@ -127,24 +127,32 @@ servidor avisa isso no log ao subir.
 O cadastro fica em `dados-hub-snk/clientes.json`, a configuração global em
 `dados-hub-snk/configuracao.json` e as bases e bancos da máquina em `dados-hub-snk/local.json`.
 
+Os três seguem o mesmo envelope: um campo `versaoDoEsquema` e o conteúdo sob uma
+chave própria — `clientes`, `configuracao` e `local`. Veja
+[Versão do esquema](#versão-do-esquema) para o que esse número faz.
+
 A configuração global:
 
 ```json
 {
-  "scriptPadrao": "git fetch --all",
-  "intervaloDeExecucaoAutomaticaSegundos": 30,
-  "tempoLimiteSegundos": 5,
-  "atalhos": [
-    {
-      "id": "0f4c1e7a-4a1b-4d0e-9a2f-8c9d1e5b6a30",
-      "nome": "DataGrip",
-      "caminhoDoExecutavel": "C:\\Program Files\\JetBrains\\DataGrip\\bin\\datagrip64.exe"
-    }
-  ]
+  "versaoDoEsquema": 1,
+  "configuracao": {
+    "scriptPadrao": "git fetch --all",
+    "intervaloDeExecucaoAutomaticaSegundos": 30,
+    "tempoLimiteSegundos": 5,
+    "caminhoDoSchemaMcp": "",
+    "atalhos": [
+      {
+        "id": "0f4c1e7a-4a1b-4d0e-9a2f-8c9d1e5b6a30",
+        "nome": "DataGrip",
+        "caminhoDoExecutavel": "C:\\Program Files\\JetBrains\\DataGrip\\bin\\datagrip64.exe"
+      }
+    ]
+  }
 }
 ```
 
-O cadastro tem esta forma:
+O cadastro tem esta forma (o conteúdo de `clientes`):
 
 ```json
 [
@@ -195,6 +203,44 @@ trecho da URL. Não há migração manual a rodar.
 A gravação é atômica — o conteúdo vai para um arquivo temporário e só então
 substitui o original, de modo que uma queda no meio da escrita não corrompe o
 cadastro. A pasta `dados-hub-snk/` está no `.gitignore`.
+
+---
+
+## Versão do esquema
+
+Cada arquivo de dados declara em qual formato foi gravado:
+
+```json
+{ "versaoDoEsquema": 1, "clientes": [ ... ] }
+```
+
+O número existe por causa da pasta compartilhada e da atualização desencontrada.
+Sem ele, um HUB SNK antigo abriria um arquivo gravado por um HUB SNK novo, leria
+os campos que reconhece, ignoraria o resto e apagaria o que não entendeu na
+primeira gravação — perda silenciosa, sem erro nenhum na tela.
+
+**Arquivo em esquema mais novo do que o programa entende:** o HUB SNK não sobe e
+diz o que houve. O arquivo fica intacto; atualize o HUB SNK e abra de novo.
+
+```
+O arquivo D:\HubSnk\clientes.json está no esquema 2, e esta versão do HUB SNK
+entende até o 1. Atualize o HUB SNK: abrir o cadastro assim descartaria o que a
+versão mais nova gravou.
+```
+
+**Arquivo em esquema mais antigo:** a migração roda sozinha na primeira leitura,
+e antes de reescrever qualquer coisa o arquivo original é copiado para
+`<nome>.esquema<versão de origem>` — por exemplo `clientes.json.esquema0`, onde
+`esquema0` é o formato anterior a este envelope. A cópia é feita uma vez por
+versão de origem e nunca é sobrescrita: ela guarda o estado original, não o
+último.
+
+Os três arquivos são lidos na inicialização, antes de o servidor abrir a porta.
+Erro de esquema aparece no terminal na largada, e não na primeira tela que você
+abrir.
+
+Ao publicar uma versão que muda o formato dos dados, suba `versaoDoEsquema` junto
+com a parte MAJOR da versão do HUB SNK.
 
 ---
 
@@ -319,10 +365,12 @@ src/
   index.ts                                  sobe o Fastify e serve public/
   configuracao.ts                           porta, host e diretório de dados
   tipos.ts                                  os tipos Cliente, Base e RepositorioGit
+  repositorio/arquivoDeDados.ts             envelope com versaoDoEsquema, migração e escrita atômica
   repositorio/repositorioClientes.ts        contrato de persistência e erros de domínio
   repositorio/repositorioClientesArquivo.ts implementação em arquivo JSON local
   repositorio/repositorioConfiguracao.ts    contrato da configuração global
   repositorio/repositorioConfiguracaoArquivo.ts  configuração em arquivo JSON local
+  rotas/protecaoDeOrigem.ts                 confere Host e Origin antes de qualquer rota
   rotas/rotasClientes.ts                    rotas HTTP e validação de entrada
   rotas/rotasConfiguracao.ts                rotas da configuração global
   rotas/rotasGit.ts                         rota da situação dos repositórios locais

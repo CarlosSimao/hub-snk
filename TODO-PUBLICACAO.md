@@ -9,20 +9,21 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 
 ## 0. Bloqueantes — resolver antes do primeiro push
 
-- [ ] Revisar o `.gitignore` e confirmar que `dados-hub-snk/`, `*.log` e `.idea/` estão cobertos
-- [ ] Rodar `git init` e conferir `git status --porcelain` antes do primeiro commit
-- [ ] Confirmar que nenhum arquivo com dado real de cliente, host ou senha entra no commit inicial
-- [ ] Revisar o histórico do README e do código em busca de nomes de clientes, IPs, caminhos internos ou credenciais
-- [ ] Recusar host não-loopback por padrão: exigir uma confirmação explícita (ex.: `HUB_PERMITIR_REDE=1`) para aceitar `HUB_HOST` diferente de `127.0.0.1`
-- [ ] Validar os headers `Host` e `Origin` nas requisições (hook `onRequest` no Fastify), rejeitando origem que não seja o próprio loopback na porta configurada
-- [ ] Documentar no README que a aplicação executa binários e comandos do sistema, e o que isso implica ao expor o servidor na rede
+- [x] Revisar o `.gitignore` e confirmar que `dados-hub-snk/`, `*.log` e `.idea/` estão cobertos
+- [x] Rodar `git init` e conferir `git status --porcelain` antes do primeiro commit
+- [x] Confirmar que nenhum arquivo com dado real de cliente, host ou senha entra no commit inicial
+- [x] Revisar o histórico do README e do código em busca de nomes de clientes, IPs, caminhos internos ou credenciais
+- [x] Recusar host não-loopback por padrão: exigir uma confirmação explícita (ex.: `HUB_PERMITIR_REDE=1`) para aceitar `HUB_HOST` diferente de `127.0.0.1`
+- [x] Validar os headers `Host` e `Origin` nas requisições (hook `onRequest` no Fastify), rejeitando origem que não seja o próprio loopback na porta configurada
+- [x] Documentar no README que a aplicação executa binários e comandos do sistema, e o que isso implica ao expor o servidor na rede
+- [ ] Publicar o commit inicial (`git push -u origin main`) — feito depois que os blocos 2 e 3 estiverem prontos
 
 ## 1. Versionamento de dados (fazer antes de distribuir)
 
-- [ ] Adicionar `versaoDoEsquema` em `clientes.json`, `configuracao.json` e `local.json`
-- [ ] Implementar leitura da versão do esquema no boot, com erro claro quando for maior que a suportada
-- [ ] Gerar cópia de segurança (`<arquivo>.bak-<versao>`) antes de qualquer migração automática
-- [ ] Documentar a política de migração no README
+- [x] Adicionar `versaoDoEsquema` em `clientes.json`, `configuracao.json` e `local.json`
+- [x] Implementar leitura da versão do esquema no boot, com erro claro quando for maior que a suportada
+- [x] Gerar cópia de segurança (`<arquivo>.esquema<versao>`) antes de qualquer migração automática
+- [x] Documentar a política de migração no README
 
 ## 2. Licença e metadados
 

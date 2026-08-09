@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import type { Atalho, ConfiguracaoGlobal } from '../tipos.ts';
+import {
+  gravarArquivoDeDados,
+  lerArquivoDeDados,
+  migrarArquivoDeDados,
+  precisaMigrar,
+} from './arquivoDeDados.ts';
 import type {
   ConfiguracaoParaSalvar,
   DadosDeAtalho,
@@ -9,7 +14,7 @@ import type {
 } from './repositorioConfiguracao.ts';
 
 const NOME_DO_ARQUIVO = 'configuracao.json';
-const IDENTACAO_JSON = 2;
+const CHAVE_DO_CORPO = 'configuracao';
 const INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S = 30;
 const TEMPO_LIMITE_PADRAO_S = 5;
 const MILISSEGUNDOS_POR_SEGUNDO = 1000;
@@ -73,18 +78,13 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       return this.#configuracao;
     }
 
-    let conteudo: string;
-    try {
-      conteudo = await readFile(this.#caminhoDoArquivo, 'utf8');
-    } catch (erro) {
-      if ((erro as NodeJS.ErrnoException).code === 'ENOENT') {
-        this.#configuracao = { ...CONFIGURACAO_INICIAL };
-        return this.#configuracao;
-      }
-      throw erro;
+    const conteudo = await lerArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO);
+    if (conteudo === null) {
+      this.#configuracao = { ...CONFIGURACAO_INICIAL };
+      return this.#configuracao;
     }
 
-    const dados = JSON.parse(conteudo) as Partial<ConfiguracaoGlobal> & ConfiguracaoAnterior;
+    const dados = (conteudo.corpo ?? {}) as Partial<ConfiguracaoGlobal> & ConfiguracaoAnterior;
     this.#configuracao = {
       scriptPadrao: dados.scriptPadrao ?? '',
       // Arquivo de antes desta versão traz o campo com o nome antigo, ou nenhum dos dois.
@@ -98,6 +98,16 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       // Idem: sem a chave no arquivo, o HUB SNK começa sem atalho nenhum.
       atalhos: dados.atalhos ?? [],
     };
+
+    if (precisaMigrar(conteudo)) {
+      await migrarArquivoDeDados({
+        caminhoDoArquivo: this.#caminhoDoArquivo,
+        chaveDoCorpo: CHAVE_DO_CORPO,
+        corpo: this.#configuracao,
+        versaoDeOrigem: conteudo.versaoDeOrigem,
+      });
+    }
+
     return this.#configuracao;
   }
 
@@ -110,15 +120,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       atalhos: configuracao.atalhos.map(normalizarAtalho),
     };
 
-    await mkdir(dirname(this.#caminhoDoArquivo), { recursive: true });
-
-    const caminhoTemporario = `${this.#caminhoDoArquivo}.tmp`;
-    await writeFile(
-      caminhoTemporario,
-      JSON.stringify(normalizada, null, IDENTACAO_JSON),
-      'utf8',
-    );
-    await rename(caminhoTemporario, this.#caminhoDoArquivo);
+    await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);
 
     this.#configuracao = normalizada;
     return normalizada;

@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import type { BaseLocal, BancoLocal } from '../tipos.ts';
+import {
+  gravarArquivoDeDados,
+  lerArquivoDeDados,
+  migrarArquivoDeDados,
+  precisaMigrar,
+} from './arquivoDeDados.ts';
 import {
   BaseLocalNaoEncontradaError,
   BancoLocalNaoEncontradoError,
@@ -11,7 +16,7 @@ import {
 } from './repositorioLocal.ts';
 
 const NOME_DO_ARQUIVO = 'local.json';
-const IDENTACAO_JSON = 2;
+const CHAVE_DO_CORPO = 'local';
 
 interface DadosDoArquivo {
   bases: BaseLocal[];
@@ -41,28 +46,30 @@ export class RepositorioLocalArquivo implements RepositorioLocal {
       return this.#dados;
     }
 
-    let conteudo: string;
-    try {
-      conteudo = await readFile(this.#caminhoDoArquivo, 'utf8');
-    } catch (erro) {
-      if ((erro as NodeJS.ErrnoException).code === 'ENOENT') {
-        this.#dados = structuredClone(ARQUIVO_INICIAL);
-        return this.#dados;
-      }
-      throw erro;
+    const conteudo = await lerArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO);
+    if (conteudo === null) {
+      this.#dados = structuredClone(ARQUIVO_INICIAL);
+      return this.#dados;
     }
 
-    this.#dados = JSON.parse(conteudo) as DadosDoArquivo;
+    const dados = (conteudo.corpo ?? {}) as Partial<DadosDoArquivo>;
+    // Arquivo gravado antes de bancos locais existirem só tem as bases.
+    this.#dados = { bases: dados.bases ?? [], bancos: dados.bancos ?? [] };
+
+    if (precisaMigrar(conteudo)) {
+      await migrarArquivoDeDados({
+        caminhoDoArquivo: this.#caminhoDoArquivo,
+        chaveDoCorpo: CHAVE_DO_CORPO,
+        corpo: this.#dados,
+        versaoDeOrigem: conteudo.versaoDeOrigem,
+      });
+    }
+
     return this.#dados;
   }
 
   async #gravar(dados: DadosDoArquivo): Promise<void> {
-    await mkdir(dirname(this.#caminhoDoArquivo), { recursive: true });
-
-    const caminhoTemporario = `${this.#caminhoDoArquivo}.tmp`;
-    await writeFile(caminhoTemporario, JSON.stringify(dados, null, IDENTACAO_JSON), 'utf8');
-    await rename(caminhoTemporario, this.#caminhoDoArquivo);
-
+    await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, dados);
     this.#dados = dados;
   }
 
