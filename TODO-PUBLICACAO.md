@@ -108,12 +108,19 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 - [ ] Adicionar `.nvmrc` com a versão do Node
 - [ ] Configurar `.github/dependabot.yml` para npm e GitHub Actions
 
-## 9. Distribuição (detalhar depois)
+## 9. Distribuição
 
-- [ ] Definir a ferramenta do instalador Windows
+- [x] Definir a ferramenta do instalador Windows — Inno Setup 6, instalação por usuário, sem UAC
+- [x] Empacotar o Node e as dependências junto, para não exigir Node na máquina do colega
+- [x] Gerar o `hub-snk.ico` a partir do mesmo desenho dos ícones da PWA
+- [x] Launcher que sobe o servidor e abre a janela sem barra de endereço (`--app`)
+- [x] Início automático no logon pela pasta Inicializar, na sessão do usuário
+- [x] Desinstalação que encerra só o servidor da instalação e preserva o cadastro
+- [x] Workflow que compila o instalador e anexa à release a cada tag
+- [ ] **Testar o instalador de ponta a ponta numa máquina Windows** — instalar, reiniciar, conferir o início no logon, atualizar por cima e desinstalar
 - [ ] Definir o conteúdo e a geração do pacote `.zip` para Linux e macOS
-- [ ] Anexar os artefatos a cada GitHub Release
 - [ ] Documentar a verificação de integridade dos artefatos (checksum)
+- [ ] Avaliar assinatura digital do instalador — sem ela, o SmartScreen alerta na primeira execução
 
 ## 10. Pós-publicação
 

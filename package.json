@@ -23,6 +23,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "node --test",
     "gerar-icones": "node scripts/gerar-icones.mjs",
+    "empacotar-windows": "node scripts/empacotar-windows.mjs",
     "version": "node scripts/sincronizar-versao-do-cache.mjs && git add public/sw.js"
   },
   "dependencies": {

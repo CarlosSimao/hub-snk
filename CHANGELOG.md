@@ -8,6 +8,13 @@ em [Versões](README.md#versões) o que cada parte do número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- Instalador para Windows, anexado a cada release. Não pede senha de
+  administrador e não exige Node.js instalado — leva o próprio. Oferece atalho
+  na área de trabalho e início automático no logon, e abre o HUB SNK em janela
+  própria, sem barra de endereço.
+
 ### Alterado
 
 - O README passa a tratar só do uso do programa. A referência da API, o formato

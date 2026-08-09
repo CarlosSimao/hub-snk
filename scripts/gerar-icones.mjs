@@ -1,9 +1,10 @@
 /**
- * Gera os ícones PNG da PWA sem dependências externas.
+ * Gera os ícones da PWA e o `.ico` do instalador do Windows, sem dependências
+ * externas.
  *
  * O desenho é feito em resolução ampliada e reduzido por média, o que produz
  * as bordas suavizadas que um rasterizador daria — evitando trazer uma
- * biblioteca gráfica só para gerar três arquivos estáticos.
+ * biblioteca gráfica só para gerar arquivos estáticos.
  *
  * Uso: npm run gerar-icones
  */
@@ -23,6 +24,7 @@ const FUNDO_BASE = [0x07, 0x0b, 0x14];
 
 const raizDoProjeto = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const diretorioDeSaida = join(raizDoProjeto, 'public', 'img');
+const diretorioDoInstalador = join(raizDoProjeto, 'instalador');
 
 function limitar(valor, minimo, maximo) {
   return Math.min(Math.max(valor, minimo), maximo);
@@ -190,13 +192,70 @@ function codificarPng(tela, lado) {
   ]);
 }
 
-function gerarArquivo(nomeDoArquivo, lado, proporcaoDeMargem, arredondarFundo) {
+function desenharEmPng(lado, proporcaoDeMargem, arredondarFundo) {
   const ladoAmpliado = lado * FATOR_DE_SUPERAMOSTRAGEM;
   const telaAmpliada = desenharIcone(ladoAmpliado, proporcaoDeMargem, arredondarFundo);
-  const tela = reduzirPorMedia(telaAmpliada, ladoAmpliado, lado);
+  return codificarPng(reduzirPorMedia(telaAmpliada, ladoAmpliado, lado), lado);
+}
 
+function gerarArquivo(nomeDoArquivo, lado, proporcaoDeMargem, arredondarFundo) {
   const caminho = join(diretorioDeSaida, nomeDoArquivo);
-  writeFileSync(caminho, codificarPng(tela, lado));
+  writeFileSync(caminho, desenharEmPng(lado, proporcaoDeMargem, arredondarFundo));
+  console.log(`gerado: ${caminho}`);
+}
+
+/*
+ * O `.ico` guarda vários tamanhos no mesmo arquivo, e o Windows escolhe qual
+ * usar conforme o lugar — 16 na barra de tarefas, 32 no atalho, 256 na
+ * visualização grande do Explorer. Cada imagem entra como PNG, formato aceito
+ * dentro de ICO desde o Windows Vista.
+ */
+const LADOS_DO_ICO = [16, 32, 48, 64, 128, 256];
+const TAMANHO_DO_CABECALHO_DO_ICO = 6;
+const TAMANHO_DA_ENTRADA_DO_ICO = 16;
+const BITS_POR_PIXEL = 32;
+/* No formato, o lado 256 é gravado como 0: o campo tem um byte só. */
+const LADO_MAXIMO_NO_ICO = 256;
+
+function codificarIco(imagens) {
+  const cabecalho = Buffer.alloc(TAMANHO_DO_CABECALHO_DO_ICO);
+  cabecalho.writeUInt16LE(0, 0); // reservado
+  cabecalho.writeUInt16LE(1, 2); // 1 = ícone
+  cabecalho.writeUInt16LE(imagens.length, 4);
+
+  let deslocamento =
+    TAMANHO_DO_CABECALHO_DO_ICO + imagens.length * TAMANHO_DA_ENTRADA_DO_ICO;
+
+  const entradas = imagens.map(({ lado, png }) => {
+    const entrada = Buffer.alloc(TAMANHO_DA_ENTRADA_DO_ICO);
+    const ladoNoArquivo = lado === LADO_MAXIMO_NO_ICO ? 0 : lado;
+
+    entrada.writeUInt8(ladoNoArquivo, 0);
+    entrada.writeUInt8(ladoNoArquivo, 1);
+    entrada.writeUInt8(0, 2); // paleta: nenhuma
+    entrada.writeUInt8(0, 3); // reservado
+    entrada.writeUInt16LE(1, 4); // planos de cor
+    entrada.writeUInt16LE(BITS_POR_PIXEL, 6);
+    entrada.writeUInt32LE(png.length, 8);
+    entrada.writeUInt32LE(deslocamento, 12);
+
+    deslocamento += png.length;
+    return entrada;
+  });
+
+  return Buffer.concat([cabecalho, ...entradas, ...imagens.map(({ png }) => png)]);
+}
+
+function gerarIcoDoInstalador() {
+  const imagens = LADOS_DO_ICO.map((lado) => ({
+    lado,
+    /* Margem menor que a da PWA: em 16px o ícone precisa preencher o quadrado. */
+    png: desenharEmPng(lado, 0.14, true),
+  }));
+
+  mkdirSync(diretorioDoInstalador, { recursive: true });
+  const caminho = join(diretorioDoInstalador, 'hub-snk.ico');
+  writeFileSync(caminho, codificarIco(imagens));
   console.log(`gerado: ${caminho}`);
 }
 
@@ -204,3 +263,4 @@ mkdirSync(diretorioDeSaida, { recursive: true });
 gerarArquivo('icone-192.png', 192, 0.2, true);
 gerarArquivo('icone-512.png', 512, 0.2, true);
 gerarArquivo('icone-maskable-512.png', 512, 0.28, false);
+gerarIcoDoInstalador();

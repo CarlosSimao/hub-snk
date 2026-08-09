@@ -25,28 +25,50 @@ Funciona em Windows, Linux e macOS.
 
 ---
 
-## Pré-requisitos
+## Instalação no Windows
+
+Baixe o `hub-snk-<versão>-windows-x64.exe` na
+[página de releases](https://github.com/CarlosSimao/hub-snk/releases) e execute.
+
+O instalador **não pede senha de administrador** e **não exige Node.js
+instalado** — ele já traz o necessário. Instala na sua pasta de usuário e
+oferece duas opções:
+
+| Opção | O que faz |
+|---|---|
+| Atalho na área de trabalho | Ícone do HUB SNK ao lado do menu Iniciar |
+| Iniciar junto com o Windows | O servidor sobe sozinho no logon, sem abrir janela. Você abre a tela quando quiser, pelo atalho |
+
+O atalho abre o HUB SNK em **janela própria**, sem barra de endereço e sem abas
+— usa o Edge ou o Chrome já instalado, sem precisar instalar a PWA pelo botão do
+navegador.
+
+Seu cadastro fica em `%LOCALAPPDATA%\HubSnk\dados`, fora da pasta do programa.
+Desinstalar **não apaga o cadastro**; atualizar também não.
+
+### Atualizar no Windows
+
+Baixe o instalador da versão nova e execute por cima. Não é preciso desinstalar
+antes.
+
+---
+
+## Instalação no Linux, no macOS e a partir do código
 
 | Item | Versão | Para quê |
 |---|---|---|
 | **Node.js** | 22.18 ou superior | Executa o servidor. A partir dessa versão o Node roda arquivos `.ts` direto, sem etapa de build |
 | **Navegador Chromium** | Chrome ou Edge atual | Necessário para instalar a PWA em janela separada |
 
----
-
-## Instalação
-
 ```bash
 npm install
-```
-
-## Uso
-
-```bash
 npm start
 ```
 
 HUB SNK em <http://127.0.0.1:4100>.
+
+Os scripts `iniciar.sh` (Linux e macOS) e `iniciar.vbs` (Windows) sobem o
+servidor em segundo plano, sem deixar terminal aberto.
 
 ### Instalar como aplicativo (janela separada)
 
@@ -455,6 +477,7 @@ diagnóstico é a forma da mensagem, não os valores reais.
 Nada disto é necessário para usar o HUB SNK.
 
 - [Como contribuir](CONTRIBUTING.md) — rodar em modo de desenvolvimento, padrões do código, publicar uma versão
+- [Instalador do Windows](docs/instalador-windows.md) — como o `.exe` é montado e o que ele instala
 - [API HTTP](docs/api.md) — as rotas e os corpos aceitos
 - [Formato dos arquivos de dados](docs/formato-dos-dados.md) — o envelope, o esquema e a migração
 - [Estrutura do código](docs/estrutura-do-codigo.md) — mapa dos arquivos

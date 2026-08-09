@@ -1,0 +1,78 @@
+name: Instalador do Windows
+
+# Roda a cada tag de versão e anexa o instalador à release correspondente.
+# Também pode ser disparado à mão, para conferir que o empacotamento continua
+# funcionando sem precisar publicar nada.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  empacotar:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.18'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Conferir tipos e testes
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Gerar os ícones
+        run: npm run gerar-icones
+
+      - name: Empacotar a distribuição
+        run: npm run empacotar-windows
+
+      # A imagem do runner costuma trazer o Inno Setup, mas depender disso deixa
+      # a release à mercê de uma mudança na imagem.
+      - name: Garantir o Inno Setup
+        shell: pwsh
+        run: |
+          $compilador = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $compilador)) {
+            choco install innosetup --no-progress -y
+          }
+          "COMPILADOR_INNO=$compilador" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Compilar o instalador
+        shell: pwsh
+        run: '& "$env:COMPILADOR_INNO" instalador\hub-snk.iss'
+
+      - name: Guardar o instalador como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: instalador-windows
+          path: dist/hub-snk-*-windows-x64.exe
+          if-no-files-found: error
+
+      # Só quando veio de uma tag: o disparo manual serve para testar o build.
+      - name: Anexar o instalador à release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $arquivo = (Get-Item dist\hub-snk-*-windows-x64.exe).FullName
+          $tag = $env:GITHUB_REF_NAME
+
+          # A tag pode chegar antes de a release existir — nesse caso, cria.
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --title $tag --generate-notes
+          }
+
+          gh release upload $tag $arquivo --clobber
