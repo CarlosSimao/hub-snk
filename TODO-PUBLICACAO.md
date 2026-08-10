@@ -44,13 +44,13 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 
 ### No repositório
 
-- [x] Adicionar seção "Suporte" no README com link do Issues, do Discussions e e-mail de contato
+- [x] Canais de contato — Issues e Discussions ficam no `CONTRIBUTING.md`; a seção "Suporte" saiu do README e não há e-mail: tudo é pedido por issue
 - [x] Adicionar seção "Autor" ou linha de crédito no final do README
 - [x] Adicionar seção "Licença" no README apontando para o `LICENSE`
 
 ## 4. Versionamento e releases
 
-- [x] Definir e documentar a regra de SemVer do projeto (o que caracteriza MAJOR, MINOR e PATCH aqui)
+- [x] Definir e documentar a regra de SemVer do projeto (o que caracteriza MAJOR, MINOR e PATCH aqui) — em `docs/manutencao.md`
 - [x] Subir a versão de `0.1.0` para `1.0.0` na primeira release pública
 - [x] Criar `CHANGELOG.md` no padrão Keep a Changelog, em português, escrito para o usuário final
 - [x] Adotar Conventional Commits nas mensagens de commit
@@ -85,8 +85,9 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 ## 7. Documentos de apoio
 
 - [x] Criar `CONTRIBUTING.md` — reduzido a "não recebo pull request, peça por issue"; o conteúdo de manutenção foi para `docs/manutencao.md`
-- [x] Criar `SECURITY.md` — reduzido ao canal privado, à versão suportada e ao que não é falha; a conferência de origem foi para `docs/api.md`
-- [x] Mover o detalhe técnico do README para `docs/comportamento-detalhado.md` — programa chamado por SO, formatos de favoritos, `.sankhya-mcp.env` e gravidade das pendências Git
+- [x] `SECURITY.md` — removido: não há canal privado, tudo é pedido por issue. A conferência de origem foi para `docs/api.md`; o modelo de ameaça está no README, em "Exposição na rede"
+- [x] Mover o detalhe das funcionalidades do README para `docs/funcionalidades.md` — o README ficou com uma tabela-resumo
+- [ ] Avaliar o Private vulnerability reporting do GitHub (Settings › Security) — dá canal privado para falha de segurança sem expor e-mail
 - [x] `CODE_OF_CONDUCT.md` — dispensado: projeto de um mantenedor, público restrito a colegas
 - [x] `CODEOWNERS` — dispensado: um mantenedor só
 

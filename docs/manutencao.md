@@ -68,6 +68,18 @@ O cadastro cresce rápido e o atalho mais usado acabava no fim.
 
 Prefixos em uso: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `style`.
 
+## Regra de versão
+
+O número da versão diz o que esperar de uma atualização:
+
+| Parte               | Sobe quando                                                                  | Exemplo                                           |
+| ------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------- |
+| **MAJOR** — `2`.0.0 | O formato dos arquivos de dados muda, ou a atualização exige alguma ação sua | Uma variável de ambiente passa a ser obrigatória  |
+| **MINOR** — 1.`3`.0 | Entra funcionalidade nova e o cadastro continua compatível                   | Um tipo de atalho novo                            |
+| **PATCH** — 1.2.`4` | Correção de comportamento, sem nada novo                                     | A situação do Git deixa de errar o nome da branch |
+
+Toda mudança visível fica registrada no [CHANGELOG](../CHANGELOG.md).
+
 ## Publicando uma versão
 
 1. Mova o conteúdo de `## [Não publicado]` do `CHANGELOG.md` para uma seção com o

@@ -13,18 +13,6 @@ Funciona em Windows, Linux e macOS.
 
 ![Tela do HUB SNK com a lista de clientes cadastrados](docs/img/screenshot.png)
 
-> **As senhas das bases e dos bancos ficam em texto puro** em
-> `dados-hub-snk/clientes.json`. O HUB SNK não tem autenticação e roda só na sua
-> máquina, então qualquer chave de criptografia teria de ficar no mesmo disco
-> que o arquivo cifrado — o que não protege de nada. A pasta `dados-hub-snk/` não é
-> versionada (já está no `.gitignore`).
->
-> Dá para [sincronizar a pasta com a nuvem](#backup-na-nuvem) e ter backup, mas
-> **o arquivo sobe como está, com as senhas legíveis**.
->
-> O HUB SNK também abre programas do sistema operacional a pedido da API, então
-> **não o exponha na rede** sem ler [Exposição na rede](#exposição-na-rede).
-
 ---
 
 ## Instalação no Windows
@@ -159,7 +147,7 @@ HUB_DADOS_DIR="$HOME/.hub-snk" npm start
 ```
 
 Apontar para dentro de uma pasta de nuvem é o que dá backup — veja
-[Backup na nuvem](#backup-na-nuvem).
+[Backup na nuvem](docs/funcionalidades.md#backup-na-nuvem).
 
 ---
 
@@ -202,135 +190,23 @@ formato dos arquivos está em [docs/formato-dos-dados.md](docs/formato-dos-dados
 
 ---
 
-## Backup na nuvem
+## Funcionalidades
 
-Para ter backup, sincronize a pasta `dados-hub-snk` com o serviço de nuvem que
-você já usa — Google Drive, OneDrive, Dropbox. Basta adicioná-la à sincronização
-do cliente instalado na máquina, ou apontar o `HUB_DADOS_DIR` para dentro da
-pasta que já é sincronizada. Nada a configurar dentro do HUB SNK.
+| O quê                       | Resumo                                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Cadastro de clientes**    | Bases do ERP com usuário, senha e banco vinculado, repositórios Git, links avulsos e anotações livres                           |
+| **Importação de favoritos** | Transforma favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, deduzindo Produção ou Teste do nome                    |
+| **Botões do repositório**   | Abrem a pasta, o terminal (rodando o script padrão) e o IntelliJ; e editam o `.sankhya-mcp.env` do MCP Claude                   |
+| **Atalhos**                 | Lista de programas da sua máquina, iniciados com um clique pelo botão de raio                                                   |
+| **Diagnóstico Git**         | Selo por repositório com a branch e a pendência mais grave — commit faltando, conflito, segredo rastreado —, atualizado sozinho |
+| **Backup na nuvem**         | Não é embutido: aponte a pasta de dados para o Drive, o OneDrive ou o Dropbox que você já usa                                   |
 
-> Os arquivos sobem como estão no disco, e o cadastro guarda as senhas das bases
-> e dos bancos em texto puro. Confira se a pasta não está compartilhada com
-> ninguém.
+Cada uma em detalhe, com as regras e o que muda em cada sistema operacional, em
+[docs/funcionalidades.md](docs/funcionalidades.md).
 
-Usando em mais de uma máquina, feche o HUB SNK de uma antes de abrir na outra:
-a sincronização é de arquivo, e edição simultânea faz uma das versões se perder.
-Alteração que chega de fora com o HUB SNK aberto é percebida sozinha — ele vigia
-a pasta e relê o arquivo.
-
----
-
-## Importar bases dos favoritos do navegador
-
-O botão **Importar** (ícone de estrela, no topo da lista de clientes) abre um
-assistente que transforma favoritos do navegador em bases de clientes: escolher
-a origem, selecionar o arquivo de favoritos, marcar os favoritos desejados na
-árvore e conferir nome, URL, tipo, usuário e senha antes de concluir.
-
-O assistente **não pergunta qual é o navegador**: o formato do arquivo é
-reconhecido pelo próprio conteúdo. São aceitos Chrome, Edge, Opera, Firefox e
-Safari — o arquivo de qualquer outro é recusado com aviso na tela. O arquivo é
-lido no próprio navegador; nada dele chega ao servidor além das bases
-confirmadas na última etapa.
-
-Quando o nome do favorito carrega o ambiente, o tipo já vem preenchido e o
-marcador sai do nome do cliente — `COCA - PROD` vira o cliente `COCA` com a base
-de Produção. Sem marcador, o tipo fica em branco e você escolhe na última etapa.
-
-A lista de arquivos aceitos por navegador, onde encontrá-los e todos os
-marcadores reconhecidos estão em
-[docs/comportamento-detalhado.md](docs/comportamento-detalhado.md#importação-de-favoritos).
-
-## Anotações do cliente
-
-O último bloco do detalhe do cliente é uma caixa de texto livre — contatos,
-particularidades, combinados, o que for. São até 5000 caracteres, com quebra de
-linha preservada.
-
-Não há botão de salvar: a gravação acontece ao sair do campo, e um aviso
-confirma. Só os espaços das pontas são aparados. Se a gravação falhar, o texto
-digitado continua no campo e o aviso explica o motivo — nada se perde.
-
-O detalhe é redesenhado sozinho enquanto a tela está aberta (atualização
-automática da situação Git, por exemplo); o texto em digitação e a posição do
-cursor sobrevivem a esses redesenhos.
-
-## Os botões do repositório
-
-Repositório com **caminho local** cadastrado ganha quatro botões na própria
-linha:
-
-| Botão        | O que faz                                                                                                        |
-| ------------ | ---------------------------------------------------------------------------------------------------------------- |
-| **Arquivos** | Abre a pasta no gerenciador de arquivos do sistema                                                               |
-| **Shell**    | Abre o terminal já posicionado na pasta, e roda o _Script padrão_ das configurações, se houver um                |
-| **`{ }`**    | Abre a pasta como projeto no IntelliJ IDEA                                                                       |
-| **Tomada**   | Edita o `.sankhya-mcp.env` da pasta — os dados de banco que o MCP Claude usa, guardados só ali, fora do cadastro |
-
-Quando o programa correspondente não é encontrado na máquina, o HUB SNK avisa na
-tela. Qual programa é procurado em cada sistema está em
-[docs/comportamento-detalhado.md](docs/comportamento-detalhado.md#que-programa-cada-botão-chama).
-
-> O **Script padrão** é interpretado pelo shell — é essa a função do campo. Ele
-> roda na sua máquina, com as suas permissões, na pasta do repositório. Vale o
-> mesmo critério de digitar um comando direto no terminal: só coloque ali o que
-> você mesmo executaria.
-
-> O `.sankhya-mcp.env` guarda a senha do banco e fica **dentro** do repositório.
-> Confira se ele está no `.gitignore` do projeto — o HUB SNK marca em vermelho o
-> repositório em que esse arquivo estiver sendo rastreado pelo Git.
-
-O botão **Importar**, dentro do formulário da tomada, copia host, porta, service
-name, usuário e senha de uma base do mesmo cliente que tenha banco vinculado.
-Ele só preenche o formulário — nada é gravado antes de você clicar em Salvar.
-
-## Atalhos
-
-O botão de raio, à direita do botão de tema, abre a lista dos atalhos
-cadastrados; o clique em um deles inicia o programa na sua máquina. A lista fica
-no ar até um clique fora dela — ou `Esc` — fechá-la. O cadastro fica em
-**Configurações › Atalhos**, com _Nome_ e _Caminho do executável_.
-
-O botão de pasta ao lado do caminho abre o seletor de arquivos do sistema e
-preenche o campo. O campo continua editável — dá para colar um caminho ou
-ajustar o que veio do seletor.
-
-Vale para `.exe`, `.lnk`, `.bat` e qualquer extensão associada. A existência do
-arquivo é checada na hora de executar, não no cadastro; sem o arquivo, o HUB SNK
-avisa na tela.
-
-## Situação dos repositórios
-
-Todo repositório com **caminho local** é verificado e ganha um selo na própria
-linha, com a branch atual e a pendência mais grave. O clique no selo abre a
-lista completa, cada item com o comando que resolve e um botão de copiar. Na
-lista de clientes, uma bolinha resume a pior situação entre os repositórios
-daquele cliente.
-
-As cores nunca aparecem sozinhas — sempre acompanham o texto da pendência:
-
-| Cor      | Significado                                                                       |
-| -------- | --------------------------------------------------------------------------------- |
-| Vermelho | Precisa de ação: risco de perder trabalho, de vazar segredo ou o clone nem existe |
-| Amarelo  | Pendência normal: falta commitar, falta versionar, falta esvaziar o stash         |
-| Verde    | Nada pendente: tudo commitado                                                     |
-| Cinza    | Não foi possível verificar                                                        |
-
-O diagnóstico é só leitura de disco: nada usa a rede, e o `git` roda sem prompt
-de credencial, então nenhum repositório trava o HUB SNK esperando senha. O
-`title` do selo mostra a hora da última verificação, e o botão de recarregar do
-cliente refaz tudo ignorando o cache de 30 segundos.
-
-A lista completa do que é verificado, com a gravidade de cada item, está em
-[docs/comportamento-detalhado.md](docs/comportamento-detalhado.md#diagnóstico-dos-repositórios-git).
-
-### Atualização automática
-
-Em **Configurações**, o campo **Atualizar a situação Git automaticamente**
-(ligado por padrão) refaz o diagnóstico local a cada minuto enquanto a aba
-está em primeiro plano — mesma leitura do botão de recarregar, só que sem
-precisar clicar. Para de rodar sozinho quando a aba perde o foco ou é
-minimizada.
+> Os arquivos da pasta de dados sobem para a nuvem **como estão no disco**, e o
+> cadastro guarda as senhas das bases e dos bancos em texto puro. Confira se a
+> pasta não está compartilhada com ninguém.
 
 ---
 
@@ -346,39 +222,9 @@ minimizada.
 | Mensagem sobre esquema mais novo ao iniciar              | O cadastro foi gravado por uma versão mais nova do HUB SNK. Atualize com `git pull`                                                      |
 | `403` em tudo, ou a tela não carrega nada                | O endereço usado não é `127.0.0.1` nem `localhost`, ou a porta não bate com a do servidor                                                |
 
-Se não estiver na lista, [abra uma issue](https://github.com/CarlosSimao/hub-snk/issues/new/choose).
-
----
-
-## Versões
-
-O número da versão diz o que esperar de uma atualização:
-
-| Parte               | Sobe quando                                                                  | Exemplo                                           |
-| ------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------- |
-| **MAJOR** — `2`.0.0 | O formato dos arquivos de dados muda, ou a atualização exige alguma ação sua | Uma variável de ambiente passa a ser obrigatória  |
-| **MINOR** — 1.`3`.0 | Entra funcionalidade nova e o cadastro continua compatível                   | Um tipo de atalho novo                            |
-| **PATCH** — 1.2.`4` | Correção de comportamento, sem nada novo                                     | A situação do Git deixa de errar o nome da branch |
-
-Toda mudança visível fica registrada no [CHANGELOG](CHANGELOG.md).
-
----
-
-## Suporte
-
-A versão que você está rodando aparece no rodapé da tela — cite-a ao relatar
-qualquer coisa.
-
-| Para                                                      | Onde                                                                        |
-| --------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Erro, comportamento estranho, algo que parou de funcionar | [Abrir uma issue](https://github.com/CarlosSimao/hub-snk/issues/new/choose) |
-| Ideia, pedido de melhoria, dúvida de uso                  | [Discussions](https://github.com/CarlosSimao/hub-snk/discussions)           |
-| Falha de segurança                                        | Não abra issue pública — veja o [SECURITY.md](SECURITY.md)                  |
-
-**Antes de colar qualquer coisa numa issue:** o repositório é público. Não
-publique o conteúdo do cadastro, nem trechos de log com nome de cliente, host,
-usuário ou senha. Troque por `<cliente>` e `<host>` — o que importa para o
-diagnóstico é a forma da mensagem, não os valores reais.
+Se não estiver na lista, [abra uma issue](https://github.com/CarlosSimao/hub-snk/issues/new/choose)
+— citando a versão que aparece no rodapé da tela, e sem colar senha, host,
+usuário ou nome de cliente: o repositório é público.
 
 ---
 
@@ -386,13 +232,13 @@ diagnóstico é a forma da mensagem, não os valores reais.
 
 Nada disto é necessário para usar o HUB SNK.
 
-- [Comportamento detalhado](docs/comportamento-detalhado.md) — qual programa cada botão chama, formatos aceitos, regras do diagnóstico Git
+- [Funcionalidades em detalhe](docs/funcionalidades.md) — cada recurso, com as regras e o que muda em cada sistema
 - [API HTTP](docs/api.md) — as rotas, os corpos aceitos e a conferência de origem
 - [Formato dos arquivos de dados](docs/formato-dos-dados.md) — o envelope, o esquema e a migração
 - [Distribuição](docs/distribuicao.md) — como o instalador e os pacotes são montados
 - [Estrutura do código](docs/estrutura-do-codigo.md) — mapa dos arquivos
-- [Manutenção](docs/manutencao.md) — modo de desenvolvimento, padrões do código, publicar uma versão
-- [Segurança](SECURITY.md) — como reportar uma falha
+- [Manutenção](docs/manutencao.md) — modo de desenvolvimento, padrões do código, regra de versão e publicação
+- [CHANGELOG](CHANGELOG.md) — o que mudou em cada versão
 
 ---
 

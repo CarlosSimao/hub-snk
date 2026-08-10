@@ -1,10 +1,48 @@
-# Comportamento detalhado
+# Funcionalidades em detalhe
 
-O que cada recurso faz por baixo: qual programa é chamado em cada sistema, que
-formato de arquivo é aceito, que regra decide o quê. Para usar o HUB SNK, o
-[README](../README.md) basta — nada aqui é necessário no dia a dia.
+O que cada recurso do HUB SNK faz, com as regras que valem por baixo: qual
+programa é chamado em cada sistema, que formato de arquivo é aceito, o que
+dispara cada cor. O [README](../README.md) traz o resumo; aqui está o detalhe.
 
-## Importação de favoritos
+## Cadastro de clientes
+
+Cada cliente reúne quatro listas: **bases** (a URL do ERP, com usuário, senha e
+o banco de dados vinculado), **repositórios** Git, **links** avulsos e as
+**anotações**.
+
+Nomes de cliente não se repetem. Nas bases, a mesma URL pode aparecer várias
+vezes desde que o usuário mude — assim dá para cadastrar um acesso de
+administração e outro de consulta na mesma base. Repositório com URL repetida no
+mesmo cliente é recusado. Todas as comparações ignoram maiúsculas e espaços nas
+pontas.
+
+Cada base tem no máximo um banco de dados. A senha não é aparada: espaço nas
+pontas pode fazer parte dela.
+
+## Anotações do cliente
+
+O último bloco do detalhe do cliente é uma caixa de texto livre — contatos,
+particularidades, combinados, o que for. São até 5000 caracteres, com quebra de
+linha preservada.
+
+Não há botão de salvar: a gravação acontece ao sair do campo, e um aviso
+confirma. Só os espaços das pontas são aparados. Se a gravação falhar, o texto
+digitado continua no campo e o aviso explica o motivo — nada se perde.
+
+O detalhe é redesenhado sozinho enquanto a tela está aberta (atualização
+automática da situação Git, por exemplo); o texto em digitação e a posição do
+cursor sobrevivem a esses redesenhos.
+
+## Importação de favoritos do navegador
+
+O botão **Importar** (ícone de estrela, no topo da lista de clientes) abre um
+assistente que transforma favoritos do navegador em bases de clientes: escolher
+a origem, selecionar o arquivo de favoritos, marcar os favoritos desejados na
+árvore e conferir nome, URL, tipo, usuário e senha antes de concluir.
+
+O assistente **não pergunta qual é o navegador**: o formato do arquivo é
+reconhecido pelo próprio conteúdo. O arquivo é lido no próprio navegador; nada
+dele chega ao servidor além das bases confirmadas na última etapa.
 
 ### Navegadores suportados
 
@@ -16,9 +54,7 @@ formato de arquivo é aceito, que regra decide o quê. Para usar o HUB SNK, o
 | Mozilla Firefox | HTML exportado ou backup `.json`                                        | **Favoritos > Gerenciar favoritos > Importar e fazer backup > Exportar favoritos para HTML**                           |
 | Safari          | HTML exportado                                                          | **Arquivo > Exportar > Favoritos**                                                                                     |
 
-Qualquer outro navegador está fora do escopo: o arquivo é recusado com aviso na
-própria tela. O formato é reconhecido pelo conteúdo — o assistente não pergunta
-qual é o navegador.
+O arquivo de qualquer outro navegador é recusado com aviso na própria tela.
 
 - O backup padrão do Firefox (`bookmarks-*.jsonlz4`) é compactado e **não** é
   aceito — o assistente avisa e indica a exportação em HTML.
@@ -26,8 +62,6 @@ qual é o navegador.
   binário e só existe no macOS); o caminho é sempre a exportação em HTML.
 - Favoritos que não sejam `http` ou `https` (`javascript:`, `place:`, `chrome://`)
   aparecem na árvore desmarcáveis: o HUB SNK só abre endereços navegáveis.
-- O arquivo é lido no próprio navegador; nada dele é enviado ao servidor além
-  das bases confirmadas na última etapa.
 
 ### Tipo da base deduzido do nome
 
@@ -48,12 +82,28 @@ Exemplos que caem todos em `COCA`: `COCA - PROD`, `PROD - COCA`, `P - COCA`,
 
 Nada é retirado quando sobraria um nome vazio (`PROD` sozinho continua `PROD`)
 ou quando o marcador é parte de uma palavra (`COCA - PRODUTOS` fica intacto).
-Sem marcador, o tipo fica em branco e o usuário escolhe na última etapa.
+Sem marcador, o tipo fica em branco e você escolhe na última etapa.
 
 Homologação é tratada como Teste: o HUB SNK só tem os tipos Produção, Teste e
 Outro.
 
-## Que programa cada botão chama
+## Os botões do repositório
+
+Repositório com **caminho local** cadastrado ganha quatro botões na própria
+linha: **Arquivos** abre a pasta no gerenciador de arquivos, **Shell** abre o
+terminal já posicionado nela, **`{ }`** abre a pasta como projeto no IntelliJ
+IDEA e a **tomada** edita o `.sankhya-mcp.env`.
+
+Se o **Script padrão** estiver preenchido em _Configurações_ (engrenagem no
+topo), o botão Shell o executa assim que o terminal abre, e a janela continua
+aberta depois para você ler a saída.
+
+> O **Script padrão** é interpretado pelo shell — é essa a função do campo. Ele
+> roda na sua máquina, com as suas permissões, na pasta do repositório. Vale o
+> mesmo critério de digitar um comando direto no terminal: só coloque ali o que
+> você mesmo executaria.
+
+### Que programa é chamado em cada sistema
 
 | Botão                            | Windows                                                                                                                    | macOS                                                                        | Linux                                                                                         |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
@@ -69,11 +119,7 @@ estar no PATH, ou o launcher de linha de comando precisa ter sido gerado pelo
 JetBrains Toolbox. No Linux sem `zenity` nem `kdialog`, resta digitar o caminho
 do atalho à mão.
 
-Os atalhos valem tanto para `.exe` quanto para `.lnk`, `.bat` e qualquer
-extensão associada. A existência do arquivo é checada na hora de executar, não
-no cadastro — dá para cadastrar o caminho de um programa ainda não instalado.
-
-## Arquivo `.sankhya-mcp.env`
+### Arquivo `.sankhya-mcp.env`
 
 O botão de tomada grava este arquivo na raiz da pasta local do repositório.
 **Esses dados não vão para o cadastro do HUB SNK** — vivem só nesse arquivo:
@@ -91,11 +137,52 @@ senha pode conter `=`: na leitura, só o primeiro sinal separa chave de valor.
 Variáveis que já estivessem no arquivo e não sejam essas cinco são preservadas
 no fim.
 
+Ao abrir o formulário, o arquivo existente é carregado; se não existir, o
+formulário abre em branco e o arquivo é criado ao salvar. O botão **Importar**,
+dentro do formulário, copia host, porta, service name, usuário e senha de uma
+base do mesmo cliente que tenha banco vinculado — só preenche os campos, nada é
+gravado antes de você clicar em Salvar.
+
 A cor do botão mostra a situação sem abrir o formulário: **verde** quando o
 arquivo existe com as cinco variáveis preenchidas, **neutro** quando não existe
 ou está incompleto — o `title` do botão distingue os dois casos.
 
+> O arquivo guarda a senha do banco e fica **dentro** do repositório. Confira se
+> ele está no `.gitignore` do projeto — o diagnóstico marca em vermelho o
+> repositório em que ele estiver sendo rastreado pelo Git.
+
+## Atalhos
+
+O botão de raio, à direita do botão de tema, abre a lista dos atalhos
+cadastrados; o clique em um deles inicia o programa na sua máquina. A lista fica
+no ar até um clique fora dela — ou `Esc` — fechá-la. O cadastro fica em
+**Configurações › Atalhos**, com _Nome_ e _Caminho do executável_.
+
+O botão de pasta ao lado do caminho abre o seletor de arquivos do sistema e
+preenche o campo. O campo continua editável — dá para colar um caminho ou
+ajustar o que veio do seletor.
+
+Vale para `.exe`, `.lnk`, `.bat` e qualquer extensão associada. A existência do
+arquivo é checada na hora de executar, não no cadastro, então dá para cadastrar
+o caminho de um programa ainda não instalado; sem o arquivo, o HUB SNK avisa na
+tela.
+
 ## Diagnóstico dos repositórios Git
+
+Todo repositório com **caminho local** é verificado e ganha um selo na própria
+linha, com a branch atual e a pendência mais grave. O clique no selo abre a
+lista completa, cada item com o comando que resolve e um botão de copiar. Na
+lista de clientes, uma bolinha resume a pior situação entre os repositórios
+daquele cliente.
+
+As cores nunca aparecem sozinhas — sempre acompanham o texto da pendência:
+
+| Cor      | Significado                                                                       |
+| -------- | --------------------------------------------------------------------------------- |
+| Vermelho | Precisa de ação: risco de perder trabalho, de vazar segredo ou o clone nem existe |
+| Amarelo  | Pendência normal: falta commitar, falta versionar, falta esvaziar o stash         |
+| Verde    | Nada pendente: tudo commitado                                                     |
+| Cinza    | Não foi possível verificar                                                        |
 
 O que é verificado, e com que gravidade:
 
@@ -121,5 +208,28 @@ diagnóstico compara branches entre si nem mede distância para o remoto.
 
 Nenhuma parte do diagnóstico usa a rede: todos os comandos são leituras do
 disco. O `git` roda sem prompt de credencial, então nenhum repositório trava o
-HUB SNK esperando senha. O resultado fica em cache por 30 segundos; o botão de
-recarregar do cliente ignora o cache.
+HUB SNK esperando senha. O resultado fica em cache por 30 segundos, e o botão de
+recarregar do cliente refaz tudo ignorando o cache.
+
+### Atualização automática
+
+Em **Configurações**, o campo **Atualizar a situação Git automaticamente**
+(ligado por padrão) refaz o diagnóstico local a cada minuto enquanto a aba está
+em primeiro plano — mesma leitura do botão de recarregar, só que sem precisar
+clicar. Para de rodar sozinho quando a aba perde o foco ou é minimizada.
+
+## Backup na nuvem
+
+Não há backup embutido. Para ter um, sincronize a pasta de dados com o serviço
+de nuvem que você já usa — Google Drive, OneDrive, Dropbox: basta adicioná-la à
+sincronização do cliente instalado na máquina, ou apontar o `HUB_DADOS_DIR` para
+dentro de uma pasta que já é sincronizada.
+
+> Os arquivos sobem como estão no disco, e o cadastro guarda as senhas das bases
+> e dos bancos em texto puro. Confira se a pasta não está compartilhada com
+> ninguém.
+
+Usando em mais de uma máquina, feche o HUB SNK de uma antes de abrir na outra: a
+sincronização é de arquivo, e edição simultânea faz uma das versões se perder.
+Alteração que chega de fora com o HUB SNK aberto é percebida sozinha — ele vigia
+a pasta e relê o arquivo.

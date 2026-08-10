@@ -4,7 +4,8 @@ Tudo que muda de uma versão para outra, escrito para quem usa o HUB SNK.
 
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e a
 numeração segue o [Versionamento Semântico](https://semver.org/lang/pt-BR/) — veja
-em [Versões](README.md#versões) o que cada parte do número significa aqui.
+em [Regra de versão](docs/manutencao.md#regra-de-versão) o que cada parte do
+número significa aqui.
 
 ## [Não publicado]
 
