@@ -9,6 +9,52 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.0.0] - 2026-08-10
+
+### Removido
+
+- O instalador `.exe` do Windows saiu da distribuição. O Controle Inteligente de
+  Aplicativos do Windows 11 bloqueia executável sem assinatura digital, e
+  assinar exige certificado pago com renovação anual. No lugar dele, o Windows
+  passa a receber um `.zip` com scripts de instalação.
+
+### Adicionado
+
+- Instalação por script nas três plataformas: `instalar-hub-snk.bat` no Windows,
+  `instalar-hub-snk.sh` no Linux e no macOS. A instalação pergunta a pasta do
+  programa, os cinco parâmetros do servidor — `HUB_PORTA`, `HUB_HOST`,
+  `HUB_PERMITIR_REDE`, `HUB_DADOS_DIR` e `HUB_NAVEGADOR` —, se cria atalho e se
+  o servidor sobe junto com a sessão. Toda pergunta vem com um valor pronto
+  entre colchetes: Enter em tudo instala como antes.
+
+- `HUB_HOST` fora do loopback passa a ser tratado à parte na instalação: o
+  script mostra o que a exposição significa e só grava com o
+  `HUB_PERMITIR_REDE=1` confirmado na hora.
+
+- Remoção por script: `desinstalar-hub-snk.bat` e `desinstalar-hub-snk.sh`
+  encerram o servidor, apagam atalhos, programa, log e configuração, e deixam o
+  cadastro onde está.
+
+- No Linux e no macOS, a instalação passa a criar atalho no menu de aplicativos
+  e, se pedido, entrada de início automático da sessão — o que antes só existia
+  no Windows.
+
+### Alterado
+
+- As escolhas da instalação ficam num `hub-snk.env` legível, em
+  `%LOCALAPPDATA%\HubSnk\` no Windows e em `~/.config/hub-snk/` no Linux e no
+  macOS. Dá para editar à mão sem reinstalar, e reinstalar aproveita cada valor
+  como padrão das perguntas. O `navegador.txt` das versões anteriores é lido uma
+  última vez, para a escolha de navegador não se perder.
+
+- A janela do aplicativo passa a abrir no endereço configurado, e não no
+  `127.0.0.1` fixo: com `HUB_HOST` apontado para outro endereço, o atalho abria
+  uma janela que não respondia.
+
+> **Ao atualizar:** desinstale a versão antiga pelo "Adicionar ou remover
+> programas" do Windows antes de rodar o `instalar-hub-snk.bat`. O cadastro não
+> é tocado por nenhum dos dois passos.
+
 ## [1.1.1] - 2026-08-10
 
 ### Corrigido
@@ -91,7 +137,8 @@ que mudou ao preparar a distribuição.
 - `HUB_HOST` fora do loopback não sobe mais sozinho: precisa de
   `HUB_PERMITIR_REDE=1`, dito de propósito.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.1...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.1...v2.0.0
 [1.1.1]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/CarlosSimao/hub-snk/releases/tag/v1.0.0

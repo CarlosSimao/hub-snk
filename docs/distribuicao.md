@@ -3,15 +3,27 @@
 Como os artefatos de cada release são montados e por que as decisões foram
 estas. Para apenas instalar o HUB SNK, veja o [README](../README.md).
 
-| Artefato                              | Plataforma                      |
-| ------------------------------------- | ------------------------------- |
-| `hub-snk-<versão>-windows-x64.exe`    | Windows — instalador com wizard |
-| `hub-snk-<versão>-linux-x64.tar.gz`   | Linux                           |
-| `hub-snk-<versão>-macos-x64.tar.gz`   | macOS com processador Intel     |
-| `hub-snk-<versão>-macos-arm64.tar.gz` | macOS com Apple Silicon         |
+| Artefato                              | Plataforma                  |
+| ------------------------------------- | --------------------------- |
+| `hub-snk-<versão>-windows-x64.zip`    | Windows                     |
+| `hub-snk-<versão>-linux-x64.tar.gz`   | Linux                       |
+| `hub-snk-<versão>-macos-x64.tar.gz`   | macOS com processador Intel |
+| `hub-snk-<versão>-macos-arm64.tar.gz` | macOS com Apple Silicon     |
 
-Todos levam o próprio Node e as dependências instaladas: a máquina de destino
-não precisa de Node, de npm nem de rede.
+Todos levam o próprio Node, as dependências instaladas e os scripts de
+instalação e remoção: a máquina de destino não precisa de Node, de npm nem de
+rede.
+
+## Por que não há executável de instalação
+
+O Controle Inteligente de Aplicativos do Windows 11 bloqueia executável sem
+assinatura digital — o antigo `hub-snk-<versão>-windows-x64.exe`, gerado pelo
+Inno Setup, era barrado antes de abrir a primeira tela. Assinar exige
+certificado de code signing pago, com renovação anual.
+
+Script não é executável: o `instalar-hub-snk.bat` chama o PowerShell, que roda
+o `.ps1` do pacote sem passar por esse bloqueio. O preço é uma instalação por
+perguntas no terminal em vez de um wizard gráfico.
 
 ## Como gerar
 
@@ -19,61 +31,85 @@ Tudo é montado pelo GitHub Actions a cada tag `v*` e anexado à release — vej
 `.github/workflows/distribuicao.yml`. Não é preciso gerar nada à mão para
 publicar.
 
-O instalador do Windows é compilado no runner Windows; os pacotes Unix, no
-runner Linux, porque o `tar` precisa preservar o bit de execução do binário do
-Node. Empacotar no Windows entrega um pacote que não roda do outro lado.
+O zip do Windows é montado no runner Windows, porque quem grava zip ali é o
+bsdtar do próprio sistema; os pacotes Unix, no runner Linux, porque o `tar`
+precisa preservar o bit de execução do binário do Node. Empacotar no Windows
+entrega um pacote Unix que não roda do outro lado.
 
 Para conferir localmente:
 
 ```bash
 npm run gerar-icones        # gera instalador/hub-snk.ico
-npm run empacotar-windows   # monta dist/windows e dist/versao.iss
+npm run empacotar-windows   # gera dist/hub-snk-<versão>-windows-x64.zip
 npm run empacotar-unix      # gera os três .tar.gz em dist/
 ```
 
-O instalador em si precisa do [Inno Setup 6](https://jrsoftware.org/isdl.php)
-(`winget install JRSoftware.InnoSetup`):
-
-```powershell
-& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" instalador\hub-snk.iss
-```
-
-O `.exe` sai em `dist/`.
-
 ---
 
-# Instalador do Windows
+# Pacote do Windows
 
 ## O que vai dentro
 
-`npm run empacotar-windows` monta `dist/windows` com:
+| Item                                 | De onde vem                                                                                                                    |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `node.exe`                           | Baixado de `nodejs.org/dist`, na versão fixada no script. Fica em cache em `dist/cache` para não rebaixar a cada empacotamento |
+| `node_modules`                       | `npm ci --omit=dev` numa pasta separada, para não mexer no `node_modules` de desenvolvimento                                   |
+| `src`, `public`, `package.json`      | Do repositório, sem os arquivos `.test.ts`                                                                                     |
+| Os `.vbs`, `.bat`, `.ps1` e o `.ico` | De `instalador/`                                                                                                               |
+| `LICENSE.txt` e `README.md`          | Do repositório, o `LICENSE` renomeado para abrir com duplo clique no Windows                                                   |
 
-| Item                            | De onde vem                                                                                                                    |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `node.exe`                      | Baixado de `nodejs.org/dist`, na versão fixada no script. Fica em cache em `dist/cache` para não rebaixar a cada empacotamento |
-| `node_modules`                  | `npm ci --omit=dev` numa pasta separada, para não mexer no `node_modules` de desenvolvimento                                   |
-| `src`, `public`, `package.json` | Do repositório, sem os arquivos `.test.ts`                                                                                     |
-| `abrir-hub-snk.vbs`             | De `instalador/`                                                                                                               |
-| `LICENSE.txt`                   | O `LICENSE` do projeto, renomeado para o instalador exibir                                                                     |
-
-São ~106 MB descompactados, a maior parte do `node.exe`. O instalador comprime
-isso com LZMA2.
+São ~106 MB descompactados e ~37 MB no zip, a maior parte do `node.exe`.
 
 **Por que embutir o Node:** sem ele, cada colega precisaria instalar o Node.js,
 acertar a versão mínima e rodar `npm install` com rede. O custo é o tamanho do
-instalador; o ganho é "baixou, instalou, usou".
+pacote; o ganho é "baixou, descompactou, usou".
+
+**Por que zip e não tar.gz:** no Windows o zip abre com duplo clique no próprio
+Explorer. O bit de execução, que obriga os pacotes Unix a usarem tar, não existe
+aqui. O empacotador chama o `tar.exe` do System32 pelo caminho completo e
+confere a assinatura `PK` do arquivo gerado: o `tar` do PATH pode ser o GNU tar
+do Git Bash, que aceita o `-a`, ignora a extensão e entrega um tar puro com nome
+de zip.
 
 ## O que é instalado
 
-Instalação **por usuário**, sem UAC (`PrivilegesRequired=lowest`). O programa
-vai para a pasta de aplicativos do usuário; nada é escrito em `Program Files`
-nem no registro da máquina.
+Instalação **por usuário**, sem UAC. O programa vai para a pasta de aplicativos
+do usuário; nada é escrito em `Program Files` nem no registro da máquina.
 
 | Caminho                             | Conteúdo                                                |
 | ----------------------------------- | ------------------------------------------------------- |
 | `%LOCALAPPDATA%\Programs\HubSnk`    | O programa: `node.exe`, `src`, `public`, `node_modules` |
 | `%LOCALAPPDATA%\HubSnk\dados`       | O cadastro. **Não** é removido na desinstalação         |
+| `%LOCALAPPDATA%\HubSnk\hub-snk.env` | As respostas dadas na instalação                        |
 | `%LOCALAPPDATA%\HubSnk\hub-snk.log` | Saída do servidor                                       |
+
+Os atalhos ficam no menu Iniciar, na área de trabalho e na pasta Inicializar,
+conforme as respostas — cada um apontando para o `wscript.exe` com o
+`abrir-hub-snk.vbs` como argumento, que é o que evita a janela de console.
+
+## O arquivo de configuração
+
+O instalador não guarda as escolhas no registro nem dentro do programa: elas vão
+para o `hub-snk.env`, no formato `CHAVE=valor`, ao lado do cadastro. O launcher
+lê o arquivo a cada abertura e leva cada valor para o ambiente do servidor.
+
+```
+HUB_PORTA=4100
+HUB_HOST=127.0.0.1
+HUB_PERMITIR_REDE=0
+HUB_DADOS_DIR=C:\Users\voce\AppData\Local\HubSnk\dados
+HUB_NAVEGADOR=edge
+```
+
+Variável de ambiente com o mesmo nome vence o arquivo: dá para testar outra
+porta ou outro navegador sem reinstalar. Reinstalar, por sua vez, lê o arquivo e
+usa cada valor como padrão das perguntas — Enter em tudo repete a instalação
+anterior.
+
+`HUB_HOST` fora do loopback é o único que não passa direto: o script mostra o
+que a exposição significa (API sem autenticação, senhas do cadastro, abertura de
+programas da máquina) e só grava com o `HUB_PERMITIR_REDE=1` confirmado na hora.
+É a mesma regra que o servidor aplica em `src/configuracao.ts`.
 
 ## Por que não é um serviço do Windows
 
@@ -83,10 +119,10 @@ diálogos de seleção de arquivo (`OpenFileDialog` via `powershell -STA`). Nada
 disso apareceria na tela: os diálogos ficariam invisíveis, esperando um clique
 que ninguém poderia dar.
 
-O equivalente que funciona é o atalho em `{userstartup}`, que sobe o servidor no
-logon, oculto, dentro da sessão do usuário — mesmo efeito prático, sem quebrar
-metade do produto. É a opção "Iniciar o HUB SNK junto com o Windows" do
-instalador.
+O equivalente que funciona é o atalho na pasta Inicializar, que sobe o servidor
+no logon, oculto, dentro da sessão do usuário — mesmo efeito prático, sem
+quebrar metade do produto. É a opção "Iniciar o HUB SNK junto com o Windows" da
+instalação.
 
 ## Os dois modos do launcher
 
@@ -100,29 +136,29 @@ instalador.
 Rodar o launcher com o servidor já no ar não sobe um segundo: ele confere a
 porta antes.
 
-A janela é aberta com `--app=http://127.0.0.1:4100` no Edge ou no Chrome, o que
+A janela é aberta com `--app=http://<host>:<porta>` no Edge ou no Chrome, o que
 dá a janela sem barra de endereço e sem abas sem depender de o usuário ter
 instalado a PWA pelo botão do navegador. Sem nenhum dos dois, abre no navegador
 padrão, em aba comum.
 
+## Por que os `.bat` ao lado dos `.ps1`
+
+Duplo clique num `.ps1` abre o Bloco de Notas, não executa. E a política de
+execução padrão do Windows recusa script sem assinatura vindo da internet. Os
+dois `.bat` resolvem os dois problemas de uma vez: chamam o PowerShell com
+`-ExecutionPolicy Bypass`, que vale só para aquela chamada e não altera a
+configuração da máquina. Eles preferem o `pwsh.exe` e caem para o
+`powershell.exe` quando o PowerShell 7 não está instalado.
+
 ## Desinstalação
 
-O desinstalador roda `encerrar-hub-snk.vbs` antes de apagar os arquivos — o
-`node.exe` em uso travaria a remoção. Esse script encerra **apenas** processos
-cujo executável é o `node.exe` da própria instalação: outro Node rodando na
-máquina, de um projeto seu, não é tocado.
+O `desinstalar-hub-snk.bat` roda `encerrar-hub-snk.vbs` antes de apagar os
+arquivos — o `node.exe` em uso travaria a remoção. Esse script encerra **apenas**
+processos cujo executável é o `node.exe` da própria instalação: outro Node
+rodando na máquina, de um projeto seu, não é tocado.
 
-Ao final, um aviso lembra onde o cadastro ficou, para quem quiser apagá-lo à
-mão.
-
-## Assinatura digital
-
-O instalador não é assinado. O SmartScreen do Windows vai mostrar "Windows
-protegeu o computador" na primeira execução — é preciso clicar em _Mais
-informações_ › _Executar assim mesmo_.
-
-Assinar exigiria um certificado de code signing pago, com renovação anual.
-Enquanto não houver, vale avisar os colegas de que o aviso é esperado.
+Saem os atalhos, o programa, o log e o `hub-snk.env`. O cadastro fica, e um
+aviso lembra onde ele está para quem quiser apagá-lo à mão.
 
 ---
 
@@ -143,7 +179,7 @@ depois custa mais que a linha de código.
 
 Cada pacote traz `node` (o binário da plataforma, extraído do tarball oficial),
 `node_modules` de produção, `src`, `public`, `package.json`, o `README.md`, o
-`LICENSE` e o `hub-snk.sh`.
+`LICENSE`, o `hub-snk.sh` e os dois scripts de instalação.
 
 As dependências são as mesmas nas três plataformas — todas JavaScript puro, sem
 binário compilado —, então o `npm ci` roda uma vez e o resultado é reaproveitado.
@@ -157,17 +193,33 @@ binário compilado —, então o `npm ci` roda uma vez e o resultado é reaprove
 ```
 
 Os dados ficam em `$XDG_DATA_HOME/hub-snk/dados` — na prática
-`~/.local/share/hub-snk/dados` —, fora da pasta do pacote. Atualizar é apagar a
-pasta do pacote e descompactar a nova; o cadastro fica onde está.
+`~/.local/share/hub-snk/dados` —, fora da pasta do programa. Atualizar é
+descompactar a versão nova e rodar o `instalar-hub-snk.sh` de novo; o cadastro
+fica onde está.
 
 O `parar` encerra apenas os processos iniciados a partir do binário daquele
 pacote, encontrados por `pgrep` no caminho completo. Outro Node rodando na
 máquina não é tocado.
 
-Não há início automático no logon: cada ambiente de desktop tem o seu jeito
-(systemd user, LaunchAgents, autostart do XDG) e nenhum deles cabe num pacote
-que é só descompactar. Quem quiser pode apontar o mecanismo do próprio sistema
-para `hub-snk.sh servidor`.
+O launcher funciona de dentro do pacote, sem instalar nada — é o caminho para
+quem só quer experimentar.
+
+## A instalação
+
+`./instalar-hub-snk.sh` pergunta os mesmos cinco parâmetros da versão Windows,
+grava as respostas em `$XDG_CONFIG_HOME/hub-snk/hub-snk.env` — na prática
+`~/.config/hub-snk/hub-snk.env` — e copia o programa para
+`~/.local/share/hub-snk/programa`.
+
+O atalho é um `.desktop` em `~/.local/share/applications`, e o início junto com
+a sessão é o mesmo arquivo em `~/.config/autostart`, chamando
+`hub-snk.sh servidor`. É o mecanismo do XDG, respeitado por GNOME, KDE e pelos
+ambientes leves; systemd user e LaunchAgents resolveriam o mesmo problema com
+uma unidade a mais para manter em cada sistema.
+
+`./desinstalar-hub-snk.sh`, rodado de dentro da pasta instalada, encerra o
+servidor, remove os dois `.desktop`, o `hub-snk.env`, o log e o programa. O
+cadastro fica, e o caminho dele aparece no fim.
 
 ## Tamanho
 

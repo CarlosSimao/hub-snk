@@ -12,6 +12,8 @@
 Option Explicit
 
 Const PORTA_PADRAO = "4100"
+Const HOST_PADRAO = "127.0.0.1"
+Const ARQUIVO_DE_CONFIGURACAO = "hub-snk.env"
 Const JANELA_OCULTA = 0
 Const ESPERAR_TERMINAR = True
 Const NAO_ESPERAR = False
@@ -30,9 +32,10 @@ Set shell = CreateObject("WScript.Shell")
 pastaDoAplicativo = fso.GetParentFolderName(WScript.ScriptFullName)
 somenteServidor = TemArgumento("/servidor")
 
+CarregarConfiguracao
 PrepararAmbiente
 porta = PortaConfigurada()
-endereco = "http://127.0.0.1:" & porta
+endereco = "http://" & HostConfigurado() & ":" & porta
 
 If Not PortaEstaOcupada(porta) Then
     IniciarServidor
@@ -61,6 +64,34 @@ Function TemArgumento(nome)
         End If
     Next
 End Function
+
+' Lê o hub-snk.env gravado pelo instalador e leva cada valor para o ambiente
+' deste processo — que o servidor herda. Variável já definida no ambiente vence
+' o arquivo: dá para testar outra porta ou outro navegador sem reinstalar.
+Sub CarregarConfiguracao()
+    Dim caminho, arquivo, linha, separador, chave, valor
+
+    caminho = PastaDoHubSnk() & "\" & ARQUIVO_DE_CONFIGURACAO
+    If Not fso.FileExists(caminho) Then
+        Exit Sub
+    End If
+
+    Set arquivo = fso.OpenTextFile(caminho, PARA_LEITURA)
+    Do Until arquivo.AtEndOfStream
+        linha = Trim(arquivo.ReadLine())
+        separador = InStr(linha, "=")
+
+        If separador > 1 And Left(linha, 1) <> "#" Then
+            chave = Trim(Left(linha, separador - 1))
+            valor = Trim(Mid(linha, separador + 1))
+
+            If shell.Environment("PROCESS").Item(chave) = "" Then
+                shell.Environment("PROCESS").Item(chave) = valor
+            End If
+        End If
+    Loop
+    arquivo.Close
+End Sub
 
 ' Os dados ficam fora da pasta do programa: desinstalar não pode levar o
 ' cadastro junto, e atualizar reinstala a pasta do programa inteira.
@@ -109,6 +140,15 @@ Function PortaConfigurada()
     PortaConfigurada = shell.Environment("PROCESS").Item("HUB_PORTA")
     If PortaConfigurada = "" Then
         PortaConfigurada = PORTA_PADRAO
+    End If
+End Function
+
+' O endereço da janela acompanha o que o servidor escuta: com HUB_HOST apontado
+' para a rede, o 127.0.0.1 fixo abriria uma janela que não responde.
+Function HostConfigurado()
+    HostConfigurado = shell.Environment("PROCESS").Item("HUB_HOST")
+    If HostConfigurado = "" Then
+        HostConfigurado = HOST_PADRAO
     End If
 End Function
 

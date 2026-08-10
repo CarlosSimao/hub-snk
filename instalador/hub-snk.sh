@@ -12,10 +12,42 @@ set -eu
 
 PASTA_DO_PACOTE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 NODE_DO_PACOTE="$PASTA_DO_PACOTE/node"
-PORTA="${HUB_PORTA:-4100}"
-ENDERECO="http://127.0.0.1:$PORTA"
+ARQUIVO_DE_CONFIGURACAO="${XDG_CONFIG_HOME:-$HOME/.config}/hub-snk/hub-snk.env"
 TENTATIVAS_ATE_DESISTIR=40
 ESPERA_ENTRE_TENTATIVAS=0.25
+
+# Lê o hub-snk.env gravado pelo instalador. Variável já definida no ambiente
+# vence o arquivo: dá para testar outra porta ou outro navegador sem reinstalar.
+# O arquivo não é interpretado pelo shell — um valor com espaço ou com $ vira
+# texto, não comando.
+carregar_configuracao() {
+    [ -f "$ARQUIVO_DE_CONFIGURACAO" ] || return 0
+
+    while IFS= read -r linha || [ -n "$linha" ]; do
+        case "$linha" in
+            '#'* | '') continue ;;
+            *=*) ;;
+            *) continue ;;
+        esac
+
+        chave=${linha%%=*}
+        valor=${linha#*=}
+
+        case "$chave" in
+            HUB_*) ;;
+            *) continue ;;
+        esac
+
+        if [ -z "$(eval "printf '%s' \"\${$chave:-}\"")" ]; then
+            export "$chave=$valor"
+        fi
+    done < "$ARQUIVO_DE_CONFIGURACAO"
+}
+
+carregar_configuracao
+
+PORTA="${HUB_PORTA:-4100}"
+ENDERECO="http://${HUB_HOST:-127.0.0.1}:$PORTA"
 
 # Os dados ficam fora da pasta do pacote: trocar de versão é apagar esta pasta e
 # descompactar a nova, e o cadastro não pode ir junto.
@@ -77,7 +109,24 @@ iniciar_servidor() {
 
 # Janela sem barra de endereço e sem abas, como a PWA instalada. Sem nenhum
 # navegador Chromium encontrado, resta o navegador padrão, em aba comum.
+#
+# HUB_NAVEGADOR escolhe entre os três caminhos: um comando fixo, `auto` para
+# procurar, `padrao` para ir direto ao navegador do sistema. O navegador fixado
+# que sumiu da máquina cai na procura, em vez de deixar de abrir.
 abrir_janela() {
+    navegador_escolhido="${HUB_NAVEGADOR:-auto}"
+
+    if [ "$navegador_escolhido" = padrao ]; then
+        abrir_no_navegador_padrao
+        return 0
+    fi
+
+    if [ "$navegador_escolhido" != auto ] &&
+        command -v "$navegador_escolhido" > /dev/null 2>&1; then
+        "$navegador_escolhido" --app="$ENDERECO" > /dev/null 2>&1 &
+        return 0
+    fi
+
     for navegador in google-chrome chromium microsoft-edge brave-browser; do
         if command -v "$navegador" > /dev/null 2>&1; then
             "$navegador" --app="$ENDERECO" > /dev/null 2>&1 &
@@ -90,6 +139,10 @@ abrir_janela() {
         return 0
     fi
 
+    abrir_no_navegador_padrao
+}
+
+abrir_no_navegador_padrao() {
     if command -v xdg-open > /dev/null 2>&1; then
         xdg-open "$ENDERECO" > /dev/null 2>&1 &
     elif command -v open > /dev/null 2>&1; then
