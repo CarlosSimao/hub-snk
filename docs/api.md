@@ -5,9 +5,30 @@ Referência das rotas do HUB SNK. Para instalar e usar, veja o
 
 Base: `http://127.0.0.1:4100`
 
-Toda requisição passa antes pela conferência de origem descrita em
-[SECURITY.md](../SECURITY.md#o-que-protege-a-api): chamada vinda de outra origem
-recebe `403` sem chegar às rotas.
+## Conferência de origem
+
+Escutar em `127.0.0.1` não isola o programa do resto da internet. Qualquer página
+aberta no navegador consegue mandar requisições para o endereço local, e um
+domínio configurado para resolver em `127.0.0.1` — DNS rebinding — passa por
+origem legítima aos olhos do navegador. Como a API devolve o cadastro inteiro e
+abre programas, isso bastaria para vazar as senhas de todos os clientes a partir
+de uma aba qualquer.
+
+Por isso, antes de chegar a qualquer rota, dois cabeçalhos são conferidos:
+
+- **`Host`** — precisa ser `127.0.0.1`, `localhost` ou `[::1]`, na porta em que o
+  servidor está escutando. Um nome de domínio ali denuncia o rebinding.
+- **`Origin`** — quando presente, precisa ser a própria origem do HUB SNK.
+  Requisição sem `Origin` é aceita: navegação direta, a própria PWA carregando o
+  shell e chamadas de linha de comando não mandam o cabeçalho, e o `Host` já foi
+  conferido.
+
+O que não passa recebe `403` e fica registrado no log do servidor.
+
+Com `HUB_PERMITIR_REDE=1` e um `HUB_HOST` de rede, a conferência sai: não há
+lista de endereços válidos a comparar quando o acesso é pelo IP ou pelo nome da
+máquina, e manter a checagem seria teatro. O servidor registra um aviso no log ao
+subir nesse modo.
 
 ## Rotas
 

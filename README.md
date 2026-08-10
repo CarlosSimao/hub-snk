@@ -11,6 +11,8 @@ desktop.
 
 Funciona em Windows, Linux e macOS.
 
+![Tela do HUB SNK com a lista de clientes cadastrados](docs/img/screenshot.png)
+
 > **As senhas das bases e dos bancos ficam em texto puro** em
 > `dados-hub-snk/clientes.json`. O HUB SNK não tem autenticação e roda só na sua
 > máquina, então qualquer chave de criptografia teria de ficar no mesmo disco
@@ -184,8 +186,8 @@ HUB_PERMITIR_REDE=1 HUB_HOST=0.0.0.0 npm start
 No modo padrão, o HUB SNK ainda confere se cada requisição veio mesmo da própria
 janela dele, e recusa o resto — inclusive um site aberto no seu navegador
 tentando falar com o programa. Com `HUB_PERMITIR_REDE=1` essa conferência é
-desligada, e o servidor avisa isso no terminal ao subir. Os detalhes estão em
-[SECURITY.md](SECURITY.md).
+desligada, e o servidor avisa isso no terminal ao subir. Como a conferência
+funciona está em [docs/api.md](docs/api.md#conferência-de-origem).
 
 ---
 
@@ -226,57 +228,18 @@ a origem, selecionar o arquivo de favoritos, marcar os favoritos desejados na
 árvore e conferir nome, URL, tipo, usuário e senha antes de concluir.
 
 O assistente **não pergunta qual é o navegador**: o formato do arquivo é
-reconhecido pelo próprio conteúdo.
-
-### Tipo da base reconhecido pelo nome
+reconhecido pelo próprio conteúdo. São aceitos Chrome, Edge, Opera, Firefox e
+Safari — o arquivo de qualquer outro é recusado com aviso na tela. O arquivo é
+lido no próprio navegador; nada dele chega ao servidor além das bases
+confirmadas na última etapa.
 
 Quando o nome do favorito carrega o ambiente, o tipo já vem preenchido e o
 marcador sai do nome do cliente — `COCA - PROD` vira o cliente `COCA` com a base
-de Produção. O marcador é aceito no começo ou no fim, entre `()`, `[]` ou `{}`
-ou solto, separado por espaço, `-`, `–`, `|`, `/`, `:` ou `_`, com ou sem
-acento e em qualquer caixa:
+de Produção. Sem marcador, o tipo fica em branco e você escolhe na última etapa.
 
-| Tipo     | Marcadores reconhecidos                                                                                                   |
-| -------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Produção | `p`, `pd`, `pro`, `prd`, `prod`, `producao`, `produção`, `produtivo`, `production`                                        |
-| Teste    | `t`, `ts`, `tes`, `tst`, `test`, `teste`, `testes`, `hom`, `hmg`, `hml`, `homol`, `homolog`, `homologacao`, `homologação` |
-
-Exemplos que caem todos em `COCA`: `COCA - PROD`, `PROD - COCA`, `P - COCA`,
-`COCA (P)`, `(P) COCA`, `COCA [T]`, `PRODUÇÃO - COCA`, `COCA/TESTE`,
-`COCA_PROD`.
-
-Nada é retirado quando sobraria um nome vazio (`PROD` sozinho continua `PROD`)
-ou quando o marcador é parte de uma palavra (`COCA - PRODUTOS` fica intacto).
-Sem marcador, o tipo fica em branco e o usuário escolhe na última etapa.
-
-Homologação é tratada como Teste: o HUB SNK só tem os tipos Produção, Teste e
-Outro.
-
-### Navegadores suportados
-
-A importação é suportada **apenas** para estes cinco navegadores:
-
-| Navegador       | Arquivo aceito                                                          | Onde obter                                                                                                             |
-| --------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Google Chrome   | `Bookmarks` / `AccountBookmarks` (JSON, sem extensão) ou HTML exportado | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\` ou **Favoritos > Gerenciador de favoritos > ⋮ > Exportar favoritos** |
-| Microsoft Edge  | `Bookmarks` (JSON, sem extensão) ou HTML exportado                      | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\` ou **Favoritos > ⋯ > Exportar favoritos**                           |
-| Opera           | `Bookmarks` (JSON, sem extensão) ou HTML exportado                      | `%APPDATA%\Opera Software\Opera Stable\Default\` ou **Favoritos > Exportar favoritos**                                 |
-| Mozilla Firefox | HTML exportado ou backup `.json`                                        | **Favoritos > Gerenciar favoritos > Importar e fazer backup > Exportar favoritos para HTML**                           |
-| Safari          | HTML exportado                                                          | **Arquivo > Exportar > Favoritos**                                                                                     |
-
-Qualquer outro navegador está fora do escopo: o arquivo é recusado com aviso na
-própria tela.
-
-Detalhes que valem saber:
-
-- O backup padrão do Firefox (`bookmarks-*.jsonlz4`) é compactado e **não** é
-  aceito — o assistente avisa e indica a exportação em HTML.
-- O Safari não guarda os favoritos em formato aberto (`Bookmarks.plist` é
-  binário e só existe no macOS); o caminho é sempre a exportação em HTML.
-- Favoritos que não sejam `http` ou `https` (`javascript:`, `place:`, `chrome://`)
-  aparecem na árvore desmarcáveis: o HUB SNK só abre endereços navegáveis.
-- O arquivo é lido no próprio navegador; nada dele é enviado ao servidor além
-  das bases confirmadas na última etapa.
+A lista de arquivos aceitos por navegador, onde encontrá-los e todos os
+marcadores reconhecidos estão em
+[docs/comportamento-detalhado.md](docs/comportamento-detalhado.md#importação-de-favoritos).
 
 ## Anotações do cliente
 
@@ -292,115 +255,49 @@ O detalhe é redesenhado sozinho enquanto a tela está aberta (atualização
 automática da situação Git, por exemplo); o texto em digitação e a posição do
 cursor sobrevivem a esses redesenhos.
 
-## Abrir a pasta do repositório
+## Os botões do repositório
 
-Quando um repositório tem caminho local cadastrado, a linha dele ganha o botão
-**Arquivos**, que abre a pasta no gerenciador de arquivos do sistema:
+Repositório com **caminho local** cadastrado ganha quatro botões na própria
+linha:
 
-| Sistema             | Programa usado |
-| ------------------- | -------------- |
-| Windows             | `explorer.exe` |
-| macOS               | `open`         |
-| Linux e demais Unix | `xdg-open`     |
+| Botão        | O que faz                                                                                                        |
+| ------------ | ---------------------------------------------------------------------------------------------------------------- |
+| **Arquivos** | Abre a pasta no gerenciador de arquivos do sistema                                                               |
+| **Shell**    | Abre o terminal já posicionado na pasta, e roda o _Script padrão_ das configurações, se houver um                |
+| **`{ }`**    | Abre a pasta como projeto no IntelliJ IDEA                                                                       |
+| **Tomada**   | Edita o `.sankhya-mcp.env` da pasta — os dados de banco que o MCP Claude usa, guardados só ali, fora do cadastro |
 
-Em Linux sem `xdg-open` instalado (ambiente mínimo, sem desktop) o botão não
-tem efeito e a falha fica registrada no log do servidor.
-
-## Banco de dados do MCP Claude
-
-O botão de tomada, na linha do repositório, edita o arquivo `.sankhya-mcp.env`
-na raiz da pasta local. **Esses dados não vão para o cadastro** — vivem só nesse
-arquivo, junto do repositório:
-
-```
-SANKHYA_DB_HOST=192.168.0.10
-SANKHYA_DB_PORT=1521
-SANKHYA_DB_SERVICE_NAME=ORCL
-SANKHYA_DB_USER=system
-SANKHYA_DB_PASSWORD=...
-```
-
-Uma linha por variável, sem aspas e sem quebra de linha no fim do arquivo. A
-senha pode conter `=`: na leitura, só o primeiro sinal separa chave de valor.
-
-Ao abrir o formulário, o arquivo existente é carregado; se não existir, o
-formulário abre em branco e o arquivo é criado ao salvar. Variáveis que já
-estivessem no arquivo e não sejam essas cinco são preservadas no fim.
-
-O botão **Importar** copia host, porta, service name, usuário e senha de uma
-base do mesmo cliente que tenha banco vinculado. Ele só preenche o formulário —
-nada é gravado antes de você clicar em Salvar.
-
-O botão só aparece em repositórios com caminho local, já que o arquivo precisa
-de uma pasta onde morar. A cor dele mostra a situação sem abrir o formulário:
-
-| Cor    | Situação                                                                          |
-| ------ | --------------------------------------------------------------------------------- |
-| Verde  | o arquivo existe e as cinco variáveis estão preenchidas                           |
-| Neutro | o arquivo não existe, ou existe incompleto — o `title` do botão distingue os dois |
-
-> Como o arquivo fica dentro do repositório, vale conferir se `.sankhya-mcp.env`
-> está no `.gitignore` do projeto — ele contém a senha do banco.
-
-## Abrir o terminal no repositório
-
-O botão **Shell**, ao lado de _Arquivos_, abre o terminal do sistema já
-posicionado na pasta do repositório. Se o **Script padrão** estiver preenchido
-nas configurações (engrenagem no topo), ele é executado assim que o terminal
-abre, e a janela continua aberta depois para você ler a saída.
-
-| Sistema | Como abre                                                                                                          |
-| ------- | ------------------------------------------------------------------------------------------------------------------ |
-| Windows | Windows Terminal quando existe; o shell é `pwsh.exe`, `powershell.exe` ou `cmd.exe`, o primeiro encontrado no PATH |
-| macOS   | `Terminal.app`, via `osascript` quando há script a executar                                                        |
-| Linux   | primeiro encontrado entre `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal` e `xterm`           |
-
-Se nenhum terminal for encontrado, o HUB SNK mostra o aviso na tela.
+Quando o programa correspondente não é encontrado na máquina, o HUB SNK avisa na
+tela. Qual programa é procurado em cada sistema está em
+[docs/comportamento-detalhado.md](docs/comportamento-detalhado.md#que-programa-cada-botão-chama).
 
 > O **Script padrão** é interpretado pelo shell — é essa a função do campo. Ele
 > roda na sua máquina, com as suas permissões, na pasta do repositório. Vale o
 > mesmo critério de digitar um comando direto no terminal: só coloque ali o que
 > você mesmo executaria.
 
-## Abrir o repositório no IntelliJ
+> O `.sankhya-mcp.env` guarda a senha do banco e fica **dentro** do repositório.
+> Confira se ele está no `.gitignore` do projeto — o HUB SNK marca em vermelho o
+> repositório em que esse arquivo estiver sendo rastreado pelo Git.
 
-O botão de chaves `{ }`, ao lado de _Shell_, abre a pasta do repositório como
-projeto no IntelliJ IDEA.
-
-| Sistema | Como abre                                                                                                                             |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows | primeiro encontrado no PATH entre `idea64.exe`, `idea.exe`, `idea.cmd` e `idea.bat`; os `.cmd`/`.bat` são executados via `cmd.exe /c` |
-| macOS   | `open -n -a "IntelliJ IDEA"` (ou a edição _CE_), com `idea` como alternativa                                                          |
-| Linux   | primeiro encontrado entre `intellij-idea-ultimate`, `intellij-idea-community`, `idea` e `idea.sh`                                     |
-
-Se nenhum launcher for encontrado, o HUB SNK mostra o aviso. No Windows, a pasta
-`bin` da IDE precisa estar no PATH — ou o launcher de linha de comando precisa
-ter sido gerado pelo JetBrains Toolbox.
+O botão **Importar**, dentro do formulário da tomada, copia host, porta, service
+name, usuário e senha de uma base do mesmo cliente que tenha banco vinculado.
+Ele só preenche o formulário — nada é gravado antes de você clicar em Salvar.
 
 ## Atalhos
 
 O botão de raio, à direita do botão de tema, abre a lista dos atalhos
-cadastrados logo abaixo dele; o clique em um deles inicia o programa na sua
-máquina. A lista fica no ar até um clique em qualquer ponto fora dela — ou
-`Esc` — fechá-la. O cadastro fica em **Configurações › Atalhos**, com _Nome_ e
-_Caminho do executável_.
+cadastrados; o clique em um deles inicia o programa na sua máquina. A lista fica
+no ar até um clique fora dela — ou `Esc` — fechá-la. O cadastro fica em
+**Configurações › Atalhos**, com _Nome_ e _Caminho do executável_.
 
 O botão de pasta ao lado do caminho abre o seletor de arquivos do sistema e
-preenche o campo com o que for escolhido. O campo continua editável — dá para
-colar um caminho ou ajustar o que veio do seletor.
+preenche o campo. O campo continua editável — dá para colar um caminho ou
+ajustar o que veio do seletor.
 
-| Sistema | Seletor                                                      |
-| ------- | ------------------------------------------------------------ |
-| Windows | `OpenFileDialog` do Windows Forms, via `powershell.exe -STA` |
-| macOS   | `choose file`, via `osascript`                               |
-| Linux   | `zenity --file-selection`, com `kdialog` como alternativa    |
-
-No Linux, sem nenhum dos dois resta digitar o caminho.
-
-Vale tanto para `.exe` quanto para `.lnk`, `.bat` e qualquer extensão associada.
-A existência do arquivo é checada na hora de executar, não no cadastro, então dá
-para cadastrar o caminho de um programa ainda não instalado; sem o arquivo, o
-HUB SNK avisa na tela.
+Vale para `.exe`, `.lnk`, `.bat` e qualquer extensão associada. A existência do
+arquivo é checada na hora de executar, não no cadastro; sem o arquivo, o HUB SNK
+avisa na tela.
 
 ## Situação dos repositórios
 
@@ -419,35 +316,13 @@ As cores nunca aparecem sozinhas — sempre acompanham o texto da pendência:
 | Verde    | Nada pendente: tudo commitado                                                     |
 | Cinza    | Não foi possível verificar                                                        |
 
-O que é verificado:
+O diagnóstico é só leitura de disco: nada usa a rede, e o `git` roda sem prompt
+de credencial, então nenhum repositório trava o HUB SNK esperando senha. O
+`title` do selo mostra a hora da última verificação, e o botão de recarregar do
+cliente refaz tudo ignorando o cache de 30 segundos.
 
-| Pendência                                                                                  | Gravidade |
-| ------------------------------------------------------------------------------------------ | --------- |
-| A pasta cadastrada não existe, ou existe e não é um repositório Git                        | Vermelho  |
-| O repositório local não tem remoto vinculado                                               | Vermelho  |
-| Merge, rebase, cherry-pick ou revert pela metade                                           | Vermelho  |
-| Arquivos com conflito não resolvido                                                        | Vermelho  |
-| `.sankhya-mcp.env` rastreado pelo Git — a senha do banco vai para o remoto no próximo push | Vermelho  |
-| O remoto aponta para endereço diferente da URL cadastrada no HUB SNK                       | Amarelo   |
-| Arquivos rastreados alterados e não commitados                                             | Amarelo   |
-| Arquivos novos fora do controle de versão e fora do `.gitignore`                           | Amarelo   |
-| Alterações guardadas no stash                                                              | Amarelo   |
-| O repositório ainda não tem nenhum commit                                                  | Amarelo   |
-
-O provedor (GitHub ou GitLab) é deduzido do host do remoto. GitLab instalado no
-domínio da empresa (`gitlab.suaempresa.com.br`) é reconhecido pelo nome no host;
-um domínio sem pista nenhuma fica como desconhecido, sem palpite.
-
-O nome da branch atual aparece no selo apenas como informação: nada do
-diagnóstico compara branches entre si nem mede distância para o remoto.
-
-Nenhuma parte do diagnóstico usa a rede: todos os comandos são leituras do
-disco. O `git` roda sem prompt de credencial, então nenhum repositório trava o
-HUB SNK esperando senha.
-
-O `title` do selo mostra a hora da última verificação, e o botão de recarregar
-do cliente refaz o diagnóstico de todos os repositórios ignorando o cache de 30
-segundos.
+A lista completa do que é verificado, com a gravidade de cada item, está em
+[docs/comportamento-detalhado.md](docs/comportamento-detalhado.md#diagnóstico-dos-repositórios-git).
 
 ### Atualização automática
 
@@ -511,12 +386,13 @@ diagnóstico é a forma da mensagem, não os valores reais.
 
 Nada disto é necessário para usar o HUB SNK.
 
-- [Como contribuir](CONTRIBUTING.md) — rodar em modo de desenvolvimento, padrões do código, publicar uma versão
-- [Distribuição](docs/distribuicao.md) — como o instalador e os pacotes são montados
-- [API HTTP](docs/api.md) — as rotas e os corpos aceitos
+- [Comportamento detalhado](docs/comportamento-detalhado.md) — qual programa cada botão chama, formatos aceitos, regras do diagnóstico Git
+- [API HTTP](docs/api.md) — as rotas, os corpos aceitos e a conferência de origem
 - [Formato dos arquivos de dados](docs/formato-dos-dados.md) — o envelope, o esquema e a migração
+- [Distribuição](docs/distribuicao.md) — como o instalador e os pacotes são montados
 - [Estrutura do código](docs/estrutura-do-codigo.md) — mapa dos arquivos
-- [Segurança](SECURITY.md) — o modelo de ameaça e como reportar uma falha
+- [Manutenção](docs/manutencao.md) — modo de desenvolvimento, padrões do código, publicar uma versão
+- [Segurança](SECURITY.md) — como reportar uma falha
 
 ---
 

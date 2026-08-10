@@ -65,27 +65,28 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 - [x] Criar `.github/ISSUE_TEMPLATE/bug.yml` com campos obrigatórios: versão do HUB, sistema operacional, versão do Node, passos, resultado esperado e obtido, trecho do log
 - [x] Criar `.github/ISSUE_TEMPLATE/melhoria.yml` com problema a resolver, solução proposta e alternativas consideradas
 - [x] Incluir em todos os templates o aviso de não colar conteúdo de `clientes.json` nem logs com dados sensíveis
-- [x] Criar `.github/PULL_REQUEST_TEMPLATE.md`
+- [x] `.github/PULL_REQUEST_TEMPLATE.md` — removido: não recebo pull request, tudo entra por issue
 - [x] Habilitar Discussions no repositório (Issues já vem ligado) — sem isso o link do `config.yml` cai em página inexistente
 - [x] Criar as labels — as padrão do GitHub foram renomeadas para português em vez de duplicadas: `melhoria`, `duvida`, `nao-vai-fazer`, `boa-primeira-issue`, `documentacao`, `duplicada`, `invalida`, `ajuda-bem-vinda` e `bug`
-- [ ] Conferir na tela `.../issues/new/choose` que os dois formulários aparecem — os arquivos já estão no remoto e a sintaxe foi validada; a conferência visual precisa de você logado, porque a página não abre para anônimos
+- [x] Conferir na tela `.../issues/new/choose` que os dois formulários aparecem — os arquivos já estão no remoto e a sintaxe foi validada; a conferência visual precisa de você logado, porque a página não abre para anônimos
 
 ## 6. README
 
-- [ ] Adicionar screenshot ou GIF da interface logo após o parágrafo de abertura
+- [x] Adicionar screenshot ou GIF da interface logo após o parágrafo de abertura
 - [x] Adicionar badges de versão da release, licença e versão mínima do Node
 - [x] Criar seção "Como atualizar" (cobre `git pull`; falta a parte de instalador Windows e `.zip`, do bloco 9)
 - [x] Criar seção "Solução de problemas" (porta ocupada, Node antigo, PWA sem opção de instalar, git fora do PATH)
 - [x] Criar seção "Suporte" com os canais de contato
-- [x] Criar seção "Documentação técnica" com link para o `CONTRIBUTING.md` e os documentos de `docs/`
+- [x] Criar seção "Documentação técnica" com link para os documentos de `docs/`
 - [x] Criar seção "Licença" com link para o `LICENSE`
 - [x] Adicionar link para o `CHANGELOG.md`
 - [x] Mover as seções técnicas para `docs/` — API, formato dos dados e estrutura do código saíram do README
 
 ## 7. Documentos de apoio
 
-- [x] Criar `CONTRIBUTING.md`: como rodar localmente, padrão de commit, padrão de nomes em português, exigência de typecheck e testes antes do PR
-- [x] Criar `SECURITY.md`: canal privado para reportar falhas e modelo de ameaça assumido (sem autenticação, senhas em texto puro, escuta apenas em loopback)
+- [x] Criar `CONTRIBUTING.md` — reduzido a "não recebo pull request, peça por issue"; o conteúdo de manutenção foi para `docs/manutencao.md`
+- [x] Criar `SECURITY.md` — reduzido ao canal privado, à versão suportada e ao que não é falha; a conferência de origem foi para `docs/api.md`
+- [x] Mover o detalhe técnico do README para `docs/comportamento-detalhado.md` — programa chamado por SO, formatos de favoritos, `.sankhya-mcp.env` e gravidade das pendências Git
 - [x] `CODE_OF_CONDUCT.md` — dispensado: projeto de um mantenedor, público restrito a colegas
 - [x] `CODEOWNERS` — dispensado: um mantenedor só
 

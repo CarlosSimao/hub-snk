@@ -4,5 +4,6 @@ dist/
 *.log
 .idea/
 .vscode/
+.claude-secundario
 .DS_Store
 Thumbs.db
