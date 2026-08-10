@@ -120,7 +120,9 @@ function dispararScript(caminhoDoScriptAlvo: string, argumentos: string[]): Prom
       processo.unref();
       resolver();
     });
-    processo.once('error', (erro) => rejeitar(traduzirFalhaDeLancamento(erro, caminhoDoScriptAlvo)));
+    processo.once('error', (erro) =>
+      rejeitar(traduzirFalhaDeLancamento(erro, caminhoDoScriptAlvo)),
+    );
   });
 }
 
@@ -140,7 +142,9 @@ function executarEAguardar(caminhoDoScriptAlvo: string, argumentos: string[]): P
       saida += dado.toString();
     });
 
-    processo.once('error', (erro) => rejeitar(traduzirFalhaDeLancamento(erro, caminhoDoScriptAlvo)));
+    processo.once('error', (erro) =>
+      rejeitar(traduzirFalhaDeLancamento(erro, caminhoDoScriptAlvo)),
+    );
     processo.once('close', (codigo) => {
       if (codigo === 0) {
         resolver();

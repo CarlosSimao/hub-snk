@@ -34,9 +34,9 @@ O instalador **não pede senha de administrador** e **não exige Node.js
 instalado** — ele já traz o necessário. Instala na sua pasta de usuário e
 oferece duas opções:
 
-| Opção | O que faz |
-|---|---|
-| Atalho na área de trabalho | Ícone do HUB SNK ao lado do menu Iniciar |
+| Opção                       | O que faz                                                                                       |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| Atalho na área de trabalho  | Ícone do HUB SNK ao lado do menu Iniciar                                                        |
 | Iniciar junto com o Windows | O servidor sobe sozinho no logon, sem abrir janela. Você abre a tela quando quiser, pelo atalho |
 
 O atalho abre o HUB SNK em **janela própria**, sem barra de endereço e sem abas
@@ -58,11 +58,11 @@ antes.
 Baixe o pacote da sua plataforma na
 [página de releases](https://github.com/CarlosSimao/hub-snk/releases):
 
-| Plataforma | Arquivo |
-|---|---|
-| Linux | `hub-snk-<versão>-linux-x64.tar.gz` |
+| Plataforma                             | Arquivo                               |
+| -------------------------------------- | ------------------------------------- |
+| Linux                                  | `hub-snk-<versão>-linux-x64.tar.gz`   |
 | macOS com Apple Silicon (M1 em diante) | `hub-snk-<versão>-macos-arm64.tar.gz` |
-| macOS com processador Intel | `hub-snk-<versão>-macos-x64.tar.gz` |
+| macOS com processador Intel            | `hub-snk-<versão>-macos-x64.tar.gz`   |
 
 ```bash
 tar -xzf hub-snk-*-linux-x64.tar.gz
@@ -83,17 +83,17 @@ Para atualizar, apague a pasta do pacote e descompacte a versão nova — o
 cadastro fica onde está.
 
 > No macOS, a primeira execução pode ser barrada pelo Gatekeeper, porque o
-> pacote não é assinado. Libere em *Ajustes do Sistema* › *Privacidade e
-> Segurança*, ou rode `xattr -dr com.apple.quarantine .` dentro da pasta.
+> pacote não é assinado. Libere em _Ajustes do Sistema_ › _Privacidade e
+> Segurança_, ou rode `xattr -dr com.apple.quarantine .` dentro da pasta.
 
 ---
 
 ## Rodar a partir do código
 
-| Item | Versão | Para quê |
-|---|---|---|
-| **Node.js** | 22.18 ou superior | Executa o servidor. A partir dessa versão o Node roda arquivos `.ts` direto, sem etapa de build |
-| **Navegador Chromium** | Chrome ou Edge atual | Necessário para instalar a PWA em janela separada |
+| Item                   | Versão               | Para quê                                                                                        |
+| ---------------------- | -------------------- | ----------------------------------------------------------------------------------------------- |
+| **Node.js**            | 22.18 ou superior    | Executa o servidor. A partir dessa versão o Node roda arquivos `.ts` direto, sem etapa de build |
+| **Navegador Chromium** | Chrome ou Edge atual | Necessário para instalar a PWA em janela separada                                               |
 
 ```bash
 npm install
@@ -110,8 +110,8 @@ servidor em segundo plano, sem deixar terminal aberto.
 Com o HUB SNK aberto no navegador:
 
 - **Chrome / Edge**: ícone de instalação na barra de endereço, ou menu
-  ⋮ → *Instalar HUB SNK*.
-- **macOS (Safari)**: *Arquivo* → *Adicionar ao Dock*.
+  ⋮ → _Instalar HUB SNK_.
+- **macOS (Safari)**: _Arquivo_ → _Adicionar ao Dock_.
 
 Depois de instalado, o HUB SNK abre em janela própria, sem barra de endereço e
 sem abas, e ganha ícone no menu Iniciar / Launchpad / lançador do sistema.
@@ -139,12 +139,12 @@ versão em uso aparece no rodapé da tela.
 
 Todas as variáveis são opcionais.
 
-| Variável | Padrão | O que faz |
-|---|---|---|
-| `HUB_PORTA` | `4100` | Porta do servidor |
-| `HUB_HOST` | `127.0.0.1` | Interface de escuta. Endereço fora do loopback só é aceito junto com `HUB_PERMITIR_REDE=1` — leia [Exposição na rede](#exposição-na-rede) antes |
-| `HUB_PERMITIR_REDE` | *(vazio)* | `1` autoriza o `HUB_HOST` fora do loopback. Sem ela, o servidor recusa subir |
-| `HUB_DADOS_DIR` | `./dados-hub-snk` | Onde o cadastro é gravado |
+| Variável            | Padrão            | O que faz                                                                                                                                       |
+| ------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HUB_PORTA`         | `4100`            | Porta do servidor                                                                                                                               |
+| `HUB_HOST`          | `127.0.0.1`       | Interface de escuta. Endereço fora do loopback só é aceito junto com `HUB_PERMITIR_REDE=1` — leia [Exposição na rede](#exposição-na-rede) antes |
+| `HUB_PERMITIR_REDE` | _(vazio)_         | `1` autoriza o `HUB_HOST` fora do loopback. Sem ela, o servidor recusa subir                                                                    |
+| `HUB_DADOS_DIR`     | `./dados-hub-snk` | Onde o cadastro é gravado                                                                                                                       |
 
 Exemplo — gravar os dados em outro disco:
 
@@ -236,10 +236,10 @@ de Produção. O marcador é aceito no começo ou no fim, entre `()`, `[]` ou `{
 ou solto, separado por espaço, `-`, `–`, `|`, `/`, `:` ou `_`, com ou sem
 acento e em qualquer caixa:
 
-| Tipo | Marcadores reconhecidos |
-|---|---|
-| Produção | `p`, `pd`, `pro`, `prd`, `prod`, `producao`, `produção`, `produtivo`, `production` |
-| Teste | `t`, `ts`, `tes`, `tst`, `test`, `teste`, `testes`, `hom`, `hmg`, `hml`, `homol`, `homolog`, `homologacao`, `homologação` |
+| Tipo     | Marcadores reconhecidos                                                                                                   |
+| -------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Produção | `p`, `pd`, `pro`, `prd`, `prod`, `producao`, `produção`, `produtivo`, `production`                                        |
+| Teste    | `t`, `ts`, `tes`, `tst`, `test`, `teste`, `testes`, `hom`, `hmg`, `hml`, `homol`, `homolog`, `homologacao`, `homologação` |
 
 Exemplos que caem todos em `COCA`: `COCA - PROD`, `PROD - COCA`, `P - COCA`,
 `COCA (P)`, `(P) COCA`, `COCA [T]`, `PRODUÇÃO - COCA`, `COCA/TESTE`,
@@ -256,13 +256,13 @@ Outro.
 
 A importação é suportada **apenas** para estes cinco navegadores:
 
-| Navegador | Arquivo aceito | Onde obter |
-|---|---|---|
-| Google Chrome | `Bookmarks` / `AccountBookmarks` (JSON, sem extensão) ou HTML exportado | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\` ou **Favoritos > Gerenciador de favoritos > ⋮ > Exportar favoritos** |
-| Microsoft Edge | `Bookmarks` (JSON, sem extensão) ou HTML exportado | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\` ou **Favoritos > ⋯ > Exportar favoritos** |
-| Opera | `Bookmarks` (JSON, sem extensão) ou HTML exportado | `%APPDATA%\Opera Software\Opera Stable\Default\` ou **Favoritos > Exportar favoritos** |
-| Mozilla Firefox | HTML exportado ou backup `.json` | **Favoritos > Gerenciar favoritos > Importar e fazer backup > Exportar favoritos para HTML** |
-| Safari | HTML exportado | **Arquivo > Exportar > Favoritos** |
+| Navegador       | Arquivo aceito                                                          | Onde obter                                                                                                             |
+| --------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Google Chrome   | `Bookmarks` / `AccountBookmarks` (JSON, sem extensão) ou HTML exportado | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\` ou **Favoritos > Gerenciador de favoritos > ⋮ > Exportar favoritos** |
+| Microsoft Edge  | `Bookmarks` (JSON, sem extensão) ou HTML exportado                      | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\` ou **Favoritos > ⋯ > Exportar favoritos**                           |
+| Opera           | `Bookmarks` (JSON, sem extensão) ou HTML exportado                      | `%APPDATA%\Opera Software\Opera Stable\Default\` ou **Favoritos > Exportar favoritos**                                 |
+| Mozilla Firefox | HTML exportado ou backup `.json`                                        | **Favoritos > Gerenciar favoritos > Importar e fazer backup > Exportar favoritos para HTML**                           |
+| Safari          | HTML exportado                                                          | **Arquivo > Exportar > Favoritos**                                                                                     |
 
 Qualquer outro navegador está fora do escopo: o arquivo é recusado com aviso na
 própria tela.
@@ -297,11 +297,11 @@ cursor sobrevivem a esses redesenhos.
 Quando um repositório tem caminho local cadastrado, a linha dele ganha o botão
 **Arquivos**, que abre a pasta no gerenciador de arquivos do sistema:
 
-| Sistema | Programa usado |
-|---|---|
-| Windows | `explorer.exe` |
-| macOS | `open` |
-| Linux e demais Unix | `xdg-open` |
+| Sistema             | Programa usado |
+| ------------------- | -------------- |
+| Windows             | `explorer.exe` |
+| macOS               | `open`         |
+| Linux e demais Unix | `xdg-open`     |
 
 Em Linux sem `xdg-open` instalado (ambiente mínimo, sem desktop) o botão não
 tem efeito e a falha fica registrada no log do servidor.
@@ -334,9 +334,9 @@ nada é gravado antes de você clicar em Salvar.
 O botão só aparece em repositórios com caminho local, já que o arquivo precisa
 de uma pasta onde morar. A cor dele mostra a situação sem abrir o formulário:
 
-| Cor | Situação |
-|---|---|
-| Verde | o arquivo existe e as cinco variáveis estão preenchidas |
+| Cor    | Situação                                                                          |
+| ------ | --------------------------------------------------------------------------------- |
+| Verde  | o arquivo existe e as cinco variáveis estão preenchidas                           |
 | Neutro | o arquivo não existe, ou existe incompleto — o `title` do botão distingue os dois |
 
 > Como o arquivo fica dentro do repositório, vale conferir se `.sankhya-mcp.env`
@@ -344,16 +344,16 @@ de uma pasta onde morar. A cor dele mostra a situação sem abrir o formulário:
 
 ## Abrir o terminal no repositório
 
-O botão **Shell**, ao lado de *Arquivos*, abre o terminal do sistema já
+O botão **Shell**, ao lado de _Arquivos_, abre o terminal do sistema já
 posicionado na pasta do repositório. Se o **Script padrão** estiver preenchido
 nas configurações (engrenagem no topo), ele é executado assim que o terminal
 abre, e a janela continua aberta depois para você ler a saída.
 
-| Sistema | Como abre |
-|---|---|
+| Sistema | Como abre                                                                                                          |
+| ------- | ------------------------------------------------------------------------------------------------------------------ |
 | Windows | Windows Terminal quando existe; o shell é `pwsh.exe`, `powershell.exe` ou `cmd.exe`, o primeiro encontrado no PATH |
-| macOS | `Terminal.app`, via `osascript` quando há script a executar |
-| Linux | primeiro encontrado entre `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal` e `xterm` |
+| macOS   | `Terminal.app`, via `osascript` quando há script a executar                                                        |
+| Linux   | primeiro encontrado entre `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal` e `xterm`           |
 
 Se nenhum terminal for encontrado, o HUB SNK mostra o aviso na tela.
 
@@ -364,14 +364,14 @@ Se nenhum terminal for encontrado, o HUB SNK mostra o aviso na tela.
 
 ## Abrir o repositório no IntelliJ
 
-O botão de chaves `{ }`, ao lado de *Shell*, abre a pasta do repositório como
+O botão de chaves `{ }`, ao lado de _Shell_, abre a pasta do repositório como
 projeto no IntelliJ IDEA.
 
-| Sistema | Como abre |
-|---|---|
+| Sistema | Como abre                                                                                                                             |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Windows | primeiro encontrado no PATH entre `idea64.exe`, `idea.exe`, `idea.cmd` e `idea.bat`; os `.cmd`/`.bat` são executados via `cmd.exe /c` |
-| macOS | `open -n -a "IntelliJ IDEA"` (ou a edição *CE*), com `idea` como alternativa |
-| Linux | primeiro encontrado entre `intellij-idea-ultimate`, `intellij-idea-community`, `idea` e `idea.sh` |
+| macOS   | `open -n -a "IntelliJ IDEA"` (ou a edição _CE_), com `idea` como alternativa                                                          |
+| Linux   | primeiro encontrado entre `intellij-idea-ultimate`, `intellij-idea-community`, `idea` e `idea.sh`                                     |
 
 Se nenhum launcher for encontrado, o HUB SNK mostra o aviso. No Windows, a pasta
 `bin` da IDE precisa estar no PATH — ou o launcher de linha de comando precisa
@@ -382,18 +382,18 @@ ter sido gerado pelo JetBrains Toolbox.
 O botão de raio, à direita do botão de tema, abre a lista dos atalhos
 cadastrados logo abaixo dele; o clique em um deles inicia o programa na sua
 máquina. A lista fica no ar até um clique em qualquer ponto fora dela — ou
-`Esc` — fechá-la. O cadastro fica em **Configurações › Atalhos**, com *Nome* e
-*Caminho do executável*.
+`Esc` — fechá-la. O cadastro fica em **Configurações › Atalhos**, com _Nome_ e
+_Caminho do executável_.
 
 O botão de pasta ao lado do caminho abre o seletor de arquivos do sistema e
 preenche o campo com o que for escolhido. O campo continua editável — dá para
 colar um caminho ou ajustar o que veio do seletor.
 
-| Sistema | Seletor |
-|---|---|
+| Sistema | Seletor                                                      |
+| ------- | ------------------------------------------------------------ |
 | Windows | `OpenFileDialog` do Windows Forms, via `powershell.exe -STA` |
-| macOS | `choose file`, via `osascript` |
-| Linux | `zenity --file-selection`, com `kdialog` como alternativa |
+| macOS   | `choose file`, via `osascript`                               |
+| Linux   | `zenity --file-selection`, com `kdialog` como alternativa    |
 
 No Linux, sem nenhum dos dois resta digitar o caminho.
 
@@ -412,27 +412,27 @@ daquele cliente.
 
 As cores nunca aparecem sozinhas — sempre acompanham o texto da pendência:
 
-| Cor | Significado |
-|---|---|
+| Cor      | Significado                                                                       |
+| -------- | --------------------------------------------------------------------------------- |
 | Vermelho | Precisa de ação: risco de perder trabalho, de vazar segredo ou o clone nem existe |
-| Amarelo | Pendência normal: falta commitar, falta versionar, falta esvaziar o stash |
-| Verde | Nada pendente: tudo commitado |
-| Cinza | Não foi possível verificar |
+| Amarelo  | Pendência normal: falta commitar, falta versionar, falta esvaziar o stash         |
+| Verde    | Nada pendente: tudo commitado                                                     |
+| Cinza    | Não foi possível verificar                                                        |
 
 O que é verificado:
 
-| Pendência | Gravidade |
-|---|---|
-| A pasta cadastrada não existe, ou existe e não é um repositório Git | Vermelho |
-| O repositório local não tem remoto vinculado | Vermelho |
-| Merge, rebase, cherry-pick ou revert pela metade | Vermelho |
-| Arquivos com conflito não resolvido | Vermelho |
-| `.sankhya-mcp.env` rastreado pelo Git — a senha do banco vai para o remoto no próximo push | Vermelho |
-| O remoto aponta para endereço diferente da URL cadastrada no HUB SNK | Amarelo |
-| Arquivos rastreados alterados e não commitados | Amarelo |
-| Arquivos novos fora do controle de versão e fora do `.gitignore` | Amarelo |
-| Alterações guardadas no stash | Amarelo |
-| O repositório ainda não tem nenhum commit | Amarelo |
+| Pendência                                                                                  | Gravidade |
+| ------------------------------------------------------------------------------------------ | --------- |
+| A pasta cadastrada não existe, ou existe e não é um repositório Git                        | Vermelho  |
+| O repositório local não tem remoto vinculado                                               | Vermelho  |
+| Merge, rebase, cherry-pick ou revert pela metade                                           | Vermelho  |
+| Arquivos com conflito não resolvido                                                        | Vermelho  |
+| `.sankhya-mcp.env` rastreado pelo Git — a senha do banco vai para o remoto no próximo push | Vermelho  |
+| O remoto aponta para endereço diferente da URL cadastrada no HUB SNK                       | Amarelo   |
+| Arquivos rastreados alterados e não commitados                                             | Amarelo   |
+| Arquivos novos fora do controle de versão e fora do `.gitignore`                           | Amarelo   |
+| Alterações guardadas no stash                                                              | Amarelo   |
+| O repositório ainda não tem nenhum commit                                                  | Amarelo   |
 
 O provedor (GitHub ou GitLab) é deduzido do host do remoto. GitLab instalado no
 domínio da empresa (`gitlab.suaempresa.com.br`) é reconhecido pelo nome no host;
@@ -461,15 +461,15 @@ minimizada.
 
 ## Solução de problemas
 
-| Sintoma | O que fazer |
-|---|---|
-| `EADDRINUSE` ao iniciar | A porta 4100 já está ocupada. Suba em outra: `HUB_PORTA=4200 npm start` |
-| Erro de sintaxe em arquivo `.ts` ao iniciar | Node abaixo de 22.18. Confira com `node -v` e atualize |
-| O navegador não oferece instalar o aplicativo | Use Chrome ou Edge atualizados, pelo endereço `127.0.0.1` ou `localhost`. Firefox e Safari não instalam PWA em janela própria no desktop |
-| A tela abre, mas a atualização que eu baixei não aparece | A janela instalada está servindo o cache antigo. Recarregue com `Ctrl`+`Shift`+`R`, ou abra no navegador comum |
-| Os botões de Git não fazem nada | O `git` precisa estar no PATH. Confira com `git --version` num terminal novo |
-| Mensagem sobre esquema mais novo ao iniciar | O cadastro foi gravado por uma versão mais nova do HUB SNK. Atualize com `git pull` |
-| `403` em tudo, ou a tela não carrega nada | O endereço usado não é `127.0.0.1` nem `localhost`, ou a porta não bate com a do servidor |
+| Sintoma                                                  | O que fazer                                                                                                                              |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `EADDRINUSE` ao iniciar                                  | A porta 4100 já está ocupada. Suba em outra: `HUB_PORTA=4200 npm start`                                                                  |
+| Erro de sintaxe em arquivo `.ts` ao iniciar              | Node abaixo de 22.18. Confira com `node -v` e atualize                                                                                   |
+| O navegador não oferece instalar o aplicativo            | Use Chrome ou Edge atualizados, pelo endereço `127.0.0.1` ou `localhost`. Firefox e Safari não instalam PWA em janela própria no desktop |
+| A tela abre, mas a atualização que eu baixei não aparece | A janela instalada está servindo o cache antigo. Recarregue com `Ctrl`+`Shift`+`R`, ou abra no navegador comum                           |
+| Os botões de Git não fazem nada                          | O `git` precisa estar no PATH. Confira com `git --version` num terminal novo                                                             |
+| Mensagem sobre esquema mais novo ao iniciar              | O cadastro foi gravado por uma versão mais nova do HUB SNK. Atualize com `git pull`                                                      |
+| `403` em tudo, ou a tela não carrega nada                | O endereço usado não é `127.0.0.1` nem `localhost`, ou a porta não bate com a do servidor                                                |
 
 Se não estiver na lista, [abra uma issue](https://github.com/CarlosSimao/hub-snk/issues/new/choose).
 
@@ -479,11 +479,11 @@ Se não estiver na lista, [abra uma issue](https://github.com/CarlosSimao/hub-sn
 
 O número da versão diz o que esperar de uma atualização:
 
-| Parte | Sobe quando | Exemplo |
-|---|---|---|
-| **MAJOR** — `2`.0.0 | O formato dos arquivos de dados muda, ou a atualização exige alguma ação sua | Uma variável de ambiente passa a ser obrigatória |
-| **MINOR** — 1.`3`.0 | Entra funcionalidade nova e o cadastro continua compatível | Um tipo de atalho novo |
-| **PATCH** — 1.2.`4` | Correção de comportamento, sem nada novo | A situação do Git deixa de errar o nome da branch |
+| Parte               | Sobe quando                                                                  | Exemplo                                           |
+| ------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------- |
+| **MAJOR** — `2`.0.0 | O formato dos arquivos de dados muda, ou a atualização exige alguma ação sua | Uma variável de ambiente passa a ser obrigatória  |
+| **MINOR** — 1.`3`.0 | Entra funcionalidade nova e o cadastro continua compatível                   | Um tipo de atalho novo                            |
+| **PATCH** — 1.2.`4` | Correção de comportamento, sem nada novo                                     | A situação do Git deixa de errar o nome da branch |
 
 Toda mudança visível fica registrada no [CHANGELOG](CHANGELOG.md).
 
@@ -494,11 +494,11 @@ Toda mudança visível fica registrada no [CHANGELOG](CHANGELOG.md).
 A versão que você está rodando aparece no rodapé da tela — cite-a ao relatar
 qualquer coisa.
 
-| Para | Onde |
-|---|---|
+| Para                                                      | Onde                                                                        |
+| --------------------------------------------------------- | --------------------------------------------------------------------------- |
 | Erro, comportamento estranho, algo que parou de funcionar | [Abrir uma issue](https://github.com/CarlosSimao/hub-snk/issues/new/choose) |
-| Ideia, pedido de melhoria, dúvida de uso | [Discussions](https://github.com/CarlosSimao/hub-snk/discussions) |
-| Falha de segurança | Não abra issue pública — veja o [SECURITY.md](SECURITY.md) |
+| Ideia, pedido de melhoria, dúvida de uso                  | [Discussions](https://github.com/CarlosSimao/hub-snk/discussions)           |
+| Falha de segurança                                        | Não abra issue pública — veja o [SECURITY.md](SECURITY.md)                  |
 
 **Antes de colar qualquer coisa numa issue:** o repositório é público. Não
 publique o conteúdo do cadastro, nem trechos de log com nome de cliente, host,

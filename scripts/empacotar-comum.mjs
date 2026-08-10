@@ -90,8 +90,7 @@ export async function instalarDependenciasDeProducao() {
    * O `cmd.exe /c` resolve sem ligar a opção `shell`, que concatenaria os
    * argumentos em vez de passá-los separados.
    */
-  const chamadaDoNpm =
-    process.platform === 'win32' ? ['cmd.exe', ['/c', 'npm']] : ['npm', []];
+  const chamadaDoNpm = process.platform === 'win32' ? ['cmd.exe', ['/c', 'npm']] : ['npm', []];
   const [executavel, argumentosIniciais] = chamadaDoNpm;
 
   execFileSync(executavel, [...argumentosIniciais, 'ci', '--omit=dev', '--ignore-scripts'], {

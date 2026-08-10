@@ -6,11 +6,11 @@ Como o HUB SNK grava o que você cadastra. Para o uso do dia a dia, veja o
 Os três arquivos ficam na pasta de dados (`dados-hub-snk/` por padrão, ou o que
 estiver em `HUB_DADOS_DIR`):
 
-| Arquivo | Guarda |
-|---|---|
-| `clientes.json` | O cadastro de clientes, com bases, bancos, repositórios e links |
-| `configuracao.json` | A configuração global e os atalhos |
-| `local.json` | As bases e os bancos da própria máquina |
+| Arquivo             | Guarda                                                          |
+| ------------------- | --------------------------------------------------------------- |
+| `clientes.json`     | O cadastro de clientes, com bases, bancos, repositórios e links |
+| `configuracao.json` | A configuração global e os atalhos                              |
+| `local.json`        | As bases e os bancos da própria máquina                         |
 
 ## Envelope
 

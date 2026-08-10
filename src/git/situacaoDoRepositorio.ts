@@ -59,7 +59,9 @@ function criarPendencia(
   mensagem: string,
   comandoSugerido?: string,
 ): PendenciaGit {
-  return comandoSugerido ? { codigo, severidade, mensagem, comandoSugerido } : { codigo, severidade, mensagem };
+  return comandoSugerido
+    ? { codigo, severidade, mensagem, comandoSugerido }
+    : { codigo, severidade, mensagem };
 }
 
 function pluralizar(quantidade: number, singular: string, plural: string): string {

@@ -135,11 +135,7 @@ export interface RepositorioClientes {
   removerRepositorio(idDoCliente: string, idDoRepositorio: string): Promise<void>;
 
   adicionarLink(idDoCliente: string, dados: DadosDeLink): Promise<LinkDoCliente>;
-  atualizarLink(
-    idDoCliente: string,
-    idDoLink: string,
-    dados: DadosDeLink,
-  ): Promise<LinkDoCliente>;
+  atualizarLink(idDoCliente: string, idDoLink: string, dados: DadosDeLink): Promise<LinkDoCliente>;
   removerLink(idDoCliente: string, idDoLink: string): Promise<void>;
 }
 

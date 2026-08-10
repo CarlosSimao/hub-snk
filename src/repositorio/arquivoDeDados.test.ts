@@ -106,7 +106,10 @@ describe('gravarArquivoDeDados', () => {
 
     await gravarArquivoDeDados(caminho, CHAVE, []);
 
-    assert.deepEqual(await lerJson(caminho), { versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA, clientes: [] });
+    assert.deepEqual(await lerJson(caminho), {
+      versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+      clientes: [],
+    });
   });
 });
 

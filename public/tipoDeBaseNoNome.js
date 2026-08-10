@@ -59,9 +59,9 @@ const DIACRITICOS = /\p{Diacritic}/gu;
  * funciona se um caractere continuar valendo um caractere.
  */
 function semAcentos(texto) {
-  return Array.from(texto, (caractere) =>
-    caractere.normalize('NFD').replace(DIACRITICOS, ''),
-  ).join('');
+  return Array.from(texto, (caractere) => caractere.normalize('NFD').replace(DIACRITICOS, '')).join(
+    '',
+  );
 }
 
 /**

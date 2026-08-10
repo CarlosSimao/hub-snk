@@ -317,7 +317,9 @@ const elementos = {
   listaDeAtalhosDaConfiguracao: document.getElementById('lista-atalhos-config'),
   botaoAdicionarAtalho: document.getElementById('btn-adicionar-atalho'),
   campoScriptPadrao: document.getElementById('campo-script-padrao'),
-  campoIntervaloDeExecucaoAutomatica: document.getElementById('campo-intervalo-execucao-automatica'),
+  campoIntervaloDeExecucaoAutomatica: document.getElementById(
+    'campo-intervalo-execucao-automatica',
+  ),
   campoTempoLimite: document.getElementById('campo-tempo-limite'),
   campoCaminhoSchemaMcp: document.getElementById('campo-caminho-schema-mcp'),
   campoConfigMcpHost: document.getElementById('campo-config-mcp-host'),
@@ -329,7 +331,6 @@ const elementos = {
   erroConfiguracao: document.getElementById('erro-configuracao'),
   botaoSalvarConfiguracao: document.getElementById('btn-salvar-configuracao'),
   botaoCancelarConfiguracao: document.getElementById('btn-cancelar-configuracao'),
-
 
   menuDeAtalhos: document.getElementById('menu-atalhos'),
   botaoAtalhos: document.getElementById('btn-atalhos'),
@@ -572,7 +573,6 @@ const api = {
     requisitar(CAMINHO_DA_CONFIGURACAO, { metodo: 'PUT', corpo: configuracao }),
   lerConfiguracaoMcpGlobal: () => requisitar(`${CAMINHO_DA_CONFIGURACAO}/mcp`),
 
-
   abrirAtalho: (id) => requisitar(`${CAMINHO_DOS_ATALHOS}/${id}/abrir`, { metodo: 'POST' }),
   selecionarExecutavel: () =>
     requisitar(`${CAMINHO_DOS_ATALHOS}/selecionar-executavel`, { metodo: 'POST' }),
@@ -586,18 +586,15 @@ const api = {
     }),
 
   listarBasesLocais: () => requisitar(CAMINHO_DAS_BASES_LOCAIS),
-  criarBaseLocal: (dados) =>
-    requisitar(CAMINHO_DAS_BASES_LOCAIS, { metodo: 'POST', corpo: dados }),
+  criarBaseLocal: (dados) => requisitar(CAMINHO_DAS_BASES_LOCAIS, { metodo: 'POST', corpo: dados }),
   atualizarBaseLocal: (id, dados) =>
     requisitar(`${CAMINHO_DAS_BASES_LOCAIS}/${id}`, { metodo: 'PUT', corpo: dados }),
-  removerBaseLocal: (id) =>
-    requisitar(`${CAMINHO_DAS_BASES_LOCAIS}/${id}`, { metodo: 'DELETE' }),
+  removerBaseLocal: (id) => requisitar(`${CAMINHO_DAS_BASES_LOCAIS}/${id}`, { metodo: 'DELETE' }),
   iniciarBaseLocal: (id) =>
     requisitar(`${CAMINHO_DAS_BASES_LOCAIS}/${id}/iniciar`, { metodo: 'POST' }),
   reiniciarBaseLocal: (id) =>
     requisitar(`${CAMINHO_DAS_BASES_LOCAIS}/${id}/reiniciar`, { metodo: 'POST' }),
-  pararBaseLocal: (id) =>
-    requisitar(`${CAMINHO_DAS_BASES_LOCAIS}/${id}/parar`, { metodo: 'POST' }),
+  pararBaseLocal: (id) => requisitar(`${CAMINHO_DAS_BASES_LOCAIS}/${id}/parar`, { metodo: 'POST' }),
   lerConfiguracaoMcpDaBaseLocal: (id) => requisitar(`${CAMINHO_DAS_BASES_LOCAIS}/${id}/mcp`),
   salvarConfiguracaoMcpDaBaseLocal: (id, configuracao) =>
     requisitar(`${CAMINHO_DAS_BASES_LOCAIS}/${id}/mcp`, { metodo: 'PUT', corpo: configuracao }),
@@ -607,8 +604,7 @@ const api = {
     requisitar(CAMINHO_DOS_BANCOS_LOCAIS, { metodo: 'POST', corpo: dados }),
   atualizarBancoLocal: (id, dados) =>
     requisitar(`${CAMINHO_DOS_BANCOS_LOCAIS}/${id}`, { metodo: 'PUT', corpo: dados }),
-  removerBancoLocal: (id) =>
-    requisitar(`${CAMINHO_DOS_BANCOS_LOCAIS}/${id}`, { metodo: 'DELETE' }),
+  removerBancoLocal: (id) => requisitar(`${CAMINHO_DOS_BANCOS_LOCAIS}/${id}`, { metodo: 'DELETE' }),
   iniciarBancoLocal: (id) =>
     requisitar(`${CAMINHO_DOS_BANCOS_LOCAIS}/${id}/iniciar`, { metodo: 'POST' }),
   reiniciarBancoLocal: (id) =>
@@ -1138,7 +1134,8 @@ function resumirSituacao(situacao) {
 
 function descreverSituacao(situacao) {
   const hora = new Date(situacao.verificadoEm).toLocaleTimeString('pt-BR');
-  const provedor = situacao.provedor && situacao.provedor !== 'desconhecido' ? ` • ${situacao.provedor}` : '';
+  const provedor =
+    situacao.provedor && situacao.provedor !== 'desconhecido' ? ` • ${situacao.provedor}` : '';
   return `${ROTULOS_DE_SEVERIDADE[situacao.severidade]}${provedor} • verificado às ${hora}`;
 }
 
@@ -1472,7 +1469,12 @@ async function salvarAnotacoes(idDoCliente) {
  * funcional por enquanto. Fica desabilitado para não parecer quebrado.
  */
 function criarBotaoDeAcaoNaoImplementada(tracado, rotulo) {
-  const botao = criarBotaoDeIcone('btn tiny', tracado, `${rotulo} (ainda não implementado)`, () => {});
+  const botao = criarBotaoDeIcone(
+    'btn tiny',
+    tracado,
+    `${rotulo} (ainda não implementado)`,
+    () => {},
+  );
   botao.disabled = true;
   return botao;
 }
@@ -1542,7 +1544,12 @@ function criarAcoesDeBaseLocal(base) {
     botaoParar,
     criarBotaoDeIcone('btn tiny', ICONES.log, 'Abrir log', () => abrirJanelaDeLogDaBase(base)),
     criarBotaoDeMcpDaBaseLocal(base),
-    criarLinkDeIcone('btn tiny', ICONES.seta, 'Abrir SankhyaOm', `http://localhost:${base.porta}/mge`),
+    criarLinkDeIcone(
+      'btn tiny',
+      ICONES.seta,
+      'Abrir SankhyaOm',
+      `http://localhost:${base.porta}/mge`,
+    ),
   ];
 }
 
@@ -2224,9 +2231,7 @@ function definirVisibilidadeDaSenha(visivel) {
   const rotulo = visivel ? 'Ocultar senha' : 'Mostrar senha';
 
   elementos.campoSenha.type = visivel ? 'text' : 'password';
-  elementos.botaoVerSenha.replaceChildren(
-    criarIcone(visivel ? ICONES.olhoFechado : ICONES.olho),
-  );
+  elementos.botaoVerSenha.replaceChildren(criarIcone(visivel ? ICONES.olhoFechado : ICONES.olho));
   elementos.botaoVerSenha.title = rotulo;
   elementos.botaoVerSenha.setAttribute('aria-label', rotulo);
   elementos.botaoVerSenha.setAttribute('aria-pressed', String(visivel));
@@ -2401,11 +2406,10 @@ async function salvarBanco(evento) {
   elementos.botaoSalvarBanco.disabled = true;
 
   try {
-    await api.definirBancoDeDados(
-      estado.clienteDoBancoEmEdicao.id,
-      estado.baseDoBancoEmEdicao.id,
-      { ...dados, porta: Number(dados.porta) },
-    );
+    await api.definirBancoDeDados(estado.clienteDoBancoEmEdicao.id, estado.baseDoBancoEmEdicao.id, {
+      ...dados,
+      porta: Number(dados.porta),
+    });
 
     await recarregarClientes();
     elementos.modalBanco.close();
@@ -2421,10 +2425,7 @@ async function desvincularBanco() {
   elementos.botaoDesvincularBanco.disabled = true;
 
   try {
-    await api.removerBancoDeDados(
-      estado.clienteDoBancoEmEdicao.id,
-      estado.baseDoBancoEmEdicao.id,
-    );
+    await api.removerBancoDeDados(estado.clienteDoBancoEmEdicao.id, estado.baseDoBancoEmEdicao.id);
 
     await recarregarClientes();
     elementos.modalBanco.close();
@@ -3062,11 +3063,8 @@ function criarLinhaDeAtalhoDaConfiguracao(atalho) {
     400,
   );
 
-  const procurar = criarBotaoDeIcone(
-    'btn tiny',
-    ICONES.pasta,
-    'Escolher o executável',
-    () => escolherExecutavelDoAtalho(caminho, procurar),
+  const procurar = criarBotaoDeIcone('btn tiny', ICONES.pasta, 'Escolher o executável', () =>
+    escolherExecutavelDoAtalho(caminho, procurar),
   );
 
   const remover = criarBotaoDeIcone('btn tiny danger', ICONES.lixeira, 'Remover atalho', () =>
@@ -3218,7 +3216,8 @@ async function abrirModalDeConfiguracao() {
     const configuracao = await api.lerConfiguracao();
     elementos.campoScriptPadrao.value = configuracao.scriptPadrao ?? '';
     elementos.campoIntervaloDeExecucaoAutomatica.value =
-      configuracao.intervaloDeExecucaoAutomaticaSegundos ?? INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S;
+      configuracao.intervaloDeExecucaoAutomaticaSegundos ??
+      INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S;
     elementos.campoTempoLimite.value = configuracao.tempoLimiteSegundos ?? TEMPO_LIMITE_PADRAO_S;
     elementos.campoCaminhoSchemaMcp.value = configuracao.caminhoDoSchemaMcp ?? '';
     preencherAtalhosDaConfiguracao(configuracao.atalhos ?? []);
@@ -4392,7 +4391,9 @@ function criarCheckboxDeExportacao(base, coluna, desabilitado) {
 function criarMestreDeExportacao(coluna) {
   const entrada = criarElemento('input');
   entrada.type = 'checkbox';
-  entrada.addEventListener('change', () => definirColunaDaExportacao(coluna.chave, entrada.checked));
+  entrada.addEventListener('change', () =>
+    definirColunaDaExportacao(coluna.chave, entrada.checked),
+  );
 
   checkboxesDaExportacao[coluna.chave].mestre = entrada;
 
@@ -4556,7 +4557,13 @@ function copiarExportacao() {
  * `recarregar` é `recarregarClientes` por padrão: a maioria das exclusões é de
  * cliente, base ou repositório. Base e banco locais recarregam a visão local.
  */
-function pedirExclusao(titulo, texto, executar, mensagemDeSucesso, recarregar = recarregarClientes) {
+function pedirExclusao(
+  titulo,
+  texto,
+  executar,
+  mensagemDeSucesso,
+  recarregar = recarregarClientes,
+) {
   estado.exclusaoPendente = { executar, mensagemDeSucesso, recarregar };
   elementos.tituloExclusao.textContent = titulo;
   elementos.textoExclusao.textContent = texto;
@@ -4883,10 +4890,7 @@ function registrarEventos() {
   elementos.botaoEscolherCaminhoLocal.append(criarIcone(ICONES.pasta));
   elementos.botaoEscolherCaminhoLocal.title = 'Escolher a pasta';
   elementos.botaoEscolherCaminhoLocal.setAttribute('aria-label', 'Escolher a pasta');
-  elementos.botaoEscolherCaminhoLocal.addEventListener(
-    'click',
-    escolherCaminhoLocalDoRepositorio,
-  );
+  elementos.botaoEscolherCaminhoLocal.addEventListener('click', escolherCaminhoLocalDoRepositorio);
   elementos.botaoCancelarRepositorio.addEventListener('click', () =>
     elementos.modalRepositorio.close(),
   );

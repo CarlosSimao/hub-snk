@@ -33,12 +33,7 @@
           >
             Clientes
           </button>
-          <button
-            class="btn ghost"
-            id="btn-visualizacao-local"
-            type="button"
-            aria-pressed="false"
-          >
+          <button class="btn ghost" id="btn-visualizacao-local" type="button" aria-pressed="false">
             Local
           </button>
         </div>
@@ -345,7 +340,9 @@
           </div>
 
           <div class="campo">
-            <label for="campo-caminho-local">Caminho local <span class="opcional">opcional</span></label>
+            <label for="campo-caminho-local"
+              >Caminho local <span class="opcional">opcional</span></label
+            >
             <div class="campo-com-acao">
               <input
                 id="campo-caminho-local"
@@ -510,13 +507,12 @@
                 Intervalo de execução automática (segundos)
                 <span class="dica" tabindex="0"
                   >?<span class="dica-texto" role="tooltip"
-                    >De quanto em quanto tempo a tela refaz sozinha, com a aba em primeiro plano:
-                    o diagnóstico Git dos repositórios (remoto ausente, alterações pendentes); a
-                    situação de cada banco local (container no Docker e login com as
-                    credenciais cadastradas); a situação de cada base local (serviço do WildFly e
-                    HTTP 200 em <code>localhost</code>); e a situação das bases do cliente
-                    selecionado (URL cadastrada). Cada tique também alimenta o gráfico de
-                    uptime.</span
+                    >De quanto em quanto tempo a tela refaz sozinha, com a aba em primeiro plano: o
+                    diagnóstico Git dos repositórios (remoto ausente, alterações pendentes); a
+                    situação de cada banco local (container no Docker e login com as credenciais
+                    cadastradas); a situação de cada base local (serviço do WildFly e HTTP 200 em
+                    <code>localhost</code>); e a situação das bases do cliente selecionado (URL
+                    cadastrada). Cada tique também alimenta o gráfico de uptime.</span
                   ></span
                 >
               </label>
@@ -571,28 +567,57 @@
 
             <div class="campo">
               <label for="campo-config-mcp-host">SANKHYA_DB_HOST</label>
-              <input id="campo-config-mcp-host" type="text" maxlength="200" autocomplete="off" spellcheck="false" />
+              <input
+                id="campo-config-mcp-host"
+                type="text"
+                maxlength="200"
+                autocomplete="off"
+                spellcheck="false"
+              />
             </div>
 
             <div class="campo campo-estreito">
               <label for="campo-config-mcp-port">SANKHYA_DB_PORT</label>
-              <input id="campo-config-mcp-port" type="number" min="1" max="65535" autocomplete="off" />
+              <input
+                id="campo-config-mcp-port"
+                type="number"
+                min="1"
+                max="65535"
+                autocomplete="off"
+              />
             </div>
 
             <div class="campo">
               <label for="campo-config-mcp-service">SANKHYA_DB_SERVICE_NAME</label>
-              <input id="campo-config-mcp-service" type="text" maxlength="200" autocomplete="off" spellcheck="false" />
+              <input
+                id="campo-config-mcp-service"
+                type="text"
+                maxlength="200"
+                autocomplete="off"
+                spellcheck="false"
+              />
             </div>
 
             <div class="campo">
               <label for="campo-config-mcp-user">SANKHYA_DB_USER</label>
-              <input id="campo-config-mcp-user" type="text" maxlength="120" autocomplete="off" spellcheck="false" />
+              <input
+                id="campo-config-mcp-user"
+                type="text"
+                maxlength="120"
+                autocomplete="off"
+                spellcheck="false"
+              />
             </div>
 
             <div class="campo">
               <label for="campo-config-mcp-password">SANKHYA_DB_PASSWORD</label>
               <div class="campo-com-acao">
-                <input id="campo-config-mcp-password" type="password" maxlength="200" autocomplete="new-password" />
+                <input
+                  id="campo-config-mcp-password"
+                  type="password"
+                  maxlength="200"
+                  autocomplete="new-password"
+                />
                 <button
                   class="btn tiny botao-icone"
                   type="button"
@@ -660,7 +685,13 @@
           <div class="grade-de-campos">
             <div class="campo">
               <label for="campo-mcp-host">SANKHYA_DB_HOST</label>
-              <input id="campo-mcp-host" type="text" maxlength="200" autocomplete="off" spellcheck="false" />
+              <input
+                id="campo-mcp-host"
+                type="text"
+                maxlength="200"
+                autocomplete="off"
+                spellcheck="false"
+              />
             </div>
 
             <div class="campo">
@@ -670,19 +701,41 @@
 
             <div class="campo">
               <label for="campo-mcp-service">SANKHYA_DB_SERVICE_NAME</label>
-              <input id="campo-mcp-service" type="text" maxlength="200" autocomplete="off" spellcheck="false" />
+              <input
+                id="campo-mcp-service"
+                type="text"
+                maxlength="200"
+                autocomplete="off"
+                spellcheck="false"
+              />
             </div>
 
             <div class="campo">
               <label for="campo-mcp-user">SANKHYA_DB_USER</label>
-              <input id="campo-mcp-user" type="text" maxlength="120" autocomplete="off" spellcheck="false" />
+              <input
+                id="campo-mcp-user"
+                type="text"
+                maxlength="120"
+                autocomplete="off"
+                spellcheck="false"
+              />
             </div>
 
             <div class="campo campo-largura-total">
               <label for="campo-mcp-password">SANKHYA_DB_PASSWORD</label>
               <div class="campo-com-acao">
-                <input id="campo-mcp-password" type="password" maxlength="200" autocomplete="new-password" />
-                <button class="btn tiny botao-icone" type="button" id="btn-ver-senha-mcp" aria-pressed="false"></button>
+                <input
+                  id="campo-mcp-password"
+                  type="password"
+                  maxlength="200"
+                  autocomplete="new-password"
+                />
+                <button
+                  class="btn tiny botao-icone"
+                  type="button"
+                  id="btn-ver-senha-mcp"
+                  aria-pressed="false"
+                ></button>
               </div>
             </div>
           </div>
@@ -731,7 +784,13 @@
 
           <div class="campo campo-estreito">
             <label for="campo-porta-base-local">Port</label>
-            <input id="campo-porta-base-local" type="number" min="1" max="65535" autocomplete="off" />
+            <input
+              id="campo-porta-base-local"
+              type="number"
+              min="1"
+              max="65535"
+              autocomplete="off"
+            />
           </div>
 
           <p class="erro-formulario" id="erro-base-local" hidden></p>

@@ -72,7 +72,9 @@ function lerNomeEPorta(endereco: URL): Autoridade {
 }
 
 function ehEnderecoDoProprioHub(autoridade: Autoridade | null, porta: number): boolean {
-  return autoridade !== null && NOMES_DE_LOOPBACK.has(autoridade.nome) && autoridade.porta === porta;
+  return (
+    autoridade !== null && NOMES_DE_LOOPBACK.has(autoridade.nome) && autoridade.porta === porta
+  );
 }
 
 export interface CabecalhosDeOrigem {

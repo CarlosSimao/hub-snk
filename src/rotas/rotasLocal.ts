@@ -126,7 +126,10 @@ const esquemaDeDadosDeBancoLocal = z.object({
   senha: z
     .string({ required_error: 'Informe a senha do banco.' })
     .min(1, 'Informe a senha do banco.')
-    .max(TAMANHO_MAXIMO_DA_SENHA, `A senha deve ter no máximo ${TAMANHO_MAXIMO_DA_SENHA} caracteres.`),
+    .max(
+      TAMANHO_MAXIMO_DA_SENHA,
+      `A senha deve ter no máximo ${TAMANHO_MAXIMO_DA_SENHA} caracteres.`,
+    ),
 });
 
 const esquemaDeParametros = z.object({

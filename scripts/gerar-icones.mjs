@@ -223,8 +223,7 @@ function codificarIco(imagens) {
   cabecalho.writeUInt16LE(1, 2); // 1 = ícone
   cabecalho.writeUInt16LE(imagens.length, 4);
 
-  let deslocamento =
-    TAMANHO_DO_CABECALHO_DO_ICO + imagens.length * TAMANHO_DA_ENTRADA_DO_ICO;
+  let deslocamento = TAMANHO_DO_CABECALHO_DO_ICO + imagens.length * TAMANHO_DA_ENTRADA_DO_ICO;
 
   const entradas = imagens.map(({ lado, png }) => {
     const entrada = Buffer.alloc(TAMANHO_DA_ENTRADA_DO_ICO);

@@ -2,10 +2,7 @@ import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { mkdir } from 'node:fs/promises';
 import { configuracao } from './configuracao.ts';
-import {
-  ArquivoDeDadosInvalidoError,
-  EsquemaMaisNovoError,
-} from './repositorio/arquivoDeDados.ts';
+import { ArquivoDeDadosInvalidoError, EsquemaMaisNovoError } from './repositorio/arquivoDeDados.ts';
 import { RepositorioClientesArquivo } from './repositorio/repositorioClientesArquivo.ts';
 import { RepositorioConfiguracaoArquivo } from './repositorio/repositorioConfiguracaoArquivo.ts';
 import { RepositorioLocalArquivo } from './repositorio/repositorioLocalArquivo.ts';
@@ -16,10 +13,7 @@ import { registrarRotasDeConfiguracao } from './rotas/rotasConfiguracao.ts';
 import { registrarRotasDeGit } from './rotas/rotasGit.ts';
 import { registrarRotasDeLocal } from './rotas/rotasLocal.ts';
 import { registrarRotasDeSistema } from './rotas/rotasSistema.ts';
-import {
-  observarAlteracoesNosDados,
-  type CacheDescartavel,
-} from './sistema/observadorDeDados.ts';
+import { observarAlteracoesNosDados, type CacheDescartavel } from './sistema/observadorDeDados.ts';
 
 async function iniciarServidor(): Promise<void> {
   const servidor = Fastify({ logger: { transport: { target: 'pino-pretty' } } });

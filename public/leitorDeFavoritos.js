@@ -195,8 +195,14 @@ function lerFavoritosDoHtmlNetscape(conteudo) {
   PASSO_DO_HTML_NETSCAPE.lastIndex = 0;
 
   for (const passo of conteudo.matchAll(PASSO_DO_HTML_NETSCAPE)) {
-    const [texto, tituloDaPasta, urlComAspasDuplas, urlComAspasSimples, urlSemAspas, nomeDoFavorito] =
-      passo;
+    const [
+      texto,
+      tituloDaPasta,
+      urlComAspasDuplas,
+      urlComAspasSimples,
+      urlSemAspas,
+      nomeDoFavorito,
+    ] = passo;
 
     if (tituloDaPasta !== undefined) {
       pastaAnunciada = criarPasta(decodificarEntidades(tituloDaPasta));

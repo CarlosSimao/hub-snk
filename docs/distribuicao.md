@@ -3,12 +3,12 @@
 Como os artefatos de cada release são montados e por que as decisões foram
 estas. Para apenas instalar o HUB SNK, veja o [README](../README.md).
 
-| Artefato | Plataforma |
-|---|---|
-| `hub-snk-<versão>-windows-x64.exe` | Windows — instalador com wizard |
-| `hub-snk-<versão>-linux-x64.tar.gz` | Linux |
-| `hub-snk-<versão>-macos-x64.tar.gz` | macOS com processador Intel |
-| `hub-snk-<versão>-macos-arm64.tar.gz` | macOS com Apple Silicon |
+| Artefato                              | Plataforma                      |
+| ------------------------------------- | ------------------------------- |
+| `hub-snk-<versão>-windows-x64.exe`    | Windows — instalador com wizard |
+| `hub-snk-<versão>-linux-x64.tar.gz`   | Linux                           |
+| `hub-snk-<versão>-macos-x64.tar.gz`   | macOS com processador Intel     |
+| `hub-snk-<versão>-macos-arm64.tar.gz` | macOS com Apple Silicon         |
 
 Todos levam o próprio Node e as dependências instaladas: a máquina de destino
 não precisa de Node, de npm nem de rede.
@@ -48,13 +48,13 @@ O `.exe` sai em `dist/`.
 
 `npm run empacotar-windows` monta `dist/windows` com:
 
-| Item | De onde vem |
-|---|---|
-| `node.exe` | Baixado de `nodejs.org/dist`, na versão fixada no script. Fica em cache em `dist/cache` para não rebaixar a cada empacotamento |
-| `node_modules` | `npm ci --omit=dev` numa pasta separada, para não mexer no `node_modules` de desenvolvimento |
-| `src`, `public`, `package.json` | Do repositório, sem os arquivos `.test.ts` |
-| `abrir-hub-snk.vbs` | De `instalador/` |
-| `LICENSE.txt` | O `LICENSE` do projeto, renomeado para o instalador exibir |
+| Item                            | De onde vem                                                                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `node.exe`                      | Baixado de `nodejs.org/dist`, na versão fixada no script. Fica em cache em `dist/cache` para não rebaixar a cada empacotamento |
+| `node_modules`                  | `npm ci --omit=dev` numa pasta separada, para não mexer no `node_modules` de desenvolvimento                                   |
+| `src`, `public`, `package.json` | Do repositório, sem os arquivos `.test.ts`                                                                                     |
+| `abrir-hub-snk.vbs`             | De `instalador/`                                                                                                               |
+| `LICENSE.txt`                   | O `LICENSE` do projeto, renomeado para o instalador exibir                                                                     |
 
 São ~106 MB descompactados, a maior parte do `node.exe`. O instalador comprime
 isso com LZMA2.
@@ -69,11 +69,11 @@ Instalação **por usuário**, sem UAC (`PrivilegesRequired=lowest`). O programa
 vai para a pasta de aplicativos do usuário; nada é escrito em `Program Files`
 nem no registro da máquina.
 
-| Caminho | Conteúdo |
-|---|---|
-| `%LOCALAPPDATA%\Programs\HubSnk` | O programa: `node.exe`, `src`, `public`, `node_modules` |
-| `%LOCALAPPDATA%\HubSnk\dados` | O cadastro. **Não** é removido na desinstalação |
-| `%LOCALAPPDATA%\HubSnk\hub-snk.log` | Saída do servidor |
+| Caminho                             | Conteúdo                                                |
+| ----------------------------------- | ------------------------------------------------------- |
+| `%LOCALAPPDATA%\Programs\HubSnk`    | O programa: `node.exe`, `src`, `public`, `node_modules` |
+| `%LOCALAPPDATA%\HubSnk\dados`       | O cadastro. **Não** é removido na desinstalação         |
+| `%LOCALAPPDATA%\HubSnk\hub-snk.log` | Saída do servidor                                       |
 
 ## Por que não é um serviço do Windows
 
@@ -92,10 +92,10 @@ instalador.
 
 `abrir-hub-snk.vbs` é o mesmo arquivo nos dois casos, separados por argumento:
 
-| Chamada | Usada por | O que faz |
-|---|---|---|
-| `abrir-hub-snk.vbs` | Atalho do menu e da área de trabalho | Sobe o servidor se não estiver no ar, espera a porta responder e abre a janela do aplicativo |
-| `abrir-hub-snk.vbs /servidor` | Atalho da pasta Inicializar | Só sobe o servidor, sem abrir janela |
+| Chamada                       | Usada por                            | O que faz                                                                                    |
+| ----------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `abrir-hub-snk.vbs`           | Atalho do menu e da área de trabalho | Sobe o servidor se não estiver no ar, espera a porta responder e abre a janela do aplicativo |
+| `abrir-hub-snk.vbs /servidor` | Atalho da pasta Inicializar          | Só sobe o servidor, sem abrir janela                                                         |
 
 Rodar o launcher com o servidor já no ar não sobe um segundo: ele confere a
 porta antes.
@@ -118,8 +118,8 @@ mão.
 ## Assinatura digital
 
 O instalador não é assinado. O SmartScreen do Windows vai mostrar "Windows
-protegeu o computador" na primeira execução — é preciso clicar em *Mais
-informações* › *Executar assim mesmo*.
+protegeu o computador" na primeira execução — é preciso clicar em _Mais
+informações_ › _Executar assim mesmo_.
 
 Assinar exigiria um certificado de code signing pago, com renovação anual.
 Enquanto não houver, vale avisar os colegas de que o aviso é esperado.

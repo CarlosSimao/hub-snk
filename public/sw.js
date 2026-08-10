@@ -20,9 +20,7 @@ const ARQUIVOS_DO_SHELL = [
 ];
 
 self.addEventListener('install', (evento) => {
-  evento.waitUntil(
-    caches.open(VERSAO_DO_CACHE).then((cache) => cache.addAll(ARQUIVOS_DO_SHELL)),
-  );
+  evento.waitUntil(caches.open(VERSAO_DO_CACHE).then((cache) => cache.addAll(ARQUIVOS_DO_SHELL)));
   self.skipWaiting();
 });
 

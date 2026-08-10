@@ -11,36 +11,36 @@ recebe `403` sem chegar às rotas.
 
 ## Rotas
 
-| Método | Rota | Resposta |
-|---|---|---|
-| `GET` | `/api/clientes` | `200` — lista ordenada por nome, com as bases |
-| `POST` | `/api/clientes` | `201` — cliente criado |
-| `PUT` | `/api/clientes/:id` | `200` — cliente atualizado |
-| `GET` | `/api/clientes/:id` | `200` — um cliente, com a situação do MCP de cada repositório |
-| `PUT` | `/api/clientes/:id/anotacoes` | `200` — cliente com as anotações gravadas |
-| `DELETE` | `/api/clientes/:id` | `204` — sem conteúdo |
-| `POST` | `/api/clientes/:id/bases` | `201` — base criada |
-| `PUT` | `/api/clientes/:id/bases/:idBase` | `200` — base atualizada |
-| `DELETE` | `/api/clientes/:id/bases/:idBase` | `204` — sem conteúdo |
-| `PUT` | `/api/clientes/:id/bases/:idBase/banco` | `200` — banco vinculado ou substituído |
-| `DELETE` | `/api/clientes/:id/bases/:idBase/banco` | `204` — banco desvinculado |
-| `POST` | `/api/clientes/:id/repositorios` | `201` — repositório criado |
-| `PUT` | `/api/clientes/:id/repositorios/:idRepositorio` | `200` — repositório atualizado |
-| `DELETE` | `/api/clientes/:id/repositorios/:idRepositorio` | `204` — sem conteúdo |
-| `POST` | `/api/clientes/:id/repositorios/:idRepositorio/abrir-pasta` | `204` — pasta aberta no gerenciador de arquivos |
-| `POST` | `/api/clientes/:id/repositorios/:idRepositorio/abrir-shell` | `204` — terminal aberto na pasta |
-| `POST` | `/api/clientes/:id/repositorios/:idRepositorio/abrir-intellij` | `204` — pasta aberta como projeto no IntelliJ |
-| `GET` | `/api/clientes/:id/repositorios/:idRepositorio/mcp` | `200` — conteúdo do `.sankhya-mcp.env` |
-| `PUT` | `/api/clientes/:id/repositorios/:idRepositorio/mcp` | `204` — arquivo criado ou sobrescrito |
-| `POST` | `/api/clientes/:id/links` | `201` — link criado |
-| `PUT` | `/api/clientes/:id/links/:idLink` | `200` — link atualizado |
-| `DELETE` | `/api/clientes/:id/links/:idLink` | `204` — sem conteúdo |
-| `GET` | `/api/situacao-git?forcar=true` | `200` — situação Git dos repositórios com pasta local, indexada pelo id |
-| `GET` | `/api/configuracao` | `200` — configuração global |
-| `PUT` | `/api/configuracao` | `200` — configuração salva |
-| `POST` | `/api/atalhos/selecionar-executavel` | `200` — caminho escolhido; `204` quando cancelado |
-| `POST` | `/api/atalhos/:id/abrir` | `204` — programa do atalho iniciado |
-| `GET` | `/api/sistema/versao` | `200` — `{ "versao": "1.0.0" }`, a mesma exibida no rodapé |
+| Método   | Rota                                                           | Resposta                                                                |
+| -------- | -------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `GET`    | `/api/clientes`                                                | `200` — lista ordenada por nome, com as bases                           |
+| `POST`   | `/api/clientes`                                                | `201` — cliente criado                                                  |
+| `PUT`    | `/api/clientes/:id`                                            | `200` — cliente atualizado                                              |
+| `GET`    | `/api/clientes/:id`                                            | `200` — um cliente, com a situação do MCP de cada repositório           |
+| `PUT`    | `/api/clientes/:id/anotacoes`                                  | `200` — cliente com as anotações gravadas                               |
+| `DELETE` | `/api/clientes/:id`                                            | `204` — sem conteúdo                                                    |
+| `POST`   | `/api/clientes/:id/bases`                                      | `201` — base criada                                                     |
+| `PUT`    | `/api/clientes/:id/bases/:idBase`                              | `200` — base atualizada                                                 |
+| `DELETE` | `/api/clientes/:id/bases/:idBase`                              | `204` — sem conteúdo                                                    |
+| `PUT`    | `/api/clientes/:id/bases/:idBase/banco`                        | `200` — banco vinculado ou substituído                                  |
+| `DELETE` | `/api/clientes/:id/bases/:idBase/banco`                        | `204` — banco desvinculado                                              |
+| `POST`   | `/api/clientes/:id/repositorios`                               | `201` — repositório criado                                              |
+| `PUT`    | `/api/clientes/:id/repositorios/:idRepositorio`                | `200` — repositório atualizado                                          |
+| `DELETE` | `/api/clientes/:id/repositorios/:idRepositorio`                | `204` — sem conteúdo                                                    |
+| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-pasta`    | `204` — pasta aberta no gerenciador de arquivos                         |
+| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-shell`    | `204` — terminal aberto na pasta                                        |
+| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-intellij` | `204` — pasta aberta como projeto no IntelliJ                           |
+| `GET`    | `/api/clientes/:id/repositorios/:idRepositorio/mcp`            | `200` — conteúdo do `.sankhya-mcp.env`                                  |
+| `PUT`    | `/api/clientes/:id/repositorios/:idRepositorio/mcp`            | `204` — arquivo criado ou sobrescrito                                   |
+| `POST`   | `/api/clientes/:id/links`                                      | `201` — link criado                                                     |
+| `PUT`    | `/api/clientes/:id/links/:idLink`                              | `200` — link atualizado                                                 |
+| `DELETE` | `/api/clientes/:id/links/:idLink`                              | `204` — sem conteúdo                                                    |
+| `GET`    | `/api/situacao-git?forcar=true`                                | `200` — situação Git dos repositórios com pasta local, indexada pelo id |
+| `GET`    | `/api/configuracao`                                            | `200` — configuração global                                             |
+| `PUT`    | `/api/configuracao`                                            | `200` — configuração salva                                              |
+| `POST`   | `/api/atalhos/selecionar-executavel`                           | `200` — caminho escolhido; `204` quando cancelado                       |
+| `POST`   | `/api/atalhos/:id/abrir`                                       | `204` — programa do atalho iniciado                                     |
+| `GET`    | `/api/sistema/versao`                                          | `200` — `{ "versao": "1.0.0" }`, a mesma exibida no rodapé              |
 
 ## Corpos
 

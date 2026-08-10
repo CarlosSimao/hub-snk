@@ -212,7 +212,10 @@ body {
   border-radius: 9px;
   padding: 7px 12px;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.08s ease;
   white-space: nowrap;
 }
 
@@ -516,7 +519,9 @@ main {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .item-cliente:hover {

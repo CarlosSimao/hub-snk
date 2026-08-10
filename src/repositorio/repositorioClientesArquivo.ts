@@ -626,10 +626,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
       ].join('|');
 
       if (vistos.has(chave)) {
-        throw new RepositorioDuplicadoNaImportacaoError(
-          item.nomeDoCliente.trim(),
-          item.url.trim(),
-        );
+        throw new RepositorioDuplicadoNaImportacaoError(item.nomeDoCliente.trim(), item.url.trim());
       }
 
       vistos.add(chave);

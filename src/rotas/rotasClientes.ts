@@ -106,7 +106,10 @@ const esquemaDeDadosDeBase = z.object({
   // A senha não é aparada: espaço nas pontas pode ser parte dela.
   senha: z
     .string()
-    .max(TAMANHO_MAXIMO_DA_SENHA, `A senha deve ter no máximo ${TAMANHO_MAXIMO_DA_SENHA} caracteres.`)
+    .max(
+      TAMANHO_MAXIMO_DA_SENHA,
+      `A senha deve ter no máximo ${TAMANHO_MAXIMO_DA_SENHA} caracteres.`,
+    )
     .default(''),
 });
 
@@ -229,9 +232,11 @@ const esquemaDeDadosDeBancoDeDados = z.object({
   senha: z
     .string({ required_error: 'Informe a senha do banco.' })
     .min(1, 'Informe a senha do banco.')
-    .max(TAMANHO_MAXIMO_DA_SENHA, `A senha deve ter no máximo ${TAMANHO_MAXIMO_DA_SENHA} caracteres.`),
+    .max(
+      TAMANHO_MAXIMO_DA_SENHA,
+      `A senha deve ter no máximo ${TAMANHO_MAXIMO_DA_SENHA} caracteres.`,
+    ),
 });
-
 
 const esquemaDeParametrosDeCliente = z.object({
   id: z.string().uuid('Identificador de cliente inválido.'),
@@ -493,7 +498,11 @@ export function registrarRotasDeClientes(
     }
 
     try {
-      return await repositorio.atualizarBase(parametros.data.id, parametros.data.idBase, dados.data);
+      return await repositorio.atualizarBase(
+        parametros.data.id,
+        parametros.data.idBase,
+        dados.data,
+      );
     } catch (erro) {
       return responderErroDeDominio(resposta, erro);
     }
@@ -595,10 +604,7 @@ export function registrarRotasDeClientes(
     }
 
     try {
-      const repositorioGit = await repositorio.adicionarRepositorio(
-        parametros.data.id,
-        dados.data,
-      );
+      const repositorioGit = await repositorio.adicionarRepositorio(parametros.data.id, dados.data);
       return resposta.status(201).send(repositorioGit);
     } catch (erro) {
       return responderErroDeDominio(resposta, erro);
@@ -779,68 +785,74 @@ export function registrarRotasDeClientes(
    * repositório, não no cadastro — por isso não passa pelo repositório de
    * clientes.
    */
-  servidor.get('/api/clientes/:id/repositorios/:idRepositorio/mcp', async (requisicao, resposta) => {
-    const parametros = esquemaDeParametrosDeRepositorio.safeParse(requisicao.params);
-    if (!parametros.success) {
-      return responderErroDeValidacao(resposta, parametros.error);
-    }
-
-    const repositorioGit = await localizarRepositorioComPasta(
-      parametros.data.id,
-      parametros.data.idRepositorio,
-      resposta,
-    );
-    if (!repositorioGit) {
-      return resposta;
-    }
-
-    const caminhoLocal = repositorioGit.caminhoLocal as string;
-
-    try {
-      return await lerConfiguracaoMcp(caminhoLocal);
-    } catch (erro) {
-      if (erro instanceof PastaNaoEncontradaError) {
-        return resposta.status(404).send({ mensagem: `Pasta não encontrada: ${caminhoLocal}` });
+  servidor.get(
+    '/api/clientes/:id/repositorios/:idRepositorio/mcp',
+    async (requisicao, resposta) => {
+      const parametros = esquemaDeParametrosDeRepositorio.safeParse(requisicao.params);
+      if (!parametros.success) {
+        return responderErroDeValidacao(resposta, parametros.error);
       }
-      throw erro;
-    }
-  });
 
-  servidor.put('/api/clientes/:id/repositorios/:idRepositorio/mcp', async (requisicao, resposta) => {
-    const parametros = esquemaDeParametrosDeRepositorio.safeParse(requisicao.params);
-    if (!parametros.success) {
-      return responderErroDeValidacao(resposta, parametros.error);
-    }
-
-    const dados = esquemaDeConfiguracaoMcp.safeParse(requisicao.body);
-    if (!dados.success) {
-      return responderErroDeValidacao(resposta, dados.error);
-    }
-
-    const repositorioGit = await localizarRepositorioComPasta(
-      parametros.data.id,
-      parametros.data.idRepositorio,
-      resposta,
-    );
-    if (!repositorioGit) {
-      return resposta;
-    }
-
-    const caminhoLocal = repositorioGit.caminhoLocal as string;
-
-    try {
-      await gravarConfiguracaoMcp(caminhoLocal, {
-        ...dados.data,
-        SANKHYA_DB_PORT: String(dados.data.SANKHYA_DB_PORT),
-      });
-      return resposta.status(204).send();
-    } catch (erro) {
-      if (erro instanceof PastaNaoEncontradaError) {
-        return resposta.status(404).send({ mensagem: `Pasta não encontrada: ${caminhoLocal}` });
+      const repositorioGit = await localizarRepositorioComPasta(
+        parametros.data.id,
+        parametros.data.idRepositorio,
+        resposta,
+      );
+      if (!repositorioGit) {
+        return resposta;
       }
-      throw erro;
-    }
-  });
+
+      const caminhoLocal = repositorioGit.caminhoLocal as string;
+
+      try {
+        return await lerConfiguracaoMcp(caminhoLocal);
+      } catch (erro) {
+        if (erro instanceof PastaNaoEncontradaError) {
+          return resposta.status(404).send({ mensagem: `Pasta não encontrada: ${caminhoLocal}` });
+        }
+        throw erro;
+      }
+    },
+  );
+
+  servidor.put(
+    '/api/clientes/:id/repositorios/:idRepositorio/mcp',
+    async (requisicao, resposta) => {
+      const parametros = esquemaDeParametrosDeRepositorio.safeParse(requisicao.params);
+      if (!parametros.success) {
+        return responderErroDeValidacao(resposta, parametros.error);
+      }
+
+      const dados = esquemaDeConfiguracaoMcp.safeParse(requisicao.body);
+      if (!dados.success) {
+        return responderErroDeValidacao(resposta, dados.error);
+      }
+
+      const repositorioGit = await localizarRepositorioComPasta(
+        parametros.data.id,
+        parametros.data.idRepositorio,
+        resposta,
+      );
+      if (!repositorioGit) {
+        return resposta;
+      }
+
+      const caminhoLocal = repositorioGit.caminhoLocal as string;
+
+      try {
+        await gravarConfiguracaoMcp(caminhoLocal, {
+          ...dados.data,
+          SANKHYA_DB_PORT: String(dados.data.SANKHYA_DB_PORT),
+        });
+        return resposta.status(204).send();
+      } catch (erro) {
+        if (erro instanceof PastaNaoEncontradaError) {
+          return resposta.status(404).send({ mensagem: `Pasta não encontrada: ${caminhoLocal}` });
+        }
+        throw erro;
+      }
+    },
+  );
 
   /*
    * Abre o terminal do sistema na pasta do repositório. O script executado é o

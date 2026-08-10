@@ -101,10 +101,7 @@ function montarLancamentosDoLinux(pasta: string, script: string): Lancamento[] {
   return [
     {
       comando: 'x-terminal-emulator',
-      argumentos: [
-        `--working-directory=${pasta}`,
-        ...(script ? ['-e', ...executarNoBash] : []),
-      ],
+      argumentos: [`--working-directory=${pasta}`, ...(script ? ['-e', ...executarNoBash] : [])],
     },
     {
       comando: 'gnome-terminal',
@@ -116,12 +113,13 @@ function montarLancamentosDoLinux(pasta: string, script: string): Lancamento[] {
     },
     {
       comando: 'xfce4-terminal',
-      argumentos: [
-        `--working-directory=${pasta}`,
-        ...(script ? ['-x', ...executarNoBash] : []),
-      ],
+      argumentos: [`--working-directory=${pasta}`, ...(script ? ['-x', ...executarNoBash] : [])],
     },
-    { comando: 'xterm', argumentos: script ? ['-e', ...executarNoBash] : [], pastaDeTrabalho: pasta },
+    {
+      comando: 'xterm',
+      argumentos: script ? ['-e', ...executarNoBash] : [],
+      pastaDeTrabalho: pasta,
+    },
   ];
 }
 

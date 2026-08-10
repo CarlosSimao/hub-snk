@@ -33,7 +33,9 @@ export function registrarAmostraDaBaseDoCliente(
   historicoPorBase.set(idDaBase, amostras);
 }
 
-export function obterHistoricoDaBaseDoCliente(idDaBase: string): AmostraDeSituacaoDaBaseDoCliente[] {
+export function obterHistoricoDaBaseDoCliente(
+  idDaBase: string,
+): AmostraDeSituacaoDaBaseDoCliente[] {
   return historicoPorBase.get(idDaBase) ?? [];
 }
 

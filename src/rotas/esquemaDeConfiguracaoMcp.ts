@@ -14,7 +14,11 @@ const PORTA_MINIMA = 1;
 const PORTA_MAXIMA = 65535;
 
 export const esquemaDeConfiguracaoMcp = z.object({
-  SANKHYA_DB_HOST: z.string().trim().min(1, 'Informe o SANKHYA_DB_HOST.').max(TAMANHO_MAXIMO_DO_HOST),
+  SANKHYA_DB_HOST: z
+    .string()
+    .trim()
+    .min(1, 'Informe o SANKHYA_DB_HOST.')
+    .max(TAMANHO_MAXIMO_DO_HOST),
   SANKHYA_DB_PORT: z.coerce
     .number({ invalid_type_error: 'O SANKHYA_DB_PORT deve ser um número.' })
     .int('O SANKHYA_DB_PORT deve ser um número inteiro.')
