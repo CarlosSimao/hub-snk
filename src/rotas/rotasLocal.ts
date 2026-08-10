@@ -69,12 +69,12 @@ const HIFENS_NAS_PONTAS = /^-|-$/g;
 
 const esquemaDeDadosDeBaseLocal = z.object({
   nome: z
-    .string({ required_error: 'Informe o nome da base.' })
+    .string({ error: 'Informe o nome da base.' })
     .trim()
     .min(1, 'Informe o nome da base.')
     .max(TAMANHO_MAXIMO_DO_NOME, `O nome deve ter no máximo ${TAMANHO_MAXIMO_DO_NOME} caracteres.`),
   caminhoWildfly: z
-    .string({ required_error: 'Informe o caminho do WildFly.' })
+    .string({ error: 'Informe o caminho do WildFly.' })
     .trim()
     .min(1, 'Informe o caminho do WildFly.')
     .max(
@@ -82,7 +82,7 @@ const esquemaDeDadosDeBaseLocal = z.object({
       `O caminho deve ter no máximo ${TAMANHO_MAXIMO_DO_CAMINHO} caracteres.`,
     ),
   porta: z.coerce
-    .number({ invalid_type_error: 'A porta deve ser um número.' })
+    .number({ error: 'A porta deve ser um número.' })
     .int('A porta deve ser um número inteiro.')
     .min(PORTA_MINIMA, `A porta deve estar entre ${PORTA_MINIMA} e ${PORTA_MAXIMA}.`)
     .max(PORTA_MAXIMA, `A porta deve estar entre ${PORTA_MINIMA} e ${PORTA_MAXIMA}.`),
@@ -90,7 +90,7 @@ const esquemaDeDadosDeBaseLocal = z.object({
 
 const esquemaDeDadosDeBancoLocal = z.object({
   container: z
-    .string({ required_error: 'Informe o container.' })
+    .string({ error: 'Informe o container.' })
     .trim()
     .min(1, 'Informe o container.')
     .max(
@@ -98,17 +98,17 @@ const esquemaDeDadosDeBancoLocal = z.object({
       `O container deve ter no máximo ${TAMANHO_MAXIMO_DO_CONTAINER} caracteres.`,
     ),
   host: z
-    .string({ required_error: 'Informe o host do banco.' })
+    .string({ error: 'Informe o host do banco.' })
     .trim()
     .min(1, 'Informe o host do banco.')
     .max(TAMANHO_MAXIMO_DO_HOST, `O host deve ter no máximo ${TAMANHO_MAXIMO_DO_HOST} caracteres.`),
   porta: z.coerce
-    .number({ invalid_type_error: 'A porta deve ser um número.' })
+    .number({ error: 'A porta deve ser um número.' })
     .int('A porta deve ser um número inteiro.')
     .min(PORTA_MINIMA, `A porta deve estar entre ${PORTA_MINIMA} e ${PORTA_MAXIMA}.`)
     .max(PORTA_MAXIMA, `A porta deve estar entre ${PORTA_MINIMA} e ${PORTA_MAXIMA}.`),
   nomeDoServico: z
-    .string({ required_error: 'Informe o service name.' })
+    .string({ error: 'Informe o service name.' })
     .trim()
     .min(1, 'Informe o service name.')
     .max(
@@ -116,7 +116,7 @@ const esquemaDeDadosDeBancoLocal = z.object({
       `O service name deve ter no máximo ${TAMANHO_MAXIMO_DO_SERVICO} caracteres.`,
     ),
   usuario: z
-    .string({ required_error: 'Informe o usuário do banco.' })
+    .string({ error: 'Informe o usuário do banco.' })
     .trim()
     .min(1, 'Informe o usuário do banco.')
     .max(
@@ -124,7 +124,7 @@ const esquemaDeDadosDeBancoLocal = z.object({
       `O usuário deve ter no máximo ${TAMANHO_MAXIMO_DO_USUARIO} caracteres.`,
     ),
   senha: z
-    .string({ required_error: 'Informe a senha do banco.' })
+    .string({ error: 'Informe a senha do banco.' })
     .min(1, 'Informe a senha do banco.')
     .max(
       TAMANHO_MAXIMO_DA_SENHA,
@@ -143,14 +143,14 @@ const esquemaDeParametros = z.object({
  */
 const esquemaDeConsultaDoStream = z.object({
   desde: z.coerce
-    .number({ invalid_type_error: 'A posição deve ser um número.' })
+    .number({ error: 'A posição deve ser um número.' })
     .int('A posição deve ser um número inteiro.')
     .min(0, 'A posição não pode ser negativa.')
     .optional(),
 });
 
 function responderErroDeValidacao(resposta: FastifyReply, erro: z.ZodError): FastifyReply {
-  const primeiraMensagem = erro.errors[0]?.message ?? 'Dados inválidos.';
+  const primeiraMensagem = erro.issues[0]?.message ?? 'Dados inválidos.';
   return resposta.status(400).send({ mensagem: primeiraMensagem });
 }
 

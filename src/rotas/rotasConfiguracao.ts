@@ -26,7 +26,7 @@ const TEMPO_LIMITE_MAXIMO_S = 60;
 const esquemaDeAtalho = z.object({
   id: z.string().optional(),
   nome: z
-    .string({ required_error: 'Informe o nome do atalho.' })
+    .string({ error: 'Informe o nome do atalho.' })
     .trim()
     .min(1, 'Informe o nome do atalho.')
     .max(
@@ -34,7 +34,7 @@ const esquemaDeAtalho = z.object({
       `O nome do atalho deve ter no máximo ${TAMANHO_MAXIMO_DO_NOME_DO_ATALHO} caracteres.`,
     ),
   caminhoDoExecutavel: z
-    .string({ required_error: 'Informe o caminho do executável.' })
+    .string({ error: 'Informe o caminho do executável.' })
     .trim()
     .min(1, 'Informe o caminho do executável.')
     .max(
@@ -45,13 +45,13 @@ const esquemaDeAtalho = z.object({
 
 const esquemaDeConfiguracao = z.object({
   scriptPadrao: z
-    .string({ required_error: 'Informe o script padrão.' })
+    .string({ error: 'Informe o script padrão.' })
     .max(
       TAMANHO_MAXIMO_DO_SCRIPT,
       `O script deve ter no máximo ${TAMANHO_MAXIMO_DO_SCRIPT} caracteres.`,
     ),
   intervaloDeExecucaoAutomaticaSegundos: z.coerce
-    .number({ invalid_type_error: 'O intervalo deve ser um número.' })
+    .number({ error: 'O intervalo deve ser um número.' })
     .int('O intervalo deve ser um número inteiro de segundos.')
     .min(
       INTERVALO_MINIMO_DE_EXECUCAO_AUTOMATICA_S,
@@ -62,7 +62,7 @@ const esquemaDeConfiguracao = z.object({
       `O intervalo deve ser de no máximo ${INTERVALO_MAXIMO_DE_EXECUCAO_AUTOMATICA_S} segundos.`,
     ),
   tempoLimiteSegundos: z.coerce
-    .number({ invalid_type_error: 'O tempo limite deve ser um número.' })
+    .number({ error: 'O tempo limite deve ser um número.' })
     .int('O tempo limite deve ser um número inteiro de segundos.')
     .min(
       TEMPO_LIMITE_MINIMO_S,
@@ -98,7 +98,7 @@ const esquemaDoCorpoDaConfiguracao = esquemaDeConfiguracao.extend({
 });
 
 function responderErroDeValidacao(resposta: FastifyReply, erro: z.ZodError): FastifyReply {
-  const primeiraMensagem = erro.errors[0]?.message ?? 'Dados inválidos.';
+  const primeiraMensagem = erro.issues[0]?.message ?? 'Dados inválidos.';
   return resposta.status(400).send({ mensagem: primeiraMensagem });
 }
 
