@@ -18,6 +18,9 @@ $NAVEGADOR_CHROME = 'chrome'
 $NAVEGADOR_PADRAO = 'padrao'
 $PORTA_MINIMA = 1
 $PORTA_MAXIMA = 65535
+$VERSAO_MINIMA_DO_NODE = '22.18'
+$NODE_MAIOR_MINIMO = 22
+$NODE_MENOR_MINIMO = 18
 
 $HOSTS_DE_LOOPBACK = @('127.0.0.1', '::1', 'localhost')
 
@@ -178,10 +181,44 @@ function PerguntarNavegador([string]$padrao) {
 }
 
 # --------------------------------------------------------------------------
+# Pré-requisito
+#
+# O Node não vem mais no pacote. Sem esta conferência, a falta dele só
+# apareceria depois de tudo copiado, no primeiro clique do atalho, como uma
+# janela que não abre.
+
+function ConferirNode {
+    $versao = $null
+    try {
+        $versao = (& node -v 2>$null)
+    } catch {
+        $versao = $null
+    }
+
+    if (-not $versao) {
+        Write-Host 'O Node.js não está instalado, ou não está no PATH.' -ForegroundColor Red
+        Write-Host "O HUB SNK precisa da versão $VERSAO_MINIMA_DO_NODE ou mais nova: https://nodejs.org" -ForegroundColor Red
+        exit 1
+    }
+
+    $numeros = $versao.TrimStart('v').Split('.')
+    $maior = [int]$numeros[0]
+    $menor = [int]$numeros[1]
+
+    if ($maior -lt $NODE_MAIOR_MINIMO -or ($maior -eq $NODE_MAIOR_MINIMO -and $menor -lt $NODE_MENOR_MINIMO)) {
+        Write-Host "Node $($versao.TrimStart('v')) é antigo demais: o HUB SNK precisa da $VERSAO_MINIMA_DO_NODE ou mais nova." -ForegroundColor Red
+        Write-Host 'A partir dela o Node roda arquivos .ts direto, sem etapa de build.' -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host "Node $($versao.TrimStart('v')) encontrado." -ForegroundColor Green
+}
+
+# --------------------------------------------------------------------------
 # Instalação
 
-# O node.exe da instalação anterior segura os próprios arquivos: copiar por
-# cima dele falha com "arquivo em uso".
+# O servidor no ar segura os arquivos que está usando: copiar por cima de uma
+# instalação em execução falha com "arquivo em uso".
 function EncerrarServidorInstalado([string]$destino) {
     $encerrar = Join-Path $destino 'encerrar-hub-snk.vbs'
     if (-not (Test-Path -LiteralPath $encerrar)) { return }
@@ -260,11 +297,13 @@ function CriarAtalhos([string]$destino, [bool]$naAreaDeTrabalho, [bool]$noLogon)
 
 # --------------------------------------------------------------------------
 
-if (-not (Test-Path -LiteralPath (Join-Path $pastaDoPacote 'node.exe'))) {
+if (-not (Test-Path -LiteralPath (Join-Path $pastaDoPacote 'src\index.ts'))) {
     Write-Host 'Este script precisa rodar de dentro do pacote descompactado do HUB SNK.' -ForegroundColor Red
-    Write-Host "Não encontrei o node.exe em $pastaDoPacote." -ForegroundColor Red
+    Write-Host "Não encontrei o src\index.ts em $pastaDoPacote." -ForegroundColor Red
     exit 1
 }
+
+ConferirNode
 
 Write-Host ''
 Write-Host '  HUB SNK — instalação' -ForegroundColor Cyan

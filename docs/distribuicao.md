@@ -10,9 +10,21 @@ estas. Para apenas instalar o HUB SNK, veja o [README](../README.md).
 | `hub-snk-<versão>-macos-x64.tar.gz`   | macOS com processador Intel |
 | `hub-snk-<versão>-macos-arm64.tar.gz` | macOS com Apple Silicon     |
 
-Todos levam o próprio Node, as dependências instaladas e os scripts de
-instalação e remoção: a máquina de destino não precisa de Node, de npm nem de
-rede.
+Todos levam o programa, as dependências instaladas e os scripts de instalação e
+remoção. O **Node 22.18 ou mais novo é pré-requisito** da máquina de destino —
+não vai dentro dos pacotes.
+
+## Por que o Node não vai junto
+
+Embutir o binário custava ~80 MB por pacote, quase todo o tamanho do download, e
+congelava a versão do Node na escolhida no dia do empacotamento: subir de versão
+virava tarefa do projeto, não de quem usa. O HUB SNK é ferramenta de trabalho de
+quem desenvolve — a máquina de destino já costuma ter Node instalado.
+
+O preço é uma dependência a mais para quem baixa. Os dois launchers e os dois
+instaladores conferem a versão antes de qualquer coisa e mandam para
+`nodejs.org` quando ela falta: o erro cru (`node: not found`, ou uma pilha de
+erro de sintaxe em `.ts` num Node velho) não diria o que fazer.
 
 ## O bloqueio do Windows, e o que passa por ele
 
@@ -22,11 +34,11 @@ Explorer põe em cada arquivo saído de um zip baixado. Isso derrubou duas
 tentativas em sequência: o `hub-snk-<versão>-windows-x64.exe` do Inno Setup e,
 depois dele, o `instalar-hub-snk.bat`.
 
-O que passa é o `node.exe` do próprio pacote, assinado pela OpenJS Foundation.
-Por isso o caminho principal no Windows não usa script nenhum:
+O `node` instalado na máquina não tem esse problema: é assinado e não veio do
+zip. Por isso o caminho principal no Windows não usa script nenhum:
 
 ```powershell
-.\node.exe src\index.ts
+node src\index.ts
 ```
 
 O servidor sobe e abre a janela sozinho — veja
@@ -65,8 +77,8 @@ publicar.
 
 O zip do Windows é montado no runner Windows, porque quem grava zip ali é o
 bsdtar do próprio sistema; os pacotes Unix, no runner Linux, porque o `tar`
-precisa preservar o bit de execução do binário do Node. Empacotar no Windows
-entrega um pacote Unix que não roda do outro lado.
+precisa preservar o bit de execução dos scripts. Empacotar no Windows entrega um
+pacote Unix cujo `hub-snk.sh` chega sem permissão para rodar.
 
 Para conferir localmente:
 
@@ -82,19 +94,16 @@ npm run empacotar-unix      # gera os três .tar.gz em dist/
 
 ## O que vai dentro
 
-| Item                                 | De onde vem                                                                                                                    |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `node.exe`                           | Baixado de `nodejs.org/dist`, na versão fixada no script. Fica em cache em `dist/cache` para não rebaixar a cada empacotamento |
-| `node_modules`                       | `npm ci --omit=dev` numa pasta separada, para não mexer no `node_modules` de desenvolvimento                                   |
-| `src`, `public`, `package.json`      | Do repositório, sem os arquivos `.test.ts`                                                                                     |
-| Os `.vbs`, `.bat`, `.ps1` e o `.ico` | De `instalador/`                                                                                                               |
-| `LICENSE.txt` e `README.md`          | Do repositório, o `LICENSE` renomeado para abrir com duplo clique no Windows                                                   |
+| Item                                 | De onde vem                                                                                  |
+| ------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `node_modules`                       | `npm ci --omit=dev` numa pasta separada, para não mexer no `node_modules` de desenvolvimento |
+| `src`, `public`, `package.json`      | Do repositório, sem os arquivos `.test.ts`                                                   |
+| Os `.vbs`, `.bat`, `.ps1` e o `.ico` | De `instalador/`                                                                             |
+| `LICENSE.txt` e `README.md`          | Do repositório, o `LICENSE` renomeado para abrir com duplo clique no Windows                 |
 
-São ~106 MB descompactados e ~37 MB no zip, a maior parte do `node.exe`.
-
-**Por que embutir o Node:** sem ele, cada colega precisaria instalar o Node.js,
-acertar a versão mínima e rodar `npm install` com rede. O custo é o tamanho do
-pacote; o ganho é "baixou, descompactou, usou".
+As dependências são as mesmas nas três plataformas — todas JavaScript puro, sem
+binário compilado —, então o `npm ci` roda uma vez e o resultado é reaproveitado
+por todos os pacotes.
 
 **Por que zip e não tar.gz:** no Windows o zip abre com duplo clique no próprio
 Explorer. O bit de execução, que obriga os pacotes Unix a usarem tar, não existe
@@ -108,12 +117,12 @@ de zip.
 Instalação **por usuário**, sem UAC. O programa vai para a pasta de aplicativos
 do usuário; nada é escrito em `Program Files` nem no registro da máquina.
 
-| Caminho                             | Conteúdo                                                |
-| ----------------------------------- | ------------------------------------------------------- |
-| `%LOCALAPPDATA%\Programs\HubSnk`    | O programa: `node.exe`, `src`, `public`, `node_modules` |
-| `%LOCALAPPDATA%\HubSnk\dados`       | O cadastro. **Não** é removido na desinstalação         |
-| `%LOCALAPPDATA%\HubSnk\hub-snk.env` | As respostas dadas na instalação                        |
-| `%LOCALAPPDATA%\HubSnk\hub-snk.log` | Saída do servidor                                       |
+| Caminho                             | Conteúdo                                        |
+| ----------------------------------- | ----------------------------------------------- |
+| `%LOCALAPPDATA%\Programs\HubSnk`    | O programa: `src`, `public`, `node_modules`     |
+| `%LOCALAPPDATA%\HubSnk\dados`       | O cadastro. **Não** é removido na desinstalação |
+| `%LOCALAPPDATA%\HubSnk\hub-snk.env` | As respostas dadas na instalação                |
+| `%LOCALAPPDATA%\HubSnk\hub-snk.log` | Saída do servidor                               |
 
 Os atalhos ficam no menu Iniciar, na área de trabalho e na pasta Inicializar,
 conforme as respostas — cada um apontando para o `wscript.exe` com o
@@ -185,9 +194,12 @@ configuração da máquina. Eles preferem o `pwsh.exe` e caem para o
 ## Desinstalação
 
 O `desinstalar-hub-snk.bat` roda `encerrar-hub-snk.vbs` antes de apagar os
-arquivos — o `node.exe` em uso travaria a remoção. Esse script encerra **apenas**
-processos cujo executável é o `node.exe` da própria instalação: outro Node
-rodando na máquina, de um projeto seu, não é tocado.
+arquivos — arquivo em uso trava a remoção. Esse script encerra **apenas** o
+processo que está rodando o `src\index.ts` daquela pasta: agora que o Node é o
+da máquina, compartilhado com qualquer outro projeto seu, o executável não
+distingue mais um do outro — o que distingue é o que ele está rodando. A busca
+é pela linha de comando, em `Win32_Process`, e por isso o launcher passa o
+caminho do programa completo.
 
 Saem os atalhos, o programa, o log e o `hub-snk.env`. O cadastro fica, e um
 aviso lembra onde ele está para quem quiser apagá-lo à mão.
@@ -199,22 +211,18 @@ aviso lembra onde ele está para quem quiser apagá-lo à mão.
 ## Por que `.tar.gz` e não `.zip`
 
 O zip não guarda o bit de execução de forma confiável entre ferramentas. O
-binário do Node chegaria sem permissão de execução, e o pacote não rodaria sem
-um `chmod` que ninguém adivinha. O `tar.gz` preserva o modo dos arquivos, e é o
-formato que Linux e macOS esperam.
-
-Ainda assim, o `hub-snk.sh` restaura o bit de execução do Node se ele tiver se
-perdido: descompactadores gráficos às vezes o descartam, e explicar o erro
-depois custa mais que a linha de código.
+`hub-snk.sh` e os dois scripts de instalação chegariam sem permissão para rodar,
+e o pacote exigiria um `chmod` que ninguém adivinha. O `tar.gz` preserva o modo
+dos arquivos, e é o formato que Linux e macOS esperam.
 
 ## O que vai dentro
 
-Cada pacote traz `node` (o binário da plataforma, extraído do tarball oficial),
-`node_modules` de produção, `src`, `public`, `package.json`, o `README.md`, o
-`LICENSE`, o `hub-snk.sh` e os dois scripts de instalação.
+Cada pacote traz `node_modules` de produção, `src`, `public`, `package.json`, o
+`README.md`, o `LICENSE`, o `hub-snk.sh` e os dois scripts de instalação.
 
-As dependências são as mesmas nas três plataformas — todas JavaScript puro, sem
-binário compilado —, então o `npm ci` roda uma vez e o resultado é reaproveitado.
+Os três pacotes Unix têm conteúdo idêntico, agora que o binário do Node saiu.
+Continuam separados por plataforma porque é assim que quem baixa os procura na
+página de releases.
 
 ## O launcher
 
@@ -229,9 +237,10 @@ Os dados ficam em `$XDG_DATA_HOME/hub-snk/dados` — na prática
 descompactar a versão nova e rodar o `instalar-hub-snk.sh` de novo; o cadastro
 fica onde está.
 
-O `parar` encerra apenas os processos iniciados a partir do binário daquele
-pacote, encontrados por `pgrep` no caminho completo. Outro Node rodando na
-máquina não é tocado.
+O `parar` encerra apenas o processo que roda o `src/index.ts` daquela pasta,
+encontrado por `pgrep -f` no caminho completo do programa — e por isso o
+launcher chama o `node` com esse caminho, e não com um relativo. Outro Node
+rodando na máquina não é tocado.
 
 O launcher funciona de dentro do pacote, sem instalar nada — é o caminho para
 quem só quer experimentar.
@@ -255,7 +264,7 @@ cadastro fica, e o caminho dele aparece no fim.
 
 ## Tamanho
 
-Cerca de 40 MB compactados por pacote, quase tudo binário do Node. Os fontes de
-teste que algumas dependências publicam (`zod`, sobretudo) entram junto: filtrar
-pastas de teste dentro do `node_modules` economizaria poucos megabytes e
+Poucos megabytes por pacote, contra os ~40 MB de quando o Node ia junto. Os
+fontes de teste que algumas dependências publicam (`zod`, sobretudo) entram
+junto: filtrar pastas de teste dentro do `node_modules` economizaria pouco e
 arriscaria remover um arquivo de que o pacote depende em tempo de execução.
