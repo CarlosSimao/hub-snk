@@ -73,13 +73,17 @@ jobs:
       - name: Empacotar Linux e macOS
         run: npm run empacotar-unix
 
-      - name: Conferir se o binário do Node saiu executável
+      # Sem o bit de execução, o pacote chega do outro lado exigindo um chmod que
+      # ninguém adivinha. É o motivo de os pacotes Unix serem tar, e não zip.
+      - name: Conferir se os scripts saíram executáveis
         run: |
           for pacote in dist/hub-snk-*.tar.gz; do
-            permissoes=$(tar -tzvf "$pacote" | grep -E "/node$" | awk '{print $1}')
-            echo "$pacote -> $permissoes"
-            case "$permissoes" in
-              -rwx*) ;;
-              *) echo "O binário do Node saiu sem permissão de execução." >&2; exit 1 ;;
-            esac
+            for script in hub-snk.sh instalar-hub-snk.sh desinstalar-hub-snk.sh; do
+              permissoes=$(tar -tzvf "$pacote" | grep -E "/$script$" | awk '{print $1}')
+              echo "$pacote -> $script -> ${permissoes:-AUSENTE}"
+              case "$permissoes" in
+                -rwx*) ;;
+                *) echo "O $script saiu do pacote sem permissão de execução." >&2; exit 1 ;;
+              esac
+            done
           done
