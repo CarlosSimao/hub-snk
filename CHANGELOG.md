@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [1.1.1] - 2026-08-10
+
 ### Corrigido
 
 - O diagnóstico Git dizia "Sem pendências: tudo commitado e enviado" em
@@ -18,6 +20,10 @@ número significa aqui.
   nenhum além da máquina — também passou a ser acusada, com o
   `git push -u origin <branch>`. O caminho inverso, commits que já estão no
   remoto e ainda não vieram para cá, continua fora: medir isso exigiria rede.
+
+- Os esquemas de validação foram migrados para a API do Zod 4, que já vinha
+  instalado. As mensagens continuam as mesmas; a do tipo da base passou a
+  aparecer também quando o campo vem ausente, e não só com valor fora da lista.
 
 ## [1.1.0] - 2026-08-10
 
@@ -85,6 +91,7 @@ que mudou ao preparar a distribuição.
 - `HUB_HOST` fora do loopback não sobe mais sozinho: precisa de
   `HUB_PERMITIR_REDE=1`, dito de propósito.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/CarlosSimao/hub-snk/releases/tag/v1.0.0
