@@ -158,6 +158,13 @@ cadastrados; o clique em um deles inicia o programa na sua máquina. A lista fic
 no ar até um clique fora dela — ou `Esc` — fechá-la. O cadastro fica em
 **Configurações › Atalhos**, com _Nome_ e _Caminho do executável_.
 
+Com mais de cinco atalhos cadastrados, a lista ganha um campo de busca no topo,
+já com o foco quando ela abre: é só digitar. O filtro casa o nome **e** o
+caminho — dois "IntelliJ" se distinguem pela pasta, que é do que a gente
+lembra. O campo acompanha a rolagem, para não sumir numa lista longa, e o filtro
+é esquecido ao fechar a lista, que reabre inteira. Até cinco atalhos não há
+campo nenhum: a lista se lê de relance, e a busca só atrapalharia.
+
 O botão de pasta ao lado do caminho abre o seletor de arquivos do sistema e
 preenche o campo. O campo continua editável — dá para colar um caminho ou
 ajustar o que veio do seletor.
