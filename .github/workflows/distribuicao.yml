@@ -54,7 +54,7 @@ jobs:
         shell: pwsh
         run: '& "$env:COMPILADOR_INNO" instalador\hub-snk.iss'
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: instalador-windows
           path: dist/hub-snk-*-windows-x64.exe
@@ -89,7 +89,7 @@ jobs:
             esac
           done
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pacotes-unix
           path: dist/hub-snk-*.tar.gz
