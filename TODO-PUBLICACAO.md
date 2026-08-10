@@ -67,15 +67,9 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 - [x] Criar `.github/ISSUE_TEMPLATE/melhoria.yml` com problema a resolver, solução proposta e alternativas consideradas
 - [x] Incluir em todos os templates o aviso de não colar conteúdo de `clientes.json` nem logs com dados sensíveis
 - [x] Criar `.github/PULL_REQUEST_TEMPLATE.md`
-- [ ] Habilitar Discussions no repositório (Issues já vem ligado) — sem isso o link do `config.yml` cai em página inexistente:
-      `gh repo edit CarlosSimao/hub-snk --enable-discussions`
-- [ ] Criar as labels, depois do push:
-      `gh label create melhoria --color 0e8a16 --description "Comportamento novo ou mudança de um existente"`
-      `gh label create duvida --color d876e3 --description "Pergunta de uso"`
-      `gh label create nao-vai-fazer --color ffffff --description "Fora do escopo, fechada de propósito"`
-      `gh label create boa-primeira-issue --color 7057ff --description "Bom ponto de entrada para quem quer contribuir"`
-      (`bug` já existe por padrão no GitHub)
-- [ ] Conferir na tela `.../issues/new/choose` que os dois formulários aparecem — a validação de sintaxe dos `.yml` só acontece no GitHub
+- [x] Habilitar Discussions no repositório (Issues já vem ligado) — sem isso o link do `config.yml` cai em página inexistente
+- [x] Criar as labels — as padrão do GitHub foram renomeadas para português em vez de duplicadas: `melhoria`, `duvida`, `nao-vai-fazer`, `boa-primeira-issue`, `documentacao`, `duplicada`, `invalida`, `ajuda-bem-vinda` e `bug`
+- [ ] Conferir na tela `.../issues/new/choose` que os dois formulários aparecem — depende do push. A sintaxe dos `.yml` já foi validada localmente
 
 ## 6. README
 
