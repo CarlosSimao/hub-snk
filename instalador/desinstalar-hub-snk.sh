@@ -15,17 +15,38 @@ ARQUIVO_DE_CONFIGURACAO="${XDG_CONFIG_HOME:-$HOME/.config}/hub-snk/hub-snk.env"
 ATALHO="${XDG_DATA_HOME:-$HOME/.local/share}/applications/hub-snk.desktop"
 ATALHO_DO_LOGON="${XDG_CONFIG_HOME:-$HOME/.config}/autostart/hub-snk.desktop"
 
-pasta_do_cadastro() {
+valor_gravado() {
+    chave=$1
+    padrao=$2
+
     if [ -f "$ARQUIVO_DE_CONFIGURACAO" ]; then
-        valor=$(sed -n 's/^HUB_DADOS_DIR=//p' "$ARQUIVO_DE_CONFIGURACAO" | tail -n 1)
+        valor=$(sed -n "s/^${chave}=//p" "$ARQUIVO_DE_CONFIGURACAO" | tail -n 1)
         if [ -n "$valor" ]; then
             echo "$valor"
             return 0
         fi
     fi
 
-    echo "$PASTA_DE_DADOS_BASE/dados"
+    echo "$padrao"
 }
+
+# A pasta baixada e a instalada têm quase o mesmo conteúdo; o que as separa é o
+# instalador, que a instalação não copia. Sem esta conferência, rodar o script
+# de dentro do pacote recém-descompactado apagaria o pacote e deixaria a
+# instalação de pé, com o servidor rodando.
+if [ -f "$PASTA_DO_PROGRAMA/instalar-hub-snk.sh" ]; then
+    instalada=$(valor_gravado HUB_PROGRAMA_DIR "$PASTA_DE_DADOS_BASE/programa")
+
+    echo 'Esta é a pasta do pacote baixado, não a da instalação.' >&2
+    if [ -d "$instalada" ]; then
+        echo 'Rode o desinstalar-hub-snk.sh que está em:' >&2
+        printf '  %s\n' "$instalada" >&2
+    else
+        echo 'Não encontrei nenhuma instalação do HUB SNK nesta máquina.' >&2
+    fi
+
+    exit 1
+fi
 
 if [ ! -f "$PASTA_DO_PROGRAMA/hub-snk.sh" ]; then
     echo 'Este script precisa rodar de dentro da pasta em que o HUB SNK foi instalado.' >&2
@@ -45,7 +66,7 @@ case "$(echo "$resposta" | tr '[:upper:]' '[:lower:]')" in
         ;;
 esac
 
-CADASTRO=$(pasta_do_cadastro)
+CADASTRO=$(valor_gravado HUB_DADOS_DIR "$PASTA_DE_DADOS_BASE/dados")
 
 "$PASTA_DO_PROGRAMA/hub-snk.sh" parar > /dev/null 2>&1 || true
 

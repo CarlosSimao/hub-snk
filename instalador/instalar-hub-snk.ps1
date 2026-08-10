@@ -255,6 +255,10 @@ function GravarConfiguracao($valores) {
         '# Editar à mão funciona: o launcher lê este arquivo a cada abertura.',
         '# Uma variável de ambiente com o mesmo nome tem precedência sobre o valor daqui.',
         '',
+        '# Onde o programa foi instalado. Serve à desinstalação, que precisa saber',
+        '# qual pasta remover mesmo quando o script é chamado de outro lugar.',
+        "HUB_PROGRAMA_DIR=$($valores.Programa)",
+        '',
         "HUB_PORTA=$($valores.Porta)",
         "HUB_HOST=$($valores.Host)",
         "HUB_PERMITIR_REDE=$($valores.PermitirRede)",
@@ -339,6 +343,7 @@ Write-Host "Copiando o programa para $destino ..."
 CopiarPrograma $destino
 
 GravarConfiguracao @{
+    Programa         = $destino
     Porta            = $porta
     Host             = $enderecoEscolhido.Host
     PermitirRede     = $enderecoEscolhido.PermitirRede
