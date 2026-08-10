@@ -102,7 +102,7 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 - [ ] Criar os primeiros testes com `node:test`, cobrindo os repositórios de arquivo e a migração de esquema
 - [ ] Adicionar o script `test` ao `package.json`
 - [ ] Criar workflow do GitHub Actions rodando `npm ci`, `npm run typecheck` e `node --test` em push e pull request
-- [ ] Adicionar `.gitattributes` com `* text=auto eol=lf` (colegas em Linux e macOS clonam o mesmo repositório)
+- [x] Adicionar `.gitattributes` com `* text=auto eol=lf` (colegas em Linux e macOS clonam o mesmo repositório)
 - [ ] Adicionar `.editorconfig`
 - [ ] Adicionar Prettier com configuração versionada
 - [ ] Adicionar `.nvmrc` com a versão do Node

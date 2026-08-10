@@ -1,0 +1,14 @@
+# Finais de linha normalizados no repositório, para o projeto ser clonado em
+# Windows, Linux e macOS sem diferença de linha inteira em cada diff.
+* text=auto eol=lf
+
+# O launcher dos pacotes Unix precisa de LF: com CRLF, o shebang vira
+# "#!/bin/sh\r" e o Linux recusa executar o script.
+*.sh text eol=lf
+
+# Arquivos que só o Windows lê ficam com o final de linha dele.
+*.vbs text eol=crlf
+*.iss text eol=crlf
+
+*.png binary
+*.ico binary
