@@ -18,7 +18,7 @@ const esquemaDeVarreduraDeRepositorios = z.object({
   pastas: z
     .array(
       z
-        .string({ required_error: 'Informe a pasta a varrer.' })
+        .string({ error: 'Informe a pasta a varrer.' })
         .trim()
         .min(1, 'Informe a pasta a varrer.')
         .max(
@@ -94,7 +94,7 @@ export function registrarRotasDeSistema(servidor: FastifyInstance): void {
   servidor.post('/api/sistema/repositorios-locais', async (requisicao, resposta) => {
     const dados = esquemaDeVarreduraDeRepositorios.safeParse(requisicao.body);
     if (!dados.success) {
-      const primeiraMensagem = dados.error.errors[0]?.message ?? 'Dados inválidos.';
+      const primeiraMensagem = dados.error.issues[0]?.message ?? 'Dados inválidos.';
       return resposta.status(400).send({ mensagem: primeiraMensagem });
     }
 
