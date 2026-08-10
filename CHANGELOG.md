@@ -9,6 +9,22 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Corrigido
+
+- A desinstalação falhava com _"The process cannot access the file
+  'hub-snk.log' because it is being used by another process"_. Quem segura o log
+  é o `cmd.exe` que o launcher usa para redirecionar a saída do servidor, e o
+  encerramento só derrubava o `node.exe`. Agora os dois são encerrados, e um
+  arquivo que ainda assim ficar preso vira aviso em vez de interromper a
+  remoção pela metade.
+
+- Rodar o `desinstalar-hub-snk.bat` de dentro do pacote recém-baixado apagava a
+  pasta baixada e deixava a instalação de pé, com o servidor rodando. As duas
+  pastas têm quase o mesmo conteúdo, e a conferência não as distinguia. Agora o
+  script reconhece que está no pacote e aponta o caminho da instalação, que
+  passou a ser gravado no `hub-snk.env`. Vale para o `.sh` do Linux e do macOS
+  também.
+
 ## [3.1.0] - 2026-08-10
 
 ### Alterado

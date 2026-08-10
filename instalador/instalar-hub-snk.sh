@@ -263,6 +263,10 @@ gravar_configuracao() {
 # Editar à mão funciona: o launcher lê este arquivo a cada abertura.
 # Uma variável de ambiente com o mesmo nome tem precedência sobre o valor daqui.
 
+# Onde o programa foi instalado. Serve à desinstalação, que precisa saber qual
+# pasta remover mesmo quando o script é chamado de outro lugar.
+HUB_PROGRAMA_DIR=$6
+
 HUB_PORTA=$1
 HUB_HOST=$2
 HUB_PERMITIR_REDE=$3
@@ -331,7 +335,7 @@ encerrar_servidor_instalado "$destino"
 printf 'Copiando o programa para %s ...\n' "$destino"
 copiar_programa "$destino"
 
-gravar_configuracao "$porta" "$endereco" "$permitir_rede" "$dados" "$navegador"
+gravar_configuracao "$porta" "$endereco" "$permitir_rede" "$dados" "$navegador" "$destino"
 mkdir -p "$dados"
 
 if [ "$criar_atalho" = sim ]; then
