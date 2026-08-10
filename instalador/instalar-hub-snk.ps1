@@ -39,9 +39,11 @@ function Perguntar([string]$rotulo, [string]$padrao) {
     return $resposta.Trim()
 }
 
+# O padrão vai escrito por extenso, e não pela caixa da letra: quem lê [S/n]
+# rápido não percebe que a maiúscula é a resposta de quem aperta Enter.
 function PerguntarSimOuNao([string]$rotulo, [bool]$padraoSim) {
-    $opcoes = if ($padraoSim) { 'S/n' } else { 's/N' }
-    $resposta = (Read-Host "$rotulo [$opcoes]").Trim().ToLowerInvariant()
+    $padrao = if ($padraoSim) { 'S' } else { 'N' }
+    $resposta = (Read-Host "$rotulo [S/N] (padrão: $padrao)").Trim().ToLowerInvariant()
 
     if ($resposta -eq '') { return $padraoSim }
     return $resposta.StartsWith('s')
@@ -158,6 +160,10 @@ function PrimeiroCaminhoExistente($candidatos) {
 
 # Só entram na lista os navegadores instalados: oferecer o que não existe leva
 # a uma janela que não abre.
+#
+# O padrão da primeira instalação é `padrao`, o navegador do sistema: é a
+# escolha que respeita o que a pessoa já usa. Quem prefere a janela sem abas do
+# Edge ou do Chrome escolhe na hora, e a escolha volta como padrão na próxima.
 function PerguntarNavegador([string]$padrao) {
     $disponiveis = @()
     if ((CaminhoDoEdge) -ne '') { $disponiveis += $NAVEGADOR_EDGE }
@@ -165,7 +171,7 @@ function PerguntarNavegador([string]$padrao) {
     $disponiveis += $NAVEGADOR_PADRAO
 
     if ($disponiveis.Count -eq 1) { return $NAVEGADOR_PADRAO }
-    if ($disponiveis -notcontains $padrao) { $padrao = $disponiveis[0] }
+    if ($disponiveis -notcontains $padrao) { $padrao = $NAVEGADOR_PADRAO }
 
     Write-Host ''
     Write-Host '  A janela do HUB SNK abre sem barra de endereço e sem abas no Edge ou no'

@@ -48,13 +48,16 @@ perguntar() {
 }
 
 # Devolve 0 para sim, 1 para não — o mesmo que um `if` espera.
+#
+# O padrão vai escrito por extenso, e não pela caixa da letra: quem lê [S/n]
+# rápido não percebe que a maiúscula é a resposta de quem aperta Enter.
 perguntar_sim_ou_nao() {
     rotulo=$1
     padrao=$2
 
-    if [ "$padrao" = sim ]; then opcoes='S/n'; else opcoes='s/N'; fi
+    if [ "$padrao" = sim ]; then letra=S; else letra=N; fi
 
-    printf '%s [%s]: ' "$rotulo" "$opcoes" >&2
+    printf '%s [S/N] (padrão: %s): ' "$rotulo" "$letra" >&2
     read -r resposta || resposta=''
 
     case "$(echo "$resposta" | tr '[:upper:]' '[:lower:]')" in
@@ -152,8 +155,12 @@ navegadores_disponiveis() {
     return 0
 }
 
-# `auto` deixa o launcher procurar; `padrao` abre em aba comum pelo xdg-open;
-# um nome de comando fixa o navegador da janela.
+# `auto` deixa o launcher procurar; `padrao` abre em aba comum pelo navegador do
+# sistema; um nome de comando fixa o navegador da janela.
+#
+# O padrão da primeira instalação é `padrao`: é a escolha que respeita o que a
+# pessoa já usa. Quem prefere a janela sem abas escolhe na hora, e a escolha
+# volta como padrão na próxima.
 perguntar_navegador() {
     padrao=$1
     encontrados=$(navegadores_disponiveis)
@@ -161,7 +168,7 @@ perguntar_navegador() {
 
     # O navegador gravado pode ter saído da máquina desde a última instalação.
     if ! echo "$opcoes" | tr ' ' '\n' | grep -qx "$padrao"; then
-        padrao=$NAVEGADOR_AUTOMATICO
+        padrao=$NAVEGADOR_PADRAO
     fi
 
     {
@@ -300,7 +307,7 @@ host_e_rede=$(perguntar_host "$(valor_gravado HUB_HOST "$HOST_PADRAO")")
 endereco=${host_e_rede% *}
 permitir_rede=${host_e_rede#* }
 dados=$(perguntar 'Pasta do cadastro (HUB_DADOS_DIR)' "$(valor_gravado HUB_DADOS_DIR "$DADOS_PADRAO")")
-navegador=$(perguntar_navegador "$(valor_gravado HUB_NAVEGADOR "$NAVEGADOR_AUTOMATICO")")
+navegador=$(perguntar_navegador "$(valor_gravado HUB_NAVEGADOR "$NAVEGADOR_PADRAO")")
 
 printf '\n'
 if perguntar_sim_ou_nao 'Criar atalho no menu de aplicativos?' sim; then

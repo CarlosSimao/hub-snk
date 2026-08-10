@@ -45,8 +45,11 @@ O servidor sobe e abre a janela sozinho — veja
 [A janela aberta pelo servidor](#a-janela-aberta-pelo-servidor).
 
 Os scripts de instalação continuam no pacote, para quem quer atalho e início no
-logon. Eles voltam a funcionar assim que a marca sai: botão direito no `.zip` →
-_Propriedades_ → _Desbloquear_, **antes** de descompactar.
+logon. Eles voltam a funcionar assim que a marca sai — confirmado numa máquina
+com o bloqueio ligado: botão direito no `.zip` → _Propriedades_ →
+_Desbloquear_, **antes** de descompactar. A marca é por arquivo, e o Explorer a
+propaga do zip para cada arquivo extraído: desbloquear depois exigiria repetir
+em todos.
 
 Assinar resolveria tudo de uma vez, e exige certificado de code signing pago com
 renovação anual.

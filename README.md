@@ -63,10 +63,17 @@ O pacote também traz uma instalação de verdade, para quem quer ícone no menu
 Iniciar e o servidor subindo junto com o Windows.
 
 Os scripts são barrados pelo Controle Inteligente de Aplicativos enquanto
-carregarem a marca de arquivo baixado da internet. Para tirá-la, **antes de
-descompactar**: botão direito no `.zip` → _Propriedades_ → marque
-**Desbloquear** → _OK_. Só então descompacte e dê duplo clique em
-**`instalar-hub-snk.bat`**.
+carregarem a marca de arquivo baixado da internet — o `instalar-hub-snk.bat`
+aberto direto do zip mostra _"O Controle de Aplicativo Inteligente bloqueou um
+arquivo que pode não ser seguro"_. Para tirar a marca, **antes de descompactar**:
+
+1. Botão direito no `.zip` baixado → _Propriedades_.
+2. Marque **Desbloquear**, na parte de baixo da aba _Geral_.
+3. _OK_, e só então descompacte.
+
+Feito isso, o duplo clique em **`instalar-hub-snk.bat`** roda normalmente. A
+marca vale por arquivo: desbloquear depois de descompactar exigiria repetir em
+cada um deles, e é por isso que a ordem importa.
 
 Cada pergunta vem com um valor pronto entre colchetes, e Enter aceita:
 
@@ -76,18 +83,18 @@ Cada pergunta vem com um valor pronto entre colchetes, e Enter aceita:
 | `HUB_PORTA`                 | `4100`                           | Porta em que o servidor escuta                                                                  |
 | `HUB_HOST`                  | `127.0.0.1`                      | Endereço em que o servidor escuta                                                               |
 | `HUB_DADOS_DIR`             | `%LOCALAPPDATA%\HubSnk\dados`    | Onde o cadastro é gravado                                                                       |
-| `HUB_NAVEGADOR`             | Edge, se houver                  | Edge, Chrome ou o navegador padrão — é nele que a janela e os links dos clientes abrem          |
+| `HUB_NAVEGADOR`             | `padrao`                         | `edge`, `chrome` ou `padrao` — é nele que a janela e os links dos clientes abrem                |
 | Atalho na área de trabalho  | Sim                              | Ícone do HUB SNK ao lado do menu Iniciar                                                        |
 | Iniciar junto com o Windows | Não                              | O servidor sobe sozinho no logon, sem abrir janela. Você abre a tela quando quiser, pelo atalho |
 
 As escolhas ficam em `%LOCALAPPDATA%\HubSnk\hub-snk.env`, um arquivo de texto
 que dá para editar depois sem reinstalar.
 
-O atalho abre o HUB SNK em **janela própria**, sem barra de endereço e sem abas
-— usa o Edge ou o Chrome escolhido na instalação, sem precisar instalar a PWA
-pelo botão do navegador. Só são oferecidos os navegadores encontrados na
-máquina; se o escolhido for desinstalado depois, o HUB SNK volta a abrir no
-primeiro que encontrar.
+Escolher `edge` ou `chrome` abre o HUB SNK em **janela própria**, sem barra de
+endereço e sem abas, sem precisar instalar a PWA pelo botão do navegador. Com
+`padrao`, que é o valor inicial, a tela abre em aba comum do navegador que você
+já usa. Só são oferecidos os navegadores encontrados na máquina; se o escolhido
+for desinstalado depois, o HUB SNK volta a abrir no primeiro que encontrar.
 
 Seu cadastro fica fora da pasta do programa. Desinstalar **não apaga o
 cadastro**; atualizar também não.

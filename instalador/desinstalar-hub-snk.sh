@@ -34,7 +34,7 @@ fi
 
 printf '\n  HUB SNK — desinstalação\n'
 printf '  Programa: %s\n\n' "$PASTA_DO_PROGRAMA"
-printf 'Remover o HUB SNK desta máquina? [s/N]: '
+printf 'Remover o HUB SNK desta máquina? [S/N] (padrão: N): '
 read -r resposta || resposta=''
 
 case "$(echo "$resposta" | tr '[:upper:]' '[:lower:]')" in
