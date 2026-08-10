@@ -30,8 +30,7 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 - [x] Criar `LICENSE` (MIT) com ano e nome do autor
 - [x] Adicionar `license`, `author`, `repository`, `bugs` e `homepage` ao `package.json`
 - [x] Manter `"private": true` para impedir publicação acidental no npm
-- [ ] Definir descrição e tópicos (topics) do repositório no GitHub — depois do push:
-      `gh repo edit CarlosSimao/hub-snk --description "Hub local de cadastro de clientes, bases e repositórios Git" --add-topic pwa --add-topic fastify --add-topic nodejs --add-topic ferramenta-interna`
+- [x] Definir descrição e tópicos (topics) do repositório no GitHub — aplicados: `pwa`, `fastify`, `nodejs`, `typescript`, `ferramenta-interna`
 
 ## 3. Atribuição e contato
 
