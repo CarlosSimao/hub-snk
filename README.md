@@ -6,8 +6,7 @@
 
 Hub local de cadastro de clientes, das bases e dos repositórios Git de cada
 um. Roda na sua máquina, sem Docker, sem banco de dados e sem autenticação, e
-pode ser instalado como PWA para abrir em janela própria — como um aplicativo de
-desktop.
+abre em janela própria — como um aplicativo de desktop.
 
 Funciona em Windows, Linux e macOS.
 
@@ -109,54 +108,6 @@ de dentro da pasta instalada.
 
 ---
 
-## Rodar a partir do código
-
-| Item                   | Versão               | Para quê                                                                                        |
-| ---------------------- | -------------------- | ----------------------------------------------------------------------------------------------- |
-| **Node.js**            | 22.18 ou superior    | Executa o servidor. A partir dessa versão o Node roda arquivos `.ts` direto, sem etapa de build |
-| **Navegador Chromium** | Chrome ou Edge atual | Necessário para instalar a PWA em janela separada                                               |
-
-```bash
-npm install
-npm start
-```
-
-HUB SNK em <http://127.0.0.1:4100>.
-
-Os scripts `iniciar.sh` (Linux e macOS) e `iniciar.vbs` (Windows) sobem o
-servidor em segundo plano, sem deixar terminal aberto.
-
-### Instalar como aplicativo (janela separada)
-
-Com o HUB SNK aberto no navegador:
-
-- **Chrome / Edge**: ícone de instalação na barra de endereço, ou menu
-  ⋮ → _Instalar HUB SNK_.
-- **macOS (Safari)**: _Arquivo_ → _Adicionar ao Dock_.
-
-Depois de instalado, o HUB SNK abre em janela própria, sem barra de endereço e
-sem abas, e ganha ícone no menu Iniciar / Launchpad / lançador do sistema.
-
-O `http://localhost` conta como origem segura para o navegador, então a PWA
-funciona sem HTTPS e sem certificado.
-
-### Atualizar
-
-```bash
-git pull
-npm install
-```
-
-Feche a janela do HUB SNK e abra de novo. Seus dados ficam fora da pasta do
-projeto atualizado — nada do cadastro é tocado pelo `git pull`.
-
-Se a versão nova mudar o formato dos arquivos de dados, a conversão acontece
-sozinha na primeira abertura, guardando antes uma cópia do arquivo original. A
-versão em uso aparece no rodapé da tela, ao lado de um aviso quando existe versão
-mais nova publicada.
-
----
-
 ## Configuração
 
 Todas as variáveis são opcionais.
@@ -175,15 +126,14 @@ macOS. O launcher lê o arquivo a cada abertura, e a variável de ambiente de
 mesmo nome vence o que está gravado: dá para testar outra porta ou outro
 navegador sem reinstalar.
 
-Exemplo — gravar os dados em outro disco:
+Exemplo — gravar os dados em outro disco, editando o `hub-snk.env`:
 
-```bash
-# Windows (PowerShell)
-$env:HUB_DADOS_DIR = "D:\HubSnk"; npm start
-
-# Linux / macOS
-HUB_DADOS_DIR="$HOME/.hub-snk" npm start
 ```
+HUB_DADOS_DIR=D:\HubSnk
+```
+
+Feche a janela do HUB SNK e abra de novo pelo atalho: o launcher lê o arquivo a
+cada abertura.
 
 Apontar para dentro de uma pasta de nuvem é o que dá backup — veja
 [Backup na nuvem](docs/funcionalidades.md#backup-na-nuvem).
@@ -202,13 +152,18 @@ porta lê as senhas de todos os clientes e manda a sua máquina executar
 programas. Por isso um endereço de rede só sobe com a permissão dita de
 propósito:
 
-```bash
+```
 # Recusado — o servidor nem inicia
-HUB_HOST=0.0.0.0 npm start
+HUB_HOST=0.0.0.0
+HUB_PERMITIR_REDE=0
 
 # Aceito, com o risco assumido
-HUB_PERMITIR_REDE=1 HUB_HOST=0.0.0.0 npm start
+HUB_HOST=0.0.0.0
+HUB_PERMITIR_REDE=1
 ```
+
+A instalação pergunta isso na hora: um endereço fora do loopback só é gravado
+depois de o script mostrar o que a exposição significa e você confirmar.
 
 No modo padrão, o HUB SNK ainda confere se cada requisição veio mesmo da própria
 janela dele, e recusa o resto — inclusive um site aberto no seu navegador
@@ -259,15 +214,14 @@ Cada uma em detalhe, com as regras e o que muda em cada sistema operacional, em
 
 ## Solução de problemas
 
-| Sintoma                                                  | O que fazer                                                                                                                              |
-| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `EADDRINUSE` ao iniciar                                  | A porta 4100 já está ocupada. Suba em outra: `HUB_PORTA=4200 npm start`                                                                  |
-| Erro de sintaxe em arquivo `.ts` ao iniciar              | Node abaixo de 22.18. Confira com `node -v` e atualize                                                                                   |
-| O navegador não oferece instalar o aplicativo            | Use Chrome ou Edge atualizados, pelo endereço `127.0.0.1` ou `localhost`. Firefox e Safari não instalam PWA em janela própria no desktop |
-| A tela abre, mas a atualização que eu baixei não aparece | A janela instalada está servindo o cache antigo. Recarregue com `Ctrl`+`Shift`+`R`, ou abra no navegador comum                           |
-| Os botões de Git não fazem nada                          | O `git` precisa estar no PATH. Confira com `git --version` num terminal novo                                                             |
-| Mensagem sobre esquema mais novo ao iniciar              | O cadastro foi gravado por uma versão mais nova do HUB SNK. Atualize com `git pull`                                                      |
-| `403` em tudo, ou a tela não carrega nada                | O endereço usado não é `127.0.0.1` nem `localhost`, ou a porta não bate com a do servidor                                                |
+| Sintoma                                                  | O que fazer                                                                                                    |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `EADDRINUSE` ao iniciar                                  | A porta já está ocupada. Mude o `HUB_PORTA` no `hub-snk.env` e abra de novo                                    |
+| A janela abre em aba comum, e não em janela própria      | O navegador escolhido saiu da máquina. Rode a instalação de novo e escolha outro                               |
+| A tela abre, mas a atualização que eu baixei não aparece | A janela instalada está servindo o cache antigo. Recarregue com `Ctrl`+`Shift`+`R`, ou abra no navegador comum |
+| Os botões de Git não fazem nada                          | O `git` precisa estar no PATH. Confira com `git --version` num terminal novo                                   |
+| Mensagem sobre esquema mais novo ao iniciar              | O cadastro foi gravado por uma versão mais nova do HUB SNK. Instale a versão mais recente                      |
+| `403` em tudo, ou a tela não carrega nada                | O endereço usado não é `127.0.0.1` nem `localhost`, ou a porta não bate com a do servidor                      |
 
 Se não estiver na lista, [abra uma issue](https://github.com/CarlosSimao/hub-snk/issues/new/choose)
 — citando a versão que aparece no rodapé da tela, e sem colar senha, host,

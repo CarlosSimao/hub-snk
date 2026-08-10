@@ -51,6 +51,12 @@ número significa aqui.
   `127.0.0.1` fixo: com `HUB_HOST` apontado para outro endereço, o atalho abria
   uma janela que não respondia.
 
+- O README passa a tratar só de instalar e usar o HUB SNK pelos pacotes. Rodar a
+  partir do clone, instalar a PWA pelo navegador e atualizar por `git pull` são
+  assunto de quem mexe no código, e ficaram em
+  [Manutenção](docs/manutencao.md). Os exemplos de configuração passam a mostrar
+  o `hub-snk.env`, que é onde as variáveis moram numa instalação.
+
 > **Ao atualizar:** desinstale a versão antiga pelo "Adicionar ou remover
 > programas" do Windows antes de rodar o `instalar-hub-snk.bat`. O cadastro não
 > é tocado por nenhum dos dois passos.
