@@ -28,7 +28,12 @@ Primeira versão distribuída ao time.
   do serviço, o log ao vivo e o `.sankhya-mcp.env` da instalação.
 
 - **Atalhos** para programas da máquina, e botões para abrir a pasta, o
-  terminal e o IntelliJ de cada repositório.
+  terminal e o IntelliJ de cada repositório. A lista ganha uma busca por nome e
+  caminho quando passa de cinco atalhos.
+
+- **Seletor de pasta do sistema** nos campos de caminho — o do repositório e o
+  do WildFly da base local —, porque o navegador não entrega o caminho absoluto
+  de uma pasta escolhida.
 
 - **Aviso de versão nova** no rodapé, comparando a versão em uso com a última
   release publicada no GitHub.

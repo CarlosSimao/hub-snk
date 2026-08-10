@@ -772,14 +772,22 @@
 
           <div class="campo">
             <label for="campo-caminho-wildfly">Caminho do WildFly</label>
-            <input
-              id="campo-caminho-wildfly"
-              type="text"
-              maxlength="400"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="Ex.: C:\wildfly\sankhya"
-            />
+            <div class="campo-com-acao">
+              <input
+                id="campo-caminho-wildfly"
+                type="text"
+                maxlength="400"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: C:\wildfly\sankhya"
+              />
+              <!-- O ícone de pasta é montado pelo app.js. -->
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                id="btn-escolher-caminho-wildfly"
+              ></button>
+            </div>
           </div>
 
           <div class="campo campo-estreito">

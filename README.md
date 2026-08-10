@@ -263,7 +263,7 @@ formato dos arquivos está em [docs/formato-dos-dados.md](docs/formato-dos-dados
 | **Cadastro de clientes**    | Bases do ERP com usuário, senha e banco vinculado, repositórios Git, links avulsos e anotações livres                            |
 | **Importação de favoritos** | Transforma favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, deduzindo Produção ou Teste do nome                     |
 | **Botões do repositório**   | Abrem a pasta, o terminal (rodando o script padrão) e o IntelliJ; e editam o `.sankhya-mcp.env` do MCP Claude                    |
-| **Atalhos**                 | Lista de programas da sua máquina, iniciados com um clique pelo botão de raio                                                    |
+| **Atalhos**                 | Lista de programas da sua máquina, iniciados com um clique pelo botão de raio, com busca a partir de seis cadastrados            |
 | **Bases locais (Local)**    | Ligam, param e reiniciam o WildFly da sua máquina, com a situação do serviço, o log ao vivo e o `.sankhya-mcp.env` da instalação |
 | **Bancos locais (Local)**   | Ligam, param e reiniciam o container Docker do banco, conferindo se ele responde login com as credenciais cadastradas            |
 | **Diagnóstico Git**         | Selo por repositório com a branch e a pendência mais grave — commit faltando, conflito, segredo rastreado —, atualizado sozinho  |
@@ -273,7 +273,8 @@ As bases e os bancos locais ficam no botão **Local**, no topo da tela, ao lado 
 _Clientes_: é o ambiente de desenvolvimento da sua própria máquina, separado do
 cadastro dos clientes. Ligar o banco sobe o Docker Desktop antes, se ele estiver
 parado, e parar o WildFly usa o desligamento limpo do próprio servidor, não um
-encerramento forçado.
+encerramento forçado. No cadastro da base, o botão de pasta ao lado do _Caminho
+do WildFly_ abre o seletor do sistema e preenche o campo.
 
 Cada uma em detalhe, com as regras e o que muda em cada sistema operacional, em
 [docs/funcionalidades.md](docs/funcionalidades.md).

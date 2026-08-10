@@ -24,6 +24,8 @@ const DURACAO_DO_AVISO_MS = 4000;
 const INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S = 30;
 const TEMPO_LIMITE_PADRAO_S = 5;
 const MILISSEGUNDOS_POR_SEGUNDO = 1000;
+/* Até esta quantidade a lista de atalhos é lida de relance, e a busca só atrapalharia. */
+const ATALHOS_ATE_DISPENSAR_A_BUSCA = 5;
 const CHAVE_DO_TEMA = 'hub-snk:tema';
 const SENHA_MASCARADA = '••••••••';
 /* Marca de campo opcional não preenchido — usuário ou senha de uma base. */
@@ -287,6 +289,7 @@ const elementos = {
   modalBaseLocalTitulo: document.getElementById('modal-base-local-titulo'),
   campoNomeBaseLocal: document.getElementById('campo-nome-base-local'),
   campoCaminhoWildfly: document.getElementById('campo-caminho-wildfly'),
+  botaoEscolherCaminhoWildfly: document.getElementById('btn-escolher-caminho-wildfly'),
   campoPortaBaseLocal: document.getElementById('campo-porta-base-local'),
   erroBaseLocal: document.getElementById('erro-base-local'),
   botaoSalvarBaseLocal: document.getElementById('btn-salvar-base-local'),
@@ -2454,6 +2457,28 @@ function abrirModalDeBaseLocal(base) {
   elementos.campoNomeBaseLocal.focus();
 }
 
+/**
+ * Preenche o caminho do WildFly com a pasta escolhida no seletor do sistema.
+ *
+ * O campo continua editável: dá para colar um caminho ou ajustar o que veio do
+ * seletor.
+ */
+async function escolherCaminhoDoWildfly() {
+  elementos.botaoEscolherCaminhoWildfly.disabled = true;
+
+  try {
+    const escolha = await api.selecionarPasta();
+    // Sem resposta o usuário cancelou: o que já estava digitado continua valendo.
+    if (escolha?.caminho) {
+      elementos.campoCaminhoWildfly.value = escolha.caminho;
+    }
+  } catch (erro) {
+    exibirErro(elementos.erroBaseLocal, erro.message);
+  } finally {
+    elementos.botaoEscolherCaminhoWildfly.disabled = false;
+  }
+}
+
 function abrirModalDeCadastroDeBaseLocal() {
   abrirModalDeBaseLocal(null);
 }
@@ -3157,8 +3182,64 @@ function criarItemDeAtalho(atalho) {
   return item;
 }
 
+/*
+ * Os dois nós são criados junto com a lista, e não existem no HTML: guardá-los
+ * aqui evita procurá-los no DOM a cada tecla digitada na busca.
+ */
+let buscaDeAtalhos = null;
+let itensDaListaDeAtalhos = null;
+
+function atalhoCasaComOFiltro(atalho, filtro) {
+  if (filtro === '') {
+    return true;
+  }
+
+  const alvo = `${atalho.nome} ${atalho.caminhoDoExecutavel}`.toLowerCase();
+  return alvo.includes(filtro);
+}
+
+/* Só os itens são redesenhados: o campo de busca não pode perder o foco. */
+function renderizarItensDaListaDeAtalhos(filtro) {
+  itensDaListaDeAtalhos.replaceChildren();
+
+  const encontrados = estado.atalhos.filter((atalho) => atalhoCasaComOFiltro(atalho, filtro));
+
+  if (encontrados.length === 0) {
+    itensDaListaDeAtalhos.append(
+      criarElemento('p', 'lista-atalhos-vazia', 'Nenhum atalho com esse nome.'),
+    );
+    return;
+  }
+
+  for (const atalho of encontrados) {
+    itensDaListaDeAtalhos.append(criarItemDeAtalho(atalho));
+  }
+}
+
+/**
+ * Campo de busca da lista, que só aparece quando ela fica grande demais para
+ * ser lida de relance.
+ *
+ * O filtro casa nome e caminho: quem cadastra dois "IntelliJ" os distingue pela
+ * pasta, e é ela que a pessoa lembra.
+ */
+function criarBuscaDeAtalhos() {
+  const busca = criarElemento('input', 'busca-atalhos');
+  busca.type = 'search';
+  busca.placeholder = 'Buscar atalho';
+  busca.setAttribute('aria-label', 'Buscar atalho');
+  busca.autocomplete = 'off';
+
+  busca.addEventListener('input', () => {
+    renderizarItensDaListaDeAtalhos(busca.value.trim().toLowerCase());
+  });
+
+  return busca;
+}
+
 function renderizarListaDeAtalhos() {
   elementos.listaDeAtalhos.replaceChildren();
+  buscaDeAtalhos = null;
 
   if (estado.atalhos.length === 0) {
     elementos.listaDeAtalhos.append(
@@ -3167,9 +3248,14 @@ function renderizarListaDeAtalhos() {
     return;
   }
 
-  for (const atalho of estado.atalhos) {
-    elementos.listaDeAtalhos.append(criarItemDeAtalho(atalho));
+  if (estado.atalhos.length > ATALHOS_ATE_DISPENSAR_A_BUSCA) {
+    buscaDeAtalhos = criarBuscaDeAtalhos();
+    elementos.listaDeAtalhos.append(buscaDeAtalhos);
   }
+
+  itensDaListaDeAtalhos = criarElemento('div', 'itens-atalhos');
+  elementos.listaDeAtalhos.append(itensDaListaDeAtalhos);
+  renderizarItensDaListaDeAtalhos('');
 }
 
 function listaDeAtalhosEstaAberta() {
@@ -3183,11 +3269,20 @@ function listaDeAtalhosEstaAberta() {
 function abrirListaDeAtalhos() {
   elementos.listaDeAtalhos.hidden = false;
   elementos.botaoAtalhos.setAttribute('aria-expanded', 'true');
+
+  // Com a busca na tela, digitar já filtra: é o motivo de ela estar ali.
+  buscaDeAtalhos?.focus();
 }
 
 function fecharListaDeAtalhos() {
   elementos.listaDeAtalhos.hidden = true;
   elementos.botaoAtalhos.setAttribute('aria-expanded', 'false');
+
+  // A lista reabre inteira: um filtro esquecido esconderia atalhos sem motivo.
+  if (buscaDeAtalhos && buscaDeAtalhos.value !== '') {
+    buscaDeAtalhos.value = '';
+    renderizarItensDaListaDeAtalhos('');
+  }
 }
 
 function alternarListaDeAtalhos() {
@@ -4901,6 +4996,10 @@ function registrarEventos() {
   elementos.botaoCancelarLink.addEventListener('click', () => elementos.modalLink.close());
 
   elementos.formularioBaseLocal.addEventListener('submit', salvarBaseLocal);
+  elementos.botaoEscolherCaminhoWildfly.append(criarIcone(ICONES.pasta));
+  elementos.botaoEscolherCaminhoWildfly.title = 'Escolher a pasta';
+  elementos.botaoEscolherCaminhoWildfly.setAttribute('aria-label', 'Escolher a pasta');
+  elementos.botaoEscolherCaminhoWildfly.addEventListener('click', escolherCaminhoDoWildfly);
   elementos.botaoCancelarBaseLocal.addEventListener('click', () =>
     elementos.modalBaseLocal.close(),
   );
