@@ -18,6 +18,9 @@ Const NAO_ESPERAR = False
 Const TENTATIVAS_ATE_DESISTIR = 40
 Const ESPERA_ENTRE_TENTATIVAS_MS = 250
 Const PARA_LEITURA = 1
+Const NAVEGADOR_EDGE = "edge"
+Const NAVEGADOR_CHROME = "chrome"
+Const NAVEGADOR_PADRAO = "padrao"
 
 Dim fso, shell, pastaDoAplicativo, porta, endereco, somenteServidor
 
@@ -175,7 +178,7 @@ End Function
 Sub AbrirJanelaDoAplicativo(endereco)
     Dim navegador
 
-    navegador = NavegadorChromium()
+    navegador = NavegadorDaJanela()
     If navegador = "" Then
         shell.Run endereco, 1, NAO_ESPERAR
     Else
@@ -183,21 +186,87 @@ Sub AbrirJanelaDoAplicativo(endereco)
     End If
 End Sub
 
-Function NavegadorChromium()
-    Dim candidatos, caminho, indice
+' Manda o navegador escolhido no instalador — é nele que os links dos clientes
+' vão abrir. Se esse navegador saiu da máquina depois da instalação, cai na
+' detecção automática em vez de deixar de abrir.
+Function NavegadorDaJanela()
+    Dim preferencia
 
-    candidatos = Array( _
+    preferencia = PreferenciaDeNavegador()
+    If preferencia = NAVEGADOR_PADRAO Then
+        NavegadorDaJanela = ""
+        Exit Function
+    End If
+
+    NavegadorDaJanela = ""
+    If preferencia = NAVEGADOR_EDGE Then
+        NavegadorDaJanela = PrimeiroCaminhoExistente(CaminhosDoEdge())
+    ElseIf preferencia = NAVEGADOR_CHROME Then
+        NavegadorDaJanela = PrimeiroCaminhoExistente(CaminhosDoChrome())
+    End If
+
+    If NavegadorDaJanela = "" Then
+        NavegadorDaJanela = NavegadorChromium()
+    End If
+End Function
+
+' A variável de ambiente vem antes do arquivo para permitir testar outro
+' navegador sem reinstalar. Vazio significa "nunca foi escolhido" — instalação
+' antiga, anterior à pergunta do instalador.
+Function PreferenciaDeNavegador()
+    PreferenciaDeNavegador = LCase(Trim( _
+        shell.Environment("PROCESS").Item("HUB_NAVEGADOR")))
+
+    If PreferenciaDeNavegador = "" Then
+        PreferenciaDeNavegador = PreferenciaGravada()
+    End If
+End Function
+
+Function PreferenciaGravada()
+    Dim caminho, arquivo
+
+    PreferenciaGravada = ""
+    caminho = PastaDoHubSnk() & "\navegador.txt"
+    If Not fso.FileExists(caminho) Then
+        Exit Function
+    End If
+
+    Set arquivo = fso.OpenTextFile(caminho, PARA_LEITURA)
+    If Not arquivo.AtEndOfStream Then
+        PreferenciaGravada = LCase(Trim(arquivo.ReadLine()))
+    End If
+    arquivo.Close
+End Function
+
+' Ordem de preferência quando não há escolha gravada: o Edge vem com o Windows.
+Function NavegadorChromium()
+    NavegadorChromium = PrimeiroCaminhoExistente(CaminhosDoEdge())
+    If NavegadorChromium = "" Then
+        NavegadorChromium = PrimeiroCaminhoExistente(CaminhosDoChrome())
+    End If
+End Function
+
+Function CaminhosDoEdge()
+    CaminhosDoEdge = Array( _
         "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe", _
-        "%ProgramFiles%\Microsoft\Edge\Application\msedge.exe", _
+        "%ProgramFiles%\Microsoft\Edge\Application\msedge.exe")
+End Function
+
+Function CaminhosDoChrome()
+    CaminhosDoChrome = Array( _
         "%ProgramFiles%\Google\Chrome\Application\chrome.exe", _
         "%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe", _
         "%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe")
+End Function
 
-    NavegadorChromium = ""
+Function PrimeiroCaminhoExistente(candidatos)
+    Dim caminho, indice
+
+    PrimeiroCaminhoExistente = ""
     For indice = 0 To UBound(candidatos)
         caminho = shell.ExpandEnvironmentStrings(candidatos(indice))
         If fso.FileExists(caminho) Then
-            NavegadorChromium = caminho
+            PrimeiroCaminhoExistente = caminho
             Exit Function
         End If
     Next

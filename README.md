@@ -22,16 +22,19 @@ Baixe o `hub-snk-<versão>-windows-x64.exe` na
 
 O instalador **não pede senha de administrador** e **não exige Node.js
 instalado** — ele já traz o necessário. Instala na sua pasta de usuário e
-oferece duas opções:
+oferece três opções:
 
-| Opção                       | O que faz                                                                                       |
-| --------------------------- | ----------------------------------------------------------------------------------------------- |
-| Atalho na área de trabalho  | Ícone do HUB SNK ao lado do menu Iniciar                                                        |
-| Iniciar junto com o Windows | O servidor sobe sozinho no logon, sem abrir janela. Você abre a tela quando quiser, pelo atalho |
+| Opção                       | O que faz                                                                                         |
+| --------------------------- | ------------------------------------------------------------------------------------------------- |
+| Atalho na área de trabalho  | Ícone do HUB SNK ao lado do menu Iniciar                                                          |
+| Iniciar junto com o Windows | O servidor sobe sozinho no logon, sem abrir janela. Você abre a tela quando quiser, pelo atalho   |
+| Navegador do HUB SNK        | Edge, Chrome ou o navegador padrão do Windows — é nele que a janela e os links dos clientes abrem |
 
 O atalho abre o HUB SNK em **janela própria**, sem barra de endereço e sem abas
-— usa o Edge ou o Chrome já instalado, sem precisar instalar a PWA pelo botão do
-navegador.
+— usa o Edge ou o Chrome escolhido na instalação, sem precisar instalar a PWA
+pelo botão do navegador. O instalador só oferece os navegadores que encontra na
+máquina; se o escolhido for desinstalado depois, o HUB SNK volta a abrir no
+primeiro que encontrar.
 
 Seu cadastro fica em `%LOCALAPPDATA%\HubSnk\dados`, fora da pasta do programa.
 Desinstalar **não apaga o cadastro**; atualizar também não.
@@ -136,6 +139,7 @@ Todas as variáveis são opcionais.
 | `HUB_HOST`          | `127.0.0.1`       | Interface de escuta. Endereço fora do loopback só é aceito junto com `HUB_PERMITIR_REDE=1` — leia [Exposição na rede](#exposição-na-rede) antes |
 | `HUB_PERMITIR_REDE` | _(vazio)_         | `1` autoriza o `HUB_HOST` fora do loopback. Sem ela, o servidor recusa subir                                                                    |
 | `HUB_DADOS_DIR`     | `./dados-hub-snk` | Onde o cadastro é gravado                                                                                                                       |
+| `HUB_NAVEGADOR`     | _(vazio)_         | Só no atalho do Windows: `edge`, `chrome` ou `padrao`, para testar outro navegador sem repetir a instalação. Vence o escolhido no instalador    |
 
 Exemplo — gravar os dados em outro disco:
 
