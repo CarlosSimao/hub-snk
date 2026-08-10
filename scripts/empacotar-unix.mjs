@@ -1,7 +1,7 @@
 /**
  * Gera os pacotes do Linux e do macOS.
  *
- * Mesma ideia do instalador do Windows: o pacote leva o próprio Node e as
+ * Mesma ideia do pacote do Windows: o pacote leva o próprio Node e as
  * dependências instaladas, para que baixar e descompactar já seja suficiente.
  *
  * O formato é `.tar.gz`, e não `.zip`, porque o `tar` preserva o bit de
@@ -32,6 +32,9 @@ const PLATAFORMAS = [
   { nomeNoPacote: 'macos-x64', nomeNoNode: 'darwin-x64' },
   { nomeNoPacote: 'macos-arm64', nomeNoNode: 'darwin-arm64' },
 ];
+
+/* O launcher e os dois scripts de instalação precisam sair executáveis. */
+const SCRIPTS_DO_PACOTE = ['hub-snk.sh', 'instalar-hub-snk.sh', 'desinstalar-hub-snk.sh'];
 
 const PERMISSAO_DE_EXECUCAO = 0o755;
 const pastaDeSaida = join(raizDoProjeto, 'dist');
@@ -76,10 +79,13 @@ async function montarPacote(plataforma, versao, caminhoDoNodeModules) {
   const pastaDoPacote = join(pastaDeSaida, nomeDoPacote);
 
   await copiarProgramaParaPasta(pastaDoPacote, caminhoDoNodeModules);
-  await cp(join(raizDoProjeto, 'instalador', 'hub-snk.sh'), join(pastaDoPacote, 'hub-snk.sh'));
   await cp(join(raizDoProjeto, 'LICENSE'), join(pastaDoPacote, 'LICENSE'));
   await cp(join(raizDoProjeto, 'README.md'), join(pastaDoPacote, 'README.md'));
-  await chmod(join(pastaDoPacote, 'hub-snk.sh'), PERMISSAO_DE_EXECUCAO);
+
+  for (const script of SCRIPTS_DO_PACOTE) {
+    await cp(join(raizDoProjeto, 'instalador', script), join(pastaDoPacote, script));
+    await chmod(join(pastaDoPacote, script), PERMISSAO_DE_EXECUCAO);
+  }
 
   await extrairBinarioDoNode(plataforma, pastaDoPacote);
 

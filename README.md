@@ -17,32 +17,51 @@ Funciona em Windows, Linux e macOS.
 
 ## Instalação no Windows
 
-Baixe o `hub-snk-<versão>-windows-x64.exe` na
-[página de releases](https://github.com/CarlosSimao/hub-snk/releases) e execute.
+Baixe o `hub-snk-<versão>-windows-x64.zip` na
+[página de releases](https://github.com/CarlosSimao/hub-snk/releases),
+descompacte e dê duplo clique em **`instalar-hub-snk.bat`**.
 
-O instalador **não pede senha de administrador** e **não exige Node.js
-instalado** — ele já traz o necessário. Instala na sua pasta de usuário e
-oferece três opções:
+A instalação **não pede senha de administrador** e **não exige Node.js
+instalado** — o pacote já traz o necessário. Cada pergunta vem com um valor
+pronto entre colchetes, e Enter aceita:
 
-| Opção                       | O que faz                                                                                         |
-| --------------------------- | ------------------------------------------------------------------------------------------------- |
-| Atalho na área de trabalho  | Ícone do HUB SNK ao lado do menu Iniciar                                                          |
-| Iniciar junto com o Windows | O servidor sobe sozinho no logon, sem abrir janela. Você abre a tela quando quiser, pelo atalho   |
-| Navegador do HUB SNK        | Edge, Chrome ou o navegador padrão do Windows — é nele que a janela e os links dos clientes abrem |
+| Pergunta                    | Padrão                           | O que faz                                                                                       |
+| --------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Pasta de instalação         | `%LOCALAPPDATA%\Programs\HubSnk` | Onde o programa fica                                                                            |
+| `HUB_PORTA`                 | `4100`                           | Porta em que o servidor escuta                                                                  |
+| `HUB_HOST`                  | `127.0.0.1`                      | Endereço em que o servidor escuta                                                               |
+| `HUB_DADOS_DIR`             | `%LOCALAPPDATA%\HubSnk\dados`    | Onde o cadastro é gravado                                                                       |
+| `HUB_NAVEGADOR`             | Edge, se houver                  | Edge, Chrome ou o navegador padrão — é nele que a janela e os links dos clientes abrem          |
+| Atalho na área de trabalho  | Sim                              | Ícone do HUB SNK ao lado do menu Iniciar                                                        |
+| Iniciar junto com o Windows | Não                              | O servidor sobe sozinho no logon, sem abrir janela. Você abre a tela quando quiser, pelo atalho |
+
+As escolhas ficam em `%LOCALAPPDATA%\HubSnk\hub-snk.env`, um arquivo de texto
+que dá para editar depois sem reinstalar.
 
 O atalho abre o HUB SNK em **janela própria**, sem barra de endereço e sem abas
 — usa o Edge ou o Chrome escolhido na instalação, sem precisar instalar a PWA
-pelo botão do navegador. O instalador só oferece os navegadores que encontra na
+pelo botão do navegador. Só são oferecidos os navegadores encontrados na
 máquina; se o escolhido for desinstalado depois, o HUB SNK volta a abrir no
 primeiro que encontrar.
 
-Seu cadastro fica em `%LOCALAPPDATA%\HubSnk\dados`, fora da pasta do programa.
-Desinstalar **não apaga o cadastro**; atualizar também não.
+Seu cadastro fica fora da pasta do programa. Desinstalar **não apaga o
+cadastro**; atualizar também não.
+
+> **Por que não há mais um `.exe` de instalação:** o Controle Inteligente de
+> Aplicativos do Windows 11 bloqueia executável sem assinatura digital, e
+> assinar exige certificado pago. Os scripts não passam por esse bloqueio.
 
 ### Atualizar no Windows
 
-Baixe o instalador da versão nova e execute por cima. Não é preciso desinstalar
-antes.
+Baixe o zip da versão nova, descompacte e rode o `instalar-hub-snk.bat` de novo.
+Ele encerra o servidor no ar, escreve por cima e mantém as respostas anteriores
+como padrão — Enter em tudo repete a instalação atual.
+
+### Desinstalar no Windows
+
+Rode o `desinstalar-hub-snk.bat` de dentro da pasta em que o HUB SNK foi
+instalado. Ele encerra o servidor, remove atalhos e programa, e deixa o cadastro
+onde está.
 
 ---
 
@@ -60,10 +79,18 @@ Baixe o pacote da sua plataforma na
 ```bash
 tar -xzf hub-snk-*-linux-x64.tar.gz
 cd hub-snk-*-linux-x64
-./hub-snk.sh
+./instalar-hub-snk.sh
 ```
 
 O pacote **já traz o Node** — não é preciso ter Node.js instalado.
+
+A instalação pergunta a pasta do programa, os quatro parâmetros do servidor
+(`HUB_PORTA`, `HUB_HOST`, `HUB_DADOS_DIR`, `HUB_NAVEGADOR`), se cria atalho no
+menu de aplicativos e se sobe junto com a sessão. Cada pergunta vem com o valor
+pronto entre colchetes, e Enter aceita. As respostas ficam em
+`~/.config/hub-snk/hub-snk.env`, editável depois sem reinstalar.
+
+Para rodar sem instalar, o launcher funciona direto de dentro do pacote:
 
 ```bash
 ./hub-snk.sh            # sobe o servidor e abre a janela
@@ -71,9 +98,10 @@ O pacote **já traz o Node** — não é preciso ter Node.js instalado.
 ./hub-snk.sh parar      # encerra o servidor
 ```
 
-Seu cadastro fica em `~/.local/share/hub-snk/dados`, fora da pasta do pacote.
-Para atualizar, apague a pasta do pacote e descompacte a versão nova — o
-cadastro fica onde está.
+Seu cadastro fica em `~/.local/share/hub-snk/dados`, fora da pasta do programa.
+Para atualizar, descompacte a versão nova e rode o `instalar-hub-snk.sh` de
+novo; o cadastro fica onde está. Para remover, rode o `desinstalar-hub-snk.sh`
+de dentro da pasta instalada.
 
 > No macOS, a primeira execução pode ser barrada pelo Gatekeeper, porque o
 > pacote não é assinado. Libere em _Ajustes do Sistema_ › _Privacidade e
@@ -139,7 +167,13 @@ Todas as variáveis são opcionais.
 | `HUB_HOST`          | `127.0.0.1`       | Interface de escuta. Endereço fora do loopback só é aceito junto com `HUB_PERMITIR_REDE=1` — leia [Exposição na rede](#exposição-na-rede) antes |
 | `HUB_PERMITIR_REDE` | _(vazio)_         | `1` autoriza o `HUB_HOST` fora do loopback. Sem ela, o servidor recusa subir                                                                    |
 | `HUB_DADOS_DIR`     | `./dados-hub-snk` | Onde o cadastro é gravado                                                                                                                       |
-| `HUB_NAVEGADOR`     | _(vazio)_         | Só no atalho do Windows: `edge`, `chrome` ou `padrao`, para testar outro navegador sem repetir a instalação. Vence o escolhido no instalador    |
+| `HUB_NAVEGADOR`     | _(vazio)_         | Navegador da janela: no Windows `edge`, `chrome` ou `padrao`; no Linux e no macOS o comando do navegador, `auto` ou `padrao`                    |
+
+Numa instalação, esses mesmos nomes ficam gravados no `hub-snk.env` — em
+`%LOCALAPPDATA%\HubSnk\` no Windows, em `~/.config/hub-snk/` no Linux e no
+macOS. O launcher lê o arquivo a cada abertura, e a variável de ambiente de
+mesmo nome vence o que está gravado: dá para testar outra porta ou outro
+navegador sem reinstalar.
 
 Exemplo — gravar os dados em outro disco:
 
@@ -248,7 +282,7 @@ Nada disto é necessário para usar o HUB SNK.
 - [Funcionalidades em detalhe](docs/funcionalidades.md) — cada recurso, com as regras e o que muda em cada sistema
 - [API HTTP](docs/api.md) — as rotas, os corpos aceitos e a conferência de origem
 - [Formato dos arquivos de dados](docs/formato-dos-dados.md) — o envelope, o esquema e a migração
-- [Distribuição](docs/distribuicao.md) — como o instalador e os pacotes são montados
+- [Distribuição](docs/distribuicao.md) — como os pacotes e os scripts de instalação são montados
 - [Estrutura do código](docs/estrutura-do-codigo.md) — mapa dos arquivos
 - [Manutenção](docs/manutencao.md) — modo de desenvolvimento, padrões do código, regra de versão e publicação
 - [CHANGELOG](CHANGELOG.md) — o que mudou em cada versão

@@ -1,7 +1,7 @@
 name: Distribuição
 
-# Monta o instalador do Windows e os pacotes do Linux e do macOS a cada tag de
-# versão, e anexa tudo à release correspondente.
+# Monta os pacotes do Windows, do Linux e do macOS a cada tag de versão, e anexa
+# tudo à release correspondente.
 #
 # Um workflow só, com um job de publicação no fim: dois workflows disparados
 # pela mesma tag disputariam a criação da release.
@@ -39,25 +39,25 @@ jobs:
       - name: Empacotar a distribuição
         run: npm run empacotar-windows
 
-      # A imagem do runner costuma trazer o Inno Setup, mas depender disso deixa
-      # a release à mercê de uma mudança na imagem.
-      - name: Garantir o Inno Setup
+      # O script de instalação é o que o usuário roda depois de descompactar:
+      # um erro de sintaxe nele só apareceria na máquina de quem baixou.
+      - name: Conferir a sintaxe dos scripts de instalação
         shell: pwsh
         run: |
-          $compilador = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $compilador)) {
-            choco install innosetup --no-progress -y
+          foreach ($script in @('instalar-hub-snk.ps1', 'desinstalar-hub-snk.ps1')) {
+            $erros = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path "instalador\$script"), [ref]$null, [ref]$erros) | Out-Null
+            if ($erros.Count -gt 0) {
+              $erros | ForEach-Object { Write-Host $_ }
+              throw "$script tem erro de sintaxe."
+            }
           }
-          "COMPILADOR_INNO=$compilador" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: Compilar o instalador
-        shell: pwsh
-        run: '& "$env:COMPILADOR_INNO" instalador\hub-snk.iss'
 
       - uses: actions/upload-artifact@v7
         with:
-          name: instalador-windows
-          path: dist/hub-snk-*-windows-x64.exe
+          name: pacote-windows
+          path: dist/hub-snk-*-windows-x64.zip
           if-no-files-found: error
 
   unix:

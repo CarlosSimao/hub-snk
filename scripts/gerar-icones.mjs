@@ -1,5 +1,5 @@
 /**
- * Gera os ícones da PWA e o `.ico` do instalador do Windows, sem dependências
+ * Gera os ícones da PWA e o `.ico` dos atalhos do Windows, sem dependências
  * externas.
  *
  * O desenho é feito em resolução ampliada e reduzido por média, o que produz
