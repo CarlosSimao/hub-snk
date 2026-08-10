@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [1.1.0] - 2026-08-10
+
 ### Adicionado
 
 - Aviso de versão nova no rodapé. O HUB SNK compara a versão em uso com a última
@@ -73,5 +75,6 @@ que mudou ao preparar a distribuição.
 - `HUB_HOST` fora do loopback não sobe mais sozinho: precisa de
   `HUB_PERMITIR_REDE=1`, dito de propósito.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v1.0.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/CarlosSimao/hub-snk/releases/tag/v1.0.0
