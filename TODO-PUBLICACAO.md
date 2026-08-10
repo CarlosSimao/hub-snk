@@ -16,7 +16,7 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 - [x] Recusar host não-loopback por padrão: exigir uma confirmação explícita (ex.: `HUB_PERMITIR_REDE=1`) para aceitar `HUB_HOST` diferente de `127.0.0.1`
 - [x] Validar os headers `Host` e `Origin` nas requisições (hook `onRequest` no Fastify), rejeitando origem que não seja o próprio loopback na porta configurada
 - [x] Documentar no README que a aplicação executa binários e comandos do sistema, e o que isso implica ao expor o servidor na rede
-- [ ] Publicar o commit inicial (`git push -u origin main`) — feito depois que os blocos 2 e 3 estiverem prontos
+- [x] Publicar o commit inicial (`git push -u origin main`)
 
 ## 1. Versionamento de dados (fazer antes de distribuir)
 
@@ -56,9 +56,8 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 - [x] Adotar Conventional Commits nas mensagens de commit
 - [x] Documentar o fluxo de release (`npm version` → `git push --follow-tags` → `gh release create`)
 - [x] Automatizar o bump de `VERSAO_DO_CACHE` em `public/sw.js` a cada release (hook `version` no `package.json`)
-- [ ] Publicar a primeira release no GitHub Releases, depois do push:
-      `gh release create v1.0.0 --title "v1.0.0" --notes-file <notas extraídas do CHANGELOG>`
-- [ ] Proteger a branch `main` exigindo pull request (Settings › Branches, ou `gh api`)
+- [x] Publicar a primeira release no GitHub Releases — `v1.0.0`, com o instalador do Windows e os três pacotes Unix anexados pelo CI
+- [x] Proteger a branch `main` exigindo pull request — sem force push e sem exclusão da branch; a regra não vale para o administrador, para o fluxo de release seguir direto
 
 ## 5. Bugs e sugestões
 
@@ -69,7 +68,7 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 - [x] Criar `.github/PULL_REQUEST_TEMPLATE.md`
 - [x] Habilitar Discussions no repositório (Issues já vem ligado) — sem isso o link do `config.yml` cai em página inexistente
 - [x] Criar as labels — as padrão do GitHub foram renomeadas para português em vez de duplicadas: `melhoria`, `duvida`, `nao-vai-fazer`, `boa-primeira-issue`, `documentacao`, `duplicada`, `invalida`, `ajuda-bem-vinda` e `bug`
-- [ ] Conferir na tela `.../issues/new/choose` que os dois formulários aparecem — depende do push. A sintaxe dos `.yml` já foi validada localmente
+- [ ] Conferir na tela `.../issues/new/choose` que os dois formulários aparecem — os arquivos já estão no remoto e a sintaxe foi validada; a conferência visual precisa de você logado, porque a página não abre para anônimos
 
 ## 6. README
 
