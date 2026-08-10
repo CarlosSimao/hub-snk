@@ -181,7 +181,7 @@ As cores nunca aparecem sozinhas — sempre acompanham o texto da pendência:
 | -------- | --------------------------------------------------------------------------------- |
 | Vermelho | Precisa de ação: risco de perder trabalho, de vazar segredo ou o clone nem existe |
 | Amarelo  | Pendência normal: falta commitar, falta versionar, falta esvaziar o stash         |
-| Verde    | Nada pendente: tudo commitado                                                     |
+| Verde    | Nada pendente: tudo commitado e enviado                                           |
 | Cinza    | Não foi possível verificar                                                        |
 
 O que é verificado, e com que gravidade:
@@ -196,6 +196,8 @@ O que é verificado, e com que gravidade:
 | O remoto aponta para endereço diferente da URL cadastrada no HUB SNK                       | Amarelo   |
 | Arquivos rastreados alterados e não commitados                                             | Amarelo   |
 | Arquivos novos fora do controle de versão e fora do `.gitignore`                           | Amarelo   |
+| Commits locais ainda não enviados ao remoto                                                | Amarelo   |
+| A branch atual não tem upstream — os commits dela só existem nesta máquina                 | Amarelo   |
 | Alterações guardadas no stash                                                              | Amarelo   |
 | O repositório ainda não tem nenhum commit                                                  | Amarelo   |
 
@@ -203,8 +205,14 @@ O provedor (GitHub ou GitLab) é deduzido do host do remoto. GitLab instalado no
 domínio da empresa (`gitlab.suaempresa.com.br`) é reconhecido pelo nome no host;
 um domínio sem pista nenhuma fica como desconhecido, sem palpite.
 
-O nome da branch atual aparece no selo apenas como informação: nada do
-diagnóstico compara branches entre si nem mede distância para o remoto.
+O nome da branch atual aparece no selo apenas como informação: o diagnóstico não
+compara branches entre si.
+
+A contagem de commits não enviados sai do próprio repositório local, sem rede:
+são commits que existem aqui e não na última posição conhecida do remoto. O
+caminho inverso — commits que chegaram ao remoto e ainda não vieram para cá —
+fica de fora justamente por depender de `fetch`: sem ele o número envelhece sem
+aviso e acusaria pendência onde não há, ou silenciaria onde há.
 
 Nenhuma parte do diagnóstico usa a rede: todos os comandos são leituras do
 disco. O `git` roda sem prompt de credencial, então nenhum repositório trava o
