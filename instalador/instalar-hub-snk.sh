@@ -17,6 +17,9 @@ NAVEGADOR_AUTOMATICO=auto
 NAVEGADOR_PADRAO=padrao
 PORTA_MINIMA=1
 PORTA_MAXIMA=65535
+VERSAO_MINIMA_DO_NODE=22.18
+NODE_MAIOR_MINIMO=22
+NODE_MENOR_MINIMO=18
 
 PASTA_DO_PACOTE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 PASTA_DE_DADOS_BASE="${XDG_DATA_HOME:-$HOME/.local/share}/hub-snk"
@@ -182,10 +185,38 @@ perguntar_navegador() {
 }
 
 # ---------------------------------------------------------------------------
+# Pré-requisito
+#
+# O Node não vem mais no pacote. Sem esta conferência, a falta dele só
+# apareceria depois de tudo copiado, no primeiro clique do atalho.
+
+conferir_node() {
+    if ! command -v node > /dev/null 2>&1; then
+        echo 'O Node.js não está instalado, ou não está no PATH.' >&2
+        echo "O HUB SNK precisa da versão $VERSAO_MINIMA_DO_NODE ou mais nova: https://nodejs.org" >&2
+        exit 1
+    fi
+
+    versao=$(node -v | sed 's/^v//')
+    maior=${versao%%.*}
+    resto=${versao#*.}
+    menor=${resto%%.*}
+
+    if [ "$maior" -lt "$NODE_MAIOR_MINIMO" ] ||
+        { [ "$maior" -eq "$NODE_MAIOR_MINIMO" ] && [ "$menor" -lt "$NODE_MENOR_MINIMO" ]; }; then
+        echo "Node $versao é antigo demais: o HUB SNK precisa da $VERSAO_MINIMA_DO_NODE ou mais nova." >&2
+        echo 'A partir dela o Node roda arquivos .ts direto, sem etapa de build.' >&2
+        exit 1
+    fi
+
+    printf 'Node %s encontrado.\n' "$versao"
+}
+
+# ---------------------------------------------------------------------------
 # Instalação
 
-# O node do pacote instalado segura os próprios arquivos: copiar por cima de um
-# servidor no ar deixa a instalação pela metade.
+# O servidor no ar segura os arquivos que está usando: copiar por cima de uma
+# instalação em execução deixa a cópia pela metade.
 encerrar_servidor_instalado() {
     destino=$1
     [ -x "$destino/hub-snk.sh" ] || return 0
@@ -208,7 +239,7 @@ copiar_programa() {
         cp -R "$item" "$destino/"
     done
 
-    chmod +x "$destino/hub-snk.sh" "$destino/node"
+    chmod +x "$destino/hub-snk.sh"
     [ -f "$destino/desinstalar-hub-snk.sh" ] && chmod +x "$destino/desinstalar-hub-snk.sh"
     return 0
 }
@@ -252,11 +283,13 @@ FIM
 
 # ---------------------------------------------------------------------------
 
-if [ ! -f "$PASTA_DO_PACOTE/node" ]; then
+if [ ! -f "$PASTA_DO_PACOTE/src/index.ts" ]; then
     echo 'Este script precisa rodar de dentro do pacote descompactado do HUB SNK.' >&2
-    echo "Não encontrei o binário node em $PASTA_DO_PACOTE." >&2
+    echo "Não encontrei o src/index.ts em $PASTA_DO_PACOTE." >&2
     exit 1
 fi
+
+conferir_node
 
 printf '\n  HUB SNK — instalação\n'
 printf '  Enter aceita o valor entre colchetes.\n\n'

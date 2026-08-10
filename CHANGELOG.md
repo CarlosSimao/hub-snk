@@ -9,6 +9,34 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Removido
+
+- O Node deixa de ir dentro dos pacotes. **A partir desta versão é preciso ter o
+  Node.js 22.18 ou mais novo instalado** — <https://nodejs.org>. Era o binário
+  que respondia por quase todo o tamanho do download: o pacote do Windows caiu de
+  37 MB para 5,6 MB, e os de Linux e macOS de ~40 MB para 3,9 MB. Embutir também
+  prendia a versão do Node à escolhida no dia do empacotamento.
+
+### Alterado
+
+- O comando para usar sem instalar passa a ser `node src\index.ts`, com o Node da
+  sua máquina, no lugar do `.\node.exe src\index.ts`. Ele continua livre do
+  Controle Inteligente de Aplicativos: o Node instalado é assinado e não carrega
+  a marca de arquivo baixado.
+
+- Launchers e instaladores conferem o Node antes de subir ou instalar e mandam
+  para o `nodejs.org` quando ele falta ou é antigo demais. Sem isso, a ausência
+  apareceria como `node: not found` no log, ou como erro de sintaxe em `.ts` num
+  Node velho.
+
+- O encerramento passa a identificar o servidor pelo `src/index.ts` da própria
+  pasta, e não mais pelo executável: agora que o Node é o da máquina, o
+  executável é o mesmo de qualquer outro projeto seu. Nenhum outro Node em
+  execução é tocado, como antes.
+
+> **Ao atualizar:** instale o Node 22.18 ou mais novo antes de trocar de versão.
+> Quem já desenvolve na máquina provavelmente tem — confira com `node -v`.
+
 ## [2.1.0] - 2026-08-10
 
 ### Adicionado

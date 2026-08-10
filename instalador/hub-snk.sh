@@ -1,7 +1,8 @@
 #!/bin/sh
 # Inicia o HUB SNK a partir do pacote baixado, em segundo plano.
 #
-# O Node vem junto no pacote: não é preciso ter Node instalado na máquina.
+# Exige o Node 22.18 ou mais novo instalado na máquina — é ele que roda os
+# arquivos .ts do HUB SNK sem etapa de build.
 #
 # Uso:
 #   ./hub-snk.sh          inicia e abre no navegador
@@ -10,8 +11,10 @@
 
 set -eu
 
+VERSAO_MINIMA_DO_NODE=22.18
+
 PASTA_DO_PACOTE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-NODE_DO_PACOTE="$PASTA_DO_PACOTE/node"
+PROGRAMA="$PASTA_DO_PACOTE/src/index.ts"
 ARQUIVO_DE_CONFIGURACAO="${XDG_CONFIG_HOME:-$HOME/.config}/hub-snk/hub-snk.env"
 TENTATIVAS_ATE_DESISTIR=40
 ESPERA_ENTRE_TENTATIVAS=0.25
@@ -61,12 +64,32 @@ ARQUIVO_DE_LOG="$PASTA_DE_ESTADO/hub-snk.log"
 
 mkdir -p "$HUB_DADOS_DIR"
 
-# O bit de execução se perde quando o pacote é descompactado por algumas
-# ferramentas gráficas; restaurá-lo é mais barato que explicar o erro.
-[ -x "$NODE_DO_PACOTE" ] || chmod +x "$NODE_DO_PACOTE" 2>/dev/null || true
+# Node ausente ou velho é a falha mais provável agora que o binário não vem no
+# pacote, e o erro cru do sistema ("node: not found", ou uma pilha de erro de
+# sintaxe em .ts) não diz o que fazer.
+conferir_node() {
+    if ! command -v node > /dev/null 2>&1; then
+        echo "O Node.js não está instalado, ou não está no PATH." >&2
+        echo "O HUB SNK precisa da versão $VERSAO_MINIMA_DO_NODE ou mais nova: https://nodejs.org" >&2
+        exit 1
+    fi
 
+    versao=$(node -v | sed 's/^v//')
+    maior=${versao%%.*}
+    resto=${versao#*.}
+    menor=${resto%%.*}
+
+    if [ "$maior" -lt 22 ] || { [ "$maior" -eq 22 ] && [ "$menor" -lt 18 ]; }; then
+        echo "Node $versao é antigo demais: o HUB SNK precisa da $VERSAO_MINIMA_DO_NODE ou mais nova." >&2
+        echo "A partir dela o Node roda arquivos .ts direto, sem etapa de build." >&2
+        exit 1
+    fi
+}
+
+# Identifica o servidor pelo caminho do programa, e não pelo binário do Node:
+# o node agora é o da máquina, compartilhado com qualquer outro projeto seu.
 pids_do_pacote() {
-    pgrep -f "^$NODE_DO_PACOTE " 2>/dev/null || true
+    pgrep -f "$PROGRAMA" 2>/dev/null || true
 }
 
 servidor_no_ar() {
@@ -91,12 +114,16 @@ iniciar_servidor() {
         return 0
     fi
 
+    conferir_node
     cd "$PASTA_DO_PACOTE"
 
     # Quem abre a janela é este script, e só no modo `abrir`: sem isto o
     # servidor abriria a dele também, e `hub-snk.sh servidor` deixaria de ser
     # silencioso.
-    HUB_ABRIR_JANELA=0 nohup "$NODE_DO_PACOTE" src/index.ts >> "$ARQUIVO_DE_LOG" 2>&1 &
+    #
+    # O caminho do programa vai completo, e não relativo: é ele que o `pgrep`
+    # procura para achar o servidor deste pacote entre os outros node da máquina.
+    HUB_ABRIR_JANELA=0 nohup node "$PROGRAMA" >> "$ARQUIVO_DE_LOG" 2>&1 &
 
     tentativa=0
     while [ "$tentativa" -lt "$TENTATIVAS_ATE_DESISTIR" ]; do

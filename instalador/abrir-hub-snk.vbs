@@ -4,10 +4,10 @@
 ' Com /servidor: só sobe o servidor, sem abrir janela — é como a tarefa
 ' agendada do logon o chama.
 '
-' O servidor roda com o node.exe que veio no instalador, na sessão do usuário.
-' Não é serviço do Windows de propósito: serviço vive na sessão 0, e de lá o
-' HUB SNK não conseguiria abrir o Explorer, o terminal, a IDE nem os diálogos
-' de seleção de arquivo.
+' O servidor roda com o Node instalado na máquina, na sessão do usuário. Não é
+' serviço do Windows de propósito: serviço vive na sessão 0, e de lá o HUB SNK
+' não conseguiria abrir o Explorer, o terminal, a IDE nem os diálogos de
+' seleção de arquivo.
 
 Option Explicit
 
@@ -162,8 +162,15 @@ Sub IniciarServidor()
 
     shell.Environment("PROCESS").Item("HUB_ABRIR_JANELA") = "0"
 
-    comando = "cmd /c cd /d """ & pastaDoAplicativo & """ && """ & _
-        pastaDoAplicativo & "\node.exe"" ""src\index.ts"" >> """ & CaminhoDoLog() & """ 2>&1"
+    ' O `node` sai do PATH: o binário não vem mais no pacote. Sem ele instalado,
+    ' o cmd registra "não é reconhecido" no log e a espera pela porta termina no
+    ' aviso que aponta o arquivo.
+    '
+    ' O caminho do programa vai completo, e não relativo à pasta de trabalho:
+    ' é ele que o encerrar-hub-snk.vbs procura na linha de comando para saber
+    ' qual node.exe da máquina é o servidor desta instalação.
+    comando = "cmd /c cd /d """ & pastaDoAplicativo & """ && " & _
+        "node """ & pastaDoAplicativo & "\src\index.ts"" >> """ & CaminhoDoLog() & """ 2>&1"
 
     shell.Run comando, JANELA_OCULTA, NAO_ESPERAR
 End Sub

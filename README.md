@@ -14,6 +14,23 @@ Funciona em Windows, Linux e macOS.
 
 ---
 
+## Pré-requisito
+
+**Node.js 22.18 ou mais novo**, em qualquer sistema: <https://nodejs.org>
+
+É a versão a partir da qual o Node roda arquivos `.ts` direto, sem etapa de
+build — e o HUB SNK é escrito em TypeScript. Confira o que você tem com:
+
+```bash
+node -v
+```
+
+O Node não vai dentro dos pacotes: são 80 MB de binário que a maioria das
+máquinas de desenvolvimento já tem instalado, e que envelheceriam presos à
+versão escolhida no dia do empacotamento.
+
+---
+
 ## Windows
 
 Baixe o `hub-snk-<versão>-windows-x64.zip` na
@@ -26,20 +43,19 @@ Abra a pasta descompactada, clique com o botão direito num espaço vazio dela e
 escolha _Abrir no Terminal_. Depois:
 
 ```powershell
-.\node.exe src\index.ts
+node src\index.ts
 ```
 
 O servidor sobe e a janela do HUB SNK abre sozinha, sem barra de endereço e sem
 abas. Para encerrar, feche o terminal.
 
-Não é preciso ter Node.js instalado — o pacote traz o dele. Seu cadastro fica na
-pasta `dados-hub-snk`, ao lado do programa; para mandá-lo a outro lugar, use o
-`HUB_DADOS_DIR` (veja [Configuração](#configuração)).
+Seu cadastro fica na pasta `dados-hub-snk`, ao lado do programa; para mandá-lo a
+outro lugar, use o `HUB_DADOS_DIR` (veja [Configuração](#configuração)).
 
 > **Por que sem instalador:** o Controle Inteligente de Aplicativos do Windows 11
 > bloqueia executável e script sem assinatura digital, e assinar exige
-> certificado pago. O `node.exe` do pacote é assinado pela OpenJS Foundation e
-> passa direto — por isso o caminho acima funciona com o bloqueio ligado.
+> certificado pago. O `node` que você instalou é assinado e passa direto — por
+> isso o caminho acima funciona com o bloqueio ligado.
 
 ### Instalar, com atalho e início no logon
 
@@ -79,7 +95,7 @@ cadastro**; atualizar também não.
 ### Atualizar no Windows
 
 Baixe o zip da versão nova e descompacte. Sem instalação, é só rodar o
-`.\node.exe src\index.ts` da pasta nova. Com instalação, rode o
+`node src\index.ts` da pasta nova. Com instalação, rode o
 `instalar-hub-snk.bat` de novo: ele encerra o servidor no ar, escreve por cima e
 mantém as respostas anteriores como padrão — Enter em tudo repete a instalação
 atual.
@@ -113,7 +129,8 @@ cd hub-snk-*-linux-x64
 ./hub-snk.sh parar      # encerra o servidor
 ```
 
-O pacote **já traz o Node** — não é preciso ter Node.js instalado.
+O launcher confere o Node antes de subir e diz o que fazer se ele faltar ou for
+antigo demais.
 
 ### Instalar, com atalho e início na sessão
 

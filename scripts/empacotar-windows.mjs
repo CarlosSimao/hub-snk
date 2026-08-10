@@ -1,15 +1,14 @@
 /**
  * Monta o pacote do Windows.
  *
- * O resultado é autossuficiente: leva o próprio `node.exe` e as dependências já
- * instaladas, para que a máquina de destino não precise de Node, de npm nem de
- * rede. É o que separa "descompactar e usar" de "primeiro instale o Node, depois
- * confira a versão, depois rode npm install".
+ * O pacote leva o programa e as dependências já instaladas; o Node é
+ * pré-requisito da máquina de destino, declarado no README. Embutir o binário
+ * dobrava o tamanho do download e obrigava a acompanhar as versões do Node de
+ * fora do ciclo do projeto.
  *
- * A instalação em si é feita pelo `instalar-hub-snk.bat` que vai dentro do
- * pacote. Não há mais executável de instalação: um `.exe` sem assinatura é
- * barrado pelo Controle Inteligente de Aplicativos do Windows, e assinar exige
- * certificado pago.
+ * A instalação é feita pelo `instalar-hub-snk.bat` que vai dentro do pacote,
+ * mas não é obrigatória: `node src\index.ts` da pasta descompactada já sobe o
+ * HUB SNK e abre a janela.
  *
  * Uso: npm run empacotar-windows
  */
@@ -17,16 +16,11 @@ import { execFileSync } from 'node:child_process';
 import { cp, open, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
-  baixarComCache,
   copiarProgramaParaPasta,
   instalarDependenciasDeProducao,
   lerVersaoDoProjeto,
-  pastaDoCache,
   raizDoProjeto,
-  VERSAO_DO_NODE_EMBUTIDO,
 } from './empacotar-comum.mjs';
-
-const ARQUITETURA = 'win-x64';
 
 const ARQUIVOS_DO_INSTALADOR = [
   'abrir-hub-snk.vbs',
@@ -39,17 +33,6 @@ const ARQUIVOS_DO_INSTALADOR = [
 ];
 
 const pastaDeSaida = join(raizDoProjeto, 'dist');
-
-/*
- * O node.exe é publicado avulso, sem compactação em volta — dá para gravar a
- * resposta direto, sem precisar de um descompactador.
- */
-async function obterNodeEmbutido() {
-  return baixarComCache(
-    `https://nodejs.org/dist/${VERSAO_DO_NODE_EMBUTIDO}/${ARQUITETURA}/node.exe`,
-    join(pastaDoCache, `node-${VERSAO_DO_NODE_EMBUTIDO}-${ARQUITETURA}.exe`),
-  );
-}
 
 /*
  * Zip, e não tar.gz: no Windows o duplo clique abre o zip no próprio Explorer.
@@ -96,7 +79,6 @@ const versao = await lerVersaoDoProjeto();
 const nomeDoPacote = `hub-snk-${versao}-windows-x64`;
 const pastaDoPacote = join(pastaDeSaida, nomeDoPacote);
 
-const caminhoDoNode = await obterNodeEmbutido();
 const caminhoDoNodeModules = await instalarDependenciasDeProducao();
 
 await copiarProgramaParaPasta(pastaDoPacote, caminhoDoNodeModules);
@@ -105,7 +87,6 @@ for (const arquivo of ARQUIVOS_DO_INSTALADOR) {
   await cp(join(raizDoProjeto, 'instalador', arquivo), join(pastaDoPacote, arquivo));
 }
 
-await cp(caminhoDoNode, join(pastaDoPacote, 'node.exe'));
 await cp(join(raizDoProjeto, 'LICENSE'), join(pastaDoPacote, 'LICENSE.txt'));
 await cp(join(raizDoProjeto, 'README.md'), join(pastaDoPacote, 'README.md'));
 

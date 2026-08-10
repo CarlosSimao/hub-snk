@@ -1,27 +1,19 @@
 /**
  * Peças compartilhadas pelo empacotamento do Windows e pelo dos pacotes Unix.
  *
- * Os dois montam a mesma coisa — o programa, as dependências de produção e um
- * Node próprio — e mudam só no formato final e no binário embutido.
+ * Os dois montam a mesma coisa — o programa e as dependências de produção — e
+ * mudam só no formato final. O Node não vai junto: é pré-requisito da máquina
+ * de destino.
  */
 import { execFileSync } from 'node:child_process';
-import { cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, rm, stat } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
-export const VERSAO_DO_NODE_EMBUTIDO = 'v22.18.0';
-
-const BYTES_POR_MEGABYTE = 1024 * 1024;
 
 /* Só o que o programa precisa para rodar. Testes, docs e o .git ficam de fora. */
 const ITENS_COPIADOS = ['src', 'public', 'package.json'];
 
 export const raizDoProjeto = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-export const pastaDoCache = join(raizDoProjeto, 'dist', 'cache');
-
-export function megabytes(bytes) {
-  return `${(bytes / BYTES_POR_MEGABYTE).toFixed(1)} MB`;
-}
 
 export async function existe(caminho) {
   try {
@@ -30,34 +22,6 @@ export async function existe(caminho) {
   } catch {
     return false;
   }
-}
-
-/**
- * Baixa um arquivo de nodejs.org guardando uma cópia em `dist/cache`: os
- * binários passam de 40 MB e repetir o empacotamento não deve repetir o
- * download.
- */
-export async function baixarComCache(endereco, caminhoNoCache) {
-  if (await existe(caminhoNoCache)) {
-    console.log(`Reaproveitado do cache: ${caminhoNoCache}`);
-    return caminhoNoCache;
-  }
-
-  console.log(`Baixando ${endereco} ...`);
-  const resposta = await fetch(endereco);
-  if (!resposta.ok) {
-    throw new Error(
-      `Download falhou: HTTP ${resposta.status} em ${endereco}. ` +
-        `Confira se a versão ${VERSAO_DO_NODE_EMBUTIDO} existe em nodejs.org/dist.`,
-    );
-  }
-
-  await mkdir(pastaDoCache, { recursive: true });
-  const conteudo = Buffer.from(await resposta.arrayBuffer());
-  await writeFile(caminhoNoCache, conteudo);
-  console.log(`Baixado (${megabytes(conteudo.length)}).`);
-
-  return caminhoNoCache;
 }
 
 /**

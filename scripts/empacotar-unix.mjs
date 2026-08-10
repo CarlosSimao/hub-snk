@@ -1,81 +1,41 @@
 /**
  * Gera os pacotes do Linux e do macOS.
  *
- * Mesma ideia do pacote do Windows: o pacote leva o próprio Node e as
- * dependências instaladas, para que baixar e descompactar já seja suficiente.
+ * Mesma ideia do pacote do Windows: o pacote leva o programa e as dependências
+ * já instaladas, e o Node é pré-requisito da máquina de destino.
  *
  * O formato é `.tar.gz`, e não `.zip`, porque o `tar` preserva o bit de
- * execução do binário do Node — num zip ele se perde, e o pacote chegaria
- * quebrado do outro lado.
+ * execução dos scripts — num zip ele se perde, e o `./hub-snk.sh` chegaria sem
+ * permissão para rodar.
  *
  * Uso: npm run empacotar-unix
  */
 import { execFileSync } from 'node:child_process';
 import { chmod, cp, mkdir, rm } from 'node:fs/promises';
-import { join, relative, sep } from 'node:path';
+import { join } from 'node:path';
 import {
-  baixarComCache,
   copiarProgramaParaPasta,
   instalarDependenciasDeProducao,
   lerVersaoDoProjeto,
-  pastaDoCache,
   raizDoProjeto,
-  VERSAO_DO_NODE_EMBUTIDO,
 } from './empacotar-comum.mjs';
 
 /*
- * O nome no nodejs.org fala em `darwin`; o nome do pacote fala em `macos`,
- * que é o que o usuário reconhece.
+ * As dependências são todas JavaScript puro, sem binário compilado, e o Node
+ * agora vem da máquina: o mesmo conteúdo serve para as três plataformas. Os
+ * pacotes continuam separados porque é assim que o usuário os procura na página
+ * de releases.
  */
-const PLATAFORMAS = [
-  { nomeNoPacote: 'linux-x64', nomeNoNode: 'linux-x64' },
-  { nomeNoPacote: 'macos-x64', nomeNoNode: 'darwin-x64' },
-  { nomeNoPacote: 'macos-arm64', nomeNoNode: 'darwin-arm64' },
-];
+const PLATAFORMAS = ['linux-x64', 'macos-x64', 'macos-arm64'];
 
-/* O launcher e os dois scripts de instalação precisam sair executáveis. */
+/** O launcher e os dois scripts de instalação precisam sair executáveis. */
 const SCRIPTS_DO_PACOTE = ['hub-snk.sh', 'instalar-hub-snk.sh', 'desinstalar-hub-snk.sh'];
 
 const PERMISSAO_DE_EXECUCAO = 0o755;
 const pastaDeSaida = join(raizDoProjeto, 'dist');
 
-/*
- * O `tar` do Git Bash entende `C:\...` como endereço de máquina remota — o
- * dois-pontos é a sintaxe de host. Caminho relativo não tem esse problema e
- * funciona igual no Linux do GitHub Actions.
- */
-function caminhoRelativoParaOTar(de, para) {
-  return relative(de, para).split(sep).join('/');
-}
-
-/*
- * O tarball do Node traz a distribuição inteira — npm, cabeçalhos, documentação.
- * Só o binário interessa, e o `--strip-components` o deposita direto na pasta
- * de destino, sem os dois níveis do caminho de origem.
- */
-async function extrairBinarioDoNode({ nomeNoNode }, pastaDeDestino) {
-  const nomeDaDistribuicao = `node-${VERSAO_DO_NODE_EMBUTIDO}-${nomeNoNode}`;
-  const caminhoDoTarball = await baixarComCache(
-    `https://nodejs.org/dist/${VERSAO_DO_NODE_EMBUTIDO}/${nomeDaDistribuicao}.tar.gz`,
-    join(pastaDoCache, `${nomeDaDistribuicao}.tar.gz`),
-  );
-
-  execFileSync(
-    'tar',
-    [
-      '-xzf',
-      caminhoRelativoParaOTar(pastaDeDestino, caminhoDoTarball),
-      '--strip-components=2',
-      `${nomeDaDistribuicao}/bin/node`,
-    ],
-    { cwd: pastaDeDestino, stdio: 'inherit' },
-  );
-
-  await chmod(join(pastaDeDestino, 'node'), PERMISSAO_DE_EXECUCAO);
-}
-
 async function montarPacote(plataforma, versao, caminhoDoNodeModules) {
-  const nomeDoPacote = `hub-snk-${versao}-${plataforma.nomeNoPacote}`;
+  const nomeDoPacote = `hub-snk-${versao}-${plataforma}`;
   const pastaDoPacote = join(pastaDeSaida, nomeDoPacote);
 
   await copiarProgramaParaPasta(pastaDoPacote, caminhoDoNodeModules);
@@ -86,8 +46,6 @@ async function montarPacote(plataforma, versao, caminhoDoNodeModules) {
     await cp(join(raizDoProjeto, 'instalador', script), join(pastaDoPacote, script));
     await chmod(join(pastaDoPacote, script), PERMISSAO_DE_EXECUCAO);
   }
-
-  await extrairBinarioDoNode(plataforma, pastaDoPacote);
 
   /* A pasta entra no tar pelo nome, para descompactar já organizado. */
   execFileSync('tar', ['-czf', `${nomeDoPacote}.tar.gz`, nomeDoPacote], {
