@@ -35,6 +35,10 @@ interface EstadoDaArvore {
   /** Nome da branch atual, apenas para exibição. `null` com o HEAD desanexado. */
   branch: string | null;
   semCommits: boolean;
+  /** Falso quando a branch atual não segue nenhuma branch do remoto. */
+  temUpstream: boolean;
+  /** Commits que existem só aqui. Confiável sem rede: são commits locais. */
+  commitsAFrente: number;
   rastreadosAlterados: number;
   naoRastreados: number;
   conflitos: number;
@@ -78,15 +82,33 @@ async function existe(caminho: string): Promise<boolean> {
 }
 
 /**
+ * Lê o `+N` de `# branch.ab +N -M`. O `-M` fica de fora de propósito: sem
+ * `fetch`, ele reflete a última sincronização e envelhece sem aviso.
+ */
+function lerCommitsAFrente(valor: string): number {
+  const aFrente = valor.trim().split(/\s+/)[0] ?? '';
+
+  if (!aFrente.startsWith('+')) {
+    return 0;
+  }
+
+  const quantidade = Number.parseInt(aFrente.slice(1), 10);
+  return Number.isNaN(quantidade) ? 0 : quantidade;
+}
+
+/**
  * Lê a saída de `git status --porcelain=v2 --branch`.
  *
- * O formato v2 é usado no lugar do v1 porque traz o nome da branch no mesmo
- * texto do estado dos arquivos — uma chamada em vez de duas.
+ * O formato v2 é usado no lugar do v1 porque traz o nome da branch e a distância
+ * para o upstream no mesmo texto do estado dos arquivos — uma chamada em vez de
+ * três.
  */
 function interpretarArvore(saida: string): EstadoDaArvore {
   const arvore: EstadoDaArvore = {
     branch: null,
     semCommits: false,
+    temUpstream: false,
+    commitsAFrente: 0,
     rastreadosAlterados: 0,
     naoRastreados: 0,
     conflitos: 0,
@@ -98,6 +120,10 @@ function interpretarArvore(saida: string): EstadoDaArvore {
     } else if (linha.startsWith('# branch.head ')) {
       const valor = linha.slice('# branch.head '.length).trim();
       arvore.branch = valor === '(detached)' ? null : valor;
+    } else if (linha.startsWith('# branch.upstream ')) {
+      arvore.temUpstream = true;
+    } else if (linha.startsWith('# branch.ab ')) {
+      arvore.commitsAFrente = lerCommitsAFrente(linha.slice('# branch.ab '.length));
     } else if (linha.startsWith('1 ') || linha.startsWith('2 ')) {
       arvore.rastreadosAlterados += 1;
     } else if (linha.startsWith('u ')) {
@@ -244,6 +270,43 @@ function verificarAlteracoesLocais(coleta: Coleta): PendenciaGit[] {
   return pendencias;
 }
 
+/**
+ * Commit feito e push esquecido: o trabalho existe só nesta máquina. Só é
+ * checado com remoto configurado — sem ele, `verificarRemoto` já acusou o
+ * problema maior, e repetir a mesma causa em duas pendências só polui o selo.
+ */
+function verificarSincronizacaoComRemoto(coleta: Coleta): PendenciaGit[] {
+  const { branch, semCommits, temUpstream, commitsAFrente } = coleta.arvore;
+
+  if (!coleta.urlDoRemoto || semCommits || branch === null) {
+    return [];
+  }
+
+  if (!temUpstream) {
+    return [
+      criarPendencia(
+        'sem-upstream',
+        'atencao',
+        `A branch ${branch} não tem upstream: os commits dela só existem nesta máquina.`,
+        `git push -u origin ${branch}`,
+      ),
+    ];
+  }
+
+  if (commitsAFrente === 0) {
+    return [];
+  }
+
+  return [
+    criarPendencia(
+      'commits-nao-enviados',
+      'atencao',
+      `${pluralizar(commitsAFrente, 'commit local ainda não enviado', 'commits locais ainda não enviados')} ao remoto.`,
+      'git push',
+    ),
+  ];
+}
+
 function verificarStash(coleta: Coleta): PendenciaGit[] {
   if (coleta.itensNoStash === 0) {
     return [];
@@ -268,6 +331,7 @@ function diagnosticar(coleta: Coleta, urlCadastrada: string): PendenciaGit[] {
     ...verificarArquivoDoMcp(coleta),
     ...verificarRemoto(coleta, urlCadastrada),
     ...verificarAlteracoesLocais(coleta),
+    ...verificarSincronizacaoComRemoto(coleta),
     ...verificarStash(coleta),
   ];
 

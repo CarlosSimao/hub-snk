@@ -9,6 +9,16 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Corrigido
+
+- O diagnóstico Git dizia "Sem pendências: tudo commitado e enviado" em
+  repositório com commit feito e push esquecido. Agora ele conta os commits
+  locais que ainda não foram para o remoto e avisa em amarelo, com o `git push`
+  pronto para copiar. Branch sem upstream — cujos commits não existem em lugar
+  nenhum além da máquina — também passou a ser acusada, com o
+  `git push -u origin <branch>`. O caminho inverso, commits que já estão no
+  remoto e ainda não vieram para cá, continua fora: medir isso exigiria rede.
+
 ## [1.1.0] - 2026-08-10
 
 ### Adicionado
