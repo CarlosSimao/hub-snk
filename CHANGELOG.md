@@ -20,6 +20,13 @@ número significa aqui.
   escrito por extenso. O `[S/n]` anterior indicava a resposta de quem aperta
   Enter só pela caixa da letra, o que passa despercebido.
 
+- Os instaladores do Windows e do Linux/macOS passam a fazer as mesmas
+  perguntas, na mesma ordem e com a mesma redação. O `HUB_NAVEGADOR` aceita as
+  mesmas três formas em todos os sistemas: `padrao` para o navegador do sistema,
+  `auto` para o primeiro Chromium encontrado, ou um nome da lista — antes o
+  `auto` existia só no Linux e no macOS. Só a pergunta do atalho continua
+  diferente, porque menu Iniciar e menu de aplicativos não são a mesma coisa.
+
 ### Documentação
 
 - O README explica como habilitar o `instalar-hub-snk.bat` no Windows 11:

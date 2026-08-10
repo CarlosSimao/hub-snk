@@ -77,24 +77,31 @@ cada um deles, e é por isso que a ordem importa.
 
 Cada pergunta vem com um valor pronto entre colchetes, e Enter aceita:
 
-| Pergunta                    | Padrão                           | O que faz                                                                                       |
-| --------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Pasta de instalação         | `%LOCALAPPDATA%\Programs\HubSnk` | Onde o programa fica                                                                            |
-| `HUB_PORTA`                 | `4100`                           | Porta em que o servidor escuta                                                                  |
-| `HUB_HOST`                  | `127.0.0.1`                      | Endereço em que o servidor escuta                                                               |
-| `HUB_DADOS_DIR`             | `%LOCALAPPDATA%\HubSnk\dados`    | Onde o cadastro é gravado                                                                       |
-| `HUB_NAVEGADOR`             | `padrao`                         | `edge`, `chrome` ou `padrao` — é nele que a janela e os links dos clientes abrem                |
-| Atalho na área de trabalho  | Sim                              | Ícone do HUB SNK ao lado do menu Iniciar                                                        |
-| Iniciar junto com o Windows | Não                              | O servidor sobe sozinho no logon, sem abrir janela. Você abre a tela quando quiser, pelo atalho |
+| Pergunta                   | Padrão                           | O que faz                                                                                       |
+| -------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Pasta de instalação        | `%LOCALAPPDATA%\Programs\HubSnk` | Onde o programa fica                                                                            |
+| `HUB_PORTA`                | `4100`                           | Porta em que o servidor escuta                                                                  |
+| `HUB_HOST`                 | `127.0.0.1`                      | Endereço em que o servidor escuta                                                               |
+| `HUB_DADOS_DIR`            | `%LOCALAPPDATA%\HubSnk\dados`    | Onde o cadastro é gravado                                                                       |
+| `HUB_NAVEGADOR`            | `padrao`                         | `padrao`, `auto` ou um navegador da lista — é nele que a janela e os links dos clientes abrem   |
+| Atalho na área de trabalho | Sim                              | Ícone na área de trabalho. O do menu Iniciar é criado sempre, sem perguntar                     |
+| Iniciar junto com a sessão | Não                              | O servidor sobe sozinho no logon, sem abrir janela. Você abre a tela quando quiser, pelo atalho |
 
 As escolhas ficam em `%LOCALAPPDATA%\HubSnk\hub-snk.env`, um arquivo de texto
 que dá para editar depois sem reinstalar.
 
-Escolher `edge` ou `chrome` abre o HUB SNK em **janela própria**, sem barra de
-endereço e sem abas, sem precisar instalar a PWA pelo botão do navegador. Com
-`padrao`, que é o valor inicial, a tela abre em aba comum do navegador que você
-já usa. Só são oferecidos os navegadores encontrados na máquina; se o escolhido
-for desinstalado depois, o HUB SNK volta a abrir no primeiro que encontrar.
+O `HUB_NAVEGADOR` aceita as mesmas três formas em todos os sistemas:
+
+| Valor            | O que faz                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| `padrao`         | Abre em aba comum do navegador do sistema. É o valor inicial                         |
+| `auto`           | Abre em **janela própria** no primeiro Chromium encontrado na máquina                |
+| Um nome da lista | Fixa o navegador da janela: `edge` e `chrome` no Windows, o comando no Linux e macOS |
+
+A janela própria não tem barra de endereço nem abas, e não exige instalar a PWA
+pelo botão do navegador. Só entram na lista os navegadores encontrados na
+máquina; se o escolhido for desinstalado depois, o HUB SNK volta a abrir no
+primeiro que encontrar.
 
 Seu cadastro fica fora da pasta do programa. Desinstalar **não apaga o
 cadastro**; atualizar também não.
@@ -145,11 +152,21 @@ antigo demais.
 ./instalar-hub-snk.sh
 ```
 
-Pergunta a pasta do programa, os quatro parâmetros do servidor (`HUB_PORTA`,
-`HUB_HOST`, `HUB_DADOS_DIR`, `HUB_NAVEGADOR`), se cria atalho no menu de
-aplicativos e se sobe junto com a sessão. Cada pergunta vem com o valor pronto
-entre colchetes, e Enter aceita. As respostas ficam em
-`~/.config/hub-snk/hub-snk.env`, editável depois sem reinstalar.
+As perguntas são as mesmas do instalador do Windows, na mesma ordem e com os
+mesmos padrões — muda só o atalho, que aqui vai para o menu de aplicativos:
+
+| Pergunta                      | Padrão                            |
+| ----------------------------- | --------------------------------- |
+| Pasta de instalação           | `~/.local/share/hub-snk/programa` |
+| `HUB_PORTA`                   | `4100`                            |
+| `HUB_HOST`                    | `127.0.0.1`                       |
+| `HUB_DADOS_DIR`               | `~/.local/share/hub-snk/dados`    |
+| `HUB_NAVEGADOR`               | `padrao`                          |
+| Atalho no menu de aplicativos | Sim                               |
+| Iniciar junto com a sessão    | Não                               |
+
+As respostas ficam em `~/.config/hub-snk/hub-snk.env`, editável depois sem
+reinstalar.
 
 Seu cadastro fica em `~/.local/share/hub-snk/dados`, fora da pasta do programa.
 Para atualizar, descompacte a versão nova e rode o `instalar-hub-snk.sh` de

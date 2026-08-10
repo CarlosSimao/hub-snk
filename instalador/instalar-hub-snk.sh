@@ -155,16 +155,19 @@ navegadores_disponiveis() {
     return 0
 }
 
-# `auto` deixa o launcher procurar; `padrao` abre em aba comum pelo navegador do
-# sistema; um nome de comando fixa o navegador da janela.
+# `padrao` abre em aba comum do navegador do sistema; `auto` deixa o launcher
+# procurar um Chromium; um nome de comando fixa o navegador da janela. As três
+# formas, e esta pergunta, são as mesmas do instalador do Windows — só muda a
+# lista de navegadores, que sai do que existe em cada sistema.
 #
 # O padrão da primeira instalação é `padrao`: é a escolha que respeita o que a
 # pessoa já usa. Quem prefere a janela sem abas escolhe na hora, e a escolha
 # volta como padrão na próxima.
 perguntar_navegador() {
     padrao=$1
-    encontrados=$(navegadores_disponiveis)
-    opcoes="$NAVEGADOR_AUTOMATICO $NAVEGADOR_PADRAO $encontrados"
+    opcoes=$(printf '%s %s %s' "$NAVEGADOR_PADRAO" "$NAVEGADOR_AUTOMATICO" \
+        "$(navegadores_disponiveis | tr '\n' ' ')")
+    lista=$(echo "$opcoes" | tr -s ' ' | sed 's/ $//; s/ /, /g')
 
     # O navegador gravado pode ter saído da máquina desde a última instalação.
     if ! echo "$opcoes" | tr ' ' '\n' | grep -qx "$padrao"; then
@@ -173,8 +176,9 @@ perguntar_navegador() {
 
     {
         printf '\n  A janela do HUB SNK abre sem barra de endereço e sem abas nos navegadores\n'
-        printf "  Chromium. Com '%s', abre em aba comum do navegador padrão.\n" "$NAVEGADOR_PADRAO"
-        printf '  Opções: %s\n' "$(echo "$opcoes" | tr '\n' ' ')"
+        printf "  Chromium. Com '%s', abre em aba comum do navegador do sistema;\n" "$NAVEGADOR_PADRAO"
+        printf "  com '%s', no primeiro Chromium encontrado na máquina.\n" "$NAVEGADOR_AUTOMATICO"
+        printf '  Opções: %s\n' "$lista"
     } >&2
 
     while :; do
@@ -187,7 +191,7 @@ perguntar_navegador() {
             fi
         done
 
-        printf '  Escolha uma das opções: %s\n' "$(echo "$opcoes" | tr '\n' ' ')" >&2
+        printf '  Escolha uma das opções: %s.\n' "$lista" >&2
     done
 }
 
