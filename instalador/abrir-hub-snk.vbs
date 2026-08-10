@@ -154,8 +154,13 @@ End Function
 
 ' O `cmd /c` existe para redirecionar a saída ao log e fixar a pasta de
 ' trabalho — o Run sozinho não faz nenhum dos dois.
+'
+' A janela é aberta por este script, depois de a porta responder: sem o
+' HUB_ABRIR_JANELA=0, o servidor abriria a dele e o usuário veria duas.
 Sub IniciarServidor()
     Dim comando
+
+    shell.Environment("PROCESS").Item("HUB_ABRIR_JANELA") = "0"
 
     comando = "cmd /c cd /d """ & pastaDoAplicativo & """ && """ & _
         pastaDoAplicativo & "\node.exe"" ""src\index.ts"" >> """ & CaminhoDoLog() & """ 2>&1"

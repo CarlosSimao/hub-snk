@@ -14,15 +14,45 @@ Funciona em Windows, Linux e macOS.
 
 ---
 
-## Instalação no Windows
+## Windows
 
 Baixe o `hub-snk-<versão>-windows-x64.zip` na
-[página de releases](https://github.com/CarlosSimao/hub-snk/releases),
-descompacte e dê duplo clique em **`instalar-hub-snk.bat`**.
+[página de releases](https://github.com/CarlosSimao/hub-snk/releases) e
+descompacte.
 
-A instalação **não pede senha de administrador** e **não exige Node.js
-instalado** — o pacote já traz o necessário. Cada pergunta vem com um valor
-pronto entre colchetes, e Enter aceita:
+### Usar sem instalar
+
+Abra a pasta descompactada, clique com o botão direito num espaço vazio dela e
+escolha _Abrir no Terminal_. Depois:
+
+```powershell
+.\node.exe src\index.ts
+```
+
+O servidor sobe e a janela do HUB SNK abre sozinha, sem barra de endereço e sem
+abas. Para encerrar, feche o terminal.
+
+Não é preciso ter Node.js instalado — o pacote traz o dele. Seu cadastro fica na
+pasta `dados-hub-snk`, ao lado do programa; para mandá-lo a outro lugar, use o
+`HUB_DADOS_DIR` (veja [Configuração](#configuração)).
+
+> **Por que sem instalador:** o Controle Inteligente de Aplicativos do Windows 11
+> bloqueia executável e script sem assinatura digital, e assinar exige
+> certificado pago. O `node.exe` do pacote é assinado pela OpenJS Foundation e
+> passa direto — por isso o caminho acima funciona com o bloqueio ligado.
+
+### Instalar, com atalho e início no logon
+
+O pacote também traz uma instalação de verdade, para quem quer ícone no menu
+Iniciar e o servidor subindo junto com o Windows.
+
+Os scripts são barrados pelo Controle Inteligente de Aplicativos enquanto
+carregarem a marca de arquivo baixado da internet. Para tirá-la, **antes de
+descompactar**: botão direito no `.zip` → _Propriedades_ → marque
+**Desbloquear** → _OK_. Só então descompacte e dê duplo clique em
+**`instalar-hub-snk.bat`**.
+
+Cada pergunta vem com um valor pronto entre colchetes, e Enter aceita:
 
 | Pergunta                    | Padrão                           | O que faz                                                                                       |
 | --------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------- |
@@ -46,15 +76,13 @@ primeiro que encontrar.
 Seu cadastro fica fora da pasta do programa. Desinstalar **não apaga o
 cadastro**; atualizar também não.
 
-> **Por que não há mais um `.exe` de instalação:** o Controle Inteligente de
-> Aplicativos do Windows 11 bloqueia executável sem assinatura digital, e
-> assinar exige certificado pago. Os scripts não passam por esse bloqueio.
-
 ### Atualizar no Windows
 
-Baixe o zip da versão nova, descompacte e rode o `instalar-hub-snk.bat` de novo.
-Ele encerra o servidor no ar, escreve por cima e mantém as respostas anteriores
-como padrão — Enter em tudo repete a instalação atual.
+Baixe o zip da versão nova e descompacte. Sem instalação, é só rodar o
+`.\node.exe src\index.ts` da pasta nova. Com instalação, rode o
+`instalar-hub-snk.bat` de novo: ele encerra o servidor no ar, escreve por cima e
+mantém as respostas anteriores como padrão — Enter em tudo repete a instalação
+atual.
 
 ### Desinstalar no Windows
 
@@ -64,7 +92,7 @@ onde está.
 
 ---
 
-## Instalação no Linux e no macOS
+## Linux e macOS
 
 Baixe o pacote da sua plataforma na
 [página de releases](https://github.com/CarlosSimao/hub-snk/releases):
@@ -75,27 +103,29 @@ Baixe o pacote da sua plataforma na
 | macOS com Apple Silicon (M1 em diante) | `hub-snk-<versão>-macos-arm64.tar.gz` |
 | macOS com processador Intel            | `hub-snk-<versão>-macos-x64.tar.gz`   |
 
+### Usar sem instalar
+
 ```bash
 tar -xzf hub-snk-*-linux-x64.tar.gz
 cd hub-snk-*-linux-x64
-./instalar-hub-snk.sh
-```
-
-O pacote **já traz o Node** — não é preciso ter Node.js instalado.
-
-A instalação pergunta a pasta do programa, os quatro parâmetros do servidor
-(`HUB_PORTA`, `HUB_HOST`, `HUB_DADOS_DIR`, `HUB_NAVEGADOR`), se cria atalho no
-menu de aplicativos e se sobe junto com a sessão. Cada pergunta vem com o valor
-pronto entre colchetes, e Enter aceita. As respostas ficam em
-`~/.config/hub-snk/hub-snk.env`, editável depois sem reinstalar.
-
-Para rodar sem instalar, o launcher funciona direto de dentro do pacote:
-
-```bash
 ./hub-snk.sh            # sobe o servidor e abre a janela
 ./hub-snk.sh servidor   # sobe o servidor sem abrir nada
 ./hub-snk.sh parar      # encerra o servidor
 ```
+
+O pacote **já traz o Node** — não é preciso ter Node.js instalado.
+
+### Instalar, com atalho e início na sessão
+
+```bash
+./instalar-hub-snk.sh
+```
+
+Pergunta a pasta do programa, os quatro parâmetros do servidor (`HUB_PORTA`,
+`HUB_HOST`, `HUB_DADOS_DIR`, `HUB_NAVEGADOR`), se cria atalho no menu de
+aplicativos e se sobe junto com a sessão. Cada pergunta vem com o valor pronto
+entre colchetes, e Enter aceita. As respostas ficam em
+`~/.config/hub-snk/hub-snk.env`, editável depois sem reinstalar.
 
 Seu cadastro fica em `~/.local/share/hub-snk/dados`, fora da pasta do programa.
 Para atualizar, descompacte a versão nova e rode o `instalar-hub-snk.sh` de
@@ -119,6 +149,7 @@ Todas as variáveis são opcionais.
 | `HUB_PERMITIR_REDE` | _(vazio)_         | `1` autoriza o `HUB_HOST` fora do loopback. Sem ela, o servidor recusa subir                                                                    |
 | `HUB_DADOS_DIR`     | `./dados-hub-snk` | Onde o cadastro é gravado                                                                                                                       |
 | `HUB_NAVEGADOR`     | _(vazio)_         | Navegador da janela: no Windows `edge`, `chrome` ou `padrao`; no Linux e no macOS o comando do navegador, `auto` ou `padrao`                    |
+| `HUB_ABRIR_JANELA`  | _(vazio)_         | `0` sobe o servidor sem abrir a janela. É o que o launcher usa, porque a janela é ele quem abre                                                 |
 
 Numa instalação, esses mesmos nomes ficam gravados no `hub-snk.env` — em
 `%LOCALAPPDATA%\HubSnk\` no Windows, em `~/.config/hub-snk/` no Linux e no

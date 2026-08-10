@@ -13,6 +13,7 @@ import { registrarRotasDeConfiguracao } from './rotas/rotasConfiguracao.ts';
 import { registrarRotasDeGit } from './rotas/rotasGit.ts';
 import { registrarRotasDeLocal } from './rotas/rotasLocal.ts';
 import { registrarRotasDeSistema } from './rotas/rotasSistema.ts';
+import { abrirJanelaDoAplicativo } from './sistema/abrirJanelaDoAplicativo.ts';
 import { observarAlteracoesNosDados, type CacheDescartavel } from './sistema/observadorDeDados.ts';
 
 async function iniciarServidor(): Promise<void> {
@@ -58,6 +59,13 @@ async function iniciarServidor(): Promise<void> {
 
   await servidor.listen({ port: configuracao.porta, host: configuracao.host });
   servidor.log.info(`Dados em ${configuracao.diretorioDeDados}`);
+
+  if (configuracao.abrirJanela) {
+    await abrirJanelaDoAplicativo(
+      `http://${configuracao.host}:${configuracao.porta}`,
+      configuracao.navegador,
+    );
+  }
 
   /*
    * A pasta precisa existir para ser vigiada, e numa instalação nova ela só
