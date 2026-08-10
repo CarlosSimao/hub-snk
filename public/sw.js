@@ -5,7 +5,7 @@
  * sem rede. As chamadas de `/api` nunca são cacheadas: dado desatualizado de
  * cadastro é pior do que erro visível.
  */
-const VERSAO_DO_CACHE = 'hub-snk-v2.1.0';
+const VERSAO_DO_CACHE = 'hub-snk-v3.0.0';
 
 const ARQUIVOS_DO_SHELL = [
   '/',
