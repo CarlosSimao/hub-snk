@@ -9,6 +9,12 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Corrigido
+
+- No Windows, o seletor de pasta dos atalhos abria atrás da janela do HUB SNK e
+  dava a impressão de que o botão não tinha feito nada. Agora ele vem para a
+  frente.
+
 ## [1.0.0] - 2026-08-09
 
 Primeira versão pública. O que já existia continua igual; esta entrada registra o
