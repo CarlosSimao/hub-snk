@@ -106,11 +106,143 @@ Filename: "{sys}\wscript.exe"; \
     Flags: waituntilterminated
 
 [UninstallDelete]
-; O log é gerado em tempo de execução e não seria removido por não estar na
-; lista de arquivos instalados. O cadastro, ao lado dele, fica onde está.
+; O log e a preferência de navegador são gerados fora da lista de arquivos
+; instalados e não sairiam sozinhos. O cadastro, ao lado deles, fica onde está.
 Type: files; Name: "{localappdata}\HubSnk\hub-snk.log"
+Type: files; Name: "{localappdata}\HubSnk\navegador.txt"
 
 [Code]
+{ Página que pergunta em qual navegador o HUB SNK deve abrir. A janela do
+  aplicativo é aberta com o `--app` do navegador escolhido, e é nele que os
+  links dos clientes acabam abrindo. A escolha vai para um arquivo lido pelo
+  abrir-hub-snk.vbs a cada abertura. }
+
+const
+  NavegadorEdge = 'edge';
+  NavegadorChrome = 'chrome';
+  NavegadorPadrao = 'padrao';
+
+var
+  PaginaDoNavegador: TInputOptionWizardPage;
+  IndiceDoEdge: Integer;
+  IndiceDoChrome: Integer;
+  IndiceDoPadrao: Integer;
+
+{ As pastas dos programas vêm do ambiente, e não das constantes commonpf: a
+  instalação é por usuário (PrivilegesRequired=lowest) e os mesmos caminhos são
+  procurados pelo abrir-hub-snk.vbs. }
+function EdgeInstalado: Boolean;
+begin
+  Result :=
+    FileExists(GetEnv('ProgramFiles(x86)') + '\Microsoft\Edge\Application\msedge.exe') or
+    FileExists(GetEnv('ProgramFiles') + '\Microsoft\Edge\Application\msedge.exe');
+end;
+
+function ChromeInstalado: Boolean;
+begin
+  Result :=
+    FileExists(GetEnv('ProgramFiles') + '\Google\Chrome\Application\chrome.exe') or
+    FileExists(GetEnv('ProgramFiles(x86)') + '\Google\Chrome\Application\chrome.exe') or
+    FileExists(ExpandConstant('{localappdata}\Google\Chrome\Application\chrome.exe'));
+end;
+
+function CaminhoDaPreferenciaDeNavegador: String;
+begin
+  Result := ExpandConstant('{localappdata}\HubSnk\navegador.txt');
+end;
+
+{ Vazio quando é a primeira instalação: aí a escolha inicial é o Edge, por vir
+  com o Windows. }
+function PreferenciaDeNavegadorGravada: String;
+var
+  Conteudo: AnsiString;
+begin
+  Result := '';
+  if LoadStringFromFile(CaminhoDaPreferenciaDeNavegador, Conteudo) then
+    Result := Lowercase(Trim(String(Conteudo)));
+end;
+
+function OpcaoInicialDoNavegador: Integer;
+var
+  Preferencia: String;
+begin
+  Preferencia := PreferenciaDeNavegadorGravada;
+
+  if (Preferencia = NavegadorEdge) and (IndiceDoEdge >= 0) then
+    Result := IndiceDoEdge
+  else if (Preferencia = NavegadorChrome) and (IndiceDoChrome >= 0) then
+    Result := IndiceDoChrome
+  else if Preferencia = NavegadorPadrao then
+    Result := IndiceDoPadrao
+  else if IndiceDoEdge >= 0 then
+    Result := IndiceDoEdge
+  else if IndiceDoChrome >= 0 then
+    Result := IndiceDoChrome
+  else
+    Result := IndiceDoPadrao;
+end;
+
+procedure InitializeWizard;
+begin
+  PaginaDoNavegador := CreateInputOptionPage(
+    wpSelectTasks,
+    'Navegador do HUB SNK',
+    'Em qual navegador o HUB SNK deve abrir?',
+    'O atalho abre o HUB SNK em janela própria, sem barra de endereço e sem ' +
+    'abas. Os links dos clientes abrem no mesmo navegador dessa janela.',
+    True, False);
+
+  IndiceDoEdge := -1;
+  IndiceDoChrome := -1;
+
+  if EdgeInstalado then
+    IndiceDoEdge := PaginaDoNavegador.Add('Microsoft Edge');
+  if ChromeInstalado then
+    IndiceDoChrome := PaginaDoNavegador.Add('Google Chrome');
+  IndiceDoPadrao := PaginaDoNavegador.Add(
+    'Navegador padrão do Windows (abre em aba comum)');
+
+  PaginaDoNavegador.SelectedValueIndex := OpcaoInicialDoNavegador;
+end;
+
+{ Sem Edge nem Chrome não há o que escolher: só resta o navegador padrão. }
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := (PageID = PaginaDoNavegador.ID) and
+            (IndiceDoEdge < 0) and (IndiceDoChrome < 0);
+end;
+
+function NavegadorEscolhido: String;
+begin
+  if PaginaDoNavegador.SelectedValueIndex = IndiceDoEdge then
+    Result := NavegadorEdge
+  else if PaginaDoNavegador.SelectedValueIndex = IndiceDoChrome then
+    Result := NavegadorChrome
+  else
+    Result := NavegadorPadrao;
+end;
+
+{ A pasta é a mesma do cadastro e do log, criada aqui porque a primeira
+  instalação acontece antes de o servidor subir uma única vez. }
+procedure GravarPreferenciaDeNavegador;
+begin
+  ForceDirectories(ExpandConstant('{localappdata}\HubSnk'));
+
+  if not SaveStringToFile(CaminhoDaPreferenciaDeNavegador,
+                          AnsiString(NavegadorEscolhido), False) then
+    MsgBox(
+      'Não foi possível gravar o navegador escolhido em:' + #13#10 +
+      CaminhoDaPreferenciaDeNavegador + #13#10#13#10 +
+      'O HUB SNK vai abrir no primeiro navegador que encontrar.',
+      mbError, MB_OK);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    GravarPreferenciaDeNavegador;
+end;
+
 { O desinstalador não toca no cadastro. Apagar dados por engano é irreversível,
   e uma reinstalação logo em seguida é o caso mais comum. }
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);

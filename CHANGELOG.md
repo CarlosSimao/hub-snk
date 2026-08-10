@@ -17,6 +17,12 @@ número significa aqui.
   ou com uma versão de desenvolvimento à frente da publicada, o rodapé fica como
   sempre foi.
 
+- Escolha do navegador no instalador do Windows. Ele pergunta em qual navegador
+  instalado o HUB SNK deve abrir — Edge, Chrome ou o navegador padrão do Windows
+  — e o atalho passa a abrir a janela nele. Como os links dos clientes abrem na
+  mesma janela, eles caem no navegador escolhido. Quem já tinha o HUB SNK
+  instalado continua com o Edge, ou o Chrome quando não há Edge, até reinstalar.
+
 ### Corrigido
 
 - No Windows, o seletor de pasta dos atalhos abria atrás da janela do HUB SNK e
