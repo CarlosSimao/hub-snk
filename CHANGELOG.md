@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.1.0] - 2026-08-10
+
 ### Adicionado
 
 - O servidor passa a abrir a janela do HUB SNK sozinho ao subir. É o que permite
@@ -160,7 +162,8 @@ que mudou ao preparar a distribuição.
 - `HUB_HOST` fora do loopback não sobe mais sozinho: precisa de
   `HUB_PERMITIR_REDE=1`, dito de propósito.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.0.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.1...v2.0.0
 [1.1.1]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.0.0...v1.1.0
