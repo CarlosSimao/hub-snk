@@ -87,7 +87,7 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 - [x] Criar `CONTRIBUTING.md` — reduzido a "não recebo pull request, peça por issue"; o conteúdo de manutenção foi para `docs/manutencao.md`
 - [x] `SECURITY.md` — removido: não há canal privado, tudo é pedido por issue. A conferência de origem foi para `docs/api.md`; o modelo de ameaça está no README, em "Exposição na rede"
 - [x] Mover o detalhe das funcionalidades do README para `docs/funcionalidades.md` — o README ficou com uma tabela-resumo
-- [ ] Avaliar o Private vulnerability reporting do GitHub (Settings › Security) — dá canal privado para falha de segurança sem expor e-mail
+- [x] Habilitar o Private vulnerability reporting do GitHub — canal privado para falha de segurança, sem expor e-mail; o link está no `CONTRIBUTING.md` e no `config.yml`
 - [x] `CODE_OF_CONDUCT.md` — dispensado: projeto de um mantenedor, público restrito a colegas
 - [x] `CODEOWNERS` — dispensado: um mantenedor só
 
