@@ -9,6 +9,32 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Alterado
+
+- O navegador da janela passa a vir como `padrao` na primeira instalação, em vez
+  do Edge: a tela abre no navegador que você já usa. Quem prefere a janela sem
+  barra de endereço e sem abas escolhe `edge` ou `chrome` na hora, e a escolha
+  volta como padrão na próxima instalação.
+
+- As perguntas de sim ou não passam a mostrar `[S/N] (padrão: S)`, com o padrão
+  escrito por extenso. O `[S/n]` anterior indicava a resposta de quem aperta
+  Enter só pela caixa da letra, o que passa despercebido.
+
+- Os instaladores do Windows e do Linux/macOS passam a fazer as mesmas
+  perguntas, na mesma ordem e com a mesma redação. O `HUB_NAVEGADOR` aceita as
+  mesmas três formas em todos os sistemas: `padrao` para o navegador do sistema,
+  `auto` para o primeiro Chromium encontrado, ou um nome da lista — antes o
+  `auto` existia só no Linux e no macOS. Só a pergunta do atalho continua
+  diferente, porque menu Iniciar e menu de aplicativos não são a mesma coisa.
+
+### Documentação
+
+- O README explica como habilitar o `instalar-hub-snk.bat` no Windows 11:
+  desbloquear o `.zip` nas propriedades **antes** de descompactar tira a marca de
+  arquivo baixado, e o Controle Inteligente de Aplicativos deixa o script rodar.
+  A ordem importa — a marca é por arquivo, e desbloquear depois exigiria repetir
+  em cada um.
+
 ## [3.0.0] - 2026-08-10
 
 ### Removido

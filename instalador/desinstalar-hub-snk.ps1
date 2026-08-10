@@ -18,9 +18,11 @@ $atalhos = @(
     (Join-Path ([System.Environment]::GetFolderPath('Desktop')) 'HUB SNK.lnk')
 )
 
+# O padrão vai escrito por extenso, e não pela caixa da letra: quem lê [s/N]
+# rápido não percebe que a maiúscula é a resposta de quem aperta Enter.
 function PerguntarSimOuNao([string]$rotulo, [bool]$padraoSim) {
-    $opcoes = if ($padraoSim) { 'S/n' } else { 's/N' }
-    $resposta = (Read-Host "$rotulo [$opcoes]").Trim().ToLowerInvariant()
+    $padrao = if ($padraoSim) { 'S' } else { 'N' }
+    $resposta = (Read-Host "$rotulo [S/N] (padrão: $padrao)").Trim().ToLowerInvariant()
 
     if ($resposta -eq '') { return $padraoSim }
     return $resposta.StartsWith('s')

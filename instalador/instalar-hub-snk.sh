@@ -48,13 +48,16 @@ perguntar() {
 }
 
 # Devolve 0 para sim, 1 para não — o mesmo que um `if` espera.
+#
+# O padrão vai escrito por extenso, e não pela caixa da letra: quem lê [S/n]
+# rápido não percebe que a maiúscula é a resposta de quem aperta Enter.
 perguntar_sim_ou_nao() {
     rotulo=$1
     padrao=$2
 
-    if [ "$padrao" = sim ]; then opcoes='S/n'; else opcoes='s/N'; fi
+    if [ "$padrao" = sim ]; then letra=S; else letra=N; fi
 
-    printf '%s [%s]: ' "$rotulo" "$opcoes" >&2
+    printf '%s [S/N] (padrão: %s): ' "$rotulo" "$letra" >&2
     read -r resposta || resposta=''
 
     case "$(echo "$resposta" | tr '[:upper:]' '[:lower:]')" in
@@ -152,22 +155,30 @@ navegadores_disponiveis() {
     return 0
 }
 
-# `auto` deixa o launcher procurar; `padrao` abre em aba comum pelo xdg-open;
-# um nome de comando fixa o navegador da janela.
+# `padrao` abre em aba comum do navegador do sistema; `auto` deixa o launcher
+# procurar um Chromium; um nome de comando fixa o navegador da janela. As três
+# formas, e esta pergunta, são as mesmas do instalador do Windows — só muda a
+# lista de navegadores, que sai do que existe em cada sistema.
+#
+# O padrão da primeira instalação é `padrao`: é a escolha que respeita o que a
+# pessoa já usa. Quem prefere a janela sem abas escolhe na hora, e a escolha
+# volta como padrão na próxima.
 perguntar_navegador() {
     padrao=$1
-    encontrados=$(navegadores_disponiveis)
-    opcoes="$NAVEGADOR_AUTOMATICO $NAVEGADOR_PADRAO $encontrados"
+    opcoes=$(printf '%s %s %s' "$NAVEGADOR_PADRAO" "$NAVEGADOR_AUTOMATICO" \
+        "$(navegadores_disponiveis | tr '\n' ' ')")
+    lista=$(echo "$opcoes" | tr -s ' ' | sed 's/ $//; s/ /, /g')
 
     # O navegador gravado pode ter saído da máquina desde a última instalação.
     if ! echo "$opcoes" | tr ' ' '\n' | grep -qx "$padrao"; then
-        padrao=$NAVEGADOR_AUTOMATICO
+        padrao=$NAVEGADOR_PADRAO
     fi
 
     {
         printf '\n  A janela do HUB SNK abre sem barra de endereço e sem abas nos navegadores\n'
-        printf "  Chromium. Com '%s', abre em aba comum do navegador padrão.\n" "$NAVEGADOR_PADRAO"
-        printf '  Opções: %s\n' "$(echo "$opcoes" | tr '\n' ' ')"
+        printf "  Chromium. Com '%s', abre em aba comum do navegador do sistema;\n" "$NAVEGADOR_PADRAO"
+        printf "  com '%s', no primeiro Chromium encontrado na máquina.\n" "$NAVEGADOR_AUTOMATICO"
+        printf '  Opções: %s\n' "$lista"
     } >&2
 
     while :; do
@@ -180,7 +191,7 @@ perguntar_navegador() {
             fi
         done
 
-        printf '  Escolha uma das opções: %s\n' "$(echo "$opcoes" | tr '\n' ' ')" >&2
+        printf '  Escolha uma das opções: %s.\n' "$lista" >&2
     done
 }
 
@@ -300,7 +311,7 @@ host_e_rede=$(perguntar_host "$(valor_gravado HUB_HOST "$HOST_PADRAO")")
 endereco=${host_e_rede% *}
 permitir_rede=${host_e_rede#* }
 dados=$(perguntar 'Pasta do cadastro (HUB_DADOS_DIR)' "$(valor_gravado HUB_DADOS_DIR "$DADOS_PADRAO")")
-navegador=$(perguntar_navegador "$(valor_gravado HUB_NAVEGADOR "$NAVEGADOR_AUTOMATICO")")
+navegador=$(perguntar_navegador "$(valor_gravado HUB_NAVEGADOR "$NAVEGADOR_PADRAO")")
 
 printf '\n'
 if perguntar_sim_ou_nao 'Criar atalho no menu de aplicativos?' sim; then

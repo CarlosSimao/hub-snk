@@ -16,6 +16,7 @@ $REDE_LIBERADA = '1'
 $NAVEGADOR_EDGE = 'edge'
 $NAVEGADOR_CHROME = 'chrome'
 $NAVEGADOR_PADRAO = 'padrao'
+$NAVEGADOR_AUTOMATICO = 'auto'
 $PORTA_MINIMA = 1
 $PORTA_MAXIMA = 65535
 $VERSAO_MINIMA_DO_NODE = '22.18'
@@ -39,9 +40,11 @@ function Perguntar([string]$rotulo, [string]$padrao) {
     return $resposta.Trim()
 }
 
+# O padrão vai escrito por extenso, e não pela caixa da letra: quem lê [S/n]
+# rápido não percebe que a maiúscula é a resposta de quem aperta Enter.
 function PerguntarSimOuNao([string]$rotulo, [bool]$padraoSim) {
-    $opcoes = if ($padraoSim) { 'S/n' } else { 's/N' }
-    $resposta = (Read-Host "$rotulo [$opcoes]").Trim().ToLowerInvariant()
+    $padrao = if ($padraoSim) { 'S' } else { 'N' }
+    $resposta = (Read-Host "$rotulo [S/N] (padrão: $padrao)").Trim().ToLowerInvariant()
 
     if ($resposta -eq '') { return $padraoSim }
     return $resposta.StartsWith('s')
@@ -156,20 +159,25 @@ function PrimeiroCaminhoExistente($candidatos) {
     return ''
 }
 
-# Só entram na lista os navegadores instalados: oferecer o que não existe leva
-# a uma janela que não abre.
+# `padrao` abre em aba comum do navegador do sistema; `auto` deixa o launcher
+# procurar um Chromium; um nome fixa o navegador da janela. As três formas, e
+# esta pergunta, são as mesmas do instalador do Linux e do macOS — só muda a
+# lista de navegadores, que sai do que existe em cada sistema.
+#
+# O padrão da primeira instalação é `padrao`: é a escolha que respeita o que a
+# pessoa já usa. Quem prefere a janela sem abas escolhe na hora, e a escolha
+# volta como padrão na próxima.
 function PerguntarNavegador([string]$padrao) {
-    $disponiveis = @()
+    $disponiveis = @($NAVEGADOR_PADRAO, $NAVEGADOR_AUTOMATICO)
     if ((CaminhoDoEdge) -ne '') { $disponiveis += $NAVEGADOR_EDGE }
     if ((CaminhoDoChrome) -ne '') { $disponiveis += $NAVEGADOR_CHROME }
-    $disponiveis += $NAVEGADOR_PADRAO
 
-    if ($disponiveis.Count -eq 1) { return $NAVEGADOR_PADRAO }
-    if ($disponiveis -notcontains $padrao) { $padrao = $disponiveis[0] }
+    if ($disponiveis -notcontains $padrao) { $padrao = $NAVEGADOR_PADRAO }
 
     Write-Host ''
-    Write-Host '  A janela do HUB SNK abre sem barra de endereço e sem abas no Edge ou no'
-    Write-Host "  Chrome. Com '$NAVEGADOR_PADRAO', abre em aba comum do navegador padrão."
+    Write-Host '  A janela do HUB SNK abre sem barra de endereço e sem abas nos navegadores'
+    Write-Host "  Chromium. Com '$NAVEGADOR_PADRAO', abre em aba comum do navegador do sistema;"
+    Write-Host "  com '$NAVEGADOR_AUTOMATICO', no primeiro Chromium encontrado na máquina."
     Write-Host "  Opções: $($disponiveis -join ', ')"
 
     while ($true) {
@@ -323,7 +331,7 @@ $navegador = PerguntarNavegador $navegadorAnterior
 
 Write-Host ''
 $naAreaDeTrabalho = PerguntarSimOuNao 'Criar atalho na área de trabalho?' $true
-$noLogon = PerguntarSimOuNao 'Iniciar o HUB SNK junto com o Windows?' $false
+$noLogon = PerguntarSimOuNao 'Iniciar o HUB SNK junto com a sessão?' $false
 
 Write-Host ''
 EncerrarServidorInstalado $destino

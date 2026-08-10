@@ -63,29 +63,43 @@ O pacote também traz uma instalação de verdade, para quem quer ícone no menu
 Iniciar e o servidor subindo junto com o Windows.
 
 Os scripts são barrados pelo Controle Inteligente de Aplicativos enquanto
-carregarem a marca de arquivo baixado da internet. Para tirá-la, **antes de
-descompactar**: botão direito no `.zip` → _Propriedades_ → marque
-**Desbloquear** → _OK_. Só então descompacte e dê duplo clique em
-**`instalar-hub-snk.bat`**.
+carregarem a marca de arquivo baixado da internet — o `instalar-hub-snk.bat`
+aberto direto do zip mostra _"O Controle de Aplicativo Inteligente bloqueou um
+arquivo que pode não ser seguro"_. Para tirar a marca, **antes de descompactar**:
+
+1. Botão direito no `.zip` baixado → _Propriedades_.
+2. Marque **Desbloquear**, na parte de baixo da aba _Geral_.
+3. _OK_, e só então descompacte.
+
+Feito isso, o duplo clique em **`instalar-hub-snk.bat`** roda normalmente. A
+marca vale por arquivo: desbloquear depois de descompactar exigiria repetir em
+cada um deles, e é por isso que a ordem importa.
 
 Cada pergunta vem com um valor pronto entre colchetes, e Enter aceita:
 
-| Pergunta                    | Padrão                           | O que faz                                                                                       |
-| --------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Pasta de instalação         | `%LOCALAPPDATA%\Programs\HubSnk` | Onde o programa fica                                                                            |
-| `HUB_PORTA`                 | `4100`                           | Porta em que o servidor escuta                                                                  |
-| `HUB_HOST`                  | `127.0.0.1`                      | Endereço em que o servidor escuta                                                               |
-| `HUB_DADOS_DIR`             | `%LOCALAPPDATA%\HubSnk\dados`    | Onde o cadastro é gravado                                                                       |
-| `HUB_NAVEGADOR`             | Edge, se houver                  | Edge, Chrome ou o navegador padrão — é nele que a janela e os links dos clientes abrem          |
-| Atalho na área de trabalho  | Sim                              | Ícone do HUB SNK ao lado do menu Iniciar                                                        |
-| Iniciar junto com o Windows | Não                              | O servidor sobe sozinho no logon, sem abrir janela. Você abre a tela quando quiser, pelo atalho |
+| Pergunta                   | Padrão                           | O que faz                                                                                       |
+| -------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Pasta de instalação        | `%LOCALAPPDATA%\Programs\HubSnk` | Onde o programa fica                                                                            |
+| `HUB_PORTA`                | `4100`                           | Porta em que o servidor escuta                                                                  |
+| `HUB_HOST`                 | `127.0.0.1`                      | Endereço em que o servidor escuta                                                               |
+| `HUB_DADOS_DIR`            | `%LOCALAPPDATA%\HubSnk\dados`    | Onde o cadastro é gravado                                                                       |
+| `HUB_NAVEGADOR`            | `padrao`                         | `padrao`, `auto` ou um navegador da lista — é nele que a janela e os links dos clientes abrem   |
+| Atalho na área de trabalho | Sim                              | Ícone na área de trabalho. O do menu Iniciar é criado sempre, sem perguntar                     |
+| Iniciar junto com a sessão | Não                              | O servidor sobe sozinho no logon, sem abrir janela. Você abre a tela quando quiser, pelo atalho |
 
 As escolhas ficam em `%LOCALAPPDATA%\HubSnk\hub-snk.env`, um arquivo de texto
 que dá para editar depois sem reinstalar.
 
-O atalho abre o HUB SNK em **janela própria**, sem barra de endereço e sem abas
-— usa o Edge ou o Chrome escolhido na instalação, sem precisar instalar a PWA
-pelo botão do navegador. Só são oferecidos os navegadores encontrados na
+O `HUB_NAVEGADOR` aceita as mesmas três formas em todos os sistemas:
+
+| Valor            | O que faz                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| `padrao`         | Abre em aba comum do navegador do sistema. É o valor inicial                         |
+| `auto`           | Abre em **janela própria** no primeiro Chromium encontrado na máquina                |
+| Um nome da lista | Fixa o navegador da janela: `edge` e `chrome` no Windows, o comando no Linux e macOS |
+
+A janela própria não tem barra de endereço nem abas, e não exige instalar a PWA
+pelo botão do navegador. Só entram na lista os navegadores encontrados na
 máquina; se o escolhido for desinstalado depois, o HUB SNK volta a abrir no
 primeiro que encontrar.
 
@@ -138,11 +152,21 @@ antigo demais.
 ./instalar-hub-snk.sh
 ```
 
-Pergunta a pasta do programa, os quatro parâmetros do servidor (`HUB_PORTA`,
-`HUB_HOST`, `HUB_DADOS_DIR`, `HUB_NAVEGADOR`), se cria atalho no menu de
-aplicativos e se sobe junto com a sessão. Cada pergunta vem com o valor pronto
-entre colchetes, e Enter aceita. As respostas ficam em
-`~/.config/hub-snk/hub-snk.env`, editável depois sem reinstalar.
+As perguntas são as mesmas do instalador do Windows, na mesma ordem e com os
+mesmos padrões — muda só o atalho, que aqui vai para o menu de aplicativos:
+
+| Pergunta                      | Padrão                            |
+| ----------------------------- | --------------------------------- |
+| Pasta de instalação           | `~/.local/share/hub-snk/programa` |
+| `HUB_PORTA`                   | `4100`                            |
+| `HUB_HOST`                    | `127.0.0.1`                       |
+| `HUB_DADOS_DIR`               | `~/.local/share/hub-snk/dados`    |
+| `HUB_NAVEGADOR`               | `padrao`                          |
+| Atalho no menu de aplicativos | Sim                               |
+| Iniciar junto com a sessão    | Não                               |
+
+As respostas ficam em `~/.config/hub-snk/hub-snk.env`, editável depois sem
+reinstalar.
 
 Seu cadastro fica em `~/.local/share/hub-snk/dados`, fora da pasta do programa.
 Para atualizar, descompacte a versão nova e rode o `instalar-hub-snk.sh` de
