@@ -8,26 +8,6 @@ em [Versões](README.md#versões) o que cada parte do número significa aqui.
 
 ## [Não publicado]
 
-### Adicionado
-
-- Instalador para Windows, anexado a cada release. Não pede senha de
-  administrador e não exige Node.js instalado — leva o próprio. Oferece atalho
-  na área de trabalho e início automático no logon, e abre o HUB SNK em janela
-  própria, sem barra de endereço.
-- Pacotes para Linux e macOS (Intel e Apple Silicon), também com o Node
-  embutido: descompactar e rodar `./hub-snk.sh`.
-
-### Alterado
-
-- O README passa a tratar só do uso do programa. A referência da API, o formato
-  dos arquivos de dados e o mapa do código foram para `docs/`, e o fluxo de
-  release para o `CONTRIBUTING.md`.
-
-### Adicionado
-
-- `CONTRIBUTING.md` e `SECURITY.md`.
-- Seção de solução de problemas e instruções de atualização no README.
-
 ## [1.0.0] - 2026-08-09
 
 Primeira versão pública. O que já existia continua igual; esta entrada registra o
@@ -35,6 +15,12 @@ que mudou ao preparar a distribuição.
 
 ### Adicionado
 
+- Instalador para Windows, anexado à release. Não pede senha de administrador e
+  não exige Node.js instalado — leva o próprio. Oferece atalho na área de
+  trabalho e início automático no logon, e abre o HUB SNK em janela própria, sem
+  barra de endereço.
+- Pacotes para Linux e macOS (Intel e Apple Silicon), também com o Node
+  embutido: descompactar e rodar `./hub-snk.sh`.
 - Rodapé com a versão em uso, crédito e link para reportar problema. Cite a
   versão do rodapé ao abrir uma issue.
 - Campo `versaoDoEsquema` nos arquivos de dados. O HUB SNK passa a recusar abrir
@@ -52,6 +38,9 @@ que mudou ao preparar a distribuição.
   automática na primeira abertura.
 - Os arquivos de dados passam a ser lidos na inicialização: problema no cadastro
   aparece no terminal na largada, não na primeira tela aberta.
+- O README passa a tratar só do uso do programa. A referência da API, o formato
+  dos arquivos de dados e o mapa do código foram para `docs/`, junto com um guia
+  de solução de problemas e as instruções de atualização.
 
 ### Segurança
 
