@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [3.1.1] - 2026-08-10
+
 ### Corrigido
 
 - A desinstalação falhava com _"The process cannot access the file
@@ -236,7 +238,8 @@ que mudou ao preparar a distribuição.
 - `HUB_HOST` fora do loopback não sobe mais sozinho: precisa de
   `HUB_PERMITIR_REDE=1`, dito de propósito.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v3.1.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v3.1.1...HEAD
+[3.1.1]: https://github.com/CarlosSimao/hub-snk/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.0...v3.0.0
 [2.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.0.0...v2.1.0
