@@ -9,6 +9,14 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- Aviso de versão nova no rodapé. O HUB SNK compara a versão em uso com a última
+  release publicada no GitHub e, quando existe versão mais nova, mostra um link
+  para a página dela ao lado do número da versão. Sem internet, sem release nova
+  ou com uma versão de desenvolvimento à frente da publicada, o rodapé fica como
+  sempre foi.
+
 ### Corrigido
 
 - No Windows, o seletor de pasta dos atalhos abria atrás da janela do HUB SNK e

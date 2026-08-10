@@ -2068,6 +2068,22 @@ button.selo-situacao:focus-visible {
   opacity: 0.6;
 }
 
+/*
+ * Só aparece quando existe versão nova publicada. Ganha a cor da marca para se
+ * destacar do resto do rodapé sem virar banner: é um recado, não um alerta.
+ */
+.rodape-atualizacao {
+  color: var(--marca);
+  text-decoration: none;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 1px 10px;
+}
+
+.rodape-atualizacao:hover {
+  border-color: var(--marca);
+}
+
 .rodape-link {
   color: var(--text-dim);
   text-decoration: none;

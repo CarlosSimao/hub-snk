@@ -450,6 +450,7 @@ const elementos = {
   botaoBaixarExportacao: document.getElementById('btn-baixar-exportacao'),
 
   rodapeVersao: document.getElementById('rodape-versao'),
+  rodapeAtualizacao: document.getElementById('rodape-atualizacao'),
 
   modalExclusao: document.getElementById('modal-exclusao'),
   tituloExclusao: document.getElementById('titulo-exclusao'),
@@ -578,6 +579,7 @@ const api = {
     requisitar(`${CAMINHO_DOS_ATALHOS}/selecionar-executavel`, { metodo: 'POST' }),
 
   lerVersao: () => requisitar(`${CAMINHO_DO_SISTEMA}/versao`),
+  lerAtualizacao: () => requisitar(`${CAMINHO_DO_SISTEMA}/atualizacao`),
   selecionarPasta: () => requisitar(`${CAMINHO_DO_SISTEMA}/selecionar-pasta`, { metodo: 'POST' }),
   varrerRepositoriosLocais: (pastas) =>
     requisitar(`${CAMINHO_DO_SISTEMA}/repositorios-locais`, {
@@ -5028,11 +5030,32 @@ async function exibirVersaoNoRodape() {
   }
 }
 
+/*
+ * O aviso de versão nova entra depois, sozinho: a consulta passa pelo GitHub e
+ * pode demorar ou não responder, e nada na tela depende dela. Enquanto isso o
+ * rodapé fica como sempre foi.
+ */
+async function exibirAvisoDeVersaoNova() {
+  try {
+    const { atualizacaoDisponivel, ultimaVersao, url } = await api.lerAtualizacao();
+    if (!atualizacaoDisponivel) {
+      return;
+    }
+
+    elementos.rodapeAtualizacao.textContent = `${ultimaVersao} disponível`;
+    elementos.rodapeAtualizacao.href = url;
+    elementos.rodapeAtualizacao.hidden = false;
+  } catch {
+    // Sem internet ou sem release publicada: o rodapé segue sem o aviso.
+  }
+}
+
 async function iniciar() {
   restaurarTema();
   registrarEventos();
   registrarServiceWorker();
   void exibirVersaoNoRodape();
+  void exibirAvisoDeVersaoNova();
 
   try {
     await recarregarClientes();

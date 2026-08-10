@@ -62,6 +62,33 @@ subir nesse modo.
 | `POST`   | `/api/atalhos/selecionar-executavel`                           | `200` — caminho escolhido; `204` quando cancelado                       |
 | `POST`   | `/api/atalhos/:id/abrir`                                       | `204` — programa do atalho iniciado                                     |
 | `GET`    | `/api/sistema/versao`                                          | `200` — `{ "versao": "1.0.0" }`, a mesma exibida no rodapé              |
+| `GET`    | `/api/sistema/atualizacao`                                     | `200` — comparação com a última release publicada no GitHub             |
+
+## Aviso de versão nova
+
+`GET /api/sistema/atualizacao` consulta a última release do repositório na API
+pública do GitHub e compara a tag com a versão do `package.json`:
+
+```json
+{
+  "versaoInstalada": "1.0.0",
+  "ultimaVersao": "v1.1.0",
+  "atualizacaoDisponivel": true,
+  "url": "https://github.com/CarlosSimao/hub-snk/releases/tag/v1.1.0"
+}
+```
+
+Fica separada de `/api/sistema/versao` porque depende da rede: a versão em uso é
+leitura local e instantânea, e o rodapé não deve esperar o GitHub para exibi-la.
+
+Sem internet, sem release publicada ou com a resposta fora do formato esperado,
+`ultimaVersao` e `url` vêm nulas e `atualizacaoDisponivel` é `false` — nunca um
+erro. A comparação é estrita e ignora pré-lançamento: versão local à frente da
+publicada (quem desenvolve) e tags como `v1.1.0-beta.1` não geram aviso.
+
+A resposta do GitHub fica em cache por seis horas, e uma falha por quinze
+minutos. A API anônima permite 60 requisições por hora por IP, e sem cache a
+consulta sairia a cada abertura da tela.
 
 ## Corpos
 

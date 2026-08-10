@@ -121,7 +121,8 @@ projeto atualizado — nada do cadastro é tocado pelo `git pull`.
 
 Se a versão nova mudar o formato dos arquivos de dados, a conversão acontece
 sozinha na primeira abertura, guardando antes uma cópia do arquivo original. A
-versão em uso aparece no rodapé da tela.
+versão em uso aparece no rodapé da tela, ao lado de um aviso quando existe versão
+mais nova publicada.
 
 ---
 

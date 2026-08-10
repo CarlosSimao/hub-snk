@@ -2,11 +2,13 @@ import type { FastifyInstance } from 'fastify';
 import { isAbsolute } from 'node:path';
 import { z } from 'zod';
 import pacote from '../../package.json' with { type: 'json' };
+import { versaoEhMaisNova } from '../sistema/comparacaoDeVersao.ts';
 import { PastaNaoEncontradaError } from '../sistema/pasta.ts';
 import {
   selecionarPastaNoSistema,
   SeletorDePastaIndisponivelError,
 } from '../sistema/selecionarPasta.ts';
+import { consultarUltimaVersaoPublicada } from '../sistema/ultimaVersaoPublicada.ts';
 import { varrerRepositoriosLocais } from '../sistema/varreduraDeRepositorios.ts';
 
 const TAMANHO_MAXIMO_DO_CAMINHO = 400;
@@ -45,6 +47,28 @@ export function registrarRotasDeSistema(servidor: FastifyInstance): void {
    * rodando, sem o usuário ir procurar.
    */
   servidor.get('/api/sistema/versao', async () => ({ versao: pacote.version }));
+
+  /*
+   * Separada da rota acima de propósito: a versão instalada é leitura local e
+   * instantânea, enquanto esta fala com o GitHub e pode demorar ou falhar.
+   * Juntar as duas seguraria o rodapé refém da rede.
+   *
+   * Sem release publicada, sem internet ou com a versão local à frente da
+   * publicada, a resposta é a mesma: `atualizacaoDisponivel: false` e nenhuma
+   * URL — a tela não tem o que mostrar.
+   */
+  servidor.get('/api/sistema/atualizacao', async () => {
+    const publicada = await consultarUltimaVersaoPublicada();
+    const atualizacaoDisponivel =
+      publicada !== null && versaoEhMaisNova(publicada.versao, pacote.version);
+
+    return {
+      versaoInstalada: pacote.version,
+      ultimaVersao: publicada?.versao ?? null,
+      atualizacaoDisponivel,
+      url: atualizacaoDisponivel ? publicada.url : null,
+    };
+  });
 
   /*
    * O diálogo é aberto no servidor porque só ele enxerga o caminho absoluto: o

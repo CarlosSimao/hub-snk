@@ -21,7 +21,7 @@ src/
   rotas/rotasGit.ts                         rota da situação dos repositórios locais
   rotas/rotasAtalhos.ts                     rota que dispara os atalhos cadastrados
   rotas/rotasLocal.ts                       rotas das bases e bancos da máquina
-  rotas/rotasSistema.ts                     versão, seletores do SO e varredura de repositórios
+  rotas/rotasSistema.ts                     versão, aviso de atualização, seletores do SO e varredura
   git/executarGit.ts                        executa comandos git sem shell e sem prompt
   git/provedorDeHospedagem.ts               lê a URL do remoto: host, GitHub ou GitLab
   git/situacaoDoRepositorio.ts              diagnóstico de um repositório local
@@ -37,6 +37,8 @@ src/
   sistema/selecionarPasta.ts                abre o seletor de pasta do SO
   sistema/arquivoMcp.ts                     lê e grava o .sankhya-mcp.env do repositório
   sistema/varreduraDeRepositorios.ts        procura repositórios Git dentro das pastas escolhidas
+  sistema/ultimaVersaoPublicada.ts          consulta a última release no GitHub, com cache
+  sistema/comparacaoDeVersao.ts             diz se a versão publicada é mais nova que a instalada
   sistema/wildfly.ts  sistema/docker.ts     situação das bases e dos bancos locais
 public/
   index.html  styles.css  app.js            interface, sem framework e sem build
