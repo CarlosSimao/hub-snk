@@ -37,10 +37,16 @@ HUB_DADOS_DIR=/tmp/hub-snk-dev npm run dev
 ```bash
 npm run typecheck
 npm test
+npm run formatar
 ```
 
-Os dois precisam passar. O `typecheck` existe porque o Node apaga os tipos sem
-conferi-los — sem ele, erro de tipo só apareceria em produção.
+Os três precisam passar — é o que o CI roda em cada pull request, no Linux e no
+Windows, nas versões 22.18 e 24 do Node. O `typecheck` existe porque o Node
+apaga os tipos sem conferi-los: sem ele, erro de tipo só apareceria rodando.
+
+A formatação é do Prettier, com a configuração versionada no
+`.prettierrc.json`. O `npm run conferir-formato` só aponta; o `npm run formatar`
+corrige.
 
 ## Padrões do código
 

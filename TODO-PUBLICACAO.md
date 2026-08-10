@@ -99,14 +99,14 @@ Substitua `SEU_USUARIO` pelo seu usuário/organização do GitHub em todos os it
 
 ## 8. Qualidade e automação
 
-- [ ] Criar os primeiros testes com `node:test`, cobrindo os repositórios de arquivo e a migração de esquema
-- [ ] Adicionar o script `test` ao `package.json`
-- [ ] Criar workflow do GitHub Actions rodando `npm ci`, `npm run typecheck` e `node --test` em push e pull request
+- [x] Criar os primeiros testes com `node:test`, cobrindo os repositórios de arquivo e a migração de esquema
+- [x] Adicionar o script `test` ao `package.json`
+- [x] Criar workflow do GitHub Actions rodando `npm ci`, `npm run typecheck` e `node --test` em push e pull request — em Linux e Windows, nas versões 22.18 e 24 do Node
 - [x] Adicionar `.gitattributes` com `* text=auto eol=lf` (colegas em Linux e macOS clonam o mesmo repositório)
-- [ ] Adicionar `.editorconfig`
-- [ ] Adicionar Prettier com configuração versionada
-- [ ] Adicionar `.nvmrc` com a versão do Node
-- [ ] Configurar `.github/dependabot.yml` para npm e GitHub Actions
+- [x] Adicionar `.editorconfig`
+- [x] Adicionar Prettier com configuração versionada
+- [x] Adicionar `.nvmrc` com a versão do Node
+- [x] Configurar `.github/dependabot.yml` para npm e GitHub Actions
 
 ## 9. Distribuição
 

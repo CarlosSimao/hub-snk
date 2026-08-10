@@ -1,0 +1,5 @@
+dist/
+node_modules/
+dados-hub-snk/
+public/img/
+instalador/hub-snk.ico

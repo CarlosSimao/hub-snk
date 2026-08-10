@@ -1,0 +1,19 @@
+# Mantém o mesmo recuo e final de linha em qualquer editor, para o projeto ser
+# clonado em Windows, Linux e macOS sem diferença de formatação.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Em Markdown, dois espaços no fim da linha são uma quebra de linha.
+[*.md]
+trim_trailing_whitespace = false
+
+# Arquivos que só o Windows lê.
+[*.{vbs,iss}]
+end_of_line = crlf

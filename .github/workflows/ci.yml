@@ -1,0 +1,85 @@
+name: CI
+
+# Roda a cada push e a cada pull request. É a rede de segurança do projeto:
+# nada entra na main sem passar por tipos, testes e formatação.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verificar:
+    # O HUB SNK roda nos três sistemas, e o Node se comporta diferente entre
+    # eles — foi assim que a chamada do npm apareceu quebrada no Windows. A
+    # matriz cobre a versão mínima suportada e a mais recente.
+    strategy:
+      fail-fast: false
+      matrix:
+        sistema: [ubuntu-latest, windows-latest]
+        node: ['22.18', '24']
+
+    runs-on: ${{ matrix.sistema }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Conferir os tipos
+        run: npm run typecheck
+
+      - name: Rodar os testes
+        run: npm test
+
+      # Só uma vez: formatação não muda de sistema nem de versão do Node.
+      - name: Conferir a formatação
+        if: matrix.sistema == 'ubuntu-latest' && matrix.node == '24'
+        run: npm run conferir-formato
+
+  # Confere que o empacotamento continua funcionando, sem esperar uma tag para
+  # descobrir que a release quebrou.
+  empacotamento:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.18'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Gerar os ícones
+        run: npm run gerar-icones
+
+      - name: Conferir se o ícone do instalador saiu íntegro
+        run: |
+          test -s instalador/hub-snk.ico
+          # Um ICO começa com 00 00 01 00 — reservado, seguido do tipo "ícone".
+          assinatura=$(head -c 4 instalador/hub-snk.ico | od -An -tx1 | tr -d ' ')
+          if [ "$assinatura" != "00000100" ]; then
+            echo "O hub-snk.ico não começa com a assinatura de um arquivo ICO." >&2
+            exit 1
+          fi
+
+      - name: Empacotar Linux e macOS
+        run: npm run empacotar-unix
+
+      - name: Conferir se o binário do Node saiu executável
+        run: |
+          for pacote in dist/hub-snk-*.tar.gz; do
+            permissoes=$(tar -tzvf "$pacote" | grep -E "/node$" | awk '{print $1}')
+            echo "$pacote -> $permissoes"
+            case "$permissoes" in
+              -rwx*) ;;
+              *) echo "O binário do Node saiu sem permissão de execução." >&2; exit 1 ;;
+            esac
+          done
