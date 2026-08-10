@@ -14,16 +14,48 @@ Todos levam o próprio Node, as dependências instaladas e os scripts de
 instalação e remoção: a máquina de destino não precisa de Node, de npm nem de
 rede.
 
-## Por que não há executável de instalação
+## O bloqueio do Windows, e o que passa por ele
 
-O Controle Inteligente de Aplicativos do Windows 11 bloqueia executável sem
-assinatura digital — o antigo `hub-snk-<versão>-windows-x64.exe`, gerado pelo
-Inno Setup, era barrado antes de abrir a primeira tela. Assinar exige
-certificado de code signing pago, com renovação anual.
+O Controle Inteligente de Aplicativos do Windows 11 barra o que não é assinado
+**e** carrega a marca de arquivo baixado da internet — o Mark-of-the-Web, que o
+Explorer põe em cada arquivo saído de um zip baixado. Isso derrubou duas
+tentativas em sequência: o `hub-snk-<versão>-windows-x64.exe` do Inno Setup e,
+depois dele, o `instalar-hub-snk.bat`.
 
-Script não é executável: o `instalar-hub-snk.bat` chama o PowerShell, que roda
-o `.ps1` do pacote sem passar por esse bloqueio. O preço é uma instalação por
-perguntas no terminal em vez de um wizard gráfico.
+O que passa é o `node.exe` do próprio pacote, assinado pela OpenJS Foundation.
+Por isso o caminho principal no Windows não usa script nenhum:
+
+```powershell
+.\node.exe src\index.ts
+```
+
+O servidor sobe e abre a janela sozinho — veja
+[A janela aberta pelo servidor](#a-janela-aberta-pelo-servidor).
+
+Os scripts de instalação continuam no pacote, para quem quer atalho e início no
+logon. Eles voltam a funcionar assim que a marca sai: botão direito no `.zip` →
+_Propriedades_ → _Desbloquear_, **antes** de descompactar.
+
+Assinar resolveria tudo de uma vez, e exige certificado de code signing pago com
+renovação anual.
+
+## A janela aberta pelo servidor
+
+Quem sobe o `node` direto do pacote não tem launcher para abrir a tela, e pedir
+que digite o endereço no navegador é um passo a mais em cima de um programa que
+já sabe qual é. Então o próprio servidor abre a janela ao terminar de subir, com
+o `--app` do Chromium — a mesma janela sem barra de endereço e sem abas que o
+launcher dá.
+
+A detecção de navegador é a de sempre, agora em
+`src/sistema/abrirJanelaDoAplicativo.ts`: o `HUB_NAVEGADOR` escolhe, e sem
+Chromium na máquina cai no navegador padrão, em aba comum.
+
+Os launchers sobem o servidor com `HUB_ABRIR_JANELA=0`, senão o usuário veria
+duas janelas — e o `hub-snk.sh servidor`, que existe para não abrir nada,
+deixaria de ser silencioso. O modo `--watch` do desenvolvimento se desliga
+sozinho, sem variável nenhuma: ali o processo reinicia a cada arquivo salvo, e
+uma janela por salvamento inviabilizaria o modo.
 
 ## Como gerar
 

@@ -92,7 +92,11 @@ iniciar_servidor() {
     fi
 
     cd "$PASTA_DO_PACOTE"
-    nohup "$NODE_DO_PACOTE" src/index.ts >> "$ARQUIVO_DE_LOG" 2>&1 &
+
+    # Quem abre a janela é este script, e só no modo `abrir`: sem isto o
+    # servidor abriria a dele também, e `hub-snk.sh servidor` deixaria de ser
+    # silencioso.
+    HUB_ABRIR_JANELA=0 nohup "$NODE_DO_PACOTE" src/index.ts >> "$ARQUIVO_DE_LOG" 2>&1 &
 
     tentativa=0
     while [ "$tentativa" -lt "$TENTATIVAS_ATE_DESISTIR" ]; do

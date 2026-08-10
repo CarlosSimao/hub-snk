@@ -9,6 +9,23 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- O servidor passa a abrir a janela do HUB SNK sozinho ao subir. É o que permite
+  usar o pacote do Windows sem instalar nada: descompactar e rodar
+  `.\node.exe src\index.ts` já leva à tela. `HUB_ABRIR_JANELA=0` desliga, e é o
+  que os launchers usam — a janela quem abre é eles.
+
+### Corrigido
+
+- No Windows 11 com o Controle Inteligente de Aplicativos ligado, o
+  `instalar-hub-snk.bat` era bloqueado como o `.exe` que ele substituiu: o
+  bloqueio pega também script sem assinatura vindo da internet. O README passa a
+  liderar com o caminho sem instalação, que roda pelo `node.exe` do pacote —
+  assinado pela OpenJS Foundation, e por isso liberado. Para quem quer atalho e
+  início no logon, os scripts continuam ali e voltam a funcionar desbloqueando o
+  `.zip` nas propriedades antes de descompactar.
+
 ## [2.0.0] - 2026-08-10
 
 ### Removido

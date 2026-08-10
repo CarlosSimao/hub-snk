@@ -5,6 +5,8 @@ const PORTA_PADRAO = 4100;
 const HOST_PADRAO = '127.0.0.1';
 const HOSTS_DE_LOOPBACK = new Set(['127.0.0.1', '::1', 'localhost']);
 const VALOR_QUE_LIBERA_A_REDE = '1';
+const VALOR_QUE_IMPEDE_A_JANELA = '0';
+const NAVEGADOR_PADRAO_DA_JANELA = 'auto';
 
 const raizDoProjeto = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -72,4 +74,17 @@ export const configuracao = {
   escutaNaRede: !HOSTS_DE_LOOPBACK.has(host),
   diretorioPublico: join(raizDoProjeto, 'public'),
   diretorioDeDados: lerDiretorioDeDados(),
+  /*
+   * Abrir a janela é o padrão porque quem roda o `node` direto do pacote não
+   * tem outro caminho até a tela. O launcher, que abre a janela por conta
+   * própria, desliga isso com HUB_ABRIR_JANELA=0 para não abrir duas.
+   *
+   * O `--watch` do desenvolvimento fica de fora sem precisar de variável: ali o
+   * processo reinicia a cada arquivo salvo, e uma janela por salvamento
+   * inviabilizaria o modo.
+   */
+  abrirJanela:
+    process.env.HUB_ABRIR_JANELA !== VALOR_QUE_IMPEDE_A_JANELA &&
+    !process.execArgv.includes('--watch'),
+  navegador: process.env.HUB_NAVEGADOR?.trim().toLowerCase() || NAVEGADOR_PADRAO_DA_JANELA,
 } as const;
