@@ -24,19 +24,72 @@ interface Lancamento {
 }
 
 /*
- * O diálogo do Windows exige apartamento STA, daí o `-STA`. O
- * `FolderBrowserDialog` não aceita janela dona com `TopMost`, então o topo vem
- * do próprio diálogo: sem isso ele nasce atrás da janela do HUB SNK e parece que
- * nada aconteceu.
+ * O diálogo do Windows exige apartamento STA, daí o `-STA`.
+ *
+ * O "Procurar Pasta" é um diálogo Win32 (`SHBrowseForFolder`), não um `Form`:
+ * ele não herda `TopMost` da janela dona, e a dona só o impede de cair atrás
+ * dela mesma — não atrás do navegador. Pior, o processo nasce a partir do
+ * servidor, que não detém o primeiro plano, então o Windows nega a promoção
+ * normal de foco e o diálogo aparece escondido atrás da janela do HUB SNK.
+ *
+ * A saída é marcar o próprio diálogo como `HWND_TOPMOST` assim que ele abre —
+ * `SetWindowPos` não exige direito de primeiro plano. Como `ShowDialog` bloqueia
+ * a thread, quem faz isso é um timer, que roda no laço de mensagens do modal e
+ * pega o diálogo por `GetWindow(..., GW_ENABLEDPOPUP)` a partir da dona. A
+ * janela dona existe só para dar esse ponto de partida, por isso nasce
+ * transparente e com 1x1 pixel.
  */
 const SCRIPT_DO_WINDOWS = `
 Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+Add-Type -Namespace HubSnk -Name Janela -MemberDefinition @'
+[DllImport("user32.dll")]
+public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+[DllImport("user32.dll")]
+public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
+[DllImport("user32.dll")]
+public static extern bool SetForegroundWindow(IntPtr hWnd);
+'@
+
+$POPUP_HABILITADO = 6
+$SEMPRE_NO_TOPO = [IntPtr](-1)
+$MANTER_POSICAO_E_TAMANHO = 0x0013
+
 $dialogo = New-Object System.Windows.Forms.FolderBrowserDialog
 $dialogo.Description = 'Selecione a pasta do repositório'
 $dialogo.ShowNewFolderButton = $false
-$janelaDeTopo = New-Object System.Windows.Forms.Form -Property @{ TopMost = $true }
-if ($dialogo.ShowDialog($janelaDeTopo) -eq [System.Windows.Forms.DialogResult]::OK) {
-  [Console]::Out.Write($dialogo.SelectedPath)
+
+$janelaDona = New-Object System.Windows.Forms.Form -Property @{
+  TopMost = $true
+  ShowInTaskbar = $false
+  FormBorderStyle = 'None'
+  Opacity = 0
+  Size = New-Object System.Drawing.Size(1, 1)
+  StartPosition = 'CenterScreen'
+}
+$janelaDona.Show()
+$janelaDona.Activate()
+
+$vigia = New-Object System.Windows.Forms.Timer
+$vigia.Interval = 100
+$vigia.add_Tick({
+  $popup = [HubSnk.Janela]::GetWindow($janelaDona.Handle, $POPUP_HABILITADO)
+  if ($popup -ne [IntPtr]::Zero) {
+    $vigia.Stop()
+    [void][HubSnk.Janela]::SetWindowPos($popup, $SEMPRE_NO_TOPO, 0, 0, 0, 0, $MANTER_POSICAO_E_TAMANHO)
+    [void][HubSnk.Janela]::SetForegroundWindow($popup)
+  }
+})
+$vigia.Start()
+
+try {
+  if ($dialogo.ShowDialog($janelaDona) -eq [System.Windows.Forms.DialogResult]::OK) {
+    [Console]::Out.Write($dialogo.SelectedPath)
+  }
+} finally {
+  $vigia.Stop()
+  $vigia.Dispose()
+  $janelaDona.Close()
 }
 `;
 
