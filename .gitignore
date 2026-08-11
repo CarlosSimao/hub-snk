@@ -2,6 +2,11 @@ node_modules/
 dados-hub-snk/
 dist/
 *.log
+
+# Gravações de tela: são dezenas de megabytes que ficariam no histórico do Git
+# para sempre, e o repositório é público. Os vídeos são hospedados fora, e o
+# README aponta para eles.
+docs/videos/
 .idea/
 .vscode/
 .claude-secundario
