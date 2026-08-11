@@ -14,6 +14,21 @@ Funciona em Windows, Linux e macOS.
 
 ---
 
+## Vídeos
+
+Gravações de tela, hospedadas no Drive da empresa — **é preciso estar logado com
+a conta corporativa** para abrir.
+
+1. [Instalação](https://drive.google.com/file/d/1fl85T-dmL1fFpGBBf9L0FtIEaW4gbl4q/view?usp=drive_link)
+   — do download ao HUB SNK aberto.
+2. [Funcionalidades](https://drive.google.com/file/d/1DzZlq7BkFz8LhVUXN41SAo9PKB795mB7/view?usp=sharing)
+   — o dia a dia: cadastro de clientes, bases, repositórios e atalhos.
+3. [Funcionalidades tech](https://drive.google.com/file/d/1ognNxuQbAoATqLoMZ7wzFszq9bB2B6MZ/view?usp=drive_link)
+   — o que está por baixo: diagnóstico Git, bases e bancos locais,
+   `.sankhya-mcp.env`.
+
+---
+
 ## Pré-requisito
 
 **Node.js 22.18 ou mais novo**, em qualquer sistema: <https://nodejs.org>
