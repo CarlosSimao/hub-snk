@@ -97,23 +97,61 @@ Toda mudança visível fica registrada no [CHANGELOG](../CHANGELOG.md).
 
 ## Publicando uma versão
 
-1. Mova o conteúdo de `## [Não publicado]` do `CHANGELOG.md` para uma seção com o
+Nada entra na `main` por push direto — nem código, nem release. Toda mudança
+passa por branch e pull request, e a tag nasce depois do merge.
+
+1. Merge do que vai na versão. Cada funcionalidade ou correção entra por seu
+   próprio pull request, com o CI verde.
+
+2. Da `main` atualizada, abra a branch da release:
+
+   ```bash
+   git checkout main && git pull --ff-only
+   git checkout -b chore/release-v1.2.0
+   ```
+
+3. Mova o conteúdo de `## [Não publicado]` do `CHANGELOG.md` para uma seção com o
    número e a data da versão, e atualize os links do rodapé do arquivo.
-2. Commite o CHANGELOG.
-3. Rode o `npm version` correspondente. Ele sobe o `package.json`, sincroniza o
-   nome do cache do service worker, cria o commit e a tag anotada:
+
+4. Suba o número, sem deixar o npm criar commit nem tag:
 
    ```bash
-   npm version patch -m "chore(release): v%s"
-   # ou minor, ou major
+   npm version minor --no-git-tag-version
+   # ou patch, ou major
    ```
 
-4. Publique:
+   O hook `version` sincroniza o nome do cache do service worker junto. Confira
+   que o `public/sw.js` mudou — sem isso a atualização não chega ao navegador de
+   quem já usa.
+
+5. Commite, abra o pull request e mergeie com o CI verde:
 
    ```bash
-   git push --follow-tags
-   gh release create v1.2.0 --title "v1.2.0" --notes-file NOTAS.md
+   git commit -am "chore(release): v1.2.0"
+   git push -u origin chore/release-v1.2.0
+   gh pr create --base main --title "chore(release): v1.2.0" --fill
    ```
+
+6. Só então marque a versão, na `main` já mergeada:
+
+   ```bash
+   git checkout main && git pull --ff-only
+   git tag -a v1.2.0 -m "v1.2.0"
+   git push origin v1.2.0
+   ```
+
+A tag é criada depois do merge de propósito. Criada na branch, ela apontaria para
+um commit que o merge deixa fora da `main` — a release sairia de um código que
+não é o publicado.
+
+A tag dispara o workflow `Distribuição`, que monta os pacotes dos três sistemas,
+cria a release se ela ainda não existir e anexa tudo. Não é preciso rodar
+`gh release create` à mão.
+
+O aviso de atualização dentro do programa vem da release do GitHub, lida por
+`src/sistema/ultimaVersaoPublicada.ts`. Enquanto a tag não sobe, quem já usa o
+HUB SNK não fica sabendo que existe versão nova — daí a versão andar a cada
+entrega, e não de vez em quando.
 
 Mudança incompatível no formato dos arquivos de dados é release MAJOR, e exige
 subir a versão do esquema junto — o procedimento está em
