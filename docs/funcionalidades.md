@@ -166,12 +166,38 @@ aberta depois para você ler a saída.
 | **`{ }`**                        | primeiro no PATH entre `idea64.exe`, `idea.exe`, `idea.cmd` e `idea.bat`; os `.cmd`/`.bat` são executados via `cmd.exe /c` | `open -n -a "IntelliJ IDEA"` (ou a edição _CE_), com `idea` como alternativa | primeiro entre `intellij-idea-ultimate`, `intellij-idea-community`, `idea` e `idea.sh`        |
 | **Seletor de arquivo** (atalhos) | `OpenFileDialog` do Windows Forms, via `powershell.exe -STA`                                                               | `choose file`, via `osascript`                                               | `zenity --file-selection`, com `kdialog` como alternativa                                     |
 
-Quando nada é encontrado, o HUB SNK mostra o aviso na tela — exceto o
-**Arquivos** no Linux sem `xdg-open`, em que o botão fica sem efeito e a falha
-só aparece no log do servidor. No Windows, a pasta `bin` do IntelliJ precisa
-estar no PATH, ou o launcher de linha de comando precisa ter sido gerado pelo
-JetBrains Toolbox. No Linux sem `zenity` nem `kdialog`, resta digitar o caminho
-do atalho à mão.
+Quando nada é encontrado, o HUB SNK mostra o aviso na tela — inclusive o
+**Arquivos** no Linux sem `xdg-open`, que responde pedindo a instalação do
+`xdg-utils`. No Windows, a pasta `bin` do IntelliJ precisa estar no PATH, ou o
+launcher de linha de comando precisa ter sido gerado pelo JetBrains Toolbox. No
+Linux sem `zenity` nem `kdialog`, resta digitar o caminho do atalho à mão.
+
+O programa não é dado como aberto só por ter nascido: o HUB SNK espera um
+instante e, se ele morreu com erro nesse intervalo, tenta o próximo candidato da
+lista e só então avisa a tela. É o que faz um `x-terminal-emulator` apontando
+para um emulador que não aceita `--working-directory` ceder a vez ao
+`gnome-terminal`, em vez de encerrar a fila sem abrir nada.
+
+### Permissão de Automação no macOS
+
+Com **Script padrão** preenchido, o botão Shell no macOS passa pelo `osascript`
+para mandar o Terminal executar o comando. Isso é automação de um aplicativo por
+outro, e o macOS pede autorização: **na primeira vez aparece o diálogo "node quer
+controlar Terminal"**. Autorize — a permissão é lembrada, e o pedido não volta.
+
+Autorizar depois, ou rever a decisão, fica em _Ajustes do Sistema_ ›
+_Privacidade e Segurança_ › _Automação_.
+
+Negada a permissão, o botão Shell não deixa de funcionar: o HUB SNK cai no
+`open -a Terminal`, e o Terminal abre na pasta do repositório. **O que se perde é
+o Script padrão** — ele não é executado, e a tela não tem como avisar, porque
+para ela o terminal abriu. Um terminal que abre na pasta certa mas ignora o
+script é o sintoma de permissão negada.
+
+O diálogo de autorização é o único caso em que a espera de um instante descrita
+acima não ajuda: enquanto ele está na tela o `osascript` continua vivo, então o
+HUB SNK o considera iniciado. Se você negar depois disso, nada abre naquela
+tentativa — o segundo clique já cai no `open -a Terminal`.
 
 ### Arquivo `.sankhya-mcp.env`
 
@@ -227,6 +253,45 @@ Vale para `.exe`, `.lnk`, `.bat` e qualquer extensão associada. A existência d
 arquivo é checada na hora de executar, não no cadastro, então dá para cadastrar
 o caminho de um programa ainda não instalado; sem o arquivo, o HUB SNK avisa na
 tela.
+
+### Como cada sistema inicia o programa
+
+| Sistema | O que acontece                                                                                                          |
+| ------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Windows | Sempre pelo `explorer.exe`, que resolve a extensão associada                                                            |
+| macOS   | Pacote `.app` e `.command` vão para o `open`; o resto com bit de execução roda direto                                   |
+| Linux   | Arquivo com bit de execução roda direto; sem ele, vai para o `xdg-open` — que é o caminho do `.desktop` e do atalho web |
+
+Fora do Windows o despachante do sistema não serve para tudo: ele decide pela
+associação de tipo, e a de script costuma ser um editor. Um `.sh` entregue ao
+`open` ou ao `xdg-open` abriria no Xcode ou no bloco de notas em vez de rodar —
+por isso o arquivo executável é chamado direto. As duas exceções do macOS ficam
+com o despachante porque só ele sabe iniciá-las: o `.app` é um pacote, e o
+`.command` existe para abrir no Terminal, janela que rodá-lo direto tiraria.
+
+## Bancos locais
+
+Ligar, parar e reiniciar o container Docker do banco depende do daemon estar de
+pé, e o cliente `docker` não o sobe sozinho. As ações que ligam o banco tentam
+subi-lo antes e esperam ele atender — a primeira subida da VM leva bem mais que
+alguns segundos.
+
+O que é "subir o Docker" muda de sistema:
+
+| Sistema | O que o HUB SNK faz                                                           |
+| ------- | ----------------------------------------------------------------------------- |
+| Windows | Abre o `Docker Desktop.exe` do caminho de instalação encontrado               |
+| macOS   | `open -a Docker`                                                              |
+| Linux   | `systemctl --user start docker-desktop` e, se não houver, o `docker` rootless |
+
+No Linux não há aplicativo para abrir: tanto o Docker Desktop quanto o modo
+rootless são serviços de usuário do systemd, e sobem sem root.
+
+**O Docker Engine instalado como serviço do sistema fica de fora**, de
+propósito: subi-lo exige `sudo`, e pedir senha numa janela que ninguém está
+vendo não levaria a nada. Ele também costuma já estar no ar, porque é habilitado
+no boot. Se estiver parado, o HUB SNK diz isso e mostra o comando —
+`sudo systemctl start docker`.
 
 ## Diagnóstico dos repositórios Git
 

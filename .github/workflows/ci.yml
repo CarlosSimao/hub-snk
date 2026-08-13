@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sistema: [ubuntu-latest, windows-latest]
+        sistema: [ubuntu-latest, windows-latest, macos-latest]
         node: ['22.18', '24']
 
     runs-on: ${{ matrix.sistema }}
@@ -87,3 +87,111 @@ jobs:
               esac
             done
           done
+
+  # Instala e desinstala de verdade, nos dois sistemas que usam os scripts .sh.
+  #
+  # A matriz do `verificar` não cobre isto: os testes são de funções puras e não
+  # encostam no instalador nem em nada específico de sistema. O atalho e o início
+  # na sessão são justamente a parte que muda entre Linux e macOS, e já estiveram
+  # quebrados no macOS sem ninguém perceber — o `.desktop` do XDG era gravado e
+  # ignorado em silêncio.
+  instalacao-unix:
+    strategy:
+      fail-fast: false
+      matrix:
+        sistema: [ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.sistema }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22.18'
+          cache: npm
+
+      - run: npm ci
+
+      # Erro de sintaxe num .sh só apareceria na máquina de quem baixou. O `sh`
+      # do Ubuntu é o dash e o do macOS é o bash: rodar nos dois pega o que é
+      # bashismo acidental.
+      - name: Conferir a sintaxe dos scripts
+        run: |
+          for script in instalador/*.sh iniciar.sh; do
+            sh -n "$script" || { echo "$script tem erro de sintaxe." >&2; exit 1; }
+          done
+
+      - name: Empacotar e descompactar
+        run: |
+          npm run empacotar-unix
+          if [ "$(uname -s)" = Darwin ]; then
+            [ "$(uname -m)" = arm64 ] && alvo=macos-arm64 || alvo=macos-x64
+          else
+            alvo=linux-x64
+          fi
+          mkdir -p /tmp/pacote
+          tar -xzf dist/hub-snk-*-"$alvo".tar.gz -C /tmp/pacote
+          set -- /tmp/pacote/hub-snk-*-"$alvo"
+          echo "PACOTE=$1" >> "$GITHUB_ENV"
+
+      # Enter nos cinco parâmetros, sim para o atalho e para o início na sessão,
+      # não para abrir ao final — a tela é aberta adiante, pelo launcher.
+      - name: Instalar
+        run: printf '\n\n\n\n\ns\ns\nn\n' | "$PACOTE/instalar-hub-snk.sh"
+
+      - name: Conferir o atalho e o início na sessão do Linux
+        if: runner.os == 'Linux'
+        run: |
+          atalho="$HOME/.local/share/applications/hub-snk.desktop"
+          logon="$HOME/.config/autostart/hub-snk.desktop"
+          test -f "$atalho" || { echo 'Atalho .desktop não foi criado.' >&2; exit 1; }
+          test -f "$logon" || { echo 'Entrada de autostart não foi criada.' >&2; exit 1; }
+          # O Exec é dividido em espaços: sem aspas, uma pasta com espaço quebra o atalho.
+          grep -q '^Exec="' "$atalho" || { echo 'O Exec do atalho está sem aspas.' >&2; exit 1; }
+          test ! -d "$HOME/Applications/HUB SNK.app" || { echo 'Criou pacote .app no Linux.' >&2; exit 1; }
+
+      - name: Conferir o aplicativo e o LaunchAgent do macOS
+        if: runner.os == 'macOS'
+        run: |
+          executavel="$HOME/Applications/HUB SNK.app/Contents/MacOS/hub-snk"
+          agente="$HOME/Library/LaunchAgents/com.hubsnk.servidor.plist"
+          test -x "$executavel" || { echo 'O executável do .app não foi criado.' >&2; exit 1; }
+          test -f "$agente" || { echo 'O LaunchAgent não foi criado.' >&2; exit 1; }
+          # plist malformado só falharia no logon seguinte, longe daqui.
+          plutil -lint "$HOME/Applications/HUB SNK.app/Contents/Info.plist"
+          plutil -lint "$agente"
+          test ! -f "$HOME/.local/share/applications/hub-snk.desktop" \
+            || { echo 'Criou .desktop do XDG no macOS, que o sistema ignora.' >&2; exit 1; }
+
+      - name: Subir o servidor pelo launcher instalado e responder
+        run: |
+          programa="$HOME/.local/share/hub-snk/programa"
+          "$programa/hub-snk.sh" servidor
+          # O launcher volta quando o processo existe, e o Fastify ainda leva um
+          # instante para atender na porta — daí a espera, em vez de um curl seco.
+          tentativa=0
+          until curl -fsS http://127.0.0.1:4100/api/sistema/versao; do
+            tentativa=$((tentativa + 1))
+            if [ "$tentativa" -ge 30 ]; then
+              echo 'O servidor subiu mas não respondeu na porta.' >&2
+              cat "$HOME/.local/share/hub-snk/hub-snk.log" >&2 || true
+              exit 1
+            fi
+            sleep 1
+          done
+          "$programa/hub-snk.sh" parar
+
+      - name: Desinstalar sem levar o cadastro junto
+        run: |
+          programa="$HOME/.local/share/hub-snk/programa"
+          printf 's\n' | "$programa/desinstalar-hub-snk.sh"
+          test ! -d "$programa" || { echo 'A pasta do programa continua lá.' >&2; exit 1; }
+          test -d "$HOME/.local/share/hub-snk/dados" \
+            || { echo 'A desinstalação levou o cadastro junto.' >&2; exit 1; }
+          test ! -d "$HOME/Applications/HUB SNK.app" \
+            || { echo 'O pacote .app sobreviveu à desinstalação.' >&2; exit 1; }
+          test ! -f "$HOME/Library/LaunchAgents/com.hubsnk.servidor.plist" \
+            || { echo 'O LaunchAgent sobreviveu à desinstalação.' >&2; exit 1; }
+          test ! -f "$HOME/.local/share/applications/hub-snk.desktop" \
+            || { echo 'O atalho sobreviveu à desinstalação.' >&2; exit 1; }

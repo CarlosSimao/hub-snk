@@ -1,9 +1,6 @@
 import { garantirQueEhPasta } from './pasta.ts';
-import {
-  lancarPrimeiroDisponivel,
-  montarLancamentosDoWindows,
-  type Lancamento,
-} from './lancadorJetBrains.ts';
+import { lancarPrimeiroDisponivel, montarLancamentosDoWindows } from './lancadorJetBrains.ts';
+import type { Candidato } from './lancarProcesso.ts';
 
 /**
  * Abertura do IntelliJ IDEA já com a pasta do repositório carregada como
@@ -30,7 +27,7 @@ const LAUNCHERS_DO_WINDOWS = ['idea64.exe', 'idea.exe', 'idea.cmd', 'idea.bat'];
  * No macOS o `open -n -a` localiza o aplicativo pelo nome, sem depender de
  * launcher instalado no PATH; `--args` repassa a pasta para a IDE.
  */
-function montarLancamentosDoMac(pasta: string): Lancamento[] {
+function montarLancamentosDoMac(pasta: string): Candidato[] {
   return [
     { comando: 'open', argumentos: ['-n', '-a', 'IntelliJ IDEA', '--args', pasta] },
     { comando: 'open', argumentos: ['-n', '-a', 'IntelliJ IDEA CE', '--args', pasta] },
@@ -39,7 +36,7 @@ function montarLancamentosDoMac(pasta: string): Lancamento[] {
 }
 
 /** No Linux o nome do launcher varia com a forma de instalação (pacote, snap ou tarball). */
-function montarLancamentosDoLinux(pasta: string): Lancamento[] {
+function montarLancamentosDoLinux(pasta: string): Candidato[] {
   return ['intellij-idea-ultimate', 'intellij-idea-community', 'idea', 'idea.sh'].map(
     (comando) => ({ comando, argumentos: [pasta] }),
   );

@@ -30,12 +30,27 @@ npm test
 npm run formatar
 ```
 
-É o que o CI roda em cada push e pull request, no Linux e no Windows, nas
-versões 22.18 e 24 do Node. O `typecheck` existe porque o Node apaga os tipos
+É o que o CI roda em cada push e pull request, no Linux, no Windows e no macOS,
+nas versões 22.18 e 24 do Node. O `typecheck` existe porque o Node apaga os tipos
 sem conferi-los: sem ele, erro de tipo só apareceria rodando.
 
 A formatação é do Prettier, configurado no `.prettierrc.json`. O
 `npm run conferir-formato` só aponta; o `npm run formatar` corrige.
+
+Esses três comandos não cobrem tudo. Os testes são de funções puras e não
+encostam nos scripts de instalação nem no que muda de sistema para sistema — por
+isso o CI tem mais dois jobs, que nenhum comando local reproduz:
+
+| Job               | O que faz                                                                     |
+| ----------------- | ----------------------------------------------------------------------------- |
+| `empacotamento`   | Gera os ícones e os pacotes, e confere que os `.sh` saem executáveis do `tar` |
+| `instalacao-unix` | Instala, sobe, para e desinstala de verdade, no Ubuntu e no macOS             |
+
+O `instalacao-unix` é a rede que faltava: o atalho e o início na sessão são a
+parte que muda entre Linux e macOS, e já estiveram quebrados no macOS sem
+ninguém perceber. Ele confere o `.desktop` de um lado, o `.app` e o LaunchAgent
+do outro, e roda `sh -n` nos scripts — no dash do Ubuntu e no bash do macOS, que
+é como bashismo acidental aparece.
 
 ## Padrões do código
 

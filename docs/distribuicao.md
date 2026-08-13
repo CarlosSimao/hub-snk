@@ -240,10 +240,27 @@ Os dados ficam em `$XDG_DATA_HOME/hub-snk/dados` — na prática
 descompactar a versão nova e rodar o `instalar-hub-snk.sh` de novo; o cadastro
 fica onde está.
 
+Os dois instaladores removem cada item do pacote antes de copiá-lo, em vez de
+fundir com o que já estava na pasta: copiar por cima não apaga o que a versão
+nova deixou de ter, e um arquivo removido do projeto sobreviveria dentro de
+`src` ou `public`. A remoção alcança só o que o pacote traz — a pasta de destino
+é digitada pelo usuário e pode ter outra coisa dentro, e apagá-la inteira faria
+quem instalou numa pasta compartilhada perder arquivo na primeira atualização.
+O preço é que um órfão no topo da pasta, de uma versão que instalava algo que a
+atual não traz, sobrevive.
+
 O `parar` encerra apenas o processo que roda o `src/index.ts` daquela pasta,
 encontrado por `pgrep -f` no caminho completo do programa — e por isso o
 launcher chama o `node` com esse caminho, e não com um relativo. Outro Node
 rodando na máquina não é tocado.
+
+O `pgrep` é pré-requisito junto com o Node, e o launcher confere os dois antes
+de qualquer coisa. Sem ele não haveria erro, e sim resposta errada: a busca por
+processo devolveria vazio sempre, o `abrir` subiria um segundo servidor na porta
+já ocupada e o `parar` informaria que nada estava rodando. O instalador confere
+igual, para a falta não aparecer só depois de tudo copiado. Vem no `procps`,
+presente em qualquer desktop e ausente em imagem enxuta; no macOS é parte do
+sistema.
 
 O launcher funciona de dentro do pacote, sem instalar nada — é o caminho para
 quem só quer experimentar.
@@ -255,15 +272,32 @@ grava as respostas em `$XDG_CONFIG_HOME/hub-snk/hub-snk.env` — na prática
 `~/.config/hub-snk/hub-snk.env` — e copia o programa para
 `~/.local/share/hub-snk/programa`.
 
-O atalho é um `.desktop` em `~/.local/share/applications`, e o início junto com
-a sessão é o mesmo arquivo em `~/.config/autostart`, chamando
-`hub-snk.sh servidor`. É o mecanismo do XDG, respeitado por GNOME, KDE e pelos
-ambientes leves; systemd user e LaunchAgents resolveriam o mesmo problema com
-uma unidade a mais para manter em cada sistema.
+O atalho e o início na sessão são a única parte que muda entre os dois sistemas,
+e o instalador decide pelo `uname -s`:
+
+|                  | Linux                                       | macOS                                                   |
+| ---------------- | ------------------------------------------- | ------------------------------------------------------- |
+| Atalho           | `.desktop` em `~/.local/share/applications` | `HUB SNK.app` em `~/Applications`                       |
+| Início na sessão | `.desktop` em `~/.config/autostart`         | `com.hubsnk.servidor.plist` em `~/Library/LaunchAgents` |
+
+No Linux é o mecanismo do XDG, respeitado por GNOME, KDE e pelos ambientes
+leves. No macOS não há equivalente: o Finder e o Spotlight só enxergam
+aplicativo em pacote `.app`, e a pasta `autostart` do XDG não existe — um
+`.desktop` escrito ali seria ignorado em silêncio, e era o que acontecia antes.
+
+O pacote `.app` é o mínimo que o macOS aceita: um `Info.plist` e um executável
+de uma linha que chama `hub-snk.sh abrir`. Sem ícone próprio, porque um `.icns`
+exigiria uma etapa de conversão só para isto. O LaunchAgent tem `RunAtLoad` e é
+carregado na hora com `launchctl`, para o início na sessão valer sem logout.
+
+O `Exec` do `.desktop` leva o caminho entre aspas: a chave é dividida em
+espaços, e uma pasta de instalação com espaço no nome quebraria o atalho sem
+elas.
 
 `./desinstalar-hub-snk.sh`, rodado de dentro da pasta instalada, encerra o
-servidor, remove os dois `.desktop`, o `hub-snk.env`, o log e o programa. O
-cadastro fica, e o caminho dele aparece no fim.
+servidor, remove o atalho e o início na sessão do sistema em que está rodando —
+descarregando o LaunchAgent antes de apagá-lo, no macOS —, mais o `hub-snk.env`,
+o log e o programa. O cadastro fica, e o caminho dele aparece no fim.
 
 ## Tamanho
 

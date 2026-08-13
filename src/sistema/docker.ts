@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { lancarPrimeiroQueSubir, type Candidato } from './lancarProcesso.ts';
 
 /**
  * Controle de container Docker do banco de dados local — `docker start/stop/
@@ -9,9 +10,11 @@ import { join } from 'node:path';
  * dentro dele responde login com as credenciais cadastradas (`docker exec` +
  * `sqlplus`, presente nas imagens Oracle usadas pelo Sankhya).
  *
- * Todo comando depende do daemon (Docker Desktop) estar de pé, e o cliente
- * `docker` não sobe o daemon sozinho — por isso as ações que ligam o banco
- * garantem o daemon antes, subindo o Docker Desktop e esperando ele atender.
+ * Todo comando depende do daemon estar de pé, e o cliente `docker` não o sobe
+ * sozinho — por isso as ações que ligam o banco garantem o daemon antes,
+ * iniciando o Docker e esperando ele atender. O que é "iniciar o Docker" muda
+ * de sistema: aplicativo no Windows e no macOS, serviço de usuário do systemd
+ * no Linux.
  */
 
 /*
@@ -127,28 +130,18 @@ function caminhosDoDockerDesktopNoWindows(): string[] {
 }
 
 /**
- * Dispara o Docker Desktop e resolve assim que o processo nasce — quem espera
- * o daemon atender é `garantirDaemonAtivo`. Fica solto do servidor do HUB SNK
- * (`detached` + `unref`), como o disparo do WildFly.
+ * No Linux não há aplicativo para abrir: o Docker Desktop e o modo rootless são
+ * serviços de usuário do systemd, e sobem sem root. Ficam nesta ordem porque o
+ * `docker-desktop` é o caso equivalente ao dos outros dois sistemas.
+ *
+ * O Docker Engine instalado como serviço do sistema fica de fora de propósito:
+ * subi-lo exige um privilégio que o HUB SNK não tem, e pedir senha numa janela
+ * que ninguém está vendo não levaria a nada. Ele também costuma já estar no ar,
+ * porque é habilitado no boot.
  */
-function dispararDockerDesktop(): Promise<void> {
-  const [executavel, argumentos] = comandoParaAbrirODockerDesktop();
+const SERVICOS_DE_USUARIO_DO_LINUX = ['docker-desktop', 'docker'];
 
-  return new Promise((resolver, rejeitar) => {
-    const processo = spawn(executavel, argumentos, {
-      detached: process.platform !== 'win32',
-      stdio: 'ignore',
-    });
-
-    processo.once('spawn', () => {
-      processo.unref();
-      resolver();
-    });
-    processo.once('error', (erro) => rejeitar(new DockerDesktopIndisponivelError(erro.message)));
-  });
-}
-
-function comandoParaAbrirODockerDesktop(): [string, string[]] {
+function candidatosParaIniciarODocker(): Candidato[] {
   if (process.platform === 'win32') {
     const executavel = caminhosDoDockerDesktopNoWindows().find((caminho) => existsSync(caminho));
     if (!executavel) {
@@ -157,11 +150,18 @@ function comandoParaAbrirODockerDesktop(): [string, string[]] {
       );
     }
 
-    return [executavel, []];
+    return [{ comando: executavel, argumentos: [] }];
   }
 
   if (process.platform === 'darwin') {
-    return ['open', ['-a', 'Docker']];
+    return [{ comando: 'open', argumentos: ['-a', 'Docker'] }];
+  }
+
+  if (process.platform === 'linux') {
+    return SERVICOS_DE_USUARIO_DO_LINUX.map((servico) => ({
+      comando: 'systemctl',
+      argumentos: ['--user', 'start', servico],
+    }));
   }
 
   throw new DockerDesktopIndisponivelError(
@@ -170,16 +170,38 @@ function comandoParaAbrirODockerDesktop(): [string, string[]] {
 }
 
 /**
- * Sobe o Docker Desktop quando o daemon não responde e espera ele atender —
- * a primeira subida da VM leva bem mais que alguns segundos, então a espera é
- * longa de propósito. Sem isso, `docker start` falha com erro de named pipe.
+ * Sobe o Docker e volta assim que ele deu sinal de ter iniciado — quem espera o
+ * daemon atender é `garantirDaemonAtivo`.
+ *
+ * O aplicativo do Windows e do macOS continua vivo depois da resposta HTTP e
+ * fica solto do servidor; o `systemctl` do Linux é o oposto, termina em
+ * seguida, e o código de saída dele é o que separa serviço iniciado de unidade
+ * inexistente. `lancarProcesso` cobre os dois casos.
+ */
+async function iniciarODocker(): Promise<void> {
+  if (await lancarPrimeiroQueSubir(candidatosParaIniciarODocker())) {
+    return;
+  }
+
+  throw new DockerDesktopIndisponivelError(
+    process.platform === 'linux'
+      ? 'nenhum serviço de usuário do Docker respondeu. Se o Docker Engine roda como serviço do sistema, ' +
+          'suba-o com "sudo systemctl start docker".'
+      : 'o Docker Desktop não chegou a iniciar.',
+  );
+}
+
+/**
+ * Sobe o Docker quando o daemon não responde e espera ele atender — a primeira
+ * subida da VM leva bem mais que alguns segundos, então a espera é longa de
+ * propósito. Sem isso, `docker start` falha com erro de named pipe.
  */
 export async function garantirDaemonAtivo(): Promise<void> {
   if (await daemonEstaAtivo()) {
     return;
   }
 
-  await dispararDockerDesktop();
+  await iniciarODocker();
 
   for (let tentativa = 0; tentativa < TENTATIVAS_MAXIMAS_DE_ESPERA_DO_DAEMON; tentativa++) {
     await esperar(INTERVALO_DE_ESPERA_DO_DAEMON_MS);

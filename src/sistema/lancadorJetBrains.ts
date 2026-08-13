@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { lancarPrimeiroQueSubir, type Candidato } from './lancarProcesso.ts';
 
 /**
  * Lançamento de IDEs da JetBrains instaladas na máquina.
@@ -8,11 +9,6 @@ import { spawn } from 'node:child_process';
  * separados para o `spawn`, nunca interpolados numa linha de comando: sem shell
  * no meio, um caminho com espaço, aspas ou `&&` é tratado como texto.
  */
-
-export interface Lancamento {
-  comando: string;
-  argumentos: string[];
-}
 
 /**
  * `where.exe` responde se um executável está no PATH sem executá-lo — evita
@@ -31,7 +27,7 @@ function existeNoWindows(executavel: string): Promise<boolean> {
  * é o `cmd.exe`. Ele é chamado com os argumentos separados — e não com
  * `shell: true` — para que continuem sendo argumentos e não linha de comando.
  */
-function montarLancamentoDoWindows(launcher: string, argumentos: string[]): Lancamento {
+function montarLancamentoDoWindows(launcher: string, argumentos: string[]): Candidato {
   return /\.(cmd|bat)$/i.test(launcher)
     ? { comando: 'cmd.exe', argumentos: ['/c', launcher, ...argumentos] }
     : { comando: launcher, argumentos };
@@ -41,8 +37,8 @@ function montarLancamentoDoWindows(launcher: string, argumentos: string[]): Lanc
 export async function montarLancamentosDoWindows(
   launchers: string[],
   argumentos: string[],
-): Promise<Lancamento[]> {
-  const disponiveis: Lancamento[] = [];
+): Promise<Candidato[]> {
+  const disponiveis: Candidato[] = [];
 
   for (const launcher of launchers) {
     if (await existeNoWindows(launcher)) {
@@ -54,39 +50,12 @@ export async function montarLancamentosDoWindows(
 }
 
 /**
- * Resolve quando o processo realmente nasceu e rejeita quando o executável não
- * existe — é o evento `spawn` do Node que separa um caso do outro sem timer.
+ * Tenta os candidatos na ordem e informa se algum chegou a iniciar.
  *
- * O processo é solto (`detached` + `unref`) porque a IDE continua viva depois
- * da resposta HTTP e não deve prender o servidor.
+ * A janela do console fica escondida no Windows: o launcher da IDE é um
+ * programa de linha de comando, e sem isso um console preto pisca a cada
+ * abertura.
  */
-function lancar({ comando, argumentos }: Lancamento): Promise<void> {
-  return new Promise((resolver, rejeitar) => {
-    const processo = spawn(comando, argumentos, {
-      detached: true,
-      stdio: 'ignore',
-      windowsHide: true,
-    });
-
-    processo.once('spawn', () => {
-      processo.unref();
-      resolver();
-    });
-
-    processo.once('error', rejeitar);
-  });
-}
-
-/** Tenta os candidatos na ordem e informa se algum chegou a iniciar. */
-export async function lancarPrimeiroDisponivel(lancamentos: Lancamento[]): Promise<boolean> {
-  for (const lancamento of lancamentos) {
-    try {
-      await lancar(lancamento);
-      return true;
-    } catch {
-      // Executável ausente: segue para o próximo candidato.
-    }
-  }
-
-  return false;
+export function lancarPrimeiroDisponivel(candidatos: Candidato[]): Promise<boolean> {
+  return lancarPrimeiroQueSubir(candidatos, { ocultarJanelaNoWindows: true });
 }

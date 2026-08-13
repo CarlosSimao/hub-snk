@@ -1,24 +1,32 @@
-import { spawn } from 'node:child_process';
 import type { Stats } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { extname } from 'node:path';
+import { lancarProcesso, LancamentoFalhouError } from './lancarProcesso.ts';
 
 /**
  * Despachante de cada sistema. Entregar o caminho a ele, em vez de executá-lo
  * direto, é o que faz `.exe`, `.lnk`, `.bat` e qualquer extensão associada
  * abrirem do mesmo jeito.
  *
- * O Linux fica de fora do mapa de propósito: lá o despachante não serve para
- * todos os casos (veja `montarLancamento`).
+ * Só o Windows resolve tudo pelo despachante. Fora dele o `open` e o `xdg-open`
+ * despacham pela associação de tipo, que nem sempre é executar — veja
+ * `montarLancamento`.
  */
-const DESPACHANTES_POR_PLATAFORMA: Record<string, string> = {
-  win32: 'explorer.exe',
-  darwin: 'open',
-};
+const DESPACHANTE_DO_WINDOWS = 'explorer.exe';
+const DESPACHANTE_DO_MACOS = 'open';
 const DESPACHANTE_PADRAO = 'xdg-open';
 
 /** Aplicativo do macOS é um pacote: o caminho escolhido é uma pasta `.app`, não um arquivo. */
 const SUFIXO_DE_APLICATIVO_DO_MAC = '.app';
+
+/**
+ * Extensões que o macOS entrega ao despachante mesmo tendo bit de execução.
+ *
+ * O pacote `.app` só o `open` sabe iniciar. O `.command` existe justamente para
+ * ser aberto pelo Terminal com dois cliques: executá-lo direto o rodaria escondido,
+ * sem a janela que é o motivo de alguém escolher essa extensão.
+ */
+const SUFIXOS_DESPACHADOS_NO_MACOS = new Set([SUFIXO_DE_APLICATIVO_DO_MAC, '.command']);
 
 /** Bits de execução do modo POSIX (dono, grupo e outros). */
 const BITS_DE_EXECUCAO = 0o111;
@@ -32,6 +40,13 @@ export class ExecutavelNaoEncontradoError extends Error {
   constructor(caminho: string) {
     super(`O arquivo não existe ou não é um executável: ${caminho}`);
     this.name = 'ExecutavelNaoEncontradoError';
+  }
+}
+
+export class FalhaAoIniciarExecutavelError extends Error {
+  constructor(caminho: string, motivo: string) {
+    super(`Não foi possível iniciar ${caminho}: ${motivo}`);
+    this.name = 'FalhaAoIniciarExecutavelError';
   }
 }
 
@@ -62,46 +77,55 @@ async function inspecionarCaminho(caminho: string): Promise<Stats> {
   return informacoes;
 }
 
+function podeSerExecutadoDireto(informacoes: Stats): boolean {
+  return (informacoes.mode & BITS_DE_EXECUCAO) !== 0;
+}
+
 /**
- * No Windows e no macOS o despachante do sistema resolve tudo — inclusive o
- * pacote `.app`, que o `open` sabe iniciar.
+ * No Windows o despachante resolve tudo: `.exe`, `.lnk`, `.bat` e o que mais
+ * estiver associado.
  *
- * No Linux não: o `xdg-open` despacha pelo tipo MIME e abre um binário ou um
- * `.sh` no editor de texto em vez de executá-lo. Por isso o arquivo com bit de
- * execução é chamado direto, e o despachante fica para o resto — `.desktop`,
- * atalho web e afins, que só ele sabe abrir.
+ * Nos dois Unix, não. Tanto o `xdg-open` quanto o `open` despacham pela
+ * associação de tipo, e para script a associação costuma ser um editor: um `.sh`
+ * escolhido no seletor abriria no Xcode ou no bloco de notas em vez de rodar. Por
+ * isso o arquivo com bit de execução é chamado direto, e o despachante fica para
+ * o resto — o `.desktop` e o atalho web no Linux, o pacote `.app` e o `.command`
+ * no macOS, que só ele sabe iniciar.
  */
 function montarLancamento(caminho: string, informacoes: Stats): Lancamento {
-  const despachante = DESPACHANTES_POR_PLATAFORMA[process.platform];
-  if (despachante) {
-    return { comando: despachante, argumentos: [caminho] };
+  if (process.platform === 'win32') {
+    return { comando: DESPACHANTE_DO_WINDOWS, argumentos: [caminho] };
   }
 
-  return (informacoes.mode & BITS_DE_EXECUCAO) === 0
-    ? { comando: DESPACHANTE_PADRAO, argumentos: [caminho] }
-    : { comando: caminho, argumentos: [] };
+  if (process.platform === 'darwin') {
+    const sufixo = extname(caminho).toLowerCase();
+
+    return SUFIXOS_DESPACHADOS_NO_MACOS.has(sufixo) || !podeSerExecutadoDireto(informacoes)
+      ? { comando: DESPACHANTE_DO_MACOS, argumentos: [caminho] }
+      : { comando: caminho, argumentos: [] };
+  }
+
+  return podeSerExecutadoDireto(informacoes)
+    ? { comando: caminho, argumentos: [] }
+    : { comando: DESPACHANTE_PADRAO, argumentos: [caminho] };
 }
 
 /**
  * Inicia o programa cadastrado num atalho.
  *
- * O caminho vai como argumento separado para o `spawn`, nunca interpolado numa
- * linha de comando: sem shell no meio, um caminho com aspas, `&&` ou `;` é
- * tratado como texto e não como comando.
- *
- * O processo é solto (`detached` + `unref`) porque o programa continua vivo
- * depois da resposta HTTP e não deve prender o servidor.
+ * A falha volta para quem chamou, em vez de virar linha de log: o botão de raio
+ * não pode piscar "pronto" quando o programa nem chegou a subir.
  */
 export async function abrirExecutavelNoSistema(caminho: string): Promise<void> {
   const informacoes = await inspecionarCaminho(caminho);
   const { comando, argumentos } = montarLancamento(caminho, informacoes);
 
-  const processo = spawn(comando, argumentos, { detached: true, stdio: 'ignore' });
-
-  // A falha só aparece depois que a resposta já foi enviada; resta registrar.
-  processo.on('error', (erro) => {
-    console.error(`Falha ao executar "${comando}" para abrir ${caminho}:`, erro);
-  });
-
-  processo.unref();
+  try {
+    await lancarProcesso(comando, argumentos);
+  } catch (erro) {
+    if (erro instanceof LancamentoFalhouError) {
+      throw new FalhaAoIniciarExecutavelError(caminho, erro.motivo);
+    }
+    throw erro;
+  }
 }

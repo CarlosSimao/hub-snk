@@ -2,7 +2,10 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { isAbsolute } from 'node:path';
 import { z } from 'zod';
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
-import { abrirPastaNoSistema } from '../sistema/abrirPasta.ts';
+import {
+  abrirPastaNoSistema,
+  GerenciadorDeArquivosIndisponivelError,
+} from '../sistema/abrirPasta.ts';
 import { abrirIntelliJNaPasta, IntelliJIndisponivelError } from '../sistema/abrirIntelliJ.ts';
 import { abrirShellNaPasta, TerminalIndisponivelError } from '../sistema/abrirShell.ts';
 import {
@@ -786,6 +789,9 @@ export function registrarRotasDeClientes(
       } catch (erro) {
         if (erro instanceof PastaNaoEncontradaError) {
           return resposta.status(404).send({ mensagem: `Pasta não encontrada: ${caminhoLocal}` });
+        }
+        if (erro instanceof GerenciadorDeArquivosIndisponivelError) {
+          return resposta.status(503).send({ mensagem: erro.message });
         }
         throw erro;
       }
