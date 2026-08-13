@@ -30,6 +30,61 @@ número significa aqui.
   preserva o usuário e a senha já gravados, e sem "Banco" preserva o banco
   vinculado — campo não exportado não é campo apagado.
 
+- **Atalho e início na sessão no macOS**, que antes não existiam. O instalador
+  criava um `.desktop` do XDG nos dois casos — arquivo que o macOS ignora em
+  silêncio —, e o Mac ficava sem atalho e sem início automático mesmo tendo
+  respondido _Sim_. Agora o atalho é um `HUB SNK.app` em `~/Applications`, e o
+  início na sessão é um LaunchAgent em `~/Library/LaunchAgents`, carregado na
+  hora. A desinstalação remove os dois.
+
+- **Janela própria no macOS** ao rodar `node src/index.ts` direto do pacote. A
+  procura por navegador só conhecia nome de comando do Linux, que no macOS nunca
+  existe, e a tela sempre acabava numa aba comum. Agora o Chrome, o Chromium, o
+  Edge e o Brave são procurados como aplicativo, em `/Applications` e em
+  `~/Applications`.
+
+### Corrigido
+
+- **Botão que dizia ter aberto o programa sem ter aberto.** Abrir a pasta, o
+  terminal, o IntelliJ ou um atalho respondia sucesso assim que o processo
+  nascia — ou mesmo sem ele nascer. Sem `xdg-open` no Linux, o botão **Arquivos**
+  não fazia nada e a falha só aparecia no log do servidor. Agora o HUB SNK espera
+  um instante para ver se o programa sobreviveu e mostra o aviso na tela quando
+  ele não subiu.
+
+- **Terminal que não abria no Linux mesmo havendo um instalado.** O primeiro
+  candidato da lista encerrava a busca por ter nascido, ainda que morresse no
+  argumento seguinte — o caso do `x-terminal-emulator` apontando para um emulador
+  que não aceita `--working-directory`. Agora a busca continua até um deles de
+  fato abrir.
+
+- **Atalho do menu quebrado quando a pasta de instalação tinha espaço no nome**,
+  no Linux: o `Exec` do `.desktop` agora leva o caminho entre aspas.
+
+- **Atualização que deixava arquivo velho para trás.** Reinstalar copiava por
+  cima sem apagar nada, então um arquivo removido do projeto sobrevivia dentro de
+  `src` ou `public` na sua instalação. Agora cada item do pacote é removido antes
+  de ser copiado. Só o que o pacote traz é tocado: instalação numa pasta com
+  outras coisas dentro não perde nada. Vale para os dois instaladores.
+
+- **Ligar o banco local no Linux, que nem tentava subir o Docker.** A ação
+  respondia direto que a inicialização automática não era suportada. Agora o HUB
+  SNK sobe o serviço de usuário do systemd — `docker-desktop` e, na falta dele, o
+  `docker` rootless —, os dois sem root. O Docker Engine como serviço do sistema
+  continua de fora, porque exige `sudo`; nesse caso a mensagem mostra o comando.
+
+- **Launcher do Linux sem `pgrep`, que subia um segundo servidor em cima do
+  primeiro.** Sem o comando, a busca por processo devolvia vazio em vez de erro:
+  o `hub-snk.sh` achava que nada estava no ar e falhava com `EADDRINUSE`, e o
+  `parar` informava que nada estava rodando. Agora o launcher e o instalador
+  conferem o `pgrep` antes de qualquer coisa e dizem qual pacote instalar.
+
+- **Atalho para script no macOS, que abria no editor em vez de rodar.** Todo
+  atalho era entregue ao `open`, que decide pela associação de tipo — e a de um
+  `.sh` costuma ser o Xcode ou o bloco de notas. Agora o arquivo com bit de
+  execução é chamado direto, como já era no Linux. O pacote `.app` e o
+  `.command` seguem com o `open`, que é quem sabe iniciá-los.
+
 ## [1.0.0] - 2026-08-10
 
 Primeira versão distribuída ao time.

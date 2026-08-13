@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { lancarPrimeiroQueSubir, type Candidato } from './lancarProcesso.ts';
 import { garantirQueEhPasta } from './pasta.ts';
 
 /**
@@ -15,12 +16,6 @@ export class TerminalIndisponivelError extends Error {
     super('Nenhum terminal compatível foi encontrado neste sistema.');
     this.name = 'TerminalIndisponivelError';
   }
-}
-
-interface Lancamento {
-  comando: string;
-  argumentos: string[];
-  pastaDeTrabalho?: string;
 }
 
 /** Mantém o terminal aberto depois que o script termina, para ler a saída. */
@@ -44,8 +39,8 @@ function existeNoWindows(executavel: string): Promise<boolean> {
   });
 }
 
-async function montarLancamentoDoWindows(pasta: string, script: string): Promise<Lancamento> {
-  const shells: Lancamento[] = [
+async function montarLancamentoDoWindows(pasta: string, script: string): Promise<Candidato> {
+  const shells: Candidato[] = [
     { comando: 'pwsh.exe', argumentos: script ? ['-NoExit', '-Command', script] : ['-NoExit'] },
     {
       comando: 'powershell.exe',
@@ -55,7 +50,7 @@ async function montarLancamentoDoWindows(pasta: string, script: string): Promise
   ];
 
   // O `cmd.exe` é o último da lista e existe em qualquer Windows.
-  let shellEscolhido = shells[shells.length - 1] as Lancamento;
+  let shellEscolhido = shells[shells.length - 1] as Candidato;
   for (const shell of shells) {
     if (await existeNoWindows(shell.comando)) {
       shellEscolhido = shell;
@@ -74,8 +69,8 @@ async function montarLancamentoDoWindows(pasta: string, script: string): Promise
   return { ...shellEscolhido, pastaDeTrabalho: pasta };
 }
 
-function montarLancamentosDoMac(pasta: string, script: string): Lancamento[] {
-  const abrirTerminalNaPasta: Lancamento = {
+function montarLancamentosDoMac(pasta: string, script: string): Candidato[] {
+  const abrirTerminalNaPasta: Candidato = {
     comando: 'open',
     argumentos: ['-a', 'Terminal', pasta],
   };
@@ -94,7 +89,7 @@ function montarLancamentosDoMac(pasta: string, script: string): Lancamento[] {
  * O Linux não tem terminal padrão: a lista vai do despachante do Debian aos
  * emuladores mais comuns, e o primeiro que existir é usado.
  */
-function montarLancamentosDoLinux(pasta: string, script: string): Lancamento[] {
+function montarLancamentosDoLinux(pasta: string, script: string): Candidato[] {
   const comandoDoShell = script ? manterShellAberto(script) : '';
   const executarNoBash = script ? ['bash', '-c', comandoDoShell] : [];
 
@@ -123,45 +118,17 @@ function montarLancamentosDoLinux(pasta: string, script: string): Lancamento[] {
   ];
 }
 
-/**
- * Resolve quando o processo realmente nasceu e rejeita quando o executável não
- * existe — é o evento `spawn` do Node que separa um caso do outro sem timer.
- */
-function lancar({ comando, argumentos, pastaDeTrabalho }: Lancamento): Promise<void> {
-  return new Promise((resolver, rejeitar) => {
-    const processo = spawn(comando, argumentos, {
-      cwd: pastaDeTrabalho,
-      detached: true,
-      stdio: 'ignore',
-    });
-
-    processo.once('spawn', () => {
-      processo.unref();
-      resolver();
-    });
-
-    processo.once('error', rejeitar);
-  });
-}
-
 export async function abrirShellNaPasta(pasta: string, script: string): Promise<void> {
   await garantirQueEhPasta(pasta);
 
-  const lancamentos =
+  const candidatos =
     process.platform === 'win32'
       ? [await montarLancamentoDoWindows(pasta, script)]
       : process.platform === 'darwin'
         ? montarLancamentosDoMac(pasta, script)
         : montarLancamentosDoLinux(pasta, script);
 
-  for (const lancamento of lancamentos) {
-    try {
-      await lancar(lancamento);
-      return;
-    } catch {
-      // Executável ausente: segue para o próximo candidato.
-    }
+  if (!(await lancarPrimeiroQueSubir(candidatos))) {
+    throw new TerminalIndisponivelError();
   }
-
-  throw new TerminalIndisponivelError();
 }

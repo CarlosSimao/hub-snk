@@ -51,9 +51,9 @@ subir nesse modo.
 | `POST`   | `/api/clientes/:id/repositorios`                               | `201` — repositório criado                                              |
 | `PUT`    | `/api/clientes/:id/repositorios/:idRepositorio`                | `200` — repositório atualizado                                          |
 | `DELETE` | `/api/clientes/:id/repositorios/:idRepositorio`                | `204` — sem conteúdo                                                    |
-| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-pasta`    | `204` — pasta aberta no gerenciador de arquivos                         |
-| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-shell`    | `204` — terminal aberto na pasta                                        |
-| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-intellij` | `204` — pasta aberta como projeto no IntelliJ                           |
+| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-pasta`    | `204` — pasta aberta; `503` quando o gerenciador falta                  |
+| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-shell`    | `204` — terminal aberto; `503` quando nenhum abre                       |
+| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-intellij` | `204` — projeto aberto; `503` sem IntelliJ                              |
 | `GET`    | `/api/clientes/:id/repositorios/:idRepositorio/mcp`            | `200` — conteúdo do `.sankhya-mcp.env`                                  |
 | `PUT`    | `/api/clientes/:id/repositorios/:idRepositorio/mcp`            | `204` — arquivo criado ou sobrescrito                                   |
 | `POST`   | `/api/clientes/:id/links`                                      | `201` — link criado                                                     |
@@ -63,7 +63,7 @@ subir nesse modo.
 | `GET`    | `/api/configuracao`                                            | `200` — configuração global                                             |
 | `PUT`    | `/api/configuracao`                                            | `200` — configuração salva                                              |
 | `POST`   | `/api/atalhos/selecionar-executavel`                           | `200` — caminho escolhido; `204` quando cancelado                       |
-| `POST`   | `/api/atalhos/:id/abrir`                                       | `204` — programa do atalho iniciado                                     |
+| `POST`   | `/api/atalhos/:id/abrir`                                       | `204` — programa iniciado; `503` se ele não subir                       |
 | `GET`    | `/api/sistema/versao`                                          | `200` — `{ "versao": "1.0.0" }`, a mesma exibida no rodapé              |
 | `GET`    | `/api/sistema/atualizacao`                                     | `200` — comparação com a última release publicada no GitHub             |
 
@@ -195,7 +195,11 @@ bases por chamada.
 ## Erros
 
 Erros retornam `{ "mensagem": "..." }` com `400` (dados inválidos), `403`
-(origem recusada), `404` (cliente ou base inexistente) ou `409` (conflito). São
+(origem recusada), `404` (cliente ou base inexistente), `409` (conflito) ou
+`503` (recurso do sistema operacional indisponível). O `503` cobre as rotas que
+abrem programa da máquina — gerenciador de arquivos, terminal, IntelliJ, seletor
+de arquivo e de pasta, atalho — quando o programa não existe ou não chega a
+subir; a mensagem diz o que instalar. São
 conflito o nome de cliente repetido, o par URL + usuário repetido nas bases do
 mesmo cliente e a URL de repositório repetida no mesmo cliente. Nas bases, a
 mesma URL pode aparecer várias vezes desde que o usuário mude — assim dá para

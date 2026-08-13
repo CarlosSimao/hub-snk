@@ -44,6 +44,10 @@ O Node não vai dentro dos pacotes: são 80 MB de binário que a maioria das
 máquinas de desenvolvimento já tem instalado, e que envelheceriam presos à
 versão escolhida no dia do empacotamento.
 
+No Linux, o launcher também usa o **`pgrep`** para saber se o servidor já está no
+ar. Ele vem no pacote `procps` e está em qualquer desktop; se faltar, o
+`hub-snk.sh` avisa e não sobe. No Windows e no macOS não há o que instalar.
+
 ---
 
 ## Windows
@@ -168,17 +172,22 @@ antigo demais.
 ```
 
 As perguntas são as mesmas do instalador do Windows, na mesma ordem e com os
-mesmos padrões — muda só o atalho, que aqui vai para o menu de aplicativos:
+mesmos padrões — muda só o atalho, que sai no mecanismo de cada sistema:
 
-| Pergunta                      | Padrão                            |
-| ----------------------------- | --------------------------------- |
-| Pasta de instalação           | `~/.local/share/hub-snk/programa` |
-| `HUB_PORTA`                   | `4100`                            |
-| `HUB_HOST`                    | `127.0.0.1`                       |
-| `HUB_DADOS_DIR`               | `~/.local/share/hub-snk/dados`    |
-| `HUB_NAVEGADOR`               | `padrao`                          |
-| Atalho no menu de aplicativos | Sim                               |
-| Iniciar junto com a sessão    | Não                               |
+| Pergunta                   | Padrão                            |
+| -------------------------- | --------------------------------- |
+| Pasta de instalação        | `~/.local/share/hub-snk/programa` |
+| `HUB_PORTA`                | `4100`                            |
+| `HUB_HOST`                 | `127.0.0.1`                       |
+| `HUB_DADOS_DIR`            | `~/.local/share/hub-snk/dados`    |
+| `HUB_NAVEGADOR`            | `padrao`                          |
+| Atalho                     | Sim                               |
+| Iniciar junto com a sessão | Não                               |
+
+| O que o atalho vira        | Linux                               | macOS                                   |
+| -------------------------- | ----------------------------------- | --------------------------------------- |
+| Atalho                     | `.desktop` no menu de aplicativos   | `HUB SNK.app` em `~/Applications`       |
+| Iniciar junto com a sessão | `.desktop` em `~/.config/autostart` | LaunchAgent em `~/Library/LaunchAgents` |
 
 As respostas ficam em `~/.config/hub-snk/hub-snk.env`, editável depois sem
 reinstalar.
@@ -286,8 +295,9 @@ formato dos arquivos está em [docs/formato-dos-dados.md](docs/formato-dos-dados
 
 As bases e os bancos locais ficam no botão **Local**, no topo da tela, ao lado de
 _Clientes_: é o ambiente de desenvolvimento da sua própria máquina, separado do
-cadastro dos clientes. Ligar o banco sobe o Docker Desktop antes, se ele estiver
-parado, e parar o WildFly usa o desligamento limpo do próprio servidor, não um
+cadastro dos clientes. Ligar o banco sobe o Docker antes, se ele estiver parado —
+o Docker Desktop no Windows e no macOS, o serviço de usuário do systemd no
+Linux —, e parar o WildFly usa o desligamento limpo do próprio servidor, não um
 encerramento forçado. No cadastro da base, o botão de pasta ao lado do _Caminho
 do WildFly_ abre o seletor do sistema e preenche o campo.
 
@@ -302,14 +312,15 @@ Cada uma em detalhe, com as regras e o que muda em cada sistema operacional, em
 
 ## Solução de problemas
 
-| Sintoma                                                  | O que fazer                                                                                                    |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `EADDRINUSE` ao iniciar                                  | A porta já está ocupada. Mude o `HUB_PORTA` no `hub-snk.env` e abra de novo                                    |
-| A janela abre em aba comum, e não em janela própria      | O navegador escolhido saiu da máquina. Rode a instalação de novo e escolha outro                               |
-| A tela abre, mas a atualização que eu baixei não aparece | A janela instalada está servindo o cache antigo. Recarregue com `Ctrl`+`Shift`+`R`, ou abra no navegador comum |
-| Os botões de Git não fazem nada                          | O `git` precisa estar no PATH. Confira com `git --version` num terminal novo                                   |
-| Mensagem sobre esquema mais novo ao iniciar              | O cadastro foi gravado por uma versão mais nova do HUB SNK. Instale a versão mais recente                      |
-| `403` em tudo, ou a tela não carrega nada                | O endereço usado não é `127.0.0.1` nem `localhost`, ou a porta não bate com a do servidor                      |
+| Sintoma                                                      | O que fazer                                                                                                    |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `EADDRINUSE` ao iniciar                                      | A porta já está ocupada. Mude o `HUB_PORTA` no `hub-snk.env` e abra de novo                                    |
+| A janela abre em aba comum, e não em janela própria          | O navegador escolhido saiu da máquina. Rode a instalação de novo e escolha outro                               |
+| A tela abre, mas a atualização que eu baixei não aparece     | A janela instalada está servindo o cache antigo. Recarregue com `Ctrl`+`Shift`+`R`, ou abra no navegador comum |
+| Os botões de Git não fazem nada                              | O `git` precisa estar no PATH. Confira com `git --version` num terminal novo                                   |
+| No macOS, o Shell abre o Terminal mas ignora o Script padrão | Falta a permissão de Automação. Libere em _Ajustes do Sistema_ › _Privacidade e Segurança_ › _Automação_       |
+| Mensagem sobre esquema mais novo ao iniciar                  | O cadastro foi gravado por uma versão mais nova do HUB SNK. Instale a versão mais recente                      |
+| `403` em tudo, ou a tela não carrega nada                    | O endereço usado não é `127.0.0.1` nem `localhost`, ou a porta não bate com a do servidor                      |
 
 Se não estiver na lista, [abra uma issue](https://github.com/CarlosSimao/hub-snk/issues/new/choose)
 — citando a versão que aparece no rodapé da tela, e sem colar senha, host,

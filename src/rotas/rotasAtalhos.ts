@@ -4,6 +4,7 @@ import type { RepositorioConfiguracao } from '../repositorio/repositorioConfigur
 import {
   abrirExecutavelNoSistema,
   ExecutavelNaoEncontradoError,
+  FalhaAoIniciarExecutavelError,
 } from '../sistema/abrirExecutavel.ts';
 import {
   selecionarArquivoNoSistema,
@@ -58,6 +59,9 @@ export function registrarRotasDeAtalhos(
     } catch (erro) {
       if (erro instanceof ExecutavelNaoEncontradoError) {
         return resposta.status(404).send({ mensagem: erro.message });
+      }
+      if (erro instanceof FalhaAoIniciarExecutavelError) {
+        return resposta.status(503).send({ mensagem: erro.message });
       }
       throw erro;
     }
