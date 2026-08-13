@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [1.1.0] - 2026-08-13
+
 ### Adicionado
 
 - **Exportar cadastros para arquivo**, no botão ao lado do **Importar**, no pé da
@@ -161,5 +163,6 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v1.0.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/CarlosSimao/hub-snk/releases/tag/v1.0.0
