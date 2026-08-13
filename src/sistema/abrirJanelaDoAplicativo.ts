@@ -1,6 +1,8 @@
 import { spawn } from 'node:child_process';
 import { access, constants } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { lancarProcesso } from './lancarProcesso.ts';
 
 /**
  * Abre a tela do HUB SNK em janela própria assim que o servidor sobe.
@@ -32,7 +34,25 @@ const CAMINHOS_DO_CHROME_NO_WINDOWS = [
   ['LOCALAPPDATA', 'Google\\Chrome\\Application\\chrome.exe'],
 ] as const;
 
-const COMANDOS_CHROMIUM_NO_UNIX = ['google-chrome', 'chromium', 'microsoft-edge', 'brave-browser'];
+const COMANDOS_CHROMIUM_NO_LINUX = ['google-chrome', 'chromium', 'microsoft-edge', 'brave-browser'];
+
+/**
+ * No macOS o navegador é um pacote `.app`, não um comando no PATH: procurar por
+ * nome de executável, como no Linux, nunca acha nada e a janela própria acaba
+ * caindo sempre na aba comum.
+ *
+ * O nome do comando equivalente vem junto porque é ele que o instalador grava
+ * no `HUB_NAVEGADOR` — a lista de opções é a mesma nos três sistemas.
+ */
+const APLICATIVOS_CHROMIUM_NO_MACOS = [
+  { comando: 'google-chrome', aplicativo: 'Google Chrome' },
+  { comando: 'chromium', aplicativo: 'Chromium' },
+  { comando: 'microsoft-edge', aplicativo: 'Microsoft Edge' },
+  { comando: 'brave-browser', aplicativo: 'Brave Browser' },
+] as const;
+
+/** Pastas em que o macOS guarda aplicativos: a do sistema e a do usuário. */
+const PASTAS_DE_APLICATIVOS_DO_MACOS = ['/Applications', join(homedir(), 'Applications')];
 
 /** Despachante de cada sistema, para quando não há Chromium — abre em aba comum. */
 const DESPACHANTES_POR_PLATAFORMA: Record<string, string> = {
@@ -40,20 +60,6 @@ const DESPACHANTES_POR_PLATAFORMA: Record<string, string> = {
   darwin: 'open',
 };
 const DESPACHANTE_PADRAO = 'xdg-open';
-
-/**
- * O processo é solto (`detached` + `unref`) porque o navegador continua vivo
- * depois de o servidor terminar de subir e não deve prendê-lo.
- */
-function lancar(comando: string, argumentos: string[]): void {
-  const processo = spawn(comando, argumentos, { detached: true, stdio: 'ignore' });
-
-  processo.on('error', (erro) => {
-    console.error(`Falha ao executar "${comando}" para abrir a janela:`, erro);
-  });
-
-  processo.unref();
-}
 
 async function existe(caminho: string): Promise<boolean> {
   try {
@@ -97,19 +103,123 @@ async function navegadorDoWindows(preferencia: string): Promise<string | null> {
   );
 }
 
-/**
- * Fora do Windows não há caminho fixo para procurar: o navegador é um comando
- * no PATH, e o `spawn` falha se ele não existir. Um nome de comando dado pelo
- * usuário é tentado primeiro, na ordem em que ele pediu.
- */
-function comandosDoUnix(preferencia: string): string[] {
-  return preferencia === NAVEGADOR_AUTOMATICO
-    ? COMANDOS_CHROMIUM_NO_UNIX
-    : [preferencia, ...COMANDOS_CHROMIUM_NO_UNIX];
+async function aplicativoInstaladoNoMacos(aplicativo: string): Promise<boolean> {
+  for (const pasta of PASTAS_DE_APLICATIVOS_DO_MACOS) {
+    if (await existe(join(pasta, `${aplicativo}.app`))) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
-function abrirNoNavegadorPadrao(endereco: string): void {
-  lancar(DESPACHANTES_POR_PLATAFORMA[process.platform] ?? DESPACHANTE_PADRAO, [endereco]);
+/**
+ * `-n` abre uma instância nova, para a janela nascer separada do navegador que
+ * já esteja aberto; `--args` repassa o `--app` para o Chromium.
+ */
+function abrirJanelaNoMacos(aplicativo: string, endereco: string): Promise<void> {
+  return lancarProcesso('open', [
+    '-n',
+    '-a',
+    aplicativo,
+    '--args',
+    `${ARGUMENTO_DE_JANELA}${endereco}`,
+  ]);
+}
+
+/** O navegador pedido pelo usuário vem primeiro, na ordem em que ele pediu. */
+function aplicativosDoMacos(preferencia: string): ReadonlyArray<{ aplicativo: string }> {
+  if (preferencia === NAVEGADOR_AUTOMATICO) {
+    return APLICATIVOS_CHROMIUM_NO_MACOS;
+  }
+
+  const pedido = APLICATIVOS_CHROMIUM_NO_MACOS.find(
+    ({ comando, aplicativo }) => comando === preferencia || aplicativo === preferencia,
+  );
+
+  return pedido ? [pedido, ...APLICATIVOS_CHROMIUM_NO_MACOS] : APLICATIVOS_CHROMIUM_NO_MACOS;
+}
+
+/**
+ * Fora do Windows e do macOS não há caminho fixo para procurar: o navegador é um
+ * comando no PATH. Um nome dado pelo usuário é tentado primeiro.
+ */
+function comandosDoLinux(preferencia: string): string[] {
+  return preferencia === NAVEGADOR_AUTOMATICO
+    ? COMANDOS_CHROMIUM_NO_LINUX
+    : [preferencia, ...COMANDOS_CHROMIUM_NO_LINUX];
+}
+
+/**
+ * `command -v` sem shell: o `spawn` de um comando ausente falha com ENOENT, e
+ * descobrir isso antes evita uma janela que nunca abre.
+ */
+function comandoExiste(comando: string): Promise<boolean> {
+  return new Promise((resolver) => {
+    const processo = spawn('which', [comando], { stdio: 'ignore' });
+    processo.on('error', () => resolver(false));
+    processo.on('close', (codigo) => resolver(codigo === 0));
+  });
+}
+
+/**
+ * Último recurso, em aba comum. Falhar aqui não impede o HUB SNK de funcionar —
+ * o servidor está no ar e o endereço basta —, então o recado vai para o
+ * terminal em vez de derrubar a inicialização.
+ */
+async function abrirNoNavegadorPadrao(endereco: string): Promise<void> {
+  const despachante = DESPACHANTES_POR_PLATAFORMA[process.platform] ?? DESPACHANTE_PADRAO;
+
+  try {
+    await lancarProcesso(despachante, [endereco]);
+  } catch {
+    console.error(`Não foi possível abrir o navegador. Acesse ${endereco} para usar o HUB SNK.`);
+  }
+}
+
+/** `true` quando a janela própria subiu; `false` deixa o navegador padrão assumir. */
+async function abrirJanelaPropria(endereco: string, preferencia: string): Promise<boolean> {
+  if (process.platform === 'win32') {
+    const navegador = await navegadorDoWindows(preferencia);
+    if (!navegador) {
+      return false;
+    }
+
+    try {
+      await lancarProcesso(navegador, [`${ARGUMENTO_DE_JANELA}${endereco}`]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  if (process.platform === 'darwin') {
+    for (const { aplicativo } of aplicativosDoMacos(preferencia)) {
+      if (await aplicativoInstaladoNoMacos(aplicativo)) {
+        try {
+          await abrirJanelaNoMacos(aplicativo, endereco);
+          return true;
+        } catch {
+          // Aplicativo presente mas recusado: tenta o próximo.
+        }
+      }
+    }
+
+    return false;
+  }
+
+  for (const comando of comandosDoLinux(preferencia)) {
+    if (await comandoExiste(comando)) {
+      try {
+        await lancarProcesso(comando, [`${ARGUMENTO_DE_JANELA}${endereco}`]);
+        return true;
+      } catch {
+        // Comando presente mas recusado: tenta o próximo.
+      }
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -125,40 +235,11 @@ export async function abrirJanelaDoAplicativo(
   preferencia: string,
 ): Promise<void> {
   if (preferencia === NAVEGADOR_PADRAO) {
-    abrirNoNavegadorPadrao(endereco);
+    await abrirNoNavegadorPadrao(endereco);
     return;
   }
 
-  if (process.platform === 'win32') {
-    const navegador = await navegadorDoWindows(preferencia);
-
-    if (navegador) {
-      lancar(navegador, [`${ARGUMENTO_DE_JANELA}${endereco}`]);
-    } else {
-      abrirNoNavegadorPadrao(endereco);
-    }
-
-    return;
+  if (!(await abrirJanelaPropria(endereco, preferencia))) {
+    await abrirNoNavegadorPadrao(endereco);
   }
-
-  for (const comando of comandosDoUnix(preferencia)) {
-    if (await comandoExiste(comando)) {
-      lancar(comando, [`${ARGUMENTO_DE_JANELA}${endereco}`]);
-      return;
-    }
-  }
-
-  abrirNoNavegadorPadrao(endereco);
-}
-
-/**
- * `command -v` sem shell: o `spawn` de um comando ausente falha com ENOENT, e
- * descobrir isso antes evita uma janela que nunca abre.
- */
-async function comandoExiste(comando: string): Promise<boolean> {
-  return new Promise((resolver) => {
-    const processo = spawn('which', [comando], { stdio: 'ignore' });
-    processo.on('error', () => resolver(false));
-    processo.on('close', (codigo) => resolver(codigo === 0));
-  });
 }

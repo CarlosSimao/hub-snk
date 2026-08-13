@@ -86,6 +86,22 @@ conferir_node() {
     fi
 }
 
+# Todo o controle de ciclo de vida sai do `pgrep`, e a falta dele não dá erro:
+# `pids_do_pacote` devolveria vazio sempre. `iniciar` acharia que nada está no
+# ar e subiria um segundo servidor na porta já ocupada, e `parar` diria que não
+# havia nada rodando. Errar em silêncio é pior que não começar.
+#
+# Vem no `procps`, presente em qualquer desktop e ausente em imagem enxuta. No
+# macOS é parte do sistema.
+conferir_pgrep() {
+    command -v pgrep > /dev/null 2>&1 && return 0
+
+    echo 'O comando "pgrep" não está disponível.' >&2
+    echo 'O HUB SNK precisa dele para saber se o servidor já está no ar.' >&2
+    echo 'Instale o pacote "procps" da sua distribuição e tente de novo.' >&2
+    exit 1
+}
+
 # Identifica o servidor pelo caminho do programa, e não pelo binário do Node:
 # o node agora é o da máquina, compartilhado com qualquer outro projeto seu.
 pids_do_pacote() {
@@ -182,6 +198,8 @@ abrir_no_navegador_padrao() {
         echo "Abra $ENDERECO no seu navegador."
     fi
 }
+
+conferir_pgrep
 
 case "${1:-abrir}" in
     parar)

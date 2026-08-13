@@ -236,13 +236,32 @@ function EncerrarServidorInstalado([string]$destino) {
     Start-Sleep -Milliseconds 500
 }
 
+# Cada item é removido antes de ser copiado, em vez de fundido com o que já
+# estava lá: copiar por cima não apaga o que a versão nova deixou de ter, e um
+# arquivo removido do projeto sobreviveria dentro de `src` ou `public` — ocupando
+# espaço no melhor caso, e sendo carregado por engano no pior.
+#
+# A remoção alcança só o que o pacote traz. A pasta de destino é digitada pelo
+# usuário e pode ter outra coisa dentro; apagá-la inteira levaria junto o que não
+# é nosso, e quem instalou numa pasta compartilhada perderia arquivo na primeira
+# atualização.
 function CopiarPrograma([string]$destino) {
     New-Item -ItemType Directory -Path $destino -Force | Out-Null
+
+    # Instalar sobre a própria pasta do pacote apagaria a origem da cópia.
+    if ((Resolve-Path -LiteralPath $destino).Path -eq (Resolve-Path -LiteralPath $pastaDoPacote).Path) {
+        Write-Host 'A pasta de instalação é a própria pasta do pacote: nada a copiar.'
+        return
+    }
 
     # O que veio no pacote é a lista inteira, menos os próprios instaladores.
     Get-ChildItem -LiteralPath $pastaDoPacote -Force |
         Where-Object { $_.Name -notlike 'instalar-hub-snk.*' } |
         ForEach-Object {
+            $anterior = Join-Path $destino $_.Name
+            if (Test-Path -LiteralPath $anterior) {
+                Remove-Item -LiteralPath $anterior -Recurse -Force -Confirm:$false
+            }
             Copy-Item -LiteralPath $_.FullName -Destination $destino -Recurse -Force
         }
 }

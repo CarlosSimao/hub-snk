@@ -27,8 +27,15 @@ PASTA_DE_CONFIGURACAO="${XDG_CONFIG_HOME:-$HOME/.config}/hub-snk"
 ARQUIVO_DE_CONFIGURACAO="$PASTA_DE_CONFIGURACAO/hub-snk.env"
 DESTINO_PADRAO="$PASTA_DE_DADOS_BASE/programa"
 DADOS_PADRAO="$PASTA_DE_DADOS_BASE/dados"
+
+# O atalho e o início na sessão são a única parte que muda entre Linux e macOS:
+# o `.desktop` do XDG não existe no macOS, que usa pacote `.app` e LaunchAgent.
+SISTEMA=$(uname -s)
 ATALHO="${XDG_DATA_HOME:-$HOME/.local/share}/applications/hub-snk.desktop"
 ATALHO_DO_LOGON="${XDG_CONFIG_HOME:-$HOME/.config}/autostart/hub-snk.desktop"
+APLICATIVO_DO_MACOS="$HOME/Applications/HUB SNK.app"
+AGENTE_DO_MACOS="$HOME/Library/LaunchAgents/com.hubsnk.servidor.plist"
+ROTULO_DO_AGENTE=com.hubsnk.servidor
 
 # ---------------------------------------------------------------------------
 # Perguntas
@@ -223,6 +230,18 @@ conferir_node() {
     printf 'Node %s encontrado.\n' "$versao"
 }
 
+# O launcher instalado depende do `pgrep` para saber se o servidor está no ar, e
+# a falta dele não dá erro — dá resposta errada. Conferir aqui, e não só no
+# launcher, evita descobrir isso depois de tudo copiado.
+conferir_pgrep() {
+    command -v pgrep > /dev/null 2>&1 && return 0
+
+    echo 'O comando "pgrep" não está disponível.' >&2
+    echo 'O HUB SNK precisa dele para saber se o servidor já está no ar.' >&2
+    echo 'Instale o pacote "procps" da sua distribuição e tente de novo.' >&2
+    exit 1
+}
+
 # ---------------------------------------------------------------------------
 # Instalação
 
@@ -236,17 +255,34 @@ encerrar_servidor_instalado() {
     "$destino/hub-snk.sh" parar > /dev/null 2>&1 || true
 }
 
+# Cada item é removido antes de ser copiado, em vez de fundido com o que já
+# estava lá: copiar por cima não apaga o que a versão nova deixou de ter, e um
+# arquivo removido do projeto sobreviveria dentro de `src` ou `public` — ocupando
+# espaço no melhor caso, e sendo carregado por engano no pior.
+#
+# A remoção alcança só o que o pacote traz. A pasta de destino é digitada pelo
+# usuário e pode ter outra coisa dentro; apagá-la inteira levaria junto o que não
+# é nosso, e quem instalou numa pasta compartilhada perderia arquivo na primeira
+# atualização.
 copiar_programa() {
     destino=$1
 
     mkdir -p "$destino"
 
+    # Instalar sobre a própria pasta do pacote apagaria a origem da cópia.
+    if [ "$(CDPATH= cd -- "$destino" && pwd)" = "$PASTA_DO_PACOTE" ]; then
+        printf 'A pasta de instalação é a própria pasta do pacote: nada a copiar.\n'
+        return 0
+    fi
+
     # O que veio no pacote é a lista inteira, menos os próprios instaladores.
     for item in "$PASTA_DO_PACOTE"/* "$PASTA_DO_PACOTE"/.[!.]*; do
         [ -e "$item" ] || continue
-        case "$(basename "$item")" in
+        nome=$(basename "$item")
+        case "$nome" in
             instalar-hub-snk.sh) continue ;;
         esac
+        rm -rf "$destino/$nome"
         cp -R "$item" "$destino/"
     done
 
@@ -275,6 +311,8 @@ HUB_NAVEGADOR=$5
 FIM
 }
 
+# O caminho vai entre aspas porque o `Exec` do XDG é dividido em espaços: uma
+# pasta de instalação com espaço no nome quebraria o atalho sem elas.
 gravar_atalho() {
     caminho=$1
     destino=$2
@@ -287,13 +325,141 @@ gravar_atalho() {
 Type=Application
 Name=HUB SNK
 Comment=Abre o HUB SNK em janela própria
-Exec=$destino/hub-snk.sh $argumento
+Exec="$destino/hub-snk.sh" $argumento
 Icon=$destino/public/img/icone-512.png
 Terminal=false
 Categories=Development;Utility;
 FIM
 
     chmod +x "$caminho"
+}
+
+# ---------------------------------------------------------------------------
+# Atalho e início na sessão do macOS
+#
+# O Finder e o Spotlight só enxergam aplicativo em pacote `.app`, e o início na
+# sessão é um LaunchAgent — o `.desktop` e a pasta `autostart` do XDG não
+# existem aqui. Tudo dentro do perfil, como no Linux: nada exige root.
+
+# O pacote é o mínimo que o macOS aceita: um Info.plist e um executável que
+# repassa a chamada ao launcher. Sem ícone próprio, porque um `.icns` exigiria
+# uma etapa de conversão só para isto.
+gravar_aplicativo_do_macos() {
+    destino=$1
+    conteudo="$APLICATIVO_DO_MACOS/Contents"
+
+    rm -rf "$APLICATIVO_DO_MACOS"
+    mkdir -p "$conteudo/MacOS"
+
+    cat > "$conteudo/Info.plist" <<'FIM'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>HUB SNK</string>
+    <key>CFBundleDisplayName</key>
+    <string>HUB SNK</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.hubsnk.app</string>
+    <key>CFBundleExecutable</key>
+    <string>hub-snk</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+</dict>
+</plist>
+FIM
+
+    cat > "$conteudo/MacOS/hub-snk" <<FIM
+#!/bin/sh
+exec "$destino/hub-snk.sh" abrir
+FIM
+
+    chmod +x "$conteudo/MacOS/hub-snk"
+}
+
+# O `launchctl` carrega o agente na hora, para o início na sessão valer sem
+# precisar de logout. Best-effort: falhar aqui não invalida a instalação.
+gravar_agente_do_macos() {
+    destino=$1
+
+    mkdir -p "$(dirname "$AGENTE_DO_MACOS")"
+
+    cat > "$AGENTE_DO_MACOS" <<FIM
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>$ROTULO_DO_AGENTE</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>$destino/hub-snk.sh</string>
+        <string>servidor</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+FIM
+
+    launchctl unload "$AGENTE_DO_MACOS" > /dev/null 2>&1 || true
+    launchctl load "$AGENTE_DO_MACOS" > /dev/null 2>&1 || true
+}
+
+remover_agente_do_macos() {
+    [ -f "$AGENTE_DO_MACOS" ] || return 0
+
+    launchctl unload "$AGENTE_DO_MACOS" > /dev/null 2>&1 || true
+    rm -f "$AGENTE_DO_MACOS"
+}
+
+# ---------------------------------------------------------------------------
+# Atalho e início na sessão, no mecanismo de cada sistema
+
+aplicar_atalho() {
+    criar=$1
+    destino=$2
+
+    if [ "$SISTEMA" = Darwin ]; then
+        if [ "$criar" = sim ]; then
+            gravar_aplicativo_do_macos "$destino"
+        else
+            rm -rf "$APLICATIVO_DO_MACOS"
+        fi
+        return 0
+    fi
+
+    if [ "$criar" = sim ]; then
+        gravar_atalho "$ATALHO" "$destino" abrir
+    else
+        rm -f "$ATALHO"
+    fi
+}
+
+# Início pela entrada de autostart do XDG no Linux e por LaunchAgent no macOS, e
+# não por serviço de sistema: o HUB SNK abre o gerenciador de arquivos, o
+# terminal e a IDE, e precisa da sessão gráfica do usuário.
+aplicar_inicio_na_sessao() {
+    iniciar=$1
+    destino=$2
+
+    if [ "$SISTEMA" = Darwin ]; then
+        if [ "$iniciar" = sim ]; then
+            gravar_agente_do_macos "$destino"
+        else
+            remover_agente_do_macos
+        fi
+        return 0
+    fi
+
+    if [ "$iniciar" = sim ]; then
+        gravar_atalho "$ATALHO_DO_LOGON" "$destino" servidor
+    else
+        rm -f "$ATALHO_DO_LOGON"
+    fi
 }
 
 # ---------------------------------------------------------------------------
@@ -305,6 +471,7 @@ if [ ! -f "$PASTA_DO_PACOTE/src/index.ts" ]; then
 fi
 
 conferir_node
+conferir_pgrep
 
 printf '\n  HUB SNK — instalação\n'
 printf '  Enter aceita o valor entre colchetes.\n\n'
@@ -318,7 +485,13 @@ dados=$(perguntar 'Pasta do cadastro (HUB_DADOS_DIR)' "$(valor_gravado HUB_DADOS
 navegador=$(perguntar_navegador "$(valor_gravado HUB_NAVEGADOR "$NAVEGADOR_PADRAO")")
 
 printf '\n'
-if perguntar_sim_ou_nao 'Criar atalho no menu de aplicativos?' sim; then
+if [ "$SISTEMA" = Darwin ]; then
+    pergunta_do_atalho='Criar o aplicativo em ~/Applications?'
+else
+    pergunta_do_atalho='Criar atalho no menu de aplicativos?'
+fi
+
+if perguntar_sim_ou_nao "$pergunta_do_atalho" sim; then
     criar_atalho=sim
 else
     criar_atalho=nao
@@ -338,19 +511,8 @@ copiar_programa "$destino"
 gravar_configuracao "$porta" "$endereco" "$permitir_rede" "$dados" "$navegador" "$destino"
 mkdir -p "$dados"
 
-if [ "$criar_atalho" = sim ]; then
-    gravar_atalho "$ATALHO" "$destino" abrir
-elif [ -f "$ATALHO" ]; then
-    rm -f "$ATALHO"
-fi
-
-# Início pela entrada de autostart do XDG, e não por serviço: o HUB SNK abre o
-# gerenciador de arquivos, o terminal e a IDE, e precisa da sessão gráfica.
-if [ "$iniciar_no_logon" = sim ]; then
-    gravar_atalho "$ATALHO_DO_LOGON" "$destino" servidor
-elif [ -f "$ATALHO_DO_LOGON" ]; then
-    rm -f "$ATALHO_DO_LOGON"
-fi
+aplicar_atalho "$criar_atalho" "$destino"
+aplicar_inicio_na_sessao "$iniciar_no_logon" "$destino"
 
 printf '\n  HUB SNK instalado.\n'
 printf '  Programa:      %s\n' "$destino"

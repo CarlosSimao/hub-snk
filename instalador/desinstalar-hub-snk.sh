@@ -12,8 +12,15 @@ set -eu
 PASTA_DO_PROGRAMA=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 PASTA_DE_DADOS_BASE="${XDG_DATA_HOME:-$HOME/.local/share}/hub-snk"
 ARQUIVO_DE_CONFIGURACAO="${XDG_CONFIG_HOME:-$HOME/.config}/hub-snk/hub-snk.env"
+
+# Os dois mecanismos de atalho: o `.desktop` do XDG no Linux, o pacote `.app` e
+# o LaunchAgent no macOS. Remover os dois sem conferir o sistema não faria mal,
+# mas o `launchctl` só existe de um lado.
+SISTEMA=$(uname -s)
 ATALHO="${XDG_DATA_HOME:-$HOME/.local/share}/applications/hub-snk.desktop"
 ATALHO_DO_LOGON="${XDG_CONFIG_HOME:-$HOME/.config}/autostart/hub-snk.desktop"
+APLICATIVO_DO_MACOS="$HOME/Applications/HUB SNK.app"
+AGENTE_DO_MACOS="$HOME/Library/LaunchAgents/com.hubsnk.servidor.plist"
 
 valor_gravado() {
     chave=$1
@@ -70,7 +77,17 @@ CADASTRO=$(valor_gravado HUB_DADOS_DIR "$PASTA_DE_DADOS_BASE/dados")
 
 "$PASTA_DO_PROGRAMA/hub-snk.sh" parar > /dev/null 2>&1 || true
 
-rm -f "$ATALHO" "$ATALHO_DO_LOGON" "$ARQUIVO_DE_CONFIGURACAO"
+if [ "$SISTEMA" = Darwin ]; then
+    if [ -f "$AGENTE_DO_MACOS" ]; then
+        launchctl unload "$AGENTE_DO_MACOS" > /dev/null 2>&1 || true
+    fi
+    rm -rf "$APLICATIVO_DO_MACOS"
+    rm -f "$AGENTE_DO_MACOS"
+else
+    rm -f "$ATALHO" "$ATALHO_DO_LOGON"
+fi
+
+rm -f "$ARQUIVO_DE_CONFIGURACAO"
 rm -f "$PASTA_DE_DADOS_BASE/hub-snk.log"
 
 # A pasta é apagada de fora dela: este script está lá dentro, e um diretório de

@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { lancarProcesso, LancamentoFalhouError } from './lancarProcesso.ts';
 import { garantirQueEhPasta } from './pasta.ts';
 
 /**
@@ -11,26 +11,34 @@ const COMANDOS_POR_PLATAFORMA: Record<string, string> = {
 };
 const COMANDO_PADRAO = 'xdg-open';
 
+export class GerenciadorDeArquivosIndisponivelError extends Error {
+  constructor(motivo: string) {
+    super(
+      `Não foi possível abrir o gerenciador de arquivos: ${motivo}. ` +
+        'No Linux, instale o "xdg-utils".',
+    );
+    this.name = 'GerenciadorDeArquivosIndisponivelError';
+  }
+}
+
 /**
  * Abre a pasta no gerenciador de arquivos do sistema.
  *
- * O caminho vai como argumento separado para o `spawn`, nunca interpolado numa
- * linha de comando: sem shell no meio, um caminho com aspas, `&&` ou `;` é
- * tratado como texto e não como comando.
- *
- * O processo é solto (`detached` + `unref`) porque o gerenciador de arquivos
- * continua vivo depois da resposta HTTP e não deve prender o servidor.
+ * A falha é esperada e devolvida a quem chamou, em vez de registrada e
+ * esquecida: sem `xdg-open` na máquina, o botão não abriria nada e a tela ainda
+ * assim diria que abriu.
  */
 export async function abrirPastaNoSistema(caminho: string): Promise<void> {
   await garantirQueEhPasta(caminho);
 
   const comando = COMANDOS_POR_PLATAFORMA[process.platform] ?? COMANDO_PADRAO;
-  const processo = spawn(comando, [caminho], { detached: true, stdio: 'ignore' });
 
-  // A falha só aparece depois que a resposta já foi enviada; resta registrar.
-  processo.on('error', (erro) => {
-    console.error(`Falha ao executar "${comando}" para abrir ${caminho}:`, erro);
-  });
-
-  processo.unref();
+  try {
+    await lancarProcesso(comando, [caminho]);
+  } catch (erro) {
+    if (erro instanceof LancamentoFalhouError) {
+      throw new GerenciadorDeArquivosIndisponivelError(erro.motivo);
+    }
+    throw erro;
+  }
 }
