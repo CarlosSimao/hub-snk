@@ -49,6 +49,9 @@ const PROTOCOLOS_ACEITOS = ['http:', 'https:'];
 const MILISSEGUNDOS_POR_SEGUNDO = 1000;
 const QUANTIDADE_MAXIMA_DE_FAVORITOS_IMPORTADOS = 300;
 const QUANTIDADE_MAXIMA_DE_REPOSITORIOS_IMPORTADOS = 300;
+const QUANTIDADE_MAXIMA_DE_CLIENTES_IMPORTADOS = 300;
+/* Mais folgado que o de clientes: um cliente sozinho pode trazer várias bases. */
+const QUANTIDADE_MAXIMA_DE_BASES_IMPORTADAS = 600;
 
 function ehUrlHttpValida(valor: string): boolean {
   try {
@@ -236,6 +239,41 @@ const esquemaDeDadosDeBancoDeDados = z.object({
     ),
 });
 
+/*
+ * Um cliente lido do arquivo de cadastros do HUB SNK, com as bases que vierem
+ * nele — nenhuma inclusive, porque o arquivo carrega o cliente mesmo sem base
+ * exportada. `substituir` é a decisão tomada na tela para a base cuja URL já
+ * está cadastrada; sem ela, a base existente fica como está.
+ */
+const esquemaDeImportacaoDeCadastros = z
+  .object({
+    clientes: z
+      .array(
+        z.object({
+          nome: esquemaDeDadosDeCliente.shape.nome,
+          bases: z
+            .array(
+              esquemaDeDadosDeBase.extend({
+                bancoDeDados: esquemaDeDadosDeBancoDeDados.optional(),
+                substituir: z.boolean().default(false),
+              }),
+            )
+            .default([]),
+        }),
+      )
+      .min(1, 'Nenhum cliente para importar.')
+      .max(
+        QUANTIDADE_MAXIMA_DE_CLIENTES_IMPORTADOS,
+        `Importe no máximo ${QUANTIDADE_MAXIMA_DE_CLIENTES_IMPORTADOS} clientes por vez.`,
+      ),
+  })
+  .refine(
+    ({ clientes }) =>
+      clientes.reduce((total, cliente) => total + cliente.bases.length, 0) <=
+      QUANTIDADE_MAXIMA_DE_BASES_IMPORTADAS,
+    `Importe no máximo ${QUANTIDADE_MAXIMA_DE_BASES_IMPORTADAS} bases por vez.`,
+  );
+
 const esquemaDeParametrosDeCliente = z.object({
   id: z.string().uuid('Identificador de cliente inválido.'),
 });
@@ -394,6 +432,21 @@ export function registrarRotasDeClientes(
 
     try {
       const resultado = await repositorio.importarBases(dados.data.bases);
+      return resposta.status(201).send(resultado);
+    } catch (erro) {
+      return responderErroDeDominio(resposta, erro);
+    }
+  });
+
+  /* Importação do arquivo de cadastros gerado pelo Exportar ou pelo Compartilhar. */
+  servidor.post('/api/clientes/importacao-de-cadastros', async (requisicao, resposta) => {
+    const dados = esquemaDeImportacaoDeCadastros.safeParse(requisicao.body);
+    if (!dados.success) {
+      return responderErroDeValidacao(resposta, dados.error);
+    }
+
+    try {
+      const resultado = await repositorio.importarCadastros(dados.data.clientes);
       return resposta.status(201).send(resultado);
     } catch (erro) {
       return responderErroDeDominio(resposta, erro);

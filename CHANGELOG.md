@@ -9,6 +9,27 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- **Exportar cadastros para arquivo**, no botão ao lado do **Importar**, no pé da
+  lista de clientes. Um assistente de duas etapas: marcar os clientes e escolher
+  o que sai de cada um. Nome do cliente, URL e tipo de cada base sempre saem;
+  **Credenciais** acrescenta usuário e senha, e **Banco** acrescenta os dados do
+  banco vinculado. As duas colunas têm marcar e desmarcar todos, e ficam
+  bloqueadas no cliente que não tem o que exportar nelas.
+
+- **Importar cadastros de arquivo do HUB SNK**, opção nova do assistente de
+  importação. Lê tanto o arquivo do **Exportar** quanto o `.txt` do
+  **Compartilhar** de um cliente — o formato é o mesmo. A etapa de conferência
+  mostra o que entra direto e, para cada base cuja URL já está cadastrada, o
+  cadastro atual e o importado lado a lado, com a marca **diferente** em cada
+  campo que muda. Toda decisão nasce em "manter o atual", e há **Manter todos os
+  atuais** e **Substituir todos** para decidir em bloco.
+
+  Substituir troca só o que o arquivo trouxe: exportação sem "Credenciais"
+  preserva o usuário e a senha já gravados, e sem "Banco" preserva o banco
+  vinculado — campo não exportado não é campo apagado.
+
 ## [1.0.0] - 2026-08-10
 
 Primeira versão distribuída ao time.

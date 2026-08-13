@@ -7,6 +7,7 @@
  * de markup.
  */
 
+import { lerCadastrosDoTexto } from './leitorDeArquivoDeCadastros.js';
 import { lerArvoreDeFavoritos } from './leitorDeFavoritos.js';
 import { separarTipoDoNome } from './tipoDeBaseNoNome.js';
 
@@ -19,6 +20,7 @@ const CAMINHO_DAS_BASES_LOCAIS = '/api/local/bases';
 const CAMINHO_DOS_BANCOS_LOCAIS = '/api/local/bancos';
 const CAMINHO_DA_IMPORTACAO = `${CAMINHO_DA_API}/importacao`;
 const CAMINHO_DA_IMPORTACAO_DE_REPOSITORIOS = `${CAMINHO_DA_API}/importacao-de-repositorios`;
+const CAMINHO_DA_IMPORTACAO_DE_CADASTROS = `${CAMINHO_DA_API}/importacao-de-cadastros`;
 const DURACAO_DO_AVISO_MS = 4000;
 /* Mesmos padrões do backend (repositorioConfiguracaoArquivo.ts) — usados até a configuração carregar. */
 const INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S = 30;
@@ -74,15 +76,24 @@ const ETAPAS_DA_IMPORTACAO = {
     subtitulo: 'Marque os repositórios a importar e informe o cliente de cada um.',
     anterior: 'pastas',
   },
+  arquivoDeCadastros: {
+    subtitulo: 'Selecione o arquivo de cadastros gerado pelo HUB SNK.',
+    anterior: 'origem',
+  },
+  cadastros: {
+    subtitulo: 'Confira o que entra e decida o que fica no lugar do que já está cadastrado.',
+    anterior: 'arquivoDeCadastros',
+  },
 };
 
 /* Etapa em que o botão "Concluir" aparece, por origem escolhida. */
-const ETAPAS_FINAIS_DA_IMPORTACAO = new Set(['formulario', 'repositorios']);
+const ETAPAS_FINAIS_DA_IMPORTACAO = new Set(['formulario', 'repositorios', 'cadastros']);
 
 /* Primeira etapa de cada origem, escolhida ao avançar da etapa da origem. */
 const PRIMEIRA_ETAPA_POR_ORIGEM = {
   favoritos: 'arquivo',
   repositorios: 'pastas',
+  cadastros: 'arquivoDeCadastros',
 };
 
 /*
@@ -177,6 +188,8 @@ const ICONES = {
     'M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M8.6 13.5l6.8 3.5 M15.4 7l-6.8 3.5',
   /* Seta entrando na bandeja: o botão que importa favoritos e repositórios. */
   importar: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3',
+  /* A mesma bandeja com a seta saindo: o botão que exporta os cadastros. */
+  exportar: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 8l5-5 5 5 M12 3v12',
 };
 
 const estado = {
@@ -252,6 +265,19 @@ const estado = {
       clientesPorCaminho: new Map(),
       errosPorCaminho: new Map(),
     },
+    /*
+     * Ramo da importação do arquivo de cadastros. `clientes` é o que o leitor
+     * devolveu, `conflitos` são as bases cuja URL já está cadastrada — uma
+     * decisão de substituir ou não por linha — e `clientesNovos` e `basesNovas`
+     * alimentam o resumo do que entra sem perguntar nada.
+     */
+    cadastros: {
+      nomeDoArquivo: '',
+      clientes: [],
+      clientesNovos: [],
+      basesNovas: [],
+      conflitos: [],
+    },
   },
   /*
    * Exportação de bases do cliente. `selecoes` é indexado pelo id da base e
@@ -259,6 +285,16 @@ const estado = {
    */
   exportacao: {
     cliente: null,
+    selecoes: new Map(),
+  },
+  /*
+   * Exportação de cadastros para arquivo. `selecionados` são os clientes
+   * marcados na primeira etapa e `selecoes`, indexado pelo id do cliente, guarda
+   * o que sai de cada um na segunda.
+   */
+  exportacaoDeCadastros: {
+    etapa: 'clientes',
+    selecionados: new Set(),
     selecoes: new Map(),
   },
 };
@@ -437,6 +473,18 @@ const elementos = {
   botaoMarcarFavoritos: document.getElementById('btn-marcar-favoritos'),
   botaoDesmarcarFavoritos: document.getElementById('btn-desmarcar-favoritos'),
   linhasDeImportacao: document.getElementById('linhas-de-importacao'),
+  etapaImportacaoArquivoDeCadastros: document.getElementById(
+    'etapa-importacao-arquivo-de-cadastros',
+  ),
+  areaDeArquivoDeCadastros: document.getElementById('area-de-arquivo-de-cadastros'),
+  campoArquivoDeCadastros: document.getElementById('campo-arquivo-de-cadastros'),
+  nomeDoArquivoDeCadastros: document.getElementById('nome-do-arquivo-de-cadastros'),
+  etapaImportacaoCadastros: document.getElementById('etapa-importacao-cadastros'),
+  resumoDosCadastros: document.getElementById('resumo-dos-cadastros'),
+  acoesDosConflitos: document.getElementById('acoes-dos-conflitos'),
+  botaoManterAtuais: document.getElementById('btn-manter-atuais'),
+  botaoSubstituirTodos: document.getElementById('btn-substituir-todos'),
+  linhasDeCadastros: document.getElementById('linhas-de-cadastros'),
   erroImportacao: document.getElementById('erro-importacao'),
   botaoCancelarImportacao: document.getElementById('btn-cancelar-importacao'),
   botaoVoltarImportacao: document.getElementById('btn-voltar-importacao'),
@@ -451,6 +499,28 @@ const elementos = {
   botaoFecharExportacao: document.getElementById('btn-fechar-exportacao'),
   botaoCopiarExportacao: document.getElementById('btn-copiar-exportacao'),
   botaoBaixarExportacao: document.getElementById('btn-baixar-exportacao'),
+
+  modalExportacaoDeCadastros: document.getElementById('modal-exportacao-de-cadastros'),
+  modalExportacaoDeCadastrosSubtitulo: document.getElementById(
+    'modal-exportacao-de-cadastros-subtitulo',
+  ),
+  etapaExportacaoClientes: document.getElementById('etapa-exportacao-clientes'),
+  resumoDosClientesAExportar: document.getElementById('resumo-dos-clientes-a-exportar'),
+  botaoMarcarClientesAExportar: document.getElementById('btn-marcar-clientes-a-exportar'),
+  botaoDesmarcarClientesAExportar: document.getElementById('btn-desmarcar-clientes-a-exportar'),
+  linhasDeClientesAExportar: document.getElementById('linhas-de-clientes-a-exportar'),
+  etapaExportacaoOpcoes: document.getElementById('etapa-exportacao-opcoes'),
+  barraDeExportacaoDeCadastros: document.getElementById('barra-de-exportacao-de-cadastros'),
+  mestresDeExportacaoDeCadastros: document.getElementById('mestres-de-exportacao-de-cadastros'),
+  linhasDeExportacaoDeCadastros: document.getElementById('linhas-de-exportacao-de-cadastros'),
+  erroExportacaoDeCadastros: document.getElementById('erro-exportacao-de-cadastros'),
+  botaoCancelarExportacaoDeCadastros: document.getElementById(
+    'btn-cancelar-exportacao-de-cadastros',
+  ),
+  botaoVoltarExportacaoDeCadastros: document.getElementById('btn-voltar-exportacao-de-cadastros'),
+  botaoAvancarExportacaoDeCadastros: document.getElementById('btn-avancar-exportacao-de-cadastros'),
+  botaoCopiarExportacaoDeCadastros: document.getElementById('btn-copiar-exportacao-de-cadastros'),
+  botaoBaixarExportacaoDeCadastros: document.getElementById('btn-baixar-exportacao-de-cadastros'),
 
   rodapeVersao: document.getElementById('rodape-versao'),
   rodapeAtualizacao: document.getElementById('rodape-atualizacao'),
@@ -501,6 +571,9 @@ const api = {
       metodo: 'POST',
       corpo: { repositorios },
     }),
+
+  importarCadastros: (clientes) =>
+    requisitar(CAMINHO_DA_IMPORTACAO_DE_CADASTROS, { metodo: 'POST', corpo: { clientes } }),
 
   adicionarBase: (idDoCliente, base) =>
     requisitar(`${CAMINHO_DA_API}/${idDoCliente}/bases`, { metodo: 'POST', corpo: base }),
@@ -836,7 +909,7 @@ function renderizarLista() {
 
   if (visiveis.length === 0) {
     const mensagem = estado.clientes.length === 0 ? 'Nenhum cliente ainda.' : 'Nada encontrado.';
-    elementos.lista.append(criarElemento('p', 'item-titulo', mensagem), criarBotaoDeImportacao());
+    elementos.lista.append(criarElemento('p', 'item-titulo', mensagem), criarAcoesDaLista());
     return;
   }
 
@@ -866,14 +939,39 @@ function renderizarLista() {
     elementos.lista.append(item);
   }
 
-  elementos.lista.append(criarBotaoDeImportacao());
+  elementos.lista.append(criarAcoesDaLista());
 }
 
 /** Abre o assistente de importação; a classe muda conforme onde o botão aparece. */
-function criarBotaoDeImportacao(classe = 'btn ghost botao-importar-favoritos') {
+function criarBotaoDeImportacao(classe = 'btn ghost botao-da-lista') {
   const botao = criarBotao(classe, 'Importar', abrirModalDeImportacao);
   botao.prepend(criarIcone(ICONES.importar));
   return botao;
+}
+
+/**
+ * Importar e Exportar no pé da lista de clientes, lado a lado.
+ *
+ * Sem cliente cadastrado o Exportar fica bloqueado: a primeira etapa do
+ * assistente não teria nada para marcar.
+ */
+function criarAcoesDaLista() {
+  const temCliente = estado.clientes.length > 0;
+
+  const exportar = criarBotao(
+    'btn ghost botao-da-lista',
+    'Exportar',
+    abrirModalDeExportacaoDeCadastros,
+  );
+  exportar.prepend(criarIcone(ICONES.exportar));
+  exportar.disabled = !temCliente;
+  exportar.title = temCliente
+    ? 'Exportar cadastros de clientes para arquivo'
+    : 'Nenhum cliente cadastrado para exportar';
+
+  const acoes = criarElemento('div', 'acoes-da-lista');
+  acoes.append(criarBotaoDeImportacao(), exportar);
+  return acoes;
 }
 
 /** Linha com a URL e, quando ela é navegável, a seta que abre em nova aba. */
@@ -4235,6 +4333,8 @@ function definirEtapaDaImportacao(etapa) {
   elementos.etapaImportacaoFormulario.hidden = etapa !== 'formulario';
   elementos.etapaImportacaoPastas.hidden = etapa !== 'pastas';
   elementos.etapaImportacaoRepositorios.hidden = etapa !== 'repositorios';
+  elementos.etapaImportacaoArquivoDeCadastros.hidden = etapa !== 'arquivoDeCadastros';
+  elementos.etapaImportacaoCadastros.hidden = etapa !== 'cadastros';
 
   elementos.botaoVoltarImportacao.hidden = ETAPAS_DA_IMPORTACAO[etapa].anterior === null;
   elementos.botaoConcluirImportacao.hidden = !ETAPAS_FINAIS_DA_IMPORTACAO.has(etapa);
@@ -4260,12 +4360,28 @@ function abrirModalDeImportacao() {
     errosPorCaminho: new Map(),
   };
 
+  estado.importacao.cadastros = {
+    nomeDoArquivo: '',
+    clientes: [],
+    avisos: [],
+    clientesNovos: [],
+    basesNovas: [],
+    conflitos: [],
+    decisoes: new Map(),
+  };
+  elementos.campoArquivoDeCadastros.value = '';
+  elementos.nomeDoArquivoDeCadastros.textContent = '';
+  elementos.nomeDoArquivoDeCadastros.hidden = true;
+
   elementos.arvoreDeFavoritos.replaceChildren();
   elementos.linhasDeImportacao.replaceChildren();
+  elementos.linhasDeCadastros.replaceChildren();
   elementos.pastasVarridas.replaceChildren();
   elementos.repositoriosEncontrados.replaceChildren();
   elementos.resumoDasPastasVarridas.textContent = 'Nenhuma pasta adicionada.';
   elementos.resumoDosRepositorios.textContent = 'Nenhum repositório selecionado.';
+  elementos.resumoDosCadastros.textContent = 'Nada para importar.';
+  elementos.acoesDosConflitos.hidden = true;
   for (const opcao of elementos.formularioImportacao.querySelectorAll('input[type="radio"]')) {
     opcao.checked = false;
   }
@@ -4359,6 +4475,11 @@ async function concluirImportacao(evento) {
     return;
   }
 
+  if (estado.importacao.etapa === 'cadastros') {
+    await concluirImportacaoDeCadastros();
+    return;
+  }
+
   if (!atualizarValidacaoDaImportacao()) {
     exibirErro(elementos.erroImportacao, 'Corrija as linhas destacadas antes de concluir.');
     return;
@@ -4382,6 +4503,343 @@ async function concluirImportacao(evento) {
     exibirAviso(
       `${resultado.basesImportadas} base(s) importada(s), ${resultado.clientesCriados} cliente(s) criado(s).`,
     );
+  } catch (erro) {
+    exibirErro(elementos.erroImportacao, erro.message);
+  } finally {
+    elementos.botaoConcluirImportacao.disabled = false;
+  }
+}
+
+/* ------------------ importação do arquivo de cadastros -------------------- */
+
+/**
+ * Cliente cadastrado equivalente ao nome que veio no arquivo, ou `undefined`.
+ *
+ * É a mesma regra do servidor: igualdade exata primeiro e, só depois, a chave
+ * achatada — e apenas quando um único cadastro cai nela, porque com dois
+ * candidatos a escolha seria arbitrária.
+ */
+function clienteCadastradoDoArquivo(nome) {
+  const alvo = nome.trim().toLocaleLowerCase('pt-BR');
+  const exato = estado.clientes.find(
+    (cliente) => cliente.nome.trim().toLocaleLowerCase('pt-BR') === alvo,
+  );
+  if (exato) {
+    return exato;
+  }
+
+  const chave = chaveAchatadaDeNome(nome);
+  if (!chave) {
+    return undefined;
+  }
+
+  const equivalentes = estado.clientes.filter(
+    (cliente) => chaveAchatadaDeNome(cliente.nome) === chave,
+  );
+  return equivalentes.length === 1 ? equivalentes[0] : undefined;
+}
+
+/* A URL é o que identifica a base do cliente na importação, como no servidor. */
+function baseCadastradaNaMesmaUrl(cliente, url) {
+  const alvo = url.trim().toLocaleLowerCase('pt-BR');
+  return cliente.bases.find((base) => base.url.trim().toLocaleLowerCase('pt-BR') === alvo);
+}
+
+/* Identifica a decisão de um conflito, e é a mesma chave dos dois lados. */
+function chaveDoConflito(nomeDoCliente, url) {
+  return `${chaveAchatadaDeNome(nomeDoCliente)}|${url.trim().toLocaleLowerCase('pt-BR')}`;
+}
+
+/**
+ * O que a base vira se a substituição for escolhida.
+ *
+ * Espelha a regra do servidor: o que o arquivo não trouxe — o banco inteiro, ou o
+ * par usuário/senha em branco — preserva o que já está gravado, porque não
+ * exportar um campo não é a mesma coisa que apagá-lo.
+ */
+function baseResultanteDaSubstituicao(atual, importada) {
+  const semCredencialNoArquivo = importada.usuario === '' && importada.senha === '';
+
+  return {
+    tipo: importada.tipo,
+    usuario: semCredencialNoArquivo ? atual.usuario : importada.usuario,
+    senha: semCredencialNoArquivo ? atual.senha : importada.senha,
+    bancoDeDados: importada.bancoDeDados ?? atual.bancoDeDados,
+  };
+}
+
+/**
+ * Separa o que veio do arquivo em três: cliente novo, base nova e conflito.
+ *
+ * Conflito é base cuja URL já está cadastrada no cliente — só ela precisa de
+ * decisão, e toda decisão nasce em "manter o atual" para que concluir sem mexer
+ * em nada nunca sobrescreva cadastro.
+ */
+function montarPlanoDaImportacaoDeCadastros(clientesDoArquivo) {
+  const clientesNovos = [];
+  const basesNovas = [];
+  const conflitos = [];
+
+  for (const clienteDoArquivo of clientesDoArquivo) {
+    const cadastrado = clienteCadastradoDoArquivo(clienteDoArquivo.nome);
+    if (!cadastrado) {
+      clientesNovos.push(clienteDoArquivo.nome);
+    }
+
+    for (const base of clienteDoArquivo.bases) {
+      const atual = cadastrado ? baseCadastradaNaMesmaUrl(cadastrado, base.url) : undefined;
+
+      if (!atual) {
+        basesNovas.push({ nomeDoCliente: clienteDoArquivo.nome, base });
+        continue;
+      }
+
+      conflitos.push({
+        chave: chaveDoConflito(clienteDoArquivo.nome, base.url),
+        nomeDoCliente: cadastrado.nome,
+        url: base.url,
+        atual,
+        importada: baseResultanteDaSubstituicao(atual, base),
+      });
+    }
+  }
+
+  return { clientesNovos, basesNovas, conflitos };
+}
+
+/* Resumo do banco numa linha só, para caber na comparação lado a lado. */
+function resumoDoBancoDaBase(base) {
+  const banco = base.bancoDeDados;
+  return banco ? `${banco.host}:${banco.porta}/${banco.nomeDoServico}` : SEM_VALOR;
+}
+
+/**
+ * Os campos comparados, com o valor mostrado e o valor cru.
+ *
+ * A senha aparece mascarada: para decidir basta saber que ela mudou, e a tela de
+ * conferência não é lugar de expor segredo já gravado. A comparação usa o valor
+ * cru, então o "(diferente)" continua correto por trás da máscara.
+ */
+function camposComparaveisDaBase(base) {
+  return [
+    ['Tipo', ROTULOS_DE_TIPO_DE_BASE[base.tipo] ?? base.tipo, base.tipo],
+    ['Usuário', base.usuario || SEM_VALOR, base.usuario],
+    ['Senha', base.senha ? SENHA_MASCARADA : SEM_VALOR, base.senha],
+    [
+      'Banco',
+      resumoDoBancoDaBase(base),
+      base.bancoDeDados ? JSON.stringify(base.bancoDeDados) : '',
+    ],
+  ];
+}
+
+/** Um lado da comparação: o cadastro atual ou o que o arquivo quer no lugar. */
+function criarLadoDoConflito(conflito, ehImportada) {
+  const base = ehImportada ? conflito.importada : conflito.atual;
+  const outra = ehImportada ? conflito.atual : conflito.importada;
+  const camposDaOutra = camposComparaveisDaBase(outra);
+
+  const entrada = criarElemento('input');
+  entrada.type = 'radio';
+  entrada.name = conflito.chave;
+  entrada.checked = estado.importacao.cadastros.decisoes.get(conflito.chave) === ehImportada;
+  entrada.addEventListener('change', () => {
+    estado.importacao.cadastros.decisoes.set(conflito.chave, ehImportada);
+  });
+
+  const escolha = criarElemento('label', 'campo-checkbox');
+  escolha.append(
+    entrada,
+    criarElemento('span', null, ehImportada ? 'Usar o importado' : 'Manter o atual'),
+  );
+
+  const lado = criarElemento('div', 'lado-do-conflito');
+  lado.append(escolha);
+
+  for (const [indice, [rotulo, exibido, cru]] of camposComparaveisDaBase(base).entries()) {
+    const campo = criarElemento('p', 'campo-do-conflito');
+    campo.append(
+      criarElemento('span', 'campo-do-conflito-rotulo', rotulo),
+      criarElemento('span', 'campo-do-conflito-valor', exibido),
+    );
+
+    /* A marca fica só no lado importado: é ele que muda o que já está gravado. */
+    if (ehImportada && cru !== camposDaOutra[indice][2]) {
+      campo.append(criarElemento('span', 'marca-de-diferenca', 'diferente'));
+    }
+
+    lado.append(campo);
+  }
+
+  return lado;
+}
+
+function criarCartaoDeConflito(conflito) {
+  const cabecalho = criarElemento('div', 'cabecalho-do-conflito');
+  cabecalho.append(
+    criarElemento('strong', null, conflito.nomeDoCliente),
+    criarElemento('span', 'linha-de-exportacao-url', conflito.url),
+  );
+
+  const colunas = criarElemento('div', 'colunas-do-conflito');
+  colunas.append(criarLadoDoConflito(conflito, false), criarLadoDoConflito(conflito, true));
+
+  const cartao = criarElemento('div', 'conflito-de-importacao');
+  cartao.append(cabecalho, colunas);
+  return cartao;
+}
+
+/** O que entra sem perguntar: cliente inédito e base de URL que ninguém tem. */
+function criarResumoDoQueEntra(clientesNovos, basesNovas) {
+  const bloco = criarElemento('div', 'resumo-da-importacao');
+  bloco.append(criarElemento('h3', null, 'Entra direto'));
+
+  const itens = criarElemento('ul', 'resumo-da-importacao-itens');
+  for (const nome of clientesNovos) {
+    itens.append(criarElemento('li', null, `Cliente novo: ${nome}`));
+  }
+  for (const { nomeDoCliente, base } of basesNovas) {
+    const tipo = ROTULOS_DE_TIPO_DE_BASE[base.tipo] ?? base.tipo;
+    itens.append(criarElemento('li', null, `${nomeDoCliente} — base de ${tipo}: ${base.url}`));
+  }
+
+  bloco.append(itens);
+  return bloco;
+}
+
+/** O que o leitor não conseguiu aproveitar fica na tela para não passar batido. */
+function criarAvisosDoArquivo(avisos) {
+  const bloco = criarElemento('div', 'avisos-do-arquivo');
+  bloco.append(criarElemento('h3', null, 'O arquivo tem coisas que ficaram de fora'));
+
+  const itens = criarElemento('ul', 'resumo-da-importacao-itens');
+  for (const aviso of avisos) {
+    itens.append(criarElemento('li', null, aviso));
+  }
+
+  bloco.append(itens);
+  return bloco;
+}
+
+function resumoDaImportacaoDeCadastros(clientesNovos, basesNovas, conflitos) {
+  const partes = [];
+
+  if (clientesNovos.length > 0) {
+    partes.push(`${clientesNovos.length} cliente(s) novo(s)`);
+  }
+  if (basesNovas.length > 0) {
+    partes.push(`${basesNovas.length} base(s) nova(s)`);
+  }
+  if (conflitos.length > 0) {
+    partes.push(`${conflitos.length} base(s) já cadastrada(s)`);
+  }
+
+  return partes.length === 0 ? 'Nada para importar deste arquivo.' : `${partes.join(', ')}.`;
+}
+
+function renderizarCadastrosDaImportacao() {
+  const { clientesNovos, basesNovas, conflitos, avisos } = estado.importacao.cadastros;
+
+  elementos.resumoDosCadastros.textContent = resumoDaImportacaoDeCadastros(
+    clientesNovos,
+    basesNovas,
+    conflitos,
+  );
+  /* Com um conflito só, os botões de todos seriam outro jeito de clicar no mesmo. */
+  elementos.acoesDosConflitos.hidden = conflitos.length < 2;
+
+  const blocos = [];
+  if (avisos.length > 0) {
+    blocos.push(criarAvisosDoArquivo(avisos));
+  }
+  if (clientesNovos.length > 0 || basesNovas.length > 0) {
+    blocos.push(criarResumoDoQueEntra(clientesNovos, basesNovas));
+  }
+  blocos.push(...conflitos.map((conflito) => criarCartaoDeConflito(conflito)));
+
+  elementos.linhasDeCadastros.replaceChildren(...blocos);
+  elementos.botaoConcluirImportacao.disabled =
+    clientesNovos.length === 0 && basesNovas.length === 0 && conflitos.length === 0;
+}
+
+function definirDecisaoDeTodosOsConflitos(substituir) {
+  const { conflitos, decisoes } = estado.importacao.cadastros;
+  for (const conflito of conflitos) {
+    decisoes.set(conflito.chave, substituir);
+  }
+
+  renderizarCadastrosDaImportacao();
+}
+
+/** Lê o arquivo no próprio navegador e já avança para a conferência. */
+async function carregarArquivoDeCadastros(arquivo) {
+  if (!arquivo) {
+    return;
+  }
+
+  let leitura;
+  try {
+    leitura = lerCadastrosDoTexto(await arquivo.text());
+  } catch (erro) {
+    exibirErro(elementos.erroImportacao, erro.message);
+    return;
+  }
+
+  const plano = montarPlanoDaImportacaoDeCadastros(leitura.clientes);
+  estado.importacao.cadastros = {
+    nomeDoArquivo: arquivo.name,
+    clientes: leitura.clientes,
+    avisos: leitura.avisos,
+    ...plano,
+    decisoes: new Map(plano.conflitos.map((conflito) => [conflito.chave, false])),
+  };
+
+  elementos.nomeDoArquivoDeCadastros.textContent = `Arquivo: ${arquivo.name}`;
+  elementos.nomeDoArquivoDeCadastros.hidden = false;
+
+  definirEtapaDaImportacao('cadastros');
+  renderizarCadastrosDaImportacao();
+}
+
+/** Só o que aconteceu entra no aviso; zero em tudo vira "nada mudou". */
+function mensagemDaImportacaoDeCadastros(resultado) {
+  const partes = [];
+
+  if (resultado.clientesCriados > 0) {
+    partes.push(`${resultado.clientesCriados} cliente(s) criado(s)`);
+  }
+  if (resultado.basesCriadas > 0) {
+    partes.push(`${resultado.basesCriadas} base(s) importada(s)`);
+  }
+  if (resultado.basesSubstituidas > 0) {
+    partes.push(`${resultado.basesSubstituidas} base(s) substituída(s)`);
+  }
+  if (resultado.basesIgnoradas > 0) {
+    partes.push(`${resultado.basesIgnoradas} base(s) mantida(s) como estavam`);
+  }
+
+  return partes.length === 0 ? 'Nada mudou no cadastro.' : `${partes.join(', ')}.`;
+}
+
+async function concluirImportacaoDeCadastros() {
+  const { clientes, decisoes } = estado.importacao.cadastros;
+
+  const paraImportar = clientes.map((cliente) => ({
+    nome: cliente.nome,
+    bases: cliente.bases.map((base) => ({
+      ...base,
+      substituir: decisoes.get(chaveDoConflito(cliente.nome, base.url)) ?? false,
+    })),
+  }));
+
+  limparErro(elementos.erroImportacao);
+  elementos.botaoConcluirImportacao.disabled = true;
+
+  try {
+    const resultado = await api.importarCadastros(paraImportar);
+    await recarregarClientes();
+    elementos.modalImportacao.close();
+    exibirAviso(mensagemDaImportacaoDeCadastros(resultado));
   } catch (erro) {
     exibirErro(elementos.erroImportacao, erro.message);
   } finally {
@@ -4422,83 +4880,94 @@ const COLUNAS_DA_EXPORTACAO = [
   { chave: 'bancoDeDados', rotulo: 'Banco de Dados' },
 ];
 
-/*
- * Checkboxes desenhados no modal, por coluna: o mestre da barra e um por linha.
- * Guardar as referências evita redesenhar a lista inteira a cada clique, o que
- * roubaria o foco de quem está marcando pelo teclado.
+/**
+ * Grade de checkboxes por coluna, com o mestre que marca a coluna inteira.
+ *
+ * Serve às duas exportações — as bases de um cliente e os cadastros de vários.
+ * As referências dos checkboxes ficam guardadas aqui e é só nelas que os cliques
+ * mexem: redesenhar a lista a cada marcação roubaria o foco de quem está usando
+ * o teclado.
+ *
+ * `selecoes` é o mapa `id da linha -> { chave da coluna: marcado }`, e é ele que
+ * a montagem do texto lê depois. `aoMudar` é chamado a cada marcação.
  */
-const checkboxesDaExportacao = {
-  sankhyaOm: { mestre: null, linhas: [] },
-  bancoDeDados: { mestre: null, linhas: [] },
-};
+function criarGradeDeMarcacao(colunas, selecoes, aoMudar = () => {}) {
+  const porColuna = new Map(colunas.map((coluna) => [coluna.chave, { mestre: null, linhas: [] }]));
 
-/** Base sem banco não conta: a linha dela nunca pode ser marcada nessa coluna. */
-function checkboxesMarcaveisDaColuna(chave) {
-  return checkboxesDaExportacao[chave].linhas.filter((entrada) => !entrada.disabled);
-}
+  /* Linha bloqueada não conta: nunca pode ser marcada nessa coluna. */
+  const marcaveis = (chave) => porColuna.get(chave).linhas.filter((entrada) => !entrada.disabled);
 
-/** Mestre marcado só com todas as linhas marcadas; parcial vira o traço do indeterminado. */
-function atualizarMestreDaExportacao(chave) {
-  const mestre = checkboxesDaExportacao[chave].mestre;
-  if (!mestre) {
-    return;
+  /* Mestre marcado só com todas as linhas marcadas; parcial vira o traço do indeterminado. */
+  function atualizarMestre(chave) {
+    const { mestre } = porColuna.get(chave);
+    if (!mestre) {
+      return;
+    }
+
+    const linhas = marcaveis(chave);
+    const marcadas = linhas.filter((entrada) => entrada.checked).length;
+
+    mestre.disabled = linhas.length === 0;
+    mestre.checked = linhas.length > 0 && marcadas === linhas.length;
+    mestre.indeterminate = marcadas > 0 && marcadas < linhas.length;
   }
 
-  const marcaveis = checkboxesMarcaveisDaColuna(chave);
-  const marcadas = marcaveis.filter((entrada) => entrada.checked).length;
-
-  mestre.disabled = marcaveis.length === 0;
-  mestre.checked = marcaveis.length > 0 && marcadas === marcaveis.length;
-  mestre.indeterminate = marcadas > 0 && marcadas < marcaveis.length;
-}
-
-function definirColunaDaExportacao(chave, marcado) {
-  for (const entrada of checkboxesMarcaveisDaColuna(chave)) {
-    entrada.checked = marcado;
-    estado.exportacao.selecoes.get(entrada.dataset.idDaBase)[chave] = marcado;
+  function criarCampo(entrada, rotulo, titulo) {
+    const campo = criarElemento('label', 'campo-checkbox');
+    campo.append(entrada, criarElemento('span', null, rotulo));
+    if (titulo) {
+      campo.title = titulo;
+    }
+    return campo;
   }
 
-  atualizarMestreDaExportacao(chave);
-  atualizarBotoesDaExportacao();
+  return {
+    criarCheckbox(idDaLinha, coluna, { desabilitado = false, tituloDesabilitado = '' } = {}) {
+      const entrada = criarElemento('input');
+      entrada.type = 'checkbox';
+      entrada.dataset.idDaLinha = idDaLinha;
+      entrada.checked = selecoes.get(idDaLinha)[coluna.chave];
+      entrada.disabled = desabilitado;
+      entrada.addEventListener('change', () => {
+        selecoes.get(idDaLinha)[coluna.chave] = entrada.checked;
+        atualizarMestre(coluna.chave);
+        aoMudar();
+      });
+
+      porColuna.get(coluna.chave).linhas.push(entrada);
+      return criarCampo(entrada, coluna.rotulo, desabilitado ? tituloDesabilitado : '');
+    },
+
+    criarMestre(coluna) {
+      const entrada = criarElemento('input');
+      entrada.type = 'checkbox';
+      entrada.addEventListener('change', () => {
+        for (const linha of marcaveis(coluna.chave)) {
+          linha.checked = entrada.checked;
+          selecoes.get(linha.dataset.idDaLinha)[coluna.chave] = entrada.checked;
+        }
+        atualizarMestre(coluna.chave);
+        aoMudar();
+      });
+
+      porColuna.get(coluna.chave).mestre = entrada;
+      return criarCampo(
+        entrada,
+        coluna.rotulo,
+        `Marcar ou desmarcar ${coluna.rotulo} em todas as linhas`,
+      );
+    },
+
+    atualizarMestres() {
+      for (const coluna of colunas) {
+        atualizarMestre(coluna.chave);
+      }
+    },
+  };
 }
 
-function criarCheckboxDeExportacao(base, coluna, desabilitado) {
-  const entrada = criarElemento('input');
-  entrada.type = 'checkbox';
-  entrada.dataset.idDaBase = base.id;
-  entrada.checked = estado.exportacao.selecoes.get(base.id)[coluna.chave];
-  entrada.disabled = desabilitado;
-  entrada.addEventListener('change', () => {
-    estado.exportacao.selecoes.get(base.id)[coluna.chave] = entrada.checked;
-    atualizarMestreDaExportacao(coluna.chave);
-    atualizarBotoesDaExportacao();
-  });
-
-  checkboxesDaExportacao[coluna.chave].linhas.push(entrada);
-
-  const campo = criarElemento('label', 'campo-checkbox');
-  campo.append(entrada, criarElemento('span', null, coluna.rotulo));
-  if (desabilitado) {
-    campo.title = 'Esta base não tem banco de dados cadastrado.';
-  }
-
-  return campo;
-}
-
-function criarMestreDeExportacao(coluna) {
-  const entrada = criarElemento('input');
-  entrada.type = 'checkbox';
-  entrada.addEventListener('change', () =>
-    definirColunaDaExportacao(coluna.chave, entrada.checked),
-  );
-
-  checkboxesDaExportacao[coluna.chave].mestre = entrada;
-
-  const campo = criarElemento('label', 'campo-checkbox');
-  campo.append(entrada, criarElemento('span', null, coluna.rotulo));
-  campo.title = `Marcar ou desmarcar ${coluna.rotulo} em todas as bases`;
-  return campo;
-}
+/* Refeita a cada desenho do modal: as referências morrem com a lista antiga. */
+let gradeDaExportacao = null;
 
 function criarLinhaDeExportacao(base) {
   const identificacao = criarElemento('div', 'linha-de-exportacao-info');
@@ -4513,8 +4982,11 @@ function criarLinhaDeExportacao(base) {
 
   const opcoes = criarElemento('div', 'linha-de-exportacao-opcoes');
   opcoes.append(
-    criarCheckboxDeExportacao(base, COLUNAS_DA_EXPORTACAO[0], false),
-    criarCheckboxDeExportacao(base, COLUNAS_DA_EXPORTACAO[1], !base.bancoDeDados),
+    gradeDaExportacao.criarCheckbox(base.id, COLUNAS_DA_EXPORTACAO[0]),
+    gradeDaExportacao.criarCheckbox(base.id, COLUNAS_DA_EXPORTACAO[1], {
+      desabilitado: !base.bancoDeDados,
+      tituloDesabilitado: 'Esta base não tem banco de dados cadastrado.',
+    }),
   );
 
   const linha = criarElemento('div', 'linha-de-exportacao');
@@ -4523,23 +4995,27 @@ function criarLinhaDeExportacao(base) {
 }
 
 function renderizarLinhasDeExportacao() {
-  for (const coluna of COLUNAS_DA_EXPORTACAO) {
-    checkboxesDaExportacao[coluna.chave] = { mestre: null, linhas: [] };
-  }
+  gradeDaExportacao = criarGradeDeMarcacao(
+    COLUNAS_DA_EXPORTACAO,
+    estado.exportacao.selecoes,
+    atualizarBotoesDaExportacao,
+  );
 
   const bases = basesOrdenadasPorTipo(estado.exportacao.cliente.bases);
-  elementos.linhasDeExportacao.replaceChildren(...bases.map(criarLinhaDeExportacao));
+  elementos.linhasDeExportacao.replaceChildren(
+    ...bases.map((base) => criarLinhaDeExportacao(base)),
+  );
 
   /* Com uma única base os mestres seriam um segundo jeito de clicar na mesma coisa. */
   const comMestres = bases.length > 1;
   elementos.barraDeExportacao.hidden = !comMestres;
   elementos.mestresDeExportacao.replaceChildren(
-    ...(comMestres ? COLUNAS_DA_EXPORTACAO.map(criarMestreDeExportacao) : []),
+    ...(comMestres
+      ? COLUNAS_DA_EXPORTACAO.map((coluna) => gradeDaExportacao.criarMestre(coluna))
+      : []),
   );
 
-  for (const coluna of COLUNAS_DA_EXPORTACAO) {
-    atualizarMestreDaExportacao(coluna.chave);
-  }
+  gradeDaExportacao.atualizarMestres();
 }
 
 function abrirModalDeExportacao(cliente) {
@@ -4557,13 +5033,24 @@ function linhasDeCamposExportados(campos) {
   return campos.map(([rotulo, valor]) => `${rotulo}: ${valor || SEM_VALOR}`);
 }
 
-function trechoDaBaseNoSankhyaOm(base) {
-  return linhasDeCamposExportados([
+/**
+ * O trecho da base no arquivo: tipo e URL sempre, credencial só quando pedida.
+ *
+ * É o mesmo formato nas duas exportações, porque é ele que a importação lê de
+ * volta — o que sai do "Compartilhar" de um cliente entra pelo assistente igual
+ * ao arquivo de vários.
+ */
+function trechoDaBaseExportada(base, comCredenciais) {
+  const campos = [
     ['Tipo de base', ROTULOS_DE_TIPO_DE_BASE[base.tipo] ?? base.tipo],
     ['URL', base.url],
-    ['Usuário', base.usuario],
-    ['Senha', base.senha],
-  ]).join('\n');
+  ];
+
+  if (comCredenciais) {
+    campos.push(['Usuário', base.usuario], ['Senha', base.senha]);
+  }
+
+  return linhasDeCamposExportados(campos).join('\n');
 }
 
 function trechoDoBancoDeDados(banco) {
@@ -4589,7 +5076,7 @@ function montarTextoDaExportacao() {
     const trechos = [];
 
     if (selecao.sankhyaOm) {
-      trechos.push(trechoDaBaseNoSankhyaOm(base));
+      trechos.push(trechoDaBaseExportada(base, true));
     }
 
     if (selecao.bancoDeDados && base.bancoDeDados) {
@@ -4623,20 +5110,25 @@ function nomeDoArquivoDeExportacao(nomeDoCliente) {
   return `Acessos - ${nomeLimpo || 'cliente'}.txt`;
 }
 
+/** Baixa o texto como arquivo, sem passar pelo servidor. */
+function baixarTexto(texto, nomeDoArquivo) {
+  const endereco = URL.createObjectURL(new Blob([texto], { type: 'text/plain;charset=utf-8' }));
+  const link = criarElemento('a');
+  link.href = endereco;
+  link.download = nomeDoArquivo;
+  link.click();
+  URL.revokeObjectURL(endereco);
+
+  exibirAviso('Arquivo de exportação gerado.');
+}
+
 function baixarExportacao() {
   const texto = montarTextoDaExportacao();
   if (!texto) {
     return;
   }
 
-  const endereco = URL.createObjectURL(new Blob([texto], { type: 'text/plain;charset=utf-8' }));
-  const link = criarElemento('a');
-  link.href = endereco;
-  link.download = nomeDoArquivoDeExportacao(estado.exportacao.cliente.nome);
-  link.click();
-  URL.revokeObjectURL(endereco);
-
-  exibirAviso('Arquivo de exportação gerado.');
+  baixarTexto(texto, nomeDoArquivoDeExportacao(estado.exportacao.cliente.nome));
 }
 
 function copiarExportacao() {
@@ -4646,6 +5138,254 @@ function copiarExportacao() {
   }
 
   copiarParaAreaDeTransferencia(texto, 'Informações das bases copiadas.');
+}
+
+/* ---------------- exportação de cadastros para arquivo -------------------- */
+
+const ETAPAS_DA_EXPORTACAO_DE_CADASTROS = {
+  clientes: {
+    subtitulo: 'Marque os clientes que devem entrar no arquivo.',
+    anterior: null,
+  },
+  opcoes: {
+    subtitulo:
+      'Nome do cliente, URL e tipo de cada base sempre saem. Marque o que mais deve ir junto.',
+    anterior: 'clientes',
+  },
+};
+
+const COLUNAS_DA_EXPORTACAO_DE_CADASTROS = [
+  { chave: 'credenciais', rotulo: 'Credenciais' },
+  { chave: 'banco', rotulo: 'Banco' },
+];
+
+const NOME_DO_ARQUIVO_DE_CADASTROS = 'Cadastros HUB SNK.txt';
+
+/* Refeita a cada desenho da etapa, como a da exportação de bases. */
+let gradeDaExportacaoDeCadastros = null;
+
+/* Nada marcado por padrão: senha de base e de banco só saem quando pedidas. */
+function selecaoInicialDeExportacaoDeCadastros(clientes) {
+  return new Map(clientes.map((cliente) => [cliente.id, { credenciais: false, banco: false }]));
+}
+
+function clientesSelecionadosParaExportacao() {
+  return estado.clientes.filter((cliente) =>
+    estado.exportacaoDeCadastros.selecionados.has(cliente.id),
+  );
+}
+
+/** Sem nenhuma base com usuário ou senha anotados não há credencial a exportar. */
+function clienteTemCredencial(cliente) {
+  return cliente.bases.some((base) => base.usuario !== '' || base.senha !== '');
+}
+
+function clienteTemBanco(cliente) {
+  return cliente.bases.some((base) => Boolean(base.bancoDeDados));
+}
+
+/** "3 base(s) · 2 com banco": o que o cliente tem para levar para o arquivo. */
+function resumoDasBasesDoCliente(cliente) {
+  if (cliente.bases.length === 0) {
+    return 'Nenhuma base';
+  }
+
+  const comBanco = cliente.bases.filter((base) => base.bancoDeDados).length;
+  const bases = `${cliente.bases.length} base(s)`;
+  return comBanco === 0 ? bases : `${bases} · ${comBanco} com banco`;
+}
+
+function atualizarResumoDosClientesAExportar() {
+  const quantidade = estado.exportacaoDeCadastros.selecionados.size;
+
+  elementos.resumoDosClientesAExportar.textContent =
+    quantidade === 0 ? 'Nenhum cliente selecionado.' : `${quantidade} cliente(s) selecionado(s).`;
+  elementos.botaoAvancarExportacaoDeCadastros.disabled = quantidade === 0;
+}
+
+function criarLinhaDeClienteAExportar(cliente) {
+  const entrada = criarElemento('input');
+  entrada.type = 'checkbox';
+  entrada.checked = estado.exportacaoDeCadastros.selecionados.has(cliente.id);
+  entrada.addEventListener('change', () => {
+    if (entrada.checked) {
+      estado.exportacaoDeCadastros.selecionados.add(cliente.id);
+    } else {
+      estado.exportacaoDeCadastros.selecionados.delete(cliente.id);
+    }
+    atualizarResumoDosClientesAExportar();
+  });
+
+  const marcacao = criarElemento('label', 'campo-checkbox');
+  marcacao.append(entrada, criarElemento('span', null, cliente.nome));
+
+  const identificacao = criarElemento('div', 'linha-de-exportacao-info');
+  identificacao.append(marcacao);
+
+  const linha = criarElemento('div', 'linha-de-exportacao');
+  linha.append(
+    identificacao,
+    criarElemento('span', 'linha-de-exportacao-resumo', resumoDasBasesDoCliente(cliente)),
+  );
+  return linha;
+}
+
+function renderizarClientesAExportar() {
+  elementos.linhasDeClientesAExportar.replaceChildren(
+    ...estado.clientes.map((cliente) => criarLinhaDeClienteAExportar(cliente)),
+  );
+  atualizarResumoDosClientesAExportar();
+}
+
+function definirSelecaoDeClientesAExportar(marcado) {
+  estado.exportacaoDeCadastros.selecionados = marcado
+    ? new Set(estado.clientes.map((cliente) => cliente.id))
+    : new Set();
+  renderizarClientesAExportar();
+}
+
+function criarLinhaDeExportacaoDeCadastro(cliente) {
+  const identificacao = criarElemento('div', 'linha-de-exportacao-info');
+  identificacao.append(criarElemento('span', 'linha-de-exportacao-nome', cliente.nome));
+
+  const opcoes = criarElemento('div', 'linha-de-exportacao-opcoes');
+  opcoes.append(
+    gradeDaExportacaoDeCadastros.criarCheckbox(cliente.id, COLUNAS_DA_EXPORTACAO_DE_CADASTROS[0], {
+      desabilitado: !clienteTemCredencial(cliente),
+      tituloDesabilitado: 'Nenhuma base deste cliente tem usuário ou senha anotados.',
+    }),
+    gradeDaExportacaoDeCadastros.criarCheckbox(cliente.id, COLUNAS_DA_EXPORTACAO_DE_CADASTROS[1], {
+      desabilitado: !clienteTemBanco(cliente),
+      tituloDesabilitado: 'Nenhuma base deste cliente tem banco de dados cadastrado.',
+    }),
+  );
+
+  const linha = criarElemento('div', 'linha-de-exportacao');
+  linha.append(identificacao, opcoes);
+  return linha;
+}
+
+function renderizarOpcoesDaExportacaoDeCadastros() {
+  gradeDaExportacaoDeCadastros = criarGradeDeMarcacao(
+    COLUNAS_DA_EXPORTACAO_DE_CADASTROS,
+    estado.exportacaoDeCadastros.selecoes,
+  );
+
+  const clientes = clientesSelecionadosParaExportacao();
+  elementos.linhasDeExportacaoDeCadastros.replaceChildren(
+    ...clientes.map((cliente) => criarLinhaDeExportacaoDeCadastro(cliente)),
+  );
+
+  /* Com um único cliente os mestres seriam um segundo jeito de clicar no mesmo. */
+  const comMestres = clientes.length > 1;
+  elementos.barraDeExportacaoDeCadastros.hidden = !comMestres;
+  elementos.mestresDeExportacaoDeCadastros.replaceChildren(
+    ...(comMestres
+      ? COLUNAS_DA_EXPORTACAO_DE_CADASTROS.map((coluna) =>
+          gradeDaExportacaoDeCadastros.criarMestre(coluna),
+        )
+      : []),
+  );
+
+  gradeDaExportacaoDeCadastros.atualizarMestres();
+}
+
+function definirEtapaDaExportacaoDeCadastros(etapa) {
+  estado.exportacaoDeCadastros.etapa = etapa;
+  limparErro(elementos.erroExportacaoDeCadastros);
+
+  elementos.modalExportacaoDeCadastrosSubtitulo.textContent =
+    ETAPAS_DA_EXPORTACAO_DE_CADASTROS[etapa].subtitulo;
+  elementos.etapaExportacaoClientes.hidden = etapa !== 'clientes';
+  elementos.etapaExportacaoOpcoes.hidden = etapa !== 'opcoes';
+
+  const naEscolhaDosClientes = etapa === 'clientes';
+  elementos.botaoVoltarExportacaoDeCadastros.hidden = naEscolhaDosClientes;
+  elementos.botaoAvancarExportacaoDeCadastros.hidden = !naEscolhaDosClientes;
+  elementos.botaoCopiarExportacaoDeCadastros.hidden = naEscolhaDosClientes;
+  elementos.botaoBaixarExportacaoDeCadastros.hidden = naEscolhaDosClientes;
+}
+
+/* Todos já vêm marcados: exportar a base inteira é o caso comum. */
+function abrirModalDeExportacaoDeCadastros() {
+  estado.exportacaoDeCadastros.selecionados = new Set(estado.clientes.map((cliente) => cliente.id));
+  estado.exportacaoDeCadastros.selecoes = selecaoInicialDeExportacaoDeCadastros(estado.clientes);
+
+  renderizarClientesAExportar();
+  definirEtapaDaExportacaoDeCadastros('clientes');
+  elementos.modalExportacaoDeCadastros.showModal();
+}
+
+function avancarExportacaoDeCadastros() {
+  if (estado.exportacaoDeCadastros.selecionados.size === 0) {
+    exibirErro(elementos.erroExportacaoDeCadastros, 'Selecione ao menos um cliente.');
+    return;
+  }
+
+  definirEtapaDaExportacaoDeCadastros('opcoes');
+  renderizarOpcoesDaExportacaoDeCadastros();
+}
+
+function voltarExportacaoDeCadastros() {
+  definirEtapaDaExportacaoDeCadastros('clientes');
+  renderizarClientesAExportar();
+}
+
+/**
+ * Um bloco por base, como no compartilhamento de um cliente só.
+ *
+ * Cliente sem base entra com o nome sozinho: é o que permite a importação
+ * recriar o cadastro do outro lado mesmo sem base nenhuma.
+ */
+function montarTextoDaExportacaoDeCadastros() {
+  const blocos = [];
+
+  for (const cliente of clientesSelecionadosParaExportacao()) {
+    const selecao = estado.exportacaoDeCadastros.selecoes.get(cliente.id);
+    const cabecalho = `Cliente: ${cliente.nome}`;
+
+    if (cliente.bases.length === 0) {
+      blocos.push(cabecalho);
+      continue;
+    }
+
+    for (const base of basesOrdenadasPorTipo(cliente.bases)) {
+      const trechos = [trechoDaBaseExportada(base, selecao.credenciais)];
+      if (selecao.banco && base.bancoDeDados) {
+        trechos.push(trechoDoBancoDeDados(base.bancoDeDados));
+      }
+
+      blocos.push([cabecalho, ...trechos].join('\n\n'));
+    }
+  }
+
+  return blocos.join(`\n\n${SEPARADOR_DE_EXPORTACAO}\n\n`);
+}
+
+/* Um cliente só sai com o nome dele no arquivo, como no "Compartilhar". */
+function nomeDoArquivoDaExportacaoDeCadastros() {
+  const clientes = clientesSelecionadosParaExportacao();
+  return clientes.length === 1
+    ? nomeDoArquivoDeExportacao(clientes[0].nome)
+    : NOME_DO_ARQUIVO_DE_CADASTROS;
+}
+
+function baixarExportacaoDeCadastros() {
+  const texto = montarTextoDaExportacaoDeCadastros();
+  if (!texto) {
+    return;
+  }
+
+  baixarTexto(texto, nomeDoArquivoDaExportacaoDeCadastros());
+}
+
+function copiarExportacaoDeCadastros() {
+  const texto = montarTextoDaExportacaoDeCadastros();
+  if (!texto) {
+    return;
+  }
+
+  copiarParaAreaDeTransferencia(texto, 'Cadastros copiados.');
 }
 
 /* -------------------------------- exclusões ------------------------------- */
@@ -5043,9 +5783,39 @@ function registrarOpcaoDaImportacao(etapa, propriedade) {
 }
 
 /** A área de arquivo aceita as duas entradas: arrastar o arquivo ou clicar e escolher. */
-function registrarEventosDaImportacao() {
-  const abrirSeletorDeArquivo = () => elementos.campoArquivoDeFavoritos.click();
+function registrarAreaDeArquivo(area, campo, aoEscolher) {
+  const abrirSeletorDeArquivo = () => campo.click();
 
+  area.addEventListener('click', abrirSeletorDeArquivo);
+  area.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Enter' || evento.key === ' ') {
+      evento.preventDefault();
+      abrirSeletorDeArquivo();
+    }
+  });
+
+  area.addEventListener('dragover', (evento) => {
+    evento.preventDefault();
+    area.classList.add('recebendo');
+  });
+  area.addEventListener('dragleave', () => {
+    area.classList.remove('recebendo');
+  });
+  area.addEventListener('drop', (evento) => {
+    evento.preventDefault();
+    area.classList.remove('recebendo');
+    aoEscolher(evento.dataTransfer?.files?.[0]);
+  });
+
+  campo.addEventListener('change', () => {
+    const arquivo = campo.files?.[0];
+    /* Zerar o campo permite reescolher o mesmo arquivo depois de um erro. */
+    campo.value = '';
+    aoEscolher(arquivo);
+  });
+}
+
+function registrarEventosDaImportacao() {
   /* A origem escolhida decide para qual etapa o "Avançar" leva. */
   registrarOpcaoDaImportacao(elementos.etapaImportacaoOrigem, 'origem');
 
@@ -5057,33 +5827,23 @@ function registrarEventosDaImportacao() {
     definirSelecaoDeRepositorios(repositoriosImportaveis(), false),
   );
 
-  elementos.areaDeArquivo.addEventListener('click', abrirSeletorDeArquivo);
-  elementos.areaDeArquivo.addEventListener('keydown', (evento) => {
-    if (evento.key === 'Enter' || evento.key === ' ') {
-      evento.preventDefault();
-      abrirSeletorDeArquivo();
-    }
-  });
+  registrarAreaDeArquivo(
+    elementos.areaDeArquivo,
+    elementos.campoArquivoDeFavoritos,
+    carregarArquivoDeFavoritos,
+  );
+  registrarAreaDeArquivo(
+    elementos.areaDeArquivoDeCadastros,
+    elementos.campoArquivoDeCadastros,
+    carregarArquivoDeCadastros,
+  );
 
-  elementos.areaDeArquivo.addEventListener('dragover', (evento) => {
-    evento.preventDefault();
-    elementos.areaDeArquivo.classList.add('recebendo');
-  });
-  elementos.areaDeArquivo.addEventListener('dragleave', () => {
-    elementos.areaDeArquivo.classList.remove('recebendo');
-  });
-  elementos.areaDeArquivo.addEventListener('drop', (evento) => {
-    evento.preventDefault();
-    elementos.areaDeArquivo.classList.remove('recebendo');
-    carregarArquivoDeFavoritos(evento.dataTransfer?.files?.[0]);
-  });
-
-  elementos.campoArquivoDeFavoritos.addEventListener('change', () => {
-    const arquivo = elementos.campoArquivoDeFavoritos.files?.[0];
-    /* Zerar o campo permite reescolher o mesmo arquivo depois de um erro. */
-    elementos.campoArquivoDeFavoritos.value = '';
-    carregarArquivoDeFavoritos(arquivo);
-  });
+  elementos.botaoManterAtuais.addEventListener('click', () =>
+    definirDecisaoDeTodosOsConflitos(false),
+  );
+  elementos.botaoSubstituirTodos.addEventListener('click', () =>
+    definirDecisaoDeTodosOsConflitos(true),
+  );
 
   elementos.botaoMarcarFavoritos.addEventListener('click', () =>
     definirSelecaoDeFavoritos(favoritosImportaveis(estado.importacao.pastas), true),
@@ -5104,6 +5864,23 @@ function registrarEventosDaImportacao() {
   );
   elementos.botaoCopiarExportacao.addEventListener('click', copiarExportacao);
   elementos.botaoBaixarExportacao.addEventListener('click', baixarExportacao);
+
+  elementos.botaoMarcarClientesAExportar.addEventListener('click', () =>
+    definirSelecaoDeClientesAExportar(true),
+  );
+  elementos.botaoDesmarcarClientesAExportar.addEventListener('click', () =>
+    definirSelecaoDeClientesAExportar(false),
+  );
+  elementos.botaoAvancarExportacaoDeCadastros.addEventListener(
+    'click',
+    avancarExportacaoDeCadastros,
+  );
+  elementos.botaoVoltarExportacaoDeCadastros.addEventListener('click', voltarExportacaoDeCadastros);
+  elementos.botaoCancelarExportacaoDeCadastros.addEventListener('click', () =>
+    elementos.modalExportacaoDeCadastros.close(),
+  );
+  elementos.botaoCopiarExportacaoDeCadastros.addEventListener('click', copiarExportacaoDeCadastros);
+  elementos.botaoBaixarExportacaoDeCadastros.addEventListener('click', baixarExportacaoDeCadastros);
 }
 
 function registrarServiceWorker() {

@@ -1523,33 +1523,39 @@ button.selo-situacao:focus-visible {
   width: min(980px, 96vw);
 }
 
-/* Rodapé da lista lateral: entrada do assistente, abaixo dos clientes. */
-.botao-importar-favoritos {
+/* Rodapé da lista lateral: entradas dos assistentes, abaixo dos clientes. */
+.acoes-da-lista {
   display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.botao-da-lista {
+  display: flex;
+  flex: 1;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  margin-top: 4px;
   font-size: 12px;
   color: var(--text-dim);
 }
 
-.botao-importar-favoritos svg {
+.botao-da-lista svg {
   width: 14px;
   height: 14px;
   flex: none;
 }
 
-.botao-importar-favoritos:hover:not(:disabled) {
+.botao-da-lista:hover:not(:disabled) {
   color: var(--text);
 }
 
 /*
- * Sem o empurrão de 1px do `:active`: este botão é o último filho da lista
+ * Sem o empurrão de 1px do `:active`: estes botões são os últimos filhos da lista
  * rolável, e o deslocamento transborda o container, fazendo nascer uma barra de
  * rolagem enquanto o clique está pressionado.
  */
-.botao-importar-favoritos:active:not(:disabled) {
+.botao-da-lista:active:not(:disabled) {
   transform: none;
 }
 
@@ -1939,11 +1945,138 @@ button.selo-situacao:focus-visible {
   cursor: not-allowed;
 }
 
+/* Linhas do assistente de exportação: o nome do cliente no lugar da URL. */
+.linha-de-exportacao-nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.linha-de-exportacao-resumo {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
 @media (max-width: 860px) {
   .linha-de-exportacao {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
+  }
+}
+
+/* ------------------ importação do arquivo de cadastros ------------------ */
+
+.linhas-de-cadastros {
+  display: grid;
+  gap: 8px;
+  max-height: 46vh;
+  overflow: auto;
+}
+
+/*
+ * O que entra sem decisão e o que o leitor deixou de fora: dois blocos de leitura
+ * no topo da etapa, antes dos cartões que pedem escolha.
+ */
+.resumo-da-importacao,
+.avisos-do-arquivo {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.avisos-do-arquivo {
+  border-color: var(--aviso);
+}
+
+.resumo-da-importacao h3,
+.avisos-do-arquivo h3 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.resumo-da-importacao-itens {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.conflito-de-importacao {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.cabecalho-do-conflito {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 12.5px;
+}
+
+.colunas-do-conflito {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.lado-do-conflito {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+/* A escolha marcada ganha a borda da marca: o lado que vai valer se destaca. */
+.lado-do-conflito:has(input:checked) {
+  border-color: var(--marca);
+}
+
+.campo-do-conflito {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.campo-do-conflito-rotulo {
+  flex: 0 0 62px;
+  color: var(--text-dim);
+}
+
+.campo-do-conflito-valor {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+/* Marca só do lado importado: aponta o que muda no que já está gravado. */
+.marca-de-diferenca {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--aviso) 22%, transparent);
+  color: var(--aviso);
+  font-size: 10.5px;
+}
+
+@media (max-width: 860px) {
+  .colunas-do-conflito {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
