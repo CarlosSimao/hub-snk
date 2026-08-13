@@ -22,13 +22,16 @@ import {
   UrlDeRepositorioDuplicadaError,
   type DadosDeBancoDeDados,
   type DadosDeBase,
+  type DadosDeBaseDeCadastro,
   type DadosDeCliente,
   type DadosDeImportacaoDeBase,
+  type DadosDeImportacaoDeCadastro,
   type DadosDeImportacaoDeRepositorio,
   type DadosDeLink,
   type DadosDeRepositorio,
   type RepositorioClientes,
   type ResultadoDaImportacao,
+  type ResultadoDaImportacaoDeCadastros,
   type ResultadoDaImportacaoDeRepositorios,
 } from './repositorioClientes.ts';
 
@@ -203,6 +206,48 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     });
   }
 
+  async importarCadastros(
+    itens: DadosDeImportacaoDeCadastro[],
+  ): Promise<ResultadoDaImportacaoDeCadastros> {
+    return this.#enfileirar(async () => {
+      const clientes = await this.#carregar();
+
+      const agora = new Date().toISOString();
+      let atualizados = [...clientes];
+      const contagem: ResultadoDaImportacaoDeCadastros = {
+        clientesCriados: 0,
+        basesCriadas: 0,
+        basesSubstituidas: 0,
+        basesIgnoradas: 0,
+      };
+
+      for (const item of itens) {
+        const resolucao = this.#obterOuCriarClientePorNome(atualizados, item.nome.trim(), agora);
+        atualizados = resolucao.clientes;
+        contagem.clientesCriados += resolucao.criado ? 1 : 0;
+
+        let bases = resolucao.cliente.bases;
+        for (const base of item.bases) {
+          bases = this.#aplicarBaseDoCadastro(bases, base, contagem);
+        }
+
+        /* Cliente que só teve bases ignoradas não muda: mexer no `atualizadoEm`
+           dele faria a importação parecer ter alterado o que deixou intacto. */
+        if (bases === resolucao.cliente.bases) {
+          continue;
+        }
+
+        const cliente: Cliente = { ...resolucao.cliente, bases, atualizadoEm: agora };
+        atualizados = atualizados.map((candidato) =>
+          candidato.id === cliente.id ? cliente : candidato,
+        );
+      }
+
+      await this.#persistir(atualizados);
+      return contagem;
+    });
+  }
+
   async atualizarBase(idDoCliente: string, idDaBase: string, dados: DadosDeBase): Promise<Base> {
     return this.#enfileirar(async () => {
       const clientes = await this.#carregar();
@@ -251,13 +296,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
       const cliente = this.#obterCliente(clientes, idDoCliente);
       const posicao = this.#obterPosicaoDaBase(cliente, idDaBase);
 
-      const bancoDeDados: BancoDeDados = {
-        host: dados.host.trim(),
-        porta: dados.porta,
-        nomeDoServico: dados.nomeDoServico.trim(),
-        usuario: dados.usuario.trim(),
-        senha: dados.senha,
-      };
+      const bancoDeDados = this.#normalizarDadosDeBancoDeDados(dados);
 
       const bases = [...cliente.bases];
       bases[posicao] = { ...(bases[posicao] as Base), bancoDeDados };
@@ -488,6 +527,69 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
       usuario: dados.usuario.trim(),
       senha: dados.senha,
     };
+  }
+
+  /** A senha não é aparada: espaço nas pontas pode fazer parte dela. */
+  #normalizarDadosDeBancoDeDados(dados: DadosDeBancoDeDados): BancoDeDados {
+    return {
+      host: dados.host.trim(),
+      porta: dados.porta,
+      nomeDoServico: dados.nomeDoServico.trim(),
+      usuario: dados.usuario.trim(),
+      senha: dados.senha,
+    };
+  }
+
+  /**
+   * Aplica no cliente uma base vinda do arquivo de cadastros e devolve a lista
+   * resultante — a mesma lista, sem cópia, quando a base é ignorada.
+   *
+   * A URL identifica a base. Na substituição, só o que o arquivo trouxe é
+   * sobrescrito: banco ausente e o par usuário/senha inteiro em branco preservam
+   * o que já estava gravado, porque exportar sem a opção marcada não é a mesma
+   * coisa que exportar um campo vazio.
+   */
+  #aplicarBaseDoCadastro(
+    bases: Base[],
+    dados: DadosDeBaseDeCadastro,
+    contagem: ResultadoDaImportacaoDeCadastros,
+  ): Base[] {
+    const urlAlvo = normalizarParaComparacao(dados.url);
+    const posicao = bases.findIndex((base) => normalizarParaComparacao(base.url) === urlAlvo);
+    const bancoDoArquivo = dados.bancoDeDados
+      ? this.#normalizarDadosDeBancoDeDados(dados.bancoDeDados)
+      : undefined;
+
+    if (posicao === -1) {
+      contagem.basesCriadas += 1;
+      const novaBase: Base = {
+        id: randomUUID(),
+        ...this.#normalizarDadosDeBase(dados),
+        ...(bancoDoArquivo ? { bancoDeDados: bancoDoArquivo } : {}),
+      };
+      return [...bases, novaBase];
+    }
+
+    if (!dados.substituir) {
+      contagem.basesIgnoradas += 1;
+      return bases;
+    }
+
+    const atual = bases[posicao] as Base;
+    const semCredencialNoArquivo = dados.usuario.trim() === '' && dados.senha === '';
+    const bancoDeDados = bancoDoArquivo ?? atual.bancoDeDados;
+
+    const substituida: Base = {
+      id: atual.id,
+      ...this.#normalizarDadosDeBase(dados),
+      ...(semCredencialNoArquivo ? { usuario: atual.usuario, senha: atual.senha } : {}),
+      ...(bancoDeDados ? { bancoDeDados } : {}),
+    };
+
+    const substituidas = [...bases];
+    substituidas[posicao] = substituida;
+    contagem.basesSubstituidas += 1;
+    return substituidas;
   }
 
   /** Grava o cliente com `atualizadoEm` renovado e devolve a versão persistida. */

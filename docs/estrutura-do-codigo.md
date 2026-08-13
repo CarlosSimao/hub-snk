@@ -43,6 +43,7 @@ src/
 public/
   index.html  styles.css  app.js            interface, sem framework e sem build
   leitorDeFavoritos.js                      lê o arquivo de favoritos de qualquer navegador suportado
+  leitorDeArquivoDeCadastros.js             lê o .txt de cadastros gerado pelo Exportar e pelo Compartilhar
   tipoDeBaseNoNome.js                       tira Produção/Teste do nome do favorito
   manifest.webmanifest  sw.js               o que torna o HUB SNK instalável
 scripts/

@@ -48,6 +48,36 @@ export interface ResultadoDaImportacao {
 }
 
 /**
+ * Uma base vinda do arquivo de cadastros do HUB SNK.
+ *
+ * Diferente da importação de favoritos, aqui a base pode trazer o banco de dados
+ * vinculado e uma decisão já tomada na tela: `substituir` diz o que fazer quando
+ * o cliente já tem uma base na mesma URL.
+ */
+export interface DadosDeBaseDeCadastro extends DadosDeBase {
+  bancoDeDados?: DadosDeBancoDeDados;
+  substituir: boolean;
+}
+
+/**
+ * Um cliente do arquivo de cadastros, com as bases que vierem nele.
+ *
+ * A lista de bases pode ser vazia: o arquivo carrega o cliente mesmo quando nada
+ * foi exportado além do nome dele.
+ */
+export interface DadosDeImportacaoDeCadastro {
+  nome: string;
+  bases: DadosDeBaseDeCadastro[];
+}
+
+export interface ResultadoDaImportacaoDeCadastros {
+  clientesCriados: number;
+  basesCriadas: number;
+  basesSubstituidas: number;
+  basesIgnoradas: number;
+}
+
+/**
  * Um repositório já clonado na máquina, vindo da varredura de pastas.
  *
  * Assim como na importação de favoritos, o cliente é resolvido pelo nome: a
@@ -103,6 +133,21 @@ export interface RepositorioClientes {
    * deixar metade dos favoritos cadastrada e a outra metade fora.
    */
   importarBases(itens: DadosDeImportacaoDeBase[]): Promise<ResultadoDaImportacao>;
+
+  /**
+   * Grava os clientes lidos de um arquivo de cadastros do HUB SNK.
+   *
+   * A URL identifica a base dentro do cliente: URL inédita entra, URL já
+   * cadastrada só muda quando o item pede `substituir`. A substituição sobrescreve
+   * apenas o que o arquivo trouxe — banco de dados ausente e credencial em branco
+   * preservam o que já estava gravado, porque campo não exportado não é o mesmo
+   * que campo apagado.
+   *
+   * É tudo ou nada, pelo mesmo motivo de `importarBases`.
+   */
+  importarCadastros(
+    itens: DadosDeImportacaoDeCadastro[],
+  ): Promise<ResultadoDaImportacaoDeCadastros>;
 
   atualizarBase(idDoCliente: string, idDaBase: string, dados: DadosDeBase): Promise<Base>;
   removerBase(idDoCliente: string, idDaBase: string): Promise<void>;

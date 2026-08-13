@@ -931,6 +931,17 @@
                 </span>
               </span>
             </label>
+
+            <label class="opcao-de-importacao">
+              <input type="radio" name="origem-da-importacao" value="cadastros" />
+              <span class="opcao-de-importacao-texto">
+                <strong>Importar cadastros de arquivo do HUB SNK</strong>
+                <span>
+                  O .txt gerado pelo "Exportar" da lista ou pelo "Compartilhar" de um cliente. Base
+                  já cadastrada aparece lado a lado com a do arquivo para você decidir qual fica.
+                </span>
+              </span>
+            </label>
           </div>
 
           <!--
@@ -997,6 +1008,38 @@
             <div class="linhas-de-importacao" id="linhas-de-importacao"></div>
           </div>
 
+          <div id="etapa-importacao-arquivo-de-cadastros" hidden>
+            <div
+              class="area-de-arquivo"
+              id="area-de-arquivo-de-cadastros"
+              tabindex="0"
+              role="button"
+            >
+              <p class="area-de-arquivo-titulo">Arraste o arquivo de cadastros aqui</p>
+              <p class="area-de-arquivo-ajuda">ou clique para escolher no explorador de arquivos</p>
+              <p class="area-de-arquivo-ajuda">
+                É o .txt do "Exportar" da lista de clientes ou do "Compartilhar" de um cliente.
+              </p>
+              <p class="area-de-arquivo-selecionado" id="nome-do-arquivo-de-cadastros" hidden></p>
+            </div>
+            <input id="campo-arquivo-de-cadastros" type="file" accept=".txt,text/plain" hidden />
+          </div>
+
+          <div id="etapa-importacao-cadastros" hidden>
+            <div class="barra-da-arvore">
+              <span id="resumo-dos-cadastros">Nada para importar.</span>
+              <div class="barra-da-arvore-acoes" id="acoes-dos-conflitos" hidden>
+                <button class="btn tiny" type="button" id="btn-manter-atuais">
+                  Manter todos os atuais
+                </button>
+                <button class="btn tiny" type="button" id="btn-substituir-todos">
+                  Substituir todos
+                </button>
+              </div>
+            </div>
+            <div class="linhas-de-cadastros" id="linhas-de-cadastros"></div>
+          </div>
+
           <p class="erro-formulario" id="erro-importacao" hidden></p>
         </div>
 
@@ -1011,6 +1054,65 @@
           </button>
         </div>
       </form>
+    </dialog>
+
+    <!--
+      Assistente de exportação de cadastros. Como o de importação, as duas etapas
+      moram no mesmo diálogo e só uma fica visível por vez.
+    -->
+    <dialog class="modal muito-largo" id="modal-exportacao-de-cadastros">
+      <div class="modal-cabecalho">
+        <h2>Exportar</h2>
+        <p id="modal-exportacao-de-cadastros-subtitulo">
+          Marque os clientes que devem entrar no arquivo.
+        </p>
+      </div>
+
+      <div class="modal-corpo">
+        <div id="etapa-exportacao-clientes">
+          <div class="barra-da-arvore">
+            <span id="resumo-dos-clientes-a-exportar">Nenhum cliente selecionado.</span>
+            <div class="barra-da-arvore-acoes">
+              <button class="btn tiny" type="button" id="btn-marcar-clientes-a-exportar">
+                Marcar todos
+              </button>
+              <button class="btn tiny" type="button" id="btn-desmarcar-clientes-a-exportar">
+                Desmarcar todos
+              </button>
+            </div>
+          </div>
+          <div class="linhas-de-exportacao" id="linhas-de-clientes-a-exportar"></div>
+        </div>
+
+        <div id="etapa-exportacao-opcoes" hidden>
+          <!-- Só aparece com mais de um cliente: com um só, marcar "todos" é a própria linha. -->
+          <div class="barra-de-exportacao" id="barra-de-exportacao-de-cadastros" hidden>
+            <span>Marcar todos</span>
+            <div class="linha-de-exportacao-opcoes" id="mestres-de-exportacao-de-cadastros"></div>
+          </div>
+          <div class="linhas-de-exportacao" id="linhas-de-exportacao-de-cadastros"></div>
+        </div>
+
+        <p class="erro-formulario" id="erro-exportacao-de-cadastros" hidden></p>
+      </div>
+
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-cancelar-exportacao-de-cadastros">
+          Fechar
+        </button>
+        <button class="btn ghost" type="button" id="btn-voltar-exportacao-de-cadastros" hidden>
+          Voltar
+        </button>
+        <button class="btn primario" type="button" id="btn-avancar-exportacao-de-cadastros">
+          Avançar
+        </button>
+        <button class="btn" type="button" id="btn-copiar-exportacao-de-cadastros" hidden>
+          Copiar
+        </button>
+        <button class="btn primario" type="button" id="btn-baixar-exportacao-de-cadastros" hidden>
+          Baixar .txt
+        </button>
+      </div>
     </dialog>
 
     <dialog class="modal muito-largo" id="modal-exportacao">

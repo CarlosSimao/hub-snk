@@ -174,6 +174,185 @@ describe('RepositorioClientesArquivo', () => {
   });
 });
 
+describe('RepositorioClientesArquivo.importarCadastros', () => {
+  const BANCO_DE_EXEMPLO = {
+    host: '192.168.0.10',
+    porta: 1521,
+    nomeDoServico: 'ORCL',
+    usuario: 'system',
+    senha: 'segredo',
+  };
+
+  async function primeiraBaseDe(nome: string) {
+    const clientes = await repositorio.listar();
+    return clientes.find((cliente) => cliente.nome === nome)?.bases[0];
+  }
+
+  it('cria o cliente e a base que ainda não existem', async () => {
+    const resultado = await repositorio.importarCadastros([
+      { nome: 'Indústria Alfa', bases: [{ ...BASE_DE_EXEMPLO, substituir: false }] },
+    ]);
+
+    assert.deepEqual(resultado, {
+      clientesCriados: 1,
+      basesCriadas: 1,
+      basesSubstituidas: 0,
+      basesIgnoradas: 0,
+    });
+    assert.equal((await primeiraBaseDe('Indústria Alfa'))?.usuario, 'admin');
+  });
+
+  it('cria o cliente sem base nenhuma', async () => {
+    const resultado = await repositorio.importarCadastros([{ nome: 'Gama SA', bases: [] }]);
+
+    assert.equal(resultado.clientesCriados, 1);
+    assert.deepEqual(
+      (await repositorio.listar()).map((cliente) => cliente.nome),
+      ['Gama SA'],
+    );
+  });
+
+  it('reaproveita o cliente existente escrito de outro jeito', async () => {
+    await repositorio.criar({ nome: 'Neco Truck' });
+
+    const resultado = await repositorio.importarCadastros([
+      { nome: 'necotruck', bases: [{ ...BASE_DE_EXEMPLO, substituir: false }] },
+    ]);
+
+    assert.equal(resultado.clientesCriados, 0);
+    assert.equal((await repositorio.listar()).length, 1);
+    assert.equal((await primeiraBaseDe('Neco Truck'))?.url, BASE_DE_EXEMPLO.url);
+  });
+
+  it('ignora a base de URL já cadastrada quando não é para substituir', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    await repositorio.adicionarBase(cliente.id, BASE_DE_EXEMPLO);
+
+    const resultado = await repositorio.importarCadastros([
+      {
+        nome: 'Indústria Alfa',
+        bases: [{ ...BASE_DE_EXEMPLO, usuario: 'invasor', substituir: false }],
+      },
+    ]);
+
+    assert.deepEqual(resultado, {
+      clientesCriados: 0,
+      basesCriadas: 0,
+      basesSubstituidas: 0,
+      basesIgnoradas: 1,
+    });
+    assert.equal((await primeiraBaseDe('Indústria Alfa'))?.usuario, 'admin');
+  });
+
+  it('não mexe no `atualizadoEm` do cliente cujas bases foram todas ignoradas', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    await repositorio.adicionarBase(cliente.id, BASE_DE_EXEMPLO);
+    const antes = (await repositorio.buscarPorId(cliente.id))?.atualizadoEm;
+
+    await repositorio.importarCadastros([
+      { nome: 'Indústria Alfa', bases: [{ ...BASE_DE_EXEMPLO, substituir: false }] },
+    ]);
+
+    assert.equal((await repositorio.buscarPorId(cliente.id))?.atualizadoEm, antes);
+  });
+
+  it('substitui a base de URL já cadastrada quando é para substituir', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    const base = await repositorio.adicionarBase(cliente.id, BASE_DE_EXEMPLO);
+
+    const resultado = await repositorio.importarCadastros([
+      {
+        nome: 'Indústria Alfa',
+        bases: [{ ...BASE_DE_EXEMPLO, tipo: 'teste', usuario: 'novo', substituir: true }],
+      },
+    ]);
+
+    assert.equal(resultado.basesSubstituidas, 1);
+    const substituida = await primeiraBaseDe('Indústria Alfa');
+    /* O id sobrevive: é substituição da mesma base, não base nova. */
+    assert.equal(substituida?.id, base.id);
+    assert.equal(substituida?.tipo, 'teste');
+    assert.equal(substituida?.usuario, 'novo');
+  });
+
+  it('grava o banco de dados que veio no arquivo', async () => {
+    await repositorio.importarCadastros([
+      {
+        nome: 'Indústria Alfa',
+        bases: [{ ...BASE_DE_EXEMPLO, bancoDeDados: BANCO_DE_EXEMPLO, substituir: false }],
+      },
+    ]);
+
+    assert.deepEqual((await primeiraBaseDe('Indústria Alfa'))?.bancoDeDados, BANCO_DE_EXEMPLO);
+  });
+
+  it('preserva o banco já vinculado quando o arquivo não trouxe banco', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    const base = await repositorio.adicionarBase(cliente.id, BASE_DE_EXEMPLO);
+    await repositorio.definirBancoDeDados(cliente.id, base.id, BANCO_DE_EXEMPLO);
+
+    await repositorio.importarCadastros([
+      { nome: 'Indústria Alfa', bases: [{ ...BASE_DE_EXEMPLO, tipo: 'teste', substituir: true }] },
+    ]);
+
+    assert.deepEqual((await primeiraBaseDe('Indústria Alfa'))?.bancoDeDados, BANCO_DE_EXEMPLO);
+  });
+
+  it('preserva a credencial gravada quando o arquivo veio sem usuário e sem senha', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    await repositorio.adicionarBase(cliente.id, BASE_DE_EXEMPLO);
+
+    await repositorio.importarCadastros([
+      {
+        nome: 'Indústria Alfa',
+        bases: [{ ...BASE_DE_EXEMPLO, tipo: 'teste', usuario: '', senha: '', substituir: true }],
+      },
+    ]);
+
+    const substituida = await primeiraBaseDe('Indústria Alfa');
+    assert.equal(substituida?.tipo, 'teste');
+    assert.equal(substituida?.usuario, 'admin');
+    assert.equal(substituida?.senha, 'segredo');
+  });
+
+  it('sobrescreve a credencial quando o arquivo trouxe usuário', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    await repositorio.adicionarBase(cliente.id, BASE_DE_EXEMPLO);
+
+    await repositorio.importarCadastros([
+      {
+        nome: 'Indústria Alfa',
+        bases: [{ ...BASE_DE_EXEMPLO, usuario: 'consulta', senha: '', substituir: true }],
+      },
+    ]);
+
+    const substituida = await primeiraBaseDe('Indústria Alfa');
+    assert.equal(substituida?.usuario, 'consulta');
+    assert.equal(substituida?.senha, '');
+  });
+
+  it('importa várias bases do mesmo cliente numa passada', async () => {
+    const resultado = await repositorio.importarCadastros([
+      {
+        nome: 'Indústria Alfa',
+        bases: [
+          { ...BASE_DE_EXEMPLO, substituir: false },
+          {
+            ...BASE_DE_EXEMPLO,
+            url: 'https://erp.alfa.com.br:8280/mge',
+            tipo: 'teste',
+            substituir: false,
+          },
+        ],
+      },
+    ]);
+
+    assert.equal(resultado.basesCriadas, 2);
+    const clientes = await repositorio.listar();
+    assert.equal(clientes[0]?.bases.length, 2);
+  });
+});
+
 describe('RepositorioClientesArquivo com arquivo no formato antigo', () => {
   const CADASTRO_ANTIGO = [
     {

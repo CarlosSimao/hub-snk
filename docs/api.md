@@ -40,6 +40,9 @@ subir nesse modo.
 | `GET`    | `/api/clientes/:id`                                            | `200` — um cliente, com a situação do MCP de cada repositório           |
 | `PUT`    | `/api/clientes/:id/anotacoes`                                  | `200` — cliente com as anotações gravadas                               |
 | `DELETE` | `/api/clientes/:id`                                            | `204` — sem conteúdo                                                    |
+| `POST`   | `/api/clientes/importacao`                                     | `201` — bases criadas a partir dos favoritos do navegador               |
+| `POST`   | `/api/clientes/importacao-de-repositorios`                     | `201` — repositórios criados a partir da varredura de pastas            |
+| `POST`   | `/api/clientes/importacao-de-cadastros`                        | `201` — clientes e bases lidos de um arquivo de cadastros do HUB SNK    |
 | `POST`   | `/api/clientes/:id/bases`                                      | `201` — base criada                                                     |
 | `PUT`    | `/api/clientes/:id/bases/:idBase`                              | `200` — base atualizada                                                 |
 | `DELETE` | `/api/clientes/:id/bases/:idBase`                              | `204` — sem conteúdo                                                    |
@@ -143,6 +146,51 @@ não ter sido clonado. A ausência da pasta só aparece ao tentar abri-la.
 `tipo` aceita apenas `producao`, `teste` ou `outro`. Toda `url` precisa ser
 `http` ou `https` válida — endereços SSH (`git@host:grupo/projeto.git`) são
 recusados. A `senha` não é aparada: espaço nas pontas pode fazer parte dela.
+
+Importação de cadastros:
+
+```json
+{
+  "clientes": [
+    {
+      "nome": "Indústria Alfa",
+      "bases": [
+        {
+          "url": "https://erp.alfa.com.br:8180/mge",
+          "tipo": "producao",
+          "usuario": "admin",
+          "senha": "...",
+          "bancoDeDados": {
+            "host": "192.168.0.10",
+            "porta": 1521,
+            "nomeDoServico": "ORCL",
+            "usuario": "system",
+            "senha": "..."
+          },
+          "substituir": false
+        }
+      ]
+    }
+  ]
+}
+```
+
+O cliente é resolvido pelo nome: cadastro existente é reaproveitado, nome inédito
+vira cliente novo. `bases` pode ser vazio — o arquivo carrega o cliente mesmo sem
+base exportada. Dentro do cliente, a URL identifica a base: URL inédita entra e
+URL já cadastrada só muda com `substituir: true`.
+
+A substituição sobrescreve apenas o que o corpo trouxe. `bancoDeDados` ausente e o
+par `usuario`/`senha` inteiro em branco preservam o que já estava gravado, porque
+o arquivo de exportação omite o que não foi marcado na tela, e campo não exportado
+não é campo apagado. A resposta traz a contagem do que aconteceu:
+
+```json
+{ "clientesCriados": 1, "basesCriadas": 2, "basesSubstituidas": 1, "basesIgnoradas": 3 }
+```
+
+O lote é tudo ou nada, como as outras importações, e vale até 300 clientes e 600
+bases por chamada.
 
 ## Erros
 

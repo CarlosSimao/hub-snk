@@ -35,8 +35,7 @@ cursor sobrevivem a esses redesenhos.
 
 ## Importação de favoritos do navegador
 
-O botão **Importar** (ícone de estrela, no topo da lista de clientes) abre um
-assistente que transforma favoritos do navegador em bases de clientes: escolher
+O botão **Importar** (no pé da lista de clientes) abre um assistente que transforma favoritos do navegador em bases de clientes: escolher
 a origem, selecionar o arquivo de favoritos, marcar os favoritos desejados na
 árvore e conferir nome, URL, tipo, usuário e senha antes de concluir.
 
@@ -86,6 +85,61 @@ Sem marcador, o tipo fica em branco e você escolhe na última etapa.
 
 Homologação é tratada como Teste: o HUB SNK só tem os tipos Produção, Teste e
 Outro.
+
+## Exportar e importar cadastros
+
+O botão **Exportar**, ao lado do **Importar** no pé da lista de clientes, gera um
+`.txt` com os cadastros escolhidos. São duas etapas: marcar os clientes (com
+marcar e desmarcar todos) e, depois, escolher o que sai de cada um.
+
+**Nome do cliente, URL e tipo de cada base sempre saem.** As duas colunas da
+segunda etapa acrescentam o resto, e cada uma tem o seu marcar/desmarcar todos:
+
+| Coluna          | O que acrescenta ao arquivo                              |
+| --------------- | -------------------------------------------------------- |
+| **Credenciais** | usuário e senha de cada base                             |
+| **Banco**       | host, porta, serviço, usuário e senha do banco vinculado |
+
+A coluna fica bloqueada no cliente que não tem o que exportar nela — nenhuma base
+com credencial anotada, nenhuma base com banco. Cliente sem base nenhuma entra no
+arquivo só com o nome, o suficiente para recriar o cadastro do outro lado. O
+resultado pode ser baixado ou copiado.
+
+O formato é o mesmo do botão **Compartilhar** do cliente: blocos legíveis
+separados por uma linha de traços. Por isso a importação lê os dois arquivos —
+o de vários clientes e o de um só — pela mesma opção do assistente.
+
+### Importar de volta
+
+No assistente de importação, a opção **Importar cadastros de arquivo do HUB SNK**
+aceita o arquivo arrastado ou escolhido no explorador. A leitura acontece no
+próprio navegador; só o que você confirma na última etapa chega ao servidor.
+
+A etapa de conferência separa o que entra do que precisa de decisão:
+
+- **Entra direto** — cliente que ainda não existe e base cuja URL ninguém tem.
+- **Já cadastrada** — base cuja URL já existe no cliente. Cada uma aparece com o
+  cadastro atual e o importado lado a lado, e você escolhe qual fica. Havendo mais
+  de uma, os botões **Manter todos os atuais** e **Substituir todos** decidem em
+  bloco.
+
+Toda decisão nasce em **manter o atual**: concluir sem mexer em nada nunca
+sobrescreve cadastro. A senha aparece mascarada nas duas colunas — para decidir
+basta saber que ela mudou, e a marca **diferente** aponta cada campo que muda.
+
+**A substituição troca só o que o arquivo trouxe.** Arquivo exportado sem
+"Credenciais" preserva o usuário e a senha já gravados; sem "Banco", preserva o
+banco vinculado. Não exportar um campo não é o mesmo que apagá-lo — por isso
+substituir um arquivo enxuto só atualiza a URL e o tipo.
+
+O cliente é reconhecido pelo nome, tolerando caixa, acento e separador — o mesmo
+critério da importação de favoritos, então `NecoTruck` e `Neco Truck` são o mesmo
+cadastro. Dentro do cliente, é a URL que identifica a base.
+
+O que o leitor não conseguiu aproveitar aparece na própria etapa, em vez de sumir:
+bloco sem `Cliente:`, base sem URL ou com URL que não é `http`/`https`, banco de
+dados incompleto e URL repetida no mesmo cliente (vale a primeira). O resto do
+arquivo entra normalmente.
 
 ## Os botões do repositório
 

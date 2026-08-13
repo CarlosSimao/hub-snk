@@ -13,6 +13,7 @@ const ARQUIVOS_DO_SHELL = [
   '/styles.css',
   '/app.js',
   '/leitorDeFavoritos.js',
+  '/leitorDeArquivoDeCadastros.js',
   '/tipoDeBaseNoNome.js',
   '/manifest.webmanifest',
   '/img/icone-192.png',
