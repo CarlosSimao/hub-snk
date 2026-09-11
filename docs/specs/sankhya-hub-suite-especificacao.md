@@ -459,7 +459,46 @@ entre fases).
 | 8 — Git Autosync | **pronta** | Aba Git (14.1) e sub-aba Git dentro de cada cliente (14.2). |
 | 4 — Extração Experience + calendário | **pronta** | `src/sankhya/experience.ts` + aba Agenda por cliente, conferida com dados reais (11 tarefas, 7 OS). Ver 18.3. |
 | 9 — Agenda Mensal | **pronta** | Visão consolidada de todos os clientes, com semáforo por cliente e atalho para a agenda de cada um. |
-| 0, 5, 6, 7 | pendentes | 0 e 5 dependem do spike de CORS do iframe; 6 de uma captura do JSON da Agenda de Recursos; 7 é ação real, visível para o cliente. |
+| 6 — Agenda de Recursos (leitura) | **pronta** | Parser, SQLite, importação por colagem e eventos cruzados no calendário do cliente. A ESCRITA de evento (automação de UI) segue fora. Ver 18.5. |
+| 0, 5, 7 | pendentes | 0 e 5 dependem do spike de CORS do iframe; 7 é ação real, visível para o cliente. |
+
+### 18.5 Agenda de Recursos (seção 9)
+
+Feito: parser, snapshot em SQLite (`ag_recursos` / `ag_eventos`), importação por colagem
+em **Sankhya › Agenda de Recursos**, e os eventos cruzados no calendário de cada cliente
+pelo campo `agendaRecursoUsuario`. Fora: a escrita de evento por automação de UI, que a
+seção 9 descreve e continua pendente.
+
+As 5 Server Functions do Mitra viraram 4 rotas (`/api/agenda`, `/agenda/recursos`,
+`/agenda/eventos`, `/agenda/importar`). As de estatística e ranking não foram portadas:
+elas existiam para os KPIs da tela do Mitra, e aqui quem responde a essa pergunta é a
+Agenda Mensal, com dado do Experience.
+
+Decisões que divergem do documento de origem:
+
+- **O ID real do recurso sai do `lastInsertRowid` de cada inserção.** A armadilha nº 1 do
+  `Sankhya-agenda.md` (assumir que os recursos recém-inseridos serão 1..N depois de um
+  `DELETE`) deixa de existir em vez de ser contornada. Há teste para isso.
+- **O filtro por usuário segue o RECURSO (a lane), não o `NOMEUSU` do evento.** O campo
+  repetido dentro da task é dado denormalizado; com um payload de teste em que os dois
+  divergiam, filtrar pelo evento trouxe a agenda de outro consultor. Há teste para isso.
+- A importação roda numa transação: uma falha no meio deixaria o snapshot antigo apagado
+  e o novo pela metade, que é pior que não ter importado.
+
+**Não verificado:** todos os 23 testes usam payload sintético no formato documentado. O
+parser nunca viu uma resposta real do Sankhya — a captura de verdade é o próximo passo, e
+pode revelar campo que o documento de origem não registrou.
+
+### 18.6 A sessão do ERP expira rápido, e o hub não sabe
+
+Medido: uma sessão do ERP capturada há cerca de uma hora já devolvia
+`login.jsp?expired=true`. Diferente do JWT da Experience, o cookie do ERP não carrega
+`exp`, então a tela de Credenciais mostra "sessão ativa" para uma sessão que já morreu.
+
+Consequência prática: a tentativa de fazer o hub buscar a Agenda de Recursos sozinho,
+usando a guia autenticada (a hipótese de que de dentro da página a ACL do `service.sbr`
+não se aplica), **não chegou a ser testada** — a sessão caiu antes. Continua valendo como
+hipótese e é o caminho que eliminaria a colagem manual.
 
 ### 18.3 Calendário — o que mudou em relação à seção 12
 

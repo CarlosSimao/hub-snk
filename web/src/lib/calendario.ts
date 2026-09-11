@@ -1,4 +1,9 @@
-import type { AgendaExperience, OrdemExperience, TarefaExperience } from '../types.ts';
+import type {
+  AgendaExperience,
+  EventoComRecurso,
+  OrdemExperience,
+  TarefaExperience,
+} from '../types.ts';
 
 export interface DiaAgenda {
   /** `YYYY-MM-DD`. */
@@ -8,6 +13,8 @@ export interface DiaAgenda {
   hoje: boolean;
   tarefas: TarefaExperience[];
   ordens: OrdemExperience[];
+  /** Eventos da Agenda de Recursos do ERP que cobrem este dia. */
+  eventos: EventoComRecurso[];
   /** Tem tarefa marcada como Atrasada, ou OS vencida sem aceite. */
   atrasado: boolean;
 }
@@ -114,7 +121,11 @@ export function resumirMes(mes: string, agenda: AgendaExperience): ResumoMes {
  * A grade do mês, sempre em semanas inteiras de domingo a sábado — as sobras do mês
  * anterior e do seguinte entram apagadas para a grade não ficar com buracos.
  */
-export function montarGrade(mes: string, agenda: AgendaExperience): DiaAgenda[] {
+export function montarGrade(
+  mes: string,
+  agenda: AgendaExperience,
+  eventos: EventoComRecurso[] = [],
+): DiaAgenda[] {
   const hoje = hojeIso();
   const [ano, numero] = mes.split('-').map(Number);
 
@@ -142,6 +153,9 @@ export function montarGrade(mes: string, agenda: AgendaExperience): DiaAgenda[] 
     const dia = data.toISOString().slice(0, 10);
     const tarefas = porDiaTarefa.get(dia) ?? [];
     const ordens = porDiaOrdem.get(dia) ?? [];
+    // Evento do ERP pode durar vários dias (férias): entra em TODO dia que ele cobre,
+    // e não só no que começa — por isso a comparação é de intervalo, não de igualdade.
+    const doDia = eventos.filter((e) => e.inicio <= `${dia} 23:59:59` && e.fim >= `${dia} 00:00:00`);
 
     grade.push({
       dia,
@@ -150,6 +164,7 @@ export function montarGrade(mes: string, agenda: AgendaExperience): DiaAgenda[] 
       hoje: dia === hoje,
       tarefas,
       ordens,
+      eventos: doDia,
       atrasado:
         tarefas.some((t) => t.taskStatus === 'Atrasada') ||
         ordens.some((o) => ordemPendente(o, hoje)),

@@ -1111,7 +1111,8 @@ main {
   color: var(--text-dim);
 }
 
-.campo input {
+.campo input,
+.campo textarea {
   width: 100%;
   padding: 7px 9px;
   border-radius: var(--radius-sm);
@@ -1122,13 +1123,15 @@ main {
   font-size: 12px;
 }
 
-.campo input:focus-visible {
+.campo input:focus-visible,
+.campo textarea:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -1px;
   border-color: transparent;
 }
 
-.campo input::placeholder {
+.campo input::placeholder,
+.campo textarea::placeholder {
   color: var(--text-faint);
   font-family: var(--font);
   font-style: italic;
@@ -1666,4 +1669,47 @@ main {
 
 .mensal-pills {
   padding: 0 16px 14px;
+}
+
+/* --------------------- agenda de recursos (ERP) -------------------------- */
+
+/* Mesma cor que o Sankhya usa para o consultor na timeline dele. */
+.ponto-recurso {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--unknown);
+}
+
+.marca.evento {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
+}
+
+.passos {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+
+.passos code,
+.passos kbd {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.passos kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface-solid);
+}
+
+/* O resto do estilo vem junto com `.campo input`; aqui só o que é próprio da textarea. */
+.campo textarea {
+  resize: vertical;
+  line-height: 1.5;
 }

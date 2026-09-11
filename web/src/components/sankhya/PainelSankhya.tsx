@@ -4,13 +4,15 @@ import type { Avisar } from '../../hooks/useToasts.ts';
 import { TelaClientes } from './TelaClientes.tsx';
 import { TelaCredenciais } from './TelaCredenciais.tsx';
 import { AgendaMensal } from './AgendaMensal.tsx';
+import { TelaAgendaErp } from './TelaAgendaErp.tsx';
 
-type SubAba = 'clientes' | 'credenciais' | 'agenda';
+type SubAba = 'clientes' | 'credenciais' | 'agenda' | 'agenda-erp';
 
 const ABAS: Aba<SubAba>[] = [
   { id: 'clientes', rotulo: 'Clientes', titulo: 'Cadastro dos clientes acompanhados' },
   { id: 'credenciais', rotulo: 'Credenciais', titulo: 'Login do hub no Sankhya ERP e Experience' },
   { id: 'agenda', rotulo: 'Agenda Mensal', titulo: 'Resumo consolidado do mês' },
+  { id: 'agenda-erp', rotulo: 'Agenda de Recursos', titulo: 'Snapshot da agenda do Sankhya ERP' },
 ];
 
 /**
@@ -38,6 +40,7 @@ export function PainelSankhya({ toast }: { toast: Avisar }) {
       {aba === 'clientes' && <TelaClientes toast={toast} foco={foco} />}
       {aba === 'credenciais' && <TelaCredenciais toast={toast} />}
       {aba === 'agenda' && <AgendaMensal onAbrirCliente={abrirCliente} />}
+      {aba === 'agenda-erp' && <TelaAgendaErp toast={toast} />}
     </>
   );
 }

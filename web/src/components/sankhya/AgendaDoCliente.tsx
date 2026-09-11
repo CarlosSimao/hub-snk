@@ -16,9 +16,13 @@ export function AgendaDoCliente({ cliente }: { cliente: Cliente }) {
   const [mes, setMes] = useState(mesAtual);
   const [diaAberto, setDiaAberto] = useState<string | null>(null);
 
-  const { agenda, carregando, erro, sessaoExpirada } = useAgenda(cliente.id, mes);
+  const { agenda, eventos, carregando, erro, sessaoExpirada } = useAgenda(
+    cliente.id,
+    mes,
+    cliente.agendaRecursoUsuario,
+  );
 
-  const grade = useMemo(() => montarGrade(mes, agenda), [mes, agenda]);
+  const grade = useMemo(() => montarGrade(mes, agenda, eventos), [mes, agenda, eventos]);
   const selecionado = grade.find((d) => d.dia === diaAberto);
 
   if (erro) {
@@ -47,7 +51,8 @@ export function AgendaDoCliente({ cliente }: { cliente: Cliente }) {
           <p>
             {carregando
               ? 'carregando…'
-              : `${agenda.tarefas.length} tarefa(s) em aberto · ${agenda.ordens.length} OS no mês`}
+              : `${agenda.tarefas.length} tarefa(s) em aberto · ${agenda.ordens.length} OS no mês` +
+                (eventos.length ? ` · ${eventos.length} evento(s) na agenda do ERP` : '')}
           </p>
         </div>
         <div className="detail-actions">
@@ -83,8 +88,9 @@ export function AgendaDoCliente({ cliente }: { cliente: Cliente }) {
       {selecionado && <DetalheDoDia dia={selecionado} />}
 
       <p className="painel-nota calendario-nota">
-        Só o Sankhya Experience por enquanto. Os eventos da Agenda de Recursos do ERP entram
-        quando a importação daquela tela existir.
+        {cliente.agendaRecursoUsuario
+          ? 'Tarefas e OS vêm do Sankhya Experience; os eventos vêm do último snapshot importado da Agenda de Recursos do ERP.'
+          : 'Só o Sankhya Experience: preencha "Recurso na Agenda (ERP)" no cadastro para cruzar também os eventos da agenda.'}
       </p>
     </article>
   );
@@ -99,7 +105,7 @@ function Celula({
   aberto: boolean;
   onAbrir: () => void;
 }) {
-  const vazio = !dia.tarefas.length && !dia.ordens.length;
+  const vazio = !dia.tarefas.length && !dia.ordens.length && !dia.eventos.length;
 
   const classes = [
     'cal-dia',
@@ -125,6 +131,7 @@ function Celula({
         <span className="cal-marcas">
           {dia.tarefas.length > 0 && <i className="marca tarefa">{dia.tarefas.length}</i>}
           {dia.ordens.length > 0 && <i className="marca ordem">{dia.ordens.length}</i>}
+          {dia.eventos.length > 0 && <i className="marca evento">{dia.eventos.length}</i>}
         </span>
       )}
     </button>
@@ -151,6 +158,28 @@ function DetalheDoDia({ dia }: { dia: DiaAgenda }) {
           </span>
         </div>
       ))}
+
+      {dia.eventos.length > 0 && (
+        <>
+          <h4>Agenda de Recursos (ERP)</h4>
+          {dia.eventos.map((evento) => (
+            <div className="linha-agenda" key={evento.id}>
+              <i
+                className="ponto-recurso"
+                style={evento.corHex ? { background: evento.corHex } : undefined}
+              />
+              <span className="linha-titulo" title={evento.descrlonga || evento.descrabrev}>
+                {evento.descrabrev || '(sem descrição)'}
+                {evento.nomeparc && ` — ${evento.nomeparc}`}
+              </span>
+              <span className="linha-meta">
+                {evento.allday === 'S' ? 'dia todo' : `${evento.inicio.slice(11, 16)}–${evento.fim.slice(11, 16)}`}
+                {evento.confirmado === 'S' ? '' : ' · não confirmado'}
+              </span>
+            </div>
+          ))}
+        </>
+      )}
 
       <h4>Tarefas</h4>
       {dia.tarefas.length === 0 && <p className="detail-empty">Nenhuma tarefa neste dia.</p>}

@@ -279,6 +279,68 @@ export interface AgendaExperience {
   ordens: OrdemExperience[];
 }
 
+/* ------------------- Agenda de Recursos (Sankhya ERP) -------------------- */
+
+/** Um consultor na Agenda de Recursos. */
+export interface RecursoAgenda {
+  codusu: number | null;
+  nomeusu: string;
+  codcargo: number | null;
+  descrcargo: string;
+  /** `#RRGGBB` — o Sankhya manda `0xRRGGBB`. */
+  corHex: string;
+  corConflitoHex: string;
+  problemaConexao: string;
+}
+
+/**
+ * Um evento da agenda.
+ *
+ * `inicio` e `fim` vêm como `YYYY-MM-DD HH:mm:ss`, e não como data: nesse formato a
+ * comparação de texto já é a cronológica, então o filtro por período dispensa conversão.
+ */
+export interface EventoAgenda {
+  nuevento: number | null;
+  codusu: number | null;
+  nomeusu: string;
+  nomeparc: string;
+  codparc: number | null;
+  allday: string;
+  inicio: string;
+  fim: string;
+  descrabrev: string;
+  descrlonga: string;
+  tipo: string;
+  confirmado: string;
+  sincronizar: string;
+  usulancador: string;
+  dhlcto: string;
+  numetapa: number | null;
+  nufap: number | null;
+  nueventopai: number | null;
+  financiallate: string;
+  diastraso: number | null;
+}
+
+export interface RecursoComTotal extends RecursoAgenda {
+  id: number;
+  totalEventos: number;
+}
+
+/** Evento já com o cargo e a cor do recurso dele, para a tela não cruzar de novo. */
+export interface EventoComRecurso extends EventoAgenda {
+  id: number;
+  descrcargo: string;
+  corHex: string;
+}
+
+export interface EstadoAgendaRecursos {
+  recursos: number;
+  eventos: number;
+  /** Epoch ms da última importação; `null` quando nunca houve uma. */
+  importadoEm: number | null;
+}
+
 /* ------------------------------ git-autosync ------------------------------ */
 
 /**
