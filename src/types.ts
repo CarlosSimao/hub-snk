@@ -234,6 +234,51 @@ export interface Cliente {
 
 export type ClienteEntrada = Omit<Cliente, 'id'>;
 
+/* --------------------------- Sankhya Experience --------------------------- */
+
+/**
+ * Uma tarefa da tela de Tarefas. A resposta da API traz bem mais campos que estes —
+ * aqui ficam os que o painel usa, e o objeto CRU e preservado em `bruto` porque o
+ * `POST /orders` (gerar OS) exige a tarefa inteira, do jeito que veio.
+ */
+export interface TarefaExperience {
+  id: number;
+  /** `DD/MM/YYYY` como a API devolve. */
+  taskDate: string;
+  /** `YYYY-MM-DD` — o mesmo dia, na forma que ordena e agrupa. */
+  dia: string;
+  procedimento: string;
+  etapa: string;
+  processo: string;
+  /** `Hoje`, `Futura`, `Atrasada` — a tela tem mais valores, estes sao os confirmados. */
+  taskStatus: string;
+  horaInicio: string;
+  horaFim: string;
+  pedido: string;
+  observacoes: string;
+  bruto: Record<string, unknown>;
+}
+
+/** Uma ordem de servico ja lancada. */
+export interface OrdemExperience {
+  id: number;
+  /** `YYYY-MM-DD` da conclusao. */
+  dia: string;
+  descricao: string;
+  tipo: string;
+  numeroSankhya: string;
+  /** `Gerado`, vazio quando ainda nao ha aceite. */
+  statusAceite: string;
+  horasFeitas: string;
+  etapa: string;
+  processos: string;
+}
+
+export interface AgendaExperience {
+  tarefas: TarefaExperience[];
+  ordens: OrdemExperience[];
+}
+
 /* ------------------------------ git-autosync ------------------------------ */
 
 /**

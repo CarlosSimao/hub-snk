@@ -11,7 +11,22 @@ export interface Resposta<T> {
 }
 
 export async function requisitar<T>(path: string, init?: RequestInit): Promise<Resposta<T>> {
-  const res = await fetch(path, init);
+  let res: Response;
+  try {
+    res = await fetch(path, init);
+  } catch (err) {
+    // Hub fora do ar (reinício, container derrubado) vira uma resposta de erro comum em
+    // vez de exceção: todo chamador já sabe tratar `ok: false`, e nenhum espera um
+    // throw — sem isto a aba inteira quebra em tela branca quando o hub reinicia.
+    return {
+      ok: false,
+      status: 0,
+      body: { error: `sem resposta do hub: ${(err as Error).message}` } as Partial<T> & {
+        error?: string;
+      },
+    };
+  }
+
   const body = (await res.json().catch(() => ({}))) as Partial<T> & { error?: string };
   return { ok: res.ok, status: res.status, body };
 }

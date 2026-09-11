@@ -457,8 +457,26 @@ entre fases).
 | 2 — `hub-helper.ps1` | **pronta** | DPAPI + git-autosync na porta 4102, com token (seção 3.2). Ações de escrita do git **não testadas** — ver abaixo. |
 | 3 — Cadastro de Clientes + credenciais | **pronta** | SQLite `sankhya.db`, abas Sankhya › Clientes e Credenciais. |
 | 8 — Git Autosync | **pronta** | Aba Git (14.1) e sub-aba Git dentro de cada cliente (14.2). |
-| 4 — Extração Experience | **destravada** | Autenticação resolvida e medida (18.2): sessão real capturada, `tasks/filtering` e `orders/filtering` respondendo 200 de dentro do Node. Falta escrever o cliente e o calendário. |
-| 0, 5, 6, 7, 9 | pendentes | 0 e 5 dependem do spike de CORS do iframe; 6 de uma captura do JSON da Agenda; 7 e 9 vêm depois da 4. |
+| 4 — Extração Experience + calendário | **pronta** | `src/sankhya/experience.ts` + aba Agenda por cliente, conferida com dados reais (11 tarefas, 7 OS). Ver 18.3. |
+| 0, 5, 6, 7, 9 | pendentes | 0 e 5 dependem do spike de CORS do iframe; 6 de uma captura do JSON da Agenda; 7 e 9 vêm depois. |
+
+### 18.3 Calendário — o que mudou em relação à seção 12
+
+- **O detalhe do dia é um painel embaixo do calendário, não um modal.** O modal da seção
+  12 existe para abrigar o formulário "Gerar OS", que é da Fase 7; enquanto ele não
+  existe, um painel navega melhor (dá para clicar de um dia para outro sem fechar nada).
+- **O indicador de atraso de OS estava errado na primeira versão.** A seção 12 diz "OS com
+  `accepted_os_status` pendente", e a documentação da API só tinha registrado o valor
+  `Gerado` — implementar como "diferente de Gerado" marcou como atrasada justamente a OS
+  **já aprovada**. Os valores reais medidos são `Gerado` (foi para o cliente aprovar) e
+  `Concluído` (aprovado); os dois são desfecho. A regra correta é **aceite vazio**, que é
+  o único estado que depende de você. Não há exemplo de vazio nos dados vistos até agora,
+  então essa metade da regra segue sem confirmação em campo.
+- `task_status` vem classificado pelo servidor (`Hoje`, `Futura`, `Atrasada`) e o painel
+  mostra o rótulo como veio. Observado: uma tarefa com `task_date` de amanhã chegou como
+  `Hoje` — a classificação é deles, não recalculamos.
+- O calendário só traz o Experience. Os eventos da Agenda de Recursos entram na Fase 6, e
+  a tela diz isso em vez de fingir que a visão já está completa.
 
 ### 18.1 Autenticação — o desenho mudou em relação à seção 8.2
 

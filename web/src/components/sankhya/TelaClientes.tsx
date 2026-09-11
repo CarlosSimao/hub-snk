@@ -5,11 +5,13 @@ import { useClientes } from '../../hooks/useClientes.ts';
 import type { Avisar } from '../../hooks/useToasts.ts';
 import { TabBar, type Aba } from '../TabBar.tsx';
 import { GitDoCliente } from './GitDoCliente.tsx';
+import { AgendaDoCliente } from './AgendaDoCliente.tsx';
 
-type AbaCliente = 'cadastro' | 'git';
+type AbaCliente = 'cadastro' | 'agenda' | 'git';
 
 const ABAS_CLIENTE: Aba<AbaCliente>[] = [
   { id: 'cadastro', rotulo: 'Cadastro' },
+  { id: 'agenda', rotulo: 'Agenda', titulo: 'Tarefas e ordens de serviço no Experience' },
   { id: 'git', rotulo: 'Git', titulo: 'Repositório deste cliente no git-autosync' },
 ];
 
@@ -101,6 +103,8 @@ export function TelaClientes({ toast }: { toast: Avisar }) {
                 }}
               />
             )}
+
+            {abaCliente === 'agenda' && <AgendaDoCliente key={selecionado.id} cliente={selecionado} />}
 
             {abaCliente === 'git' && (
               <GitDoCliente key={selecionado.id} cliente={selecionado} toast={toast} />

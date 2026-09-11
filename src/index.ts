@@ -13,7 +13,9 @@ import { ConfiguracoesCheck } from './configuracoesCheck.ts';
 import { registerRoutes } from './routes.ts';
 import { registerRoutesSankhya } from './routesSankhya.ts';
 import { registerRoutesGitAutosync } from './routesGitAutosync.ts';
+import { registerRoutesExperience } from './routesExperience.ts';
 import { GitAutosync } from './gitAutosync.ts';
+import { Experience } from './sankhya/experience.ts';
 import { HubHelper } from './sankhya/helper.ts';
 import { Credenciais } from './sankhya/credenciais.ts';
 import { Clientes } from './sankhya/clientes.ts';
@@ -88,8 +90,10 @@ async function main(): Promise<void> {
     desativados,
     configuracoes,
   });
-  registerRoutesSankhya(app, { helper, credenciais: new Credenciais(helper), clientes });
+  const credenciais = new Credenciais(helper);
+  registerRoutesSankhya(app, { helper, credenciais, clientes });
   registerRoutesGitAutosync(app, { gitAutosync: new GitAutosync(helper) });
+  registerRoutesExperience(app, { experience: new Experience(credenciais), clientes });
 
   engine.start();
 

@@ -22,6 +22,18 @@ import {
 /** O que o helper devolve nas rotas de credencial, sem o `sistema`. */
 type RespostaCredencial = Omit<StatusCredencial, 'sistema'>;
 
+/** O que sai do cofre decriptado. Nunca sai do backend. */
+export interface SegredoSankhya {
+  usuario: string;
+  senha: string;
+  /** Cookies serializados como cabeçalho `Cookie`. */
+  sessao: string;
+  /** JWT do `localStorage` — é o que a API da Experience aceita. */
+  token: string;
+  /** ISO-8601 do `exp` do JWT, quando há um. */
+  expira: string;
+}
+
 /**
  * Monta o status campo a campo em vez de espalhar a resposta do helper: ele devolve
  * um `ok` de transporte que não tem nada a ver com o estado da credencial e que
@@ -70,15 +82,14 @@ export class Credenciais {
   }
 
   /**
-   * Senha e cookie de sessão em claro. Uso interno do backend, para autenticar contra o
-   * Sankhya — nunca exponha por rota HTTP nem devolva ao navegador.
+   * Tudo em claro: senha, cookies e o JWT. Uso interno do backend, para autenticar
+   * contra o Sankhya — nunca exponha por rota HTTP nem devolva ao navegador.
+   *
+   * `token` é o que autentica a API da Experience; `sessao` (os cookies) serve ao ERP
+   * legado, cujo `service.sbr` vai por cookie.
    */
-  async revelar(
-    sistema: SistemaSankhya,
-  ): Promise<{ usuario: string; senha: string; sessao: string }> {
-    return this.#helper.requisitar<{ usuario: string; senha: string; sessao: string }>(
-      `/credentials/${sistema}/reveal`,
-    );
+  async revelar(sistema: SistemaSankhya): Promise<SegredoSankhya> {
+    return this.#helper.requisitar<SegredoSankhya>(`/credentials/${sistema}/reveal`);
   }
 
   statusNavegador(): Promise<StatusNavegador> {
