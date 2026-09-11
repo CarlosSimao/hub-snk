@@ -25,7 +25,9 @@ function responderErro(reply: FastifyReply, err: unknown): FastifyReply {
   if (err instanceof HelperError) {
     return reply.code(err.status).send({ error: err.message });
   }
-  throw err;
+  // Falha da API da Experience é 502, não 500: o defeito está do outro lado, e a
+  // mensagem dela ("Código do Erro: ...") é o que a tela precisa mostrar.
+  return reply.code(502).send({ error: (err as Error).message });
 }
 
 /** Primeiro e último dia do mês `YYYY-MM`, em `YYYY-MM-DD`. */
@@ -93,6 +95,91 @@ export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperi
       return { clientes: resultados };
     },
   );
+
+  /**
+   * Lê tudo que o modal "Gerar OS" precisa. Só leitura: nenhuma destas chamadas cria OS.
+   */
+  app.post<{ Body: { clienteId?: unknown; tarefaIds?: unknown } }>(
+    '/api/experience/os/preparar',
+    async (request, reply) => {
+      const cliente = clientes.obter(Number(request.body?.clienteId));
+      if (!cliente?.experienceProjetoId || !cliente.experiencePersonId) {
+        return reply.code(400).send({ error: 'cliente sem ID do projeto ou person_id no cadastro' });
+      }
+
+      const ids = Array.isArray(request.body?.tarefaIds) ? request.body.tarefaIds.map(Number) : [];
+      if (!ids.length) return reply.code(400).send({ error: 'selecione ao menos uma tarefa' });
+
+      try {
+        const tarefas = (
+          await experience.tarefas(cliente.experienceProjetoId, cliente.experiencePersonId)
+        ).filter((t) => ids.includes(t.id));
+
+        if (tarefas.length !== ids.length) {
+          return reply.code(404).send({ error: 'alguma das tarefas não está mais em aberto' });
+        }
+        return await experience.prepararOrdem(cliente.experienceProjetoId, tarefas);
+      } catch (err) {
+        return responderErro(reply, err);
+      }
+    },
+  );
+
+  /**
+   * CRIA a ordem de serviço de verdade.
+   *
+   * Com `enviarParaAprovacao`, dispara e-mail para o CLIENTE — o hub não desfaz isso. Por
+   * isso a rota é POST, exige a lista explícita de tarefas e nunca é chamada por
+   * carregamento de tela, só por clique.
+   */
+  app.post<{ Body: Record<string, unknown> }>('/api/experience/os', async (request, reply) => {
+    const corpo = request.body ?? {};
+    const cliente = clientes.obter(Number(corpo['clienteId']));
+    if (!cliente?.experienceProjetoId || !cliente.experiencePersonId) {
+      return reply.code(400).send({ error: 'cliente sem ID do projeto ou person_id no cadastro' });
+    }
+
+    const ids = Array.isArray(corpo['tarefaIds']) ? (corpo['tarefaIds'] as unknown[]).map(Number) : [];
+    const dia = String(corpo['dia'] ?? '');
+    const horaInicio = String(corpo['horaInicio'] ?? '');
+    const horaFim = String(corpo['horaFim'] ?? '');
+
+    if (!ids.length) return reply.code(400).send({ error: 'selecione ao menos uma tarefa' });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) {
+      return reply.code(400).send({ error: 'informe o dia no formato YYYY-MM-DD' });
+    }
+    if (!/^\d{2}:\d{2}$/.test(horaInicio) || !/^\d{2}:\d{2}$/.test(horaFim)) {
+      return reply.code(400).send({ error: 'informe hora inicial e final no formato HH:MM' });
+    }
+    if (horaFim <= horaInicio) {
+      return reply.code(400).send({ error: 'a hora final precisa ser depois da inicial' });
+    }
+
+    try {
+      const tarefas = (
+        await experience.tarefas(cliente.experienceProjetoId, cliente.experiencePersonId)
+      ).filter((t) => ids.includes(t.id));
+
+      if (tarefas.length !== ids.length) {
+        return reply.code(404).send({ error: 'alguma das tarefas não está mais em aberto' });
+      }
+
+      return await experience.criarOrdem({
+        projetoId: cliente.experienceProjetoId,
+        personId: cliente.experiencePersonId,
+        dia,
+        horaInicio,
+        horaFim,
+        intervalo: String(corpo['intervalo'] ?? '01:00'),
+        observacoes: String(corpo['observacoes'] ?? ''),
+        notas: String(corpo['notas'] ?? ''),
+        tarefas,
+        enviarParaAprovacao: corpo['enviarParaAprovacao'] === true,
+      });
+    } catch (err) {
+      return responderErro(reply, err);
+    }
+  });
 
   app.get<{ Querystring: { clienteId?: string; mes?: string } }>(
     '/api/experience/agenda',

@@ -119,7 +119,9 @@ export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoClient
               />
             )}
 
-            {abaCliente === 'agenda' && <AgendaDoCliente key={selecionado.id} cliente={selecionado} />}
+            {abaCliente === 'agenda' && (
+              <AgendaDoCliente key={selecionado.id} cliente={selecionado} toast={toast} />
+            )}
 
             {abaCliente === 'git' && (
               <GitDoCliente key={selecionado.id} cliente={selecionado} toast={toast} />

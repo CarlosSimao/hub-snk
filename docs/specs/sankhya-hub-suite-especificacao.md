@@ -460,7 +460,52 @@ entre fases).
 | 4 — Extração Experience + calendário | **pronta** | `src/sankhya/experience.ts` + aba Agenda por cliente, conferida com dados reais (11 tarefas, 7 OS). Ver 18.3. |
 | 9 — Agenda Mensal | **pronta** | Visão consolidada de todos os clientes, com semáforo por cliente e atalho para a agenda de cada um. |
 | 6 — Agenda de Recursos (leitura) | **pronta, e automática** | Parser, SQLite, eventos cruzados no calendário e busca direta do Sankhya — sem colagem manual (ver 18.6). A ESCRITA de evento segue fora. |
-| 0, 5, 7 | pendentes | 0 e 5 dependem do spike de CORS do iframe; 7 é ação real, visível para o cliente. |
+| 7 — Gerar OS | **construída, não disparada** | Modal completo e preparo conferido contra a API real. A criação nunca foi executada: manda e-mail para o cliente. Ver 18.8. |
+| 0, 5 | pendentes | Dependem do spike de CORS do iframe — que perdeu valor, ver 18.9. |
+
+### 18.8 Gerar OS (seções 7 e 12)
+
+O modal abre a partir do dia no calendário, carrega o preparo e lança. O que foi
+verificado contra a API real: observações sugeridas, aprovadores (nome e e-mail do
+cliente) e a contagem de OS já existentes para a combinação processo/etapa.
+
+**A criação nunca foi executada.** `POST /orders` cria OS de verdade e, com aceite,
+dispara e-mail para o cliente — o hub não desfaz nenhum dos dois. Falta um teste real,
+que só deve acontecer com autorização explícita e de preferência num dia/tarefa
+descartável.
+
+Decisões de segurança da tela:
+
+- A caixa "enviar para o cliente aprovar" **nasce desmarcada**. Marcar dispara o e-mail;
+  o caminho seguro tem que ser o que exige menos ação. Desmarcada, a OS fica lançada sem
+  aceite — é o equivalente a responder "Não" no popup da Experience.
+- A confirmação antes de submeter diz, em texto, exatamente o que vai acontecer em cada
+  um dos dois casos.
+- A rota de criação é POST, exige a lista explícita de tarefas e nunca é chamada por
+  carregamento de tela.
+
+**`POST /orders/tasks/validate` está devolvendo HTTP 500** para tarefas elegíveis
+(`enable_checkbox: true`), com "Ocorreu um erro de sistema... Código do Erro: N" — o
+código muda a cada chamada. O formato do corpo está certo: mandar o objeto solto em vez
+do array devolve 425 "parâmetros incorretos", ou seja, o array chega na lógica e o erro
+acontece lá dentro. As outras quatro chamadas do preparo funcionam.
+
+Como `validate` é pré-checagem e não porteiro — quem decide se a OS pode existir é o
+`POST /orders` —, ele virou **não-fatal**: a falha aparece como aviso no modal em vez de
+travar a tela. Vale confirmar se a própria tela da Experience também falha hoje; se
+falhar, é problema do lado deles e cabe abrir chamado com esse código de erro.
+
+### 18.9 O proxy-iframe (seções 8 e 17, fases 0 e 5) perdeu o motivo
+
+A seção 2 escolheu proxy reverso para "abrir o Sankhya dentro do hub", e a 8.3 já
+alertava que aplicação legada faz chamada absoluta e o iframe provavelmente quebraria em
+CORS — com um fallback de "abrir aba real do navegador".
+
+Esse fallback **é o que existe hoje, e resolveu mais do que o proxy resolveria**: o hub
+abre uma janela própria, autenticada, e ainda usa essa janela para ler dado do ERP
+(18.6). Antes de investir no proxy, vale decidir se ele ainda vale a pena: o ganho que
+resta é estético (a tela dentro da SPA) e o custo é reescrever URL absoluta de aplicação
+legada, equivalente a um mini `mitmproxy`.
 
 ### 18.5 Agenda de Recursos (seção 9)
 

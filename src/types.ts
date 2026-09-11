@@ -279,6 +279,40 @@ export interface AgendaExperience {
   ordens: OrdemExperience[];
 }
 
+/** Quem aprova o aceite da OS, do lado do cliente. */
+export interface AprovadorExperience {
+  personId: number;
+  nome: string;
+  email: string;
+  prioridade: number | null;
+}
+
+/** O que o modal "Gerar OS" precisa saber antes de deixar você preencher. */
+export interface PreparoOrdem {
+  /** Texto pronto que a Experience sugere para "Tarefas Realizadas". */
+  observacoes: string;
+  aprovadores: AprovadorExperience[];
+  /** OS que já existem para a combinação processo/etapa destas tarefas. */
+  ordensExistentes: number[];
+  /**
+   * A pré-validação da Experience não passou. Vazio quando passou.
+   *
+   * Não impede lançar: quem cria de fato é o `POST /orders`, que valida por conta
+   * própria. Serve para você decidir se confere antes.
+   */
+  avisoValidacao: string;
+}
+
+export interface OrdemCriada {
+  orderId: number;
+  numos: string;
+  /** A Experience sinaliza que cabe gerar aceite para esta OS. */
+  permiteAceite: boolean;
+  /** Preenchido quando o aceite foi gerado; `null` quando ficou só a OS. */
+  aceiteId: number | null;
+  emailEnviado: boolean;
+}
+
 /* ------------------- Agenda de Recursos (Sankhya ERP) -------------------- */
 
 /** Um consultor na Agenda de Recursos. */

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Cliente } from '../../types.ts';
+import type { Avisar } from '../../hooks/useToasts.ts';
+import { ModalGerarOs } from './ModalGerarOs.tsx';
 import { useAgenda } from '../../hooks/useAgenda.ts';
 import {
   DIAS_SEMANA,
@@ -12,11 +14,12 @@ import {
   type DiaAgenda,
 } from '../../lib/calendario.ts';
 
-export function AgendaDoCliente({ cliente }: { cliente: Cliente }) {
+export function AgendaDoCliente({ cliente, toast }: { cliente: Cliente; toast: Avisar }) {
   const [mes, setMes] = useState(mesAtual);
   const [diaAberto, setDiaAberto] = useState<string | null>(null);
+  const [gerandoOs, setGerandoOs] = useState(false);
 
-  const { agenda, eventos, carregando, erro, sessaoExpirada } = useAgenda(
+  const { agenda, eventos, carregando, erro, sessaoExpirada, recarregar } = useAgenda(
     cliente.id,
     mes,
     cliente.agendaRecursoUsuario,
@@ -85,7 +88,21 @@ export function AgendaDoCliente({ cliente }: { cliente: Cliente }) {
         ))}
       </div>
 
-      {selecionado && <DetalheDoDia dia={selecionado} />}
+      {selecionado && (
+        <DetalheDoDia dia={selecionado} onGerarOs={() => setGerandoOs(true)} />
+      )}
+
+      {selecionado && (
+        <ModalGerarOs
+          clienteId={cliente.id}
+          dia={selecionado.dia}
+          tarefas={selecionado.tarefas}
+          aberto={gerandoOs}
+          onFechar={() => setGerandoOs(false)}
+          onCriada={() => void recarregar()}
+          toast={toast}
+        />
+      )}
 
       <p className="painel-nota calendario-nota">
         {cliente.agendaRecursoUsuario
@@ -138,7 +155,7 @@ function Celula({
   );
 }
 
-function DetalheDoDia({ dia }: { dia: DiaAgenda }) {
+function DetalheDoDia({ dia, onGerarOs }: { dia: DiaAgenda; onGerarOs: () => void }) {
   const hoje = hojeIso();
 
   return (
@@ -201,11 +218,16 @@ function DetalheDoDia({ dia }: { dia: DiaAgenda }) {
         A pergunta que a tela existe para responder: o que foi feito e ainda não virou OS.
         Só vale para dia passado — tarefa de hoje ou futura ainda não deveria ter OS.
       */}
-      {dia.dia < hoje && dia.tarefas.length > 0 && dia.ordens.length === 0 && (
-        <p className="aviso-sem-os">
-          Dia passado com tarefa e nenhuma OS lançada. O botão de gerar OS entra na fase
-          seguinte; por ora, lance pela tela da Experience.
-        </p>
+      {dia.tarefas.length > 0 && (
+        <div className="form-acoes">
+          {dia.dia < hoje && dia.ordens.length === 0 && (
+            <span className="aviso-sem-os">Dia passado com tarefa e nenhuma OS lançada.</span>
+          )}
+          <span className="modal-acoes-spacer" />
+          <button className="btn tiny" type="button" onClick={onGerarOs}>
+            Gerar OS
+          </button>
+        </div>
       )}
     </div>
   );
