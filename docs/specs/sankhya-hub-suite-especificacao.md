@@ -455,8 +455,38 @@ entre fases).
 | 1 — Paridade React | **pronta** | `web/` (Vite + React), `public/` virou artefato de build. Checklist da seção 15 conferido na tela. |
 | 2 — `hub-helper.ps1` | **pronta** | DPAPI + git-autosync na porta 4102, com token (seção 3.2). Ações de escrita do git **não testadas** — ver abaixo. |
 | 3 — Cadastro de Clientes + credenciais | **pronta** | SQLite `sankhya.db`, abas Sankhya › Clientes e Credenciais. |
-| 8 — Git Autosync (config geral) | **pronta** | Aba Git: lista, agendamento, histórico e ações. Falta a sub-aba por cliente (seção 14.2). |
-| 0, 4, 5, 6, 7, 9 | pendentes | Todas dependem de credencial real do Sankhya e do spike de CORS. |
+| 8 — Git Autosync | **pronta** | Aba Git (14.1) e sub-aba Git dentro de cada cliente (14.2). |
+| 0, 4, 5, 6, 7, 9 | pendentes | Dependem do spike de CORS e de uma sessão real capturada. |
+
+### 18.1 Autenticação — o desenho mudou em relação à seção 8.2
+
+A seção 8.2 previa o hub preenchendo usuário e senha no formulário de login via
+Playwright. **Não foi isso que se implementou.** O caminho agora é:
+
+1. O helper abre uma janela de navegador com perfil próprio do hub
+   (`%APPDATA%\sankhya-hub\navegador`), separado do Chrome do usuário, com
+   `--remote-debugging-port=9222` em `127.0.0.1`.
+2. O usuário faz o login nessa janela, na cara dele. **A senha não passa pelo hub.**
+3. O helper lê os cookies pelo DevTools Protocol (`Storage.getCookies` no alvo do
+   navegador, que devolve o perfil inteiro sem precisar descobrir a guia certa) e os
+   guarda cifrados com DPAPI, no mesmo cofre da senha.
+
+Por que assim: sobrevive a MFA, não quebra quando a Sankhya muda o layout da tela de
+login, e permite operar sem nunca guardar a senha. O login automatizado da seção 8.2
+continua possível como camada opcional — o campo de senha segue na tela, escondido atrás
+de um toggle, para quem quiser que o hub religue sozinho.
+
+A porta 9222 **não** é exposta ao container: quem fala CDP é o helper, e o hub recebe o
+resultado pela 4102, que exige token. Abrir o CDP para a rede daria controle total de um
+navegador logado no Sankhya para qualquer aparelho que alcançasse a porta.
+
+Descoberta durante o teste: a Experience redireciona o login para **`login.sankhya.com.br`**,
+um terceiro domínio. O filtro de cookies por sufixo (`sankhya.com.br`) já o cobre, mas
+vale saber ao investigar qual cookie autentica a API no API Gateway da AWS.
+
+**Não verificado:** a captura foi exercitada com os cookies anônimos de uma página sem
+login (2 cookies, ida e volta pelo DPAPI conferidas). Uma sessão autenticada de verdade
+ainda não foi capturada — é o próximo passo, e destrava a Fase 4.
 
 **Não verificado, precisa de você:**
 

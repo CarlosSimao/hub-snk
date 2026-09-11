@@ -1,13 +1,8 @@
-import { useEffect, useState } from 'react';
-import type { CommitAutosync, RepoAutosync } from '../../types.ts';
+import { useState } from 'react';
 import { plural } from '../../lib/format.ts';
-import { useGitAutosync, type AcaoRepo } from '../../hooks/useGitAutosync.ts';
+import { useGitAutosync } from '../../hooks/useGitAutosync.ts';
 import type { Avisar } from '../../hooks/useToasts.ts';
-
-/** Só o nome da pasta: o caminho inteiro não cabe na coluna e a raiz é sempre a mesma. */
-function nomeCurto(caminho: string): string {
-  return caminho.split(/[\\/]/).filter(Boolean).pop() ?? caminho;
-}
+import { DetalheRepo, nomeCurto } from './DetalheRepo.tsx';
 
 const ESTADO_ROTULO: Record<string, string> = {
   synced: 'sincronizado',
@@ -21,18 +16,7 @@ export function PainelGit({ toast }: { toast: Avisar }) {
 
   const selecionado = visao.repos.find((r) => r.path === selecionadoPath);
 
-  if (erro) {
-    return (
-      <div className="warning">
-        <span>⚠</span>
-        <span>
-          {erro}
-          <br />O git-autosync é executado pelo <code>hub-helper.ps1</code>; suba o helper e
-          recarregue a página.
-        </span>
-      </div>
-    );
-  }
+  if (erro) return <AvisoHelperFora erro={erro} />;
 
   return (
     <div className="layout">
@@ -93,13 +77,15 @@ export function PainelGit({ toast }: { toast: Avisar }) {
 
       <section className="detail">
         {selecionado ? (
-          <DetalheRepo
-            key={selecionado.path}
-            repo={selecionado}
-            ocupado={ocupado}
-            onAcao={acao}
-            carregarHistorico={historico}
-          />
+          <article className="card detail-card">
+            <DetalheRepo
+              key={selecionado.path}
+              repo={selecionado}
+              ocupado={ocupado}
+              onAcao={acao}
+              carregarHistorico={historico}
+            />
+          </article>
         ) : (
           <p className="detail-empty">Selecione um repositório ao lado.</p>
         )}
@@ -108,81 +94,15 @@ export function PainelGit({ toast }: { toast: Avisar }) {
   );
 }
 
-function DetalheRepo({
-  repo,
-  ocupado,
-  onAcao,
-  carregarHistorico,
-}: {
-  repo: RepoAutosync;
-  ocupado: boolean;
-  onAcao: (tipo: AcaoRepo, repo: RepoAutosync, extra?: { mensagem?: string }) => Promise<void>;
-  carregarHistorico: (repo: RepoAutosync) => Promise<CommitAutosync[]>;
-}) {
-  const [commits, setCommits] = useState<CommitAutosync[] | null>(null);
-
-  useEffect(() => {
-    let cancelado = false;
-    void carregarHistorico(repo).then((lista) => {
-      if (!cancelado) setCommits(lista);
-    });
-    return () => {
-      cancelado = true;
-    };
-  }, [repo, carregarHistorico]);
-
-  /** Push, sync e MR saem da máquina — confirmação antes, commit local não precisa. */
-  const disparar = (tipo: AcaoRepo) => {
-    const alcanceRemoto = tipo !== 'commit';
-    if (alcanceRemoto && !window.confirm(`Executar "${tipo}" em ${nomeCurto(repo.path)}?`)) return;
-    void onAcao(tipo, repo);
-  };
-
+export function AvisoHelperFora({ erro }: { erro: string }) {
   return (
-    <article className="card detail-card">
-      <div className="detail-head">
-        <div className="card-title">
-          <h2>
-            {nomeCurto(repo.path)}
-            {!repo.ativo && <span className="badge-disabled">fora do agendamento</span>}
-          </h2>
-          <p title={repo.path}>{repo.path}</p>
-          {repo.estado?.message && <p className="card-summary">{repo.estado.message}</p>}
-        </div>
-      </div>
-
-      <div className="actions-panel">
-        <button className="btn tiny" disabled={ocupado} onClick={() => disparar('commit')}>
-          Commit
-        </button>
-        <button className="btn tiny" disabled={ocupado} onClick={() => disparar('push')}>
-          Push
-        </button>
-        <button className="btn tiny" disabled={ocupado} onClick={() => disparar('sync')}>
-          Sync
-        </button>
-        <button
-          className="btn tiny"
-          disabled={ocupado}
-          title="Merge request no GitLab — o CLI não abre pull request do GitHub"
-          onClick={() => disparar('mr')}
-        >
-          MR
-        </button>
-      </div>
-
-      <div className="historico">
-        <h3>Últimos commits</h3>
-        {commits === null && <p className="detail-empty">Carregando…</p>}
-        {commits?.length === 0 && <p className="detail-empty">Nenhum commit no período.</p>}
-        {commits?.map((commit) => (
-          <div className="commit" key={commit.hash}>
-            <code>{commit.hash.slice(0, 7)}</code>
-            <span className="commit-msg">{commit.message.split('\n')[0]}</span>
-            <span className="commit-data">{commit.date.slice(0, 10)}</span>
-          </div>
-        ))}
-      </div>
-    </article>
+    <div className="warning">
+      <span>⚠</span>
+      <span>
+        {erro}
+        <br />O git-autosync é executado pelo <code>hub-helper.ps1</code>; suba o helper e
+        recarregue a página.
+      </span>
+    </div>
   );
 }

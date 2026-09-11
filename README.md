@@ -107,7 +107,12 @@ explícita, não descuido:
 - Credenciais do **Sankhya ERP e Experience** são outra coisa: ficam cifradas com DPAPI
   em `%APPDATA%\sankhya-hub\credentials.dat`, **fora** do container e fora do volume
   Docker. Nenhuma rota do hub devolve essas senhas — só o backend as decripta, no
-  momento do login automatizado.
+  momento de autenticar contra o Sankhya.
+- O caminho preferido nem chega a guardar senha: o hub abre uma **janela de navegador
+  própria** (perfil em `%APPDATA%\sankhya-hub\navegador`, separado do seu Chrome), você
+  faz o login nela, e o hub lê só o cookie de sessão que sobra. A porta do DevTools
+  (9222) fica em `127.0.0.1` e **não** é publicada para o container — quem fala com ela
+  é o helper, e o hub recebe o resultado pela 4102, que exige token.
 
 ## Adaptando para sua máquina
 

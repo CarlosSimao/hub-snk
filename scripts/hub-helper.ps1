@@ -118,6 +118,9 @@ function Ler-Cofre {
             $mapa[$propriedade.Name] = @{
                 usuario = [string] $propriedade.Value.usuario
                 senha   = [string] $propriedade.Value.senha
+                # Cookie de sessao capturado do navegador do hub. Vale tanto quanto a
+                # senha enquanto nao expira, entao e cifrado do mesmo jeito.
+                sessao  = [string] $propriedade.Value.sessao
             }
         }
         return $mapa
@@ -187,6 +190,216 @@ function Test-TokenValido {
         $diferenca = $diferenca -bor ([int] $Recebido[$i] -bxor [int] $Esperado[$i])
     }
     return $diferenca -eq 0
+}
+
+# --- navegador controlado (captura de sessão) --------------------------------
+
+<#
+    Porta do DevTools Protocol. Fica em 127.0.0.1 e NAO e publicada para o container:
+    quem fala CDP e este helper, e o hub so recebe o resultado pela 4102, que exige
+    token. Abrir o CDP para a rede daria controle total de um navegador logado no
+    Sankhya para qualquer aparelho que alcancasse a porta.
+#>
+$PortaCdp = 9222
+
+# Perfil proprio do hub, separado do seu Chrome do dia a dia. E o que torna a leitura
+# de cookies legitima: e a sessao que o hub abriu, nao a sua.
+$PastaPerfil = Join-Path $PastaDados 'navegador'
+
+$UrlLogin = @{
+    'sankhya-erp'        = 'https://skw.sankhya.com.br/mge/'
+    'sankhya-experience' = 'https://experience.sankhya.com.br/'
+}
+
+# Dominios cujos cookies interessam a cada sistema. A API da Experience mora no API
+# Gateway da AWS, fora de sankhya.com.br — por isso ela leva dois.
+$DominiosSistema = @{
+    'sankhya-erp'        = @('sankhya.com.br')
+    'sankhya-experience' = @('sankhya.com.br', 'amazonaws.com')
+}
+
+function Resolver-Navegador {
+    $candidatos = @(
+        (Join-Path $env:ProgramFiles 'Google\Chrome\Application\chrome.exe'),
+        (Join-Path ${env:ProgramFiles(x86)} 'Google\Chrome\Application\chrome.exe'),
+        (Join-Path $env:LOCALAPPDATA 'Google\Chrome\Application\chrome.exe'),
+        (Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe'),
+        (Join-Path $env:ProgramFiles 'Microsoft\Edge\Application\msedge.exe')
+    )
+    foreach ($caminho in $candidatos) {
+        if ($caminho -and (Test-Path -LiteralPath $caminho)) { return $caminho }
+    }
+    return $null
+}
+
+function Test-CdpNoAr {
+    try {
+        $null = Invoke-RestMethod -Uri "http://127.0.0.1:$PortaCdp/json/version" -TimeoutSec 2
+        return $true
+    }
+    catch { return $false }
+}
+
+<#
+    Abre a URL no navegador do hub.
+
+    Chamar o executavel de novo com o mesmo `--user-data-dir` NAO sobe um segundo
+    navegador: o Chrome entrega a URL para a instancia que ja roda e abre uma guia. E
+    por isso que nao ha controle de PID aqui.
+#>
+function Abrir-NoNavegador {
+    param([string] $Url)
+
+    $navegador = Resolver-Navegador
+    if (-not $navegador) {
+        return @{ ok = $false; erro = 'nenhum Chrome ou Edge encontrado nesta máquina' }
+    }
+
+    if (-not (Test-Path -LiteralPath $PastaPerfil)) {
+        New-Item -ItemType Directory -Path $PastaPerfil -Force | Out-Null
+    }
+
+    Start-Process -FilePath $navegador -ArgumentList @(
+        "--user-data-dir=$PastaPerfil",
+        "--remote-debugging-port=$PortaCdp",
+        '--no-first-run',
+        '--no-default-browser-check',
+        $Url
+    )
+
+    # O CDP so responde depois que o navegador termina de subir; sem esperar, a captura
+    # logo em seguida falharia num navegador que estava fechado.
+    $limite = (Get-Date).AddSeconds(20)
+    while (-not (Test-CdpNoAr) -and (Get-Date) -lt $limite) {
+        Start-Sleep -Milliseconds 500
+    }
+
+    if (-not (Test-CdpNoAr)) {
+        return @{ ok = $false; erro = "o navegador subiu mas o DevTools não respondeu na porta $PortaCdp" }
+    }
+    return @{ ok = $true; navegador = $navegador }
+}
+
+<#
+    Uma chamada CDP no alvo do NAVEGADOR (nao de uma guia): `Storage.getCookies` ali
+    devolve os cookies do perfil inteiro, sem precisar descobrir em qual guia o login
+    aconteceu.
+#>
+function Invoke-Cdp {
+    param([string] $Metodo, [hashtable] $Parametros = @{})
+
+    $versao = Invoke-RestMethod -Uri "http://127.0.0.1:$PortaCdp/json/version" -TimeoutSec 5
+    $ws = [System.Net.WebSockets.ClientWebSocket]::new()
+
+    try {
+        if (-not $ws.ConnectAsync([Uri] $versao.webSocketDebuggerUrl, [Threading.CancellationToken]::None).Wait(10000)) {
+            throw 'timeout conectando ao DevTools'
+        }
+
+        $corpo = @{ id = 1; method = $Metodo; params = $Parametros } | ConvertTo-Json -Depth 6 -Compress
+        $bytes = [Text.Encoding]::UTF8.GetBytes($corpo)
+        $null = $ws.SendAsync(
+            [ArraySegment[byte]]::new($bytes),
+            [System.Net.WebSockets.WebSocketMessageType]::Text,
+            $true,
+            [Threading.CancellationToken]::None).Wait(10000)
+
+        $buffer = [byte[]]::new(65536)
+        # O alvo do navegador emite eventos por conta propria; ler a primeira mensagem
+        # que chegar pegaria um evento no lugar da resposta. A resposta e a que traz o
+        # mesmo `id` que enviamos.
+        $limite = (Get-Date).AddSeconds(30)
+        while ((Get-Date) -lt $limite) {
+            $texto = [Text.StringBuilder]::new()
+            do {
+                $tarefa = $ws.ReceiveAsync([ArraySegment[byte]]::new($buffer), [Threading.CancellationToken]::None)
+                if (-not $tarefa.Wait(30000)) { throw 'timeout lendo resposta do DevTools' }
+                $null = $texto.Append([Text.Encoding]::UTF8.GetString($buffer, 0, $tarefa.Result.Count))
+            } while (-not $tarefa.Result.EndOfMessage)
+
+            $mensagem = $texto.ToString() | ConvertFrom-Json
+            if ($mensagem.id -eq 1) { return $mensagem }
+        }
+        throw 'o DevTools não respondeu à chamada'
+    }
+    finally {
+        $ws.Dispose()
+    }
+}
+
+function Obter-Cookies {
+    param([string[]] $Dominios)
+
+    $resposta = Invoke-Cdp -Metodo 'Storage.getCookies'
+    $todos = @($resposta.result.cookies)
+
+    return @($todos | Where-Object {
+        $dominio = $_.domain
+        ($Dominios | Where-Object { $dominio -like "*$_" }).Count -gt 0
+    })
+}
+
+function Invoke-RotaNavegador {
+    param([string] $Metodo, [string[]] $Segmentos, [string] $Corpo)
+
+    try { $dados = if ($Corpo) { $Corpo | ConvertFrom-Json } else { $null } } catch { $dados = $null }
+
+    $acao = if ($Segmentos.Length -ge 2) { $Segmentos[1] } else { '' }
+    $sistema = if ($Segmentos.Length -ge 3) { $Segmentos[2] } elseif ($dados) { [string] $dados.sistema } else { '' }
+
+    if ($acao -ne 'status' -and $SistemasPermitidos -notcontains $sistema) {
+        return @{ status = 404; corpo = @{ ok = $false; erro = "sistema desconhecido: $sistema" } }
+    }
+
+    if ($Metodo -eq 'GET' -and $acao -eq 'status') {
+        return @{ status = 200; corpo = @{
+            ok        = $true
+            navegador = [bool] (Resolver-Navegador)
+            aberto    = (Test-CdpNoAr)
+        } }
+    }
+
+    if ($Metodo -eq 'POST' -and $acao -eq 'abrir') {
+        $resultado = Abrir-NoNavegador -Url $UrlLogin[$sistema]
+        if (-not $resultado.ok) {
+            return @{ status = 502; corpo = @{ ok = $false; erro = $resultado.erro } }
+        }
+        return @{ status = 200; corpo = @{ ok = $true; url = $UrlLogin[$sistema] } }
+    }
+
+    if ($Metodo -eq 'POST' -and $acao -eq 'capturar') {
+        if (-not (Test-CdpNoAr)) {
+            return @{ status = 409; corpo = @{ ok = $false; erro = 'o navegador do hub não está aberto — use "Entrar pelo navegador" primeiro' } }
+        }
+
+        try {
+            $cookies = Obter-Cookies -Dominios $DominiosSistema[$sistema]
+        }
+        catch {
+            return @{ status = 502; corpo = @{ ok = $false; erro = "falha lendo os cookies: $($_.Exception.Message)" } }
+        }
+
+        if (-not $cookies.Count) {
+            return @{ status = 200; corpo = @{ ok = $false; erro = 'nenhum cookie desse domínio no navegador — faça o login na janela aberta antes de capturar'; cookies = 0 } }
+        }
+
+        # Guardado com DPAPI, no mesmo cofre da senha: o cookie de sessao vale tanto
+        # quanto ela enquanto nao expira.
+        $cofre = Ler-Cofre
+        $entrada = $cofre[$sistema]
+        $cabecalho = (($cookies | ForEach-Object { "$($_.name)=$($_.value)" }) -join '; ')
+
+        $cofre[$sistema] = @{
+            usuario = if ($entrada) { $entrada.usuario } else { '' }
+            senha   = if ($entrada) { $entrada.senha } else { '' }
+            sessao  = (Proteger-Texto $cabecalho)
+        }
+        Gravar-Cofre $cofre
+
+        return @{ status = 200; corpo = @{ ok = $true; cookies = $cookies.Count } }
+    }
+
+    return @{ status = 404; corpo = @{ ok = $false; erro = "rota desconhecida: $Metodo /$($Segmentos -join '/')" } }
 }
 
 # --- git-autosync ------------------------------------------------------------
@@ -512,7 +725,12 @@ function Invoke-RotaCredenciais {
             return @{ status = 404; corpo = @{ ok = $false; erro = "sem credencial guardada para $sistema" } }
         }
         try {
-            return @{ status = 200; corpo = @{ ok = $true; usuario = $entrada.usuario; senha = (Desproteger-Texto $entrada.senha) } }
+            return @{ status = 200; corpo = @{
+                ok      = $true
+                usuario = $entrada.usuario
+                senha   = if ($entrada.senha) { Desproteger-Texto $entrada.senha } else { '' }
+                sessao  = if ($entrada.sessao) { Desproteger-Texto $entrada.sessao } else { '' }
+            } }
         }
         catch {
             # Blob de outro usuario/maquina ou perfil recriado: o DPAPI nao volta atras.
@@ -522,9 +740,10 @@ function Invoke-RotaCredenciais {
 
     if ($Metodo -eq 'GET' -and -not $acao) {
         return @{ status = 200; corpo = @{
-            ok       = $true
-            usuario  = if ($entrada) { $entrada.usuario } else { '' }
-            definido = [bool] $entrada
+            ok              = $true
+            usuario         = if ($entrada) { $entrada.usuario } else { '' }
+            definido        = [bool] ($entrada -and $entrada.senha)
+            sessaoCapturada = [bool] ($entrada -and $entrada.sessao)
         } }
     }
 
@@ -541,9 +760,20 @@ function Invoke-RotaCredenciais {
             return @{ status = 400; corpo = @{ ok = $false; erro = 'envie { usuario, senha }' } }
         }
 
-        $cofre[$sistema] = @{ usuario = $usuario; senha = (Proteger-Texto $senha) }
+        # A sessao ja capturada sobrevive a uma troca de senha: sao credenciais
+        # independentes, e invalidar a sessao aqui desconectaria o hub sem motivo.
+        $cofre[$sistema] = @{
+            usuario = $usuario
+            senha   = (Proteger-Texto $senha)
+            sessao  = if ($entrada) { $entrada.sessao } else { '' }
+        }
         Gravar-Cofre $cofre
-        return @{ status = 200; corpo = @{ ok = $true; usuario = $usuario; definido = $true } }
+        return @{ status = 200; corpo = @{
+            ok              = $true
+            usuario         = $usuario
+            definido        = $true
+            sessaoCapturada = [bool] ($entrada -and $entrada.sessao)
+        } }
     }
 
     if ($Metodo -eq 'DELETE' -and -not $acao) {
@@ -571,6 +801,9 @@ function Invoke-Rota {
     if ($segmentos[0] -eq 'credentials') {
         return Invoke-RotaCredenciais -Metodo $Requisicao.metodo -Segmentos $segmentos -Corpo $Requisicao.corpo
     }
+    if ($segmentos[0] -eq 'browser') {
+        return Invoke-RotaNavegador -Metodo $Requisicao.metodo -Segmentos $segmentos -Corpo $Requisicao.corpo
+    }
     if ($segmentos[0] -eq 'git-autosync') {
         return Invoke-RotaGitAutosync -Metodo $Requisicao.metodo -Segmentos $segmentos `
             -Query $Requisicao.query -Corpo $Requisicao.corpo
@@ -597,8 +830,8 @@ function Tratar-Requisicao {
 
         $resultado = Invoke-Rota -Requisicao $requisicao
 
-        # A senha revelada nunca entra no log — ele fica visivel na janela do helper e
-        # pode acabar em captura de tela.
+        # Senha e cookie de sessao nunca entram no log — a janela do helper fica visivel
+        # e pode acabar numa captura de tela.
         Escrever-Log "$($resultado.status) $($requisicao.metodo) $($requisicao.caminho)"
         Responder -Stream $stream -Status $resultado.status -Objeto $resultado.corpo
     }

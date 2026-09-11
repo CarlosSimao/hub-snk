@@ -191,6 +191,21 @@ export interface StatusCredencial {
   sistema: SistemaSankhya;
   usuario: string;
   definido: boolean;
+  /**
+   * Ha cookie de sessao capturado do navegador do hub.
+   *
+   * E independente de `definido`: da para ter sessao sem nunca ter guardado senha —
+   * e o caminho preferido, porque a senha nao chega a passar pelo hub.
+   */
+  sessaoCapturada: boolean;
+}
+
+/** O navegador que o hub controla, separado do Chrome do dia a dia do usuario. */
+export interface StatusNavegador {
+  /** Existe um Chrome ou Edge instalado nesta maquina. */
+  navegador: boolean;
+  /** A janela do hub esta aberta e falando DevTools Protocol. */
+  aberto: boolean;
 }
 
 /**

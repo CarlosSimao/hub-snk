@@ -3,6 +3,15 @@ import type { Cliente, ClienteEntrada } from '../../types.ts';
 import { plural } from '../../lib/format.ts';
 import { useClientes } from '../../hooks/useClientes.ts';
 import type { Avisar } from '../../hooks/useToasts.ts';
+import { TabBar, type Aba } from '../TabBar.tsx';
+import { GitDoCliente } from './GitDoCliente.tsx';
+
+type AbaCliente = 'cadastro' | 'git';
+
+const ABAS_CLIENTE: Aba<AbaCliente>[] = [
+  { id: 'cadastro', rotulo: 'Cadastro' },
+  { id: 'git', rotulo: 'Git', titulo: 'Repositório deste cliente no git-autosync' },
+];
 
 /** `null` = formulário de cadastro novo; nenhum selecionado = tela de boas-vindas. */
 type Selecao = { tipo: 'novo' } | { tipo: 'cliente'; cliente: Cliente } | null;
@@ -10,6 +19,7 @@ type Selecao = { tipo: 'novo' } | { tipo: 'cliente'; cliente: Cliente } | null;
 export function TelaClientes({ toast }: { toast: Avisar }) {
   const { clientes, carregando, salvar, remover } = useClientes(toast);
   const [selecao, setSelecao] = useState<Selecao>(null);
+  const [abaCliente, setAbaCliente] = useState<AbaCliente>('cadastro');
 
   // O cliente do estado é uma cópia congelada no clique; relê da lista para refletir o
   // que acabou de ser gravado sem precisar clicar de novo.
@@ -32,7 +42,12 @@ export function TelaClientes({ toast }: { toast: Avisar }) {
               type="button"
               className={`project-item${selecionado?.id === cliente.id ? ' active' : ''}`}
               aria-pressed={selecionado?.id === cliente.id}
-              onClick={() => setSelecao({ tipo: 'cliente', cliente })}
+              onClick={() => {
+                setSelecao({ tipo: 'cliente', cliente });
+                // Trocar de cliente sempre volta ao cadastro: ficar no Git de um
+                // cliente e ver o repositório de outro confundiria mais que ajudaria.
+                setAbaCliente('cadastro');
+              }}
             >
               <div className="li-title">
                 <h2>{cliente.nome}</h2>
@@ -73,14 +88,24 @@ export function TelaClientes({ toast }: { toast: Avisar }) {
         )}
 
         {selecionado && (
-          <FormularioCliente
-            key={selecionado.id}
-            cliente={selecionado}
-            onSalvar={(entrada) => salvar(selecionado.id, entrada)}
-            onRemover={async () => {
-              if (await remover(selecionado)) setSelecao(null);
-            }}
-          />
+          <>
+            <TabBar abas={ABAS_CLIENTE} ativa={abaCliente} onTrocar={setAbaCliente} variante="sub" />
+
+            {abaCliente === 'cadastro' && (
+              <FormularioCliente
+                key={selecionado.id}
+                cliente={selecionado}
+                onSalvar={(entrada) => salvar(selecionado.id, entrada)}
+                onRemover={async () => {
+                  if (await remover(selecionado)) setSelecao(null);
+                }}
+              />
+            )}
+
+            {abaCliente === 'git' && (
+              <GitDoCliente key={selecionado.id} cliente={selecionado} toast={toast} />
+            )}
+          </>
         )}
       </section>
     </div>

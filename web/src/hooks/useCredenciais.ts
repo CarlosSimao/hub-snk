@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { SistemaSankhya, StatusCredencial } from '../types.ts';
+import type { SistemaSankhya, StatusCredencial, StatusNavegador } from '../types.ts';
 import { enviar, requisitar } from '../lib/api.ts';
 import type { Avisar } from './useToasts.ts';
+
+const SEM_NAVEGADOR: StatusNavegador = { navegador: false, aberto: false };
 
 /**
  * Estado das credenciais do Sankhya. Nunca guarda senha — o backend so devolve nome de
@@ -18,19 +20,25 @@ export function useCredenciais(toast: Avisar) {
    */
   const [versao, setVersao] = useState(0);
 
+  const [navegador, setNavegador] = useState<StatusNavegador>(SEM_NAVEGADOR);
+
   const recarregar = useCallback(async () => {
-    const { ok, body } = await requisitar<{ credenciais: StatusCredencial[] }>(
-      '/api/sankhya/credenciais',
-    );
-    if (ok) {
-      setCredenciais(body.credenciais ?? []);
+    const [credencial, janela] = await Promise.all([
+      requisitar<{ credenciais: StatusCredencial[] }>('/api/sankhya/credenciais'),
+      requisitar<StatusNavegador>('/api/sankhya/navegador'),
+    ]);
+
+    if (credencial.ok) {
+      setCredenciais(credencial.body.credenciais ?? []);
       setErroHelper(null);
     } else {
       // Helper fora do ar não é erro do hub: a tela explica o que fazer em vez de
       // mostrar um toast vermelho que some em 9 segundos.
       setCredenciais([]);
-      setErroHelper(body.error ?? 'não consegui falar com o hub-helper');
+      setErroHelper(credencial.body.error ?? 'não consegui falar com o hub-helper');
     }
+
+    setNavegador(janela.ok ? (janela.body as StatusNavegador) : SEM_NAVEGADOR);
     setCarregando(false);
   }, []);
 
@@ -71,5 +79,46 @@ export function useCredenciais(toast: Avisar) {
     [recarregar, toast],
   );
 
-  return { credenciais, erroHelper, carregando, versao, gravar, remover };
+  const abrirNavegador = useCallback(
+    async (sistema: SistemaSankhya) => {
+      const { ok, body } = await enviar<{ url: string }>(
+        `/api/sankhya/navegador/abrir/${sistema}`,
+      );
+      if (!ok) {
+        toast('Não consegui abrir o navegador', 'err', body.error);
+        return;
+      }
+      toast('Janela aberta — faça o login nela e volte aqui para capturar a sessão.', 'ok');
+      await recarregar();
+    },
+    [recarregar, toast],
+  );
+
+  const capturarSessao = useCallback(
+    async (sistema: SistemaSankhya) => {
+      const { ok, body } = await enviar<{ cookies: number }>(
+        `/api/sankhya/navegador/capturar/${sistema}`,
+      );
+      if (!ok) {
+        toast('Não consegui capturar a sessão', 'err', body.error);
+        return;
+      }
+      await recarregar();
+      setVersao((n) => n + 1);
+      toast(`Sessão capturada (${body.cookies} cookies), cifrada com DPAPI.`, 'ok');
+    },
+    [recarregar, toast],
+  );
+
+  return {
+    credenciais,
+    navegador,
+    erroHelper,
+    carregando,
+    versao,
+    gravar,
+    remover,
+    abrirNavegador,
+    capturarSessao,
+  };
 }

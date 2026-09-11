@@ -102,6 +102,44 @@ export function registerRoutesSankhya(app: FastifyInstance, deps: RouteSankhyaDe
     },
   );
 
+  app.get('/api/sankhya/navegador', async (_request, reply) => {
+    try {
+      return await credenciais.statusNavegador();
+    } catch (err) {
+      return responderErroHelper(reply, err);
+    }
+  });
+
+  /**
+   * Abre a janela do hub na tela de login, e depois lê o cookie de sessão dela.
+   *
+   * Separado em dois passos de propósito: entre um e outro quem age é o usuário,
+   * digitando a senha no navegador. O hub nunca vê a senha — só o cookie que sobra.
+   */
+  for (const acao of ['abrir', 'capturar'] as const) {
+    app.post<{ Params: { sistema: string } }>(
+      `/api/sankhya/navegador/${acao}/:sistema`,
+      async (request, reply) => {
+        const { sistema } = request.params;
+        if (!ehSistemaValido(sistema)) {
+          return reply.code(404).send({ error: `sistema "${sistema}" não existe` });
+        }
+
+        try {
+          if (acao === 'abrir') return await credenciais.abrirNavegador(sistema);
+
+          const resultado = await credenciais.capturarSessao(sistema);
+          if (!resultado.ok) {
+            return reply.code(409).send({ error: resultado.erro ?? 'nenhum cookie capturado' });
+          }
+          return resultado;
+        } catch (err) {
+          return responderErroHelper(reply, err);
+        }
+      },
+    );
+  }
+
   app.delete<{ Params: { sistema: string } }>(
     '/api/sankhya/credenciais/:sistema',
     async (request, reply) => {

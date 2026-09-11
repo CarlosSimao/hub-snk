@@ -1451,3 +1451,30 @@ main {
   color: var(--text-faint);
   font-size: 11px;
 }
+
+/* Checkbox com rótulo na mesma linha — cabe no cabeçalho do card, o `.campo` não. */
+.campo-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.campo-inline input[type='checkbox'] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Passo numerado das instruções de login — lista sem virar <ol>, que traria margens. */
+.passo {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.passo b {
+  color: var(--text);
+}
