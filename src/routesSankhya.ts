@@ -147,6 +147,32 @@ export function registerRoutesSankhya(app: FastifyInstance, deps: RouteSankhyaDe
     );
   }
 
+  app.post('/api/sankhya/navegador/fechar', async (_request, reply) => {
+    try {
+      return await credenciais.fecharNavegador();
+    } catch (err) {
+      return responderErroHelper(reply, err);
+    }
+  });
+
+  /** Traz só os favoritos de um perfil pessoal — nada de senha, cookie ou histórico. */
+  app.post<{ Body: { navegador?: unknown; perfil?: unknown } }>(
+    '/api/sankhya/navegador/favoritos',
+    async (request, reply) => {
+      const navegador = String(request.body?.navegador ?? '');
+      const perfil = String(request.body?.perfil ?? '');
+      if (!navegador || !perfil) {
+        return reply.code(400).send({ error: 'envie { navegador, perfil }' });
+      }
+
+      try {
+        return await credenciais.importarFavoritos(navegador, perfil);
+      } catch (err) {
+        return responderErroHelper(reply, err);
+      }
+    },
+  );
+
   app.delete<{ Params: { sistema: string } }>(
     '/api/sankhya/credenciais/:sistema',
     async (request, reply) => {

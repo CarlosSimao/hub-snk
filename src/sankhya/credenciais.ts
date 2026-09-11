@@ -108,7 +108,28 @@ export class Credenciais {
       // mesma armadilha do payload da Agenda de Recursos, e a mesma correção.
       abas: normalizarLista(corpo.abas),
       telas: normalizarLista(corpo.telas),
+      perfis: normalizarLista(corpo.perfis),
     };
+  }
+
+  /** Fecha só a janela do hub; o navegador pessoal do usuário não é tocado. */
+  fecharNavegador(): Promise<{ mensagem: string }> {
+    return this.#helper.requisitar<{ mensagem: string }>('/browser/fechar', { method: 'POST' });
+  }
+
+  /**
+   * Traz os favoritos de um perfil pessoal para o perfil do hub.
+   *
+   * Só o arquivo de favoritos — senha, cookie e histórico ficam onde estão. O perfil
+   * real não pode ser usado direto: desde o Chrome 136 o navegador recusa o DevTools
+   * quando o perfil é o padrão, e sem DevTools o hub não lê a sessão.
+   */
+  importarFavoritos(navegador: string, perfil: string): Promise<{ ok: boolean }> {
+    return this.#helper.requisitar<{ ok: boolean }>('/browser/favoritos', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ navegador, perfil }),
+    });
   }
 
   /**

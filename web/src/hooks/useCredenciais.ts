@@ -9,6 +9,7 @@ const SEM_NAVEGADOR: StatusNavegador = {
   aberto: false,
   abas: [],
   telas: [],
+  perfis: [],
 };
 
 /**
@@ -106,6 +107,28 @@ export function useCredenciais(toast: Avisar) {
     [recarregar, toast],
   );
 
+  const fecharNavegador = useCallback(async () => {
+    const { ok, body } = await enviar<{ mensagem: string }>('/api/sankhya/navegador/fechar');
+    if (!ok) {
+      toast('Não consegui fechar a janela', 'err', body.error);
+      return;
+    }
+    await recarregar();
+    toast(`Janela do hub ${body.mensagem ?? 'encerrada'}.`, 'ok');
+  }, [recarregar, toast]);
+
+  const importarFavoritos = useCallback(
+    async (navegador: string, perfil: string) => {
+      const { ok, body } = await enviar('/api/sankhya/navegador/favoritos', { navegador, perfil });
+      if (!ok) {
+        toast('Não consegui importar os favoritos', 'err', body.error);
+        return;
+      }
+      toast('Favoritos copiados — aparecem na próxima vez que a janela abrir.', 'ok');
+    },
+    [toast],
+  );
+
   const capturarSessao = useCallback(
     async (sistema: SistemaSankhya) => {
       const { ok, body } = await enviar<{ cookies: number }>(
@@ -131,6 +154,8 @@ export function useCredenciais(toast: Avisar) {
     gravar,
     remover,
     abrirNavegador,
+    fecharNavegador,
+    importarFavoritos,
     capturarSessao,
     recarregar,
   };

@@ -1767,3 +1767,15 @@ main {
   display: grid;
   gap: 2px;
 }
+
+.favoritos {
+  display: grid;
+  gap: 6px;
+}
+
+/* O botão alinha com a base do select ao lado, não com o rótulo dele. */
+.favoritos .form-acoes {
+  align-self: end;
+  padding: 0;
+  border: 0;
+}

@@ -13,6 +13,8 @@ const NOME_SISTEMA: Record<string, string> = {
 interface Props {
   navegador: StatusNavegador;
   onAbrir: (sistema: SistemaSankhya, opcoes?: { tela?: string; navegador?: string }) => Promise<void>;
+  onFechar: () => Promise<void>;
+  onImportarFavoritos: (navegador: string, perfil: string) => Promise<void>;
   onAtualizar: () => Promise<void>;
 }
 
@@ -26,9 +28,16 @@ interface Props {
  * O hub só OLHA as guias, nunca fecha nem mexe nas outras: o navegador continua seu, com
  * quantas guias você quiser.
  */
-export function JanelaSankhya({ navegador, onAbrir, onAtualizar }: Props) {
+export function JanelaSankhya({
+  navegador,
+  onAbrir,
+  onFechar,
+  onImportarFavoritos,
+  onAtualizar,
+}: Props) {
   const [ocupado, setOcupado] = useState(false);
   const [marca, setMarca] = useState('');
+  const [perfil, setPerfil] = useState('');
 
   const comOcupado = async (fn: () => Promise<void>) => {
     setOcupado(true);
@@ -67,6 +76,16 @@ export function JanelaSankhya({ navegador, onAbrir, onAtualizar }: Props) {
           >
             Atualizar
           </button>
+          {navegador.aberto && (
+            <button
+              className="btn tiny ghost"
+              disabled={ocupado}
+              title="Fecha só esta janela — o seu navegador pessoal não é tocado"
+              onClick={() => void comOcupado(onFechar)}
+            >
+              Fechar janela
+            </button>
+          )}
         </div>
       </div>
 
@@ -116,6 +135,52 @@ export function JanelaSankhya({ navegador, onAbrir, onAtualizar }: Props) {
             </button>
           ))}
         </div>
+
+        {/*
+          O perfil pessoal não pode ser usado direto: desde o Chrome 136 o navegador
+          recusa o DevTools quando o perfil é o padrão, e sem DevTools o hub não lê a
+          sessão. Trazer os favoritos é o que dá para fazer — e é só o arquivo deles.
+        */}
+        {navegador.perfis.length > 0 && (
+          <div className="favoritos">
+            <span className="campo-nome">Favoritos</span>
+            <p className="campo-dica">
+              A janela do hub usa um perfil próprio — exigência do navegador para o hub
+              conseguir ler a sessão. Dá para copiar seus favoritos para ela; senhas,
+              cookies e histórico ficam onde estão.
+            </p>
+            <div className="periodo">
+              <label className="campo">
+                <span className="campo-nome">Copiar de</span>
+                <select value={perfil} onChange={(e) => setPerfil(e.target.value)}>
+                  <option value="">escolha um perfil</option>
+                  {navegador.perfis.map((p) => (
+                    <option key={`${p.navegador}:${p.pasta}`} value={`${p.navegador}:${p.pasta}`}>
+                      {p.navegador === 'chrome' ? 'Chrome' : 'Edge'} — {p.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="form-acoes">
+                <button
+                  className="btn tiny"
+                  disabled={ocupado || !perfil || navegador.aberto}
+                  title={
+                    navegador.aberto
+                      ? 'Feche a janela do hub antes: o navegador regrava os favoritos ao sair e desfaz a cópia'
+                      : undefined
+                  }
+                  onClick={() => {
+                    const [qual, pasta] = perfil.split(':');
+                    void comOcupado(() => onImportarFavoritos(qual ?? '', pasta ?? ''));
+                  }}
+                >
+                  Copiar favoritos
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {navegador.aberto && (
           <div className="abas">

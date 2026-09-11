@@ -222,6 +222,15 @@ export interface AbaNavegador {
   logado: boolean;
 }
 
+/** Um perfil do navegador PESSOAL do usuario, de onde da para trazer os favoritos. */
+export interface PerfilNavegador {
+  navegador: string;
+  /** Pasta no disco: `Default` ou `Profile N`. */
+  pasta: string;
+  /** Nome que o usuario ve no navegador. */
+  nome: string;
+}
+
 /** O navegador que o hub controla, separado do Chrome do dia a dia do usuario. */
 export interface StatusNavegador {
   /** Existe um Chrome ou Edge instalado nesta maquina. */
@@ -233,6 +242,7 @@ export interface StatusNavegador {
   abas: AbaNavegador[];
   /** Apelidos de tela que o hub sabe abrir direto, ex.: `agenda-recursos`. */
   telas: string[];
+  perfis: PerfilNavegador[];
 }
 
 /**

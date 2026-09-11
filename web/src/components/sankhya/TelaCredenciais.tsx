@@ -41,6 +41,8 @@ export function TelaCredenciais({ toast }: { toast: Avisar }) {
     gravar,
     remover,
     abrirNavegador,
+    fecharNavegador,
+    importarFavoritos,
     capturarSessao,
     recarregar,
   } = useCredenciais(toast);
@@ -81,6 +83,8 @@ export function TelaCredenciais({ toast }: { toast: Avisar }) {
         <JanelaSankhya
           navegador={navegador}
           onAbrir={abrirNavegador}
+          onFechar={fecharNavegador}
+          onImportarFavoritos={importarFavoritos}
           onAtualizar={recarregar}
         />
       )}

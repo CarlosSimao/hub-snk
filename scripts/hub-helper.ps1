@@ -498,6 +498,123 @@ function Get-AgendaRecursos {
 }
 
 <#
+    Onde cada navegador guarda os perfis do usuario.
+
+    O hub NAO usa esses perfis: desde o Chrome 136, o navegador recusa
+    `--remote-debugging-port` quando o perfil e o padrao — protecao deliberada contra
+    malware que se conecta ao navegador ja logado. Sem DevTools o hub nao le a sessao,
+    entao o perfil proprio nao e escolha, e a unica opcao.
+
+    O que da para trazer de la e o arquivo de FAVORITOS. So ele: senha, cookie e
+    historico ficam onde estao.
+#>
+$PerfisNavegador = @{
+    chrome = (Join-Path $env:LOCALAPPDATA 'Google\Chrome\User Data')
+    edge   = (Join-Path $env:LOCALAPPDATA 'Microsoft\Edge\User Data')
+}
+
+<# Perfis que existem e tem favoritos, com o nome que o usuario ve no navegador. #>
+function Get-PerfisComFavoritos {
+    $saida = @()
+
+    foreach ($marca in $PerfisNavegador.Keys) {
+        $base = $PerfisNavegador[$marca]
+        if (-not (Test-Path -LiteralPath $base)) { continue }
+
+        # O nome de exibicao mora no `Local State`; a pasta e so `Default`/`Profile N`.
+        $apelidos = @{}
+        $localState = Join-Path $base 'Local State'
+        if (Test-Path -LiteralPath $localState) {
+            try {
+                $json = Get-Content -LiteralPath $localState -Raw -Encoding UTF8 | ConvertFrom-Json
+                foreach ($p in $json.profile.info_cache.PSObject.Properties) {
+                    $apelidos[$p.Name] = [string] $p.Value.name
+                }
+            }
+            catch { }
+        }
+
+        foreach ($pasta in Get-ChildItem -LiteralPath $base -Directory -ErrorAction SilentlyContinue) {
+            if ($pasta.Name -ne 'Default' -and $pasta.Name -notlike 'Profile*') { continue }
+            if (-not (Test-Path -LiteralPath (Join-Path $pasta.FullName 'Bookmarks'))) { continue }
+
+            $saida += @{
+                navegador = $marca
+                pasta     = $pasta.Name
+                nome      = if ($apelidos.ContainsKey($pasta.Name)) { $apelidos[$pasta.Name] } else { $pasta.Name }
+            }
+        }
+    }
+
+    return $saida
+}
+
+<#
+    Copia os favoritos de um perfil do usuario para o perfil do hub.
+
+    Precisa do navegador do hub FECHADO: o Chrome mantem os favoritos em memoria e
+    regrava o arquivo ao sair, desfazendo a copia sem avisar.
+#>
+function Importar-Favoritos {
+    param([string] $Marca, [string] $Pasta)
+
+    if (-not $PerfisNavegador.ContainsKey($Marca)) {
+        return @{ ok = $false; erro = "navegador desconhecido: $Marca" }
+    }
+    # `Pasta` vem da tela; sem esta checagem viraria caminho arbitrario.
+    if ($Pasta -notmatch '^(Default|Profile \d+)$') {
+        return @{ ok = $false; erro = "perfil inválido: $Pasta" }
+    }
+    if (Test-CdpNoAr) {
+        return @{ ok = $false; erro = 'feche a janela do hub antes de importar — o navegador regrava os favoritos ao sair e desfaz a cópia' }
+    }
+
+    $origem = Join-Path (Join-Path $PerfisNavegador[$Marca] $Pasta) 'Bookmarks'
+    if (-not (Test-Path -LiteralPath $origem)) {
+        return @{ ok = $false; erro = "esse perfil não tem favoritos: $origem" }
+    }
+
+    $destinoPasta = Join-Path $PastaPerfil 'Default'
+    if (-not (Test-Path -LiteralPath $destinoPasta)) {
+        New-Item -ItemType Directory -Path $destinoPasta -Force | Out-Null
+    }
+
+    try {
+        Copy-Item -LiteralPath $origem -Destination (Join-Path $destinoPasta 'Bookmarks') -Force
+        # O `.bak` antigo faria o Chrome preferir a versao anterior em alguns casos.
+        $bak = Join-Path $destinoPasta 'Bookmarks.bak'
+        if (Test-Path -LiteralPath $bak) { Remove-Item -LiteralPath $bak -Force }
+    }
+    catch {
+        return @{ ok = $false; erro = "falha copiando: $($_.Exception.Message)" }
+    }
+
+    return @{ ok = $true }
+}
+
+<#
+    Fecha a janela do hub — e SO ela.
+
+    Casa pelo `--user-data-dir` na linha de comando: o navegador pessoal do usuario roda
+    com outro perfil e nao pode ser derrubado junto.
+#>
+function Fechar-NavegadorDoHub {
+    $processos = Get-CimInstance Win32_Process -Filter "Name = 'chrome.exe' OR Name = 'msedge.exe'" |
+        Where-Object { $_.CommandLine -like "*--user-data-dir=$PastaPerfil*" }
+
+    if (-not $processos) { return @{ ok = $true; mensagem = 'já estava fechada' } }
+
+    foreach ($p in $processos) {
+        Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+    }
+    # O CDP some junto com o processo; esperar evita dizer "fechada" cedo demais.
+    $limite = (Get-Date).AddSeconds(10)
+    while ((Test-CdpNoAr) -and (Get-Date) -lt $limite) { Start-Sleep -Milliseconds 300 }
+
+    return @{ ok = $true; mensagem = "encerrada ($($processos.Count) processo(s))" }
+}
+
+<#
     As telas do Sankhya que o hub sabe abrir, por apelido.
 
     O `resourceID` vai em base64 depois do `#` porque a aplicacao e uma SPA: o trecho
@@ -570,7 +687,9 @@ function Invoke-RotaNavegador {
         return @{ status = 200; corpo = @{ ok = $true; conteudo = $resultado.conteudo } }
     }
 
-    if ($acao -ne 'status' -and $SistemasPermitidos -notcontains $sistema) {
+    # Estas acoes sao da JANELA, nao de um sistema: nao tem `:sistema` para validar.
+    $semSistema = @('status', 'fechar', 'favoritos')
+    if ($semSistema -notcontains $acao -and $SistemasPermitidos -notcontains $sistema) {
         return @{ status = 404; corpo = @{ ok = $false; erro = "sistema desconhecido: $sistema" } }
     }
 
@@ -583,7 +702,20 @@ function Invoke-RotaNavegador {
             aberto       = (Test-CdpNoAr)
             abas         = $abas
             telas        = @($TelasSankhya.Keys)
+            perfis       = (Get-PerfisComFavoritos)
         } }
+    }
+
+    if ($Metodo -eq 'POST' -and $acao -eq 'fechar') {
+        return @{ status = 200; corpo = (Fechar-NavegadorDoHub) }
+    }
+
+    if ($Metodo -eq 'POST' -and $acao -eq 'favoritos') {
+        $resultado = Importar-Favoritos -Marca ([string] $dados.navegador) -Pasta ([string] $dados.perfil)
+        if (-not $resultado.ok) {
+            return @{ status = 409; corpo = $resultado }
+        }
+        return @{ status = 200; corpo = @{ ok = $true } }
     }
 
     <#

@@ -554,6 +554,26 @@ aceitável no dia a dia.
 Essa lista de guias resolve, de quebra, a desonestidade descrita em 18.7: a sessão do ERP
 não carrega validade, mas uma guia parada em `login.jsp` denuncia que ela morreu.
 
+#### Por que a janela não usa o perfil pessoal
+
+Pergunta que vai voltar: "dá para abrir com o meu perfil, que já tem meus favoritos?"
+
+**Não dá, e a trava é do navegador.** Desde o Chrome 136 (aqui: Chrome 152 e Edge 152), o
+navegador **recusa `--remote-debugging-port` quando o perfil é o padrão** — proteção
+deliberada contra malware que se conecta ao navegador já logado. Sem DevTools o hub não lê
+a sessão, que é a razão de existir da janela. Não foi testado contra o perfil real de
+propósito: se funcionasse, exporia histórico e senhas numa porta local.
+
+O que dá é trazer os **favoritos**: o botão em `Sankhya › Credenciais` copia o arquivo
+`Bookmarks` do perfil escolhido para o perfil do hub. Só ele — senha, cookie e histórico
+ficam onde estão. Duas restrições que o código impõe:
+
+- **A janela do hub precisa estar fechada.** O navegador mantém os favoritos em memória e
+  regrava o arquivo ao sair, desfazendo a cópia sem avisar. Daí o botão "Fechar janela",
+  que casa os processos pelo `--user-data-dir` e portanto **não toca no navegador pessoal**.
+- O nome da pasta de perfil é validado contra `Default|Profile N`: ele vem da tela, e sem
+  isso viraria caminho arbitrário de cópia.
+
 ### 18.9 O proxy-iframe (seções 8 e 17, fases 0 e 5) está descartado
 
 > **Decisão tomada em 2026-09-11: não fazer.** O código chegou a ser escrito e foi
