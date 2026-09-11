@@ -697,8 +697,10 @@ um terceiro domínio. O filtro de cookies por sufixo (`sankhya.com.br`) já o co
 - `commit`, `push`, `sync` e `mr` pela tela: escrevem em repositório real, então não foram
   disparados. O caminho de leitura (status, config, histórico, prévia) foi exercitado
   contra a instalação real e funciona.
-- Build da imagem Docker (`docker compose up -d --build`): o Docker Desktop estava fora do
-  ar na máquina durante a implementação. O `Dockerfile` e o `docker-compose.yml` mudaram
-  (estágio de build do painel, mount de `%APPDATA%/sankhya-hub/ipc`).
+- ~~Build da imagem Docker~~ — **verificado em 2026-09-11**. A imagem constrói, sobe e
+  serve o painel compilado; o SQLite funciona dentro do container; e as rotas da suite
+  degradam com mensagem acionável quando a pasta `ipc` do helper não está montada, em vez
+  de quebrar. Só o `docker compose up` com o mount de `%APPDATA%` segue sem exercício — a
+  verificação usou `docker run` numa porta separada para não derrubar o ambiente de dev.
 - `scripts/iniciar-monitor.ps1` de ponta a ponta: as três funções `Start-*Helper` viraram
   uma `Start-Helper` parametrizada, e o helper do hub entrou como terceira chamada.
