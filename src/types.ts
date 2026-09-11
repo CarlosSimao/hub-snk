@@ -206,12 +206,33 @@ export interface StatusCredencial {
   sessaoExpiraEm: string;
 }
 
+/** Uma guia aberta na janela do hub. O usuario pode ter quantas quiser. */
+export interface AbaNavegador {
+  id: string;
+  url: string;
+  titulo: string;
+  /** Vazio quando a guia nao e de nenhum sistema do Sankhya. */
+  sistema: SistemaSankhya | '';
+  /**
+   * A guia nao esta numa tela de login.
+   *
+   * E o unico sinal honesto de sessao viva no ERP: o cookie dele nao carrega validade,
+   * entao so o redirecionamento para o login denuncia que a sessao morreu.
+   */
+  logado: boolean;
+}
+
 /** O navegador que o hub controla, separado do Chrome do dia a dia do usuario. */
 export interface StatusNavegador {
   /** Existe um Chrome ou Edge instalado nesta maquina. */
   navegador: boolean;
+  /** Marcas instaladas, para a tela oferecer so o que da para abrir. */
+  disponiveis: string[];
   /** A janela do hub esta aberta e falando DevTools Protocol. */
   aberto: boolean;
+  abas: AbaNavegador[];
+  /** Apelidos de tela que o hub sabe abrir direto, ex.: `agenda-recursos`. */
+  telas: string[];
 }
 
 /**

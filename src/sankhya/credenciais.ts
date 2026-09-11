@@ -22,6 +22,12 @@ import {
 /** O que o helper devolve nas rotas de credencial, sem o `sistema`. */
 type RespostaCredencial = Omit<StatusCredencial, 'sistema'>;
 
+/** Objeto, array ou ausente -> array. O PowerShell colapsa lista de um item só. */
+function normalizarLista<T>(valor: unknown): T[] {
+  if (Array.isArray(valor)) return valor as T[];
+  return valor === null || valor === undefined ? [] : [valor as T];
+}
+
 /** O que sai do cofre decriptado. Nunca sai do backend. */
 export interface SegredoSankhya {
   usuario: string;
@@ -92,17 +98,34 @@ export class Credenciais {
     return this.#helper.requisitar<SegredoSankhya>(`/credentials/${sistema}/reveal`);
   }
 
-  statusNavegador(): Promise<StatusNavegador> {
-    return this.#helper.requisitar<StatusNavegador>('/browser/status');
+  async statusNavegador(): Promise<StatusNavegador> {
+    const corpo = await this.#helper.requisitar<StatusNavegador>('/browser/status');
+    return {
+      navegador: Boolean(corpo.navegador),
+      disponiveis: normalizarLista(corpo.disponiveis),
+      aberto: Boolean(corpo.aberto),
+      // O PowerShell serializa uma lista de UM item como objeto, não como array — a
+      // mesma armadilha do payload da Agenda de Recursos, e a mesma correção.
+      abas: normalizarLista(corpo.abas),
+      telas: normalizarLista(corpo.telas),
+    };
   }
 
   /**
-   * Abre a janela do hub na tela de login do sistema. Quem digita a senha é o usuário,
-   * no navegador — ela não passa pelo hub em nenhum momento.
+   * Abre uma guia na janela do hub.
+   *
+   * Sem `tela`, cai no login do sistema — e quem digita a senha é o usuário, ali, não o
+   * hub. Com `tela`, vai direto para a tela pedida. Em qualquer caso é uma GUIA na
+   * janela que já existe: o usuário segue usando o navegador normalmente.
    */
-  abrirNavegador(sistema: SistemaSankhya): Promise<{ url: string }> {
+  abrirNavegador(
+    sistema: SistemaSankhya,
+    opcoes: { tela?: string; navegador?: string } = {},
+  ): Promise<{ url: string }> {
     return this.#helper.requisitar<{ url: string }>(`/browser/abrir/${sistema}`, {
       method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(opcoes),
     });
   }
 

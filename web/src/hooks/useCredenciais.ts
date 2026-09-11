@@ -3,7 +3,13 @@ import type { SistemaSankhya, StatusCredencial, StatusNavegador } from '../types
 import { enviar, requisitar } from '../lib/api.ts';
 import type { Avisar } from './useToasts.ts';
 
-const SEM_NAVEGADOR: StatusNavegador = { navegador: false, aberto: false };
+const SEM_NAVEGADOR: StatusNavegador = {
+  navegador: false,
+  disponiveis: [],
+  aberto: false,
+  abas: [],
+  telas: [],
+};
 
 /**
  * Estado das credenciais do Sankhya. Nunca guarda senha — o backend so devolve nome de
@@ -80,15 +86,21 @@ export function useCredenciais(toast: Avisar) {
   );
 
   const abrirNavegador = useCallback(
-    async (sistema: SistemaSankhya) => {
+    async (sistema: SistemaSankhya, opcoes: { tela?: string; navegador?: string } = {}) => {
       const { ok, body } = await enviar<{ url: string }>(
         `/api/sankhya/navegador/abrir/${sistema}`,
+        opcoes,
       );
       if (!ok) {
         toast('Não consegui abrir o navegador', 'err', body.error);
         return;
       }
-      toast('Janela aberta — faça o login nela e volte aqui para capturar a sessão.', 'ok');
+      toast(
+        opcoes.tela
+          ? 'Guia aberta na tela pedida.'
+          : 'Guia aberta — faça o login nela e volte aqui para capturar a sessão.',
+        'ok',
+      );
       await recarregar();
     },
     [recarregar, toast],
@@ -120,5 +132,6 @@ export function useCredenciais(toast: Avisar) {
     remover,
     abrirNavegador,
     capturarSessao,
+    recarregar,
   };
 }

@@ -117,7 +117,7 @@ export function registerRoutesSankhya(app: FastifyInstance, deps: RouteSankhyaDe
    * digitando a senha no navegador. O hub nunca vê a senha — só o cookie que sobra.
    */
   for (const acao of ['abrir', 'capturar'] as const) {
-    app.post<{ Params: { sistema: string } }>(
+    app.post<{ Params: { sistema: string }; Body: { tela?: unknown; navegador?: unknown } }>(
       `/api/sankhya/navegador/${acao}/:sistema`,
       async (request, reply) => {
         const { sistema } = request.params;
@@ -125,8 +125,15 @@ export function registerRoutesSankhya(app: FastifyInstance, deps: RouteSankhyaDe
           return reply.code(404).send({ error: `sistema "${sistema}" não existe` });
         }
 
+        const texto = (valor: unknown) => (typeof valor === 'string' ? valor : '');
+
         try {
-          if (acao === 'abrir') return await credenciais.abrirNavegador(sistema);
+          if (acao === 'abrir') {
+            return await credenciais.abrirNavegador(sistema, {
+              tela: texto(request.body?.tela),
+              navegador: texto(request.body?.navegador),
+            });
+          }
 
           const resultado = await credenciais.capturarSessao(sistema);
           if (!resultado.ok) {

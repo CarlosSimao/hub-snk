@@ -495,7 +495,81 @@ Como `validate` é pré-checagem e não porteiro — quem decide se a OS pode ex
 travar a tela. Vale confirmar se a própria tela da Experience também falha hoje; se
 falhar, é problema do lado deles e cabe abrir chamado com esse código de erro.
 
-### 18.9 O proxy-iframe (seções 8 e 17, fases 0 e 5) perdeu o motivo
+### 18.10 A escrita na Agenda de Recursos — serviços descobertos sem clicar em nada
+
+`sankhya-agenda-recursos-escrita-ui.md` conclui que a escrita só é possível por automação
+de UI, porque o request do botão Salvar nunca foi capturado (o teste parou antes do
+clique, de propósito). **Não é mais preciso clicar para descobrir.**
+
+A tela roda dentro de um iframe de mesma origem
+(`/mgeos/AgendaRecursos.xhtml5`) — por isso uma varredura do JS da página de fora não
+acha nada. Varrendo o JS **do iframe** (115 scripts e 9 blocos inline), aparecem:
+
+| Serviço | O que faz |
+|---|---|
+| `AgendaRecursosSP.salvarEvento` | **o botão Salvar** |
+| `AgendaRecursosSP.cancelarEvento` | cancelar evento/série |
+| `AgendaRecursosSP.incluirOSsimplificado` | o botão "Lançar OS" do mesmo modal |
+| `AgendaRecursosSP.carregarRecorrencia` | série/recorrência |
+| `AgendaRecursosSP.buscarExecutantesPermitidos` | executantes que o usuário pode agendar |
+| `AgendaRecursosSP.montaArvoreProjetoEtapa` | árvore de projeto/etapa |
+| `UsuarioSP.sincronizarAgenda`, `AgendaRecursosSP.enviarAgendasEmail` | sincronização e e-mail |
+
+A chamada é `ServiceProxy.callService('mgeos@AgendaRecursosSP.salvarEvento', { evento })`
+— o prefixo `mgeos@` confirma o contexto `/mgeos/service.sbr` já usado pela leitura.
+
+O `evento` é um objeto de chaves **camelCase**, montado a partir do dataset da tela. Do
+`cancelarEvento`, que segue a mesma convenção: `nuEvento`, `nuEventoPai`, `dhInicio`,
+`dhFinal`, `codUsu`, `confirmado`, `cancelado`, `motivo` — datas como texto
+`DD/MM/YYYY HH:mm`, booleanos como `S`/`N`.
+
+**Falta confirmar a lista exata de campos do `salvarEvento`** (o modal tem mais campos
+que o cancelamento: "O quê", parceiro, dia todo). Duas formas de fechar isso sem gravar
+nada: extrair o trecho específico do `AgendaRecursos.js`, ou interceptar o clique em
+Salvar com `Fetch.requestPaused` do DevTools e **abortar a requisição antes de sair** —
+captura o payload real sem que ele chegue ao servidor.
+
+### 18.11 A restrição que decide a arquitetura: sessão do Sankhya é exclusiva
+
+**Abrir uma sessão do Sankhya em qualquer outro lugar mata a anterior.** Essa é a razão
+real pela qual a sessão do ERP "expirava rápido" (18.7): não era timeout, era o usuário
+logando no navegador dele e derrubando a do hub.
+
+A consequência é dura: enquanto o hub e o usuário trabalharem em janelas diferentes, **um
+sempre derruba o outro**. Não existe conviver.
+
+A saída escolhida é a janela dirigida: o hub abre uma janela de navegador com perfil
+próprio, o usuário trabalha o Sankhya **ali**, e o hub lê a mesma sessão por DevTools.
+Uma sessão só, sem disputa. O painel em `Sankhya › Credenciais` mostra:
+
+- quais navegadores existem na máquina, para o usuário escolher;
+- botões que abrem o sistema ou uma tela específica direto (`agenda-recursos`), em GUIA
+  nova da janela que já existe;
+- as guias do Sankhya que o hub observa, e se cada uma está numa tela de login.
+
+O hub **só olha** as guias: nunca fecha, nunca mexe nas outras. O navegador continua do
+usuário, com quantas guias ele quiser — era a exigência dele, e é o que torna a solução
+aceitável no dia a dia.
+
+Essa lista de guias resolve, de quebra, a desonestidade descrita em 18.7: a sessão do ERP
+não carrega validade, mas uma guia parada em `login.jsp` denuncia que ela morreu.
+
+### 18.9 O proxy-iframe (seções 8 e 17, fases 0 e 5) está descartado
+
+> **Decisão tomada em 2026-09-11: não fazer.** O código chegou a ser escrito e foi
+> removido.
+
+Além do motivo já registrado abaixo — que o fallback resolve mais que o proxy —, apareceu
+um segundo, mais forte: para o Sankhya caber num iframe servido pela origem do hub, o
+proxy precisava **remover proteções que a Sankhya configurou de propósito**:
+`X-Frame-Options` e o `frame-ancestors` do CSP (anti-clickjacking), o `Secure` dos cookies
+de sessão e o `SameSite=None`. Some a isso trafegar uma sessão autenticada de terceiro
+por um servidor local sem autenticação.
+
+Para uma ferramenta local isso é defensável, mas não é necessário: a janela dirigida
+(18.11) entrega o requisito real — sessão única — sem enfraquecer controle nenhum.
+
+Motivo original, que continua valendo:
 
 A seção 2 escolheu proxy reverso para "abrir o Sankhya dentro do hub", e a 8.3 já
 alertava que aplicação legada faz chamada absoluta e o iframe provavelmente quebraria em

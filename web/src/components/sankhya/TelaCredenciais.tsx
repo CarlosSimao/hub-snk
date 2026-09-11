@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import type { SistemaSankhya, StatusCredencial } from '../../types.ts';
 import { useCredenciais } from '../../hooks/useCredenciais.ts';
 import type { Avisar } from '../../hooks/useToasts.ts';
+import { JanelaSankhya } from './JanelaSankhya.tsx';
 
 const TITULOS: Record<SistemaSankhya, { nome: string; onde: string }> = {
   'sankhya-erp': { nome: 'Sankhya ERP', onde: 'skw.sankhya.com.br — Agenda de Recursos' },
@@ -41,6 +42,7 @@ export function TelaCredenciais({ toast }: { toast: Avisar }) {
     remover,
     abrirNavegador,
     capturarSessao,
+    recarregar,
   } = useCredenciais(toast);
 
   return (
@@ -75,12 +77,19 @@ export function TelaCredenciais({ toast }: { toast: Avisar }) {
 
       {carregando && !erroHelper && <p className="detail-empty">Carregando…</p>}
 
+      {!erroHelper && !carregando && (
+        <JanelaSankhya
+          navegador={navegador}
+          onAbrir={abrirNavegador}
+          onAtualizar={recarregar}
+        />
+      )}
+
       {credenciais.map((credencial) => (
         <CartaoCredencial
           key={`${credencial.sistema}:${versao}`}
           credencial={credencial}
           navegadorDisponivel={navegador.navegador}
-          onAbrir={() => abrirNavegador(credencial.sistema)}
           onCapturar={() => capturarSessao(credencial.sistema)}
           onGravar={(usuario, senha) => gravar(credencial.sistema, usuario, senha)}
           onRemover={() => remover(credencial.sistema)}
@@ -93,14 +102,12 @@ export function TelaCredenciais({ toast }: { toast: Avisar }) {
 function CartaoCredencial({
   credencial,
   navegadorDisponivel,
-  onAbrir,
   onCapturar,
   onGravar,
   onRemover,
 }: {
   credencial: StatusCredencial;
   navegadorDisponivel: boolean;
-  onAbrir: () => Promise<void>;
   onCapturar: () => Promise<void>;
   onGravar: (usuario: string, senha: string) => Promise<boolean>;
   onRemover: () => Promise<void>;
@@ -155,7 +162,8 @@ function CartaoCredencial({
 
       <div className="form-campos">
         <div className="passo">
-          <b>1.</b> Abra a janela do hub e faça o login nela, como você faria no navegador.
+          <b>1.</b> Abra o sistema pela <strong>Janela do Sankhya</strong> acima e faça o login
+          nela.
         </div>
         <div className="passo">
           <b>2.</b> Volte aqui e capture a sessão. O hub passa a usar esse acesso sozinho.
@@ -163,14 +171,6 @@ function CartaoCredencial({
       </div>
 
       <div className="form-acoes">
-        <button
-          className="btn tiny"
-          type="button"
-          disabled={ocupado || !navegadorDisponivel}
-          onClick={() => void comOcupado(onAbrir)}
-        >
-          Abrir janela de login
-        </button>
         <button
           className="btn tiny"
           type="button"

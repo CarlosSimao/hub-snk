@@ -234,18 +234,41 @@ $TokenSistema = @{
     'sankhya-experience' = @{ url = 'experience.sankhya.com.br'; chave = 'token' }
 }
 
-function Resolver-Navegador {
-    $candidatos = @(
+<#
+    Navegadores que o helper sabe abrir, na ordem de preferencia dentro de cada marca.
+    O usuario escolhe a marca; sem escolha, vale o primeiro que existir na maquina.
+#>
+$CaminhosNavegador = [ordered]@{
+    chrome = @(
         (Join-Path $env:ProgramFiles 'Google\Chrome\Application\chrome.exe'),
         (Join-Path ${env:ProgramFiles(x86)} 'Google\Chrome\Application\chrome.exe'),
-        (Join-Path $env:LOCALAPPDATA 'Google\Chrome\Application\chrome.exe'),
+        (Join-Path $env:LOCALAPPDATA 'Google\Chrome\Application\chrome.exe')
+    )
+    edge   = @(
         (Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe'),
         (Join-Path $env:ProgramFiles 'Microsoft\Edge\Application\msedge.exe')
     )
-    foreach ($caminho in $candidatos) {
-        if ($caminho -and (Test-Path -LiteralPath $caminho)) { return $caminho }
+}
+
+function Resolver-Navegador {
+    param([string] $Marca = '')
+
+    $marcas = if ($Marca -and $CaminhosNavegador.Contains($Marca)) { @($Marca) } else { $CaminhosNavegador.Keys }
+    foreach ($m in $marcas) {
+        foreach ($caminho in $CaminhosNavegador[$m]) {
+            if ($caminho -and (Test-Path -LiteralPath $caminho)) { return $caminho }
+        }
     }
     return $null
+}
+
+<# Quais marcas existem nesta maquina, para a tela oferecer so o que da para abrir. #>
+function Get-NavegadoresDisponiveis {
+    $achados = @()
+    foreach ($m in $CaminhosNavegador.Keys) {
+        if (Resolver-Navegador -Marca $m) { $achados += $m }
+    }
+    return $achados
 }
 
 function Test-CdpNoAr {
@@ -264,11 +287,12 @@ function Test-CdpNoAr {
     por isso que nao ha controle de PID aqui.
 #>
 function Abrir-NoNavegador {
-    param([string] $Url)
+    param([string] $Url, [string] $Marca = '')
 
-    $navegador = Resolver-Navegador
+    $navegador = Resolver-Navegador -Marca $Marca
     if (-not $navegador) {
-        return @{ ok = $false; erro = 'nenhum Chrome ou Edge encontrado nesta máquina' }
+        $qual = if ($Marca) { "o navegador '$Marca'" } else { 'nenhum Chrome ou Edge' }
+        return @{ ok = $false; erro = "$qual não foi encontrado nesta máquina" }
     }
 
     if (-not (Test-Path -LiteralPath $PastaPerfil)) {
@@ -473,6 +497,56 @@ function Get-AgendaRecursos {
     return @{ ok = $true; conteudo = $texto }
 }
 
+<#
+    As telas do Sankhya que o hub sabe abrir, por apelido.
+
+    O `resourceID` vai em base64 depois do `#` porque a aplicacao e uma SPA: o trecho
+    apos o `#` nunca chega ao servidor, quem le e o JavaScript dela.
+#>
+$TelasSankhya = @{
+    'agenda-recursos' = @{ sistema = 'sankhya-erp'; resource = 'br.com.sankhya.os.mov.agenda.recursos' }
+}
+
+function Resolver-UrlTela {
+    param([string] $Tela)
+
+    if (-not $TelasSankhya.ContainsKey($Tela)) { return '' }
+    $info = $TelasSankhya[$Tela]
+    $base64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($info.resource))
+    return "https://skw.sankhya.com.br/mge/system.jsp#app/$base64"
+}
+
+<#
+    O que esta aberto na janela do hub.
+
+    So as guias de PAGINA e so a URL — o usuario pode usar o navegador normalmente, com
+    quantas guias quiser, e o hub nao se mete nelas. Isto existe para a tela do hub
+    poder dizer "o Sankhya esta aberto ali" em vez de adivinhar.
+#>
+function Get-AbasNavegador {
+    if (-not (Test-CdpNoAr)) { return @() }
+
+    try {
+        $lista = Invoke-RestMethod -Uri "http://127.0.0.1:$PortaCdp/json/list" -TimeoutSec 5
+    }
+    catch { return @() }
+
+    return @($lista | Where-Object { $_.type -eq 'page' } | ForEach-Object {
+        $url = [string] $_.url
+        @{
+            id      = [string] $_.id
+            url     = $url
+            titulo  = [string] $_.title
+            sistema = if ($url -like '*skw.sankhya.com.br*') { 'sankhya-erp' }
+                      elseif ($url -like '*experience.sankhya.com.br*' -or $url -like '*login.sankhya.com.br*') { 'sankhya-experience' }
+                      else { '' }
+            # Sessao morta redireciona para a tela de login; e o sinal honesto que o
+            # cookie do ERP nao da, porque ele nao carrega validade nenhuma.
+            logado  = -not ($url -like '*login.jsp*' -or $url -like '*login.sankhya.com.br*')
+        }
+    })
+}
+
 function Invoke-RotaNavegador {
     param([string] $Metodo, [string[]] $Segmentos, [string] $Corpo)
 
@@ -501,19 +575,37 @@ function Invoke-RotaNavegador {
     }
 
     if ($Metodo -eq 'GET' -and $acao -eq 'status') {
+        $abas = Get-AbasNavegador
         return @{ status = 200; corpo = @{
-            ok        = $true
-            navegador = [bool] (Resolver-Navegador)
-            aberto    = (Test-CdpNoAr)
+            ok           = $true
+            navegador    = [bool] (Resolver-Navegador)
+            disponiveis  = (Get-NavegadoresDisponiveis)
+            aberto       = (Test-CdpNoAr)
+            abas         = $abas
+            telas        = @($TelasSankhya.Keys)
         } }
     }
 
+    <#
+        Abre uma tela na janela do hub.
+
+        `tela` leva direto para a tela pedida; sem ela, cai no login do sistema. Chamar
+        o executavel de novo com o mesmo perfil abre uma GUIA, nao outra janela — o
+        usuario segue usando o navegador normalmente, com as guias que quiser.
+    #>
     if ($Metodo -eq 'POST' -and $acao -eq 'abrir') {
-        $resultado = Abrir-NoNavegador -Url $UrlLogin[$sistema]
+        $tela = if ($dados) { [string] $dados.tela } else { '' }
+        $url = if ($tela) { Resolver-UrlTela -Tela $tela } else { $UrlLogin[$sistema] }
+        if (-not $url) {
+            return @{ status = 400; corpo = @{ ok = $false; erro = "tela desconhecida: $tela" } }
+        }
+
+        $marca = if ($dados) { [string] $dados.navegador } else { '' }
+        $resultado = Abrir-NoNavegador -Url $url -Marca $marca
         if (-not $resultado.ok) {
             return @{ status = 502; corpo = @{ ok = $false; erro = $resultado.erro } }
         }
-        return @{ status = 200; corpo = @{ ok = $true; url = $UrlLogin[$sistema] } }
+        return @{ status = 200; corpo = @{ ok = $true; url = $url } }
     }
 
     if ($Metodo -eq 'POST' -and $acao -eq 'capturar') {
