@@ -118,9 +118,12 @@ function Ler-Cofre {
             $mapa[$propriedade.Name] = @{
                 usuario = [string] $propriedade.Value.usuario
                 senha   = [string] $propriedade.Value.senha
-                # Cookie de sessao capturado do navegador do hub. Vale tanto quanto a
-                # senha enquanto nao expira, entao e cifrado do mesmo jeito.
+                # Capturados do navegador do hub. Valem tanto quanto a senha enquanto
+                # nao expiram, entao sao cifrados do mesmo jeito. `expira` fica em
+                # claro: e data, nao credencial.
                 sessao  = [string] $propriedade.Value.sessao
+                token   = [string] $propriedade.Value.token
+                expira  = [string] $propriedade.Value.expira
             }
         }
         return $mapa
@@ -211,11 +214,24 @@ $UrlLogin = @{
     'sankhya-experience' = 'https://experience.sankhya.com.br/'
 }
 
-# Dominios cujos cookies interessam a cada sistema. A API da Experience mora no API
-# Gateway da AWS, fora de sankhya.com.br — por isso ela leva dois.
+# Dominios cujos cookies interessam a cada sistema.
 $DominiosSistema = @{
     'sankhya-erp'        = @('sankhya.com.br')
-    'sankhya-experience' = @('sankhya.com.br', 'amazonaws.com')
+    'sankhya-experience' = @('sankhya.com.br')
+}
+
+<#
+    Onde mora o que REALMENTE autentica cada sistema.
+
+    Medido: a API da Experience (API Gateway da AWS) responde 403 com o cookie e 200 com
+    `Authorization: Bearer <localStorage.token>`. O cookie de sessao nao serve para ela —
+    e nao existe cookie no dominio amazonaws.com. Por isso a captura da Experience busca
+    o JWT, e considerar a captura bem-sucedida sem ele daria uma sessao que nao funciona.
+
+    O ERP legado e o contrario: `service.sbr` vai por cookie, e nao ha token nenhum.
+#>
+$TokenSistema = @{
+    'sankhya-experience' = @{ url = 'experience.sankhya.com.br'; chave = 'token' }
 }
 
 function Resolver-Navegador {
@@ -286,13 +302,21 @@ function Abrir-NoNavegador {
     aconteceu.
 #>
 function Invoke-Cdp {
-    param([string] $Metodo, [hashtable] $Parametros = @{})
+    param(
+        [string] $Metodo,
+        [hashtable] $Parametros = @{},
+        # Vazio = alvo do navegador. Preenchido = uma guia, necessario para avaliar JS.
+        [string] $UrlWs = ''
+    )
 
-    $versao = Invoke-RestMethod -Uri "http://127.0.0.1:$PortaCdp/json/version" -TimeoutSec 5
+    if (-not $UrlWs) {
+        $versao = Invoke-RestMethod -Uri "http://127.0.0.1:$PortaCdp/json/version" -TimeoutSec 5
+        $UrlWs = $versao.webSocketDebuggerUrl
+    }
     $ws = [System.Net.WebSockets.ClientWebSocket]::new()
 
     try {
-        if (-not $ws.ConnectAsync([Uri] $versao.webSocketDebuggerUrl, [Threading.CancellationToken]::None).Wait(10000)) {
+        if (-not $ws.ConnectAsync([Uri] $UrlWs, [Threading.CancellationToken]::None).Wait(10000)) {
             throw 'timeout conectando ao DevTools'
         }
 
@@ -325,6 +349,51 @@ function Invoke-Cdp {
     finally {
         $ws.Dispose()
     }
+}
+
+<#
+    Le uma chave do localStorage da guia onde o sistema esta aberto.
+
+    Precisa do alvo da GUIA, nao do navegador: `Runtime.evaluate` so existe num contexto
+    de execucao de pagina.
+#>
+function Obter-TokenDaPagina {
+    param([string] $UrlContem, [string] $Chave)
+
+    $lista = Invoke-RestMethod -Uri "http://127.0.0.1:$PortaCdp/json/list" -TimeoutSec 5
+    $alvo = $lista | Where-Object { $_.type -eq 'page' -and $_.url -like "*$UrlContem*" } | Select-Object -First 1
+    if (-not $alvo) { return '' }
+
+    $resposta = Invoke-Cdp -UrlWs $alvo.webSocketDebuggerUrl -Metodo 'Runtime.evaluate' -Parametros @{
+        expression    = "localStorage.getItem('$Chave')"
+        returnByValue = $true
+    }
+    return [string] $resposta.result.result.value
+}
+
+<#
+    Quando o token e um JWT, o `exp` do payload diz ate quando a sessao vale — e o que
+    permite a tela avisar que expirou em vez de so falhar na proxima chamada.
+
+    O payload e base64url: `-` e `_` no lugar de `+` e `/`, e sem o `=` do final.
+#>
+function Obter-ExpiracaoJwt {
+    param([string] $Token)
+
+    $partes = $Token -split '\.'
+    if ($partes.Length -ne 3) { return '' }
+
+    try {
+        $texto = $partes[1].Replace('-', '+').Replace('_', '/')
+        switch ($texto.Length % 4) {
+            2 { $texto += '==' }
+            3 { $texto += '=' }
+        }
+        $payload = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($texto)) | ConvertFrom-Json
+        if (-not $payload.exp) { return '' }
+        return ([DateTimeOffset]::FromUnixTimeSeconds([long] $payload.exp)).UtcDateTime.ToString('o')
+    }
+    catch { return '' }
 }
 
 function Obter-Cookies {
@@ -374,17 +443,33 @@ function Invoke-RotaNavegador {
 
         try {
             $cookies = Obter-Cookies -Dominios $DominiosSistema[$sistema]
+            $token = ''
+            $expira = ''
+            if ($TokenSistema.ContainsKey($sistema)) {
+                $onde = $TokenSistema[$sistema]
+                $token = Obter-TokenDaPagina -UrlContem $onde.url -Chave $onde.chave
+                if ($token) { $expira = Obter-ExpiracaoJwt -Token $token }
+            }
         }
         catch {
-            return @{ status = 502; corpo = @{ ok = $false; erro = "falha lendo os cookies: $($_.Exception.Message)" } }
+            return @{ status = 502; corpo = @{ ok = $false; erro = "falha lendo a sessão: $($_.Exception.Message)" } }
         }
 
-        if (-not $cookies.Count) {
-            return @{ status = 200; corpo = @{ ok = $false; erro = 'nenhum cookie desse domínio no navegador — faça o login na janela aberta antes de capturar'; cookies = 0 } }
+        # Ausencia do token e o unico teste honesto de "esta logado": cookie anonimo
+        # existe antes do login e daria um falso positivo.
+        if ($TokenSistema.ContainsKey($sistema) -and -not $token) {
+            return @{ status = 200; corpo = @{
+                ok  = $false
+                erro = 'a janela não está logada nesse sistema — faça o login nela e capture de novo'
+            } }
         }
 
-        # Guardado com DPAPI, no mesmo cofre da senha: o cookie de sessao vale tanto
-        # quanto ela enquanto nao expira.
+        if (-not $TokenSistema.ContainsKey($sistema) -and -not $cookies.Count) {
+            return @{ status = 200; corpo = @{ ok = $false; erro = 'nenhum cookie desse domínio no navegador — faça o login na janela aberta antes de capturar' } }
+        }
+
+        # Cifrados com DPAPI no mesmo cofre da senha: enquanto nao expiram, valem tanto
+        # quanto ela. A expiracao fica em claro — e data, nao credencial, e a tela mostra.
         $cofre = Ler-Cofre
         $entrada = $cofre[$sistema]
         $cabecalho = (($cookies | ForEach-Object { "$($_.name)=$($_.value)" }) -join '; ')
@@ -392,11 +477,13 @@ function Invoke-RotaNavegador {
         $cofre[$sistema] = @{
             usuario = if ($entrada) { $entrada.usuario } else { '' }
             senha   = if ($entrada) { $entrada.senha } else { '' }
-            sessao  = (Proteger-Texto $cabecalho)
+            sessao  = if ($cookies.Count) { Proteger-Texto $cabecalho } else { '' }
+            token   = if ($token) { Proteger-Texto $token } else { '' }
+            expira  = $expira
         }
         Gravar-Cofre $cofre
 
-        return @{ status = 200; corpo = @{ ok = $true; cookies = $cookies.Count } }
+        return @{ status = 200; corpo = @{ ok = $true; cookies = $cookies.Count; token = [bool] $token; expira = $expira } }
     }
 
     return @{ status = 404; corpo = @{ ok = $false; erro = "rota desconhecida: $Metodo /$($Segmentos -join '/')" } }
@@ -730,6 +817,8 @@ function Invoke-RotaCredenciais {
                 usuario = $entrada.usuario
                 senha   = if ($entrada.senha) { Desproteger-Texto $entrada.senha } else { '' }
                 sessao  = if ($entrada.sessao) { Desproteger-Texto $entrada.sessao } else { '' }
+                token   = if ($entrada.token) { Desproteger-Texto $entrada.token } else { '' }
+                expira  = [string] $entrada.expira
             } }
         }
         catch {
@@ -743,7 +832,9 @@ function Invoke-RotaCredenciais {
             ok              = $true
             usuario         = if ($entrada) { $entrada.usuario } else { '' }
             definido        = [bool] ($entrada -and $entrada.senha)
-            sessaoCapturada = [bool] ($entrada -and $entrada.sessao)
+            # Para a Experience o que vale e o token; para o ERP legado, o cookie.
+            sessaoCapturada = [bool] ($entrada -and ($entrada.token -or $entrada.sessao))
+            sessaoExpiraEm  = if ($entrada) { [string] $entrada.expira } else { '' }
         } }
     }
 
@@ -766,13 +857,16 @@ function Invoke-RotaCredenciais {
             usuario = $usuario
             senha   = (Proteger-Texto $senha)
             sessao  = if ($entrada) { $entrada.sessao } else { '' }
+            token   = if ($entrada) { $entrada.token } else { '' }
+            expira  = if ($entrada) { $entrada.expira } else { '' }
         }
         Gravar-Cofre $cofre
         return @{ status = 200; corpo = @{
             ok              = $true
             usuario         = $usuario
             definido        = $true
-            sessaoCapturada = [bool] ($entrada -and $entrada.sessao)
+            sessaoCapturada = [bool] ($entrada -and ($entrada.token -or $entrada.sessao))
+            sessaoExpiraEm  = if ($entrada) { [string] $entrada.expira } else { '' }
         } }
     }
 

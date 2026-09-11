@@ -33,6 +33,7 @@ function montar(sistema: SistemaSankhya, corpo: RespostaCredencial): StatusCrede
     usuario: corpo.usuario ?? '',
     definido: Boolean(corpo.definido),
     sessaoCapturada: Boolean(corpo.sessaoCapturada),
+    sessaoExpiraEm: corpo.sessaoExpiraEm ?? '',
   };
 }
 

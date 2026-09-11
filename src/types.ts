@@ -192,12 +192,18 @@ export interface StatusCredencial {
   usuario: string;
   definido: boolean;
   /**
-   * Ha cookie de sessao capturado do navegador do hub.
+   * O hub tem o que precisa para se autenticar neste sistema.
    *
-   * E independente de `definido`: da para ter sessao sem nunca ter guardado senha —
-   * e o caminho preferido, porque a senha nao chega a passar pelo hub.
+   * Independente de `definido`: da para ter sessao sem nunca ter guardado senha — e o
+   * caminho preferido, porque a senha nao chega a passar pelo hub.
+   *
+   * O artefato muda por sistema. A API da Experience so aceita o JWT do
+   * `localStorage` (`Authorization: Bearer`); com cookie ela responde 403. Ja o ERP
+   * legado vai por cookie de sessao, e nao tem token nenhum.
    */
   sessaoCapturada: boolean;
+  /** ISO-8601 do `exp` do JWT, quando ha um. Vazio para sessao so de cookie. */
+  sessaoExpiraEm: string;
 }
 
 /** O navegador que o hub controla, separado do Chrome do dia a dia do usuario. */

@@ -11,6 +11,25 @@ const TITULOS: Record<SistemaSankhya, { nome: string; onde: string }> = {
   },
 };
 
+/** "expira em 2 dias" diz mais que a data crua, que exige contar na cabeça. */
+function validade(iso: string): { texto: string; vencida: boolean } | null {
+  if (!iso) return null;
+
+  const restanteMs = new Date(iso).getTime() - Date.now();
+  if (Number.isNaN(restanteMs)) return null;
+  if (restanteMs <= 0) return { texto: 'sessão expirada — capture de novo', vencida: true };
+
+  const horas = restanteMs / 3_600_000;
+  const texto =
+    horas < 1
+      ? `expira em ${Math.round(horas * 60)}min`
+      : horas < 48
+        ? `expira em ${Math.round(horas)}h`
+        : `expira em ${Math.round(horas / 24)} dias`;
+
+  return { texto, vencida: false };
+}
+
 export function TelaCredenciais({ toast }: { toast: Avisar }) {
   const {
     credenciais,
@@ -90,6 +109,7 @@ function CartaoCredencial({
   const [ocupado, setOcupado] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const titulo = TITULOS[credencial.sistema];
+  const prazo = validade(credencial.sessaoExpiraEm);
 
   const comOcupado = async (fn: () => Promise<void>) => {
     setOcupado(true);
@@ -121,14 +141,15 @@ function CartaoCredencial({
         <div className="card-title">
           <h2>
             {titulo.nome}
-            {credencial.sessaoCapturada ? (
+            {credencial.sessaoCapturada && !prazo?.vencida ? (
               <span className="selo ok">sessão ativa</span>
             ) : (
-              <span className="selo falta">sem sessão</span>
+              <span className="selo falta">{prazo?.vencida ? 'sessão expirada' : 'sem sessão'}</span>
             )}
             {credencial.definido && <span className="selo ok">senha guardada</span>}
           </h2>
           <p>{titulo.onde}</p>
+          {prazo && <p className="card-summary">{prazo.texto}</p>}
         </div>
       </div>
 

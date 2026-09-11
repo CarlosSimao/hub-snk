@@ -414,8 +414,9 @@ Não é opcional, é requisito de aceite desta fase:
    o que acontece ao clicar "Não" no popup de aprovação (não testado).
 2. **Viabilidade do proxy-iframe (CORS/CSP)** — spike descrito na seção 8.3, fazer antes de
    construir o resto da integração de proxy.
-3. **Descobrir `person_id` da Experience programaticamente** — hoje só temos o valor lido
-   manualmente de uma resposta já autenticada.
+3. **Descobrir `person_id` da Experience programaticamente** — segue aberta, mas com duas
+   pistas descartadas (ver 18.2): NÃO é o `id` do JWT (esse é a conta, 378512 vs. 21986)
+   e NÃO vem de `get-approvers`. Não bloqueia: o campo está no cadastro do Cliente.
 4. **ACL de escrita na Agenda de Recursos via API** — não confirmada (só a via UI está
    confirmada). Se um dia for liberada pelo admin, a escrita fica mais simples que
    automação de UI — não é bloqueante agora, é otimização futura.
@@ -456,7 +457,8 @@ entre fases).
 | 2 — `hub-helper.ps1` | **pronta** | DPAPI + git-autosync na porta 4102, com token (seção 3.2). Ações de escrita do git **não testadas** — ver abaixo. |
 | 3 — Cadastro de Clientes + credenciais | **pronta** | SQLite `sankhya.db`, abas Sankhya › Clientes e Credenciais. |
 | 8 — Git Autosync | **pronta** | Aba Git (14.1) e sub-aba Git dentro de cada cliente (14.2). |
-| 0, 4, 5, 6, 7, 9 | pendentes | Dependem do spike de CORS e de uma sessão real capturada. |
+| 4 — Extração Experience | **destravada** | Autenticação resolvida e medida (18.2): sessão real capturada, `tasks/filtering` e `orders/filtering` respondendo 200 de dentro do Node. Falta escrever o cliente e o calendário. |
+| 0, 5, 6, 7, 9 | pendentes | 0 e 5 dependem do spike de CORS do iframe; 6 de uma captura do JSON da Agenda; 7 e 9 vêm depois da 4. |
 
 ### 18.1 Autenticação — o desenho mudou em relação à seção 8.2
 
@@ -480,13 +482,43 @@ A porta 9222 **não** é exposta ao container: quem fala CDP é o helper, e o hu
 resultado pela 4102, que exige token. Abrir o CDP para a rede daria controle total de um
 navegador logado no Sankhya para qualquer aparelho que alcançasse a porta.
 
-Descoberta durante o teste: a Experience redireciona o login para **`login.sankhya.com.br`**,
-um terceiro domínio. O filtro de cookies por sufixo (`sankhya.com.br`) já o cobre, mas
-vale saber ao investigar qual cookie autentica a API no API Gateway da AWS.
+### 18.2 O que autentica a API da Experience — MEDIDO, e não é o cookie
 
-**Não verificado:** a captura foi exercitada com os cookies anônimos de uma página sem
-login (2 cookies, ida e volta pelo DPAPI conferidas). Uma sessão autenticada de verdade
-ainda não foi capturada — é o próximo passo, e destrava a Fase 4.
+Spike feito com sessão real logada, em 2026-09-10. Resolve a pendência da seção 5 de
+`sankhya-experience-tarefas-api.md` ("validar se o cookie sozinho basta fora do browser").
+
+| Tentativa contra `tasks/filtering` | Resultado |
+|---|---|
+| Sem nada (controle) | **403** |
+| Só o cookie de sessão | **403** |
+| Cookie + `Origin`/`Referer` corretos | **403** |
+| `Authorization: Bearer <localStorage.token>` | **200** — 11 tarefas |
+| `Authorization: <token>` sem o `Bearer` | 403 |
+
+**Conclusão: o cookie não serve para a API.** Quem autentica é um JWT guardado em
+`localStorage.token` da página da Experience. Não existe cookie no domínio
+`amazonaws.com` — a chamada ao API Gateway não depende de cookie nenhum.
+
+Consequências, todas boas:
+
+1. **Playwright é desnecessário para a coleta.** O JWT funciona de dentro do Node, fora
+   do navegador. O browser só é preciso no momento do login, e a janela pode ser fechada
+   depois. A decisão de engordar a imagem com Chromium fica cancelada.
+2. O JWT vale **72 horas** (`exp` no payload). O helper decodifica e guarda a data em
+   claro (`expira`), e a tela mostra "expira em 3 dias" — dá para avisar antes de falhar.
+3. A captura agora **exige** o token para a Experience. É o único teste honesto de "está
+   logado": cookie anônimo existe antes do login e dava falso positivo.
+
+`orders/filtering` também respondeu 200 com o mesmo token, então a Fase 4 inteira está
+destravada do lado da autenticação.
+
+**O que o JWT NÃO resolve:** o `person_id`. O `id` do payload é 378512 (a conta na
+Experience), enquanto o `person_id` usado no caminho da API é 21986. `get-approvers`
+devolve só os aprovadores do projeto, não o usuário logado. Segue vindo do cadastro
+manual do Cliente — não bloqueia nada, mas a pendência 3 continua aberta.
+
+Descoberta secundária: a Experience redireciona o login para **`login.sankhya.com.br`**,
+um terceiro domínio. O filtro de cookies por sufixo (`sankhya.com.br`) já o cobre.
 
 **Não verificado, precisa de você:**
 
