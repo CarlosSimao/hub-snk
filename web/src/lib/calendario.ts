@@ -201,6 +201,87 @@ export function resumirMes(
   };
 }
 
+/* ------------------------ a agenda de todos os clientes ------------------- */
+
+/** Um cliente com o que os dois sistemas sabem dele no mês. */
+export interface AgendaDeCliente {
+  cliente: { id: number; nome: string };
+  agenda?: AgendaExperience;
+  eventos?: EventoComRecurso[];
+  erro?: string;
+}
+
+/**
+ * O que um cliente tem num dia da visão consolidada.
+ *
+ * `vazio` está fora do tipo de propósito: uma fatia só existe quando há algo, e um dia
+ * sem nada simplesmente não lista o cliente.
+ */
+export interface FatiaDoDia {
+  clienteId: number;
+  nome: string;
+  tarefas: number;
+  ordens: number;
+  eventos: number;
+  cruzamento: Exclude<Cruzamento, 'vazio'>;
+}
+
+export interface DiaConsolidado {
+  dia: string;
+  numero: number;
+  doMes: boolean;
+  hoje: boolean;
+  /** Só os clientes que têm algo neste dia, em ordem alfabética. */
+  clientes: FatiaDoDia[];
+}
+
+/**
+ * A grade do mês com TODOS os clientes de uma vez.
+ *
+ * Diferente de `montarGrade`, que é de um cliente só: aqui o dia é a unidade e os
+ * clientes são o conteúdo dele. É a visão que responde "o que eu fiz este mês", que
+ * olhando um cliente de cada vez exige somar de cabeça.
+ */
+export function montarGradeConsolidada(
+  mes: string,
+  linhas: AgendaDeCliente[],
+  hoje: string = hojeIso(),
+): DiaConsolidado[] {
+  // Cada cliente vira a grade dele, e depois as grades são costuradas por dia. Reusar
+  // `montarGrade` mantém UMA definição de "o que é um dia" e de cruzamento — duas
+  // implementações sairiam do ar uma com a outra no primeiro ajuste de regra.
+  const porCliente = linhas.map((linha) => ({
+    linha,
+    grade: montarGrade(mes, linha.agenda ?? { tarefas: [], ordens: [] }, linha.eventos ?? [], hoje),
+  }));
+
+  // O molde sai de uma grade VAZIA, não da do primeiro cliente: assim a sequência de
+  // dias não depende de quem apareceu primeiro na lista, nem de a lista estar vazia.
+  const molde = montarGrade(mes, { tarefas: [], ordens: [] }, [], hoje);
+
+  return molde.map((dia, i) => ({
+    dia: dia.dia,
+    numero: dia.numero,
+    doMes: dia.doMes,
+    hoje: dia.hoje,
+    clientes: porCliente
+      .map(({ linha, grade }): FatiaDoDia | null => {
+        const doCliente = grade[i];
+        if (!doCliente || doCliente.cruzamento === 'vazio') return null;
+        return {
+          clienteId: linha.cliente.id,
+          nome: linha.cliente.nome,
+          tarefas: doCliente.tarefas.length,
+          ordens: doCliente.ordens.length,
+          eventos: doCliente.eventos.length,
+          cruzamento: doCliente.cruzamento,
+        };
+      })
+      .filter((c): c is FatiaDoDia => c !== null)
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
+  }));
+}
+
 /**
  * A grade do mês, sempre em semanas inteiras de domingo a sábado — as sobras do mês
  * anterior e do seguinte entram apagadas para a grade não ficar com buracos.

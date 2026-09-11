@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { AgendaExperience, Cliente } from '../types.ts';
+import type { AgendaExperience, Cliente, EventoComRecurso } from '../types.ts';
 import { requisitar } from '../lib/api.ts';
 
 export interface LinhaResumo {
   cliente: Cliente;
   agenda?: AgendaExperience;
+  /** Eventos da Agenda de Recursos do ERP já recortados no parceiro deste cliente. */
+  eventos?: EventoComRecurso[];
   /** Preenchido quando só ESTE cliente falhou — os outros continuam na tela. */
   erro?: string;
 }

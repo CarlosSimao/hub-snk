@@ -9,10 +9,12 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { HelperError, HelperIndisponivelError } from './sankhya/helper.ts';
 import { SessaoExpiradaError, type Experience } from './sankhya/experience.ts';
 import type { Clientes } from './sankhya/clientes.ts';
+import type { AgendaRecursos } from './sankhya/agenda.ts';
 
 export interface RouteExperienceDeps {
   experience: Experience;
   clientes: Clientes;
+  agenda: AgendaRecursos;
 }
 
 function responderErro(reply: FastifyReply, err: unknown): FastifyReply {
@@ -45,7 +47,7 @@ function limitesDoMes(mes: string): { de: string; ate: string } | null {
 }
 
 export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperienceDeps): void {
-  const { experience, clientes } = deps;
+  const { experience, clientes, agenda } = deps;
 
   /**
    * Todos os clientes de uma vez, para a visão consolidada do mês.
@@ -70,8 +72,21 @@ export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperi
 
       const resultados = await Promise.all(
         clientes.listar().map(async (cliente) => {
+          // A agenda do ERP é snapshot local: responde mesmo quando a Experience está
+          // fora, e sem parceiro no cadastro não há o que recortar — a lane inteira
+          // encheria o dia deste cliente com evento de todos os outros.
+          const eventos =
+            cliente.agendaCodparc === null
+              ? []
+              : agenda.eventos(
+                  `${limites.de} 00:00:00`,
+                  `${limites.ate} 23:59:59`,
+                  cliente.agendaRecursoUsuario,
+                  cliente.agendaCodparc,
+                );
+
           if (cliente.experienceProjetoId === null || cliente.experiencePersonId === null) {
-            return { cliente, erro: 'cadastro sem ID do projeto ou person_id' };
+            return { cliente, eventos, erro: 'cadastro sem ID do projeto ou person_id' };
           }
 
           try {
@@ -84,10 +99,10 @@ export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperi
                 limites.ate,
               ),
             ]);
-            return { cliente, agenda: { tarefas, ordens } };
+            return { cliente, eventos, agenda: { tarefas, ordens } };
           } catch (err) {
             // Um cliente que falha não pode apagar os outros da tela.
-            return { cliente, erro: (err as Error).message };
+            return { cliente, eventos, erro: (err as Error).message };
           }
         }),
       );

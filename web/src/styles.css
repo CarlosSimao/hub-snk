@@ -2636,3 +2636,125 @@ main {
 .repo-status-compacto.pending_push { border-left-color: var(--degraded); }
 .repo-status-compacto.failed { border-left-color: var(--down); }
 .repo-status-compacto.unknown { border-left-color: var(--border-strong); }
+
+/* -------------------- calendario de todos os clientes -------------------- */
+
+/* As celulas listam nomes, entao precisam de mais altura que a de um cliente so. */
+.calendario-geral .cal-dia {
+  min-height: 92px;
+  align-items: stretch;
+}
+
+.cal-clientes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* O nome inteiro nao cabe; o title do elemento tem a versao completa. */
+.chip-cliente {
+  display: block;
+  max-width: 100%;
+  padding: 1px 5px;
+  border-left: 2px solid var(--border-strong);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--text-faint) 10%, transparent);
+  font-size: 9.5px;
+  font-style: normal;
+  line-height: 1.5;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip-cliente.cruz-casado {
+  border-left-color: var(--up);
+  background: color-mix(in srgb, var(--up) 12%, transparent);
+}
+
+.chip-cliente.cruz-alocado-sem-os {
+  border-left-color: var(--degraded);
+  background: color-mix(in srgb, var(--degraded) 14%, transparent);
+}
+
+.chip-cliente.cruz-os-sem-alocacao {
+  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.chip-cliente.cruz-so-erp { border-left-color: var(--accent); }
+.chip-cliente.cruz-so-experience { border-left-color: var(--text-faint); }
+
+@media (max-width: 760px) {
+  .calendario-geral .cal-dia { min-height: 74px; }
+  .chip-cliente { font-size: 9px; }
+}
+
+/* ------------------------- dias de atuacao -------------------------------- */
+
+.atuacao {
+  margin: 0 16px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.atuacao-resumo {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.atuacao-resumo > span:first-of-type {
+  flex: 1;
+  color: var(--text-faint);
+  font-size: 10.5px;
+}
+
+.atuacao-seta { flex: none; color: var(--text-faint); }
+
+.atuacao-dias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 11px 11px;
+}
+
+.atuacao-dia {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+/* O mes que o calendario ao lado esta mostrando. */
+.atuacao-dia.do-mes {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text);
+}
+
+/* Dia que ainda nao chegou: e agenda, nao historico. */
+.atuacao-dia.futuro { border-style: dashed; }
+
+.atuacao-dia b {
+  font-size: 9px;
+  color: var(--text-faint);
+}

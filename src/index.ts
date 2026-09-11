@@ -99,7 +99,7 @@ async function main(): Promise<void> {
   const credenciais = new Credenciais(helper);
   registerRoutesSankhya(app, { helper, credenciais, clientes, agenda });
   registerRoutesGitAutosync(app, { gitAutosync: new GitAutosync(helper) });
-  registerRoutesExperience(app, { experience: new Experience(credenciais), clientes });
+  registerRoutesExperience(app, { experience: new Experience(credenciais), clientes, agenda });
   registerRoutesAgenda(app, { agenda, helper });
 
   // Criado depois de `Clientes`: as tabelas do cartao e a migracao dos campos unicos

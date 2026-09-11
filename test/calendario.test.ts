@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import {
   cruzarDia,
   montarGrade,
+  montarGradeConsolidada,
   resumirMes,
   type Cruzamento,
 } from '../web/src/lib/calendario.ts';
@@ -127,5 +128,62 @@ describe('resumirMes — com a agenda do ERP', () => {
 
     assert.equal(resumo.diasAlocadosSemOs, 0);
     assert.equal(resumo.diasCasados, 0);
+  });
+});
+
+describe('montarGradeConsolidada', () => {
+  const linhas = [
+    {
+      cliente: { id: 2, nome: 'Zebra Ltda' },
+      agenda: { tarefas: [], ordens: [ordem('2026-09-02', 'Concluído')] },
+      eventos: [evento('2026-09-02')],
+    },
+    {
+      cliente: { id: 1, nome: 'Amatools' },
+      agenda: { tarefas: [tarefa('2026-09-02')], ordens: [] },
+      eventos: [evento('2026-09-03')],
+    },
+    // Cliente que falhou na Experience: o lado do ERP dele ainda vale.
+    { cliente: { id: 3, nome: 'Sem Experience' }, eventos: [evento('2026-09-02')], erro: 'sessão expirada' },
+  ];
+
+  test('junta os clientes por dia, em ordem alfabética', () => {
+    const grade = montarGradeConsolidada('2026-09', linhas, HOJE);
+    const dois = grade.find((d) => d.dia === '2026-09-02');
+
+    assert.deepEqual(
+      dois?.clientes.map((c) => c.nome),
+      ['Amatools', 'Sem Experience', 'Zebra Ltda'],
+      'ordenado pelo nome, não pela ordem em que o backend devolveu',
+    );
+  });
+
+  test('cada cliente leva o próprio cruzamento no dia', () => {
+    const grade = montarGradeConsolidada('2026-09', linhas, HOJE);
+    const dois = grade.find((d) => d.dia === '2026-09-02');
+    const porNome = new Map(dois?.clientes.map((c) => [c.nome, c.cruzamento]));
+
+    assert.equal(porNome.get('Zebra Ltda'), 'casado', 'evento e OS no mesmo dia');
+    assert.equal(porNome.get('Sem Experience'), 'alocado-sem-os', 'só o ERP, e o dia já passou');
+    assert.equal(porNome.get('Amatools'), 'so-experience', 'tarefa em aberto, nenhum evento');
+  });
+
+  test('dia sem ninguém não lista cliente nenhum', () => {
+    const grade = montarGradeConsolidada('2026-09', linhas, HOJE);
+
+    assert.deepEqual(grade.find((d) => d.dia === '2026-09-15')?.clientes, []);
+    // 03/09 tem só a Amatools, pelo evento do ERP.
+    assert.deepEqual(
+      grade.find((d) => d.dia === '2026-09-03')?.clientes.map((c) => c.nome),
+      ['Amatools'],
+    );
+  });
+
+  test('sem clientes, a grade do mês continua de pé', () => {
+    const grade = montarGradeConsolidada('2026-09', [], HOJE);
+
+    assert.ok(grade.length >= 28, 'a sequência de dias não depende de haver cliente');
+    assert.ok(grade.every((d) => d.clientes.length === 0));
+    assert.ok(grade.some((d) => d.dia === '2026-09-01' && d.doMes));
   });
 });

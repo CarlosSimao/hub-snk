@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
-import type { Cliente } from '../../types.ts';
+import { useEffect, useMemo, useState } from 'react';
+import type { AtuacaoCliente, Cliente } from '../../types.ts';
 import type { Avisar } from '../../hooks/useToasts.ts';
+import { requisitar } from '../../lib/api.ts';
 import { ModalGerarOs } from './ModalGerarOs.tsx';
 import { useAgenda } from '../../hooks/useAgenda.ts';
 import {
@@ -76,6 +77,7 @@ export function AgendaDoCliente({ cliente, toast }: { cliente: Cliente; toast: A
       </div>
 
       {cruzada && !carregando && <FaixaCruzamento resumo={resumo} />}
+      {cruzada && <DiasDeAtuacao clienteId={cliente.id} mes={mes} />}
 
       <div className="calendario">
         {DIAS_SEMANA.map((dia) => (
@@ -116,6 +118,64 @@ export function AgendaDoCliente({ cliente, toast }: { cliente: Cliente; toast: A
           : 'Só o Sankhya Experience. Preencha "Recurso na Agenda (ERP)" e "Parceiro na Agenda (ERP)" no cadastro para cruzar com os dias em que você foi alocado neste cliente.'}
       </p>
     </article>
+  );
+}
+
+/**
+ * Todos os dias em que houve (ou haverá) atendimento a este cliente.
+ *
+ * Não se limita ao mês da tela de propósito: o calendário já responde "o que rolou em
+ * setembro", e o que falta é a pergunta que ele não responde — "desde quando eu atendo
+ * este cliente, e quando volto". Vem da Agenda de Recursos, recortada no parceiro.
+ */
+function DiasDeAtuacao({ clienteId, mes }: { clienteId: number; mes: string }) {
+  const [atuacao, setAtuacao] = useState<AtuacaoCliente | null>(null);
+  const [aberto, setAberto] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    void requisitar<AtuacaoCliente>(`/api/clientes/${clienteId}/atuacao`).then(({ ok, body }) => {
+      if (!cancelado) setAtuacao(ok ? ((body as AtuacaoCliente) ?? null) : null);
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [clienteId]);
+
+  if (!atuacao?.dias.length) return null;
+
+  const hoje = hojeIso();
+  const passados = atuacao.dias.filter((d) => d.dia < hoje);
+  const futuros = atuacao.dias.filter((d) => d.dia >= hoje);
+
+  return (
+    <div className="atuacao">
+      <button className="atuacao-resumo" type="button" onClick={() => setAberto(!aberto)} aria-expanded={aberto}>
+        <strong>{atuacao.dias.length} dia(s) de atuação</strong>
+        <span>
+          {passados.length} já {passados.length === 1 ? 'atendido' : 'atendidos'} · {futuros.length} pela frente
+          {' · '}
+          {atuacao.dias[0]?.dia} a {atuacao.dias[atuacao.dias.length - 1]?.dia}
+        </span>
+        <span className="atuacao-seta">{aberto ? '▴' : '▾'}</span>
+      </button>
+
+      {aberto && (
+        <div className="atuacao-dias">
+          {atuacao.dias.map((d) => (
+            <span
+              key={d.dia}
+              // O mês na tela ganha destaque: é o recorte que o calendário ao lado mostra.
+              className={`atuacao-dia${d.dia.slice(0, 7) === mes ? ' do-mes' : ''}${d.dia < hoje ? '' : ' futuro'}`}
+              title={d.titulos.join(' · ') || undefined}
+            >
+              {d.dia.slice(8)}/{d.dia.slice(5, 7)}
+              {d.eventos > 1 && <b>{d.eventos}</b>}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
