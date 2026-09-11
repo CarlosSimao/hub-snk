@@ -459,15 +459,16 @@ entre fases).
 | 8 — Git Autosync | **pronta** | Aba Git (14.1) e sub-aba Git dentro de cada cliente (14.2). |
 | 4 — Extração Experience + calendário | **pronta** | `src/sankhya/experience.ts` + aba Agenda por cliente, conferida com dados reais (11 tarefas, 7 OS). Ver 18.3. |
 | 9 — Agenda Mensal | **pronta** | Visão consolidada de todos os clientes, com semáforo por cliente e atalho para a agenda de cada um. |
-| 6 — Agenda de Recursos (leitura) | **pronta** | Parser, SQLite, importação por colagem e eventos cruzados no calendário do cliente. A ESCRITA de evento (automação de UI) segue fora. Ver 18.5. |
+| 6 — Agenda de Recursos (leitura) | **pronta, e automática** | Parser, SQLite, eventos cruzados no calendário e busca direta do Sankhya — sem colagem manual (ver 18.6). A ESCRITA de evento segue fora. |
 | 0, 5, 7 | pendentes | 0 e 5 dependem do spike de CORS do iframe; 7 é ação real, visível para o cliente. |
 
 ### 18.5 Agenda de Recursos (seção 9)
 
-Feito: parser, snapshot em SQLite (`ag_recursos` / `ag_eventos`), importação por colagem
-em **Sankhya › Agenda de Recursos**, e os eventos cruzados no calendário de cada cliente
-pelo campo `agendaRecursoUsuario`. Fora: a escrita de evento por automação de UI, que a
-seção 9 descreve e continua pendente.
+Feito: parser, snapshot em SQLite (`ag_recursos` / `ag_eventos`), **busca automática**
+direta do Sankhya em **Sankhya › Agenda de Recursos** (a colagem manual virou reserva —
+ver 18.6), e os eventos cruzados no calendário de cada cliente pelo campo
+`agendaRecursoUsuario`. Fora: a escrita de evento por automação de UI, que a seção 9
+descreve e continua pendente.
 
 As 5 Server Functions do Mitra viraram 4 rotas (`/api/agenda`, `/agenda/recursos`,
 `/agenda/eventos`, `/agenda/importar`). As de estatística e ranking não foram portadas:
@@ -485,20 +486,68 @@ Decisões que divergem do documento de origem:
 - A importação roda numa transação: uma falha no meio deixaria o snapshot antigo apagado
   e o novo pela metade, que é pior que não ter importado.
 
-**Não verificado:** todos os 23 testes usam payload sintético no formato documentado. O
-parser nunca viu uma resposta real do Sankhya — a captura de verdade é o próximo passo, e
-pode revelar campo que o documento de origem não registrou.
+### 18.6 A ACL NÃO bloqueia a chamada feita de dentro da página — a carga é automática
 
-### 18.6 A sessão do ERP expira rápido, e o hub não sabe
+Medido em 2026-09-11, com sessão real. **A hipótese se confirmou**: `service.sbr` nega a
+chamada quando ela vem de fora, mas passa quando sai de dentro da guia autenticada, com a
+sessão de tela. É o mesmo motivo pelo qual a automação de UI funciona
+(`sankhya-agenda-recursos-escrita-ui.md` seção 3).
 
-Medido: uma sessão do ERP capturada há cerca de uma hora já devolvia
-`login.jsp?expired=true`. Diferente do JWT da Experience, o cookie do ERP não carrega
-`exp`, então a tela de Credenciais mostra "sessão ativa" para uma sessão que já morreu.
+Resultado: **a colagem manual pelo DevTools deixou de ser necessária.** O botão "Buscar
+agora" traz a agenda direto; o campo de colagem fica como reserva para quando a janela do
+hub não está logada. A seção 2 do `Sankhya-agenda.md` ("único passo manual") está
+superada, e a seção 7 daquele documento — que pedia liberação de ACL ao admin para
+automatizar — deixa de ser necessária para LEITURA.
 
-Consequência prática: a tentativa de fazer o hub buscar a Agenda de Recursos sozinho,
-usando a guia autenticada (a hipótese de que de dentro da página a ACL do `service.sbr`
-não se aplica), **não chegou a ser testada** — a sessão caiu antes. Continua valendo como
-hipótese e é o caminho que eliminaria a colagem manual.
+Trazido de uma execução real: **12 recursos e 494 eventos** num período de 4 meses.
+`JOAO.FILHO` continua sendo o recurso sem evento, igual ao snapshot de referência.
+
+#### O que descobrir custou, e o que a documentação de origem errava
+
+**A chamada.** `POST` em `/mgeos/service.sbr` — `/mgeos/`, **não** `/mge/`:
+
+```
+/mgeos/service.sbr?serviceName=AgendaRecursosSP.carregarAgendas
+  &counter=1&application=AgendaRecursos&outputType=json&preventTransform=
+```
+```json
+{"serviceName":"AgendaRecursosSP.carregarAgendas","requestBody":{"params":{
+  "filter":{},"start":"01/09/2026","end":"30/09/2026","filtroRapido":{},
+  "mostraUsuarioLogado":false,
+  "resourceId":"br.com.sankhya.os.mov.agenda.recursos",
+  "resourceIdListaUsuarios":"br.com.sankhya.os.mov.agenda.recursos.list.Executante"},
+  "clientEventList":{"clientEvent":[{"$":"br.com.sankhya.mgeserv.event.envio.email"}]}}}
+```
+
+**Uma chamada por vez.** Duas requisições simultâneas na mesma sessão HTTP devolvem
+`status: 4` com "O serviço foi cancelado por situação de concorrência". Foi o que
+aconteceu na primeira tentativa, quando um reload disparou a chamada em duplicata — e é
+fácil confundir esse erro com bloqueio de ACL.
+
+**A estrutura do payload é diferente da documentada** (`Sankhya-agenda.md` seção 2.1):
+
+| O documento dizia | O que o Sankhya devolve |
+|---|---|
+| `CODUSU`, `NOMEUSU`… direto na `lane` | Dentro de **`lane.properties`** |
+| `NUEVENTO`, `DESCRABREV`… direto na `task` | Dentro de **`task.properties`** |
+| `allDay` como `S`/`N` | `"true"` / `"false"` |
+| `start`/`end` embrulhados em `{ "$": ... }` | Texto cru, atributos diretos do `task` |
+| `FINANCIALLATE`, `DIASTRASO`, `NUEVENTOPAI` | Não vieram em nenhum evento |
+
+A primeira linha é a que importa: um parser escrito a partir do documento lê **tudo
+vazio** e grava um snapshot de fantasmas — recursos sem nome, eventos sem descrição, e
+nenhum erro em lugar nenhum. O parser agora lê de `properties` e cai para o nó quando ela
+não existe, então os dois formatos funcionam. Há teste para os dois.
+
+### 18.7 A sessão do ERP expira rápido, e o hub não sabe
+
+Medido: uma sessão capturada há cerca de uma hora já devolvia `login.jsp?expired=true`.
+Diferente do JWT da Experience, o cookie do ERP não carrega `exp`, então a tela de
+Credenciais mostra "sessão ativa" para uma sessão que já morreu.
+
+Na prática isso importa pouco para a Agenda de Recursos, porque a busca falha com uma
+mensagem clara ("o Sankhya respondeu HTML e não JSON — faça login de novo na janela"). O
+que falta é a tela de Credenciais parar de mentir sobre o ERP.
 
 ### 18.3 Calendário — o que mudou em relação à seção 12
 

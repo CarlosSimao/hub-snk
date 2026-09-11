@@ -4,18 +4,29 @@ import { enviar, requisitar } from '../../lib/api.ts';
 import { relativeTime } from '../../lib/format.ts';
 import type { Avisar } from '../../hooks/useToasts.ts';
 
+/** Hoje e daqui a N dias, em `YYYY-MM-DD` no fuso local. */
+function emDias(dias: number): string {
+  const data = new Date();
+  data.setDate(data.getDate() + dias);
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  return `${data.getFullYear()}-${mes}-${String(data.getDate()).padStart(2, '0')}`;
+}
+
 /**
- * Carga da Agenda de Recursos por colagem manual.
+ * Carga da Agenda de Recursos.
  *
- * Não é preguiça de automatizar: a ACL do `service.sbr` nega a chamada direta para este
- * usuário, então enquanto o admin do Sankhya não liberar o serviço não há como o hub
- * buscar sozinho. O passo a passo fica na tela porque é feito de vez em quando, e
- * ninguém lembra de cabeça em qual requisição olhar.
+ * O caminho principal é automático: o hub chama o serviço de dentro da janela de
+ * navegador dele, já logada. A ACL do `service.sbr` nega essa chamada quando ela vem de
+ * fora, mas a sessão de tela passa — é o mesmo motivo pelo qual a automação de UI
+ * funciona. A colagem manual continua como reserva para quando a janela não está logada.
  */
 export function TelaAgendaErp({ toast }: { toast: Avisar }) {
   const [estado, setEstado] = useState<EstadoAgendaRecursos | null>(null);
   const [recursos, setRecursos] = useState<RecursoComTotal[]>([]);
   const [importando, setImportando] = useState(false);
+  const [buscando, setBuscando] = useState(false);
+  const [de, setDe] = useState(() => emDias(-30));
+  const [ate, setAte] = useState(() => emDias(60));
 
   const recarregar = useCallback(async () => {
     const [snapshot, lista] = await Promise.all([
@@ -50,13 +61,27 @@ export function TelaAgendaErp({ toast }: { toast: Avisar }) {
     }
   };
 
+  const buscar = async () => {
+    setBuscando(true);
+    try {
+      const { ok, body } = await enviar<EstadoAgendaRecursos>('/api/agenda/buscar', { de, ate });
+      if (!ok) {
+        toast('Não consegui buscar do Sankhya', 'err', body.error);
+        return;
+      }
+      await recarregar();
+      toast(`Buscado: ${body.recursos} recurso(s) e ${body.eventos} evento(s).`, 'ok');
+    } finally {
+      setBuscando(false);
+    }
+  };
+
   return (
     <section className="painel">
       <p className="painel-nota">
-        Esta tela é o Sankhya ERP, não o Experience. A carga é manual porque a ACL do{' '}
-        <code>service.sbr</code> nega a chamada direta para o seu usuário — enquanto o admin
-        não liberar <code>AgendaRecursosSP.carregarAgendas</code>, o hub não consegue buscar
-        sozinho.
+        Esta tela é o Sankhya ERP, não o Experience. O hub busca a agenda chamando o serviço
+        de dentro da janela de navegador dele — por isso ela precisa estar logada no ERP
+        (<strong>Credenciais › Abrir janela de login</strong>).
       </p>
 
       <article className="card">
@@ -98,11 +123,40 @@ export function TelaAgendaErp({ toast }: { toast: Avisar }) {
       </article>
 
       <article className="card">
+        <div className="detail-head">
+          <div className="card-title">
+            <h2>Buscar do Sankhya</h2>
+            <p>Substitui o snapshot inteiro — não acumula com o anterior.</p>
+          </div>
+        </div>
+
+        <div className="form-campos">
+          <div className="periodo">
+            <label className="campo">
+              <span className="campo-nome">De</span>
+              <input type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+            </label>
+            <label className="campo">
+              <span className="campo-nome">Até</span>
+              <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+            </label>
+          </div>
+        </div>
+
+        <div className="form-acoes">
+          <span className="modal-acoes-spacer" />
+          <button className="btn tiny" type="button" disabled={buscando} onClick={() => void buscar()}>
+            {buscando ? 'Buscando…' : 'Buscar agora'}
+          </button>
+        </div>
+      </article>
+
+      <article className="card">
         <form onSubmit={(e) => void importar(e)}>
           <div className="detail-head">
             <div className="card-title">
-              <h2>Importar captura</h2>
-              <p>Substitui o snapshot inteiro — não acumula com o anterior.</p>
+              <h2>Colar captura manual</h2>
+              <p>Reserva, para quando a janela do hub não estiver logada no ERP.</p>
             </div>
           </div>
 

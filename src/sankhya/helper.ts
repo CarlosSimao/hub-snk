@@ -25,7 +25,14 @@ export class HelperError extends Error {
   }
 }
 
+/** Serve para tudo que é consulta rápida de estado ou gravação de credencial. */
 const TIMEOUT_PADRAO_MS = 10_000;
+
+/** Opções do hub, separadas das do `fetch`, para o timeout não virar header. */
+export interface OpcoesHelper {
+  /** Chamadas que atravessam o Sankhya (buscar agenda) levam muito mais que o padrão. */
+  timeoutMs?: number;
+}
 
 export class HubHelper {
   readonly #baseUrl: string;
@@ -53,7 +60,11 @@ export class HubHelper {
     }
   }
 
-  async requisitar<T>(caminho: string, init: RequestInit = {}): Promise<T> {
+  async requisitar<T>(
+    caminho: string,
+    init: RequestInit = {},
+    opcoes: OpcoesHelper = {},
+  ): Promise<T> {
     const token = this.#token();
 
     let resposta: Response;
@@ -61,7 +72,7 @@ export class HubHelper {
       resposta = await fetch(`${this.#baseUrl}${caminho}`, {
         ...init,
         headers: { ...init.headers, 'x-hub-token': token },
-        signal: AbortSignal.timeout(TIMEOUT_PADRAO_MS),
+        signal: AbortSignal.timeout(opcoes.timeoutMs ?? TIMEOUT_PADRAO_MS),
       });
     } catch (err) {
       throw new HelperIndisponivelError(

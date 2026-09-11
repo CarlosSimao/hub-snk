@@ -408,6 +408,71 @@ function Obter-Cookies {
     })
 }
 
+<#
+    Busca a Agenda de Recursos chamando `service.sbr` de DENTRO da guia autenticada.
+
+    Medido em 2026-09-11: a ACL nega essa chamada quando ela vem de fora, mas de dentro
+    da pagina, com a sessao de tela, ela passa e devolve status 1 — e o mesmo motivo
+    pelo qual a automacao de UI funciona. Isso dispensa a captura manual pelo DevTools.
+
+    Uma requisicao por vez: o Sankhya cancela chamadas simultaneas da mesma sessao HTTP
+    com "situacao de concorrencia", entao nada de paralelizar aqui.
+#>
+function Get-AgendaRecursos {
+    param([string] $De, [string] $Ate)
+
+    $lista = Invoke-RestMethod -Uri "http://127.0.0.1:$PortaCdp/json/list" -TimeoutSec 5
+    $alvo = $lista | Where-Object { $_.type -eq 'page' -and $_.url -like '*skw.sankhya.com.br*' } | Select-Object -First 1
+    if (-not $alvo) {
+        return @{ ok = $false; erro = 'nenhuma guia do Sankhya ERP aberta no navegador do hub' }
+    }
+
+    $corpo = @{
+        serviceName = 'AgendaRecursosSP.carregarAgendas'
+        requestBody = @{
+            params = @{
+                filter                  = @{}
+                start                   = $De
+                end                     = $Ate
+                filtroRapido            = @{}
+                mostraUsuarioLogado     = $false
+                resourceId              = 'br.com.sankhya.os.mov.agenda.recursos'
+                resourceIdListaUsuarios = 'br.com.sankhya.os.mov.agenda.recursos.list.Executante'
+            }
+            clientEventList = @{ clientEvent = @(@{ '$' = 'br.com.sankhya.mgeserv.event.envio.email' }) }
+        }
+    } | ConvertTo-Json -Depth 10 -Compress
+
+    # `/mgeos/`, nao `/mge/`: a tela de agenda fica noutro contexto da aplicacao.
+    $url = '/mgeos/service.sbr?serviceName=AgendaRecursosSP.carregarAgendas&counter=1&application=AgendaRecursos&outputType=json&preventTransform='
+
+    # ConvertTo-Json de uma string devolve ela ja entre aspas e escapada — e o jeito de
+    # embutir o corpo com seguranca dentro da expressao JavaScript.
+    $expressao = "fetch($($url | ConvertTo-Json), { method: 'POST', headers: { 'content-type': 'application/json' }, body: $($corpo | ConvertTo-Json), credentials: 'same-origin' }).then(function (r) { return r.text(); })"
+
+    try {
+        $resposta = Invoke-Cdp -UrlWs $alvo.webSocketDebuggerUrl -Metodo 'Runtime.evaluate' -Parametros @{
+            expression    = $expressao
+            returnByValue = $true
+            awaitPromise  = $true
+        }
+    }
+    catch {
+        return @{ ok = $false; erro = "falha chamando o Sankhya pela guia: $($_.Exception.Message)" }
+    }
+
+    $texto = [string] $resposta.result.result.value
+    if (-not $texto) {
+        return @{ ok = $false; erro = 'a guia nao devolveu nada — a sessao do ERP pode ter expirado' }
+    }
+    # Sessao morta devolve o HTML do login, nao JSON.
+    if ($texto.TrimStart().StartsWith('<')) {
+        return @{ ok = $false; erro = 'o Sankhya respondeu HTML e nao JSON — faca login de novo na janela do hub' }
+    }
+
+    return @{ ok = $true; conteudo = $texto }
+}
+
 function Invoke-RotaNavegador {
     param([string] $Metodo, [string[]] $Segmentos, [string] $Corpo)
 
@@ -415,6 +480,21 @@ function Invoke-RotaNavegador {
 
     $acao = if ($Segmentos.Length -ge 2) { $Segmentos[1] } else { '' }
     $sistema = if ($Segmentos.Length -ge 3) { $Segmentos[2] } elseif ($dados) { [string] $dados.sistema } else { '' }
+
+    # A busca da agenda nao e por sistema: ela e sempre no ERP.
+    if ($Metodo -eq 'POST' -and $acao -eq 'agenda') {
+        $de = [string] $dados.de
+        $ate = [string] $dados.ate
+        if ($de -notmatch '^\d{2}/\d{2}/\d{4}$' -or $ate -notmatch '^\d{2}/\d{2}/\d{4}$') {
+            return @{ status = 400; corpo = @{ ok = $false; erro = 'envie { de, ate } em DD/MM/AAAA' } }
+        }
+
+        $resultado = Get-AgendaRecursos -De $de -Ate $ate
+        if (-not $resultado.ok) {
+            return @{ status = 409; corpo = @{ ok = $false; erro = $resultado.erro } }
+        }
+        return @{ status = 200; corpo = @{ ok = $true; conteudo = $resultado.conteudo } }
+    }
 
     if ($acao -ne 'status' -and $SistemasPermitidos -notcontains $sistema) {
         return @{ status = 404; corpo = @{ ok = $false; erro = "sistema desconhecido: $sistema" } }

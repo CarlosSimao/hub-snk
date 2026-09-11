@@ -97,7 +97,7 @@ async function main(): Promise<void> {
   registerRoutesSankhya(app, { helper, credenciais, clientes });
   registerRoutesGitAutosync(app, { gitAutosync: new GitAutosync(helper) });
   registerRoutesExperience(app, { experience: new Experience(credenciais), clientes });
-  registerRoutesAgenda(app, { agenda });
+  registerRoutesAgenda(app, { agenda, helper });
 
   engine.start();
 

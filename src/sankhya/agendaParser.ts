@@ -1,14 +1,21 @@
 /**
  * Parser do payload de `AgendaRecursosSP.carregarAgendas`.
  *
- * O formato vem do Sankhya legado e tem três armadilhas, todas documentadas em
- * `Sankhya-agenda.md` seção 2.1 e todas silenciosas — nenhuma dá erro, só produz dado
- * errado ou lista vazia:
+ * O formato tem armadilhas, todas silenciosas — nenhuma dá erro, só produz dado errado
+ * ou lista vazia:
  *
- *  1. Todo valor de folha vem embrulhado em `{ "$": "valor" }`.
- *  2. `lane.task` é um OBJETO quando o recurso tem um único evento e um ARRAY quando
+ *  1. Os campos do recurso e do evento ficam sob `properties`, NÃO direto no nó. Lidos
+ *     do nó, todos vêm vazios e a importação grava um snapshot de fantasmas.
+ *  2. Todo valor sob `properties` vem embrulhado em `{ "$": "valor" }` — mas `allDay`,
+ *     `start` e `end` são atributos diretos do `task`, em texto cru.
+ *  3. `lane.task` é um OBJETO quando o recurso tem um único evento e um ARRAY quando
  *     tem vários. Sem normalizar, todo recurso com exatamente um evento some.
- *  3. Data vem `DD/MM/YYYY HH:mm` e cor vem `0xRRGGBB`.
+ *  4. Data vem `DD/MM/YYYY HH:mm`, cor vem `0xRRGGBB` e `allDay` vem `"true"`/`"false"`,
+ *     enquanto os outros booleanos do Sankhya vêm `"S"`/`"N"`.
+ *
+ * As armadilhas 1 e 4 só apareceram ao chamar o serviço de verdade: o documento de
+ * descoberta (`Sankhya-agenda.md` seção 2.1) descrevia os campos como se estivessem no
+ * nó e o `allDay` como `S`/`N`.
  */
 import type { EventoAgenda, RecursoAgenda } from '../types.ts';
 
@@ -65,11 +72,31 @@ export function converterCor(valor: string): string {
   return `#${semPrefixo.padStart(6, '0').toUpperCase()}`;
 }
 
-/** Armadilha 2: objeto quando há um só, array quando há vários, ausente quando não há. */
+/** Objeto quando há um só, array quando há vários, ausente quando não há. */
 function comoLista(valor: unknown): Record<string, unknown>[] {
   if (Array.isArray(valor)) return valor as Record<string, unknown>[];
   if (valor && typeof valor === 'object') return [valor as Record<string, unknown>];
   return [];
+}
+
+/**
+ * Onde os campos realmente moram: dentro de `properties`.
+ *
+ * O fallback para o próprio nó existe porque o documento de descoberta descreve o
+ * formato sem essa camada — se algum ambiente responder daquele jeito, continua lendo.
+ */
+function campos(no: Record<string, unknown>): Record<string, unknown> {
+  const props = no['properties'];
+  return props && typeof props === 'object' && !Array.isArray(props)
+    ? (props as Record<string, unknown>)
+    : no;
+}
+
+/** `allDay` vem `"true"`/`"false"`; o resto do Sankhya usa `S`/`N`. Padroniza em `S`/`N`. */
+function comoSN(valor: string): string {
+  const bruto = valor.trim().toLowerCase();
+  if (!bruto) return '';
+  return bruto === 'true' || bruto === 's' ? 'S' : 'N';
 }
 
 export function parsearAgenda(bruto: unknown): AgendaImportada {
@@ -99,29 +126,35 @@ export function parsearAgenda(bruto: unknown): AgendaImportada {
 
   let totalEventos = 0;
   const recursos = lanes.map((lane) => {
+    const doRecurso = campos(lane);
+
     const eventos = comoLista(lane['task']).map((task) => {
+      const p = campos(task);
       const evento: EventoAgenda = {
-        nuevento: numero(task, 'NUEVENTO'),
-        codusu: numero(task, 'CODUSU'),
-        nomeusu: texto(task, 'NOMEUSU'),
-        nomeparc: texto(task, 'NOMEPARC'),
-        codparc: numero(task, 'CODPARC'),
-        // `allDay`, `start` e `end` são atributos diretos, não propriedades embrulhadas.
-        allday: texto(task, 'allDay'),
+        nuevento: numero(p, 'NUEVENTO'),
+        codusu: numero(p, 'CODUSU'),
+        nomeusu: texto(p, 'NOMEUSU'),
+        nomeparc: texto(p, 'NOMEPARC'),
+        codparc: numero(p, 'CODPARC'),
+        // `allDay`, `start` e `end` são atributos diretos do task, em texto cru — não
+        // entram no `properties` nem no embrulho `{ $ }`.
+        allday: comoSN(texto(task, 'allDay')),
         inicio: converterData(texto(task, 'start')),
         fim: converterData(texto(task, 'end')),
-        descrabrev: texto(task, 'DESCRABREV'),
-        descrlonga: texto(task, 'DESCRLONGA'),
-        tipo: texto(task, 'TIPO'),
-        confirmado: texto(task, 'CONFIRMADO'),
-        sincronizar: texto(task, 'SINCRONIZAR'),
-        usulancador: texto(task, 'USULANCADOR'),
-        dhlcto: converterData(texto(task, 'DHLCTO')),
-        numetapa: numero(task, 'NUMETAPA'),
-        nufap: numero(task, 'NUFAP'),
-        nueventopai: numero(task, 'NUEVENTOPAI'),
-        financiallate: texto(task, 'FINANCIALLATE'),
-        diastraso: numero(task, 'DIASTRASO'),
+        descrabrev: texto(p, 'DESCRABREV'),
+        descrlonga: texto(p, 'DESCRLONGA'),
+        tipo: texto(p, 'TIPO'),
+        confirmado: texto(p, 'CONFIRMADO'),
+        sincronizar: texto(p, 'SINCRONIZAR'),
+        usulancador: texto(p, 'USULANCADOR'),
+        dhlcto: converterData(texto(p, 'DHLCTO')),
+        numetapa: numero(p, 'NUMETAPA'),
+        nufap: numero(p, 'NUFAP'),
+        // Os três abaixo não vieram no payload real observado; ficam porque o documento
+        // de descoberta os lista e custam nada quando ausentes.
+        nueventopai: numero(p, 'NUEVENTOPAI'),
+        financiallate: texto(p, 'FINANCIALLATE'),
+        diastraso: numero(p, 'DIASTRASO'),
       };
       totalEventos += 1;
       return evento;
@@ -129,13 +162,13 @@ export function parsearAgenda(bruto: unknown): AgendaImportada {
 
     return {
       recurso: {
-        codusu: numero(lane, 'CODUSU'),
-        nomeusu: texto(lane, 'NOMEUSU'),
-        codcargo: numero(lane, 'CODCARGO'),
-        descrcargo: texto(lane, 'DESCRCARGO'),
-        corHex: converterCor(texto(lane, 'COLOR')),
-        corConflitoHex: converterCor(texto(lane, 'CONFLICTCOLOR')),
-        problemaConexao: texto(lane, 'CONNECTIONPROBLEM'),
+        codusu: numero(doRecurso, 'CODUSU'),
+        nomeusu: texto(doRecurso, 'NOMEUSU'),
+        codcargo: numero(doRecurso, 'CODCARGO'),
+        descrcargo: texto(doRecurso, 'DESCRCARGO'),
+        corHex: converterCor(texto(doRecurso, 'COLOR')),
+        corConflitoHex: converterCor(texto(doRecurso, 'CONFLICTCOLOR')),
+        problemaConexao: texto(doRecurso, 'CONNECTIONPROBLEM'),
       },
       eventos,
     };

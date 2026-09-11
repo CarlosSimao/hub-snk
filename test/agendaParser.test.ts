@@ -18,29 +18,52 @@ function payload(lanes: unknown): unknown {
   };
 }
 
+/**
+ * Molde copiado de uma resposta REAL do Sankhya, não do documento de descoberta: os
+ * campos ficam sob `properties`, e `allDay`/`start`/`end` são atributos diretos do task,
+ * em texto cru. O documento descrevia tudo no nó, e um parser escrito por ele lia vazio.
+ */
 const LANE_BASE = {
-  CODUSU: $(12229),
-  NOMEUSU: $('FLAVIANO.SANTOS'),
-  CODCARGO: $(7),
-  DESCRCARGO: $('Consultor'),
-  COLOR: $('0x0000FF'),
-  CONFLICTCOLOR: $('0xFF0000'),
-  CONNECTIONPROBLEM: $('N'),
+  description: 'FLAVIANO.SANTOS',
+  properties: {
+    CODUSU: $(12229),
+    NOMEUSU: $('FLAVIANO.SANTOS'),
+    CODCARGO: $(7),
+    DESCRCARGO: $('Consultor'),
+    COLOR: $('0x0000FF'),
+    CONFLICTCOLOR: $('0xFF0000'),
+    CONNECTIONPROBLEM: $('N'),
+  },
 };
 
 const TASK_BASE = {
-  NUEVENTO: $(9001),
-  CODUSU: $(12229),
-  NOMEUSU: $('FLAVIANO.SANTOS'),
-  NOMEPARC: $('AMATOOLS'),
-  CODPARC: $(2996),
-  CONFIRMADO: $('S'),
-  TIPO: $('A'),
-  DESCRABREV: $('Implantação'),
-  allDay: $('N'),
-  start: $('20/08/2026 08:00'),
-  end: $('20/08/2026 18:00'),
+  allDay: 'false',
+  start: '20/08/2026 08:00',
+  end: '20/08/2026 18:00',
+  color: {},
+  description: $('Implantação'),
+  properties: {
+    NUEVENTO: $(9001),
+    CODUSU: $(12229),
+    NOMEUSU: $('FLAVIANO.SANTOS'),
+    NOMEPARC: $('AMATOOLS'),
+    CODPARC: $(2996),
+    CONFIRMADO: $('S'),
+    SINCRONIZAR: $('S'),
+    TIPO: $('ESTATICO'),
+    USULANCADOR: $('SANKHYAEXPERIENCE'),
+    DHLCTO: $('19/08/2026 17:57'),
+    DESCRABREV: $('Implantação'),
+    DESCRLONGA: $('Processos: Atendimento'),
+    NUMETAPA: $(1),
+    NUFAP: $(25981),
+  },
 };
+
+/** Um task com `properties` trocado, mantendo os atributos diretos. */
+function taskCom(props: Record<string, unknown>) {
+  return { ...TASK_BASE, properties: { ...TASK_BASE.properties, ...props } };
+}
 
 describe('agendaParser — conversões', () => {
   test('data DD/MM/YYYY HH:mm vira YYYY-MM-DD HH:mm:ss', () => {
@@ -82,15 +105,61 @@ describe('agendaParser — conversões', () => {
 });
 
 describe('agendaParser — estrutura', () => {
-  test('desembrulha { $: valor } em lane e task', () => {
+  /**
+   * A armadilha que só apareceu com payload real: os campos ficam sob `properties`.
+   * Lidos do nó, todos vêm vazios e a importação grava um snapshot de fantasmas —
+   * recursos sem nome, eventos sem descrição, e nenhum erro em lugar nenhum.
+   */
+  test('lê os campos de dentro de `properties`, não do nó', () => {
     const { recursos } = parsearAgenda(payload([{ ...LANE_BASE, task: [TASK_BASE] }]));
 
     assert.equal(recursos.length, 1);
     assert.equal(recursos[0]!.recurso.nomeusu, 'FLAVIANO.SANTOS');
     assert.equal(recursos[0]!.recurso.codusu, 12229);
     assert.equal(recursos[0]!.recurso.corHex, '#0000FF');
-    assert.equal(recursos[0]!.eventos[0]!.descrabrev, 'Implantação');
-    assert.equal(recursos[0]!.eventos[0]!.inicio, '2026-08-20 08:00:00');
+    assert.equal(recursos[0]!.recurso.descrcargo, 'Consultor');
+
+    const evento = recursos[0]!.eventos[0]!;
+    assert.equal(evento.descrabrev, 'Implantação');
+    assert.equal(evento.nuevento, 9001);
+    assert.equal(evento.nomeparc, 'AMATOOLS');
+    assert.equal(evento.usulancador, 'SANKHYAEXPERIENCE');
+  });
+
+  test('allDay/start/end vêm do task direto, em texto cru', () => {
+    const { recursos } = parsearAgenda(payload([{ ...LANE_BASE, task: [TASK_BASE] }]));
+    const evento = recursos[0]!.eventos[0]!;
+
+    assert.equal(evento.inicio, '2026-08-20 08:00:00');
+    assert.equal(evento.fim, '2026-08-20 18:00:00');
+  });
+
+  /** `allDay` vem `true`/`false`; o resto do Sankhya usa `S`/`N`. Padronizamos em S/N. */
+  test('allDay "true"/"false" vira S/N', () => {
+    const comDiaTodo = parsearAgenda(
+      payload([{ ...LANE_BASE, task: [{ ...TASK_BASE, allDay: 'true' }] }]),
+    );
+    assert.equal(comDiaTodo.recursos[0]!.eventos[0]!.allday, 'S');
+
+    const semDiaTodo = parsearAgenda(payload([{ ...LANE_BASE, task: [TASK_BASE] }]));
+    assert.equal(semDiaTodo.recursos[0]!.eventos[0]!.allday, 'N');
+  });
+
+  /** Formato do documento de descoberta, sem a camada `properties`. */
+  test('ainda lê o formato antigo, com os campos no próprio nó', () => {
+    const { recursos } = parsearAgenda(
+      payload([
+        {
+          CODUSU: $(1),
+          NOMEUSU: $('ANTIGO'),
+          COLOR: $('0x00FF00'),
+          task: { NUEVENTO: $(5), DESCRABREV: $('x'), start: $('01/01/2026 09:00') },
+        },
+      ]),
+    );
+
+    assert.equal(recursos[0]!.recurso.nomeusu, 'ANTIGO');
+    assert.equal(recursos[0]!.eventos[0]!.nuevento, 5);
   });
 
   /**
@@ -110,7 +179,7 @@ describe('agendaParser — estrutura', () => {
 
   test('task como ARRAY com vários eventos', () => {
     const { totalEventos } = parsearAgenda(
-      payload([{ ...LANE_BASE, task: [TASK_BASE, { ...TASK_BASE, NUEVENTO: $(9002) }] }]),
+      payload([{ ...LANE_BASE, task: [TASK_BASE, taskCom({ NUEVENTO: $(9002) })] }]),
     );
     assert.equal(totalEventos, 2);
   });
@@ -130,14 +199,22 @@ describe('agendaParser — estrutura', () => {
 
   test('campo ausente vira vazio ou null, não quebra', () => {
     const { recursos } = parsearAgenda(
-      payload([{ CODUSU: $(1), task: { NUEVENTO: $(5), start: $('01/01/2026 09:00') } }]),
+      payload([
+        {
+          properties: { CODUSU: $(1) },
+          task: { start: '01/01/2026 09:00', properties: { NUEVENTO: $(5) } },
+        },
+      ]),
     );
 
     const evento = recursos[0]!.eventos[0]!;
     assert.equal(evento.nomeparc, '');
     assert.equal(evento.codparc, null);
-    assert.equal(evento.fim, '');
+    assert.equal(evento.fim, '', 'sem `end` a data fica vazia em vez de inventada');
     assert.equal(recursos[0]!.recurso.corHex, '');
+    // Campos que o payload real não traz não podem quebrar a leitura.
+    assert.equal(evento.diastraso, null);
+    assert.equal(evento.financiallate, '');
   });
 });
 
