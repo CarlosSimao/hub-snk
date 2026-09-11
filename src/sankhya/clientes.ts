@@ -20,6 +20,8 @@ interface Linha {
   experience_projeto_id: number | null;
   experience_person_id: number | null;
   agenda_recurso_usuario: string;
+  agenda_codparc: number | null;
+  sankhya_url: string | null;
   repositorio_local: string;
   repositorio_remoto: string;
 }
@@ -31,6 +33,8 @@ function paraCliente(linha: Linha): Cliente {
     experienceProjetoId: linha.experience_projeto_id === null ? null : Number(linha.experience_projeto_id),
     experiencePersonId: linha.experience_person_id === null ? null : Number(linha.experience_person_id),
     agendaRecursoUsuario: linha.agenda_recurso_usuario,
+    agendaCodparc: linha.agenda_codparc === null ? null : Number(linha.agenda_codparc),
+    sankhyaUrl: linha.sankhya_url ?? '',
     repositorioLocal: linha.repositorio_local,
     repositorioRemoto: linha.repositorio_remoto,
   };
@@ -54,6 +58,20 @@ export class Clientes {
         repositorio_remoto     TEXT    NOT NULL DEFAULT ''
       );
     `);
+
+    // Colunas novas entram por ALTER para nao perder o cadastro de quem ja usava o
+    // painel. `ADD COLUMN` do SQLite e barato e nao reescreve a tabela.
+    const existentes = new Set(
+      (this.#db.prepare('PRAGMA table_info(clientes)').all() as unknown as { name: string }[]).map(
+        (c) => c.name,
+      ),
+    );
+    for (const [coluna, tipo] of [
+      ['agenda_codparc', 'INTEGER'],
+      ['sankhya_url', "TEXT NOT NULL DEFAULT ''"],
+    ] as const) {
+      if (!existentes.has(coluna)) this.#db.exec(`ALTER TABLE clientes ADD COLUMN ${coluna} ${tipo}`);
+    }
   }
 
   listar(): Cliente[] {
@@ -74,14 +92,17 @@ export class Clientes {
     const resultado = this.#db
       .prepare(
         `INSERT INTO clientes
-           (nome, experience_projeto_id, experience_person_id, agenda_recurso_usuario, repositorio_local, repositorio_remoto)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+           (nome, experience_projeto_id, experience_person_id, agenda_recurso_usuario,
+            agenda_codparc, sankhya_url, repositorio_local, repositorio_remoto)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         entrada.nome,
         entrada.experienceProjetoId,
         entrada.experiencePersonId,
         entrada.agendaRecursoUsuario,
+        entrada.agendaCodparc,
+        entrada.sankhyaUrl,
         entrada.repositorioLocal,
         entrada.repositorioRemoto,
       );
@@ -94,7 +115,8 @@ export class Clientes {
       .prepare(
         `UPDATE clientes SET
            nome = ?, experience_projeto_id = ?, experience_person_id = ?,
-           agenda_recurso_usuario = ?, repositorio_local = ?, repositorio_remoto = ?
+           agenda_recurso_usuario = ?, agenda_codparc = ?, sankhya_url = ?,
+           repositorio_local = ?, repositorio_remoto = ?
          WHERE id = ?`,
       )
       .run(
@@ -102,6 +124,8 @@ export class Clientes {
         entrada.experienceProjetoId,
         entrada.experiencePersonId,
         entrada.agendaRecursoUsuario,
+        entrada.agendaCodparc,
+        entrada.sankhyaUrl,
         entrada.repositorioLocal,
         entrada.repositorioRemoto,
         id,

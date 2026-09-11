@@ -13,10 +13,30 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AgendaImportada } from './agendaParser.ts';
 import type {
+  AtuacaoCliente,
+  DiaAtuacao,
   EstadoAgendaRecursos,
   EventoComRecurso,
+  ParceiroAgenda,
   RecursoComTotal,
 } from '../types.ts';
+
+/**
+ * Reduz um nome a letras e digitos maiusculos, sem acento nem sufixo societario.
+ *
+ * O cadastro do hub e digitado a mao ("Flaps Produtos Automotivos") e o parceiro vem do
+ * ERP em caixa alta com sufixo ("FLAPS PRODUTOS AUTOMOTIVOS"). Comparar cru nunca casa.
+ *
+ * O `NFD` separa a letra do acento e o filtro final descarta tudo que nao e A-Z0-9 —
+ * inclusive os acentos ja soltos, entao nao ha passo proprio para remove-los.
+ */
+function chaveNome(nome: string): string {
+  return nome
+    .normalize('NFD')
+    .toUpperCase()
+    .replace(/\b(LTDA|S\.?A|ME|EPP|EIRELI|COMERCIAL|IMPORTADORA|E OUTRO\(S\))\b/g, '')
+    .replace(/[^A-Z0-9]/g, '');
+}
 
 export class AgendaRecursos {
   readonly #db: DatabaseSync;
@@ -238,6 +258,94 @@ export class AgendaRecursos {
       descrcargo: String(l['descrcargo']),
       corHex: String(l['cor_hex']),
     }));
+  }
+
+  /**
+   * Parceiros que aparecem na agenda de um recurso.
+   *
+   * E esta lista, e nao a de recursos, que o cadastro precisa: a lane da agenda e do
+   * CONSULTOR, entao todos os clientes dele caem na mesma lane e so o parceiro do
+   * evento separa um do outro.
+   */
+  parceiros(usuario = ''): ParceiroAgenda[] {
+    const linhas = this.#db
+      .prepare(
+        `SELECT e.codparc, e.nomeparc,
+                COUNT(*)       AS eventos,
+                MIN(e.inicio)  AS primeiro,
+                MAX(e.inicio)  AS ultimo
+           FROM ag_eventos e
+           JOIN ag_recursos r ON r.id = e.recurso_id
+          WHERE (? = '' OR r.nomeusu = ?)
+            AND e.nomeparc <> ''
+          GROUP BY e.codparc, e.nomeparc
+          ORDER BY eventos DESC`,
+      )
+      .all(usuario, usuario) as unknown as Record<string, unknown>[];
+
+    return linhas.map((l) => ({
+      codparc: l['codparc'] === null ? null : Number(l['codparc']),
+      nomeparc: String(l['nomeparc']),
+      eventos: Number(l['eventos']),
+      primeiroDia: String(l['primeiro']).slice(0, 10),
+      ultimoDia: String(l['ultimo']).slice(0, 10),
+    }));
+  }
+
+  /**
+   * Acha o parceiro cujo nome corresponde ao do cliente, para o cadastro nao exigir
+   * que o usuario va procurar o CODPARC. Devolve `null` quando nao ha candidato unico:
+   * chutar o parceiro errado amarraria a agenda de outro cliente sem ninguem perceber.
+   */
+  casarParceiro(nomeCliente: string, usuario = ''): ParceiroAgenda | null {
+    const alvo = chaveNome(nomeCliente);
+    if (!alvo) return null;
+
+    const candidatos = this.parceiros(usuario).filter((p) => {
+      const chave = chaveNome(p.nomeparc);
+      return chave === alvo || chave.startsWith(alvo) || alvo.startsWith(chave);
+    });
+
+    // Empate e ambiguidade real — melhor devolver nada e deixar a tela perguntar.
+    return candidatos.length === 1 ? (candidatos[0] ?? null) : null;
+  }
+
+  /**
+   * Dias em que o consultor atuou (ou vai atuar) para um cliente.
+   *
+   * Traz passado e futuro de uma vez, sem recorte de periodo: o snapshot ja e de um
+   * intervalo escolhido na importacao, e a tela quer justamente o historico inteiro
+   * que existe dele.
+   */
+  atuacao(codparc: number, usuario = ''): AtuacaoCliente {
+    const linhas = this.#db
+      .prepare(
+        `SELECT e.nomeparc, e.inicio, e.descrabrev
+           FROM ag_eventos e
+           JOIN ag_recursos r ON r.id = e.recurso_id
+          WHERE e.codparc = ?
+            AND (? = '' OR r.nomeusu = ?)
+          ORDER BY e.inicio`,
+      )
+      .all(codparc, usuario, usuario) as unknown as Record<string, unknown>[];
+
+    // Um dia com tres eventos e UM dia de atuacao com tres titulos, nao tres dias.
+    const porDia = new Map<string, DiaAtuacao>();
+    let nomeparc = '';
+
+    for (const l of linhas) {
+      nomeparc ||= String(l['nomeparc']);
+      const dia = String(l['inicio']).slice(0, 10);
+      const atual = porDia.get(dia) ?? { dia, eventos: 0, titulos: [] };
+
+      atual.eventos += 1;
+      const titulo = String(l['descrabrev']).trim();
+      if (titulo && !atual.titulos.includes(titulo)) atual.titulos.push(titulo);
+
+      porDia.set(dia, atual);
+    }
+
+    return { codparc, nomeparc, dias: [...porDia.values()] };
   }
 
   close(): void {

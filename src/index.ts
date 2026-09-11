@@ -94,7 +94,7 @@ async function main(): Promise<void> {
     configuracoes,
   });
   const credenciais = new Credenciais(helper);
-  registerRoutesSankhya(app, { helper, credenciais, clientes });
+  registerRoutesSankhya(app, { helper, credenciais, clientes, agenda });
   registerRoutesGitAutosync(app, { gitAutosync: new GitAutosync(helper) });
   registerRoutesExperience(app, { experience: new Experience(credenciais), clientes });
   registerRoutesAgenda(app, { agenda, helper });

@@ -90,6 +90,27 @@ export function registerRoutesAgenda(app: FastifyInstance, deps: RouteAgendaDeps
 
   app.get('/api/agenda/recursos', async () => ({ recursos: agenda.recursos() }));
 
+  /**
+   * Parceiros que aparecem na agenda — a lista de onde o cadastro tira o `agendaCodparc`.
+   *
+   * Sem `?usuario=`, traz os de todos os recursos; com, só os do consultor.
+   */
+  app.get<{ Querystring: { usuario?: string } }>('/api/agenda/parceiros', async (request) => ({
+    parceiros: agenda.parceiros(request.query.usuario ?? ''),
+  }));
+
+  /** Dias de atuação num cliente: todo o passado e o futuro que o snapshot contém. */
+  app.get<{ Querystring: { codparc?: string; usuario?: string } }>(
+    '/api/agenda/atuacao',
+    async (request, reply) => {
+      const codparc = Number(request.query.codparc);
+      if (!Number.isInteger(codparc) || codparc <= 0) {
+        return reply.code(400).send({ error: 'informe ?codparc=<número>' });
+      }
+      return agenda.atuacao(codparc, request.query.usuario ?? '');
+    },
+  );
+
   app.get<{ Querystring: { de?: string; ate?: string; usuario?: string } }>(
     '/api/agenda/eventos',
     async (request, reply) => {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import type { Cliente, ClienteEntrada } from '../../types.ts';
+import type { AtuacaoCliente, Cliente, ClienteEntrada, ParceiroAgenda } from '../../types.ts';
 import { plural } from '../../lib/format.ts';
 import { requisitar } from '../../lib/api.ts';
 import { useClientes } from '../../hooks/useClientes.ts';
@@ -143,6 +143,7 @@ function resumo(cliente: Cliente): string {
   if (cliente.experienceProjetoId === null) faltando.push('projeto');
   if (cliente.experiencePersonId === null) faltando.push('person_id');
   if (!cliente.agendaRecursoUsuario) faltando.push('recurso');
+  if (cliente.agendaCodparc === null) faltando.push('parceiro');
   if (!cliente.repositorioLocal) faltando.push('repositório');
 
   return faltando.length ? `falta: ${faltando.join(', ')}` : 'cadastro completo';
@@ -159,13 +160,70 @@ interface PropsFormulario {
 function FormularioCliente({ cliente, toast, onSalvar, onRemover, onCancelar }: PropsFormulario) {
   const [salvando, setSalvando] = useState(false);
 
-  // Três campos são controlados porque algo além do teclado escreve neles: o seletor de
-  // pastas preenche o caminho, e a descoberta do person_id lê o projeto e devolve o ID.
+  // Campos controlados: são os que algo além do teclado escreve — o seletor de pastas,
+  // a descoberta do person_id, a do parceiro da Agenda e o preenchimento do recurso.
   const [projetoId, setProjetoId] = useState(String(cliente?.experienceProjetoId ?? ''));
   const [personId, setPersonId] = useState(String(cliente?.experiencePersonId ?? ''));
   const [repositorioLocal, setRepositorioLocal] = useState(cliente?.repositorioLocal ?? '');
+  const [nome, setNome] = useState(cliente?.nome ?? '');
+  const [recurso, setRecurso] = useState(cliente?.agendaRecursoUsuario ?? '');
+  const [codparc, setCodparc] = useState(String(cliente?.agendaCodparc ?? ''));
+  const [sankhyaUrl, setSankhyaUrl] = useState(cliente?.sankhyaUrl ?? '');
   const [seletorAberto, setSeletorAberto] = useState(false);
   const [descobrindo, setDescobrindo] = useState(false);
+  const [buscandoParceiro, setBuscandoParceiro] = useState(false);
+  const [atuacao, setAtuacao] = useState<AtuacaoCliente | null>(null);
+
+  // O recurso da Agenda é sempre o próprio usuário logado, então um cadastro novo já
+  // nasce com ele. Cliente existente mantém o que foi gravado — mexer nisso sozinho
+  // trocaria a agenda de um cadastro que já funciona.
+  useEffect(() => {
+    if (cliente || recurso) return;
+
+    let cancelado = false;
+    void requisitar<{ usuario: string }>('/api/sankhya/usuario-agenda').then(({ ok, body }) => {
+      if (!cancelado && ok && body.usuario) setRecurso(body.usuario);
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [cliente, recurso]);
+
+  /**
+   * Acha o parceiro da Agenda de Recursos com o nome do cliente e traz junto os dias de
+   * atuação — passados e futuros — que já existem no snapshot importado.
+   */
+  const descobrirParceiro = async (silencioso = false) => {
+    const alvo = nome.trim();
+    if (!alvo) {
+      if (!silencioso) toast('Preencha o nome do cliente antes de procurar na Agenda.', 'err');
+      return;
+    }
+
+    setBuscandoParceiro(true);
+    const busca = new URLSearchParams({ nome: alvo, usuario: recurso.trim() });
+    const { ok, body } = await requisitar<{
+      parceiro: ParceiroAgenda | null;
+      atuacao: AtuacaoCliente | null;
+    }>(`/api/clientes/sugestao?${busca}`);
+    setBuscandoParceiro(false);
+
+    if (!ok) {
+      if (!silencioso) toast('Não consegui consultar a Agenda.', 'err', body.error);
+      return;
+    }
+    if (!body.parceiro?.codparc) {
+      if (!silencioso) {
+        toast('Nenhum parceiro da Agenda bate com esse nome.', 'err',
+          'Importe a Agenda de Recursos ou informe o código do parceiro à mão.');
+      }
+      return;
+    }
+
+    setCodparc(String(body.parceiro.codparc));
+    setAtuacao(body.atuacao ?? null);
+    toast(`${body.parceiro.nomeparc} — ${body.atuacao?.dias.length ?? 0} dia(s) de atuação`);
+  };
 
   /**
    * Acha o `person_id` do usuário logado no projeto informado, cruzando o e-mail do JWT
@@ -208,6 +266,8 @@ function FormularioCliente({ cliente, toast, onSalvar, onRemover, onCancelar }: 
         experienceProjetoId: texto('experienceProjetoId') === '' ? null : Number(texto('experienceProjetoId')),
         experiencePersonId: texto('experiencePersonId') === '' ? null : Number(texto('experiencePersonId')),
         agendaRecursoUsuario: texto('agendaRecursoUsuario'),
+        agendaCodparc: texto('agendaCodparc') === '' ? null : Number(texto('agendaCodparc')),
+        sankhyaUrl: texto('sankhyaUrl'),
         repositorioLocal: texto('repositorioLocal'),
         repositorioRemoto: texto('repositorioRemoto'),
       });
@@ -227,8 +287,11 @@ function FormularioCliente({ cliente, toast, onSalvar, onRemover, onCancelar }: 
         </div>
 
         <div className="form-campos">
-          <Campo nome="nome" rotulo="Nome" valor={cliente?.nome ?? ''} obrigatorio
-            dica="Como aparece no Sankhya Experience" />
+          <Campo nome="nome" rotulo="Nome" valor={nome} aoMudar={setNome} obrigatorio
+            dica="Como aparece no Sankhya Experience"
+            // Cadastro novo tenta achar o parceiro sozinho ao sair do nome; em silêncio,
+            // porque digitar o nome não é pedir uma busca e um erro aqui seria ruído.
+            aoSair={cliente || codparc ? undefined : () => void descobrirParceiro(true)} />
           <Campo nome="experienceProjetoId" rotulo="ID do projeto (Experience)" tipo="number"
             valor={projetoId} aoMudar={setProjetoId}
             dica="O número da URL da tela do projeto, ex.: 10269" />
@@ -242,7 +305,32 @@ function FormularioCliente({ cliente, toast, onSalvar, onRemover, onCancelar }: 
               </button>
             } />
           <Campo nome="agendaRecursoUsuario" rotulo="Recurso na Agenda (ERP)"
-            valor={cliente?.agendaRecursoUsuario ?? ''} dica="Username do recurso, ex.: FLAVIANO.SANTOS" />
+            valor={recurso} aoMudar={setRecurso}
+            dica="Preenchido com o seu usuário do Sankhya — é a lane da agenda, e ela é sua, não do cliente" />
+          <Campo nome="agendaCodparc" rotulo="Parceiro na Agenda (ERP)" tipo="number"
+            valor={codparc} aoMudar={setCodparc}
+            dica="CODPARC do cliente — é ele que separa os dias deste cliente dos demais na sua agenda"
+            acao={
+              <button className="btn tiny ghost" type="button" disabled={buscandoParceiro}
+                onClick={() => void descobrirParceiro()}>
+                {buscandoParceiro ? 'buscando…' : 'Procurar na Agenda'}
+              </button>
+            } />
+          {atuacao && atuacao.dias.length > 0 && (
+            <p className="campo-dica">
+              {atuacao.nomeparc}: {atuacao.dias.length} dia(s) de atuação, de{' '}
+              {atuacao.dias[0]?.dia} a {atuacao.dias[atuacao.dias.length - 1]?.dia}.
+            </p>
+          )}
+          <Campo nome="sankhyaUrl" rotulo="URL do Sankhya do cliente"
+            valor={sankhyaUrl} aoMudar={setSankhyaUrl}
+            dica="Endereço do ERP deste cliente, ex.: https://cliente.sankhya.com.br"
+            acao={
+              <button className="btn tiny ghost" type="button" disabled={!sankhyaUrl.trim()}
+                onClick={() => window.open(sankhyaUrl, '_blank', 'noopener,noreferrer')}>
+                Abrir
+              </button>
+            } />
           <Campo nome="repositorioLocal" rotulo="Repositório local"
             valor={repositorioLocal} aoMudar={setRepositorioLocal}
             dica="Pasta no Windows — digite o caminho ou procure no disco"
@@ -296,6 +384,7 @@ function Campo({
   tipo = 'text',
   obrigatorio = false,
   aoMudar,
+  aoSair,
   acao,
 }: {
   nome: string;
@@ -305,6 +394,7 @@ function Campo({
   tipo?: string;
   obrigatorio?: boolean;
   aoMudar?: (valor: string) => void;
+  aoSair?: () => void;
   acao?: ReactNode;
 }) {
   const id = `campo-${nome}`;
@@ -316,6 +406,7 @@ function Campo({
       {...(aoMudar
         ? { value: valor, onChange: (e: { target: { value: string } }) => aoMudar(e.target.value) }
         : { defaultValue: valor })}
+      {...(aoSair ? { onBlur: aoSair } : {})}
       autoComplete="off"
       spellCheck={false}
       required={obrigatorio}

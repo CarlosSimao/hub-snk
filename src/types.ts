@@ -279,11 +279,46 @@ export interface Cliente {
   experiencePersonId: number | null;
   /** Username do recurso na Agenda de Recursos (ex.: FLAVIANO.SANTOS). */
   agendaRecursoUsuario: string;
+  /**
+   * `CODPARC` do cliente na Agenda de Recursos.
+   *
+   * E ele, nao o recurso, que separa um cliente do outro: a lane da agenda e do
+   * CONSULTOR, entao todos os clientes de um consultor caem na mesma lane e so o
+   * parceiro do evento diz de quem e o dia.
+   */
+  agendaCodparc: number | null;
+  /** URL do Sankhya do cliente, para abrir direto do painel. */
+  sankhyaUrl: string;
   repositorioLocal: string;
   repositorioRemoto: string;
 }
 
 export type ClienteEntrada = Omit<Cliente, 'id'>;
+
+/** Um parceiro que aparece nos eventos da agenda — e o que identifica o cliente la. */
+export interface ParceiroAgenda {
+  codparc: number | null;
+  nomeparc: string;
+  eventos: number;
+  /** `YYYY-MM-DD` do primeiro e do ultimo evento; ajuda a reconhecer o parceiro certo. */
+  primeiroDia: string;
+  ultimoDia: string;
+}
+
+/** Um dia em que houve (ou havera) atendimento a um cliente, vindo da Agenda de Recursos. */
+export interface DiaAtuacao {
+  /** `YYYY-MM-DD`. */
+  dia: string;
+  eventos: number;
+  /** Titulos dos eventos do dia, para a tela nao precisar buscar de novo. */
+  titulos: string[];
+}
+
+export interface AtuacaoCliente {
+  codparc: number | null;
+  nomeparc: string;
+  dias: DiaAtuacao[];
+}
 
 /* --------------------------- Sankhya Experience --------------------------- */
 
