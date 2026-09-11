@@ -11,6 +11,12 @@ export interface VisaoAutosync {
 
 export type AcaoRepo = 'commit' | 'push' | 'sync' | 'mr';
 
+export interface OpcoesHistorico {
+  limite?: number;
+  /** Inclui hoje e os N - 1 dias anteriores, usando o fuso local do navegador. */
+  dias?: number;
+}
+
 const VAZIA: VisaoAutosync = { horarios: [], ultimaExecucao: null, repos: [] };
 
 export function useGitAutosync(toast: Avisar) {
@@ -81,13 +87,25 @@ export function useGitAutosync(toast: Avisar) {
     [recarregar, toast],
   );
 
-  const historico = useCallback(async (repo: RepoAutosync): Promise<CommitAutosync[]> => {
-    const busca = new URLSearchParams({ repo: repo.path, limite: '15' });
+  const historico = useCallback(async (
+    repo: RepoAutosync,
+    opcoes: OpcoesHistorico = {},
+  ): Promise<CommitAutosync[]> => {
+    const busca = new URLSearchParams({
+      repo: repo.path,
+      limite: String(opcoes.limite ?? 15),
+    });
     const { ok, body } = await requisitar<{ commits: CommitAutosync[] }>(
       `/api/git-autosync/historico?${busca}`,
     );
-    return ok ? (body.commits ?? []) : [];
+    const commits = ok ? (body.commits ?? []) : [];
+    if (!opcoes.dias) return commits;
+
+    const inicio = new Date();
+    inicio.setHours(0, 0, 0, 0);
+    inicio.setDate(inicio.getDate() - (opcoes.dias - 1));
+    return commits.filter((commit) => new Date(commit.date).getTime() >= inicio.getTime());
   }, []);
 
-  return { visao, erro, carregando, ocupado, acao, definirAtivo, historico };
+  return { visao, erro, carregando, ocupado, acao, definirAtivo, historico, recarregar };
 }

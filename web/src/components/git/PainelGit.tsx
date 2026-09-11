@@ -11,87 +11,125 @@ const ESTADO_ROTULO: Record<string, string> = {
 };
 
 export function PainelGit({ toast }: { toast: Avisar }) {
-  const { visao, erro, carregando, ocupado, acao, definirAtivo, historico } = useGitAutosync(toast);
-  const [selecionadoPath, setSelecionadoPath] = useState<string | null>(null);
-
-  const selecionado = visao.repos.find((r) => r.path === selecionadoPath);
+  const { visao, erro, carregando, ocupado, acao, definirAtivo, historico, recarregar } =
+    useGitAutosync(toast);
+  const [modo, setModo] = useState<'repos' | 'historico'>('repos');
+  const [dias, setDias] = useState<number | undefined>(7);
 
   if (erro) return <AvisoHelperFora erro={erro} />;
 
   return (
-    <div className="layout">
-      <aside className="project-list">
-        <div className="project-list-head">
-          {carregando
-            ? 'carregando…'
-            : `${visao.repos.length} ${plural(visao.repos.length, 'repositório', 'repositórios')}`}
+    <div className="git-page">
+      <header className="git-page-head">
+        <div>
+          <h1>Repositórios</h1>
+          <p>Revise execuções, controle o agendamento e mantenha cada remoto atualizado.</p>
         </div>
+        <button className="btn ghost" disabled={carregando || ocupado} onClick={() => void recarregar()}>
+          Atualizar
+        </button>
+      </header>
 
-        <div className="project-list-items">
+      <section className="git-overview" aria-label="Resumo do Git AutoSync">
+        <Resumo valor={visao.repos.length} rotulo={plural(visao.repos.length, 'repositório', 'repositórios')} />
+        <Resumo valor={visao.repos.filter((repo) => repo.ativo).length} rotulo="no autosync" />
+        <Resumo
+          valor={visao.repos.filter((repo) => repo.estado?.state === 'pending_push').length}
+          rotulo="com push pendente"
+          alerta
+        />
+        <div className="git-agenda">
+          <span>Agendamento</span>
+          <strong>{visao.horarios.length ? visao.horarios.join(', ') : 'não configurado'}</strong>
+          <small>{visao.ultimaExecucao ? `última rodada ${visao.ultimaExecucao}` : 'sem execução registrada'}</small>
+        </div>
+      </section>
+
+      <div className="git-toolbar">
+        <div className="git-view-switch" role="tablist" aria-label="Visão do Git">
+          <button role="tab" aria-selected={modo === 'repos'} onClick={() => setModo('repos')}>
+            Repositórios
+          </button>
+          <button role="tab" aria-selected={modo === 'historico'} onClick={() => setModo('historico')}>
+            Histórico
+          </button>
+        </div>
+        {modo === 'historico' && (
+          <select value={dias ?? 0} onChange={(e) => setDias(Number(e.target.value) || undefined)}>
+            <option value={2}>Hoje e ontem</option>
+            <option value={7}>Últimos 7 dias</option>
+            <option value={0}>Últimos 100 commits</option>
+          </select>
+        )}
+      </div>
+
+      {carregando ? (
+        <p className="detail-empty">Carregando repositórios…</p>
+      ) : visao.repos.length === 0 ? (
+        <p className="detail-empty">Nenhum repositório configurado.</p>
+      ) : (
+        <section className={`git-repo-grid ${modo}`}>
           {visao.repos.map((repo) => (
-            <div
-              key={repo.path}
-              className={`project-item${repo.path === selecionadoPath ? ' active' : ''}${
-                repo.ativo ? '' : ' disabled'
-              }`}
-            >
-              {/*
-                O checkbox fica fora do botão de seleção: um <button> dentro de outro é
-                HTML inválido, e clicar para agendar não deve também trocar o detalhe.
-              */}
-              <input
-                type="checkbox"
-                checked={repo.ativo}
-                disabled={ocupado}
-                title={
-                  repo.ativo
-                    ? 'No agendamento automático — desmarque para tirar'
-                    : 'Fora do agendamento — marque para incluir'
-                }
-                onChange={(e) => void definirAtivo(repo, e.target.checked)}
-              />
-              <button
-                type="button"
-                className="li-botao"
-                aria-pressed={repo.path === selecionadoPath}
-                onClick={() => setSelecionadoPath(repo.path)}
-              >
-                <div className="li-title">
+            <article className="card git-repo-card" key={repo.path} data-git-state={estadoVisual(repo)}>
+              <div className="git-repo-head">
+                <div className="card-title">
                   <h2>{nomeCurto(repo.path)}</h2>
-                  <p className="li-summary">
-                    {repo.estado?.state
-                      ? (ESTADO_ROTULO[repo.estado.state] ?? repo.estado.state)
-                      : 'nunca sincronizado'}
-                  </p>
+                  <p title={repo.path}>{repo.path}</p>
+                  {!repo.alvoProprio && repo.alvo && <small>via pasta {repo.alvo}</small>}
                 </div>
-              </button>
-            </div>
-          ))}
-        </div>
-
-        <p className="painel-nota">
-          Agendamento: {visao.horarios.length ? visao.horarios.join(', ') : 'nenhum'}
-          {visao.ultimaExecucao && ` · última execução ${visao.ultimaExecucao}`}
-        </p>
-      </aside>
-
-      <section className="detail">
-        {selecionado ? (
-          <article className="card detail-card">
+                <label className="git-autosync-toggle" title="Incluir no agendamento automático">
+                  <input
+                    type="checkbox"
+                    checked={repo.ativo}
+                    disabled={ocupado}
+                    onChange={(e) => void definirAtivo(repo, e.target.checked)}
+                  />
+                  <span>{repo.ativo ? 'no autosync' : 'fora do autosync'}</span>
+                </label>
+              </div>
+              <EstadoRepo repo={repo} />
             <DetalheRepo
-              key={selecionado.path}
-              repo={selecionado}
+              key={modo}
+              repo={repo}
               ocupado={ocupado}
               onAcao={acao}
               carregarHistorico={historico}
+              semCabecalho
+              somenteHistorico={modo === 'historico'}
+              ocultarHistorico={modo === 'repos'}
+              historicoRecolhivel={modo === 'historico'}
+              diasHistorico={modo === 'historico' ? dias : undefined}
+              limiteHistorico={modo === 'historico' ? 100 : 5}
             />
-          </article>
-        ) : (
-          <p className="detail-empty">Selecione um repositório ao lado.</p>
-        )}
-      </section>
+            </article>
+          ))}
+        </section>
+      )}
     </div>
   );
+}
+
+function Resumo({ valor, rotulo, alerta = false }: { valor: number; rotulo: string; alerta?: boolean }) {
+  return <div className={`git-summary${alerta && valor ? ' alert' : ''}`}><strong>{valor}</strong><span>{rotulo}</span></div>;
+}
+
+function EstadoRepo({ repo }: { repo: import('../../types.ts').RepoAutosync }) {
+  const estado = repo.estado;
+  const visual = estadoVisual(repo);
+  return (
+    <div className="git-state-row">
+      <span className={`git-state ${visual}`}>
+        {visual === 'unknown' ? 'nunca sincronizado' : (ESTADO_ROTULO[visual] ?? visual)}
+      </span>
+      <span>{!estado ? 'sem execução registrada' : estado.hadChanges ? 'alterações processadas' : 'sem alterações na última rodada'}</span>
+      <span>{estado?.lastPush ? `último push ${estado.lastPush}` : 'sem push registrado'}</span>
+      {estado?.message && <p title={estado.message}>{estado.message.split('\n')[0]}</p>}
+    </div>
+  );
+}
+
+function estadoVisual(repo: import('../../types.ts').RepoAutosync): string {
+  return repo.estado?.state ?? (repo.estado?.success === false ? 'failed' : 'unknown');
 }
 
 export function AvisoHelperFora({ erro }: { erro: string }) {

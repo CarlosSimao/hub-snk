@@ -67,6 +67,7 @@ export function GitDoCliente({ cliente, toast }: { cliente: Cliente; toast: Avis
             {!repo.ativo && <span className="badge-disabled">fora do agendamento</span>}
           </h2>
           <p title={repo.path}>{repo.path}</p>
+          {cliente.repositorioRemoto && <p title={cliente.repositorioRemoto}>{cliente.repositorioRemoto}</p>}
           {repo.estado?.message && <p className="card-summary">{repo.estado.message}</p>}
         </div>
         <div className="detail-actions">
@@ -88,6 +89,9 @@ export function GitDoCliente({ cliente, toast }: { cliente: Cliente; toast: Avis
         onAcao={acao}
         carregarHistorico={historico}
         semCabecalho
+        diasHistorico={2}
+        limiteHistorico={100}
+        mostrarMonitor
       />
     </article>
   );
