@@ -291,9 +291,84 @@ export interface Cliente {
   sankhyaUrl: string;
   repositorioLocal: string;
   repositorioRemoto: string;
+  /** Texto livre: contatos, particularidades, combinados. */
+  anotacoes: string;
 }
 
 export type ClienteEntrada = Omit<Cliente, 'id'>;
+
+/* ------------------------- o cartao do cliente --------------------------- */
+
+/**
+ * Um cliente tem mais de uma base (producao e teste, as vezes homologacao), mais de um
+ * repositorio e uma penca de links. Nada disso cabia nos campos unicos do cadastro.
+ */
+export const AMBIENTES_BASE = ['producao', 'teste', 'homologacao', 'outro'] as const;
+export type AmbienteBase = (typeof AMBIENTES_BASE)[number];
+
+export interface BaseCliente {
+  id: number;
+  clienteId: number;
+  ambiente: AmbienteBase;
+  /** URL do `/mge/`, ex.: `https://amatools.sankhyacloud.com.br/mge/`. */
+  url: string;
+  usuario: string;
+  /**
+   * Ha senha guardada para esta base.
+   *
+   * O valor NUNCA vem junto da listagem — so pela rota de revelar, e so a pedido
+   * explicito de quem esta na tela.
+   */
+  temSenha: boolean;
+  /** Versao lida da propria base na ultima medicao, ex.: `4.36b126`. */
+  versao: string;
+  /** Entra na medicao periodica de status. Base de teste costuma nao valer o ruido. */
+  monitorar: boolean;
+  ordem: number;
+}
+
+export type BaseClienteEntrada = Omit<BaseCliente, 'id' | 'clienteId' | 'temSenha' | 'versao'>;
+
+/** O que a medicao de uma base devolve. */
+export interface StatusBase {
+  baseId: number;
+  status: Status;
+  /** Uma linha legivel: "Operacional", "HTTP 502", "sem resposta". */
+  mensagem: string;
+  versao: string;
+  latenciaMs: number | null;
+  medidoEm: number;
+}
+
+export interface RepoCliente {
+  id: number;
+  clienteId: number;
+  /** Apelido na tela, ex.: "Comissionamento". Vazio cai para o nome da pasta. */
+  nome: string;
+  remoto: string;
+  caminhoLocal: string;
+  ordem: number;
+}
+
+export type RepoClienteEntrada = Omit<RepoCliente, 'id' | 'clienteId'>;
+
+export interface LinkCliente {
+  id: number;
+  clienteId: number;
+  titulo: string;
+  url: string;
+  ordem: number;
+}
+
+export type LinkClienteEntrada = Omit<LinkCliente, 'id' | 'clienteId'>;
+
+/** O cartao inteiro de um cliente, numa ida so ao servidor. */
+export interface CartaoCliente {
+  cliente: Cliente;
+  bases: BaseCliente[];
+  repos: RepoCliente[];
+  links: LinkCliente[];
+}
 
 /** Um parceiro que aparece nos eventos da agenda — e o que identifica o cliente la. */
 export interface ParceiroAgenda {

@@ -1234,6 +1234,43 @@ function Invoke-RotaCredenciais {
     return @{ status = 404; corpo = @{ ok = $false; erro = "rota desconhecida: $Metodo /$($Segmentos -join '/')" } }
 }
 
+<#
+.SYNOPSIS
+    Cifra e decifra um texto qualquer com DPAPI, para o hub guardar segredo que nao e
+    credencial de sistema.
+
+.DESCRIPTION
+    As senhas das bases dos clientes nao cabem no cofre por sistema: sao N por cliente e
+    o hub e quem sabe a qual base cada uma pertence. Aqui o helper so empresta o DPAPI —
+    o blob volta para o hub, que guarda no SQLite dele.
+
+    O blob so abre neste usuario do Windows, e a rota exige o mesmo token das demais.
+    Quem conseguisse chamar isto ja conseguiria ler o cofre inteiro pelo /credentials.
+#>
+function Invoke-RotaSegredo {
+    param([string] $Metodo, [string[]] $Segmentos, [string] $Corpo)
+
+    $acao = if ($Segmentos.Length -ge 2) { $Segmentos[1] } else { '' }
+    if ($Metodo -ne 'POST' -or ($acao -ne 'encrypt' -and $acao -ne 'decrypt')) {
+        return @{ status = 404; corpo = @{ ok = $false; erro = 'use POST /secret/encrypt ou /secret/decrypt' } }
+    }
+
+    try { $dados = $Corpo | ConvertFrom-Json } catch { $dados = $null }
+    $valor = [string] $dados.valor
+    if (-not $valor) {
+        return @{ status = 400; corpo = @{ ok = $false; erro = 'envie { valor }' } }
+    }
+
+    try {
+        $resultado = if ($acao -eq 'encrypt') { Proteger-Texto $valor } else { Desproteger-Texto $valor }
+        return @{ status = 200; corpo = @{ ok = $true; valor = $resultado } }
+    }
+    catch {
+        # Blob de outro usuario/maquina ou perfil recriado: o DPAPI nao volta atras.
+        return @{ status = 500; corpo = @{ ok = $false; erro = 'não consegui decriptar — regrave a senha neste usuário do Windows' } }
+    }
+}
+
 function Invoke-Rota {
     param([hashtable] $Requisicao)
 
@@ -1249,6 +1286,9 @@ function Invoke-Rota {
     }
     if ($segmentos[0] -eq 'credentials') {
         return Invoke-RotaCredenciais -Metodo $Requisicao.metodo -Segmentos $segmentos -Corpo $Requisicao.corpo
+    }
+    if ($segmentos[0] -eq 'secret') {
+        return Invoke-RotaSegredo -Metodo $Requisicao.metodo -Segmentos $segmentos -Corpo $Requisicao.corpo
     }
     if ($segmentos[0] -eq 'pastas') {
         if ($Requisicao.metodo -ne 'GET') {

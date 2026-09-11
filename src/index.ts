@@ -15,6 +15,9 @@ import { registerRoutesSankhya } from './routesSankhya.ts';
 import { registerRoutesGitAutosync } from './routesGitAutosync.ts';
 import { registerRoutesExperience } from './routesExperience.ts';
 import { registerRoutesAgenda } from './routesAgenda.ts';
+import { registerRoutesCartao } from './routesCartao.ts';
+import { CartaoClientes } from './sankhya/cartao.ts';
+import { MonitorBases } from './sankhya/monitorBases.ts';
 import { GitAutosync } from './gitAutosync.ts';
 import { Experience } from './sankhya/experience.ts';
 import { AgendaRecursos } from './sankhya/agenda.ts';
@@ -98,6 +101,11 @@ async function main(): Promise<void> {
   registerRoutesGitAutosync(app, { gitAutosync: new GitAutosync(helper) });
   registerRoutesExperience(app, { experience: new Experience(credenciais), clientes });
   registerRoutesAgenda(app, { agenda, helper });
+
+  // Criado depois de `Clientes`: as tabelas do cartao e a migracao dos campos unicos
+  // moram no construtor dele, e o mesmo arquivo SQLite e aberto pelos dois.
+  const cartao = new CartaoClientes(DATA_DIR, helper);
+  registerRoutesCartao(app, { cartao, clientes, monitor: new MonitorBases(cartao) });
 
   engine.start();
 

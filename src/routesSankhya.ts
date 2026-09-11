@@ -78,6 +78,7 @@ function normalizarCliente(corpo: unknown): ClienteEntrada | string {
     sankhyaUrl: url,
     repositorioLocal: texto('repositorioLocal'),
     repositorioRemoto: texto('repositorioRemoto'),
+    anotacoes: typeof dados['anotacoes'] === 'string' ? (dados['anotacoes'] as string) : '',
   };
 }
 

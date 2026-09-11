@@ -270,6 +270,8 @@ function FormularioCliente({ cliente, toast, onSalvar, onRemover, onCancelar }: 
         sankhyaUrl: texto('sankhyaUrl'),
         repositorioLocal: texto('repositorioLocal'),
         repositorioRemoto: texto('repositorioRemoto'),
+        // Texto livre preserva quebra de linha e espaço — nada de `trim` aqui.
+        anotacoes: String(dados.get('anotacoes') ?? ''),
       });
     } finally {
       setSalvando(false);

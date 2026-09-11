@@ -24,6 +24,7 @@ interface Linha {
   sankhya_url: string | null;
   repositorio_local: string;
   repositorio_remoto: string;
+  anotacoes: string | null;
 }
 
 function paraCliente(linha: Linha): Cliente {
@@ -37,6 +38,7 @@ function paraCliente(linha: Linha): Cliente {
     sankhyaUrl: linha.sankhya_url ?? '',
     repositorioLocal: linha.repositorio_local,
     repositorioRemoto: linha.repositorio_remoto,
+    anotacoes: linha.anotacoes ?? '',
   };
 }
 
@@ -69,8 +71,88 @@ export class Clientes {
     for (const [coluna, tipo] of [
       ['agenda_codparc', 'INTEGER'],
       ['sankhya_url', "TEXT NOT NULL DEFAULT ''"],
+      ['anotacoes', "TEXT NOT NULL DEFAULT ''"],
     ] as const) {
       if (!existentes.has(coluna)) this.#db.exec(`ALTER TABLE clientes ADD COLUMN ${coluna} ${tipo}`);
+    }
+
+    // Um cliente tem VARIAS bases, varios repositorios e varios links — os campos
+    // unicos do cadastro davam conta de um so de cada.
+    this.#db.exec(`
+      CREATE TABLE IF NOT EXISTS cliente_bases (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        cliente_id    INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+        ambiente      TEXT    NOT NULL DEFAULT 'producao',
+        url           TEXT    NOT NULL DEFAULT '',
+        usuario       TEXT    NOT NULL DEFAULT '',
+        senha_cifrada TEXT    NOT NULL DEFAULT '',
+        versao        TEXT    NOT NULL DEFAULT '',
+        monitorar     INTEGER NOT NULL DEFAULT 0,
+        ordem         INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE INDEX IF NOT EXISTS idx_bases_cliente ON cliente_bases (cliente_id, ordem);
+
+      CREATE TABLE IF NOT EXISTS cliente_repos (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        cliente_id    INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+        nome          TEXT    NOT NULL DEFAULT '',
+        remoto        TEXT    NOT NULL DEFAULT '',
+        caminho_local TEXT    NOT NULL DEFAULT '',
+        ordem         INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE INDEX IF NOT EXISTS idx_repos_cliente ON cliente_repos (cliente_id, ordem);
+
+      CREATE TABLE IF NOT EXISTS cliente_links (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        cliente_id INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+        titulo     TEXT    NOT NULL DEFAULT '',
+        url        TEXT    NOT NULL DEFAULT '',
+        ordem      INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE INDEX IF NOT EXISTS idx_links_cliente ON cliente_links (cliente_id, ordem);
+    `);
+
+    this.#migrarCamposUnicos();
+  }
+
+  /**
+   * Leva o repositorio e a URL que moravam em campo unico para as tabelas novas.
+   *
+   * Roda uma vez por cliente e so quando ele ainda nao tem linha na tabela de destino:
+   * sem essa guarda, cada reinicio do hub duplicaria o repositorio de todo mundo. Os
+   * campos antigos ficam onde estao — apagar dado do usuario numa migracao automatica
+   * e o tipo de coisa que so se descobre quando ja nao da para desfazer.
+   */
+  #migrarCamposUnicos(): void {
+    const pendentes = this.#db
+      .prepare(
+        `SELECT c.id, c.repositorio_local, c.repositorio_remoto, c.sankhya_url
+           FROM clientes c
+          WHERE (c.repositorio_local <> '' OR c.sankhya_url <> '')
+            AND NOT EXISTS (SELECT 1 FROM cliente_repos r WHERE r.cliente_id = c.id)
+            AND NOT EXISTS (SELECT 1 FROM cliente_bases b WHERE b.cliente_id = c.id)`,
+      )
+      .all() as unknown as Record<string, unknown>[];
+
+    for (const linha of pendentes) {
+      const id = Number(linha['id']);
+
+      if (String(linha['repositorio_local'])) {
+        this.#db
+          .prepare(
+            `INSERT INTO cliente_repos (cliente_id, nome, remoto, caminho_local, ordem)
+             VALUES (?, '', ?, ?, 0)`,
+          )
+          .run(id, String(linha['repositorio_remoto']), String(linha['repositorio_local']));
+      }
+
+      if (String(linha['sankhya_url'])) {
+        this.#db
+          .prepare(
+            `INSERT INTO cliente_bases (cliente_id, ambiente, url, ordem) VALUES (?, 'producao', ?, 0)`,
+          )
+          .run(id, String(linha['sankhya_url']));
+      }
     }
   }
 
@@ -93,8 +175,8 @@ export class Clientes {
       .prepare(
         `INSERT INTO clientes
            (nome, experience_projeto_id, experience_person_id, agenda_recurso_usuario,
-            agenda_codparc, sankhya_url, repositorio_local, repositorio_remoto)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            agenda_codparc, sankhya_url, repositorio_local, repositorio_remoto, anotacoes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         entrada.nome,
@@ -105,6 +187,7 @@ export class Clientes {
         entrada.sankhyaUrl,
         entrada.repositorioLocal,
         entrada.repositorioRemoto,
+        entrada.anotacoes,
       );
 
     return { id: Number(resultado.lastInsertRowid), ...entrada };
@@ -116,7 +199,7 @@ export class Clientes {
         `UPDATE clientes SET
            nome = ?, experience_projeto_id = ?, experience_person_id = ?,
            agenda_recurso_usuario = ?, agenda_codparc = ?, sankhya_url = ?,
-           repositorio_local = ?, repositorio_remoto = ?
+           repositorio_local = ?, repositorio_remoto = ?, anotacoes = ?
          WHERE id = ?`,
       )
       .run(
@@ -128,6 +211,7 @@ export class Clientes {
         entrada.sankhyaUrl,
         entrada.repositorioLocal,
         entrada.repositorioRemoto,
+        entrada.anotacoes,
         id,
       );
 
