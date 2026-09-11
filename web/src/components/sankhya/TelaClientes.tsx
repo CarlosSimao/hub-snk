@@ -8,12 +8,14 @@ import { TabBar, type Aba } from '../TabBar.tsx';
 import { GitDoCliente } from './GitDoCliente.tsx';
 import { AgendaDoCliente } from './AgendaDoCliente.tsx';
 import { SeletorPasta } from './SeletorPasta.tsx';
+import { CartaoDoCliente } from './CartaoDoCliente.tsx';
 import type { FocoCliente } from './PainelSankhya.tsx';
 
-type AbaCliente = 'cadastro' | 'agenda' | 'git';
+type AbaCliente = 'cartao' | 'cadastro' | 'agenda' | 'git';
 
 const ABAS_CLIENTE: Aba<AbaCliente>[] = [
-  { id: 'cadastro', rotulo: 'Cadastro' },
+  { id: 'cartao', rotulo: 'Visão geral', titulo: 'Bases, repositórios, links e anotações' },
+  { id: 'cadastro', rotulo: 'Cadastro', titulo: 'Os IDs que ligam o cliente aos três sistemas' },
   { id: 'agenda', rotulo: 'Agenda', titulo: 'Tarefas e ordens de serviço no Experience' },
   { id: 'git', rotulo: 'Git', titulo: 'Repositório deste cliente no git-autosync' },
 ];
@@ -24,7 +26,7 @@ type Selecao = { tipo: 'novo' } | { tipo: 'cliente'; cliente: Cliente } | null;
 export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoCliente | null }) {
   const { clientes, carregando, salvar, remover } = useClientes(toast);
   const [selecao, setSelecao] = useState<Selecao>(null);
-  const [abaCliente, setAbaCliente] = useState<AbaCliente>('cadastro');
+  const [abaCliente, setAbaCliente] = useState<AbaCliente>('cartao');
 
   // A Agenda Mensal manda abrir um cliente. Aplicado uma vez por pedido: sem o
   // controle de `seq`, um recarregamento da lista sequestraria a seleção de volta.
@@ -63,9 +65,9 @@ export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoClient
               aria-pressed={selecionado?.id === cliente.id}
               onClick={() => {
                 setSelecao({ tipo: 'cliente', cliente });
-                // Trocar de cliente sempre volta ao cadastro: ficar no Git de um
+                // Trocar de cliente sempre volta à visão geral: ficar no Git de um
                 // cliente e ver o repositório de outro confundiria mais que ajudaria.
-                setAbaCliente('cadastro');
+                setAbaCliente('cartao');
               }}
             >
               <div className="li-title">
@@ -110,6 +112,19 @@ export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoClient
         {selecionado && (
           <>
             <TabBar abas={ABAS_CLIENTE} ativa={abaCliente} onTrocar={setAbaCliente} variante="sub" />
+
+            {abaCliente === 'cartao' && (
+              <CartaoDoCliente
+                key={selecionado.id}
+                cliente={selecionado}
+                toast={toast}
+                onEditar={() => setAbaCliente('cadastro')}
+                onRemover={async () => {
+                  if (await remover(selecionado)) setSelecao(null);
+                }}
+                onSalvarCliente={(entrada) => salvar(selecionado.id, entrada)}
+              />
+            )}
 
             {abaCliente === 'cadastro' && (
               <FormularioCliente

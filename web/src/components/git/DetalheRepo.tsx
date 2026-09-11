@@ -14,6 +14,27 @@ export function mesmoCaminho(a: string, b: string): boolean {
   return normalizar(a) === normalizar(b);
 }
 
+export function StatusRepoCompacto({ repo, branch }: { repo: RepoAutosync | undefined; branch?: string }) {
+  const estado = repo?.estado;
+  const visual = estado?.state ?? (estado?.success === false ? 'failed' : 'unknown');
+  const texto = visual === 'synced'
+    ? 'Sem pendências: tudo commitado e enviado'
+    : visual === 'pending_push'
+      ? estado?.message?.split('\n')[0] || 'Há commit sem push'
+      : visual === 'failed'
+        ? estado?.message?.split('\n')[0] || 'Última sincronização falhou'
+        : repo
+          ? 'Sem execução registrada pelo autosync'
+          : 'Repositório fora do git-autosync';
+
+  return (
+    <div className={`repo-status-compacto ${visual}`}>
+      <span className="repo-branch">{branch ? `branch ${branch}` : 'branch não identificada'}</span>
+      <span>{texto}</span>
+    </div>
+  );
+}
+
 interface Props {
   repo: RepoAutosync;
   ocupado: boolean;

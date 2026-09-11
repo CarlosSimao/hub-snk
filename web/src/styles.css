@@ -2299,3 +2299,340 @@ main {
 @media (max-width: 620px) {
   .faixa-cruzamento { padding: 0 13px 10px; }
 }
+
+/* ------------------------ cartao do cliente ------------------------------ */
+
+.cartao-cliente {
+  display: grid;
+  gap: 0;
+}
+
+.cartao-cliente-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cartao-cliente-head > div:first-child > span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.cartao-cliente-head h2 {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.cartao-head-acoes {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cartao-secao {
+  display: grid;
+  gap: 9px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cartao-secao:last-child { border-bottom: 0; }
+
+.cartao-secao-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cartao-secao-head h3 {
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+/* O + de cada secao. Quadrado pequeno, verde: e sempre uma adicao. */
+.cartao-secao-head button {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border: 1px solid color-mix(in srgb, var(--up) 40%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--up) 12%, transparent);
+  color: var(--up);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cartao-secao-head button:hover {
+  background: color-mix(in srgb, var(--up) 22%, transparent);
+}
+
+.cartao-vazio {
+  margin: 0;
+  padding: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  font-size: 11.5px;
+  text-align: center;
+}
+
+/* Base, repositorio e link compartilham a moldura: mesma natureza de item. */
+.cartao-base,
+.cartao-repo,
+.cartao-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.cartao-base { flex-wrap: wrap; }
+
+.cartao-base-dados,
+.cartao-item-main {
+  flex: 1;
+  min-width: 220px;
+  display: grid;
+  gap: 6px;
+}
+
+.cartao-item-main strong { font-size: 12.5px; }
+
+.cartao-item-main code {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+
+.linha-url {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.linha-url a {
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.credencial-base {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+.credencial-base > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.credencial-base small {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.credencial-base strong {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* Senha revelada e texto para ler e copiar, nao para o navegador tratar. */
+.senha-base {
+  user-select: all;
+  letter-spacing: 0.06em;
+}
+
+.btn-icone {
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.btn-icone:hover { color: var(--text); border-color: var(--border-strong); }
+
+.cartao-base-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-base {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.status-base.up {
+  border-color: color-mix(in srgb, var(--up) 45%, transparent);
+  background: color-mix(in srgb, var(--up) 12%, transparent);
+  color: var(--up);
+}
+
+.status-base.degraded {
+  border-color: color-mix(in srgb, var(--degraded) 45%, transparent);
+  background: color-mix(in srgb, var(--degraded) 12%, transparent);
+  color: var(--degraded);
+}
+
+.status-base.down {
+  border-color: color-mix(in srgb, var(--down) 45%, transparent);
+  background: color-mix(in srgb, var(--down) 12%, transparent);
+  color: var(--down);
+}
+
+.toggle-monitorar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+/* O ambiente e o primeiro dado que se le na linha: producao pede cautela. */
+.ambiente {
+  flex: none;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 9.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ambiente-producao {
+  border-color: color-mix(in srgb, var(--down) 45%, transparent);
+  background: color-mix(in srgb, var(--down) 14%, transparent);
+  color: var(--down);
+}
+
+.ambiente-teste {
+  border-color: color-mix(in srgb, var(--up) 45%, transparent);
+  background: color-mix(in srgb, var(--up) 12%, transparent);
+  color: var(--up);
+}
+
+.ambiente-homologacao {
+  border-color: color-mix(in srgb, var(--degraded) 45%, transparent);
+  background: color-mix(in srgb, var(--degraded) 12%, transparent);
+  color: var(--degraded);
+}
+
+.ambiente-outro { color: var(--text-faint); }
+
+.cartao-item-acoes {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+.cartao-links { display: grid; gap: 8px; }
+
+.cartao-link a {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+}
+
+.cartao-link a span {
+  font-size: 11px;
+  color: var(--text-faint);
+  overflow-wrap: anywhere;
+}
+
+.anotacoes-cliente textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.anotacoes-cliente textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.cartao-anotacoes-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.editor-cartao .modal-body { gap: 11px; }
+
+@media (max-width: 760px) {
+  .cartao-base-status { width: 100%; }
+  .cartao-item-acoes { width: 100%; justify-content: flex-end; }
+}
+
+/* Status do repositorio na linha do cartao — duas informacoes lado a lado. */
+.repo-status-compacto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.repo-status-compacto .repo-branch {
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.repo-status-compacto.synced { border-left-color: var(--up); }
+.repo-status-compacto.pending_push { border-left-color: var(--degraded); }
+.repo-status-compacto.failed { border-left-color: var(--down); }
+.repo-status-compacto.unknown { border-left-color: var(--border-strong); }
