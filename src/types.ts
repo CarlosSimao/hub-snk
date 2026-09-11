@@ -452,9 +452,41 @@ export interface OrdemExperience {
   numeroSankhya: string;
   /** `Gerado`, vazio quando ainda nao ha aceite. */
   statusAceite: string;
+  /**
+   * Duracao DESTA OS (`diff_time`), ex.: `08:00`.
+   *
+   * Vem de `diff_time` e nao de `total_done`: medido no projeto 10269, `total_done`
+   * volta o MESMO valor em toda linha (`60:00`) porque e o acumulado do projeto, nao
+   * da ordem — usa-lo aqui fazia a tela anunciar 60 horas para cada OS de 4.
+   */
   horasFeitas: string;
   etapa: string;
   processos: string;
+
+  /* --- os campos abaixo so importam no acompanhamento do PROJETO INTEIRO --- */
+
+  /** Quem lancou a OS. Vazio quando a consulta e so das proprias. */
+  pessoa: string;
+  /** Razao social do cliente, como a Experience registra. */
+  empresa: string;
+  /** Situacao do numero no ERP — diz se a OS chegou do outro lado. */
+  statusNumeroSankhya: string;
+  /** A OS passou do volume de horas previsto. */
+  horasExcedidas: boolean;
+  /** Erro da integracao com o ERP, quando houve. */
+  erro: string;
+  /** Codigo do pedido/chamado que originou a OS. */
+  pedido: string;
+  /** Coordenador do FAP — quem cobra o projeto do lado da Sankhya. */
+  coordenador: string;
+  /**
+   * Acumulado do PROJETO, repetido em toda linha da resposta.
+   *
+   * Fica aqui porque e o unico lugar de onde sai, mas nao e dado da OS: a tela mostra
+   * uma vez no cabecalho, nunca por linha.
+   */
+  totalProjetoPrevisto: string;
+  totalProjetoFeito: string;
 }
 
 export interface AgendaExperience {

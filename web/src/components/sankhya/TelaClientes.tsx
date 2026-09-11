@@ -7,16 +7,18 @@ import type { Avisar } from '../../hooks/useToasts.ts';
 import { TabBar, type Aba } from '../TabBar.tsx';
 import { GitDoCliente } from './GitDoCliente.tsx';
 import { AgendaDoCliente } from './AgendaDoCliente.tsx';
+import { OrdensDoProjeto } from './OrdensDoProjeto.tsx';
 import { SeletorPasta } from './SeletorPasta.tsx';
 import { CartaoDoCliente } from './CartaoDoCliente.tsx';
 import type { FocoCliente } from './PainelSankhya.tsx';
 
-type AbaCliente = 'cartao' | 'cadastro' | 'agenda' | 'git';
+type AbaCliente = 'cartao' | 'cadastro' | 'agenda' | 'os' | 'git';
 
 const ABAS_CLIENTE: Aba<AbaCliente>[] = [
   { id: 'cartao', rotulo: 'Visão geral', titulo: 'Bases, repositórios, links e anotações' },
   { id: 'cadastro', rotulo: 'Cadastro', titulo: 'Os IDs que ligam o cliente aos três sistemas' },
   { id: 'agenda', rotulo: 'Agenda', titulo: 'Tarefas e ordens de serviço no Experience' },
+  { id: 'os', rotulo: 'OS', titulo: 'Todas as OS lançadas no projeto, inclusive pelos outros' },
   { id: 'git', rotulo: 'Git', titulo: 'Repositório deste cliente no git-autosync' },
 ];
 
@@ -140,6 +142,10 @@ export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoClient
 
             {abaCliente === 'agenda' && (
               <AgendaDoCliente key={selecionado.id} cliente={selecionado} toast={toast} />
+            )}
+
+            {abaCliente === 'os' && (
+              <OrdensDoProjeto key={selecionado.id} cliente={selecionado} toast={toast} />
             )}
 
             {abaCliente === 'git' && (

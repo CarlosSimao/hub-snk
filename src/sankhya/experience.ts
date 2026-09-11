@@ -354,10 +354,28 @@ export class Experience {
   }
 
   /** `periodo` em `YYYY-MM-DD`; a API espera o dia com hora. */
-  ordens(projetoId: number, personId: number, de: string, ate: string): Promise<OrdemExperience[]> {
+  /**
+   * As OS de um projeto no periodo.
+   *
+   * `personId` nulo traz as de TODO MUNDO no projeto — medido em 2026-09-11 no projeto
+   * 10269: com `users: [21986]` vieram 11 OS, sem o filtro vieram 95 no mesmo periodo,
+   * de seis pessoas diferentes. E o que permite acompanhar o projeto e nao so o proprio
+   * trabalho, sabendo apenas o ID do projeto.
+   */
+  ordens(
+    projetoId: number,
+    personId: number | null,
+    de: string,
+    ate: string,
+  ): Promise<OrdemExperience[]> {
     return this.#paginar(
       `/orders/filtering?implantation_ids=${projetoId}`,
-      { period: [`${de} 00:00:00`, `${ate} 23:59:59`], users: [personId] },
+      {
+        period: [`${de} 00:00:00`, `${ate} 23:59:59`],
+        // A chave precisa sumir do corpo, nao ir como lista vazia: `users: []` e um
+        // filtro que nao casa com ninguem, e a resposta volta sem nenhuma OS.
+        ...(personId === null ? {} : { users: [personId] }),
+      },
       (linha) => ({
         id: Number(linha['order_id'] ?? linha['id']),
         dia: paraIso(texto(linha['order_done_date'])),
@@ -365,9 +383,19 @@ export class Experience {
         tipo: texto(linha['order_type']),
         numeroSankhya: texto(linha['numos_sankhya']),
         statusAceite: texto(linha['accepted_os_status']),
-        horasFeitas: texto(linha['total_done']),
+        // `diff_time`, nao `total_done`: ver o comentario em `OrdemExperience.horasFeitas`.
+        horasFeitas: texto(linha['diff_time']),
         etapa: texto(linha['stage_name']),
         processos: texto(linha['process_all']),
+        pessoa: texto(linha['person_name']),
+        empresa: texto(linha['company_name']),
+        statusNumeroSankhya: texto(linha['numos_sankhya_status']),
+        horasExcedidas: linha['volume_hours_exceeded'] === true,
+        erro: texto(linha['error_description']),
+        pedido: texto(linha['application_code']),
+        coordenador: texto(linha['fap_coordinator']),
+        totalProjetoPrevisto: texto(linha['total_expected']),
+        totalProjetoFeito: texto(linha['total_done']),
       }),
     );
   }

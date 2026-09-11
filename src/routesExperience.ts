@@ -32,6 +32,11 @@ function responderErro(reply: FastifyReply, err: unknown): FastifyReply {
   return reply.code(502).send({ error: (err as Error).message });
 }
 
+/** Um dia no formato `YYYY-MM-DD`. */
+function ehDia(valor: string | undefined): valor is string {
+  return typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor);
+}
+
 /** Primeiro e último dia do mês `YYYY-MM`, em `YYYY-MM-DD`. */
 function limitesDoMes(mes: string): { de: string; ate: string } | null {
   const partes = /^(\d{4})-(\d{2})$/.exec(mes);
@@ -108,6 +113,51 @@ export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperi
       );
 
       return { clientes: resultados };
+    },
+  );
+
+  /**
+   * As OS lançadas num projeto, para acompanhar.
+   *
+   * Só o ID do projeto basta — nem cliente cadastrado, nem `person_id`. É a consulta de
+   * quem quer olhar um projeto inteiro, inclusive o que os outros lançaram, e não a
+   * agenda de um cliente do próprio cadastro.
+   *
+   * `?soMinhas=1` estreita para as próprias, resolvendo o `person_id` pelo e-mail da
+   * sessão — o mesmo caminho do botão "Descobrir" do cadastro.
+   */
+  app.get<{ Querystring: { projetoId?: string; de?: string; ate?: string; soMinhas?: string } }>(
+    '/api/experience/ordens',
+    async (request, reply) => {
+      const projetoId = Number(request.query.projetoId);
+      if (!Number.isInteger(projetoId) || projetoId <= 0) {
+        return reply.code(400).send({ error: 'informe ?projetoId=<número>' });
+      }
+
+      const { de, ate } = request.query;
+      if (!ehDia(de) || !ehDia(ate)) {
+        return reply.code(400).send({ error: 'informe ?de= e ?ate= no formato YYYY-MM-DD' });
+      }
+      if (ate < de) {
+        return reply.code(400).send({ error: 'a data final precisa ser depois da inicial' });
+      }
+
+      try {
+        let personId: number | null = null;
+        if (request.query.soMinhas === '1') {
+          const eu = await experience.descobrirPersonId(projetoId);
+          if (!eu) {
+            return reply.code(404).send({
+              error: 'você não aparece na lista de pessoas desse projeto — confira o ID',
+            });
+          }
+          personId = eu.personId;
+        }
+
+        return { ordens: await experience.ordens(projetoId, personId, de, ate) };
+      } catch (err) {
+        return responderErro(reply, err);
+      }
     },
   );
 
