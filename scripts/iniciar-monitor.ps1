@@ -52,6 +52,11 @@ $ScriptWildflyHelper = Join-Path $PSScriptRoot 'wildfly-helper.ps1'
 $PortaWildflyLogHelper = 4101
 $ScriptWildflyLogHelper = Join-Path $PSScriptRoot 'wildfly-log-helper.ps1'
 
+# Helper do proprio hub (scripts/hub-helper.ps1): DPAPI das credenciais do Sankhya e
+# execucao do git-autosync. Precisa bater com HUB_HELPER_URL no docker-compose.yml.
+$PortaHubHelper = 4102
+$ScriptHubHelper = Join-Path $PSScriptRoot 'hub-helper.ps1'
+
 function Escrever-Etapa {
     param([string] $Texto)
     Write-Host ''
@@ -239,58 +244,43 @@ function Test-PortaEmUso {
 }
 
 <#
-    Best-effort: um host sem o WildFly do Sankhya (ou sem `wildfly-helper.ps1`, caso
-    o checkout seja de outro projeto) nao deve travar o resto do atalho por causa disso.
+    Sobe um dos helpers nativos do Windows, se ele ainda nao estiver escutando.
+
+    Best-effort: um host sem o WildFly do Sankhya (ou sem o script, caso o checkout
+    seja de outro projeto) nao deve travar o resto do atalho por causa disso — por isso
+    a ausencia do arquivo sai calada e a falha de subida so avisa.
+
+    Todos rodam com `powershell.exe` explicito, nao `pwsh`: o hub-helper depende de
+    DPAPI, que so existe no runtime do Windows PowerShell.
 #>
-function Start-WildflyHelper {
-    if (-not (Test-Path -LiteralPath $ScriptWildflyHelper)) {
+function Start-Helper {
+    param(
+        [string] $Nome,
+        [string] $Script,
+        [int] $Porta,
+        [string] $AvisoFalha
+    )
+
+    if (-not (Test-Path -LiteralPath $Script)) {
         return
     }
 
-    if (Test-PortaEmUso -Porta $PortaWildflyHelper) {
-        Escrever-Ok 'Helper do WildFly já está rodando'
+    if (Test-PortaEmUso -Porta $Porta) {
+        Escrever-Ok "$Nome já está rodando"
         return
     }
 
-    Escrever-Etapa 'Iniciando o helper do WildFly'
+    Escrever-Etapa "Iniciando o $Nome"
     Start-Process -FilePath 'powershell.exe' `
-        -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', $ScriptWildflyHelper) `
+        -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', $Script) `
         -WindowStyle Hidden
 
     Start-Sleep -Milliseconds 500
-    if (Test-PortaEmUso -Porta $PortaWildflyHelper) {
-        Escrever-Ok 'Helper do WildFly no ar'
+    if (Test-PortaEmUso -Porta $Porta) {
+        Escrever-Ok "$Nome no ar"
     }
     else {
-        Escrever-Falha 'Helper do WildFly não respondeu — ações de iniciar/parar/reiniciar não vão funcionar'
-    }
-}
-
-<#
-    Mesma logica do helper de controle, script e porta separados — ver o
-    cabecalho de wildfly-log-helper.ps1 pro motivo.
-#>
-function Start-WildflyLogHelper {
-    if (-not (Test-Path -LiteralPath $ScriptWildflyLogHelper)) {
-        return
-    }
-
-    if (Test-PortaEmUso -Porta $PortaWildflyLogHelper) {
-        Escrever-Ok 'Helper de log do WildFly já está rodando'
-        return
-    }
-
-    Escrever-Etapa 'Iniciando o helper de log do WildFly'
-    Start-Process -FilePath 'powershell.exe' `
-        -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', $ScriptWildflyLogHelper) `
-        -WindowStyle Hidden
-
-    Start-Sleep -Milliseconds 500
-    if (Test-PortaEmUso -Porta $PortaWildflyLogHelper) {
-        Escrever-Ok 'Helper de log do WildFly no ar'
-    }
-    else {
-        Escrever-Falha 'Helper de log do WildFly não respondeu — a ação "Log" não vai funcionar'
+        Escrever-Falha "$Nome não respondeu — $AvisoFalha"
     }
 }
 
@@ -304,8 +294,12 @@ try {
     if (-not (Start-DockerDesktop)) { exit 1 }
     if (-not (Start-Containers)) { exit 1 }
     if (-not (Wait-Hub)) { exit 1 }
-    Start-WildflyHelper
-    Start-WildflyLogHelper
+    Start-Helper -Nome 'helper do WildFly' -Script $ScriptWildflyHelper -Porta $PortaWildflyHelper `
+        -AvisoFalha 'ações de iniciar/parar/reiniciar não vão funcionar'
+    Start-Helper -Nome 'helper de log do WildFly' -Script $ScriptWildflyLogHelper -Porta $PortaWildflyLogHelper `
+        -AvisoFalha 'a ação "Log" não vai funcionar'
+    Start-Helper -Nome 'helper do hub' -Script $ScriptHubHelper -Porta $PortaHubHelper `
+        -AvisoFalha 'as credenciais do Sankhya e o git-autosync não vão funcionar'
 
     if (-not $SemNavegador) {
         Escrever-Etapa "Abrindo $UrlPainel"

@@ -176,6 +176,92 @@ export interface HubSnapshot {
   alerts: Alert[];
 }
 
+/* ------------------------------ suite Sankhya ----------------------------- */
+
+/** Os dois sistemas em que o hub se autentica. */
+export const SISTEMAS_SANKHYA = ['sankhya-erp', 'sankhya-experience'] as const;
+export type SistemaSankhya = (typeof SISTEMAS_SANKHYA)[number];
+
+/**
+ * Estado de uma credencial do Sankhya — mesma ideia do `EnvVarStatus`: diz se ha valor
+ * guardado e para qual usuario, nunca a senha. A senha e cifrada com DPAPI fora do
+ * container e so o backend a decripta, no momento do login automatizado.
+ */
+export interface StatusCredencial {
+  sistema: SistemaSankhya;
+  usuario: string;
+  definido: boolean;
+}
+
+/**
+ * Um cliente amarra os tres mundos do painel: o projeto no Sankhya Experience (tarefa
+ * e OS), o recurso na Agenda do Sankhya ERP (evento de agenda) e a pasta local do
+ * repositorio git (commit e push). A associacao e manual, feita na tela.
+ */
+export interface Cliente {
+  id: number;
+  nome: string;
+  /** ID do projeto na Experience (ex.: 10269) — o mesmo que aparece na URL da tela. */
+  experienceProjetoId: number | null;
+  /** `person_id` do usuario logado nesse projeto (ex.: 21986). */
+  experiencePersonId: number | null;
+  /** Username do recurso na Agenda de Recursos (ex.: FLAVIANO.SANTOS). */
+  agendaRecursoUsuario: string;
+  repositorioLocal: string;
+  repositorioRemoto: string;
+}
+
+export type ClienteEntrada = Omit<Cliente, 'id'>;
+
+/* ------------------------------ git-autosync ------------------------------ */
+
+/**
+ * Um alvo configurado no git-autosync.
+ *
+ * `root` e uma PASTA que contem varios repositorios e os varre sozinha; `repo` e um
+ * repositorio unico. E por isso que tirar um repositorio do agendamento nem sempre e
+ * "descadastrar": dentro de um alvo `root`, e `exclude`.
+ */
+export interface AlvoAutosync {
+  path: string;
+  type: 'root' | 'repo';
+  enabled: boolean;
+  exclude: string[];
+}
+
+/** Como o ultimo ciclo do agendador terminou, por repositorio. */
+export interface EstadoRepoAutosync {
+  path: string;
+  lastRun?: string;
+  success?: boolean;
+  hadChanges?: boolean;
+  message?: string;
+  pushed?: boolean;
+  state?: string;
+  lastPush?: string;
+}
+
+export interface CommitAutosync {
+  hash: string;
+  date: string;
+  message: string;
+}
+
+/**
+ * A visao que o painel usa: um repositorio por linha, ja cruzando o que o agendador
+ * reportou (`status.json`) com o que a config diz estar excluido.
+ */
+export interface RepoAutosync {
+  path: string;
+  /** Alvo raiz de onde ele foi varrido, quando nao e um alvo proprio. */
+  alvo: string;
+  /** Entra no agendamento automatico. Falso quando esta na lista de `exclude` do alvo. */
+  ativo: boolean;
+  /** O repositorio e um alvo por si so — desmarcar remove, em vez de excluir. */
+  alvoProprio: boolean;
+  estado: EstadoRepoAutosync | null;
+}
+
 /** Ordem de severidade — usada para agregar o pior status de um conjunto. */
 const SEVERITY: Record<Status, number> = { up: 0, unknown: 1, degraded: 2, down: 3 };
 

@@ -11,8 +11,10 @@ FROM node:24-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci --no-audit --no-fund
-COPY tsconfig.json ./
+COPY tsconfig.json vite.config.ts ./
 COPY src ./src
+# O painel React: `npm run build` roda tsc (backend, -> dist/) e vite (frontend, -> public/).
+COPY web ./web
 RUN npm run build
 
 # -----------------------------------------------------------------------------
@@ -62,8 +64,8 @@ RUN echo /opt/oracle/instantclient > /etc/ld.so.conf.d/oracle.conf && ldconfig
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/public ./public
 COPY package.json ./
-COPY public ./public
 COPY config ./config
 
 # O SQLite de historico e o cofre de credenciais vivem em volume; se o volume nao for

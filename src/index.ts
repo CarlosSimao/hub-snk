@@ -11,6 +11,12 @@ import { Cofre } from './segredos.ts';
 import { Desativados } from './desativados.ts';
 import { ConfiguracoesCheck } from './configuracoesCheck.ts';
 import { registerRoutes } from './routes.ts';
+import { registerRoutesSankhya } from './routesSankhya.ts';
+import { registerRoutesGitAutosync } from './routesGitAutosync.ts';
+import { GitAutosync } from './gitAutosync.ts';
+import { HubHelper } from './sankhya/helper.ts';
+import { Credenciais } from './sankhya/credenciais.ts';
+import { Clientes } from './sankhya/clientes.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 /** `src/` em dev, `dist/` no container — a raiz do projeto e sempre o pai. */
@@ -22,6 +28,12 @@ const CONFIG_PATH = process.env['CONFIG_PATH'] ?? join(projectRoot, 'config', 's
 const DATA_DIR = process.env['DATA_DIR'] ?? join(projectRoot, 'data');
 const DOCKER_SOCKET = process.env['DOCKER_SOCKET'] ?? '/var/run/docker.sock';
 const PUBLIC_DIR = join(projectRoot, 'public');
+
+// `scripts/hub-helper.ps1`, rodando nativamente no Windows: DPAPI e git-autosync, que
+// nao existem dentro do container Linux. O token e escrito pelo helper e chega aqui
+// por bind mount read-only — ver docker-compose.yml.
+const HELPER_URL = process.env['HUB_HELPER_URL'] ?? 'http://host.docker.internal:4102';
+const HELPER_TOKEN_FILE = process.env['HUB_HELPER_TOKEN_FILE'] ?? '/app/helper-ipc/token.txt';
 
 async function main(): Promise<void> {
   const startedAt = Date.now();
@@ -63,6 +75,9 @@ async function main(): Promise<void> {
   const docker = new DockerClient(DOCKER_SOCKET);
   const engine = new Engine(config, store, docker, cofre, desativados, configuracoes);
 
+  const helper = new HubHelper(HELPER_URL, HELPER_TOKEN_FILE);
+  const clientes = new Clientes(DATA_DIR);
+
   await app.register(fastifyStatic, { root: PUBLIC_DIR, index: ['index.html'] });
   registerRoutes(app, {
     engine,
@@ -73,6 +88,8 @@ async function main(): Promise<void> {
     desativados,
     configuracoes,
   });
+  registerRoutesSankhya(app, { helper, credenciais: new Credenciais(helper), clientes });
+  registerRoutesGitAutosync(app, { gitAutosync: new GitAutosync(helper) });
 
   engine.start();
 
@@ -81,6 +98,7 @@ async function main(): Promise<void> {
     engine.stop();
     await app.close().catch(() => {});
     store.close();
+    clientes.close();
     process.exit(0);
   };
   process.on('SIGTERM', () => void shutdown('SIGTERM'));

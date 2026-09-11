@@ -8,6 +8,10 @@
     // na emissao o TS reescreve para .js, entao o dist/ fica com specifiers validos.
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
+    // O `npm run dev` roda o fonte pelo type stripping do Node, que so apaga tipos —
+    // enum, namespace e parameter property compilam no tsc e estouram em runtime.
+    // Com isto o typecheck reprova essas construcoes antes de virem a ser um boot quebrado.
+    "erasableSyntaxOnly": true,
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,

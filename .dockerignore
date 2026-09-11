@@ -3,6 +3,9 @@ dist
 .git
 *.log
 
+# Gerado pelo `vite build` dentro da imagem, no estagio de build.
+public
+
 # O cofre de credenciais fica no volume `monitor-data`, nunca dentro da imagem.
 data
 

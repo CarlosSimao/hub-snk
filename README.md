@@ -43,8 +43,20 @@ powershell -ExecutionPolicy Bypass -File scripts\criar-atalho.ps1
 
 ## Usabilidade
 
-Um card por projeto. O semáforo do topo é o **pior** status entre os checks; cada
-check mostra o próprio histórico, latência e indicadores:
+O painel tem três abas:
+
+| Aba | O que faz |
+|---|---|
+| **Infra** | O monitoramento de sempre — WildFly, Oracle, containers |
+| **Sankhya** | Cadastro dos clientes acompanhados e as credenciais do hub no Sankhya |
+| **Git** | Repositórios do git-autosync: estado, agendamento, histórico e ações |
+
+As abas Sankhya e Git dependem do `scripts/hub-helper.ps1` rodando no Windows (o
+atalho do Desktop já o inicia). Sem ele, as duas explicam o que falta em vez de
+quebrar; a aba Infra funciona normalmente de qualquer jeito.
+
+Na aba Infra, um card por projeto. O semáforo do topo é o **pior** status entre os
+checks; cada check mostra o próprio histórico, latência e indicadores:
 
 ![Painel com o projeto Sankhya - Local expandido, mostrando os checks WildFly e Banco Oracle](docs/screenshots/dashboard-sankhya.png)
 
@@ -84,8 +96,18 @@ explícita, não descuido:
   da máquina Windows, sem token. Qualquer dispositivo na mesma rede local consegue
   iniciar/parar/reiniciar o WildFly ou ler o `server.log`. Não exponha essas portas
   além da rede confiável.
+- **Helper do hub** (`scripts/hub-helper.ps1`, porta 4102): também escuta em todas as
+  interfaces — o container alcança o host por `host.docker.internal`, que não chega
+  pelo loopback —, mas este **exige token** em toda rota, diferente dos dois acima. A
+  razão é o que ele expõe: derrubar o WildFly pela rede é reversível, entregar a senha
+  do Sankhya não é. O token é gerado no primeiro boot em
+  `%APPDATA%\sankhya-hub\ipc\token.txt` e montado read-only no container.
 - Segredos dos alvos monitorados (senha do Oracle, etc.) ficam só no volume
   `monitor-data` (cofre local), nunca no `services.yaml` versionado.
+- Credenciais do **Sankhya ERP e Experience** são outra coisa: ficam cifradas com DPAPI
+  em `%APPDATA%\sankhya-hub\credentials.dat`, **fora** do container e fora do volume
+  Docker. Nenhuma rota do hub devolve essas senhas — só o backend as decripta, no
+  momento do login automatizado.
 
 ## Adaptando para sua máquina
 
@@ -96,6 +118,24 @@ antes de usar:
   Windows e do caminho de instalação; se não usar DataGrip, remova a ação.
 - Caminhos do WildFly (`C:\Sankhya\wildfly_producao`) têm fallback automático,
   mas confirme que batem com sua instalação.
+
+## Desenvolvimento
+
+O backend é Node + Fastify (`src/`) e o painel é React + Vite (`web/`). O `vite build`
+gera `public/`, que o Fastify serve — por isso `public/` **não é versionado**, é
+artefato de build.
+
+```bash
+npm ci
+npm run build       # backend (tsc -> dist/) + painel (vite -> public/)
+npm run dev         # backend na 4000, servindo o painel já compilado
+npm run dev:web     # painel na 4001 com HMR, API e SSE via proxy para a 4000
+```
+
+Para mexer no painel, deixe os dois rodando e use a 4001. Sem rodar o build ao menos
+uma vez, o `npm run dev` sobe sem `public/` e o Fastify reclama do diretório ausente.
+
+`npm test` cobre o backend e `npm run typecheck` valida os dois lados.
 
 ## Licença
 

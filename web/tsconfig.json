@@ -1,0 +1,24 @@
+{
+  // Separado do tsconfig da raiz: o backend compila para `dist/` com type stripping
+  // do Node, o painel e transpilado pelo Vite e precisa de JSX e das libs de DOM.
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["vite/client"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "../vite.config.ts"]
+}

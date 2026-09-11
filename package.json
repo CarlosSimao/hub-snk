@@ -10,11 +10,13 @@
   },
   "scripts": {
     "dev": "node --watch --experimental-strip-types src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "dev:web": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "build:web": "vite build",
     "start": "node dist/index.js",
     "test": "node --test \"test/*.test.ts\" \"test/checks/*.test.ts\"",
     "test:watch": "node --test --watch \"test/*.test.ts\" \"test/checks/*.test.ts\"",
-    "typecheck": "tsc -p tsconfig.test.json"
+    "typecheck": "tsc -p tsconfig.test.json && tsc -p web/tsconfig.json"
   },
   "dependencies": {
     "@fastify/static": "^8.2.0",
@@ -27,7 +29,13 @@
     "@types/node": "^24.3.0",
     "@types/oracledb": "^7.0.2",
     "@types/pg": "^8.15.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
     "pino-pretty": "^13.1.1",
-    "typescript": "^5.9.2"
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.3.6"
   }
 }

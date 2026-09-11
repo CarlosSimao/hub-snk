@@ -2,6 +2,9 @@ node_modules/
 dist/
 *.log
 
+# Saída do `vite build` — o painel é versionado em `web/`, não aqui.
+/public/
+
 # O cofre de credenciais vive aqui (data/segredos.json). Nunca versionar.
 data/
 
