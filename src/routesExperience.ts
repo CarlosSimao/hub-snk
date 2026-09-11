@@ -97,6 +97,32 @@ export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperi
   );
 
   /**
+   * Descobre o `person_id` do usuário logado num projeto, para o cadastro não depender
+   * de o usuário ir catar esse número na mão.
+   */
+  app.get<{ Querystring: { projetoId?: string } }>(
+    '/api/experience/person-id',
+    async (request, reply) => {
+      const projetoId = Number(request.query.projetoId);
+      if (!Number.isInteger(projetoId) || projetoId <= 0) {
+        return reply.code(400).send({ error: 'informe ?projetoId=<número>' });
+      }
+
+      try {
+        const achado = await experience.descobrirPersonId(projetoId);
+        if (!achado) {
+          return reply.code(404).send({
+            error: 'você não aparece na lista de pessoas desse projeto — confira o ID do projeto',
+          });
+        }
+        return achado;
+      } catch (err) {
+        return responderErro(reply, err);
+      }
+    },
+  );
+
+  /**
    * Lê tudo que o modal "Gerar OS" precisa. Só leitura: nenhuma destas chamadas cria OS.
    */
   app.post<{ Body: { clienteId?: unknown; tarefaIds?: unknown } }>(

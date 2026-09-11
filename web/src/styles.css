@@ -1779,3 +1779,59 @@ main {
   padding: 0;
   border: 0;
 }
+
+/* ------------------------- seletor de pastas do disco -------------------- */
+
+/* Campo com um botao ao lado (Descobrir, Procurar): o input fica com a sobra. */
+.campo-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.campo-linha input {
+  flex: 1;
+  min-width: 0;
+}
+
+.campo-linha .btn {
+  flex: none;
+}
+
+/* Modal sem <form> dentro: as tres faixas ficam direto no dialog, e o miolo e
+   quem rola — sem isto a lista de pastas estica o dialog para fora da tela. */
+.modal.sem-form[open] {
+  grid-template-rows: auto 1fr auto;
+}
+
+.lista-pastas {
+  display: grid;
+  gap: 1px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.linha-pasta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.linha-pasta:hover {
+  background: var(--surface);
+}
+
+.linha-pasta:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}

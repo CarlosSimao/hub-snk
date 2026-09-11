@@ -8,7 +8,12 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { HelperError, HelperIndisponivelError, type HubHelper } from './sankhya/helper.ts';
 import { ehSistemaValido, type Credenciais } from './sankhya/credenciais.ts';
 import type { Clientes } from './sankhya/clientes.ts';
-import { SISTEMAS_SANKHYA, type Cliente, type ClienteEntrada } from './types.ts';
+import {
+  SISTEMAS_SANKHYA,
+  type Cliente,
+  type ClienteEntrada,
+  type ListagemPastas,
+} from './types.ts';
 
 export interface RouteSankhyaDeps {
   helper: HubHelper;
@@ -68,6 +73,22 @@ export function registerRoutesSankhya(app: FastifyInstance, deps: RouteSankhyaDe
   const { helper, credenciais, clientes } = deps;
 
   app.get('/api/sankhya/helper', async () => ({ disponivel: await helper.disponivel() }));
+
+  /**
+   * Pastas do disco do Windows, para o cadastro escolher o repositório local sem
+   * digitar o caminho na mão. Quem enxerga o disco é o helper — o hub roda em container.
+   */
+  app.get<{ Querystring: { caminho?: string } }>(
+    '/api/sistema/pastas',
+    async (request, reply) => {
+      const busca = new URLSearchParams({ caminho: request.query.caminho ?? '' });
+      try {
+        return await helper.requisitar<ListagemPastas>(`/pastas?${busca}`);
+      } catch (err) {
+        return responderErroHelper(reply, err);
+      }
+    },
+  );
 
   /**
    * Estado das duas credenciais. Nunca devolve senha — so o nome de usuario e se ha

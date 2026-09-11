@@ -70,6 +70,39 @@ export class Experience {
   }
 
   /**
+   * O `person_id` do usuario logado NESTE projeto.
+   *
+   * Ele nao esta no JWT: o `id` de la e a conta na Experience (378512), enquanto o
+   * `person_id` (21986) e o vinculo da pessoa com o projeto — muda de projeto para
+   * projeto. `get-approvers` tambem nao serve, devolve os aprovadores do cliente.
+   *
+   * O caminho que funciona e cruzar o e-mail do JWT com as pessoas do projeto.
+   */
+  async descobrirPersonId(projetoId: number): Promise<{ personId: number; nome: string } | null> {
+    const token = await this.#token();
+
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+
+    let email = '';
+    try {
+      const dados = JSON.parse(Buffer.from(payload, 'base64url').toString()) as { email?: string };
+      email = (dados.email ?? '').toLowerCase();
+    } catch {
+      return null;
+    }
+    if (!email) return null;
+
+    const corpo = await this.#chamar<{ data?: Record<string, unknown>[] }>(
+      `/persons/implantation/${projetoId}`,
+    );
+    const eu = (corpo.data ?? []).find((p) => texto(p['email']).toLowerCase() === email);
+    if (!eu) return null;
+
+    return { personId: Number(eu['id']), nome: texto(eu['person_name']) };
+  }
+
+  /**
    * Falha cedo quando nao ha sessao guardada.
    *
    * Existe para a visao consolidada: sem isto, dez clientes dariam dez vezes o mesmo

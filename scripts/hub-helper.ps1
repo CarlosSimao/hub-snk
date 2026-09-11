@@ -793,6 +793,57 @@ function Invoke-RotaNavegador {
     return @{ status = 404; corpo = @{ ok = $false; erro = "rota desconhecida: $Metodo /$($Segmentos -join '/')" } }
 }
 
+# --- navegacao de pastas -----------------------------------------------------
+
+<#
+    Lista PASTAS de um caminho, para a tela de cadastro escolher o repositorio local.
+
+    Existe porque o hub roda num container Linux e nao enxerga o disco do Windows —
+    quem ve e este helper. So diretorios, nunca arquivos: a tela precisa escolher uma
+    pasta, e listar conteudo de arquivo nao ajudaria em nada e exporia mais.
+#>
+function Get-Pastas {
+    param([string] $Caminho)
+
+    # Sem caminho, as unidades: e por onde a navegacao comeca.
+    if (-not $Caminho) {
+        $unidades = Get-PSDrive -PSProvider FileSystem -ErrorAction SilentlyContinue |
+            ForEach-Object { @{ nome = "$($_.Name):"; caminho = "$($_.Name):\"; git = $false } }
+        return @{ ok = $true; atual = ''; pai = ''; pastas = @($unidades) }
+    }
+
+    if (-not (Test-Path -LiteralPath $Caminho -PathType Container)) {
+        return @{ ok = $false; erro = "pasta não encontrada: $Caminho" }
+    }
+
+    $filhas = @()
+    try {
+        # `-Force` mostra pasta oculta; sem ele um repositorio dentro de pasta oculta
+        # ficaria invisivel e o usuario acharia que sumiu.
+        foreach ($p in Get-ChildItem -LiteralPath $Caminho -Directory -Force -ErrorAction SilentlyContinue) {
+            $filhas += @{
+                nome    = $p.Name
+                caminho = $p.FullName
+                # Marcar o que e repositorio poupa o usuario de entrar para descobrir.
+                git     = (Test-Path -LiteralPath (Join-Path $p.FullName '.git'))
+            }
+        }
+    }
+    catch {
+        return @{ ok = $false; erro = "não consegui ler a pasta: $($_.Exception.Message)" }
+    }
+
+    $pai = Split-Path -Parent $Caminho
+    return @{
+        ok     = $true
+        atual  = $Caminho
+        # Vazio no topo de uma unidade: dali o "voltar" leva para a lista de unidades.
+        pai    = if ($pai) { $pai } else { '' }
+        git    = (Test-Path -LiteralPath (Join-Path $Caminho '.git'))
+        pastas = @($filhas)
+    }
+}
+
 # --- git-autosync ------------------------------------------------------------
 
 <#
@@ -1198,6 +1249,14 @@ function Invoke-Rota {
     }
     if ($segmentos[0] -eq 'credentials') {
         return Invoke-RotaCredenciais -Metodo $Requisicao.metodo -Segmentos $segmentos -Corpo $Requisicao.corpo
+    }
+    if ($segmentos[0] -eq 'pastas') {
+        if ($Requisicao.metodo -ne 'GET') {
+            return @{ status = 404; corpo = @{ ok = $false; erro = 'use GET' } }
+        }
+        $caminho = if ($Requisicao.query.ContainsKey('caminho')) { [string] $Requisicao.query['caminho'] } else { '' }
+        $resultado = Get-Pastas -Caminho $caminho
+        return @{ status = $(if ($resultado.ok) { 200 } else { 404 }); corpo = $resultado }
     }
     if ($segmentos[0] -eq 'browser') {
         return Invoke-RotaNavegador -Metodo $Requisicao.metodo -Segmentos $segmentos -Corpo $Requisicao.corpo

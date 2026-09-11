@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import type { Cliente, ClienteEntrada } from '../../types.ts';
 import { plural } from '../../lib/format.ts';
+import { requisitar } from '../../lib/api.ts';
 import { useClientes } from '../../hooks/useClientes.ts';
 import type { Avisar } from '../../hooks/useToasts.ts';
 import { TabBar, type Aba } from '../TabBar.tsx';
 import { GitDoCliente } from './GitDoCliente.tsx';
 import { AgendaDoCliente } from './AgendaDoCliente.tsx';
+import { SeletorPasta } from './SeletorPasta.tsx';
 import type { FocoCliente } from './PainelSankhya.tsx';
 
 type AbaCliente = 'cadastro' | 'agenda' | 'git';
@@ -96,6 +98,7 @@ export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoClient
           <FormularioCliente
             key="novo"
             cliente={undefined}
+            toast={toast}
             onSalvar={async (entrada) => {
               const criado = await salvar(null, entrada);
               if (criado) setSelecao({ tipo: 'cliente', cliente: criado });
@@ -112,6 +115,7 @@ export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoClient
               <FormularioCliente
                 key={selecionado.id}
                 cliente={selecionado}
+                toast={toast}
                 onSalvar={(entrada) => salvar(selecionado.id, entrada)}
                 onRemover={async () => {
                   if (await remover(selecionado)) setSelecao(null);
@@ -146,13 +150,49 @@ function resumo(cliente: Cliente): string {
 
 interface PropsFormulario {
   cliente: Cliente | undefined;
+  toast: Avisar;
   onSalvar: (entrada: ClienteEntrada) => void | Promise<unknown>;
   onRemover?: () => void | Promise<unknown>;
   onCancelar?: () => void;
 }
 
-function FormularioCliente({ cliente, onSalvar, onRemover, onCancelar }: PropsFormulario) {
+function FormularioCliente({ cliente, toast, onSalvar, onRemover, onCancelar }: PropsFormulario) {
   const [salvando, setSalvando] = useState(false);
+
+  // Três campos são controlados porque algo além do teclado escreve neles: o seletor de
+  // pastas preenche o caminho, e a descoberta do person_id lê o projeto e devolve o ID.
+  const [projetoId, setProjetoId] = useState(String(cliente?.experienceProjetoId ?? ''));
+  const [personId, setPersonId] = useState(String(cliente?.experiencePersonId ?? ''));
+  const [repositorioLocal, setRepositorioLocal] = useState(cliente?.repositorioLocal ?? '');
+  const [seletorAberto, setSeletorAberto] = useState(false);
+  const [descobrindo, setDescobrindo] = useState(false);
+
+  /**
+   * Acha o `person_id` do usuário logado no projeto informado, cruzando o e-mail do JWT
+   * da Experience com a lista de pessoas do projeto — poupa ir catar esse número na mão.
+   */
+  const descobrirPersonId = async () => {
+    const projeto = projetoId.trim();
+    if (!projeto) {
+      toast('Preencha o ID do projeto antes de descobrir o person_id.', 'err');
+      return;
+    }
+
+    setDescobrindo(true);
+    const busca = new URLSearchParams({ projetoId: projeto });
+    const { ok, body } = await requisitar<{ personId: number; nome: string }>(
+      `/api/experience/person-id?${busca}`,
+    );
+    setDescobrindo(false);
+
+    if (!ok || body.personId === undefined) {
+      toast('Não consegui descobrir o person_id.', 'err', body.error);
+      return;
+    }
+
+    setPersonId(String(body.personId));
+    toast(`person_id ${body.personId} — ${body.nome ?? ''}`.trim());
+  };
 
   const aoSubmeter = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -163,8 +203,8 @@ function FormularioCliente({ cliente, onSalvar, onRemover, onCancelar }: PropsFo
     try {
       await onSalvar({
         nome: texto('nome'),
-        // String vazia vira null no backend: o cadastro nasce incompleto de propósito,
-        // já que o `person_id` da Experience ainda não é descoberto automaticamente.
+        // String vazia vira null no backend: o cadastro pode nascer incompleto e ser
+        // completado depois, conforme os IDs vão sendo descobertos.
         experienceProjetoId: texto('experienceProjetoId') === '' ? null : Number(texto('experienceProjetoId')),
         experiencePersonId: texto('experiencePersonId') === '' ? null : Number(texto('experiencePersonId')),
         agendaRecursoUsuario: texto('agendaRecursoUsuario'),
@@ -190,13 +230,27 @@ function FormularioCliente({ cliente, onSalvar, onRemover, onCancelar }: PropsFo
           <Campo nome="nome" rotulo="Nome" valor={cliente?.nome ?? ''} obrigatorio
             dica="Como aparece no Sankhya Experience" />
           <Campo nome="experienceProjetoId" rotulo="ID do projeto (Experience)" tipo="number"
-            valor={cliente?.experienceProjetoId ?? ''} dica="O número da URL da tela do projeto, ex.: 10269" />
+            valor={projetoId} aoMudar={setProjetoId}
+            dica="O número da URL da tela do projeto, ex.: 10269" />
           <Campo nome="experiencePersonId" rotulo="person_id (Experience)" tipo="number"
-            valor={cliente?.experiencePersonId ?? ''} dica="Seu ID de usuário nesse projeto, ex.: 21986" />
+            valor={personId} aoMudar={setPersonId}
+            dica="Seu ID de usuário nesse projeto — o botão acha pelo e-mail da sua sessão da Experience"
+            acao={
+              <button className="btn tiny ghost" type="button" disabled={descobrindo}
+                onClick={() => void descobrirPersonId()}>
+                {descobrindo ? 'buscando…' : 'Descobrir'}
+              </button>
+            } />
           <Campo nome="agendaRecursoUsuario" rotulo="Recurso na Agenda (ERP)"
             valor={cliente?.agendaRecursoUsuario ?? ''} dica="Username do recurso, ex.: FLAVIANO.SANTOS" />
           <Campo nome="repositorioLocal" rotulo="Repositório local"
-            valor={cliente?.repositorioLocal ?? ''} dica="Pasta no Windows, ex.: C:\projetos\cliente" />
+            valor={repositorioLocal} aoMudar={setRepositorioLocal}
+            dica="Pasta no Windows — digite o caminho ou procure no disco"
+            acao={
+              <button className="btn tiny ghost" type="button" onClick={() => setSeletorAberto(true)}>
+                Procurar…
+              </button>
+            } />
           <Campo nome="repositorioRemoto" rotulo="Repositório remoto"
             valor={cliente?.repositorioRemoto ?? ''} dica="URL do remote — informativo, não é usado para autenticar" />
         </div>
@@ -218,10 +272,22 @@ function FormularioCliente({ cliente, onSalvar, onRemover, onCancelar }: PropsFo
           </button>
         </div>
       </form>
+
+      {/* Fora do <form>: dialog modal aninhado em formulário atrapalha o Enter e o submit. */}
+      <SeletorPasta
+        aberto={seletorAberto}
+        inicial={repositorioLocal}
+        onEscolher={setRepositorioLocal}
+        onFechar={() => setSeletorAberto(false)}
+      />
     </article>
   );
 }
 
+/**
+ * Campo de formulário. Sem `aoMudar` ele é não-controlado e o valor sai pelo FormData;
+ * com `aoMudar`, quem manda no valor é o React — é o que deixa um botão escrever nele.
+ */
 function Campo({
   nome,
   rotulo,
@@ -229,6 +295,8 @@ function Campo({
   dica,
   tipo = 'text',
   obrigatorio = false,
+  aoMudar,
+  acao,
 }: {
   nome: string;
   rotulo: string;
@@ -236,22 +304,39 @@ function Campo({
   dica?: string;
   tipo?: string;
   obrigatorio?: boolean;
+  aoMudar?: (valor: string) => void;
+  acao?: ReactNode;
 }) {
+  const id = `campo-${nome}`;
+  const input = (
+    <input
+      id={id}
+      type={tipo}
+      name={nome}
+      {...(aoMudar
+        ? { value: valor, onChange: (e: { target: { value: string } }) => aoMudar(e.target.value) }
+        : { defaultValue: valor })}
+      autoComplete="off"
+      spellCheck={false}
+      required={obrigatorio}
+    />
+  );
+
   return (
-    <label className="campo">
-      <span className="campo-nome">
+    <div className="campo">
+      <label className="campo-nome" htmlFor={id}>
         {rotulo}
         {obrigatorio && <span className="selo falta">obrigatório</span>}
-      </span>
-      <input
-        type={tipo}
-        name={nome}
-        defaultValue={valor}
-        autoComplete="off"
-        spellCheck={false}
-        required={obrigatorio}
-      />
+      </label>
+      {acao ? (
+        <div className="campo-linha">
+          {input}
+          {acao}
+        </div>
+      ) : (
+        input
+      )}
       {dica && <small className="campo-dica">{dica}</small>}
-    </label>
+    </div>
   );
 }

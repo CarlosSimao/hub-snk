@@ -222,6 +222,26 @@ export interface AbaNavegador {
   logado: boolean;
 }
 
+export interface PastaDoDisco {
+  nome: string;
+  caminho: string;
+  /** Tem `.git` dentro — marcar poupa entrar na pasta para descobrir. */
+  git: boolean;
+}
+
+/**
+ * Um nivel da navegacao de pastas do Windows.
+ *
+ * Vem do helper: o hub roda num container Linux e nao enxerga o disco do usuario.
+ */
+export interface ListagemPastas {
+  /** Vazio na raiz, onde a listagem sao as unidades. */
+  atual: string;
+  pai: string;
+  git: boolean;
+  pastas: PastaDoDisco[];
+}
+
 /** Um perfil do navegador PESSOAL do usuario, de onde da para trazer os favoritos. */
 export interface PerfilNavegador {
   navegador: string;
