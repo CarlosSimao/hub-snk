@@ -11,7 +11,7 @@ const ESTADO_ROTULO: Record<string, string> = {
 };
 
 export function PainelGit({ toast }: { toast: Avisar }) {
-  const { visao, erro, carregando, ocupado, acao, definirAtivo, historico, recarregar } =
+  const { visao, erro, carregando, ocupado, acao, definirAtivo, definirIa, historico, recarregar } =
     useGitAutosync(toast);
   const [modo, setModo] = useState<'repos' | 'historico'>('repos');
   const [dias, setDias] = useState<number | undefined>(7);
@@ -44,6 +44,8 @@ export function PainelGit({ toast }: { toast: Avisar }) {
           <small>{visao.ultimaExecucao ? `última rodada ${visao.ultimaExecucao}` : 'sem execução registrada'}</small>
         </div>
       </section>
+
+      <MensagemDoCommit ia={visao.ia} onDefinir={definirIa} ocupado={ocupado} />
 
       <div className="git-toolbar">
         <div className="git-view-switch" role="tablist" aria-label="Visão do Git">
@@ -125,6 +127,74 @@ function EstadoRepo({ repo }: { repo: import('../../types.ts').RepoAutosync }) {
       <span>{estado?.lastPush ? `último push ${estado.lastPush}` : 'sem push registrado'}</span>
       {estado?.message && <p title={estado.message}>{estado.message.split('\n')[0]}</p>}
     </div>
+  );
+}
+
+const AGENTES = [
+  { valor: 'auto', rotulo: 'o primeiro que estiver instalado' },
+  { valor: 'claude', rotulo: 'Claude' },
+  { valor: 'codex', rotulo: 'Codex' },
+  { valor: 'opencode', rotulo: 'OpenCode' },
+];
+
+/**
+ * Quem escreve a mensagem do commit automático.
+ *
+ * Com a geração desligada o git-autosync nem tenta: comita com o texto fixo
+ * `chore: auto-commit <data hora>`. É o que enche o histórico deles.
+ *
+ * Ligar manda o diff das alterações para o agente escolhido, que roda nesta máquina —
+ * por isso a tela diz isso em vez de apresentar a opção como um detalhe de formatação.
+ */
+function MensagemDoCommit({
+  ia,
+  onDefinir,
+  ocupado,
+}: {
+  ia: { ligada: boolean; agente: string };
+  onDefinir: (ligada: boolean, agente: string) => Promise<void>;
+  ocupado: boolean;
+}) {
+  return (
+    <section className="git-ia">
+      <div className="git-ia-texto">
+        <strong>Mensagem do commit automático</strong>
+        <small>
+          {ia.ligada
+            ? 'Gerada a partir do diff, no padrão Conventional Commits com emoji.'
+            : 'Desligada — os commits saem como “chore: auto-commit” com data e hora.'}
+        </small>
+      </div>
+
+      <div className="git-ia-controles">
+        <label className="campo-inline">
+          <input
+            type="checkbox"
+            checked={ia.ligada}
+            disabled={ocupado}
+            onChange={(e) => void onDefinir(e.target.checked, ia.agente)}
+          />
+          Gerar pelo diff
+        </label>
+        <select
+          value={ia.agente}
+          disabled={ocupado || !ia.ligada}
+          onChange={(e) => void onDefinir(ia.ligada, e.target.value)}
+        >
+          {AGENTES.map((a) => (
+            <option key={a.valor} value={a.valor}>
+              {a.rotulo}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {ia.ligada && (
+        <p className="git-ia-nota">
+          O diff das alterações é enviado ao agente escolhido, que roda nesta máquina.
+        </p>
+      )}
+    </section>
   );
 }
 

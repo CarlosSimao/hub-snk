@@ -7,6 +7,8 @@ export interface VisaoAutosync {
   horarios: string[];
   ultimaExecucao: string | null;
   repos: RepoAutosync[];
+  /** Quem escreve a mensagem do commit automático — ver `MensagemDoCommit`. */
+  ia: { ligada: boolean; agente: string };
 }
 
 export type AcaoRepo = 'commit' | 'push' | 'sync' | 'mr';
@@ -17,7 +19,12 @@ export interface OpcoesHistorico {
   dias?: number;
 }
 
-const VAZIA: VisaoAutosync = { horarios: [], ultimaExecucao: null, repos: [] };
+const VAZIA: VisaoAutosync = {
+  horarios: [],
+  ultimaExecucao: null,
+  repos: [],
+  ia: { ligada: false, agente: 'auto' },
+};
 
 export function useGitAutosync(toast: Avisar) {
   const [visao, setVisao] = useState<VisaoAutosync>(VAZIA);
@@ -107,5 +114,27 @@ export function useGitAutosync(toast: Avisar) {
     return commits.filter((commit) => new Date(commit.date).getTime() >= inicio.getTime());
   }, []);
 
-  return { visao, erro, carregando, ocupado, acao, definirAtivo, historico, recarregar };
+  const definirIa = useCallback(
+    async (ligada: boolean, agente: string) => {
+      setOcupado(true);
+      try {
+        const { ok, body } = await enviar('/api/git-autosync/ia', { ligada, agente });
+        if (!ok) {
+          toast('Não consegui alterar como a mensagem é escrita', 'err', body.error);
+          return;
+        }
+        await recarregar();
+        toast(
+          ligada
+            ? 'A mensagem passa a ser gerada a partir do diff.'
+            : 'Os commits automáticos voltam ao texto fixo.',
+        );
+      } finally {
+        setOcupado(false);
+      }
+    },
+    [recarregar, toast],
+  );
+
+  return { visao, erro, carregando, ocupado, acao, definirAtivo, definirIa, historico, recarregar };
 }

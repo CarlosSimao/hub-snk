@@ -16,6 +16,8 @@ import type {
 interface ConfigAutosync {
   targets?: AlvoAutosync[];
   schedules?: string[];
+  aiEnabled?: boolean;
+  aiAgent?: string;
 }
 
 interface StatusAutosync {
@@ -28,6 +30,13 @@ export interface VisaoAutosync {
   horarios: string[];
   ultimaExecucao: string | null;
   repos: RepoAutosync[];
+  /**
+   * Quem escreve a mensagem do commit automatico.
+   *
+   * Desligada, o CLI nem tenta gerar: comita com o texto fixo
+   * `chore: auto-commit <data hora>`. E o que explica o historico cheio deles.
+   */
+  ia: { ligada: boolean; agente: string };
 }
 
 /** Caminho do Windows: compara sem diferenciar maiusculas nem `/` de `\`. */
@@ -99,7 +108,21 @@ export class GitAutosync {
       horarios: config?.schedules ?? [],
       ultimaExecucao: status?.lastSyncRun ?? null,
       repos,
+      ia: {
+        ligada: config?.aiEnabled === true,
+        // `auto` = o CLI escolhe o primeiro agente que achar instalado.
+        agente: config?.aiAgent ?? 'auto',
+      },
     };
+  }
+
+  /** Liga ou desliga a geração de mensagem por IA, e escolhe o agente. */
+  async definirIa(ligada: boolean, agente: string): Promise<{ ok: boolean }> {
+    return this.#helper.requisitar<{ ok: boolean }>('/git-autosync/ia', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ligada, agente }),
+    });
   }
 
   async historico(repo: string, limite = 20): Promise<CommitAutosync[]> {

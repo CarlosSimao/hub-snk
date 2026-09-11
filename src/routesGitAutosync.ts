@@ -95,6 +95,35 @@ export function registerRoutesGitAutosync(app: FastifyInstance, deps: RouteGitDe
     );
   }
 
+  /**
+   * Quem escreve a mensagem do commit automático.
+   *
+   * Desligada, o git-autosync nem tenta gerar: comita com o texto fixo
+   * `chore: auto-commit <data hora>`. Ligada, ele manda o diff staged para o agente
+   * escolhido, que roda nesta máquina — por isso é escolha explícita, não padrão.
+   */
+  app.post<{ Body: { ligada?: unknown; agente?: unknown } }>(
+    '/api/git-autosync/ia',
+    async (request, reply) => {
+      const { ligada, agente } = request.body ?? {};
+      if (typeof ligada !== 'boolean') {
+        return reply.code(400).send({ error: 'envie { ligada: boolean, agente? }' });
+      }
+
+      const escolhido = typeof agente === 'string' ? agente : '';
+      if (escolhido && !['auto', 'claude', 'codex', 'opencode'].includes(escolhido)) {
+        return reply.code(400).send({ error: `agente inválido: ${escolhido}` });
+      }
+
+      try {
+        await gitAutosync.definirIa(ligada, escolhido);
+        return { ok: true };
+      } catch (err) {
+        return responderErro(reply, err);
+      }
+    },
+  );
+
   app.post<{ Body: { repo?: RepoAutosync; ativo?: unknown } }>(
     '/api/git-autosync/ativo',
     async (request, reply) => {

@@ -1022,6 +1022,36 @@ function Invoke-RotaGitAutosync {
             $resultado = Invoke-GitAutosync -Argumentos $argumentos
             return @{ status = $(if ($resultado.ok) { 200 } else { 502 }); corpo = $resultado }
         }
+
+        <#
+            Quem escreve a mensagem do commit automatico.
+
+            Com a IA desligada o CLI nao chega a gerar nada: cai direto no texto fixo
+            `chore: auto-commit <data hora>`. Ligar manda o diff staged para o agente
+            escolhido, que roda na maquina do usuario — e e por isso que e uma escolha
+            explicita, feita na tela, e nao um padrao.
+        #>
+        'POST ia' {
+            $ligada = [bool] $dados.ligada
+            $agente = if ($dados.agente) { [string] $dados.agente } else { '' }
+
+            if ($agente -and $agente -notin @('auto', 'claude', 'codex', 'opencode')) {
+                return @{ status = 400; corpo = @{ ok = $false; erro = "agente inválido: $agente" } }
+            }
+
+            $resultado = Invoke-GitAutosync -Argumentos @('set-ai', $(if ($ligada) { 'on' } else { 'off' }))
+            if (-not $resultado.ok) {
+                return @{ status = 502; corpo = $resultado }
+            }
+            if ($agente) {
+                $resultado = Invoke-GitAutosync -Argumentos @('set-agent', $agente)
+                if (-not $resultado.ok) {
+                    return @{ status = 502; corpo = $resultado }
+                }
+            }
+
+            return @{ status = 200; corpo = @{ ok = $true; ligada = $ligada; agente = $agente } }
+        }
     }
 
     return @{ status = 404; corpo = @{ ok = $false; erro = "rota desconhecida: $Metodo /$($Segmentos -join '/')" } }
