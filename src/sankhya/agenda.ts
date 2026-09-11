@@ -220,8 +220,11 @@ export class AgendaRecursos {
    * O filtro por usuário é pelo RECURSO (a lane), não pelo `NOMEUSU` do evento: a lane
    * é quem define de quem é a agenda, e o campo repetido dentro do evento é dado
    * denormalizado que pode divergir dela.
+   *
+   * `codparc` recorta a lane num cliente só. Sem ele a agenda de um cliente mostra os
+   * dias de todos os outros do mesmo consultor — todos moram na mesma lane.
    */
-  eventos(de: string, ate: string, usuario = ''): EventoComRecurso[] {
+  eventos(de: string, ate: string, usuario = '', codparc: number | null = null): EventoComRecurso[] {
     const linhas = this.#db
       .prepare(
         `SELECT e.*, r.descrcargo, r.cor_hex
@@ -229,9 +232,10 @@ export class AgendaRecursos {
            JOIN ag_recursos r ON r.id = e.recurso_id
           WHERE e.fim >= ? AND e.inicio <= ?
             AND (? = '' OR r.nomeusu = ?)
+            AND (? IS NULL OR e.codparc = ?)
           ORDER BY e.inicio`,
       )
-      .all(de, ate, usuario, usuario) as unknown as Record<string, unknown>[];
+      .all(de, ate, usuario, usuario, codparc, codparc) as unknown as Record<string, unknown>[];
 
     return linhas.map((l) => ({
       id: Number(l['id']),

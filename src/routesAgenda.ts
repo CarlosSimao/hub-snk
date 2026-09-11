@@ -111,7 +111,7 @@ export function registerRoutesAgenda(app: FastifyInstance, deps: RouteAgendaDeps
     },
   );
 
-  app.get<{ Querystring: { de?: string; ate?: string; usuario?: string } }>(
+  app.get<{ Querystring: { de?: string; ate?: string; usuario?: string; codparc?: string } }>(
     '/api/agenda/eventos',
     async (request, reply) => {
       const { de, ate } = request.query;
@@ -119,10 +119,20 @@ export function registerRoutesAgenda(app: FastifyInstance, deps: RouteAgendaDeps
         return reply.code(400).send({ error: 'informe ?de= e ?ate= no formato YYYY-MM-DD' });
       }
 
+      // Sem `?codparc=`, a lane inteira do consultor — que é o que a visão geral quer.
+      // Com, só um cliente: os eventos de todos eles moram na mesma lane.
+      const bruto = Number(request.query.codparc);
+      const codparc = Number.isInteger(bruto) && bruto > 0 ? bruto : null;
+
       // A janela chega como dia e vira instante aqui: quem consulta pensa em datas, e a
       // comparação no banco é de texto com hora.
       return {
-        eventos: agenda.eventos(`${de} 00:00:00`, `${ate} 23:59:59`, request.query.usuario ?? ''),
+        eventos: agenda.eventos(
+          `${de} 00:00:00`,
+          `${ate} 23:59:59`,
+          request.query.usuario ?? '',
+          codparc,
+        ),
       };
     },
   );

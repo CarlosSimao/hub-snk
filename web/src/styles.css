@@ -2235,3 +2235,67 @@ main {
   .linha-pasta { grid-template-columns: 22px minmax(0, 1fr) auto; }
   .pasta-tipo { display: none; }
 }
+
+/* --------------------- cruzamento ERP x Experience ------------------------ */
+
+/* O placar acima do calendario. So aparece com os dois lados cadastrados. */
+.faixa-cruzamento {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+
+.selo-cruzamento {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 11px;
+  color: var(--text);
+}
+
+/* Zero e informacao boa (nenhuma divergencia), nao alarme — fica apagado. */
+.selo-cruzamento.zerado {
+  color: var(--text-faint);
+  opacity: 0.7;
+}
+
+.marca-cruzamento {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 2px;
+}
+
+.marca-cruzamento.casado { background: var(--up); }
+.marca-cruzamento.alocado-sem-os { background: var(--degraded); }
+.marca-cruzamento.os-sem-alocacao { background: var(--accent); }
+
+.selo-cruzamento.alocado-sem-os:not(.zerado) {
+  border-color: color-mix(in srgb, var(--degraded) 45%, transparent);
+  background: color-mix(in srgb, var(--degraded) 12%, transparent);
+}
+
+/*
+ * A celula do dia. A borda esquerda ja e do atraso (vermelha), entao a divergencia
+ * usa a borda inferior — um dia pode ser as duas coisas ao mesmo tempo.
+ */
+.cal-dia.cruz-alocado-sem-os {
+  border-bottom: 2px solid var(--degraded);
+}
+
+.cal-dia.cruz-os-sem-alocacao {
+  border-bottom: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.cal-dia.cruz-casado {
+  border-bottom: 2px solid color-mix(in srgb, var(--up) 45%, transparent);
+}
+
+@media (max-width: 620px) {
+  .faixa-cruzamento { padding: 0 13px 10px; }
+}

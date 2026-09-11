@@ -8,6 +8,13 @@ export interface EstadoAgenda {
   agenda: AgendaExperience;
   /** Eventos da Agenda de Recursos do ERP, do snapshot importado. */
   eventos: EventoComRecurso[];
+  /**
+   * Os dois lados do cruzamento estão configurados no cadastro.
+   *
+   * Sem isso a tela não pode dizer "alocado sem OS": faltando um dos lados, o silêncio
+   * do outro é cadastro incompleto, não pendência — e acusar pendência aí seria mentira.
+   */
+  cruzada: boolean;
   carregando: boolean;
   erro: string | null;
   /** A sessão do Experience venceu — a tela oferece o caminho de recapturar. */
@@ -22,7 +29,12 @@ function ultimoDia(mes: string): string {
   return `${mes}-${String(dia).padStart(2, '0')}`;
 }
 
-export function useAgenda(clienteId: number, mes: string, recursoUsuario: string): EstadoAgenda {
+export function useAgenda(
+  clienteId: number,
+  mes: string,
+  recursoUsuario: string,
+  codparc: number | null = null,
+): EstadoAgenda {
   const [agenda, setAgenda] = useState<AgendaExperience>(VAZIA);
   const [eventos, setEventos] = useState<EventoComRecurso[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -37,13 +49,17 @@ export function useAgenda(clienteId: number, mes: string, recursoUsuario: string
       de: `${mes}-01`,
       ate: ultimoDia(mes),
       usuario: recursoUsuario,
+      // Sem o parceiro, a lane do consultor traz os eventos de TODOS os clientes dele.
+      ...(codparc ? { codparc: String(codparc) } : {}),
     });
 
     // A agenda do ERP é um snapshot local, então ela responde mesmo quando a Experience
     // está fora — e não deve desaparecer da tela por causa disso.
     const [experience, erp] = await Promise.all([
       requisitar<AgendaExperience & { sessaoExpirada?: boolean }>(`/api/experience/agenda?${busca}`),
-      recursoUsuario
+      // Sem parceiro no cadastro não há o que buscar: a agenda da lane inteira aqui
+      // encheria o calendário deste cliente com dia de outro.
+      recursoUsuario && codparc
         ? requisitar<{ eventos: EventoComRecurso[] }>(`/api/agenda/eventos?${buscaErp}`)
         : Promise.resolve({ ok: true, status: 200, body: { eventos: [] } }),
     ]);
@@ -60,11 +76,19 @@ export function useAgenda(clienteId: number, mes: string, recursoUsuario: string
 
     setEventos(erp.ok ? (erp.body.eventos ?? []) : []);
     setCarregando(false);
-  }, [clienteId, mes, recursoUsuario]);
+  }, [clienteId, mes, recursoUsuario, codparc]);
 
   useEffect(() => {
     void buscar();
   }, [buscar]);
 
-  return { agenda, eventos, carregando, erro, sessaoExpirada, recarregar: buscar };
+  return {
+    agenda,
+    eventos,
+    cruzada: Boolean(recursoUsuario && codparc),
+    carregando,
+    erro,
+    sessaoExpirada,
+    recarregar: buscar,
+  };
 }

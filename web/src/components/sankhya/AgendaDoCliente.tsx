@@ -5,11 +5,13 @@ import { ModalGerarOs } from './ModalGerarOs.tsx';
 import { useAgenda } from '../../hooks/useAgenda.ts';
 import {
   DIAS_SEMANA,
+  ROTULO_CRUZAMENTO,
   deslocarMes,
   hojeIso,
   mesAtual,
   montarGrade,
   nomeDoMes,
+  resumirMes,
   semAceite,
   type DiaAgenda,
 } from '../../lib/calendario.ts';
@@ -19,13 +21,15 @@ export function AgendaDoCliente({ cliente, toast }: { cliente: Cliente; toast: A
   const [diaAberto, setDiaAberto] = useState<string | null>(null);
   const [gerandoOs, setGerandoOs] = useState(false);
 
-  const { agenda, eventos, carregando, erro, sessaoExpirada, recarregar } = useAgenda(
+  const { agenda, eventos, cruzada, carregando, erro, sessaoExpirada, recarregar } = useAgenda(
     cliente.id,
     mes,
     cliente.agendaRecursoUsuario,
+    cliente.agendaCodparc,
   );
 
   const grade = useMemo(() => montarGrade(mes, agenda, eventos), [mes, agenda, eventos]);
+  const resumo = useMemo(() => resumirMes(mes, agenda, eventos), [mes, agenda, eventos]);
   const selecionado = grade.find((d) => d.dia === diaAberto);
 
   if (erro) {
@@ -71,6 +75,8 @@ export function AgendaDoCliente({ cliente, toast }: { cliente: Cliente; toast: A
         </div>
       </div>
 
+      {cruzada && !carregando && <FaixaCruzamento resumo={resumo} />}
+
       <div className="calendario">
         {DIAS_SEMANA.map((dia) => (
           <div className="cal-cabecalho" key={dia}>
@@ -105,11 +111,36 @@ export function AgendaDoCliente({ cliente, toast }: { cliente: Cliente; toast: A
       )}
 
       <p className="painel-nota calendario-nota">
-        {cliente.agendaRecursoUsuario
+        {cruzada
           ? 'Tarefas e OS vêm do Sankhya Experience; os eventos vêm do último snapshot importado da Agenda de Recursos do ERP.'
-          : 'Só o Sankhya Experience: preencha "Recurso na Agenda (ERP)" no cadastro para cruzar também os eventos da agenda.'}
+          : 'Só o Sankhya Experience. Preencha "Recurso na Agenda (ERP)" e "Parceiro na Agenda (ERP)" no cadastro para cruzar com os dias em que você foi alocado neste cliente.'}
       </p>
     </article>
+  );
+}
+
+/**
+ * O placar do cruzamento, acima do calendário.
+ *
+ * Só aparece com os dois lados cadastrados: sem um deles, o silêncio de um sistema é
+ * cadastro incompleto e não pendência — anunciar "alocado sem OS" aí seria mentira.
+ */
+function FaixaCruzamento({ resumo }: { resumo: ReturnType<typeof resumirMes> }) {
+  const itens = [
+    { chave: 'casado', valor: resumo.diasCasados },
+    { chave: 'alocado-sem-os', valor: resumo.diasAlocadosSemOs },
+    { chave: 'os-sem-alocacao', valor: resumo.diasOsSemAlocacao },
+  ] as const;
+
+  return (
+    <div className="faixa-cruzamento">
+      {itens.map(({ chave, valor }) => (
+        <span key={chave} className={`selo-cruzamento ${chave}${valor ? '' : ' zerado'}`}>
+          <i className={`marca-cruzamento ${chave}`} />
+          {valor} {ROTULO_CRUZAMENTO[chave]}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -130,9 +161,18 @@ function Celula({
     dia.hoje ? 'hoje' : '',
     dia.atrasado ? 'atrasado' : '',
     aberto ? 'aberto' : '',
+    `cruz-${dia.cruzamento}`,
   ]
     .filter(Boolean)
     .join(' ');
+
+  // As duas coisas que o dia pode ter a dizer, na ordem de urgência: atraso primeiro,
+  // divergência entre os sistemas depois.
+  const aviso = dia.atrasado
+    ? 'Tem tarefa atrasada ou OS de dia passado sem aceite'
+    : dia.cruzamento === 'alocado-sem-os' || dia.cruzamento === 'os-sem-alocacao'
+      ? ROTULO_CRUZAMENTO[dia.cruzamento]
+      : undefined;
 
   return (
     <button
@@ -140,7 +180,7 @@ function Celula({
       className={classes}
       aria-pressed={aberto}
       disabled={vazio}
-      title={dia.atrasado ? 'Tem tarefa atrasada ou OS de dia passado sem aceite' : undefined}
+      title={aviso}
       onClick={onAbrir}
     >
       <span className="cal-numero">{dia.numero}</span>
