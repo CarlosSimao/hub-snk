@@ -45,6 +45,55 @@ function limitesDoMes(mes: string): { de: string; ate: string } | null {
 export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperienceDeps): void {
   const { experience, clientes } = deps;
 
+  /**
+   * Todos os clientes de uma vez, para a visão consolidada do mês.
+   *
+   * Devolve a agenda CRUA de cada um em vez de um resumo pronto: quem classifica em
+   * verde/amarelo/vermelho é o mesmo código que desenha o calendário, e calcular aqui
+   * também criaria duas implementações da mesma regra para sair do ar uma com a outra.
+   */
+  app.get<{ Querystring: { mes?: string } }>(
+    '/api/experience/resumo',
+    async (request, reply) => {
+      const limites = limitesDoMes(request.query.mes ?? '');
+      if (!limites) return reply.code(400).send({ error: 'informe ?mes=YYYY-MM' });
+
+      // Uma sessão vencida derruba todos os clientes pelo mesmo motivo; melhor dizer
+      // isso uma vez do que repetir o erro em cada linha da tela.
+      try {
+        await experience.verificarSessao();
+      } catch (err) {
+        return responderErro(reply, err);
+      }
+
+      const resultados = await Promise.all(
+        clientes.listar().map(async (cliente) => {
+          if (cliente.experienceProjetoId === null || cliente.experiencePersonId === null) {
+            return { cliente, erro: 'cadastro sem ID do projeto ou person_id' };
+          }
+
+          try {
+            const [tarefas, ordens] = await Promise.all([
+              experience.tarefas(cliente.experienceProjetoId, cliente.experiencePersonId),
+              experience.ordens(
+                cliente.experienceProjetoId,
+                cliente.experiencePersonId,
+                limites.de,
+                limites.ate,
+              ),
+            ]);
+            return { cliente, agenda: { tarefas, ordens } };
+          } catch (err) {
+            // Um cliente que falha não pode apagar os outros da tela.
+            return { cliente, erro: (err as Error).message };
+          }
+        }),
+      );
+
+      return { clientes: resultados };
+    },
+  );
+
   app.get<{ Querystring: { clienteId?: string; mes?: string } }>(
     '/api/experience/agenda',
     async (request, reply) => {

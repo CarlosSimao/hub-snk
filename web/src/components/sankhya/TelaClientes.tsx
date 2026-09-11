@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { Cliente, ClienteEntrada } from '../../types.ts';
 import { plural } from '../../lib/format.ts';
 import { useClientes } from '../../hooks/useClientes.ts';
@@ -6,6 +6,7 @@ import type { Avisar } from '../../hooks/useToasts.ts';
 import { TabBar, type Aba } from '../TabBar.tsx';
 import { GitDoCliente } from './GitDoCliente.tsx';
 import { AgendaDoCliente } from './AgendaDoCliente.tsx';
+import type { FocoCliente } from './PainelSankhya.tsx';
 
 type AbaCliente = 'cadastro' | 'agenda' | 'git';
 
@@ -18,10 +19,24 @@ const ABAS_CLIENTE: Aba<AbaCliente>[] = [
 /** `null` = formulário de cadastro novo; nenhum selecionado = tela de boas-vindas. */
 type Selecao = { tipo: 'novo' } | { tipo: 'cliente'; cliente: Cliente } | null;
 
-export function TelaClientes({ toast }: { toast: Avisar }) {
+export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoCliente | null }) {
   const { clientes, carregando, salvar, remover } = useClientes(toast);
   const [selecao, setSelecao] = useState<Selecao>(null);
   const [abaCliente, setAbaCliente] = useState<AbaCliente>('cadastro');
+
+  // A Agenda Mensal manda abrir um cliente. Aplicado uma vez por pedido: sem o
+  // controle de `seq`, um recarregamento da lista sequestraria a seleção de volta.
+  const ultimoFoco = useRef(0);
+  useEffect(() => {
+    if (!foco || foco.seq === ultimoFoco.current) return;
+
+    const cliente = clientes.find((c) => c.id === foco.id);
+    if (!cliente) return;
+
+    ultimoFoco.current = foco.seq;
+    setSelecao({ tipo: 'cliente', cliente });
+    setAbaCliente('agenda');
+  }, [foco, clientes]);
 
   // O cliente do estado é uma cópia congelada no clique; relê da lista para refletir o
   // que acabou de ser gravado sem precisar clicar de novo.

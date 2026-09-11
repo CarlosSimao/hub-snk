@@ -36,7 +36,13 @@ export function deslocarMes(mes: string, passo: number): string {
 export function nomeDoMes(mes: string): string {
   const [ano, numero] = mes.split('-').map(Number);
   const data = new Date(Date.UTC(ano!, numero! - 1, 1));
-  return data.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const nome = data.toLocaleDateString('pt-BR', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+  // Só a inicial: `text-transform: capitalize` no CSS pegaria o "de" também.
+  return nome.charAt(0).toUpperCase() + nome.slice(1);
 }
 
 /**
@@ -53,6 +59,55 @@ export function semAceite(ordem: OrdemExperience): boolean {
 /** Trabalho de dia passado que ainda não foi mandado para aprovação. */
 function ordemPendente(ordem: OrdemExperience, hoje: string): boolean {
   return ordem.dia < hoje && semAceite(ordem);
+}
+
+export type StatusCliente = 'ok' | 'atencao' | 'atraso';
+
+export interface ResumoMes {
+  status: StatusCliente;
+  tarefas: number;
+  tarefasAtrasadas: number;
+  ordens: number;
+  /** Dias passados com tarefa e nenhuma OS lançada — trabalho que não virou fatura. */
+  diasSemOs: number;
+  diasComAtuacao: number;
+}
+
+/**
+ * O resumo do mês de um cliente, derivado da MESMA grade que o calendário desenha.
+ *
+ * Calculado aqui e não no backend de propósito: a regra de atraso já mora neste
+ * arquivo, e uma segunda implementação do outro lado sairia do ar com a primeira na
+ * próxima vez que um valor de `accepted_os_status` nos surpreendesse — que foi
+ * exatamente o que aconteceu com `Concluído`.
+ */
+export function resumirMes(mes: string, agenda: AgendaExperience): ResumoMes {
+  const hoje = hojeIso();
+  const dias = montarGrade(mes, agenda).filter((d) => d.doMes);
+
+  const diasSemOs = dias.filter(
+    (d) => d.dia < hoje && d.tarefas.length > 0 && d.ordens.length === 0,
+  ).length;
+
+  const tarefasAtrasadas = dias.reduce(
+    (soma, d) => soma + d.tarefas.filter((t) => t.taskStatus === 'Atrasada').length,
+    0,
+  );
+  const ordensSemAceite = dias.reduce(
+    (soma, d) => soma + d.ordens.filter((o) => o.dia < hoje && semAceite(o)).length,
+    0,
+  );
+
+  return {
+    // Vermelho é o que já estourou; amarelo é trabalho feito que ainda não virou OS.
+    status:
+      tarefasAtrasadas > 0 || ordensSemAceite > 0 ? 'atraso' : diasSemOs > 0 ? 'atencao' : 'ok',
+    tarefas: dias.reduce((soma, d) => soma + d.tarefas.length, 0),
+    tarefasAtrasadas,
+    ordens: dias.reduce((soma, d) => soma + d.ordens.length, 0),
+    diasSemOs,
+    diasComAtuacao: dias.filter((d) => d.tarefas.length > 0 || d.ordens.length > 0).length,
+  };
 }
 
 /**

@@ -51,6 +51,16 @@ export class Experience {
   }
 
   /**
+   * Falha cedo quando nao ha sessao guardada.
+   *
+   * Existe para a visao consolidada: sem isto, dez clientes dariam dez vezes o mesmo
+   * erro de sessao, cada um como falha isolada, escondendo que a causa e uma so.
+   */
+  async verificarSessao(): Promise<void> {
+    await this.#token();
+  }
+
+  /**
    * Uma consulta paginada. `full_count` vem em CADA item (nao uma vez so na resposta),
    * entao o criterio de parada sai do primeiro item de cada pagina.
    */

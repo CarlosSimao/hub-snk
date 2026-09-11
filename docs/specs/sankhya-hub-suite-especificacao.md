@@ -458,7 +458,8 @@ entre fases).
 | 3 — Cadastro de Clientes + credenciais | **pronta** | SQLite `sankhya.db`, abas Sankhya › Clientes e Credenciais. |
 | 8 — Git Autosync | **pronta** | Aba Git (14.1) e sub-aba Git dentro de cada cliente (14.2). |
 | 4 — Extração Experience + calendário | **pronta** | `src/sankhya/experience.ts` + aba Agenda por cliente, conferida com dados reais (11 tarefas, 7 OS). Ver 18.3. |
-| 0, 5, 6, 7, 9 | pendentes | 0 e 5 dependem do spike de CORS do iframe; 6 de uma captura do JSON da Agenda; 7 e 9 vêm depois. |
+| 9 — Agenda Mensal | **pronta** | Visão consolidada de todos os clientes, com semáforo por cliente e atalho para a agenda de cada um. |
+| 0, 5, 6, 7 | pendentes | 0 e 5 dependem do spike de CORS do iframe; 6 de uma captura do JSON da Agenda de Recursos; 7 é ação real, visível para o cliente. |
 
 ### 18.3 Calendário — o que mudou em relação à seção 12
 
@@ -477,6 +478,26 @@ entre fases).
   `Hoje` — a classificação é deles, não recalculamos.
 - O calendário só traz o Experience. Os eventos da Agenda de Recursos entram na Fase 6, e
   a tela diz isso em vez de fingir que a visão já está completa.
+
+### 18.4 Agenda Mensal (seção 13)
+
+O critério da seção 13 ("verde = todas as tarefas do período têm OS gerada e em dia")
+virou três estados, porque dois problemas diferentes pedem reações diferentes:
+
+| Cor | Quando | O que fazer |
+|---|---|---|
+| Verde | Nada pendente | Nada |
+| Amarelo | Dia passado com tarefa e nenhuma OS lançada | Lançar a OS |
+| Vermelho | Tarefa `Atrasada`, ou OS de dia passado sem aceite | Resolver hoje |
+
+`GET /api/experience/resumo` devolve a agenda **crua** de cada cliente, não um resumo
+pronto: quem classifica é `resumirMes()`, o mesmo módulo que monta o calendário. Calcular
+no backend criaria uma segunda implementação da regra de atraso para sair do ar com a
+primeira — exatamente o que aconteceria com a descoberta do valor `Concluído` (ver 18.3).
+
+Sessão vencida é verificada uma vez antes de consultar qualquer cliente; sem isso, dez
+clientes dariam dez vezes o mesmo erro, cada um parecendo uma falha isolada. Já a falha
+de UM cliente fica na linha dele e não apaga os outros da tela.
 
 ### 18.1 Autenticação — o desenho mudou em relação à seção 8.2
 
