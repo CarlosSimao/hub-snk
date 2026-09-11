@@ -113,6 +113,10 @@ explícita, não descuido:
   faz o login nela, e o hub lê só o cookie de sessão que sobra. A porta do DevTools
   (9222) fica em `127.0.0.1` e **não** é publicada para o container — quem fala com ela
   é o helper, e o hub recebe o resultado pela 4102, que exige token.
+- **Trabalhe o Sankhya nessa janela.** Abrir uma sessão do Sankhya em outro navegador
+  derruba a anterior — inclusive a do hub. Com o trabalho na janela do hub existe uma
+  sessão só, e ela não briga com a sua. O hub apenas observa as guias: nunca fecha
+  nenhuma e não mexe nas outras, então o navegador continua seu.
 
 ## Adaptando para sua máquina
 
