@@ -230,6 +230,28 @@ export interface PastaDoDisco {
 }
 
 /**
+ * Caminhos do WildFly local.
+ *
+ * Eram valor fixo dentro dos scripts, entao trocar de instalacao pedia editar arquivo.
+ * Quem escreve e a tela de Infra; quem le sao os helpers do WildFly, a cada chamada —
+ * mudar o caminho vale na hora, sem reiniciar nada.
+ */
+export interface ConfigWildfly {
+  /** Raiz da instalacao: a pasta que contem `bin\standalone.bat`. */
+  pasta: string;
+  arquivoLog: string;
+  /** Medido na hora — a tela avisa ANTES de o Iniciar falhar por caminho errado. */
+  pastaExiste: boolean;
+  logExiste: boolean;
+}
+
+/** Uma instalacao do WildFly achada no disco pela varredura. */
+export interface InstalacaoWildfly {
+  pasta: string;
+  arquivoLog: string;
+}
+
+/**
  * Um nivel da navegacao de pastas do Windows.
  *
  * Vem do helper: o hub roda num container Linux e nao enxerga o disco do usuario.

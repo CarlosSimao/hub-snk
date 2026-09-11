@@ -13,8 +13,11 @@ import {
   SISTEMAS_SANKHYA,
   type Cliente,
   type ClienteEntrada,
+  type ConfigWildfly,
+  type InstalacaoWildfly,
   type ListagemPastas,
 } from './types.ts';
+import { normalizarLista } from './sankhya/credenciais.ts';
 
 export interface RouteSankhyaDeps {
   helper: HubHelper;
@@ -102,6 +105,55 @@ export function registerRoutesSankhya(app: FastifyInstance, deps: RouteSankhyaDe
       }
     },
   );
+
+  /**
+   * Caminhos do WildFly local: onde está a instalação e onde está o server.log.
+   *
+   * Fica aqui e não no `services.yaml` porque quem consome não é o hub — são os
+   * helpers do WildFly, processos Windows. O YAML é versionado e o mesmo em várias
+   * máquinas; estes caminhos são desta máquina.
+   */
+  app.get('/api/infra/wildfly', async (_request, reply) => {
+    try {
+      return await helper.requisitar<ConfigWildfly>('/wildfly/config');
+    } catch (err) {
+      return responderErroHelper(reply, err);
+    }
+  });
+
+  app.put<{ Body: { pasta?: unknown; arquivoLog?: unknown } }>(
+    '/api/infra/wildfly',
+    async (request, reply) => {
+      const texto = (valor: unknown) => (typeof valor === 'string' ? valor.trim() : '');
+      try {
+        return await helper.requisitar<ConfigWildfly>('/wildfly/config', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            pasta: texto(request.body?.pasta),
+            arquivoLog: texto(request.body?.arquivoLog),
+          }),
+        });
+      } catch (err) {
+        return responderErroHelper(reply, err);
+      }
+    },
+  );
+
+  /** Procura instalações do WildFly no disco, para não ter que digitar o caminho. */
+  app.get('/api/infra/wildfly/detectar', async (_request, reply) => {
+    try {
+      const corpo = await helper.requisitar<{ instalacoes: InstalacaoWildfly[] }>(
+        '/wildfly/detectar',
+        {},
+        // Varre várias raízes do disco; 10s é pouco quando a máquina está ocupada.
+        { timeoutMs: 45_000 },
+      );
+      return { instalacoes: normalizarLista(corpo.instalacoes) };
+    } catch (err) {
+      return responderErroHelper(reply, err);
+    }
+  });
 
   /**
    * Estado das duas credenciais. Nunca devolve senha — so o nome de usuario e se ha

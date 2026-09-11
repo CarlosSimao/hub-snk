@@ -41,9 +41,58 @@ function Escrever-Log {
     Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $Texto"
 }
 
+<#
+.SYNOPSIS
+    A pasta do WildFly em uso agora.
+
+.DESCRIPTION
+    Le %APPDATA%\sankhya-hub\wildfly.json a cada chamada, e nao so na subida: assim
+    trocar a instalacao pela tela do hub vale na hora, sem reiniciar este helper.
+    Sem arquivo (ou com caminho invalido), cai no parametro -PastaWildfly.
+#>
+function Get-PastaWildfly {
+    $arquivo = Join-Path $env:APPDATA 'sankhya-hub\wildfly.json'
+    if (Test-Path -LiteralPath $arquivo) {
+        try {
+            $config = Get-Content -LiteralPath $arquivo -Raw -Encoding UTF8 | ConvertFrom-Json
+            $pasta = [string] $config.pasta
+            if ($pasta -and (Test-Path -LiteralPath (Join-Path $pasta 'bin\standalone.bat'))) {
+                return (Join-Path $pasta 'bin')
+            }
+        }
+        catch {
+            # Config quebrada nao pode tirar o WildFly do ar: segue com o padrao.
+        }
+    }
+    return $PastaWildfly
+}
+
+<#
+.SYNOPSIS
+    O processo java.exe DESTE WildFly, entre as outras JVMs da maquina.
+
+.DESCRIPTION
+    O nome do processo sozinho nao distingue uma JVM da outra, e o caminho da
+    instalacao e o que separa um WildFly de outro na mesma maquina — quem tem
+    `wildfly_producao` e `Wildfly_11.0_Sankhya_mod_06` lado a lado pararia o errado
+    se o filtro fosse so `jboss-modules.jar`.
+
+    O caminho sai da config, nao de um literal: era `*wildfly_producao*` fixo, o que
+    fazia a deteccao falhar em silencio para qualquer outra instalacao — o Iniciar
+    subia um segundo processo achando que nao havia nenhum.
+
+    A comparacao exige que o caminho termine ali (barra, aspas, espaco ou fim da linha)
+    em vez de `-like "*$raiz*"`: esta maquina tem `C:\wildfly_producao` E
+    `C:\wildfly_producao2`, e um e prefixo do outro. Com `-like`, parar o primeiro
+    mataria os dois — e o segundo cairia sem ninguem ter pedido.
+#>
 function Get-ProcessoWildfly {
+    # Um nivel acima do `bin`: e a pasta da instalacao que identifica o WildFly.
+    $raiz = Split-Path -Parent (Get-PastaWildfly)
+    $padrao = [regex]::Escape($raiz) + '(\\|"|\s|$)'
+
     Get-CimInstance Win32_Process -Filter "Name = 'java.exe'" |
-        Where-Object { $_.CommandLine -like "*$FiltroProcesso*" -and $_.CommandLine -like '*wildfly_producao*' }
+        Where-Object { $_.CommandLine -like "*$FiltroProcesso*" -and $_.CommandLine -match $padrao }
 }
 
 function Iniciar-Wildfly {
@@ -52,14 +101,15 @@ function Iniciar-Wildfly {
         return @{ ok = $true; mensagem = "já estava rodando (PID $($existente.ProcessId -join ', '))" }
     }
 
-    $standalone = Join-Path $PastaWildfly 'standalone.bat'
+    $bin = Get-PastaWildfly
+    $standalone = Join-Path $bin 'standalone.bat'
     if (-not (Test-Path -LiteralPath $standalone)) {
-        return @{ ok = $false; mensagem = "standalone.bat não encontrado em $PastaWildfly" }
+        return @{ ok = $false; mensagem = "standalone.bat não encontrado em $bin — informe a pasta do WildFly na aba Infra do hub" }
     }
 
     # Mesma coisa que o start_wildfly.vbs: CurrentDirectory na pasta do bin, janela
     # oculta, sem esperar o processo terminar — o WildFly fica rodando em segundo plano.
-    Start-Process -FilePath $standalone -WorkingDirectory $PastaWildfly -WindowStyle Hidden
+    Start-Process -FilePath $standalone -WorkingDirectory $bin -WindowStyle Hidden
 
     return @{ ok = $true; mensagem = 'disparado' }
 }
@@ -108,6 +158,21 @@ function Tratar-Requisicao {
             '/iniciar' { Iniciar-Wildfly }
             '/parar' { Parar-Wildfly }
             '/reiniciar' { Reiniciar-Wildfly }
+            # Somente leitura: diz QUAL instalacao este helper esta usando agora e se ela
+            # esta de pe. Sem isso, conferir se a troca de caminho pegou exigia iniciar ou
+            # parar o WildFly de verdade — caro demais para uma conferencia.
+            '/status' {
+                $bin = Get-PastaWildfly
+                $processos = @(Get-ProcessoWildfly)
+                @{
+                    ok       = $true
+                    pasta    = Split-Path -Parent $bin
+                    bin      = $bin
+                    rodando  = [bool] $processos
+                    pids     = @($processos | ForEach-Object { $_.ProcessId })
+                    mensagem = $(if ($processos) { "rodando (PID $(($processos | ForEach-Object { $_.ProcessId }) -join ', '))" } else { 'parado' })
+                }
+            }
             default { @{ ok = $false; mensagem = "rota desconhecida: $caminho" } }
         }
 

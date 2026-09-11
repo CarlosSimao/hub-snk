@@ -23,7 +23,7 @@ import {
 type RespostaCredencial = Omit<StatusCredencial, 'sistema'>;
 
 /** Objeto, array ou ausente -> array. O PowerShell colapsa lista de um item só. */
-function normalizarLista<T>(valor: unknown): T[] {
+export function normalizarLista<T>(valor: unknown): T[] {
   if (Array.isArray(valor)) return valor as T[];
   return valor === null || valor === undefined ? [] : [valor as T];
 }

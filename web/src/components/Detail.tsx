@@ -17,6 +17,7 @@ interface Props {
   onToggleAcoesServico: (chave: string) => void;
   onToggleAcoesProjeto: (serviceId: string) => void;
   onAbrirConfig: (serviceId: string) => void;
+  onAbrirCaminhosWildfly: () => void;
   onAbrirCheckSettings: (serviceId: string, checkId: string) => void;
   onCheckAtualizado: (snapshot: CheckSnapshot) => void;
   toast: Avisar;
@@ -40,6 +41,7 @@ function DetailCard({
   onToggleAcoesServico,
   onToggleAcoesProjeto,
   onAbrirConfig,
+  onAbrirCaminhosWildfly,
   onAbrirCheckSettings,
   onCheckAtualizado,
   toast,
@@ -116,6 +118,20 @@ function DetailCard({
               onClick={() => onAbrirConfig(service.id)}
             >
               Variáveis
+            </button>
+          )}
+          {/*
+            Só aparece para quem tem WildFly. Os caminhos são desta máquina e de quem os
+            lê são os helpers em PowerShell, não o hub — por isso não cabem no
+            `services.yaml`, que é versionado e o mesmo em vários computadores.
+          */}
+          {service.checks.some((c) => c.checkId === 'wildfly') && (
+            <button
+              className="btn tiny ghost"
+              title="Onde está a instalação do WildFly e o server.log desta máquina"
+              onClick={() => onAbrirCaminhosWildfly()}
+            >
+              Caminhos
             </button>
           )}
           <button

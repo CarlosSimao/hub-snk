@@ -1236,6 +1236,130 @@ function Invoke-RotaCredenciais {
 
 <#
 .SYNOPSIS
+    Caminhos do WildFly local, compartilhados entre o hub e os helpers do WildFly.
+
+.DESCRIPTION
+    A pasta do WildFly e o server.log eram parametro com valor fixo nos scripts, entao
+    trocar de instalacao exigia editar arquivo. Agora moram num JSON que o hub escreve
+    pela tela e que os helpers releem a cada chamada — mudar o caminho nao pede reinicio
+    de nada.
+
+    Mora ao lado do cofre, em %APPDATA%\sankhya-hub, e nao no repositorio: e config
+    DESTA maquina, e o repositorio e o mesmo em varias.
+#>
+$ArquivoWildfly = Join-Path $env:APPDATA 'sankhya-hub\wildfly.json'
+
+function Ler-ConfigWildfly {
+    if (-not (Test-Path -LiteralPath $ArquivoWildfly)) {
+        return @{ pasta = ''; arquivoLog = '' }
+    }
+    try {
+        $dados = Get-Content -LiteralPath $ArquivoWildfly -Raw -Encoding UTF8 | ConvertFrom-Json
+        return @{
+            pasta      = [string] $dados.pasta
+            arquivoLog = [string] $dados.arquivoLog
+        }
+    }
+    catch {
+        # Arquivo corrompido nao pode derrubar o helper: some com a config e segue com
+        # os padroes, que e o mesmo estado de quem nunca configurou.
+        return @{ pasta = ''; arquivoLog = '' }
+    }
+}
+
+<#
+.SYNOPSIS
+    Procura instalacoes do WildFly no disco.
+
+.DESCRIPTION
+    Uma pasta e um WildFly quando tem `bin\standalone.bat`. A varredura fica nos lugares
+    onde essas instalacoes costumam estar e desce poucos niveis: varrer o disco inteiro
+    levaria minutos e a tela espera resposta.
+#>
+function Find-Wildfly {
+    $raizes = @('C:\', 'C:\Sankhya', 'D:\', 'D:\Sankhya') |
+        Where-Object { Test-Path -LiteralPath $_ }
+
+    $achados = @()
+    foreach ($raiz in $raizes) {
+        foreach ($pasta in Get-ChildItem -LiteralPath $raiz -Directory -Force -ErrorAction SilentlyContinue) {
+            $bin = Join-Path $pasta.FullName 'bin\standalone.bat'
+            if (-not (Test-Path -LiteralPath $bin)) { continue }
+
+            $log = Join-Path $pasta.FullName 'standalone\log\server.log'
+            $achados += @{
+                pasta      = $pasta.FullName
+                arquivoLog = $(if (Test-Path -LiteralPath $log) { $log } else { '' })
+            }
+        }
+    }
+
+    # Mesma instalacao alcancavel por dois caminhos (C:\ e C:\Sankhya) apareceria duas
+    # vezes; a tela mostraria duas opcoes que fazem a mesma coisa.
+    $unicos = @()
+    $vistos = @{}
+    foreach ($a in $achados) {
+        $chave = $a.pasta.ToLowerInvariant()
+        if (-not $vistos.ContainsKey($chave)) {
+            $vistos[$chave] = $true
+            $unicos += $a
+        }
+    }
+    return $unicos
+}
+
+function Invoke-RotaWildfly {
+    param([string] $Metodo, [string[]] $Segmentos, [string] $Corpo)
+
+    $acao = if ($Segmentos.Length -ge 2) { $Segmentos[1] } else { 'config' }
+
+    if ($Metodo -eq 'GET' -and $acao -eq 'detectar') {
+        return @{ status = 200; corpo = @{ ok = $true; instalacoes = @(Find-Wildfly) } }
+    }
+
+    if ($Metodo -eq 'GET' -and $acao -eq 'config') {
+        $config = Ler-ConfigWildfly
+        return @{ status = 200; corpo = @{
+            ok            = $true
+            pasta         = $config.pasta
+            arquivoLog    = $config.arquivoLog
+            # A tela avisa ANTES de salvar um caminho que nao existe: descobrir isso
+            # so quando o Iniciar falha manda procurar defeito no lugar errado.
+            pastaExiste   = [bool] ($config.pasta -and (Test-Path -LiteralPath (Join-Path $config.pasta 'bin\standalone.bat')))
+            logExiste     = [bool] ($config.arquivoLog -and (Test-Path -LiteralPath $config.arquivoLog))
+        } }
+    }
+
+    if ($Metodo -eq 'POST' -and $acao -eq 'config') {
+        try { $dados = $Corpo | ConvertFrom-Json } catch { $dados = $null }
+        $pasta = ([string] $dados.pasta).Trim()
+        $log = ([string] $dados.arquivoLog).Trim()
+
+        if ($pasta -and -not (Test-Path -LiteralPath (Join-Path $pasta 'bin\standalone.bat'))) {
+            return @{ status = 400; corpo = @{ ok = $false; erro = "não achei bin\standalone.bat em $pasta — essa pasta não é uma instalação do WildFly" } }
+        }
+
+        # Log em branco com pasta preenchida: o caminho padrao da instalacao e o palpite
+        # certo em 100% dos casos vistos, e poupa o usuario de digitar duas vezes.
+        if ($pasta -and -not $log) {
+            $log = Join-Path $pasta 'standalone\log\server.log'
+        }
+
+        $destino = Split-Path -Parent $ArquivoWildfly
+        if (-not (Test-Path -LiteralPath $destino)) {
+            New-Item -ItemType Directory -Path $destino -Force | Out-Null
+        }
+        @{ pasta = $pasta; arquivoLog = $log } | ConvertTo-Json |
+            Set-Content -LiteralPath $ArquivoWildfly -Encoding UTF8
+
+        return Invoke-RotaWildfly -Metodo 'GET' -Segmentos @('wildfly', 'config') -Corpo ''
+    }
+
+    return @{ status = 404; corpo = @{ ok = $false; erro = 'use GET/POST /wildfly/config ou GET /wildfly/detectar' } }
+}
+
+<#
+.SYNOPSIS
     Cifra e decifra um texto qualquer com DPAPI, para o hub guardar segredo que nao e
     credencial de sistema.
 
@@ -1289,6 +1413,9 @@ function Invoke-Rota {
     }
     if ($segmentos[0] -eq 'secret') {
         return Invoke-RotaSegredo -Metodo $Requisicao.metodo -Segmentos $segmentos -Corpo $Requisicao.corpo
+    }
+    if ($segmentos[0] -eq 'wildfly') {
+        return Invoke-RotaWildfly -Metodo $Requisicao.metodo -Segmentos $segmentos -Corpo $Requisicao.corpo
     }
     if ($segmentos[0] -eq 'pastas') {
         if ($Requisicao.metodo -ne 'GET') {

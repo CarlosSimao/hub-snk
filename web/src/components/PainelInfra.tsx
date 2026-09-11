@@ -6,6 +6,7 @@ import { ProjectList } from './ProjectList.tsx';
 import { Detail } from './Detail.tsx';
 import { ConfigModal } from './ConfigModal.tsx';
 import { CheckSettingsModal } from './CheckSettingsModal.tsx';
+import { ModalCaminhosWildfly } from './ModalCaminhosWildfly.tsx';
 
 interface AlvoCheck {
   serviceId: string;
@@ -44,6 +45,7 @@ export function PainelInfra({
   const [acoesProjetoAbertas, alternarAcoesProjeto] = useConjunto();
 
   const [configServiceId, setConfigServiceId] = useState<string | null>(null);
+  const [caminhosAberto, setCaminhosAberto] = useState(false);
   const [alvoSettings, setAlvoSettings] = useState<AlvoCheck | null>(null);
 
   const ordenados = useMemo(
@@ -75,6 +77,7 @@ export function PainelInfra({
             onToggleAcoesServico={alternarAcoesServico}
             onToggleAcoesProjeto={alternarAcoesProjeto}
             onAbrirConfig={setConfigServiceId}
+            onAbrirCaminhosWildfly={() => setCaminhosAberto(true)}
             onAbrirCheckSettings={(serviceId, checkId) => setAlvoSettings({ serviceId, checkId })}
             onCheckAtualizado={applyCheck}
             toast={toast}
@@ -92,6 +95,11 @@ export function PainelInfra({
         serviceId={configServiceId}
         service={model.services.find((s) => s.id === configServiceId)}
         onFechar={() => setConfigServiceId(null)}
+        toast={toast}
+      />
+      <ModalCaminhosWildfly
+        aberto={caminhosAberto}
+        onFechar={() => setCaminhosAberto(false)}
         toast={toast}
       />
       <CheckSettingsModal

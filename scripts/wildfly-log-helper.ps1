@@ -109,12 +109,40 @@ function Servir-Pagina {
     $Stream.Write($corpo, 0, $corpo.Length)
 }
 
+<#
+.SYNOPSIS
+    O server.log em uso agora.
+
+.DESCRIPTION
+    Le %APPDATA%\sankhya-hub\wildfly.json a cada conexao, e nao so na subida: trocar a
+    instalacao pela tela do hub passa a valer no proximo clique em Log, sem reiniciar
+    este helper. Sem arquivo (ou com caminho que nao existe), cai no -ArquivoLog.
+#>
+function Get-ArquivoLog {
+    $config = Join-Path $env:APPDATA 'sankhya-hub\wildfly.json'
+    if (Test-Path -LiteralPath $config) {
+        try {
+            $dados = Get-Content -LiteralPath $config -Raw -Encoding UTF8 | ConvertFrom-Json
+            $caminho = [string] $dados.arquivoLog
+            if ($caminho -and (Test-Path -LiteralPath $caminho)) { return $caminho }
+        }
+        catch {
+            # Config quebrada nao pode tirar o visualizador do ar: segue com o padrao.
+        }
+    }
+    return $ArquivoLog
+}
+
 function Servir-Stream {
     param([System.Net.Sockets.TcpClient] $Cliente, [System.IO.Stream] $Stream)
 
+    # Resolvido UMA vez por conexao: reler no meio do acompanhamento trocaria o arquivo
+    # debaixo do cursor de posicao e mandaria pedaco do log errado.
+    $ArquivoLog = Get-ArquivoLog
+
     if (-not (Test-Path -LiteralPath $ArquivoLog)) {
         Enviar-Cabecalho -Stream $Stream -Status '404 Not Found' -ContentType 'text/plain' -ExtraHeaders @{ 'Connection' = 'close' }
-        $msg = [System.Text.Encoding]::UTF8.GetBytes("arquivo nao encontrado: $ArquivoLog")
+        $msg = [System.Text.Encoding]::UTF8.GetBytes("arquivo nao encontrado: $ArquivoLog — informe o caminho na aba Infra do hub")
         $Stream.Write($msg, 0, $msg.Length)
         return
     }
