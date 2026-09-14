@@ -30,14 +30,30 @@ Painel em <http://localhost:4000>. Não existe arquivo de configuração para ed
 antes — as credenciais do Oracle são preenchidas **no próprio painel**, no card
 **Sankhya - Local**.
 
-Para o dia a dia, o atalho `scripts\criar-atalho.ps1` cria **Sankhya Hub** no Desktop:
-duplo clique sobe o Docker Desktop (se estiver parado), o container do hub e os
-helpers nativos que controlam o WildFly, e abre o painel — tudo numa ação. Não roda
-sozinho no `docker compose up`, precisa criar uma vez:
+Para o dia a dia, o atalho `scripts\criar-atalho.ps1` cria **Sankhya Hub** no Desktop.
+Não roda sozinho no `docker compose up`, precisa criar uma vez:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\criar-atalho.ps1
 ```
+
+O duplo clique faz o mínimo necessário, nesta ordem:
+
+| Situação | O que acontece |
+|---|---|
+| Hub no ar e painel já aberto | A aba existente vem para a frente — sem abrir outra |
+| Hub no ar, painel fechado | Abre uma **aba** no navegador que você já está usando |
+| Hub parado | Sobe o Docker Desktop, o container e os helpers do WildFly, e só então abre a aba |
+
+O painel **não** abre em janela própria nem numa segunda instância do navegador: o
+atalho entrega a URL ao navegador padrão em execução, do mesmo jeito que o painel abre
+o Sankhya dos clientes. Sessão, perfil e cookies são os mesmos, então logar no Sankhya
+e no Experience vale para tudo que você abrir a partir dali.
+
+Nos dois primeiros casos nenhuma janela de console aparece — quem dispara é
+`bin\SankhyaHub.exe`, compilado por `scripts\compilar-launcher.ps1` (o `criar-atalho.ps1`
+chama sozinho na primeira vez). No terceiro a janela aparece de propósito: é nela que o
+progresso da subida é mostrado.
 
 ---
 

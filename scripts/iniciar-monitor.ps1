@@ -303,7 +303,17 @@ try {
 
     if (-not $SemNavegador) {
         Escrever-Etapa "Abrindo $UrlPainel"
-        Start-Process $UrlPainel
+        # Delegado ao abrir-hub.ps1 para que o comportamento do navegador seja um so,
+        # venha o pedido do atalho ou daqui: reaproveita a aba do painel se ela ja
+        # existir, e so abre uma nova quando nao existe. Sem recursao — ele chama este
+        # script apenas quando o hub NAO esta no ar, e neste ponto ele ja esta.
+        $scriptAbrir = Join-Path $PSScriptRoot 'abrir-hub.ps1'
+        if (Test-Path -LiteralPath $scriptAbrir) {
+            & $scriptAbrir -Porta $Porta
+        }
+        else {
+            Start-Process $UrlPainel
+        }
     }
 
     Write-Host ''
