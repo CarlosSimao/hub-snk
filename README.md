@@ -134,6 +134,24 @@ O backend é Node + Fastify (`src/`) e o painel é React + Vite (`web/`). O `vit
 gera `public/`, que o Fastify serve — por isso `public/` **não é versionado**, é
 artefato de build.
 
+Um comando sobe tudo, sem Docker:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\desenvolver.ps1
+```
+
+Ele inicia os três helpers do Windows (4100, 4101, 4102), o backend na 4000 e o Vite
+na 4001, e abre o navegador na **4001** — que é a porta com recarga ao vivo. Mudança
+em `web/` aparece na hora; mudança em `src/` reinicia o backend sozinho. `Ctrl+C`
+encerra o backend e o Vite; os helpers ficam de pé, a menos que use `-PararHelpers`.
+
+Fora do container, dois valores precisam ser sobrescritos, e o script já faz isso: os
+padrões de `HUB_HELPER_URL` e `HUB_HELPER_TOKEN_FILE` em `src/index.ts` apontam para
+dentro da imagem (`host.docker.internal` e `/app/helper-ipc/token.txt`). Sem
+sobrescrever, o helper fica inalcançável e a aba Sankhya inteira responde erro.
+
+Para rodar as partes à mão:
+
 ```bash
 npm ci
 npm run build       # backend (tsc -> dist/) + painel (vite -> public/)
@@ -141,8 +159,11 @@ npm run dev         # backend na 4000, servindo o painel já compilado
 npm run dev:web     # painel na 4001 com HMR, API e SSE via proxy para a 4000
 ```
 
-Para mexer no painel, deixe os dois rodando e use a 4001. Sem rodar o build ao menos
-uma vez, o `npm run dev` sobe sem `public/` e o Fastify reclama do diretório ausente.
+Sem rodar o build ao menos uma vez, o `npm run dev` sobe sem `public/` e o Fastify
+reclama do diretório ausente.
+
+Use `localhost:4001`, não `127.0.0.1:4001`: o Vite escuta só em IPv6 por padrão, e o
+endereço numérico devolve conexão recusada.
 
 `npm test` cobre o backend e `npm run typecheck` valida os dois lados.
 
