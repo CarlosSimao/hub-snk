@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { plural } from '../../lib/format.ts';
 import { useGitAutosync } from '../../hooks/useGitAutosync.ts';
+import type { TarefaAutosync } from '../../types.ts';
 import type { Avisar } from '../../hooks/useToasts.ts';
 import { DetalheRepo, nomeCurto } from './DetalheRepo.tsx';
 
@@ -11,8 +12,19 @@ const ESTADO_ROTULO: Record<string, string> = {
 };
 
 export function PainelGit({ toast }: { toast: Avisar }) {
-  const { visao, erro, carregando, ocupado, acao, definirAtivo, definirIa, historico, recarregar } =
-    useGitAutosync(toast);
+  const {
+    visao,
+    erro,
+    carregando,
+    ocupado,
+    acao,
+    definirAtivo,
+    definirHorarios,
+    definirInstalacao,
+    definirIa,
+    historico,
+    recarregar,
+  } = useGitAutosync(toast);
   const [modo, setModo] = useState<'repos' | 'historico'>('repos');
   const [dias, setDias] = useState<number | undefined>(7);
 
@@ -44,6 +56,14 @@ export function PainelGit({ toast }: { toast: Avisar }) {
           <small>{visao.ultimaExecucao ? `última rodada ${visao.ultimaExecucao}` : 'sem execução registrada'}</small>
         </div>
       </section>
+
+      <Agendamento
+        horarios={visao.horarios}
+        tarefas={visao.tarefas}
+        ocupado={ocupado}
+        onSalvar={definirHorarios}
+        onInstalacao={definirInstalacao}
+      />
 
       <MensagemDoCommit ia={visao.ia} onDefinir={definirIa} ocupado={ocupado} />
 
@@ -146,6 +166,154 @@ const AGENTES = [
  * Ligar manda o diff das alterações para o agente escolhido, que roda nesta máquina —
  * por isso a tela diz isso em vez de apresentar a opção como um detalhe de formatação.
  */
+/**
+ * O agendamento do git-autosync: os horarios e a tarefa do Agendador do Windows.
+ *
+ * Os dois aparecem juntos porque sao coisas diferentes: os horarios vivem no
+ * `config.json` e a tarefa e o que o Windows dispara. Salvar horarios ja reescreve o
+ * gatilho da tarefa existente (verificado: `set-schedule` reinstala), entao o botao de
+ * instalar serve para o caso de nao haver tarefa nenhuma — e para recriar uma que foi
+ * removida ou desabilitada por fora.
+ *
+ * A lista e editada localmente e so vai para o backend no Salvar: com gravacao a cada
+ * tecla, um horario meio digitado (`1`, `17`, `17:`) seria recusado a cada caractere.
+ */
+function Agendamento({ horarios, tarefas, ocupado, onSalvar, onInstalacao }: {
+  horarios: string[];
+  tarefas: TarefaAutosync[];
+  ocupado: boolean;
+  onSalvar: (horarios: string[]) => Promise<boolean>;
+  onInstalacao: (instalar: boolean) => Promise<boolean>;
+}) {
+  const [rascunho, setRascunho] = useState<string[]>(horarios);
+  const [aberto, setAberto] = useState(false);
+
+  // O recarregar da visao traz os horarios gravados; sem isto o rascunho ficaria
+  // mostrando o que o usuario digitou mesmo depois de o backend normalizar a lista.
+  useEffect(() => setRascunho(horarios), [horarios]);
+
+  const instalada = tarefas.length > 0;
+  const valido = rascunho.every((horario) => /^([01]\d|2[0-3]):[0-5]\d$/.test(horario));
+  const mudou = rascunho.join(',') !== horarios.join(',');
+
+  const alterar = (indice: number, valor: string) =>
+    setRascunho((atuais) => atuais.map((item, i) => (i === indice ? valor : item)));
+  const remover = (indice: number) =>
+    setRascunho((atuais) => atuais.filter((_, i) => i !== indice));
+
+  return (
+    <section className="git-agendamento">
+      <header>
+        <div>
+          <h2>Agendamento</h2>
+          <p>
+            {instalada
+              ? `Tarefa no Agendador do Windows: ${tarefas.map((t) => t.nome).join(', ')}.`
+              : 'Nenhuma tarefa no Agendador do Windows — nada roda sozinho.'}
+          </p>
+        </div>
+        <button className="btn tiny ghost" type="button" onClick={() => setAberto((valor) => !valor)}>
+          {aberto ? 'Fechar' : 'Configurar'}
+        </button>
+      </header>
+
+      {instalada && (
+        <ul className="git-tarefas">
+          {tarefas.map((tarefa) => (
+            <li key={tarefa.nome}>
+              <strong>{tarefa.nome}</strong>
+              <span className={`selo-tarefa ${tarefa.estado.toLowerCase()}`}>{tarefa.estado}</span>
+              <small>
+                {tarefa.proximaExecucao ? `próxima ${tarefa.proximaExecucao}` : 'sem próxima execução'}
+                {tarefa.ultimaExecucao ? ` · última ${tarefa.ultimaExecucao}` : ''}
+                {codigoDaTarefa(tarefa.ultimoResultado)}
+              </small>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {aberto && (
+        <div className="git-agendamento-editor">
+          <div className="git-horarios">
+            {rascunho.length === 0 && <p className="detail-empty">Sem horário. Adicione um, ou remova a tarefa para parar o automático.</p>}
+            {rascunho.map((horario, indice) => (
+              // A chave e o indice de proposito: sao campos de texto posicionais e dois
+              // horarios iguais sao um estado valido enquanto se digita.
+              <div className="git-horario" key={indice}>
+                <input
+                  type="time"
+                  value={horario}
+                  aria-label={`Horário ${indice + 1}`}
+                  onChange={(event) => alterar(indice, event.target.value)}
+                />
+                <button className="btn tiny ghost danger" type="button" aria-label={`Remover horário ${horario}`} onClick={() => remover(indice)}>
+                  Remover
+                </button>
+              </div>
+            ))}
+            <button className="btn tiny ghost" type="button" onClick={() => setRascunho((atuais) => [...atuais, '17:40'])}>
+              Adicionar horário
+            </button>
+          </div>
+
+          <div className="git-agendamento-acoes">
+            <button
+              className="btn tiny"
+              type="button"
+              disabled={ocupado || !mudou || !valido || rascunho.length === 0}
+              onClick={() => void onSalvar(rascunho)}
+            >
+              Salvar horários
+            </button>
+            <button className="btn tiny ghost" type="button" disabled={ocupado} onClick={() => void onInstalacao(true)}>
+              {instalada ? 'Reinstalar tarefa' : 'Instalar tarefa'}
+            </button>
+            <button
+              className="btn tiny ghost danger"
+              type="button"
+              disabled={ocupado || !instalada}
+              onClick={() => {
+                if (window.confirm('Remover a tarefa do Agendador e o autostart da bandeja? O autosync para de rodar sozinho — os repositórios e horários ficam como estão.')) {
+                  void onInstalacao(false);
+                }
+              }}
+            >
+              Remover tarefa
+            </button>
+          </div>
+
+          {!valido && <p className="git-agendamento-aviso">Horário incompleto: use HH:MM.</p>}
+          {/* O CLI nao aceita `set-schedule ""`; parar o automatico e desinstalar. */}
+          {rascunho.length === 0 && (
+            <p className="git-agendamento-aviso">
+              O agendamento precisa de pelo menos um horário. Para parar o automático, use Remover tarefa.
+            </p>
+          )}
+          {!instalada && rascunho.length > 0 && (
+            <p className="git-agendamento-aviso">
+              Os horários estão na configuração, mas sem tarefa instalada nada dispara sozinho.
+            </p>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/**
+ * O codigo da ultima execucao, quando vale mostrar.
+ *
+ * Fica de fora o que nao e problema: 0 e sucesso e 267011 (0x41303) e o "a tarefa nunca
+ * rodou" do Agendador. O resto sai em hexadecimal, que e como a Microsoft documenta os
+ * HRESULT e como se acha o significado numa busca.
+ */
+function codigoDaTarefa(codigo: number | null): string {
+  if (codigo === null || codigo === 0 || codigo === 267011) return '';
+  const hex = (codigo >>> 0).toString(16).toUpperCase().padStart(8, '0');
+  return ` · último código 0x${hex}`;
+}
+
 function MensagemDoCommit({
   ia,
   onDefinir,

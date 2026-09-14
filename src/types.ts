@@ -678,6 +678,29 @@ export interface RepoAutosync {
   estado: EstadoRepoAutosync | null;
 }
 
+/**
+ * Uma tarefa do Agendador do Windows criada pelo `git-autosync install`.
+ *
+ * E o que separa "horario configurado" de "horario que vai acontecer": os horarios
+ * vivem no `config.json` e so viram tarefa depois de um install. Ver os dois lados na
+ * tela e o que evita o agendamento que parece certo e nunca roda.
+ */
+export interface TarefaAutosync {
+  nome: string;
+  /** Como o Agendador reporta: `Ready`, `Running`, `Disabled`. */
+  estado: string;
+  /** `YYYY-MM-DD HH:MM:SS`, ou vazio quando o Agendador nao sabe. */
+  proximaExecucao: string;
+  ultimaExecucao: string;
+  /**
+   * Codigo da ultima execucao; 0 e sucesso. `null` = o Agendador nao informou.
+   *
+   * E um HRESULT de 32 bits sem sinal, entao chega como numero grande (2147946720) e a
+   * tela mostra em hexadecimal — que e a forma com que a Microsoft documenta.
+   */
+  ultimoResultado: number | null;
+}
+
 /** Ordem de severidade — usada para agregar o pior status de um conjunto. */
 const SEVERITY: Record<Status, number> = { up: 0, unknown: 1, degraded: 2, down: 3 };
 

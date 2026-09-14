@@ -11,6 +11,7 @@ import type {
   CommitAutosync,
   EstadoRepoAutosync,
   RepoAutosync,
+  TarefaAutosync,
 } from './types.ts';
 
 interface ConfigAutosync {
@@ -28,6 +29,14 @@ interface StatusAutosync {
 export interface VisaoAutosync {
   /** Horarios do agendamento (`config.json`), ex.: `["17:40"]`. */
   horarios: string[];
+  /**
+   * As tarefas que o Agendador do Windows realmente tem.
+   *
+   * Nao e a mesma coisa que `horarios`: eles vivem na config e so viram tarefa depois
+   * de um `install`. Lista vazia com horarios preenchidos significa agendamento que
+   * parece configurado e nunca roda — o caso que a tela precisa deixar visivel.
+   */
+  tarefas: TarefaAutosync[];
   ultimaExecucao: string | null;
   repos: RepoAutosync[];
   /**
@@ -64,9 +73,12 @@ export class GitAutosync {
    * sem dizer se continuam no agendamento.
    */
   async visao(): Promise<VisaoAutosync> {
-    const [config, status] = await Promise.all([
+    const [config, status, tarefas] = await Promise.all([
       this.#dados<ConfigAutosync | null>('/git-autosync/config'),
       this.#dados<StatusAutosync | null>('/git-autosync/status'),
+      // Best-effort: sem o Agendador legivel a tela perde o aviso de "nao instalado",
+      // mas o resto do painel (repositorios, historico, acoes) continua inteiro.
+      this.#dados<TarefaAutosync[] | null>('/git-autosync/tarefas').catch(() => null),
     ]);
 
     const alvos = config?.targets ?? [];
@@ -106,6 +118,7 @@ export class GitAutosync {
 
     return {
       horarios: config?.schedules ?? [],
+      tarefas: tarefas ?? [],
       ultimaExecucao: status?.lastSyncRun ?? null,
       repos,
       ia: {
@@ -114,6 +127,27 @@ export class GitAutosync {
         agente: config?.aiAgent ?? 'auto',
       },
     };
+  }
+
+  /**
+   * Reescreve os horarios do agendamento.
+   *
+   * O CLI reinstala a tarefa do Agendador junto, entao o gatilho passa a valer na hora
+   * — nao ha passo de reinstalar depois. `instalar()` continua existindo para quando
+   * nao ha tarefa nenhuma, ou quando alguem a removeu por fora.
+   */
+  async definirHorarios(horarios: string[]): Promise<{ saida: string }> {
+    return this.#acao('agendamento', { horarios });
+  }
+
+  /** Cria (ou recria) a tarefa no Agendador a partir dos horarios da config. */
+  async instalar(): Promise<{ saida: string }> {
+    return this.#acao('instalar', {});
+  }
+
+  /** Remove a tarefa do Agendador. Config e repositorios ficam como estao. */
+  async desinstalar(): Promise<{ saida: string }> {
+    return this.#acao('desinstalar', {});
   }
 
   /** Liga ou desliga a geração de mensagem por IA, e escolhe o agente. */

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { CommitAutosync, RepoAutosync } from '../types.ts';
+import type { CommitAutosync, RepoAutosync, TarefaAutosync } from '../types.ts';
 import { enviar, requisitar } from '../lib/api.ts';
 import type { Avisar } from './useToasts.ts';
 
 export interface VisaoAutosync {
   horarios: string[];
+  /** O que o Agendador do Windows tem de fato — ver `Agendamento`. */
+  tarefas: TarefaAutosync[];
   ultimaExecucao: string | null;
   repos: RepoAutosync[];
   /** Quem escreve a mensagem do commit automático — ver `MensagemDoCommit`. */
@@ -21,6 +23,7 @@ export interface OpcoesHistorico {
 
 const VAZIA: VisaoAutosync = {
   horarios: [],
+  tarefas: [],
   ultimaExecucao: null,
   repos: [],
   ia: { ligada: false, agente: 'auto' },
@@ -114,6 +117,52 @@ export function useGitAutosync(toast: Avisar) {
     return commits.filter((commit) => new Date(commit.date).getTime() >= inicio.getTime());
   }, []);
 
+  const definirHorarios = useCallback(
+    async (horarios: string[]) => {
+      setOcupado(true);
+      try {
+        const { ok, body } = await enviar('/api/git-autosync/agendamento', { horarios });
+        if (!ok) {
+          toast('Não consegui salvar os horários', 'err', body.error);
+          return false;
+        }
+        await recarregar();
+        // O CLI reinstala a tarefa junto com o `set-schedule`, entao nao ha passo extra.
+        toast('Horários salvos. A tarefa do Agendador já usa os novos.');
+        return true;
+      } finally {
+        setOcupado(false);
+      }
+    },
+    [recarregar, toast],
+  );
+
+  /**
+   * Cria ou remove a tarefa no Agendador do Windows.
+   *
+   * A saída do CLI vai inteira para o toast pelo mesmo motivo das ações de repositório:
+   * quando o Agendador recusa, o motivo está nela.
+   */
+  const definirInstalacao = useCallback(
+    async (instalar: boolean) => {
+      setOcupado(true);
+      try {
+        const rota = instalar ? 'instalar' : 'desinstalar';
+        const { ok, body } = await enviar<{ saida: string }>(`/api/git-autosync/${rota}`, {});
+        if (!ok) {
+          toast(instalar ? 'Não consegui instalar a tarefa' : 'Não consegui remover a tarefa', 'err', body.error);
+          return false;
+        }
+        await recarregar();
+        toast(instalar ? 'Tarefa instalada no Agendador.' : 'Tarefa removida do Agendador.', 'ok', body.saida);
+        return true;
+      } finally {
+        setOcupado(false);
+      }
+    },
+    [recarregar, toast],
+  );
+
   const definirIa = useCallback(
     async (ligada: boolean, agente: string) => {
       setOcupado(true);
@@ -136,5 +185,17 @@ export function useGitAutosync(toast: Avisar) {
     [recarregar, toast],
   );
 
-  return { visao, erro, carregando, ocupado, acao, definirAtivo, definirIa, historico, recarregar };
+  return {
+    visao,
+    erro,
+    carregando,
+    ocupado,
+    acao,
+    definirAtivo,
+    definirHorarios,
+    definirInstalacao,
+    definirIa,
+    historico,
+    recarregar,
+  };
 }

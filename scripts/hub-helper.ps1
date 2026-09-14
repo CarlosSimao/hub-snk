@@ -1031,6 +1031,75 @@ function Invoke-RotaGitAutosync {
             escolhido, que roda na maquina do usuario — e e por isso que e uma escolha
             explicita, feita na tela, e nao um padrao.
         #>
+        <#
+            As tarefas do Agendador do Windows criadas pelo `install`.
+
+            Lidas do proprio Agendador, e nao do `doctor`: o doctor percorre todos os
+            repositorios configurados (git remote, branch) e leva segundos, enquanto a
+            tela so precisa saber se a tarefa existe e quando ela roda de novo. Prefixo
+            `GitAutoSync` porque e o que o CLI usa ao criar.
+        #>
+        'GET tarefas' {
+            try {
+                $tarefas = @(
+                    Get-ScheduledTask -ErrorAction Stop |
+                        Where-Object { $_.TaskName -like 'GitAutoSync*' } |
+                        ForEach-Object {
+                            $info = $null
+                            try { $info = $_ | Get-ScheduledTaskInfo -ErrorAction Stop } catch { }
+                            @{
+                                nome = [string] $_.TaskName
+                                estado = [string] $_.State
+                                proximaExecucao = if ($info -and $info.NextRunTime) { $info.NextRunTime.ToString('yyyy-MM-dd HH:mm:ss') } else { '' }
+                                ultimaExecucao = if ($info -and $info.LastRunTime) { $info.LastRunTime.ToString('yyyy-MM-dd HH:mm:ss') } else { '' }
+                                # [long] e nao [int]: o Agendador devolve HRESULT como 32 bits SEM
+                                # sinal (2147946720, por exemplo), que estoura Int32 e derruba a rota.
+                                ultimoResultado = if ($info) { [long] $info.LastTaskResult } else { $null }
+                            }
+                        }
+                )
+                return @{ status = 200; corpo = @{ ok = $true; dados = $tarefas } }
+            }
+            catch {
+                return @{ status = 502; corpo = @{ ok = $false; erro = "não consegui ler o Agendador: $($_.Exception.Message)" } }
+            }
+        }
+
+        <#
+            Horarios do agendamento. O CLI recebe uma lista separada por virgula e
+            reescreve `schedules` na config; a tarefa do Windows so passa a usar os
+            horarios novos depois de um `install`, e e por isso que a tela oferece os
+            dois botoes lado a lado.
+        #>
+        'POST agendamento' {
+            $horarios = @($dados.horarios | ForEach-Object { [string] $_ })
+            # O CLI nao tem "sem horario": `set-schedule ""` sai com erro de argumento
+            # obrigatorio. Quem quer parar o automatico desinstala a tarefa.
+            if ($horarios.Count -eq 0) {
+                return @{ status = 400; corpo = @{ ok = $false; erro = 'informe ao menos um horário — para parar o automático, remova a tarefa do Agendador' } }
+            }
+            foreach ($horario in $horarios) {
+                if ($horario -notmatch '^([01][0-9]|2[0-3]):[0-5][0-9]$') {
+                    return @{ status = 400; corpo = @{ ok = $false; erro = "horário inválido: $horario — use HH:MM" } }
+                }
+            }
+
+            $resultado = Invoke-GitAutosync -Argumentos @('set-schedule', ($horarios -join ','))
+            return @{ status = $(if ($resultado.ok) { 200 } else { 502 }); corpo = $resultado }
+        }
+
+        <# Cria (ou recria) a tarefa no Agendador a partir dos horarios da config. #>
+        'POST instalar' {
+            $resultado = Invoke-GitAutosync -Argumentos @('install')
+            return @{ status = $(if ($resultado.ok) { 200 } else { 502 }); corpo = $resultado }
+        }
+
+        <# Remove a tarefa do Agendador. A config e os repositorios ficam como estao. #>
+        'POST desinstalar' {
+            $resultado = Invoke-GitAutosync -Argumentos @('uninstall')
+            return @{ status = $(if ($resultado.ok) { 200 } else { 502 }); corpo = $resultado }
+        }
+
         'POST ia' {
             $ligada = [bool] $dados.ligada
             $agente = if ($dados.agente) { [string] $dados.agente } else { '' }

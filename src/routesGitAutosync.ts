@@ -124,6 +124,70 @@ export function registerRoutesGitAutosync(app: FastifyInstance, deps: RouteGitDe
     },
   );
 
+  /**
+   * Os horários do agendamento.
+   *
+   * A normalização (ordenar, tirar repetido) acontece aqui e não na tela: o CLI grava o
+   * que receber, e duas telas mandando a mesma lista em ordens diferentes produziriam
+   * configs que parecem distintas e não são.
+   *
+   * Lista vazia é recusada porque o CLI não tem esse estado: `set-schedule ""` sai com
+   * erro de argumento obrigatório. Quem quer parar o automático remove a tarefa — e a
+   * mensagem diz isso, senão a recusa parece capricho.
+   */
+  app.post<{ Body: { horarios?: unknown } }>(
+    '/api/git-autosync/agendamento',
+    async (request, reply) => {
+      const bruto = request.body?.horarios;
+      if (!Array.isArray(bruto)) {
+        return reply.code(400).send({ error: 'envie { horarios: string[] }' });
+      }
+
+      if (bruto.length === 0) {
+        return reply.code(400).send({
+          error: 'informe ao menos um horário — para parar o automático, remova a tarefa do Agendador',
+        });
+      }
+
+      const horarios: string[] = [];
+      for (const item of bruto) {
+        const horario = typeof item === 'string' ? item.trim() : '';
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(horario)) {
+          return reply.code(400).send({ error: `horário inválido: ${String(item)} — use HH:MM` });
+        }
+        if (!horarios.includes(horario)) horarios.push(horario);
+      }
+      horarios.sort();
+
+      try {
+        const resultado = await gitAutosync.definirHorarios(horarios);
+        return { ok: true, horarios, saida: resultado.saida };
+      } catch (err) {
+        return responderErro(reply, err);
+      }
+    },
+  );
+
+  /**
+   * Cria ou remove a tarefa no Agendador do Windows.
+   *
+   * POST nas duas, com a intenção no caminho: desinstalar por DELETE convidaria o
+   * navegador a tratar como idempotente e não é — recriar depois exige a reinstalação
+   * inteira, com os horários que estiverem na config naquele momento.
+   */
+  for (const acao of ['instalar', 'desinstalar'] as const) {
+    app.post(`/api/git-autosync/${acao}`, async (_request, reply) => {
+      try {
+        const resultado = acao === 'instalar'
+          ? await gitAutosync.instalar()
+          : await gitAutosync.desinstalar();
+        return { ok: true, saida: resultado.saida };
+      } catch (err) {
+        return responderErro(reply, err);
+      }
+    });
+  }
+
   app.post<{ Body: { repo?: RepoAutosync; ativo?: unknown } }>(
     '/api/git-autosync/ativo',
     async (request, reply) => {
