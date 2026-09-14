@@ -2462,6 +2462,52 @@ main {
   font-weight: 600;
 }
 
+/*
+  Banco de dados da base: recolhido por padrao. E consulta ocasional, ao contrario da
+  URL e do status, que se le a cada abertura do cartao.
+*/
+.banco-base {
+  border-top: 1px dashed var(--border);
+  padding-top: 6px;
+}
+
+.banco-base > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.banco-base > summary small {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--text-faint);
+}
+
+.banco-base > .credencial-base { margin-top: 8px; }
+
+/* Bloco de campos correlatos dentro de um editor, separado do resto por uma moldura. */
+.grupo-campos {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.grupo-campos > legend {
+  padding: 0 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
 /* Senha revelada e texto para ler e copiar, nao para o navegador tratar. */
 .senha-base {
   user-select: all;

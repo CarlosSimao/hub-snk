@@ -16,18 +16,35 @@ import { join } from 'node:path';
 import type { HubHelper } from './helper.ts';
 import {
   AMBIENTES_BASE,
+  SGBDS,
   type AmbienteBase,
+  type BancoDaBaseEntrada,
   type BaseCliente,
   type BaseClienteEntrada,
   type LinkCliente,
   type LinkClienteEntrada,
   type RepoCliente,
   type RepoClienteEntrada,
+  type Sgbd,
 } from '../types.ts';
 
 function ehAmbiente(valor: string): valor is AmbienteBase {
   return (AMBIENTES_BASE as readonly string[]).includes(valor);
 }
+
+function ehSgbd(valor: string): valor is Sgbd {
+  return (SGBDS as readonly string[]).includes(valor);
+}
+
+/** Uma base sem nada anotado sobre o banco — o estado inicial de toda base. */
+const BANCO_VAZIO: BancoDaBaseEntrada = {
+  sgbd: '',
+  host: '',
+  porta: null,
+  servico: '',
+  esquema: '',
+  usuario: '',
+};
 
 /** Uma linha nova vai para o fim da lista, como quem acrescenta na tela. */
 function proximaOrdem(db: DatabaseSync, tabela: string, clienteId: number): number {
@@ -65,6 +82,17 @@ export class CartaoClientes {
       temSenha: String(l['senha_cifrada']) !== '',
       versao: String(l['versao']),
       monitorar: Number(l['monitorar']) === 1,
+      banco: {
+        sgbd: ehSgbd(String(l['banco_sgbd'] ?? '')) ? (String(l['banco_sgbd']) as Sgbd) : '',
+        host: String(l['banco_host'] ?? ''),
+        // 0 na coluna significa "nao informado" — ver o ALTER em clientes.ts.
+        porta: Number(l['banco_porta'] ?? 0) || null,
+        servico: String(l['banco_servico'] ?? ''),
+        esquema: String(l['banco_esquema'] ?? ''),
+        usuario: String(l['banco_usuario'] ?? ''),
+        // Mesma regra da senha da base: so se existe, nunca o valor.
+        temSenha: String(l['banco_senha_cifrada'] ?? '') !== '',
+      },
       ordem: Number(l['ordem']),
     }));
   }
@@ -77,23 +105,31 @@ export class CartaoClientes {
   }
 
   /**
-   * Cria ou atualiza uma base. `senha` ausente mantem a que estava — a tela edita a URL
-   * sem precisar redigitar a senha, e mandar vazio para "nao mexer" seria ambiguo com
-   * "apagar". Para apagar, `senha: ''` explicito.
+   * Cria ou atualiza uma base.
+   *
+   * Uma senha ausente em `senhas` mantem a que estava — a tela edita a URL sem precisar
+   * redigitar senha nenhuma, e mandar vazio para "nao mexer" seria ambiguo com "apagar".
+   * Para apagar, o valor `''` explicito. Vale para as duas: a do Sankhya (`base`) e a do
+   * banco de dados (`banco`).
    */
   async gravarBase(
     clienteId: number,
     entrada: BaseClienteEntrada,
-    senha: string | undefined,
+    senhas: { base?: string | undefined; banco?: string | undefined } = {},
     id?: number,
   ): Promise<BaseCliente | undefined> {
-    const cifrada = senha === undefined ? undefined : senha === '' ? '' : await this.#cifrar(senha);
+    const cifrada = await this.#cifrarOpcional(senhas.base);
+    const cifradaBanco = await this.#cifrarOpcional(senhas.banco);
+    const banco = entrada.banco ?? BANCO_VAZIO;
 
     if (id === undefined) {
       const resultado = this.#db
         .prepare(
-          `INSERT INTO cliente_bases (cliente_id, ambiente, url, usuario, senha_cifrada, monitorar, ordem)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO cliente_bases
+             (cliente_id, ambiente, url, usuario, senha_cifrada, monitorar, ordem,
+              banco_sgbd, banco_host, banco_porta, banco_servico, banco_esquema,
+              banco_usuario, banco_senha_cifrada)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           clienteId,
@@ -103,15 +139,37 @@ export class CartaoClientes {
           cifrada ?? '',
           entrada.monitorar ? 1 : 0,
           proximaOrdem(this.#db, 'cliente_bases', clienteId),
+          banco.sgbd,
+          banco.host,
+          banco.porta ?? 0,
+          banco.servico,
+          banco.esquema,
+          banco.usuario,
+          cifradaBanco ?? '',
         );
       return this.base(Number(resultado.lastInsertRowid));
     }
+
+    // `banco` ausente na edicao = nao mexe, mesma regra das senhas. Sem isso, qualquer
+    // gravacao parcial apagaria a conexao anotada: o botao "Monitorar" da tela manda so
+    // ambiente, URL, usuario e o proprio monitorar, e limparia o banco em silencio.
+    const colunasBanco =
+      entrada.banco === undefined
+        ? ''
+        : `, banco_sgbd = ?, banco_host = ?, banco_porta = ?, banco_servico = ?,
+             banco_esquema = ?, banco_usuario = ?`;
+    const valoresBanco =
+      entrada.banco === undefined
+        ? []
+        : [banco.sgbd, banco.host, banco.porta ?? 0, banco.servico, banco.esquema, banco.usuario];
 
     const resultado = this.#db
       .prepare(
         `UPDATE cliente_bases
             SET ambiente = ?, url = ?, usuario = ?, monitorar = ?, ordem = ?
+                ${colunasBanco}
                 ${cifrada === undefined ? '' : ', senha_cifrada = ?'}
+                ${cifradaBanco === undefined ? '' : ', banco_senha_cifrada = ?'}
           WHERE id = ?`,
       )
       .run(
@@ -120,7 +178,9 @@ export class CartaoClientes {
         entrada.usuario,
         entrada.monitorar ? 1 : 0,
         entrada.ordem,
+        ...valoresBanco,
         ...(cifrada === undefined ? [] : [cifrada]),
+        ...(cifradaBanco === undefined ? [] : [cifradaBanco]),
         id,
       );
 
@@ -130,17 +190,24 @@ export class CartaoClientes {
   /**
    * A senha em texto claro. Chamada so pela rota de revelar, a pedido explicito de quem
    * esta na tela — nao por carregamento de pagina.
+   *
+   * `coluna` escolhe qual senha da base: a do Sankhya ou a do banco de dados. O valor e
+   * um literal do proprio codigo, nunca algo vindo da requisicao — a rota traduz o
+   * caminho dela para um destes dois.
    */
-  async revelarSenha(id: number): Promise<string | null> {
-    const linha = this.#db.prepare('SELECT senha_cifrada FROM cliente_bases WHERE id = ?').get(id) as
-      | { senha_cifrada: string }
-      | undefined;
-    if (!linha?.senha_cifrada) return null;
+  async revelarSenha(
+    id: number,
+    coluna: 'senha_cifrada' | 'banco_senha_cifrada' = 'senha_cifrada',
+  ): Promise<string | null> {
+    const linha = this.#db
+      .prepare(`SELECT ${coluna} AS cifrada FROM cliente_bases WHERE id = ?`)
+      .get(id) as { cifrada: string } | undefined;
+    if (!linha?.cifrada) return null;
 
     const corpo = await this.#helper.requisitar<{ valor: string }>('/secret/decrypt', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ valor: linha.senha_cifrada }),
+      body: JSON.stringify({ valor: linha.cifrada }),
     });
     return corpo.valor ?? null;
   }
@@ -248,6 +315,13 @@ export class CartaoClientes {
       | { cliente_id: number }
       | undefined;
     return linha ? Number(linha.cliente_id) : undefined;
+  }
+
+  /** `undefined` passa direto (= nao mexe) e `''` tambem (= apaga), sem chamar o helper. */
+  async #cifrarOpcional(valor: string | undefined): Promise<string | undefined> {
+    if (valor === undefined) return undefined;
+    if (valor === '') return '';
+    return this.#cifrar(valor);
   }
 
   async #cifrar(valor: string): Promise<string> {

@@ -328,6 +328,36 @@ export type ClienteEntrada = Omit<Cliente, 'id'>;
 export const AMBIENTES_BASE = ['producao', 'teste', 'homologacao', 'outro'] as const;
 export type AmbienteBase = (typeof AMBIENTES_BASE)[number];
 
+export const SGBDS = ['oracle', 'sqlserver', 'postgres', 'outro'] as const;
+export type Sgbd = (typeof SGBDS)[number];
+
+/**
+ * Como se conecta ao banco de dados de uma base.
+ *
+ * Mora na base, e nao no cliente: producao e homologacao do mesmo cliente sao dois
+ * bancos diferentes, e guardar um so por cliente obrigaria a escolher qual.
+ *
+ * Nada aqui e usado para conectar — o painel nao abre conexao com banco de cliente.
+ * E um lugar para anotar o que hoje vive em planilha e conversa de chat, junto do
+ * resto do cadastro.
+ */
+export interface BancoDaBase {
+  /** Vazio = nao informado. */
+  sgbd: Sgbd | '';
+  host: string;
+  /** `null` = nao informado; evita confundir com a porta 0. */
+  porta: number | null;
+  /** Service name ou SID no Oracle, nome do database no SQL Server. */
+  servico: string;
+  /** Owner/esquema dos objetos do Sankhya, ex.: `SANKHYA`. */
+  esquema: string;
+  usuario: string;
+  /** Ha senha guardada. O valor so sai pela rota de revelar — ver `temSenha`. */
+  temSenha: boolean;
+}
+
+export type BancoDaBaseEntrada = Omit<BancoDaBase, 'temSenha'>;
+
 export interface BaseCliente {
   id: number;
   clienteId: number;
@@ -346,10 +376,19 @@ export interface BaseCliente {
   versao: string;
   /** Entra na medicao periodica de status. Base de teste costuma nao valer o ruido. */
   monitorar: boolean;
+  /** Dados de conexao do banco desta base. Sempre presente; campos vazios se nao informados. */
+  banco: BancoDaBase;
   ordem: number;
 }
 
-export type BaseClienteEntrada = Omit<BaseCliente, 'id' | 'clienteId' | 'temSenha' | 'versao'>;
+/**
+ * `banco` e opcional: uma base sem dados de banco anotados e o caso normal, e omitir o
+ * objeto inteiro grava tudo vazio em vez de obrigar quem chama a montar campo por campo.
+ */
+export type BaseClienteEntrada = Omit<
+  BaseCliente,
+  'id' | 'clienteId' | 'temSenha' | 'versao' | 'banco'
+> & { banco?: BancoDaBaseEntrada };
 
 /** O que a medicao de uma base devolve. */
 export interface StatusBase {

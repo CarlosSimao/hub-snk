@@ -10,7 +10,7 @@ import { HelperError, HelperIndisponivelError } from './sankhya/helper.ts';
 import type { CartaoClientes } from './sankhya/cartao.ts';
 import type { Clientes } from './sankhya/clientes.ts';
 import type { MonitorBases } from './sankhya/monitorBases.ts';
-import { AMBIENTES_BASE, type AmbienteBase } from './types.ts';
+import { AMBIENTES_BASE, SGBDS, type AmbienteBase, type BancoDaBaseEntrada } from './types.ts';
 
 export interface RouteCartaoDeps {
   cartao: CartaoClientes;
@@ -30,6 +30,12 @@ function responderErroHelper(reply: FastifyReply, err: unknown): FastifyReply {
 
 const texto = (dados: Record<string, unknown>, chave: string): string =>
   typeof dados[chave] === 'string' ? (dados[chave] as string).trim() : '';
+
+/** Sub-objeto do corpo (`banco`), ou um vazio — quem chama não precisa se defender. */
+const objeto = (dados: Record<string, unknown>, chave: string): Record<string, unknown> =>
+  typeof dados[chave] === 'object' && dados[chave] !== null
+    ? (dados[chave] as Record<string, unknown>)
+    : {};
 
 /**
  * Guardar um `javascript:` aqui vira clique armado depois, quando a tela abrir o link.
@@ -68,7 +74,7 @@ export function registerRoutesCartao(app: FastifyInstance, deps: RouteCartaoDeps
       if (erro) return reply.code(400).send({ error: erro });
 
       try {
-        const base = await cartao.gravarBase(id, lerBase(request.body ?? {}), lerSenha(request.body ?? {}));
+        const base = await cartao.gravarBase(id, lerBase(request.body ?? {}), lerSenhas(request.body ?? {}));
         return reply.code(201).send(base);
       } catch (err) {
         return responderErroHelper(reply, err);
@@ -92,7 +98,7 @@ export function registerRoutesCartao(app: FastifyInstance, deps: RouteCartaoDeps
         const base = await cartao.gravarBase(
           id,
           lerBase(request.body ?? {}),
-          lerSenha(request.body ?? {}),
+          lerSenhas(request.body ?? {}),
           baseId,
         );
         if (!base) return reply.code(404).send({ error: 'base não encontrada' });
@@ -121,6 +127,33 @@ export function registerRoutesCartao(app: FastifyInstance, deps: RouteCartaoDeps
       try {
         const senha = await cartao.revelarSenha(baseId);
         if (senha === null) return reply.code(404).send({ error: 'esta base não tem senha guardada' });
+        return { senha };
+      } catch (err) {
+        return responderErroHelper(reply, err);
+      }
+    },
+  );
+
+  /**
+   * A senha do BANCO de uma base, em texto claro.
+   *
+   * Rota própria em vez de um parâmetro em `/revelar`: o que escolhe a coluna é o
+   * caminho, não um valor vindo do cliente — não há como pedir uma coluna que não seja
+   * uma das duas previstas. Mesmas regras da outra: POST, nada em log, nada em listagem.
+   */
+  app.post<{ Params: { id: string; baseId: string } }>(
+    '/api/clientes/:id/bases/:baseId/banco/revelar',
+    async (request, reply) => {
+      const baseId = Number(request.params.baseId);
+      if (cartao.donoDe('bases', baseId) !== Number(request.params.id)) {
+        return reply.code(404).send({ error: 'base não encontrada neste cliente' });
+      }
+
+      try {
+        const senha = await cartao.revelarSenha(baseId, 'banco_senha_cifrada');
+        if (senha === null) {
+          return reply.code(404).send({ error: 'o banco desta base não tem senha guardada' });
+        }
         return { senha };
       } catch (err) {
         return responderErroHelper(reply, err);
@@ -240,27 +273,66 @@ function validarBase(corpo: Record<string, unknown>): string | null {
   if (!(AMBIENTES_BASE as readonly string[]).includes(ambiente)) {
     return `ambiente inválido — use um de: ${AMBIENTES_BASE.join(', ')}`;
   }
+
+  const banco = objeto(corpo, 'banco');
+  const sgbd = texto(banco, 'sgbd');
+  if (sgbd && !(SGBDS as readonly string[]).includes(sgbd)) {
+    return `SGBD inválido — use um de: ${SGBDS.join(', ')}`;
+  }
+
+  // Porta fora da faixa é erro de digitação, não configuração exótica: 0 e vazio já
+  // significam "não informada", então só sobra o valor impossível.
+  const porta = banco['porta'];
+  if (porta !== undefined && porta !== null && porta !== '') {
+    const numero = Number(porta);
+    if (!Number.isInteger(numero) || numero < 0 || numero > 65535) {
+      return 'a porta do banco precisa ser um número entre 1 e 65535';
+    }
+  }
   return null;
 }
 
+/**
+ * `banco` fora do corpo sai do objeto, e não vira um bloco vazio: é assim que uma
+ * gravação parcial (o botão "Monitorar" da tela, por exemplo) deixa a conexão anotada
+ * onde está em vez de apagá-la.
+ */
 function lerBase(corpo: Record<string, unknown>) {
+  const banco = objeto(corpo, 'banco');
   return {
     ambiente: (texto(corpo, 'ambiente') || 'producao') as AmbienteBase,
     url: texto(corpo, 'url'),
     usuario: texto(corpo, 'usuario'),
     monitorar: corpo['monitorar'] === true,
     ordem: Number(corpo['ordem']) || 0,
+    ...(corpo['banco'] === undefined
+      ? {}
+      : {
+          banco: {
+            sgbd: texto(banco, 'sgbd') as BancoDaBaseEntrada['sgbd'],
+            host: texto(banco, 'host'),
+            porta: Number(banco['porta']) || null,
+            servico: texto(banco, 'servico'),
+            esquema: texto(banco, 'esquema'),
+            usuario: texto(banco, 'usuario'),
+          },
+        }),
   };
 }
 
 /**
- * `undefined` = não mexe na senha guardada; `''` = apaga.
+ * As duas senhas da base: a do Sankhya e a do banco de dados.
  *
- * A diferença importa: a tela edita a URL sem redigitar a senha, e tratar campo ausente
- * como "apagar" faria toda edição perder a senha em silêncio.
+ * Em cada uma, `undefined` = não mexe na guardada; `''` = apaga. A diferença importa: a
+ * tela edita a URL sem redigitar senha nenhuma, e tratar campo ausente como "apagar"
+ * faria toda edição perder as duas em silêncio.
  */
-function lerSenha(corpo: Record<string, unknown>): string | undefined {
-  return typeof corpo['senha'] === 'string' ? (corpo['senha'] as string) : undefined;
+function lerSenhas(corpo: Record<string, unknown>): { base?: string; banco?: string } {
+  const banco = objeto(corpo, 'banco');
+  return {
+    ...(typeof corpo['senha'] === 'string' ? { base: corpo['senha'] as string } : {}),
+    ...(typeof banco['senha'] === 'string' ? { banco: banco['senha'] as string } : {}),
+  };
 }
 
 function lerRepo(corpo: Record<string, unknown>) {

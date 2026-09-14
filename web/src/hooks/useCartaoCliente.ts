@@ -12,7 +12,16 @@ import type {
 import { enviar, requisitar } from '../lib/api.ts';
 import type { Avisar } from './useToasts.ts';
 
-type EntradaBase = BaseClienteEntrada & { senha?: string };
+/**
+ * O que a tela manda ao gravar uma base: a entrada mais as duas senhas, que nao
+ * moram no objeto lido (a listagem so diz se existem). Cada uma ausente significa
+ * "nao mexe"; `''` apaga. A senha do banco viaja dentro de `banco`, junto do resto
+ * da conexao.
+ */
+type EntradaBase = Omit<BaseClienteEntrada, 'banco'> & {
+  senha?: string;
+  banco?: BaseClienteEntrada['banco'] & { senha?: string };
+};
 type Colecao = 'bases' | 'repos' | 'links';
 
 export function useCartaoCliente(clienteId: number, toast: Avisar) {
@@ -95,9 +104,9 @@ export function useCartaoCliente(clienteId: number, toast: Avisar) {
     }
   }, [clienteId, toast]);
 
-  const revelarSenha = useCallback(async (base: BaseCliente): Promise<string | null> => {
+  const revelar = useCallback(async (baseId: number, caminho: string): Promise<string | null> => {
     const { ok, body } = await enviar<{ senha: string }>(
-      `/api/clientes/${clienteId}/bases/${base.id}/revelar`,
+      `/api/clientes/${clienteId}/bases/${baseId}${caminho}`,
     );
     if (!ok || typeof body.senha !== 'string') {
       toast(body.error ?? 'Não consegui revelar a senha.', 'err');
@@ -105,6 +114,16 @@ export function useCartaoCliente(clienteId: number, toast: Avisar) {
     }
     return body.senha;
   }, [clienteId, toast]);
+
+  const revelarSenha = useCallback(
+    (base: BaseCliente) => revelar(base.id, '/revelar'),
+    [revelar],
+  );
+
+  const revelarSenhaBanco = useCallback(
+    (base: BaseCliente) => revelar(base.id, '/banco/revelar'),
+    [revelar],
+  );
 
   return {
     cartao,
@@ -114,6 +133,7 @@ export function useCartaoCliente(clienteId: number, toast: Avisar) {
     recarregar,
     medirBase,
     revelarSenha,
+    revelarSenhaBanco,
     salvarBase: (base: BaseCliente | null, entrada: EntradaBase) =>
       gravar<BaseCliente>('bases', base?.id ?? null, entrada),
     salvarRepo: (repo: RepoCliente | null, entrada: RepoClienteEntrada) =>

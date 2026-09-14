@@ -112,6 +112,29 @@ export class Clientes {
       CREATE INDEX IF NOT EXISTS idx_links_cliente ON cliente_links (cliente_id, ordem);
     `);
 
+    // Dados de conexao do banco de cada base. Mesmo motivo do ALTER de `clientes`:
+    // quem ja tem base cadastrada nao pode perde-la para ganhar campo novo.
+    const colunasDaBase = new Set(
+      (this.#db.prepare('PRAGMA table_info(cliente_bases)').all() as unknown as { name: string }[]).map(
+        (c) => c.name,
+      ),
+    );
+    for (const [coluna, tipo] of [
+      ['banco_sgbd', "TEXT NOT NULL DEFAULT ''"],
+      ['banco_host', "TEXT NOT NULL DEFAULT ''"],
+      // 0 = nao informado. A coluna e INTEGER NOT NULL para nao ter que distinguir NULL
+      // de ausente no SQLite; a conversao para `null` acontece ao ler.
+      ['banco_porta', 'INTEGER NOT NULL DEFAULT 0'],
+      ['banco_servico', "TEXT NOT NULL DEFAULT ''"],
+      ['banco_esquema', "TEXT NOT NULL DEFAULT ''"],
+      ['banco_usuario', "TEXT NOT NULL DEFAULT ''"],
+      ['banco_senha_cifrada', "TEXT NOT NULL DEFAULT ''"],
+    ] as const) {
+      if (!colunasDaBase.has(coluna)) {
+        this.#db.exec(`ALTER TABLE cliente_bases ADD COLUMN ${coluna} ${tipo}`);
+      }
+    }
+
     this.#migrarCamposUnicos();
   }
 

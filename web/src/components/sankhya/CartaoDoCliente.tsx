@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import type {
   AmbienteBase,
+  BancoDaBase,
   BaseCliente,
   Cliente,
   ClienteEntrada,
   LinkCliente,
   RepoCliente,
+  Sgbd,
   StatusBase,
 } from '../../types.ts';
 import type { Avisar } from '../../hooks/useToasts.ts';
@@ -27,6 +29,28 @@ const AMBIENTE: Record<AmbienteBase, string> = {
   outro: 'Outro',
 };
 
+const SGBD: Record<Sgbd, string> = {
+  oracle: 'Oracle',
+  sqlserver: 'SQL Server',
+  postgres: 'PostgreSQL',
+  outro: 'Outro',
+};
+
+/** Porta que o SGBD usa quando ninguém mexeu — vira dica no editor, nunca valor gravado. */
+const PORTA_PADRAO: Record<Sgbd, string> = {
+  oracle: '1521',
+  sqlserver: '1433',
+  postgres: '5432',
+  outro: '',
+};
+
+/** Um banco só aparece no cartão se alguém anotou alguma coisa nele. */
+function bancoPreenchido(banco: BancoDaBase): boolean {
+  return Boolean(
+    banco.sgbd || banco.host || banco.porta || banco.servico || banco.esquema || banco.usuario || banco.temSenha,
+  );
+}
+
 interface Props {
   cliente: Cliente;
   toast: Avisar;
@@ -40,16 +64,21 @@ export function CartaoDoCliente({ cliente, toast, onEditar, onRemover, onSalvarC
   const git = useGitAutosync(toast);
   const [editor, setEditor] = useState<Editor>(null);
   const [senhas, setSenhas] = useState<Record<number, string>>({});
+  const [senhasBanco, setSenhasBanco] = useState<Record<number, string>>({});
   const [anotacoes, setAnotacoes] = useState(cliente.anotacoes);
   const [salvandoAnotacoes, setSalvandoAnotacoes] = useState(false);
 
   useEffect(() => setAnotacoes(cliente.anotacoes), [cliente.anotacoes]);
 
-  const esconderSenha = (id: number) => setSenhas((atuais) => {
-    const proximas = { ...atuais };
-    delete proximas[id];
-    return proximas;
-  });
+  const esconderSenha = (id: number) => {
+    const tirar = (atuais: Record<number, string>) => {
+      const proximas = { ...atuais };
+      delete proximas[id];
+      return proximas;
+    };
+    setSenhas(tirar);
+    setSenhasBanco(tirar);
+  };
 
   const alternarSenha = async (base: BaseCliente) => {
     if (senhas[base.id] !== undefined) {
@@ -66,6 +95,30 @@ export function CartaoDoCliente({ cliente, toast, onEditar, onRemover, onSalvarC
     try {
       await navigator.clipboard.writeText(senha);
       toast('Senha copiada.', 'ok');
+    } catch {
+      toast('O navegador bloqueou a cópia da senha.', 'err');
+    }
+  };
+
+  const alternarSenhaBanco = async (base: BaseCliente) => {
+    if (senhasBanco[base.id] !== undefined) {
+      setSenhasBanco((atuais) => {
+        const proximas = { ...atuais };
+        delete proximas[base.id];
+        return proximas;
+      });
+      return;
+    }
+    const senha = await dados.revelarSenhaBanco(base);
+    if (senha !== null) setSenhasBanco((atuais) => ({ ...atuais, [base.id]: senha }));
+  };
+
+  const copiarSenhaBanco = async (base: BaseCliente) => {
+    const senha = senhasBanco[base.id] ?? await dados.revelarSenhaBanco(base);
+    if (senha === null) return;
+    try {
+      await navigator.clipboard.writeText(senha);
+      toast('Senha do banco copiada.', 'ok');
     } catch {
       toast('O navegador bloqueou a cópia da senha.', 'err');
     }
@@ -108,8 +161,11 @@ export function CartaoDoCliente({ cliente, toast, onEditar, onRemover, onSalvarC
             status={dados.statusBases[base.id]}
             medindo={dados.medindo.has(base.id)}
             senha={senhas[base.id]}
+            senhaBanco={senhasBanco[base.id]}
             onSenha={() => void alternarSenha(base)}
             onCopiar={() => void copiarSenha(base)}
+            onSenhaBanco={() => void alternarSenhaBanco(base)}
+            onCopiarBanco={() => void copiarSenhaBanco(base)}
             onMedir={() => void dados.medirBase(base)}
             onMonitorar={(monitorar) => void dados.salvarBase(base, {
               ambiente: base.ambiente,
@@ -225,8 +281,11 @@ function BaseLinha({
   status,
   medindo,
   senha,
+  senhaBanco,
   onSenha,
   onCopiar,
+  onSenhaBanco,
+  onCopiarBanco,
   onMedir,
   onMonitorar,
   onEditar,
@@ -236,8 +295,11 @@ function BaseLinha({
   status?: StatusBase;
   medindo: boolean;
   senha?: string;
+  senhaBanco?: string;
   onSenha: () => void;
   onCopiar: () => void;
+  onSenhaBanco: () => void;
+  onCopiarBanco: () => void;
   onMedir: () => void;
   onMonitorar: (valor: boolean) => void;
   onEditar: () => void;
@@ -259,6 +321,12 @@ function BaseLinha({
           </span>
           <span><small>Versão</small><strong>{versao || 'não medida'}</strong></span>
         </div>
+        <BancoDaBaseLinha
+          banco={base.banco}
+          senha={senhaBanco}
+          onSenha={onSenhaBanco}
+          onCopiar={onCopiarBanco}
+        />
       </div>
       <div className="cartao-base-status">
         <span className={`status-base ${status?.status ?? 'unknown'}`}>{medindo ? 'Medindo…' : status?.mensagem || 'Não medido'}</span>
@@ -267,6 +335,45 @@ function BaseLinha({
       </div>
       <AcoesItem onEditar={onEditar} onRemover={onRemover} />
     </div>
+  );
+}
+
+/**
+ * Os dados de conexao do banco daquela base.
+ *
+ * Fica recolhido num `<details>`: e informacao de consulta ocasional, nao algo que se
+ * olhe a cada abertura do cartao como a URL e o status. Base sem nada anotado nao
+ * mostra a secao — linha vazia so ocuparia espaco.
+ */
+function BancoDaBaseLinha({ banco, senha, onSenha, onCopiar }: {
+  banco: BancoDaBase;
+  senha?: string;
+  onSenha: () => void;
+  onCopiar: () => void;
+}) {
+  if (!bancoPreenchido(banco)) return null;
+
+  const endereco = [banco.host, banco.porta].filter(Boolean).join(':');
+  return (
+    <details className="banco-base">
+      <summary>
+        <span>Banco de dados</span>
+        <small>{[banco.sgbd ? SGBD[banco.sgbd] : '', endereco, banco.servico].filter(Boolean).join(' · ') || 'sem detalhes'}</small>
+      </summary>
+      <div className="credencial-base">
+        <span><small>SGBD</small><strong>{banco.sgbd ? SGBD[banco.sgbd] : 'não informado'}</strong></span>
+        <span><small>Host</small><strong>{endereco || 'não informado'}</strong></span>
+        <span><small>Serviço / SID</small><strong>{banco.servico || 'não informado'}</strong></span>
+        <span><small>Esquema</small><strong>{banco.esquema || 'não informado'}</strong></span>
+        <span><small>Usuário</small><strong>{banco.usuario || 'não informado'}</strong></span>
+        <span>
+          <small>Senha</small>
+          <strong className="senha-base">{senha ?? (banco.temSenha ? '••••••••' : 'não informada')}</strong>
+          {banco.temSenha && <button type="button" className="btn-icone" aria-label={senha === undefined ? 'Revelar senha do banco' : 'Ocultar senha do banco'} onClick={onSenha}>{senha === undefined ? 'Olho' : 'Ocultar'}</button>}
+          {banco.temSenha && <button type="button" className="btn-icone" aria-label="Copiar senha do banco" onClick={onCopiar}>Copiar</button>}
+        </span>
+      </div>
+    </details>
   );
 }
 
@@ -343,6 +450,10 @@ function EditorBase({ base, onFechar, onSalvar }: {
   // Precisa ser estado e não FormData: sem saber se o campo foi TOCADO, um campo de
   // senha vazio é ambíguo entre "não mexi" e "quero apagar".
   const [senha, setSenha] = useState<string | null>(null);
+  const [senhaBanco, setSenhaBanco] = useState<string | null>(null);
+
+  // Só serve para sugerir a porta do SGBD escolhido; o valor gravado é o do campo.
+  const [sgbd, setSgbd] = useState<Sgbd | ''>(base?.banco.sgbd ?? '');
 
   const submeter = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -354,6 +465,18 @@ function EditorBase({ base, onFechar, onSalvar }: {
       monitorar: dados.get('monitorar') === 'on',
       ordem: base?.ordem ?? 0,
       ...(senha === null ? {} : { senha }),
+      // O editor sempre manda o bloco inteiro: aqui todos os campos do banco estão na
+      // tela, então o que está no formulário É o estado desejado. Quem omite `banco` é
+      // a gravação parcial (o botão "Monitorar"), e é por isso que ela não apaga nada.
+      banco: {
+        sgbd: String(dados.get('bancoSgbd') ?? '') as Sgbd | '',
+        host: String(dados.get('bancoHost') ?? '').trim(),
+        porta: Number(dados.get('bancoPorta')) || null,
+        servico: String(dados.get('bancoServico') ?? '').trim(),
+        esquema: String(dados.get('bancoEsquema') ?? '').trim(),
+        usuario: String(dados.get('bancoUsuario') ?? '').trim(),
+        ...(senhaBanco === null ? {} : { senha: senhaBanco }),
+      },
     };
     setSalvando(true);
     const salvo = await onSalvar(entrada);
@@ -370,6 +493,41 @@ function EditorBase({ base, onFechar, onSalvar }: {
           <small className="campo-dica">{base?.temSenha ? 'Deixe em branco para manter a que está guardada. Digite e apague para remover.' : 'A senha será cifrada pelo helper do Windows.'}</small>
         </CampoEditor>
         <label className="campo-inline"><input name="monitorar" type="checkbox" defaultChecked={base?.monitorar ?? true} /> Monitorar esta base</label>
+
+        <fieldset className="grupo-campos">
+          <legend>Banco de dados</legend>
+          <p className="campo-dica">
+            Anotação de consulta: o painel não abre conexão com o banco do cliente. Deixe em branco o que não souber.
+          </p>
+          <label className="campo">
+            <span className="campo-nome">SGBD</span>
+            <select name="bancoSgbd" defaultValue={base?.banco.sgbd ?? ''} onChange={(event) => setSgbd(event.target.value as Sgbd | '')}>
+              <option value="">Não informado</option>
+              {Object.entries(SGBD).map(([valor, rotulo]) => <option value={valor} key={valor}>{rotulo}</option>)}
+            </select>
+          </label>
+          <CampoEditor nome="bancoHost" rotulo="Host" valor={base?.banco.host} />
+          <label className="campo">
+            <span className="campo-nome">Porta</span>
+            <input
+              name="bancoPorta"
+              type="number"
+              min={1}
+              max={65535}
+              defaultValue={base?.banco.porta ?? ''}
+              placeholder={sgbd ? PORTA_PADRAO[sgbd] : ''}
+              autoComplete="off"
+            />
+          </label>
+          <CampoEditor nome="bancoServico" rotulo="Serviço / SID / Database" valor={base?.banco.servico} />
+          <CampoEditor nome="bancoEsquema" rotulo="Esquema" valor={base?.banco.esquema}>
+            <small className="campo-dica">Owner dos objetos do Sankhya, normalmente SANKHYA.</small>
+          </CampoEditor>
+          <CampoEditor nome="bancoUsuario" rotulo="Usuário do banco" valor={base?.banco.usuario} />
+          <CampoEditor nome="bancoSenha" rotulo="Senha do banco" tipo="password" aoMudar={setSenhaBanco}>
+            <small className="campo-dica">{base?.banco.temSenha ? 'Deixe em branco para manter a que está guardada. Digite e apague para remover.' : 'A senha será cifrada pelo helper do Windows.'}</small>
+          </CampoEditor>
+        </fieldset>
       </div>
       <div className="modal-foot"><div className="modal-acoes"><button className="btn tiny ghost" type="button" onClick={onFechar}>Cancelar</button><button className="btn tiny" disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar base'}</button></div></div>
     </DialogEditor>

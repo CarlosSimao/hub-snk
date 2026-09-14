@@ -114,7 +114,7 @@ describe('CartaoClientes — senha da base', () => {
       const base = await cartao.gravarBase(
         1,
         { ambiente: 'producao', url: 'https://x/mge/', usuario: 'SUP', monitorar: false, ordem: 0 },
-        'segredo',
+        { base: 'segredo' },
       );
 
       assert.equal(base?.temSenha, true);
@@ -130,7 +130,7 @@ describe('CartaoClientes — senha da base', () => {
       const base = await cartao.gravarBase(
         1,
         { ambiente: 'producao', url: 'https://x/mge/', usuario: 'SUP', monitorar: false, ordem: 0 },
-        'segredo',
+        { base: 'segredo' },
       );
 
       // `undefined` = "não mexe". Tratar campo ausente como apagar faria toda edição de
@@ -138,7 +138,7 @@ describe('CartaoClientes — senha da base', () => {
       await cartao.gravarBase(
         1,
         { ambiente: 'producao', url: 'https://outro/mge/', usuario: 'SUP', monitorar: false, ordem: 0 },
-        undefined,
+        {},
         base!.id,
       );
 
@@ -154,13 +154,13 @@ describe('CartaoClientes — senha da base', () => {
       const base = await cartao.gravarBase(
         1,
         { ambiente: 'producao', url: 'https://x/mge/', usuario: 'SUP', monitorar: false, ordem: 0 },
-        'segredo',
+        { base: 'segredo' },
       );
 
       await cartao.gravarBase(
         1,
         { ambiente: 'producao', url: 'https://x/mge/', usuario: 'SUP', monitorar: false, ordem: 0 },
-        '',
+        { base: '' },
         base!.id,
       );
 
@@ -177,9 +177,101 @@ describe('CartaoClientes — senha da base', () => {
         1,
         // A rota valida antes, mas o banco pode ter vindo de uma versão futura.
         { ambiente: 'sandbox' as never, url: 'https://x/mge/', usuario: '', monitorar: false, ordem: 0 },
-        undefined,
+        {},
       );
       assert.equal(base?.ambiente, 'outro');
+    }),
+  );
+});
+
+describe('CartaoClientes — banco de dados da base', () => {
+  const BASE = { ambiente: 'producao', url: 'https://x/mge/', usuario: 'SUP', monitorar: false, ordem: 0 } as const;
+  const BANCO = {
+    sgbd: 'oracle',
+    host: 'db.cliente.local',
+    porta: 1521,
+    servico: 'ORCL',
+    esquema: 'SANKHYA',
+    usuario: 'SANKHYA',
+  } as const;
+
+  test(
+    'grava e devolve a conexão, com a senha só pela revelação',
+    comCartao(async (cartao, clientes) => {
+      clientes.criar(CLIENTE);
+      const base = await cartao.gravarBase(1, { ...BASE, banco: BANCO }, { banco: 'segredo-do-banco' });
+
+      assert.deepEqual(base?.banco, { ...BANCO, temSenha: true });
+      assert.ok(!JSON.stringify(base).includes('segredo-do-banco'), 'a listagem não carrega a senha do banco');
+      assert.equal(await cartao.revelarSenha(base!.id, 'banco_senha_cifrada'), 'segredo-do-banco');
+    }),
+  );
+
+  test(
+    'as duas senhas da base são independentes',
+    comCartao(async (cartao, clientes) => {
+      clientes.criar(CLIENTE);
+      const base = await cartao.gravarBase(
+        1,
+        { ...BASE, banco: BANCO },
+        { base: 'senha-sankhya', banco: 'senha-banco' },
+      );
+
+      assert.equal(await cartao.revelarSenha(base!.id), 'senha-sankhya');
+      assert.equal(await cartao.revelarSenha(base!.id, 'banco_senha_cifrada'), 'senha-banco');
+
+      // Apagar uma não pode levar a outra junto.
+      await cartao.gravarBase(1, { ...BASE, banco: BANCO }, { banco: '' }, base!.id);
+      assert.equal(await cartao.revelarSenha(base!.id), 'senha-sankhya');
+      assert.equal(cartao.base(base!.id)?.banco.temSenha, false);
+    }),
+  );
+
+  test(
+    'gravação sem `banco` não apaga a conexão guardada',
+    comCartao(async (cartao, clientes) => {
+      clientes.criar(CLIENTE);
+      const base = await cartao.gravarBase(1, { ...BASE, banco: BANCO }, { banco: 'segredo' });
+
+      // É exatamente o que o botão "Monitorar" da tela manda: a base sem o bloco do
+      // banco. Tratar ausente como vazio apagaria a conexão a cada clique no toggle.
+      await cartao.gravarBase(1, { ...BASE, monitorar: true }, {}, base!.id);
+
+      const depois = cartao.base(base!.id);
+      assert.deepEqual(depois?.banco, { ...BANCO, temSenha: true });
+      assert.equal(depois?.monitorar, true);
+    }),
+  );
+
+  test(
+    'base sem banco informado devolve o bloco vazio, não undefined',
+    comCartao(async (cartao, clientes) => {
+      clientes.criar(CLIENTE);
+      const base = await cartao.gravarBase(1, BASE, {});
+
+      assert.deepEqual(base?.banco, {
+        sgbd: '',
+        host: '',
+        porta: null,
+        servico: '',
+        esquema: '',
+        usuario: '',
+        temSenha: false,
+      });
+    }),
+  );
+
+  test(
+    'SGBD desconhecido não vira SGBD inventado',
+    comCartao(async (cartao, clientes) => {
+      clientes.criar(CLIENTE);
+      // A rota valida antes, mas o banco pode ter vindo de uma versão futura.
+      const base = await cartao.gravarBase(
+        1,
+        { ...BASE, banco: { ...BANCO, sgbd: 'db2' as never } },
+        {},
+      );
+      assert.equal(base?.banco.sgbd, '');
     }),
   );
 });
