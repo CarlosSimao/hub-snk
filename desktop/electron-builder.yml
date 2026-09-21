@@ -1,0 +1,83 @@
+# Empacotamento do Sankhya Hub — Fase 4 de docs/specs/sankhya-hub-sem-docker-plano.md.
+#
+# Antes de rodar: `node scripts/preparar-hub.mjs`, que monta `build/hub` com o backend
+# compilado e só as dependências de produção. É essa pasta que vira `resources/hub`, o
+# caminho que `desktop/src/config.ts` já procura quando `app.isPackaged`.
+appId: br.com.sankhya.hub
+productName: Sankhya Hub
+copyright: Sankhya
+
+directories:
+  output: ../release
+  buildResources: assets
+
+# O shell: o que o Electron carrega. O backend NÃO entra aqui — ele é recurso, não
+# código do app, e precisa ficar fora do `app.asar` para ser executado como processo.
+files:
+  - dist/**/*
+  - assets/**/*
+  - index.html
+  - renderer.js
+  - package.json
+
+extraResources:
+  - from: build/hub
+    to: hub
+    # O filtro explícito NÃO é decorativo: sem ele o electron-builder aplica o padrão que
+    # descarta `node_modules`, e o pacote sai com o backend sem uma única dependência —
+    # ele nem chega a responder o `/api/healthz`. Medido: `resources/hub` saiu com
+    # `dist/`, `public/` e `config/` e mais nada.
+    filter:
+      - '**/*'
+  # Entrada separada para o `node_modules`, e ela é obrigatória: mesmo com o filtro
+  # acima, o electron-builder não copia um `node_modules` que esteja DENTRO de um
+  # `extraResources` — ele o trata como árvore de dependências do app, não como
+  # conteúdo. Medido nas duas primeiras tentativas: `resources/hub` saiu com 1,6 MB
+  # (sem dependência nenhuma) em vez dos 34 MB corretos.
+  - from: build/hub/node_modules
+    to: hub/node_modules
+    filter:
+      - '**/*'
+  # Git AutoSync: binários, o instalador silencioso, a skill e o VERSION. Montado por
+  # `scripts/preparar-autosync.mjs`, que recusa binário mais antigo que os fontes. A
+  # pasta existe mesmo no pacote sem autosync (vazia), porque origem inexistente derruba
+  # o empacotamento.
+  - from: build/git-autosync
+    to: git-autosync
+    filter:
+      - '**/*'
+
+# `asar: true` mantém o shell num arquivo só. O backend está fora dele (extraResources),
+# que é o necessário para o `spawn` do `dist/index.js` funcionar.
+asar: true
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: assets/hub-snk.ico
+  # Sem certificado ainda (§4.4). Deixar explícito evita o electron-builder procurar um
+  # certificado da máquina e assinar com algo que não é o nosso.
+  signAndEditExecutable: true
+
+nsis:
+  # Per-user: instala em %LOCALAPPDATA%\Programs\sankhya-hub, sem pedir administrador.
+  # É o que permite instalar numa máquina corporativa sem acionar o time de infra.
+  perMachine: false
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Sankhya Hub
+  # A desinstalação remove os binários; `userData` (histórico, cofre, services.yaml do
+  # usuário) fica. Apagar dados de quem só está reinstalando seria irreversível.
+  deleteAppDataOnUninstall: false
+  artifactName: Sankhya-Hub-Setup-${version}.${ext}
+  # Página de componentes do Git AutoSync e as chamadas de instalação/desinstalação dele.
+  # O arquivo se desliga sozinho quando o pacote é montado sem o autosync.
+  include: installer.nsh
+
+# Nada de auto-update por enquanto (§4.4): sem servidor de publicação, um `latest.yml`
+# solto no release só confunde quem for verificar.
+publish: null

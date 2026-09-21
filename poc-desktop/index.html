@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<title>Sankhya Hub Desktop — PoC</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; background: #1b1f27; color: #e6e6e6; }
+  #topo { max-height: 70vh; overflow-y: auto; }
+  #barra { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px; box-sizing: border-box; background: #12151b; border-bottom: 1px solid #333; }
+  #abas button { margin-right: 6px; }
+  #abas button.ativa { background: #2d6cdf; color: #fff; }
+  #painel { padding: 10px; font-size: 13px; }
+  fieldset { border: 1px solid #333; margin-bottom: 8px; border-radius: 6px; }
+  legend { padding: 0 6px; }
+  input { width: 90px; }
+  button { cursor: pointer; }
+  #log { white-space: pre-wrap; background: #0e1116; color: #9be29b; font-family: monospace; font-size: 11px; padding: 8px; max-height: 160px; overflow: auto; border-radius: 6px; }
+  .aviso { color: #f0ad4e; }
+</style>
+</head>
+<body>
+  <div id="topo">
+  <div id="barra">
+    <div id="abas">
+      <button data-id="hub" class="ativa">Hub</button>
+      <button data-id="erp">ERP</button>
+      <button data-id="experience">Experience</button>
+      <button data-id="link" id="tabLink" style="display:none">Link (cliente)</button>
+      <button id="recarregar">Recarregar aba ativa</button>
+      <button id="fecharLink" style="display:none">Fechar aba de link</button>
+    </div>
+    <div style="font-size:11px;color:#999">
+      PoC isolada — Fase 1 da especificação. Não converte o app principal. Faça login manualmente nas abas ERP/Experience. Os testes abaixo rodam em segundo plano, independente da aba visível.
+    </div>
+  </div>
+  <div id="painel">
+    <fieldset>
+      <legend>Teste 4 — cookies ERP (inclusive HttpOnly)</legend>
+      <button id="btnCookies">Diagnosticar cookies ERP</button>
+      <span id="outCookies"></span>
+    </fieldset>
+
+    <fieldset>
+      <legend>Teste 6 — Agenda in-page (fetch same-origin na aba ERP)</legend>
+      de <input id="agendaDe" placeholder="YYYY-MM-DD" />
+      até <input id="agendaAte" placeholder="YYYY-MM-DD" />
+      <button id="btnAgenda">Buscar agenda + importar no backend real</button>
+      <label style="margin-left:12px"><input type="checkbox" id="chkBackendIndisponivel" /> simular backend indisponível (porta isolada, não mexe no container)</label>
+      <div id="outAgenda"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Teste 5 — JWT Experience + leitura de tarefas</legend>
+      <button id="btnToken">Capturar token Experience</button>
+      <span id="outToken"></span><br/>
+      projetoId <input id="expProjeto" /> personId <input id="expPerson" />
+      <button id="btnTarefas">Buscar tarefas (API real)</button>
+      <div id="outTarefas"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Teste 5b — expiração/logout/recaptura</legend>
+      <button id="btnLimparToken">Limpar sessão Experience capturada (simula logout local)</button>
+      <span id="outLimpar"></span>
+    </fieldset>
+
+    <fieldset>
+      <legend>Teste 12 — isolamento da bridge nas abas remotas</legend>
+      <button id="btnIsolamento">Verificar isolamento</button>
+      <span id="outIsolamento"></span>
+    </fieldset>
+
+    <fieldset>
+      <legend>Teste 8 — persistência/restart</legend>
+      <div class="aviso">Feche e reabra o app (npm start) e rode o diagnóstico de cookies de novo — se o total continuar &gt; 0 sem novo login, a partição persistiu.</div>
+    </fieldset>
+
+    <fieldset style="border-color:#c0392b">
+      <legend style="color:#e74c3c">Teste 7 — OS de homologação (ESCRITA REAL — só com alvo confirmado pelo usuário)</legend>
+      clienteId <input id="osClienteId" style="width:50px" />
+      tarefaIds (vírgula) <input id="osTarefaIds" style="width:160px" />
+      <button id="btnOsPreparar">1. Preparar (leitura, sem efeito)</button>
+      <div id="outOsPreparar"></div>
+      <hr/>
+      dia <input id="osDia" placeholder="YYYY-MM-DD" style="width:100px" />
+      hora início <input id="osHoraInicio" placeholder="HH:MM" style="width:60px" />
+      hora fim <input id="osHoraFim" placeholder="HH:MM" style="width:60px" />
+      intervalo <input id="osIntervalo" placeholder="HH:MM" value="01:00" style="width:60px" /><br/>
+      observações <input id="osObs" style="width:400px" /><br/>
+      notas <input id="osNotas" style="width:400px" /><br/>
+      Digite exatamente <code>CRIAR OS</code> para habilitar: <input id="osConfirmacao" style="width:100px" />
+      <button id="btnOsCriar" disabled>2. Criar OS (grava de verdade — aceite/e-mail sempre desligados aqui)</button>
+      <div id="outOsCriar"></div>
+      <hr/>
+      <div style="font-size:12px;color:#999">Pra testar aceite numa OS já criada em outra sessão (sem recriar): orderId <input id="osOrderIdExistente" style="width:80px" /> numos <input id="osNumosExistente" style="width:100px" /> <button id="btnCarregarOsExistente">Carregar (não cria nada)</button></div>
+      <button id="btnAbrirModalAceite" disabled>3. Aceite / e-mail (abre confirmação local)</button>
+      <div id="outOsAceite"></div>
+    </fieldset>
+
+    <div id="log"></div>
+  </div>
+
+  <!-- Modal LOCAL e confiável do Hub — nunca window.open remoto. Escape/backdrop/X cancelam. -->
+  <dialog id="modalAceite" style="max-width:480px;border:2px solid #c0392b;border-radius:8px;padding:0;background:#1b1f27;color:#e6e6e6">
+    <form method="dialog" style="margin:0;padding:16px;">
+      <h3 style="color:#e74c3c;margin-top:0">Confirmar etapa de aprovação — OS <span id="mdOrderId"></span></h3>
+      <p style="font-size:13px">
+        Cliente/projeto: <span id="mdCliente"></span><br/>
+        Aprovador (mascarado): <span id="mdAprovador"></span><br/>
+        Identidade da sessão será revalidada pelo backend imediatamente antes de escrever.
+      </p>
+      <label style="display:block"><input type="checkbox" id="mdChkAceite" /> Gerar aceite desta OS</label>
+      <label style="display:block;margin-left:18px"><input type="checkbox" id="mdChkEmail" disabled /> Enviar e-mail de aprovação AO CLIENTE (irreversível pelo hub)</label>
+      <p style="font-size:12px;color:#f0ad4e">Fechar esta janela (X, Esc ou clicar fora) cancela sem nenhum efeito.</p>
+      <p>Digite exatamente <code>ENVIAR PARA APROVACAO</code>: <input id="mdConfirmacao" style="width:160px" /></p>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" id="mdCancelar">Cancelar</button>
+        <button type="button" id="mdConfirmar" disabled>Confirmar e executar</button>
+      </div>
+      <div id="mdResultado" style="font-size:12px;margin-top:8px"></div>
+    </form>
+  </dialog>
+  </div>
+  </div>
+
+<script src="renderer.js"></script>
+</body>
+</html>

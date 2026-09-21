@@ -1,0 +1,4 @@
+node_modules/
+.perfil/
+report/eventos.log
+report/resultados.json

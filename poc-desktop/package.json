@@ -1,0 +1,14 @@
+{
+  "name": "sankhya-hub-desktop-poc",
+  "version": "0.0.1",
+  "private": true,
+  "description": "PoC isolada de viabilidade Electron para o Sankhya Hub Desktop. Não faz parte do app principal.",
+  "main": "src/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^44.4.1"
+  }
+}

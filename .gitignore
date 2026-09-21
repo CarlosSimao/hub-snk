@@ -16,3 +16,6 @@ data/
 
 # Launcher gerado por scripts/compilar-launcher.ps1.
 bin/
+
+# Instaladores gerados pelo electron-builder (desktop/electron-builder.yml).
+/release/

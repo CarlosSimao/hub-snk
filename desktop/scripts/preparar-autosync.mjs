@@ -1,0 +1,118 @@
+/**
+ * Monta `desktop/build/git-autosync` — o que vai para `resources/git-autosync` dentro do
+ * pacote, e o que a página de componentes do instalador usa quando o Git AutoSync é
+ * marcado (Fase 4, §4.2 e §4.3 de docs/specs/sankhya-hub-sem-docker-plano.md).
+ *
+ * O Git AutoSync mora em outro repositório (`../scripts/git-autosync` por padrão,
+ * ajustável por `GIT_AUTOSYNC_DIR`). Daqui saem cinco arquivos:
+ *
+ *   git-autosync.exe        interface, bandeja e CLI
+ *   git-autosync-sync.exe   o que a tarefa agendada executa
+ *   install-standalone.ps1  instalação silenciosa e idempotente — quem o NSIS chama
+ *   SKILL.md                a skill, quando o usuário marcar a opção
+ *   VERSION                 a versão, lida pelo `install-standalone.ps1` e gravada em
+ *                           `~/.git-autosync/bin/VERSION`
+ *
+ * Os binários entram sempre (~40 MB): são inertes se ninguém os usar, e ter o pacote
+ * dependendo de download na hora da instalação seria pior — a máquina de destino pode
+ * estar sem acesso.
+ *
+ * O script RECUSA binário mais antigo que os fontes. Esse é o erro que o relatório da
+ * análise registrou: os `.exe` distribuídos eram de uma versão anterior à do `VERSION`,
+ * e ninguém percebeu porque nada verificava.
+ */
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const AQUI = dirname(fileURLToPath(import.meta.url));
+const RAIZ_DESKTOP = resolve(AQUI, '..');
+const RAIZ_HUB = resolve(RAIZ_DESKTOP, '..');
+const DESTINO = join(RAIZ_DESKTOP, 'build', 'git-autosync');
+
+/**
+ * Lido por `assets/installer.nsh` em tempo de compilação do instalador. É a chave que
+ * liga a página de componentes: sem este arquivo, o NSIS não recebe a página, a chamada
+ * da instalação nem a pergunta da desinstalação.
+ */
+const DEFINES_NSIS = join(RAIZ_DESKTOP, 'build', 'gas-version.nsh');
+
+if (process.argv.includes('--sem-autosync')) {
+  // A pasta continua existindo, vazia: o `extraResources` do electron-builder aponta
+  // para ela, e uma origem inexistente derrubaria o empacotamento inteiro.
+  rmSync(DESTINO, { recursive: true, force: true });
+  mkdirSync(DESTINO, { recursive: true });
+  rmSync(DEFINES_NSIS, { force: true });
+  console.log('Pacote sem o Git AutoSync: nenhuma opção dele aparecerá no instalador.');
+  process.exit(0);
+}
+
+const RAIZ_AUTOSYNC = resolve(
+  process.env['GIT_AUTOSYNC_DIR'] ?? join(RAIZ_HUB, '..', 'scripts', 'git-autosync'),
+);
+
+const DIST = join(RAIZ_AUTOSYNC, 'python', 'dist');
+const EXECUTAVEIS = ['git-autosync.exe', 'git-autosync-sync.exe'];
+
+function exigir(caminho, comoResolver) {
+  if (!existsSync(caminho)) throw new Error(`faltando: ${caminho}\n  ${comoResolver}`);
+  return caminho;
+}
+
+if (!existsSync(RAIZ_AUTOSYNC)) {
+  throw new Error(
+    `não achei o repositório do git-autosync em ${RAIZ_AUTOSYNC}.\n` +
+      '  Aponte com GIT_AUTOSYNC_DIR=<caminho> ou rode `npm run empacotar:sem-autosync`.',
+  );
+}
+
+for (const nome of EXECUTAVEIS) {
+  exigir(join(DIST, nome), 'gere com: python\\build_windows.ps1 (exige Python só na máquina que empacota)');
+}
+
+// Binário mais velho que fonte é binário de outra versão. Comparar data é grosseiro, e é
+// exatamente o que faltava para não distribuir de novo um executável de agosto.
+const fontes = readdirSync(join(RAIZ_AUTOSYNC, 'python'))
+  .filter((nome) => nome.endsWith('.py'))
+  .map((nome) => join(RAIZ_AUTOSYNC, 'python', nome));
+
+for (const nome of EXECUTAVEIS) {
+  const geradoEm = statSync(join(DIST, nome)).mtimeMs;
+  const desatualizados = fontes.filter((fonte) => statSync(fonte).mtimeMs > geradoEm);
+  if (desatualizados.length) {
+    throw new Error(
+      `${nome} é mais antigo que ${desatualizados.length} fonte(s) — o pacote sairia com uma versão velha.\n` +
+        `  Regere com: ${join(RAIZ_AUTOSYNC, 'python', 'build_windows.ps1')}\n` +
+        `  Mais novos: ${desatualizados.map((f) => f.replace(RAIZ_AUTOSYNC, '')).join(', ')}`,
+    );
+  }
+}
+
+console.log(`\nMontando ${DESTINO}`);
+rmSync(DESTINO, { recursive: true, force: true });
+mkdirSync(DESTINO, { recursive: true });
+
+const arquivos = [
+  ...EXECUTAVEIS.map((nome) => [join(DIST, nome), nome]),
+  [exigir(join(RAIZ_AUTOSYNC, 'installer', 'install-standalone.ps1'), 'esperado no repo do git-autosync'), 'install-standalone.ps1'],
+  [exigir(join(RAIZ_AUTOSYNC, 'skill', 'SKILL.md'), 'esperado no repo do git-autosync'), 'SKILL.md'],
+  [exigir(join(RAIZ_AUTOSYNC, 'python', 'VERSION'), 'esperado no repo do git-autosync'), 'VERSION'],
+];
+
+for (const [origem, nome] of arquivos) {
+  cpSync(origem, join(DESTINO, nome));
+  console.log(`  + ${nome}`);
+}
+
+const versao = readFileSync(join(DESTINO, 'VERSION'), 'utf8').trim();
+
+writeFileSync(
+  DEFINES_NSIS,
+  ['; Gerado por scripts/preparar-autosync.mjs — não editar à mão.', '!define GAS_PRESENTE', `!define GAS_VERSION "${versao}"`, ''].join(
+    '\n',
+  ),
+  'utf8',
+);
+console.log(`  + gas-version.nsh (${versao})`);
+
+console.log(`\nGit AutoSync ${versao} pronto para empacotar (de ${RAIZ_AUTOSYNC}).`);
