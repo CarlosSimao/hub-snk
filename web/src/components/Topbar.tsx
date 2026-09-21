@@ -41,7 +41,7 @@ export function Topbar({
         </span>
         <div className="brand-text">
           <h1>
-            Sankhya<span>Hub</span>
+            Development<span>Switch</span>
           </h1>
           <p>{carregado ? resumo : 'conectando…'}</p>
         </div>

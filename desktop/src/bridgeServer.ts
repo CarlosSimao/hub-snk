@@ -279,6 +279,14 @@ async function tratarNavegacaoSkill(
       responderJson(res, 200, navegacaoSkill.tecla(tabs, aba, texto('tecla')));
       return;
     }
+    if (req.method === 'POST' && acao === 'exibir') {
+      responderJson(res, 200, navegacaoSkill.exibir());
+      return;
+    }
+    if (req.method === 'POST' && acao === 'ocultar') {
+      responderJson(res, 200, navegacaoSkill.esconder());
+      return;
+    }
     if (req.method === 'POST' && acao === 'fechar') {
       responderJson(res, 200, navegacaoSkill.fechar());
       return;

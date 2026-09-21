@@ -1,10 +1,14 @@
-# Empacotamento do Sankhya Hub — Fase 4 de docs/specs/sankhya-hub-sem-docker-plano.md.
+# Empacotamento do Development Switch — Fase 4 de docs/specs/sankhya-hub-sem-docker-plano.md.
 #
 # Antes de rodar: `node scripts/preparar-hub.mjs`, que monta `build/hub` com o backend
 # compilado e só as dependências de produção. É essa pasta que vira `resources/hub`, o
 # caminho que `desktop/src/config.ts` já procura quando `app.isPackaged`.
-appId: br.com.sankhya.hub
-productName: Sankhya Hub
+# Identificador novo junto com o nome: o anterior era br.com.sankhya.hub, e manter um
+# identificador de marca alheia num produto renomeado justamente para nao usar essa marca
+# seria trocar o rotulo e guardar o problema. Instalacao anterior nao e atualizada por
+# cima — desinstale a antiga.
+appId: br.dev.switch.desktop
+productName: Development Switch
 copyright: Sankhya
 
 directories:
@@ -69,11 +73,11 @@ nsis:
   allowElevation: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: Sankhya Hub
+  shortcutName: Development Switch
   # A desinstalação remove os binários; `userData` (histórico, cofre, services.yaml do
   # usuário) fica. Apagar dados de quem só está reinstalando seria irreversível.
   deleteAppDataOnUninstall: false
-  artifactName: Sankhya-Hub-Setup-${version}.${ext}
+  artifactName: Development-Switch-Setup-${version}.${ext}
   # Página de componentes do Git AutoSync e as chamadas de instalação/desinstalação dele.
   # O arquivo se desliga sozinho quando o pacote é montado sem o autosync.
   include: installer.nsh
@@ -89,8 +93,8 @@ linux:
       arch: [x64]
   icon: assets/hub-snk.png
   category: Development
-  synopsis: Painel do ambiente local do Sankhya
-  artifactName: sankhya-hub-${version}-${arch}.${ext}
+  synopsis: Painel do ambiente local de desenvolvimento
+  artifactName: development-switch-${version}-${arch}.${ext}
 
 deb:
   # `libsecret` é requisito de SEGURANÇA, não de conveniência: sem chaveiro do sistema o

@@ -17,6 +17,8 @@ import { backendDisponivel } from './services';
 import { backendGerenciado, iniciarBackend, pararBackend } from './backendProcess';
 import { migrarCofreDoHelper } from './migracaoCofre';
 import { prepararArquivosDoUsuario } from './primeiroBoot';
+import { migrarPastaDeDados } from './migracaoNome';
+import { montarMenu } from './menu';
 import { avisarAnotacoes } from './lembretes';
 
 if (!app.requestSingleInstanceLock()) {
@@ -38,7 +40,7 @@ function criarJanela(): void {
   janelaPrincipal = new BrowserWindow({
     width: 1280,
     height: 860,
-    title: 'Sankhya Hub Desktop',
+    title: 'Development Switch',
     icon: ICONE,
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
@@ -119,6 +121,11 @@ app.whenReady().then(async () => {
   app.userAgentFallback = userAgentLimpo(app.userAgentFallback);
   logEvento('user-agent-definido', { ua: app.userAgentFallback, icone: ICONE, iconeExiste: existsSync(ICONE) });
 
+  // Primeiro de tudo: o aplicativo mudou de nome, e com ele a pasta de dados. Sem esta
+  // migração o histórico, o cofre e o services.yaml do usuário ficariam na pasta antiga
+  // e o app abriria vazio, parecendo perda de dados.
+  migrarPastaDeDados();
+
   // Antes de tudo que lê configuração: numa instalação nova o `services.yaml` ainda só
   // existe dentro do pacote, e é aqui que ele vira arquivo do usuário.
   prepararArquivosDoUsuario();
@@ -144,10 +151,11 @@ app.whenReady().then(async () => {
   const backend = await iniciarBackend();
   if (backend.modo === 'falhou') {
     logEvento('backend-falhou-no-boot');
-    dialog.showErrorBox('Sankhya Hub — o backend não subiu', backend.erro);
+    dialog.showErrorBox('Development Switch — o backend não subiu', backend.erro);
   }
 
   criarJanela();
+  montarMenu(() => janelaPrincipal, () => tabs);
 
   // Depois da janela e sem `await`: o aviso é útil, mas não é motivo para segurar a
   // abertura do aplicativo se o backend demorar a responder.

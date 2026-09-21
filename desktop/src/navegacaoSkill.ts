@@ -54,8 +54,10 @@ function exigirJanela(): BrowserWindow {
 }
 
 /** As abas do hub e a página de trabalho da skill, com o endereço de cada uma. */
-export function listar(tabs: TabManager | null): { abas: { id: string; titulo: string; url: string }[] } {
-  const abas: { id: string; titulo: string; url: string }[] = [];
+export function listar(
+  tabs: TabManager | null,
+): { abas: { id: string; titulo: string; url: string; visivel?: boolean }[] } {
+  const abas: { id: string; titulo: string; url: string; visivel?: boolean }[] = [];
 
   if (tabs) {
     for (const id of ['hub', 'erp', 'experience'] as TabId[]) {
@@ -66,7 +68,12 @@ export function listar(tabs: TabManager | null): { abas: { id: string; titulo: s
   }
 
   if (janela && !janela.isDestroyed()) {
-    abas.push({ id: 'evidencias', titulo: janela.webContents.getTitle(), url: janela.webContents.getURL() });
+    abas.push({
+      id: 'evidencias',
+      titulo: janela.webContents.getTitle(),
+      url: janela.webContents.getURL(),
+      visivel: janela.isVisible(),
+    });
   }
 
   return { abas };
@@ -173,6 +180,33 @@ export async function texto(
     true,
   )) as string;
   return { texto: conteudo.slice(0, limite) };
+}
+
+/**
+ * Traz a página de trabalho para a tela.
+ *
+ * É o caminho do login: a página nasce oculta, e quando a sessão do Sankhya expira a
+ * skill não tem como digitar usuário e senha (nem deve). Aqui ela aparece, a pessoa
+ * loga, e `esconder()` devolve a janela ao estado normal. Também está no menu Skills.
+ */
+export function exibir(): { ok: boolean; url: string } {
+  if (!janela || janela.isDestroyed()) return { ok: false, url: '' };
+  janela.show();
+  janela.focus();
+  logEvento('skill-janela-exibida', { url: janela.webContents.getURL() });
+  return { ok: true, url: janela.webContents.getURL() };
+}
+
+export function esconder(): { ok: boolean } {
+  if (!janela || janela.isDestroyed()) return { ok: false };
+  janela.hide();
+  logEvento('skill-janela-ocultada', {});
+  return { ok: true };
+}
+
+/** A página está visível agora? A skill usa para saber se já pode voltar a capturar. */
+export function visivel(): boolean {
+  return Boolean(janela && !janela.isDestroyed() && janela.isVisible());
 }
 
 /** Fecha a página de trabalho. A skill não precisa chamar: o shell leva junto ao sair. */

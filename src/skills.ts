@@ -161,6 +161,9 @@ const AVISO_NAVEGADOR = [
   'Para qualquer captura de tela ou navegacao, use mcp__sankhya-hub-navegador__* (abrir, navegar, capturar, clicar, digitar, tecla, texto_da_pagina).',
   'Elas cumprem o papel das ferramentas mcp__claude-in-chrome__*: quando uma instrucao pedir a extensao do navegador, use estas.',
   'A ferramenta capturar grava PNG no caminho absoluto que voce informar e devolve o caminho gravado.',
+  'A janela dessa navegacao fica OCULTA de proposito, e a captura funciona assim mesmo.',
+  'Se a pagina pedir login, chame mostrar (a janela aparece), peca ao usuario que faca o login nela, e depois chame ocultar.',
+  'Nunca digite usuario ou senha voce mesmo, e nunca peca as credenciais no chat.',
 ].join(' ');
 
 /** Um evento do stream, guardado como veio — a tela decide o que mostrar. */

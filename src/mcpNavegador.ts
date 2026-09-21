@@ -141,6 +141,21 @@ const FERRAMENTAS: Ferramenta[] = [
     chamar: (args) => bridge('/navegacao/tecla', { tecla: texto(args, 'tecla'), aba: texto(args, 'aba') }),
   },
   {
+    name: 'mostrar',
+    description:
+      'Traz a janela de navegacao do hub para a tela, para o usuario fazer login. Use quando a pagina ' +
+      'mostrar tela de login: voce NAO deve digitar senha. Depois de o usuario avisar que logou, ' +
+      'chame ocultar e siga capturando.',
+    inputSchema: { type: 'object', properties: {} },
+    chamar: () => bridge('/navegacao/exibir', {}),
+  },
+  {
+    name: 'ocultar',
+    description: 'Devolve a janela de navegacao ao estado oculto. A captura continua funcionando oculta.',
+    inputSchema: { type: 'object', properties: {} },
+    chamar: () => bridge('/navegacao/ocultar', {}),
+  },
+  {
     name: 'texto_da_pagina',
     description:
       'Devolve o texto visível da aba. Use para confirmar onde a navegação parou antes de capturar — ' +
