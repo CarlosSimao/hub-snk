@@ -14,6 +14,8 @@ import { ConfiguracoesCheck } from './configuracoesCheck.ts';
 import { registerRoutes } from './routes.ts';
 import { registerRoutesWildfly } from './routesWildfly.ts';
 import { registerRoutesFerramentas } from './routesFerramentas.ts';
+import { registerRoutesSkills } from './routesSkills.ts';
+import { Skills } from './skills.ts';
 import { Ferramentas } from './ferramentas.ts';
 import { NATIVO, Wildfly } from './wildfly.ts';
 import { Pastas } from './pastas.ts';
@@ -175,6 +177,9 @@ async function main(): Promise<void> {
   // Terminal, IntelliJ e Claude Code na pasta do repositorio do cliente. Nao depende do
   // git-autosync nem do shell desktop: e' spawn de programa local.
   registerRoutesFerramentas(app, { ferramentas: new Ferramentas() });
+  // Skills do Claude Code executadas de dentro do hub. A skill nao e copiada: quem roda
+  // e o `claude` da maquina, entao `/plugin update` continua sendo quem a atualiza.
+  registerRoutesSkills(app, { skills: new Skills() });
   // O bridge entra como caminho preferencial das credenciais: o cofre do shell desktop
   // (safeStorage) substitui as rotas /credentials do hub-helper.ps1 — ver Fase 3 em
   // docs/specs/sankhya-hub-sem-docker-plano.md. Sem shell no ar, cai para o helper.
