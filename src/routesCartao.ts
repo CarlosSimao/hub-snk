@@ -62,6 +62,13 @@ export function registerRoutesCartao(app: FastifyInstance, deps: RouteCartaoDeps
     };
   });
 
+  /**
+   * Repositórios cadastrados em qualquer cliente — a lista que a aba Git oferece para
+   * adicionar ao git-autosync. Fora de `/api/clientes/:id/...` de propósito: não há
+   * cliente em contexto, a pergunta é "o que existe cadastrado nesta máquina".
+   */
+  app.get('/api/repos-cadastrados', async () => ({ repos: cartao.reposCadastrados() }));
+
   /* -------------------------------- bases -------------------------------- */
 
   app.post<{ Params: { id: string }; Body: Record<string, unknown> }>(

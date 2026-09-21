@@ -6,6 +6,17 @@
  * cruza os dois arquivos de estado que o CLI expoe.
  */
 import type { HubHelper } from './sankhya/helper.ts';
+
+/**
+ * Quem executa o git-autosync de fato.
+ *
+ * Duas implementacoes com a mesma assinatura: o `HubHelper` (hub em container, que
+ * delega ao `hub-helper.ps1`) e o `GitAutosyncCli` (backend nativo, que chama o CLI
+ * direto). Este modulo nao precisa saber qual esta' em uso.
+ */
+export interface TransporteAutosync {
+  requisitar<T>(caminho: string, init?: RequestInit): Promise<T>;
+}
 import type {
   AlvoAutosync,
   CommitAutosync,
@@ -54,9 +65,9 @@ function normalizar(caminho: string): string {
 }
 
 export class GitAutosync {
-  readonly #helper: HubHelper;
+  readonly #helper: TransporteAutosync;
 
-  constructor(helper: HubHelper) {
+  constructor(helper: TransporteAutosync) {
     this.#helper = helper;
   }
 
@@ -191,6 +202,22 @@ export class GitAutosync {
 
   push(caminho: string): Promise<{ saida: string }> {
     return this.#acao('push', { caminho });
+  }
+
+  /** Abre CMD ou Git Bash na pasta do repositório — não roda o CLI, só resolve o que ele não resolve sozinho. */
+  terminal(caminho: string, tipo: 'cmd' | 'git-bash'): Promise<{ saida: string }> {
+    return this.#acao('terminal', { caminho, tipo });
+  }
+
+  /**
+   * Últimas linhas do `autosync.log`.
+   *
+   * Texto simples que o CLI vai gravando a cada rodada agendada — não é o `git log` do
+   * repositório, que é o que `historico()` devolve.
+   */
+  async log(limite = 200): Promise<string[]> {
+    const busca = new URLSearchParams({ limite: String(limite) });
+    return (await this.#dados<string[] | null>(`/git-autosync/log?${busca}`)) ?? [];
   }
 
   sync(caminho: string, mensagem?: string): Promise<{ saida: string }> {

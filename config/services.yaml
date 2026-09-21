@@ -87,40 +87,45 @@ services:
         timeoutMs: 10000
         degradedAboveMs: 2000
 
-      # "Test connection" de verdade, igual ao do DataGrip: abre o socket, faz o
-      # handshake TNS, AUTENTICA e roda uma consulta. Independente do WildFly — se a
-      # aplicação cair, este semáforo continua dizendo se o problema é o servidor ou
-      # o banco.
+      # Porta do listener aceita conexão.
       #
-      # Distingue os estados que um check de porta confunde: listener fora do ar
-      # (vermelho), instância MOUNTED mas não aberta (amarelo — o listener responde e
-      # nenhuma consulta funciona) e credencial recusada (vermelho).
+      # Já foi um check `type: oracle`, que autenticava e lia `v$instance`/`v$session`.
+      # Aquele exigia o Oracle Instant Client (Thick mode), porque este ambiente é XE
+      # 11.2 e o driver Thin só fala com 12.1+ — e era o ÚNICO motivo de o hub precisar
+      # do Instant Client. Trocado a pedido, para o aplicativo desktop não ter que
+      # baixar 50 MB de cliente Oracle na primeira abertura.
       #
-      # Este ambiente é Oracle XE 11.2, que o driver Thin não alcança (exige 12.1+).
-      # A imagem traz o Oracle Instant Client 19 e o check roda em Thick mode.
-      #
-      # `serviceName` e não `sid`: o listener deste XE só tem registro dinâmico
-      # (PMON), que expõe SERVICE_NAME — sintaxe `host:porta:SID` volta ORA-12545
-      # quando conectado de fora do host (ex.: daqui, via host.docker.internal).
-      # Sem grant nas views v$ o check cai para `SELECT 1 FROM dual` — perde os
-      # indicadores e continua verde, porque conectar é o sinal que importa.
+      # O que se perde: distinguir instância MOUNTED (listener responde, nenhuma
+      # consulta funciona) de banco aberto, e os indicadores de sessões/uptime/versão.
+      # O que cobre a diferença: o check `oracle-container` abaixo, que vê o estado real
+      # do container. Para voltar atrás, troque `type: tcp` por `type: oracle` com
+      # `serviceName`/`user`/`password` — o código do check continua no hub
+      # (src/checks/oracle.ts), só não é mais usado aqui.
       - id: oracle
         name: Banco Oracle
-        description: Test connection — autentica no listener e roda consulta de sonda
-        type: oracle
-        host: ${ORACLE_HOST}
+        description: Listener aceita conexão na porta do Oracle
+        type: tcp
+        host: ${ORACLE_HOST:localhost}
         port: ${ORACLE_PORT:1521}
-        serviceName: ${ORACLE_SID:XE}
-        user: ${ORACLE_USER}
-        password: ${ORACLE_PASSWORD}
         intervalMs: 60000
-        timeoutMs: 15000
+        timeoutMs: 10000
         degradedAboveMs: 1500
-        sessionsWarnPct: 80
+
+      # O container do banco, medido pelo daemon: estado, health e reinícios.
+      #
+      # Não é redundante com o check acima: a porta pode aceitar conexão enquanto o
+      # container reinicia em laço, e o container pode estar `running` com o listener
+      # ainda subindo. Um diz "dá para conectar", o outro diz "o processo está estável".
+      - id: oracle-container
+        name: Container do Oracle
+        description: Estado do container skdev-oracle no Docker
+        type: docker
+        container: skdev-oracle
+        intervalMs: 60000
 
     actions:
       # Sobe o container do Oracle, espera o check `oracle` sair de down/unknown (até
-      # 120s, sondando a cada 3s) e só então chama o helper do WildFly na 4100 —
+      # 120s, sondando a cada 3s) e só então sobe o WildFly —
       # subir o WildFly contra um banco que ainda não abriu é o cenário que este
       # passo evita.
       - id: iniciar-tudo
@@ -135,9 +140,8 @@ services:
             checkId: oracle
             timeoutMs: 120000
             pollMs: 3000
-          - type: http
-            url: http://host.docker.internal:4100/iniciar
-            timeoutMs: 10000
+          - type: wildfly
+            operation: iniciar
 
       # Ordem inversa da subida: para o WildFly primeiro (solta as conexões com o
       # banco de forma limpa) e só depois derruba o container do Oracle.
@@ -147,9 +151,8 @@ services:
         type: sequence
         danger: true
         steps:
-          - type: http
-            url: http://host.docker.internal:4100/parar
-            timeoutMs: 15000
+          - type: wildfly
+            operation: parar
           - type: docker
             container: skdev-oracle
             operation: stop
@@ -169,9 +172,8 @@ services:
             checkId: oracle
             timeoutMs: 120000
             pollMs: 3000
-          - type: http
-            url: http://host.docker.internal:4100/reiniciar
-            timeoutMs: 30000
+          - type: wildfly
+            operation: reiniciar
 
       - id: sankhya
         label: Sankhya
@@ -183,46 +185,48 @@ services:
         type: link
         url: http://localhost:8080/wpm/
 
-      # As três abaixo chamam scripts/wildfly-helper.ps1, um listener nativo do
-      # Windows — o hub roda em container Linux e não alcança processo do host
-      # diretamente. Sem token: qualquer um na rede local que chegue nessa porta
-      # consegue disparar. Ver README > Sankhya em ambiente local.
+      # O hub controla o processo do WildFly diretamente (src/wildfly.ts). Rodando
+      # nativo no Windows, faz spawn e kill aqui mesmo; em container, delega ao
+      # scripts/wildfly-helper.ps1 como antes — o YAML não muda nos dois casos.
+      #
+      # Antes estas três eram `type: http` apontando para a porta 4100, que escutava
+      # em todas as interfaces SEM token: qualquer aparelho da rede local derrubava o
+      # WildFly. Agora não há porta.
       #
       # `checkId: wildfly` amarra as três ao check do WildFly — aparecem nas ações
       # do serviço, não nas do projeto.
       - id: wildfly-iniciar
         label: Iniciar
         description: Sobe o standalone.bat oculto e destacado — mesmo efeito do start_wildfly.vbs
-        type: http
-        url: http://host.docker.internal:4100/iniciar
-        timeoutMs: 10000
+        type: wildfly
+        operation: iniciar
         checkId: wildfly
       - id: wildfly-reiniciar
         label: Reiniciar
         description: Mata o processo e sobe de novo — espera até 20s o processo morrer antes de reiniciar
-        type: http
-        url: http://host.docker.internal:4100/reiniciar
-        timeoutMs: 30000
+        type: wildfly
+        operation: reiniciar
         danger: true
         checkId: wildfly
       - id: wildfly-parar
         label: Parar
         description: Mata o processo java do WildFly
-        type: http
-        url: http://host.docker.internal:4100/parar
-        timeoutMs: 15000
+        type: wildfly
+        operation: parar
         danger: true
         checkId: wildfly
 
-      # Helper separado (scripts/wildfly-log-helper.ps1, porta 4101) que serve o
-      # server.log ao vivo. `localhost`, não `host.docker.internal`: quem abre esta
-      # URL é o navegador, na mesma máquina do helper — não o container.
+      # O server.log ao vivo agora é servido pelo próprio hub (src/routesWildfly.ts),
+      # no lugar do scripts/wildfly-log-helper.ps1 (porta 4101, aberta na rede e sem
+      # token). `localhost`, não `host.docker.internal`: quem abre esta URL é o
+      # navegador. Some junto a limitação do helper, cujo listener single-threaded
+      # travava as ações de iniciar/parar enquanto um popup de log estivesse aberto.
       # `popup: true` abre numa janela separada, redimensionável, em vez de aba nova.
       - id: wildfly-log
         label: Log
         description: server.log ao vivo, tipo tail -f
         type: link
-        url: http://localhost:4101/log
+        url: http://localhost:4000/api/wildfly/log
         popup: true
         checkId: wildfly
 

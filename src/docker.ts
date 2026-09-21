@@ -1,12 +1,16 @@
 /**
- * Cliente minimo da Docker Engine API por unix socket.
+ * Cliente minimo da Docker Engine API por unix socket (Linux) ou named pipe (Windows).
  *
  * Cobre exatamente o que o hub precisa: inspecionar um container (check `docker`) e
  * start/stop/restart (acoes). Nao ha exec nem run — o hub nunca executa comando
  * arbitrario, entao montar o socket aqui expoe apenas essa superficie.
+ *
+ * O caminho Windows existe porque o hub deixou de rodar dentro de um container: com o
+ * backend nativo (shell desktop), o Docker passa a ser apenas mais um alvo monitorado,
+ * e o daemon do Docker Desktop atende em `\\.\pipe\docker_engine`.
  */
 import { request as httpRequest } from 'node:http';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 
 export interface ContainerState {
   name: string;
@@ -21,16 +25,42 @@ export interface ContainerState {
 
 export class DockerUnavailableError extends Error {}
 
+/** `\\.\pipe\algo` ou a forma com barras normais, que o Docker Desktop tambem aceita. */
+function ehNamedPipe(caminho: string): boolean {
+  return /^(\\\\|\/\/)[.?](\\|\/)pipe(\\|\/)/.test(caminho);
+}
+
+/**
+ * `existsSync` nao enxerga named pipe: o namespace `\\.\pipe\` nao e um diretorio do
+ * filesystem e o `stat` falha. Listar o namespace e a forma que funciona — e a unica
+ * que distingue "Docker Desktop parado" de "Docker Desktop nao instalado", que e
+ * exatamente o que o check precisa reportar.
+ */
+function namedPipeExiste(caminho: string): boolean {
+  const nome = caminho.replace(/^(\\\\|\/\/)[.?](\\|\/)pipe(\\|\/)/, '').toLowerCase();
+  if (!nome) return false;
+  try {
+    return readdirSync('\\\\.\\pipe\\').some((entrada) => entrada.toLowerCase() === nome);
+  } catch {
+    return false;
+  }
+}
+
 export class DockerClient {
   readonly #socketPath: string;
+  readonly #viaPipe: boolean;
 
   constructor(socketPath: string) {
-    this.#socketPath = socketPath;
+    this.#viaPipe = ehNamedPipe(socketPath);
+    // O `net.connect` do Windows so aceita a forma com contrabarra; a variavel de
+    // ambiente costuma chegar com barras normais por ser mais facil de escrever em YAML.
+    this.#socketPath = this.#viaPipe ? socketPath.replace(/\//g, '\\') : socketPath;
   }
 
-  /** Socket configurado e presente no filesystem do container. */
+  /** Socket (ou pipe) configurado e presente nesta maquina. */
   get available(): boolean {
-    return Boolean(this.#socketPath) && existsSync(this.#socketPath);
+    if (!this.#socketPath) return false;
+    return this.#viaPipe ? namedPipeExiste(this.#socketPath) : existsSync(this.#socketPath);
   }
 
   async #call(
@@ -62,7 +92,9 @@ export class DockerClient {
         if (err.code === 'EACCES') {
           reject(
             new DockerUnavailableError(
-              'sem permissao no socket do Docker — adicione `group_add: ["0"]` ao serviço no docker-compose.yml',
+              this.#viaPipe
+                ? 'sem permissao no pipe do Docker — o usuario precisa estar no grupo "docker-users" do Windows'
+                : 'sem permissao no socket do Docker — adicione `group_add: ["0"]` ao serviço no docker-compose.yml',
             ),
           );
           return;

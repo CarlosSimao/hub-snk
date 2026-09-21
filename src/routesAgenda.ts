@@ -9,10 +9,13 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { PayloadInvalidoError, parsearAgenda } from './sankhya/agendaParser.ts';
 import type { AgendaRecursos } from './sankhya/agenda.ts';
 import { HelperError, HelperIndisponivelError, type HubHelper } from './sankhya/helper.ts';
+import { DesktopBridgeError, DesktopBridgeIndisponivelError, type DesktopBridge } from './sankhya/desktopBridge.ts';
 
 export interface RouteAgendaDeps {
   agenda: AgendaRecursos;
   helper: HubHelper;
+  /** Presente só quando `SANKHYA_DESKTOP_BRIDGE_URL` está configurado (src/index.ts). */
+  desktopBridge?: DesktopBridge;
 }
 
 /** `YYYY-MM-DD` -> `DD/MM/YYYY`, que é o formato que o serviço do ERP espera. */
@@ -26,10 +29,10 @@ function paraFormatoSankhya(data: string): string {
  * mensagem que a tela mostra em vez de um 500.
  */
 function responderErroHelper(reply: FastifyReply, err: unknown): FastifyReply {
-  if (err instanceof HelperIndisponivelError) {
+  if (err instanceof HelperIndisponivelError || err instanceof DesktopBridgeIndisponivelError) {
     return reply.code(503).send({ error: err.message, helperIndisponivel: true });
   }
-  if (err instanceof HelperError) {
+  if (err instanceof HelperError || err instanceof DesktopBridgeError) {
     return reply.code(err.status).send({ error: err.message });
   }
   throw err;
@@ -39,7 +42,7 @@ function responderErroHelper(reply: FastifyReply, err: unknown): FastifyReply {
 const MAX_BYTES = 8 * 1024 * 1024;
 
 export function registerRoutesAgenda(app: FastifyInstance, deps: RouteAgendaDeps): void {
-  const { agenda, helper } = deps;
+  const { agenda, helper, desktopBridge } = deps;
 
   /**
    * Busca a agenda direto do Sankhya, sem colagem manual.
@@ -59,17 +62,22 @@ export function registerRoutesAgenda(app: FastifyInstance, deps: RouteAgendaDeps
 
       let conteudo: string;
       try {
-        const resposta = await helper.requisitar<{ conteudo: string }>(
-          '/browser/agenda',
-          {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ de, ate }),
-          },
-          // Vai muito além do padrão: a chamada atravessa o helper, o navegador e o
-          // Sankhya, e um período de meses traz centenas de eventos.
-          { timeoutMs: 120_000 },
-        );
+        // Com o shell desktop configurado, o fetch roda dentro da aba ERP do Electron
+        // (mesma ACL do service.sbr exige sessão de página, não cookie replicado — ver
+        // desktopBridge.ts); sem ele, mantém o caminho de sempre via hub-helper.ps1/CDP.
+        const resposta = desktopBridge
+          ? await desktopBridge.buscarAgenda(de, ate)
+          : await helper.requisitar<{ conteudo: string }>(
+              '/browser/agenda',
+              {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ de, ate }),
+              },
+              // Vai muito além do padrão: a chamada atravessa o helper, o navegador e o
+              // Sankhya, e um período de meses traz centenas de eventos.
+              { timeoutMs: 120_000 },
+            );
         conteudo = resposta.conteudo;
       } catch (err) {
         return responderErroHelper(reply, err);

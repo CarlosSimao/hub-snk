@@ -34,6 +34,25 @@ export interface OpcoesHelper {
   timeoutMs?: number;
 }
 
+/**
+ * Le um arquivo de token de IPC local (helper ou bridge do desktop) e falha com a
+ * mensagem informada quando o arquivo nao existe ou esta vazio.
+ *
+ * Lido a cada chamada em vez de uma vez no boot: o processo do outro lado gera um
+ * token novo quando o arquivo some, e uma copia em memoria sobreviveria a isso
+ * respondendo 401 para sempre. Sao poucos bytes de disco numa rota disparada por
+ * clique, nao em polling.
+ */
+export function lerTokenArquivo(caminho: string, mensagemIndisponivel: string): string {
+  try {
+    const token = readFileSync(caminho, 'utf8').trim();
+    if (!token) throw new Error('vazio');
+    return token;
+  } catch {
+    throw new HelperIndisponivelError(mensagemIndisponivel);
+  }
+}
+
 export class HubHelper {
   readonly #baseUrl: string;
   readonly #arquivoToken: string;
@@ -43,21 +62,11 @@ export class HubHelper {
     this.#arquivoToken = arquivoToken;
   }
 
-  /**
-   * Lido a cada chamada em vez de uma vez no boot: o helper gera um token novo quando o
-   * arquivo some, e uma copia em memoria sobreviveria a isso respondendo 401 para
-   * sempre. Sao 44 bytes de disco numa rota disparada por clique, nao em polling.
-   */
   #token(): string {
-    try {
-      const token = readFileSync(this.#arquivoToken, 'utf8').trim();
-      if (!token) throw new Error('vazio');
-      return token;
-    } catch {
-      throw new HelperIndisponivelError(
-        `token do helper não encontrado em ${this.#arquivoToken} — o hub-helper.ps1 está rodando e a pasta ipc está montada no container?`,
-      );
-    }
+    return lerTokenArquivo(
+      this.#arquivoToken,
+      `token do helper não encontrado em ${this.#arquivoToken} — o hub-helper.ps1 está rodando e a pasta ipc está montada no container?`,
+    );
   }
 
   async requisitar<T>(

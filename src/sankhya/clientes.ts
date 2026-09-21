@@ -21,10 +21,14 @@ interface Linha {
   experience_person_id: number | null;
   agenda_recurso_usuario: string;
   agenda_codparc: number | null;
+  agenda_demanda_id: string | null;
   sankhya_url: string | null;
   repositorio_local: string;
   repositorio_remoto: string;
   anotacoes: string | null;
+  anotacoes_notificar: number | null;
+  demanda_fim: string | null;
+  email_finalizacao_em: string | null;
 }
 
 function paraCliente(linha: Linha): Cliente {
@@ -35,10 +39,14 @@ function paraCliente(linha: Linha): Cliente {
     experiencePersonId: linha.experience_person_id === null ? null : Number(linha.experience_person_id),
     agendaRecursoUsuario: linha.agenda_recurso_usuario,
     agendaCodparc: linha.agenda_codparc === null ? null : Number(linha.agenda_codparc),
+    agendaDemandaId: linha.agenda_demanda_id ?? '',
     sankhyaUrl: linha.sankhya_url ?? '',
     repositorioLocal: linha.repositorio_local,
     repositorioRemoto: linha.repositorio_remoto,
     anotacoes: linha.anotacoes ?? '',
+    anotacoesNotificar: Number(linha.anotacoes_notificar ?? 0) === 1,
+    demandaFim: linha.demanda_fim ?? '',
+    emailFinalizacaoEm: linha.email_finalizacao_em ?? '',
   };
 }
 
@@ -70,8 +78,12 @@ export class Clientes {
     );
     for (const [coluna, tipo] of [
       ['agenda_codparc', 'INTEGER'],
+      ['agenda_demanda_id', "TEXT NOT NULL DEFAULT ''"],
       ['sankhya_url', "TEXT NOT NULL DEFAULT ''"],
       ['anotacoes', "TEXT NOT NULL DEFAULT ''"],
+      ['anotacoes_notificar', 'INTEGER NOT NULL DEFAULT 0'],
+      ['demanda_fim', "TEXT NOT NULL DEFAULT ''"],
+      ['email_finalizacao_em', "TEXT NOT NULL DEFAULT ''"],
     ] as const) {
       if (!existentes.has(coluna)) this.#db.exec(`ALTER TABLE clientes ADD COLUMN ${coluna} ${tipo}`);
     }
@@ -110,7 +122,56 @@ export class Clientes {
         ordem      INTEGER NOT NULL DEFAULT 0
       );
       CREATE INDEX IF NOT EXISTS idx_links_cliente ON cliente_links (cliente_id, ordem);
+
+      -- GP/consultor/lider de cada cliente, para o e-mail interno (src/sankhya/emailInterno.ts).
+      CREATE TABLE IF NOT EXISTS cliente_contatos_email (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        cliente_id INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+        papel      TEXT    NOT NULL DEFAULT 'consultor',
+        nome       TEXT    NOT NULL DEFAULT '',
+        email      TEXT    NOT NULL DEFAULT '',
+        ordem      INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE INDEX IF NOT EXISTS idx_contatos_email_cliente ON cliente_contatos_email (cliente_id, ordem);
+
+      -- Configuracao global (linha unica, id sempre 1) do e-mail interno: SMTP + os dois
+      -- contatos fixos que entram em todo envio, de qualquer cliente.
+      CREATE TABLE IF NOT EXISTS email_config (
+        id                 INTEGER PRIMARY KEY CHECK (id = 1),
+        smtp_host          TEXT    NOT NULL DEFAULT 'smtp.gmail.com',
+        smtp_porta         INTEGER NOT NULL DEFAULT 465,
+        smtp_usuario       TEXT    NOT NULL DEFAULT '',
+        smtp_remetente     TEXT    NOT NULL DEFAULT '',
+        smtp_senha_cifrada TEXT    NOT NULL DEFAULT '',
+        lider_nome         TEXT    NOT NULL DEFAULT '',
+        lider_email        TEXT    NOT NULL DEFAULT '',
+        orcamento_nome     TEXT    NOT NULL DEFAULT '',
+        orcamento_email    TEXT    NOT NULL DEFAULT ''
+      );
     `);
+
+    // `assinatura` chegou depois do `CREATE TABLE` original — quem ja tem `email_config`
+    // gravado (linha singleton id=1) nao pode perder a config por causa de um campo novo.
+    const colunasEmailConfig = new Set(
+      (this.#db.prepare('PRAGMA table_info(email_config)').all() as unknown as { name: string }[]).map(
+        (c) => c.name,
+      ),
+    );
+    if (!colunasEmailConfig.has('assinatura')) {
+      this.#db.exec(`ALTER TABLE email_config ADD COLUMN assinatura TEXT NOT NULL DEFAULT ''`);
+    }
+    // Resumo diario das anotacoes marcadas — ver src/resumoAnotacoes.ts. `resumo_enviado_em`
+    // guarda a DATA (YYYY-MM-DD) do ultimo envio: e o que impede mandar duas vezes no
+    // mesmo dia quando o hub e aberto e fechado varias vezes.
+    for (const [coluna, tipo] of [
+      ['resumo_ativo', 'INTEGER NOT NULL DEFAULT 0'],
+      ['resumo_hora', "TEXT NOT NULL DEFAULT '08:00'"],
+      ['resumo_enviado_em', "TEXT NOT NULL DEFAULT ''"],
+    ] as const) {
+      if (!colunasEmailConfig.has(coluna)) {
+        this.#db.exec(`ALTER TABLE email_config ADD COLUMN ${coluna} ${tipo}`);
+      }
+    }
 
     // Dados de conexao do banco de cada base. Mesmo motivo do ALTER de `clientes`:
     // quem ja tem base cadastrada nao pode perde-la para ganhar campo novo.
@@ -198,8 +259,10 @@ export class Clientes {
       .prepare(
         `INSERT INTO clientes
            (nome, experience_projeto_id, experience_person_id, agenda_recurso_usuario,
-            agenda_codparc, sankhya_url, repositorio_local, repositorio_remoto, anotacoes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            agenda_codparc, agenda_demanda_id, sankhya_url, repositorio_local,
+            repositorio_remoto, anotacoes, anotacoes_notificar, demanda_fim,
+            email_finalizacao_em)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         entrada.nome,
@@ -207,10 +270,14 @@ export class Clientes {
         entrada.experiencePersonId,
         entrada.agendaRecursoUsuario,
         entrada.agendaCodparc,
+        entrada.agendaDemandaId,
         entrada.sankhyaUrl,
         entrada.repositorioLocal,
         entrada.repositorioRemoto,
         entrada.anotacoes,
+        entrada.anotacoesNotificar ? 1 : 0,
+        entrada.demandaFim,
+        entrada.emailFinalizacaoEm,
       );
 
     return { id: Number(resultado.lastInsertRowid), ...entrada };
@@ -221,8 +288,9 @@ export class Clientes {
       .prepare(
         `UPDATE clientes SET
            nome = ?, experience_projeto_id = ?, experience_person_id = ?,
-           agenda_recurso_usuario = ?, agenda_codparc = ?, sankhya_url = ?,
-           repositorio_local = ?, repositorio_remoto = ?, anotacoes = ?
+           agenda_recurso_usuario = ?, agenda_codparc = ?, agenda_demanda_id = ?,
+           sankhya_url = ?, repositorio_local = ?, repositorio_remoto = ?, anotacoes = ?,
+           anotacoes_notificar = ?, demanda_fim = ?, email_finalizacao_em = ?
          WHERE id = ?`,
       )
       .run(
@@ -231,10 +299,14 @@ export class Clientes {
         entrada.experiencePersonId,
         entrada.agendaRecursoUsuario,
         entrada.agendaCodparc,
+        entrada.agendaDemandaId,
         entrada.sankhyaUrl,
         entrada.repositorioLocal,
         entrada.repositorioRemoto,
         entrada.anotacoes,
+        entrada.anotacoesNotificar ? 1 : 0,
+        entrada.demandaFim,
+        entrada.emailFinalizacaoEm,
         id,
       );
 

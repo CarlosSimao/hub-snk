@@ -15,15 +15,30 @@ type OracleCheck = Extract<CheckConfig, { type: 'oracle' }>;
  * Sem o cliente instalado o check continua funcionando em Thin mode; so perde os bancos
  * antigos. Por isso a falha aqui e silenciosa: e degradacao de capacidade, nao erro.
  *
- * `initOracleClient()` sem `libDir`: no Linux quem resolve as bibliotecas e o dynamic
- * linker (o Dockerfile registra o diretorio no ldconfig), e passar `libDir` nessa
- * plataforma leva a DPI-1047 mesmo com os arquivos no lugar.
+ * `libDir` e especifico de plataforma:
+ *
+ *   - Linux: nunca passar. Quem resolve as bibliotecas e o dynamic linker (o Dockerfile
+ *     registra o diretorio no ldconfig), e passar `libDir` leva a DPI-1047 mesmo com os
+ *     arquivos no lugar.
+ *   - Windows: e o caminho bom. O hub nativo (shell desktop) carrega o Instant Client
+ *     empacotado junto do app, sem exigir que o usuario mexa no PATH da maquina nem
+ *     instale cliente Oracle a parte.
  *
  * Roda uma unica vez, no carregamento do modulo — a chamada e global ao processo e
  * lanca se repetida.
  */
+const ORACLE_CLIENT_DIR = process.env['ORACLE_CLIENT_DIR'] ?? '';
+
+/** Util para diagnostico: sem isto, "11g nao conecta" e indistinguivel de credencial errada. */
+export let oracleThickAtivo = false;
+
 try {
-  oracledb.initOracleClient();
+  if (ORACLE_CLIENT_DIR && process.platform === 'win32') {
+    oracledb.initOracleClient({ libDir: ORACLE_CLIENT_DIR });
+  } else {
+    oracledb.initOracleClient();
+  }
+  oracleThickAtivo = true;
 } catch {
   // Instant Client ausente: segue em Thin mode.
 }

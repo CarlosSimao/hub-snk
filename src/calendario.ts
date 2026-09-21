@@ -3,7 +3,7 @@ import type {
   EventoComRecurso,
   OrdemExperience,
   TarefaExperience,
-} from '../types.ts';
+} from './types.ts';
 
 /**
  * O que os dois sistemas dizem, juntos, sobre um dia.
@@ -115,12 +115,20 @@ export function nomeDoMes(mes: string): string {
 /**
  * A OS não teve aceite nenhum gerado — o único estado que depende de você.
  *
- * Valores observados em `accepted_os_status`: `Gerado` (foi para o cliente aprovar) e
- * `Concluído` (aprovado). Os dois são desfecho, não pendência: tratar "diferente de
- * Gerado" como pendente marcava como atrasada justamente a OS já aprovada.
+ * Valores observados em `accepted_os_status`: `Gerado` (foi para o cliente aprovar),
+ * `Concluído` (aprovado) e **`Aceite não gerado`**. Os dois primeiros são desfecho, não
+ * pendência: tratar "diferente de Gerado" como pendente marcava como atrasada
+ * justamente a OS já aprovada.
+ *
+ * O terceiro foi medido depois (projeto 10269, OS de 16/09/2026) e é o caso que importa:
+ * a regra só olhava string VAZIA, então uma OS que a Experience rotula explicitamente
+ * como sem aceite passava batida — nem no calendário, nem no aviso por e-mail.
  */
 export function semAceite(ordem: OrdemExperience): boolean {
-  return ordem.statusAceite.trim() === '';
+  const status = ordem.statusAceite.trim().toLowerCase();
+  if (!status) return true;
+  // Com e sem acento: o rótulo vem da API e não é contrato nosso.
+  return status.includes('não gerado') || status.includes('nao gerado');
 }
 
 /** Trabalho de dia passado que ainda não foi mandado para aprovação. */
@@ -343,4 +351,24 @@ export function montarGrade(
   }
 
   return grade;
+}
+
+/**
+ * Primeiro e ultimo dia de um mes `YYYY-MM`.
+ *
+ * Mora aqui junto das outras contas de mes porque quem levanta pendencias precisa dela
+ * tanto quanto a rota da agenda — e `2026-09-31`, que parecia inofensivo, faz a
+ * Experience responder HTTP 500.
+ */
+export function limitesDoMes(mes: string): { de: string; ate: string } | null {
+  const partes = /^(\d{4})-(\d{2})$/.exec(mes);
+  if (!partes) return null;
+
+  const ano = Number(partes[1]);
+  const numeroMes = Number(partes[2]);
+  if (numeroMes < 1 || numeroMes > 12) return null;
+
+  // Dia 0 do mes seguinte e o ultimo dia deste — evita tabela de dias e ano bissexto.
+  const ultimo = new Date(Date.UTC(ano, numeroMes, 0)).getUTCDate();
+  return { de: `${mes}-01`, ate: `${mes}-${String(ultimo).padStart(2, '0')}` };
 }

@@ -131,8 +131,8 @@ export interface ServiceSnapshot {
 export interface ActionDescriptor {
   id: string;
   label: string;
-  /** `link` abre URL no navegador; `http`, `docker` e `sequence` executam no servidor. */
-  kind: 'link' | 'http' | 'docker' | 'sequence';
+  /** `link` abre URL no navegador; os demais executam no servidor. */
+  kind: 'link' | 'http' | 'docker' | 'wildfly' | 'sequence';
   description?: string;
   /** Pede confirmacao antes de executar. Sempre true para acoes destrutivas. */
   confirm: boolean;
@@ -273,6 +273,18 @@ export interface PerfilNavegador {
   nome: string;
 }
 
+/**
+ * Um favorito lido do navegador pessoal, candidato a virar cliente.
+ *
+ * E so leitura: o arquivo de favoritos do usuario nao e alterado em momento nenhum.
+ */
+export interface FavoritoNavegador {
+  titulo: string;
+  url: string;
+  /** Caminho da pasta na arvore de favoritos, ex.: `Clientes/Ativos`. Vazio na raiz. */
+  pasta: string;
+}
+
 /** O navegador que o hub controla, separado do Chrome do dia a dia do usuario. */
 export interface StatusNavegador {
   /** Existe um Chrome ou Edge instalado nesta maquina. */
@@ -295,6 +307,29 @@ export interface StatusNavegador {
 export interface Cliente {
   id: number;
   nome: string;
+  /**
+   * Lembrar destas anotacoes ao abrir o hub.
+   *
+   * Ligado, o cliente ganha destaque no cartao e o shell avisa por notificacao do
+   * Windows na abertura. Nao e' derivado de `anotacoes` ter texto: anotacao que e' so'
+   * registro historico nao deve virar aviso todo dia — quem decide e' quem escreveu.
+   */
+  anotacoesNotificar: boolean;
+  /**
+   * Ultimo dia da demanda, `YYYY-MM-DD`. Vazio = demanda em andamento.
+   *
+   * E' o que liga a cobranca do e-mail de finalizacao: a partir deste dia, enquanto
+   * `emailFinalizacaoEm` estiver vazio, o cliente aparece como pendente.
+   */
+  demandaFim: string;
+  /**
+   * Quando o e-mail de finalizacao ao parceiro foi marcado como enviado,
+   * `YYYY-MM-DD`. Vazio = ainda nao saiu.
+   *
+   * Marcado a mao, e nao detectado: o e-mail de finalizacao sai por fora do hub, e
+   * inventar que ele saiu com base em algum sinal indireto seria pior que perguntar.
+   */
+  emailFinalizacaoEm: string;
   /** ID do projeto na Experience (ex.: 10269) — o mesmo que aparece na URL da tela. */
   experienceProjetoId: number | null;
   /** `person_id` do usuario logado nesse projeto (ex.: 21986). */
@@ -309,6 +344,14 @@ export interface Cliente {
    * parceiro do evento diz de quem e o dia.
    */
   agendaCodparc: number | null;
+  /**
+   * Codigo da demanda deste cliente na Agenda de Recursos.
+   *
+   * Texto livre e preenchido a mao: o snapshot da agenda traz `nuevento`, `numetapa` e
+   * `nufap`, e nenhum deles e o numero que se usa no dia a dia para falar da demanda.
+   * Serve de referencia na tela, nao de chave para buscar nada.
+   */
+  agendaDemandaId: string;
   /** URL do Sankhya do cliente, para abrir direto do painel. */
   sankhyaUrl: string;
   repositorioLocal: string;
@@ -413,6 +456,16 @@ export interface RepoCliente {
 
 export type RepoClienteEntrada = Omit<RepoCliente, 'id' | 'clienteId'>;
 
+/**
+ * Repositorio cadastrado em algum cliente, com o nome do cliente junto.
+ *
+ * Existe para a aba Git: la' nao ha cliente em contexto, e "Comissionamento" sem dizer
+ * de quem nao identifica repositorio nenhum — o mesmo apelido se repete entre clientes.
+ */
+export interface RepoCadastrado extends RepoCliente {
+  clienteNome: string;
+}
+
 export interface LinkCliente {
   id: number;
   clienteId: number;
@@ -430,6 +483,97 @@ export interface CartaoCliente {
   repos: RepoCliente[];
   links: LinkCliente[];
 }
+
+/* ------------------------ e-mail interno (GP/consultor/lider) ------------------------ */
+
+export const PAPEIS_CONTATO_EMAIL = ['gp', 'consultor', 'lider'] as const;
+export type PapelContatoEmail = (typeof PAPEIS_CONTATO_EMAIL)[number];
+
+/**
+ * Um contato de e-mail de um cliente — GP, consultor ou lider.
+ *
+ * O nome pode vir de sugestao (Experience), mas o e-mail e sempre digitado/confirmado
+ * na tela: nenhuma fonte hoje devolve nome+e-mail casados para esses papeis.
+ */
+export interface ContatoEmailCliente {
+  id: number;
+  clienteId: number;
+  papel: PapelContatoEmail;
+  nome: string;
+  email: string;
+  ordem: number;
+}
+
+export interface ContatoEmailClienteEntrada {
+  papel: PapelContatoEmail;
+  nome: string;
+  email: string;
+}
+
+/** Um dos dois contatos fixos, que entram em TODO envio, de qualquer cliente. */
+export interface ContatoFixo {
+  nome: string;
+  email: string;
+}
+
+/**
+ * Configuracao global de envio — uma so para o hub inteiro, nao por cliente.
+ *
+ * A senha do app do Gmail nunca aparece aqui: so `temSenha`, mesma regra de
+ * `BaseCliente.temSenha`. O valor em claro so existe internamente, na hora de mandar.
+ */
+/**
+ * Resumo diario das anotacoes marcadas com "avisar".
+ *
+ * Vai para o proprio e-mail configurado no SMTP, nao para os contatos do cliente: e'
+ * lembrete de quem usa o hub, nao comunicacao com o cliente.
+ */
+export interface ResumoAnotacoes {
+  ativo: boolean;
+  /** `HH:MM`, hora local. */
+  hora: string;
+}
+
+export interface ConfigEmail {
+  smtpHost: string;
+  smtpPorta: number;
+  smtpUsuario: string;
+  smtpRemetente: string;
+  temSenha: boolean;
+  /** Texto simples, anexado ao final de todo e-mail enviado — nao e segredo, nao e cifrada. */
+  assinatura: string;
+  liderImediato: ContatoFixo;
+  responsavelOrcamento: ContatoFixo;
+  resumoAnotacoes: ResumoAnotacoes;
+}
+
+/** O que a tela manda para gravar a configuracao — a senha e opcional (ver ConfigEmail). */
+export interface ConfigEmailEntrada {
+  smtpHost: string;
+  smtpPorta: number;
+  smtpUsuario: string;
+  smtpRemetente: string;
+  assinatura: string;
+  liderImediato: ContatoFixo;
+  responsavelOrcamento: ContatoFixo;
+  resumoAnotacoes: ResumoAnotacoes;
+}
+
+/** Sugestao de nome vinda da OS mais recente do cliente na Experience — nunca com e-mail. */
+export interface SugestaoContatoEmail {
+  nome: string;
+}
+
+/** Um anexo do e-mail — vem da tela como upload manual, um por envio. */
+export interface AnexoEmail {
+  nomeArquivo: string;
+  tipoMime: string;
+  /** Conteudo em base64 — evita subir `@fastify/multipart` so para um arquivo por envio. */
+  conteudoBase64: string;
+}
+
+/** `'auto'` deixa o helper escolher o primeiro CLI de IA instalado, mesma ordem do git-autosync. */
+export type AgenteIA = 'auto' | 'claude' | 'codex' | 'opencode';
 
 /** Um parceiro que aparece nos eventos da agenda — e o que identifica o cliente la. */
 export interface ParceiroAgenda {
@@ -531,6 +675,21 @@ export interface OrdemExperience {
 export interface AgendaExperience {
   tarefas: TarefaExperience[];
   ordens: OrdemExperience[];
+}
+
+/**
+ * O que so o detalhe de uma OS tem — nao vem na listagem.
+ *
+ * Medido em 2026-09-15: `/orders/filtering` devolve as 27 colunas da grade e nenhuma
+ * delas e `additional_information`. O texto de "Tarefas Realizadas", que e o que diz o
+ * que foi feito no dia, so sai de `GET /orders/{id}`.
+ */
+export interface DetalheOrdem {
+  id: number;
+  /** O texto do campo "Tarefas Realizadas" do lancamento. */
+  tarefasRealizadas: string;
+  /** O campo "Observacoes" do lancamento, quase sempre vazio. */
+  notas: string;
 }
 
 /** Quem aprova o aceite da OS, do lado do cliente. */

@@ -32,10 +32,14 @@ const CLIENTE: ClienteEntrada = {
   experiencePersonId: null,
   agendaRecursoUsuario: '',
   agendaCodparc: null,
+  agendaDemandaId: '',
   sankhyaUrl: '',
   repositorioLocal: '',
   repositorioRemoto: '',
   anotacoes: '',
+  anotacoesNotificar: false,
+  demandaFim: '',
+  emailFinalizacaoEm: '',
 };
 
 /** Abre o banco, roda a prova e fecha — no Windows o SQLite aberto trava a pasta. */
@@ -309,6 +313,44 @@ describe('CartaoClientes — posse das linhas', () => {
       assert.deepEqual(
         cartao.links(1).map((l) => l.ordem),
         [0, 1, 2],
+      );
+    }),
+  );
+});
+
+describe('CartaoClientes — repositórios cadastrados (lista da aba Git)', () => {
+  test(
+    'junta os repositórios de todos os clientes, com o nome do cliente',
+    comCartao((cartao, clientes) => {
+      clientes.criar({ ...CLIENTE, nome: 'Zeta' });
+      clientes.criar({ ...CLIENTE, nome: 'Alfa' });
+
+      cartao.gravarRepo(1, { nome: 'Fiscal', remoto: '', caminhoLocal: 'C:/repos/zeta-fiscal', ordem: 0 });
+      cartao.gravarRepo(2, { nome: 'Comissão', remoto: '', caminhoLocal: 'C:/repos/alfa-com', ordem: 0 });
+
+      const repos = cartao.reposCadastrados();
+
+      // Ordenado por cliente: na aba Git a lista é agrupada por cliente, e vir fora de
+      // ordem faria o mesmo cliente aparecer em dois grupos separados.
+      assert.deepEqual(
+        repos.map((r) => `${r.clienteNome}/${r.nome}`),
+        ['Alfa/Comissão', 'Zeta/Fiscal'],
+      );
+      assert.equal(repos[0]?.caminhoLocal, 'C:/repos/alfa-com');
+    }),
+  );
+
+  test(
+    'repositório sem caminho local fica de fora — não há o que dar ao git-autosync',
+    comCartao((cartao, clientes) => {
+      clientes.criar(CLIENTE);
+      cartao.gravarRepo(1, { nome: 'Só remoto', remoto: 'https://git/x.git', caminhoLocal: '', ordem: 0 });
+      cartao.gravarRepo(1, { nome: 'Em branco', remoto: '', caminhoLocal: '   ', ordem: 1 });
+      cartao.gravarRepo(1, { nome: 'Válido', remoto: '', caminhoLocal: 'C:/repos/x', ordem: 2 });
+
+      assert.deepEqual(
+        cartao.reposCadastrados().map((r) => r.nome),
+        ['Válido'],
       );
     }),
   );

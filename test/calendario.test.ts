@@ -13,8 +13,9 @@ import {
   montarGrade,
   montarGradeConsolidada,
   resumirMes,
+  semAceite,
   type Cruzamento,
-} from '../web/src/lib/calendario.ts';
+} from '../src/calendario.ts';
 import type { EventoComRecurso, OrdemExperience, TarefaExperience } from '../src/types.ts';
 
 const HOJE = '2026-09-11';
@@ -185,5 +186,25 @@ describe('montarGradeConsolidada', () => {
     assert.ok(grade.length >= 28, 'a sequência de dias não depende de haver cliente');
     assert.ok(grade.every((d) => d.clientes.length === 0));
     assert.ok(grade.some((d) => d.dia === '2026-09-01' && d.doMes));
+  });
+});
+
+describe('semAceite — os rótulos que a Experience devolve', () => {
+  const os = (statusAceite: string) => ({ statusAceite }) as OrdemExperience;
+
+  test('vazio é pendência', () => {
+    assert.equal(semAceite(os('')), true);
+  });
+
+  test('"Aceite não gerado" é pendência — medido no projeto 10269', () => {
+    // A regra só olhava string vazia, então este caso passava batido no calendário e
+    // no aviso por e-mail. É exatamente a OS que depende de você.
+    assert.equal(semAceite(os('Aceite não gerado')), true);
+    assert.equal(semAceite(os('aceite nao gerado')), true);
+  });
+
+  test('"Gerado" e "Concluído" são desfecho, não pendência', () => {
+    assert.equal(semAceite(os('Gerado')), false);
+    assert.equal(semAceite(os('Concluído')), false);
   });
 });

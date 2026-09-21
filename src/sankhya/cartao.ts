@@ -14,6 +14,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { HubHelper } from './helper.ts';
+import { Cifra } from './cifra.ts';
+
 import {
   AMBIENTES_BASE,
   SGBDS,
@@ -23,6 +25,7 @@ import {
   type BaseClienteEntrada,
   type LinkCliente,
   type LinkClienteEntrada,
+  type RepoCadastrado,
   type RepoCliente,
   type RepoClienteEntrada,
   type Sgbd,
@@ -57,12 +60,15 @@ function proximaOrdem(db: DatabaseSync, tabela: string, clienteId: number): numb
 export class CartaoClientes {
   readonly #db: DatabaseSync;
   readonly #helper: HubHelper;
+  readonly #cifra: Cifra;
 
-  constructor(dataDir: string, helper: HubHelper) {
+  constructor(dataDir: string, helper: HubHelper, cifra?: Cifra) {
     mkdirSync(dataDir, { recursive: true });
     // Mesmo arquivo que `Clientes` — as tabelas sao criadas la, junto da migracao.
     this.#db = new DatabaseSync(join(dataDir, 'sankhya.db'));
     this.#helper = helper;
+    // Sem `cifra`, o comportamento e' exatamente o de antes: tudo pelo helper.
+    this.#cifra = cifra ?? new Cifra(helper);
   }
 
   /* ------------------------------- bases -------------------------------- */
@@ -204,12 +210,7 @@ export class CartaoClientes {
       .get(id) as { cifrada: string } | undefined;
     if (!linha?.cifrada) return null;
 
-    const corpo = await this.#helper.requisitar<{ valor: string }>('/secret/decrypt', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ valor: linha.cifrada }),
-    });
-    return corpo.valor ?? null;
+    return this.#cifra.decifrar(linha.cifrada);
   }
 
   /** Guarda o que a ultima medicao leu, para a tela mostrar a versao sem medir de novo. */
@@ -235,6 +236,38 @@ export class CartaoClientes {
     return linhas.map((l) => ({
       id: Number(l['id']),
       clienteId: Number(l['cliente_id']),
+      nome: String(l['nome']),
+      remoto: String(l['remoto']),
+      caminhoLocal: String(l['caminho_local']),
+      ordem: Number(l['ordem']),
+    }));
+  }
+
+  /**
+   * Todos os repositorios cadastrados, de todos os clientes, com o nome do cliente.
+   *
+   * E' o que a aba Git oferece na lista de "adicionar repositorio": la' nao ha cliente
+   * em contexto. Repositorio sem caminho local fica de fora — nao ha o que entregar ao
+   * git-autosync, e uma opcao que so' pode falhar nao deveria aparecer.
+   *
+   * Ordenado por cliente e depois pela ordem do cartao, que e' a ordem em que a tela do
+   * cliente ja' mostra: a mesma lista, no mesmo lugar, em dois lugares diferentes.
+   */
+  reposCadastrados(): RepoCadastrado[] {
+    const linhas = this.#db
+      .prepare(
+        `SELECT r.*, c.nome AS cliente_nome
+           FROM cliente_repos r
+           JOIN clientes c ON c.id = r.cliente_id
+          WHERE TRIM(r.caminho_local) <> ''
+          ORDER BY c.nome COLLATE NOCASE, r.ordem, r.id`,
+      )
+      .all() as unknown as Record<string, unknown>[];
+
+    return linhas.map((l) => ({
+      id: Number(l['id']),
+      clienteId: Number(l['cliente_id']),
+      clienteNome: String(l['cliente_nome']),
       nome: String(l['nome']),
       remoto: String(l['remoto']),
       caminhoLocal: String(l['caminho_local']),
@@ -324,13 +357,8 @@ export class CartaoClientes {
     return this.#cifrar(valor);
   }
 
-  async #cifrar(valor: string): Promise<string> {
-    const corpo = await this.#helper.requisitar<{ valor: string }>('/secret/encrypt', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ valor }),
-    });
-    return corpo.valor ?? '';
+  #cifrar(valor: string): Promise<string> {
+    return this.#cifra.cifrar(valor);
   }
 
   close(): void {

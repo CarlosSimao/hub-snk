@@ -1,6 +1,16 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseConfig, interpolateTree, unsetVarsIn, UNSET_MARKER, ConfigError } from '../src/config.ts';
+import {
+  parseConfig,
+  loadConfig,
+  interpolateTree,
+  unsetVarsIn,
+  UNSET_MARKER,
+  ConfigError,
+} from '../src/config.ts';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { dirTemporario } from './helpers.ts';
 
 const minimo = (checks: string) => `
 services:
@@ -129,5 +139,39 @@ ${checkHttp}
 
   test('rejeita YAML sem nenhum serviço', () => {
     assert.throws(() => parseConfig('services: []'), ConfigError);
+  });
+});
+
+describe('config — porta vinda de variavel', () => {
+  test('check tcp aceita porta interpolada, como o check oracle ja aceitava', async () => {
+    // A interpolação de `${VAR}` no YAML sempre entrega STRING. Sem `coerce`, o hub
+    // subia com o check de banco e recusava o de porta — com a mesma variável.
+    const dir = dirTemporario();
+    try {
+      const caminho = join(dir.path, 'services.yaml');
+      writeFileSync(
+        caminho,
+        [
+          'services:',
+          '  - id: alvo',
+          '    name: Alvo',
+          '    checks:',
+          '      - id: porta',
+          '        name: Porta',
+          '        type: tcp',
+          '        host: localhost',
+          '        port: ${PORTA_ALVO:1521}',
+        ].join('\n'),
+        'utf8',
+      );
+
+      const config = await loadConfig(caminho, {}, undefined);
+      const check = config.services[0]?.checks[0];
+
+      assert.equal(check?.type, 'tcp');
+      assert.equal(check?.type === 'tcp' ? check.port : null, 1521);
+    } finally {
+      dir.remove();
+    }
   });
 });

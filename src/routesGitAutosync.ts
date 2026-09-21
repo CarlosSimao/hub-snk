@@ -7,6 +7,7 @@
  */
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { HelperError, HelperIndisponivelError } from './sankhya/helper.ts';
+import { GitAutosyncFalhouError, GitAutosyncUsoError } from './gitAutosyncCli.ts';
 import type { GitAutosync } from './gitAutosync.ts';
 import type { RepoAutosync } from './types.ts';
 
@@ -15,6 +16,16 @@ export interface RouteGitDeps {
 }
 
 function responderErro(reply: FastifyReply, err: unknown): FastifyReply {
+  // Execucao nativa do CLI (Fase 3). Erro de USO e do usuario — caminho que nao existe,
+  // horario invalido — e merece 400 com a mensagem, nao um 500 generico.
+  if (err instanceof GitAutosyncUsoError) {
+    return reply.code(400).send({ error: err.message });
+  }
+  // O CLI rodou e falhou, ou nem esta instalado: mesma faixa que o helper usava, para a
+  // tela continuar mostrando o motivo real (branch protegida, remoto inacessivel...).
+  if (err instanceof GitAutosyncFalhouError) {
+    return reply.code(502).send({ error: err.message });
+  }
   if (err instanceof HelperIndisponivelError) {
     return reply.code(503).send({ error: err.message, helperIndisponivel: true });
   }
@@ -55,6 +66,15 @@ export function registerRoutesGitAutosync(app: FastifyInstance, deps: RouteGitDe
     },
   );
 
+  app.get<{ Querystring: { limite?: string } }>('/api/git-autosync/log', async (request, reply) => {
+    try {
+      const limite = Math.min(1000, Number(request.query.limite) || 200);
+      return { linhas: await gitAutosync.log(limite) };
+    } catch (err) {
+      return responderErro(reply, err);
+    }
+  });
+
   app.get<{ Querystring: { repo?: string } }>(
     '/api/git-autosync/previa',
     async (request, reply) => {
@@ -94,6 +114,27 @@ export function registerRoutesGitAutosync(app: FastifyInstance, deps: RouteGitDe
       },
     );
   }
+
+  /** Abre CMD ou Git Bash na pasta do repositório — não roda o CLI, só ajuda a resolver o que ele não resolve sozinho. */
+  app.post<{ Body: { caminho?: unknown; tipo?: unknown } }>(
+    '/api/git-autosync/terminal',
+    async (request, reply) => {
+      const caminho = caminhoDoCorpo(request.body);
+      if (!caminho) return reply.code(400).send({ error: 'envie { caminho }' });
+
+      const tipo = request.body?.tipo;
+      if (tipo !== 'cmd' && tipo !== 'git-bash') {
+        return reply.code(400).send({ error: "envie { tipo: 'cmd' | 'git-bash' }" });
+      }
+
+      try {
+        const resultado = await gitAutosync.terminal(caminho, tipo);
+        return { ok: true, saida: resultado.saida };
+      } catch (err) {
+        return responderErro(reply, err);
+      }
+    },
+  );
 
   /**
    * Quem escreve a mensagem do commit automático.

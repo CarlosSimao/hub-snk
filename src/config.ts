@@ -166,7 +166,10 @@ const tcpCheck = z.object({
   ...baseCheck,
   type: z.literal('tcp'),
   host: z.string().min(1),
-  port: z.number().int().min(1).max(65535),
+  // `coerce` igual ao do check `oracle`: a interpolacao de `${VAR}` no YAML sempre
+  // entrega STRING, entao `port: ${ORACLE_PORT:1521}` era recusado aqui enquanto o
+  // mesmo valor passava no check de banco. Qualquer porta vinda de variavel quebrava.
+  port: z.coerce.number().int().min(1).max(65535),
   degradedAboveMs: z.number().int().positive().optional(),
 });
 
@@ -267,6 +270,14 @@ const sequenceStepSchema = z.discriminatedUnion('type', [
     timeoutMs: z.number().int().min(250).max(120000).default(10000),
   }),
   z.object({
+    /**
+     * Start/stop/restart do WildFly pelo proprio hub. Substitui o passo `http` que
+     * batia no `wildfly-helper.ps1` (porta 4100) — ver src/wildfly.ts.
+     */
+    type: z.literal('wildfly'),
+    operation: z.enum(['iniciar', 'parar', 'reiniciar']),
+  }),
+  z.object({
     type: z.literal('waitForCheck'),
     /** Id do check dentro do MESMO serviço da ação — não atravessa projetos. */
     checkId: z.string().min(1),
@@ -287,7 +298,24 @@ const sequenceAction = z.object({
   checkId: z.string().optional(),
 });
 
-const actionSchema = z.discriminatedUnion('type', [linkAction, httpAction, dockerAction, sequenceAction]);
+const wildflyAction = z.object({
+  id: identifier,
+  label: z.string().min(1),
+  description: z.string().optional(),
+  type: z.literal('wildfly'),
+  operation: z.enum(['iniciar', 'parar', 'reiniciar']),
+  confirm: z.boolean().default(true),
+  danger: z.boolean().default(false),
+  checkId: z.string().optional(),
+});
+
+const actionSchema = z.discriminatedUnion('type', [
+  linkAction,
+  httpAction,
+  dockerAction,
+  wildflyAction,
+  sequenceAction,
+]);
 
 const serviceSchema = z.object({
   id: identifier,

@@ -8,6 +8,7 @@
  */
 import type { AppConfig } from './config.ts';
 import type { DockerClient } from './docker.ts';
+import type { Wildfly } from './wildfly.ts';
 import type { CheckSnapshot } from './types.ts';
 import { describeFetchError } from './checks/http.ts';
 
@@ -89,6 +90,7 @@ export async function executeAction(
   actionId: string,
   docker: DockerClient,
   runCheck: RunCheck,
+  wildfly: Wildfly,
 ): Promise<ActionResult> {
   const service = config.services.find((s) => s.id === serviceId);
   if (!service) throw new ActionNotFoundError(`serviço "${serviceId}" não existe`);
@@ -114,6 +116,11 @@ export async function executeAction(
     return chamarHttp(action.url, action.method, action.headers, action.body, action.timeoutMs);
   }
 
+  if (action.type === 'wildfly') {
+    const resultado = await wildfly.executar(action.operation);
+    return { ok: resultado.ok, message: resultado.mensagem };
+  }
+
   // sequence: passos executam em ordem, o primeiro que falhar interrompe o resto.
   for (const [indice, step] of action.steps.entries()) {
     const numero = indice + 1;
@@ -127,6 +134,9 @@ export async function executeAction(
       }
     } else if (step.type === 'http') {
       resultado = await chamarHttp(step.url, step.method, step.headers, step.body, step.timeoutMs);
+    } else if (step.type === 'wildfly') {
+      const saida = await wildfly.executar(step.operation);
+      resultado = { ok: saida.ok, message: saida.mensagem };
     } else {
       resultado = await esperarCheck(runCheck, serviceId, step.checkId, step.timeoutMs, step.pollMs);
     }

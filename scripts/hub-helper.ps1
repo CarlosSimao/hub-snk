@@ -550,6 +550,78 @@ function Get-PerfisComFavoritos {
 }
 
 <#
+    Le os favoritos de um perfil pessoal e devolve a lista achatada.
+
+    Diferente de `Importar-Favoritos`, que copia o arquivo para o perfil do hub, aqui o
+    arquivo so e LIDO: serve para a tela oferecer os parceiros ja salvos no navegador
+    como ponto de partida de um cadastro. Nada e escrito, e o navegador pode estar
+    aberto.
+
+    So links http(s) entram. Um favorito `javascript:` viraria clique armado assim que a
+    tela abrisse a URL do cliente, e `file:` nao e endereco de parceiro.
+#>
+function Get-ListaFavoritos {
+    param([string] $Marca, [string] $Pasta)
+
+    if (-not $PerfisNavegador.ContainsKey($Marca)) {
+        return @{ ok = $false; erro = "navegador desconhecido: $Marca" }
+    }
+    # `Pasta` vem da tela; sem esta checagem viraria caminho arbitrario.
+    if ($Pasta -notmatch '^(Default|Profile \d+)$') {
+        return @{ ok = $false; erro = "perfil inválido: $Pasta" }
+    }
+
+    $arquivo = Join-Path (Join-Path $PerfisNavegador[$Marca] $Pasta) 'Bookmarks'
+    if (-not (Test-Path -LiteralPath $arquivo)) {
+        return @{ ok = $false; erro = "esse perfil não tem favoritos: $arquivo" }
+    }
+
+    try {
+        $json = Get-Content -LiteralPath $arquivo -Raw -Encoding UTF8 | ConvertFrom-Json
+    }
+    catch {
+        return @{ ok = $false; erro = "favoritos ilegíveis: $($_.Exception.Message)" }
+    }
+
+    $itens = [System.Collections.Generic.List[hashtable]]::new()
+
+    <#
+        A arvore de favoritos do Chromium aninha pastas sem limite. A recursao carrega o
+        caminho da pasta porque e ele que diz de onde veio cada link — quem organiza os
+        clientes numa pasta reconhece a lista inteira por ela.
+    #>
+    function Percorrer {
+        param($No, [string] $Caminho)
+
+        foreach ($filho in @($No.children)) {
+            if ($null -eq $filho) { continue }
+
+            if ($filho.type -eq 'folder') {
+                $adiante = if ($Caminho) { "$Caminho/$($filho.name)" } else { [string] $filho.name }
+                Percorrer -No $filho -Caminho $adiante
+                continue
+            }
+
+            $url = [string] $filho.url
+            if ($url -notmatch '^https?://') { continue }
+
+            $itens.Add(@{
+                titulo = [string] $filho.name
+                url    = $url
+                pasta  = $Caminho
+            })
+        }
+    }
+
+    foreach ($raiz in @('bookmark_bar', 'other', 'synced')) {
+        $no = $json.roots.$raiz
+        if ($no) { Percorrer -No $no -Caminho '' }
+    }
+
+    return @{ ok = $true; favoritos = @($itens) }
+}
+
+<#
     Copia os favoritos de um perfil do usuario para o perfil do hub.
 
     Precisa do navegador do hub FECHADO: o Chrome mantem os favoritos em memoria e
@@ -665,7 +737,7 @@ function Get-AbasNavegador {
 }
 
 function Invoke-RotaNavegador {
-    param([string] $Metodo, [string[]] $Segmentos, [string] $Corpo)
+    param([string] $Metodo, [string[]] $Segmentos, [hashtable] $Query, [string] $Corpo)
 
     try { $dados = if ($Corpo) { $Corpo | ConvertFrom-Json } else { $null } } catch { $dados = $null }
 
@@ -708,6 +780,11 @@ function Invoke-RotaNavegador {
 
     if ($Metodo -eq 'POST' -and $acao -eq 'fechar') {
         return @{ status = 200; corpo = (Fechar-NavegadorDoHub) }
+    }
+
+    if ($Metodo -eq 'GET' -and $acao -eq 'favoritos') {
+        $resultado = Get-ListaFavoritos -Marca ([string] $Query['navegador']) -Pasta ([string] $Query['perfil'])
+        return @{ status = $(if ($resultado.ok) { 200 } else { 400 }); corpo = $resultado }
     }
 
     if ($Metodo -eq 'POST' -and $acao -eq 'favoritos') {
@@ -916,6 +993,91 @@ function Invoke-GitAutosyncJson {
     }
 }
 
+<#
+    Empacota o resultado de uma acao de escrita (commit/push/sync/mr) pra resposta HTTP.
+
+    `Invoke-GitAutosync` devolve `{ok, codigo, saida}`, sem campo `erro` — o helper.ts do
+    lado do container so mostra `corpo.erro` quando a chamada falha, entao sem isto o
+    motivo do push (branch protegida, remoto inacessivel, etc.) ficava preso em `saida`
+    e a tela caia no generico "helper respondeu HTTP 502".
+#>
+function Enviar-ResultadoAcao {
+    param([hashtable] $Resultado)
+
+    if ($Resultado.ok) {
+        return @{ status = 200; corpo = $Resultado }
+    }
+    return @{ status = 502; corpo = ($Resultado + @{ erro = $Resultado.saida }) }
+}
+
+<#
+    Qual terminal abrir na pasta do repositorio.
+
+    Com `-Preferido` ('cmd' ou 'git-bash'), resolve só aquele — é a escolha explícita
+    feita na tela (dois ícones, CMD e Git Bash), sem cascata escondida. Sem preferência,
+    mantém o comportamento antigo (Windows Terminal > Git Bash > PowerShell), preservado
+    só para quem ainda chamar esta função sem dizer qual quer.
+#>
+<#
+    Caminho do git-bash.exe, ou vazio se não achar.
+
+    Cobre instalação por máquina (`Program Files`) e por usuário (`%LOCALAPPDATA%` —
+    o instalador do Git for Windows oferece as duas opções, e a segunda é o padrão de
+    quem instala sem ser administrador).
+#>
+function Resolver-GitBash {
+    return @(
+        (Join-Path $env:ProgramFiles 'Git\git-bash.exe'),
+        (Join-Path ${env:ProgramFiles(x86)} 'Git\git-bash.exe'),
+        (Join-Path $env:LOCALAPPDATA 'Programs\Git\git-bash.exe')
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+}
+
+function Resolver-Terminal {
+    param([string] $Preferido = '')
+
+    if ($Preferido -eq 'cmd') {
+        return @{ exe = (Join-Path $env:WINDIR 'System32\cmd.exe'); tipo = 'cmd' }
+    }
+    if ($Preferido -eq 'git-bash') {
+        $gitBash = Resolver-GitBash
+        return $(if ($gitBash) { @{ exe = $gitBash; tipo = 'git-bash' } } else { $null })
+    }
+
+    $wt = Get-Command 'wt.exe' -ErrorAction SilentlyContinue
+    if ($wt) { return @{ exe = $wt.Source; tipo = 'wt' } }
+
+    $gitBash = Resolver-GitBash
+    if ($gitBash) { return @{ exe = $gitBash; tipo = 'git-bash' } }
+
+    return @{ exe = 'powershell.exe'; tipo = 'powershell' }
+}
+
+function Abrir-Terminal {
+    param([string] $Caminho, [string] $Tipo = '')
+
+    if (-not (Test-Path -LiteralPath $Caminho -PathType Container)) {
+        return @{ ok = $false; erro = "pasta não encontrada: $Caminho" }
+    }
+
+    $terminal = Resolver-Terminal -Preferido $Tipo
+    if (-not $terminal) {
+        return @{ ok = $false; erro = 'Git Bash não encontrado nesta máquina' }
+    }
+    try {
+        if ($terminal.tipo -eq 'wt') {
+            Start-Process -FilePath $terminal.exe -ArgumentList @('-d', $Caminho)
+        }
+        else {
+            Start-Process -FilePath $terminal.exe -WorkingDirectory $Caminho
+        }
+        return @{ ok = $true; saida = "terminal ($($terminal.tipo)) aberto em $Caminho" }
+    }
+    catch {
+        return @{ ok = $false; erro = "não consegui abrir o terminal: $($_.Exception.Message)" }
+    }
+}
+
 function Invoke-RotaGitAutosync {
     param([string] $Metodo, [string[]] $Segmentos, [hashtable] $Query, [string] $Corpo)
 
@@ -926,7 +1088,7 @@ function Invoke-RotaGitAutosync {
 
     # Toda acao que mexe num repositorio exige o caminho: sem `--repo`, o CLI opera
     # sobre o diretorio atual (que aqui e a pasta do helper), commitando o repo errado.
-    $exigeCaminho = @('repos', 'commit', 'push', 'sync', 'mr', 'include', 'exclude')
+    $exigeCaminho = @('repos', 'commit', 'push', 'sync', 'mr', 'include', 'exclude', 'terminal')
     if ($exigeCaminho -contains $acao -and -not $caminho) {
         return @{ status = 400; corpo = @{ ok = $false; erro = 'envie { caminho }' } }
     }
@@ -999,19 +1161,19 @@ function Invoke-RotaGitAutosync {
             $argumentos = @('commit', '--repo', $caminho)
             if ($dados.mensagem) { $argumentos += @('--message', [string] $dados.mensagem) }
             $resultado = Invoke-GitAutosync -Argumentos $argumentos
-            return @{ status = $(if ($resultado.ok) { 200 } else { 502 }); corpo = $resultado }
+            return Enviar-ResultadoAcao $resultado
         }
 
         'POST push' {
             $resultado = Invoke-GitAutosync -Argumentos @('push', '--repo', $caminho)
-            return @{ status = $(if ($resultado.ok) { 200 } else { 502 }); corpo = $resultado }
+            return Enviar-ResultadoAcao $resultado
         }
 
         'POST sync' {
             $argumentos = @('sync', '--repo', $caminho)
             if ($dados.mensagem) { $argumentos += @('--message', [string] $dados.mensagem) }
             $resultado = Invoke-GitAutosync -Argumentos $argumentos
-            return @{ status = $(if ($resultado.ok) { 200 } else { 502 }); corpo = $resultado }
+            return Enviar-ResultadoAcao $resultado
         }
 
         'POST mr' {
@@ -1020,7 +1182,54 @@ function Invoke-RotaGitAutosync {
             if ($dados.target) { $argumentos += @('--target', [string] $dados.target) }
             if ($dados.source) { $argumentos += @('--source', [string] $dados.source) }
             $resultado = Invoke-GitAutosync -Argumentos $argumentos
-            return @{ status = $(if ($resultado.ok) { 200 } else { 502 }); corpo = $resultado }
+            return Enviar-ResultadoAcao $resultado
+        }
+
+        <#
+            Abre um terminal na pasta do repositorio, pronto pra resolver o que o hub nao
+            resolve sozinho (conflito, remoto trocado, credencial expirada). Nao passa
+            pelo `Invoke-GitAutosync`: nao chama o CLI, so abre um processo na pasta.
+        #>
+        'POST terminal' {
+            $tipo = if ($dados -and $dados.tipo) { [string] $dados.tipo } else { '' }
+            $resultado = Abrir-Terminal -Caminho $caminho -Tipo $tipo
+            return @{ status = $(if ($resultado.ok) { 200 } else { 400 }); corpo = $resultado }
+        }
+
+        <#
+            Ultimas linhas do `autosync.log`, que o CLI vai gravando a cada rodada
+            agendada (`write_log` em `autosync_core.py`) — texto simples, uma linha por
+            evento, sem relacao com o `git log` de `historico()`.
+        #>
+        'GET log' {
+            $arquivo = Join-Path $env:USERPROFILE '.git-autosync\autosync.log'
+            if (-not (Test-Path -LiteralPath $arquivo)) {
+                return @{ status = 200; corpo = @{ ok = $true; dados = @() } }
+            }
+
+            $limite = 200
+            if ($Query['limite']) { [void][int]::TryParse($Query['limite'], [ref] $limite) }
+
+            <#
+                `Get-Content -Tail` sem console anexado (o helper roda `-WindowStyle
+                Hidden`) travava aqui indefinidamente — o processo vivo, mas preso, sem
+                nunca voltar ao `AcceptTcpClient()` do loop principal. `File.ReadAllLines`
+                nao depende de host de console nenhum.
+            #>
+            try {
+                $todas = [System.IO.File]::ReadAllLines($arquivo, [System.Text.Encoding]::UTF8)
+                # `0..-1` (arquivo vazio) contaria pra tras em PowerShell e indexaria o
+                # array errado — caso especial em vez de deixar o range decidir sozinho.
+                if ($todas.Length -eq 0) {
+                    return @{ status = 200; corpo = @{ ok = $true; dados = @() } }
+                }
+                $inicio = [Math]::Max(0, $todas.Length - $limite)
+                $linhas = @($todas[$inicio..($todas.Length - 1)])
+                return @{ status = 200; corpo = @{ ok = $true; dados = $linhas } }
+            }
+            catch {
+                return @{ status = 502; corpo = @{ ok = $false; erro = "autosync.log ilegível: $($_.Exception.Message)" } }
+            }
         }
 
         <#
@@ -1067,9 +1276,10 @@ function Invoke-RotaGitAutosync {
 
         <#
             Horarios do agendamento. O CLI recebe uma lista separada por virgula e
-            reescreve `schedules` na config; a tarefa do Windows so passa a usar os
-            horarios novos depois de um `install`, e e por isso que a tela oferece os
-            dois botoes lado a lado.
+            reescreve `schedules` na config; `set-schedule` ja reinstala a tarefa do
+            Windows com o gatilho novo (verificado em autosync_core.install_schedule),
+            entao o botao de instalar so serve para quando nao ha tarefa nenhuma ou para
+            recriar uma removida por fora.
         #>
         'POST agendamento' {
             $horarios = @($dados.horarios | ForEach-Object { [string] $_ })
@@ -1127,6 +1337,20 @@ function Invoke-RotaGitAutosync {
 }
 
 # --- HTTP --------------------------------------------------------------------
+
+<#
+    Decodifica um pedaco de query string.
+
+    O `+` vira espaco ANTES do unescape, e nao depois: em query string ele significa
+    espaco (o `URLSearchParams` do navegador codifica assim), e `UnescapeDataString`
+    sozinho o deixaria literal — "Profile 1" chegaria como "Profile+1" e nenhum perfil
+    casaria. A ordem importa: desfazer o unescape primeiro faria um `%2B`, que e um mais
+    de verdade, virar espaco por engano.
+#>
+function Expandir-ValorDeQuery {
+    param([string] $Bruto)
+    return [System.Uri]::UnescapeDataString($Bruto.Replace('+', ' '))
+}
 
 <#
     Le a requisicao inteira do socket: request-line, headers e, quando houver,
@@ -1206,8 +1430,8 @@ function Ler-Requisicao {
         foreach ($par in $pedacos[1] -split '&') {
             $igual = $par.IndexOf('=')
             if ($igual -gt 0) {
-                $nome = [System.Uri]::UnescapeDataString($par.Substring(0, $igual))
-                $query[$nome] = [System.Uri]::UnescapeDataString($par.Substring($igual + 1))
+                $nome = Expandir-ValorDeQuery $par.Substring(0, $igual)
+                $query[$nome] = Expandir-ValorDeQuery $par.Substring($igual + 1)
             }
         }
     }
@@ -1494,6 +1718,290 @@ function Invoke-RotaSegredo {
     }
 }
 
+# --- ia (resumo de commits/diff por agente local, para o e-mail de evidencia) -----
+#
+# Nao faz parte do git-autosync (CLI externo, outro projeto/release) — e um uso direto
+# dos CLIs de IA que ja rodam nesta maquina (claude/codex/opencode), no MESMO desenho de
+# seguranca que o git-autosync ja usa para a mensagem de commit: o diff vai embutido no
+# prompt (nunca "va ler o repo sozinho") e o agente roda com cwd num diretorio temporario
+# VAZIO, nunca no repositorio de verdade. Ver
+# scripts\git-autosync\python\autosync_core.py:324-438 no repo irmao, que e o desenho
+# original sendo replicado aqui.
+
+$script:AgentesIA = @('claude', 'codex', 'opencode')
+$script:OpencodeAgenteSeguro = 'hub-somente-leitura'
+
+<#
+    Roda um processo com entrada por stdin e timeout de verdade (mata se estourar).
+
+    Usa arquivos, nao pipes ao vivo, para stdin/stdout/stderr: escrever no stdin e ler o
+    stdout ao mesmo tempo por pipe .NET tem risco conhecido de deadlock quando a saida e
+    grande, e um job em segundo plano (a outra alternativa) roda sem console nenhum
+    associado — testado na pratica: o Node do codex recusa com "stdin is not a
+    terminal" nesse cenario. Arquivo evita os dois problemas.
+
+    `$Executavel` deve ser um EXE de verdade, nunca um shim `.cmd`/`.ps1` do npm:
+    `Start-Process` so sabe iniciar EXE (o erro e "%1 nao e um aplicativo Win32
+    valido" nos outros dois) — por isso os `Invoke-Prompt*` abaixo resolvem o
+    interpretador/entry point real antes de chamar isto, mesmo principio de
+    `Resolver-GitAutosync` (chamar python.exe + app.py, nao o .bat).
+#>
+function Invoke-ProcessoComEntrada {
+    param(
+        [string] $Executavel,
+        [string[]] $Argumentos,
+        [string] $Entrada,
+        [string] $DiretorioTrabalho,
+        [int] $TimeoutSegundos = 120
+    )
+
+    $arquivoEntrada = [System.IO.Path]::GetTempFileName()
+    $arquivoSaida = [System.IO.Path]::GetTempFileName()
+    $arquivoErro = [System.IO.Path]::GetTempFileName()
+    try {
+        [System.IO.File]::WriteAllText($arquivoEntrada, $Entrada, (New-Object System.Text.UTF8Encoding($false)))
+
+        $processo = Start-Process -FilePath $Executavel -ArgumentList $Argumentos `
+            -WorkingDirectory $DiretorioTrabalho `
+            -RedirectStandardInput $arquivoEntrada `
+            -RedirectStandardOutput $arquivoSaida `
+            -RedirectStandardError $arquivoErro `
+            -NoNewWindow -PassThru
+
+        $terminou = $processo.WaitForExit($TimeoutSegundos * 1000)
+        if (-not $terminou) {
+            try { Stop-Process -Id $processo.Id -Force -ErrorAction SilentlyContinue } catch {}
+            return @{ ok = $false; saida = '' }
+        }
+
+        $saida = Get-Content -LiteralPath $arquivoSaida -Raw -ErrorAction SilentlyContinue
+        return @{ ok = ($processo.ExitCode -eq 0); saida = $saida }
+    }
+    finally {
+        Remove-Item -LiteralPath $arquivoEntrada, $arquivoSaida, $arquivoErro -ErrorAction SilentlyContinue
+    }
+}
+
+function Invoke-PromptClaude {
+    param([string] $Prompt, [string] $Cwd)
+    $cmd = Get-Command 'claude' -ErrorAction SilentlyContinue
+    if (-not $cmd) { return $null }
+    $resultado = Invoke-ProcessoComEntrada -Executavel $cmd.Source -DiretorioTrabalho $Cwd -Entrada $Prompt `
+        -Argumentos @('-p', '--output-format', 'text', '--disallowedTools',
+            'Bash,Edit,Write,Read,Glob,Grep,WebFetch,WebSearch')
+    if (-not $resultado.ok) { return $null }
+    $texto = ([string] $resultado.saida).Trim()
+    return $(if ($texto) { $texto } else { $null })
+}
+
+function Resolver-NodeExe {
+    $node = Get-Command 'node' -ErrorAction SilentlyContinue
+    return $(if ($node) { $node.Source } else { $null })
+}
+
+<#
+    `codex` no Windows e instalado via npm como shim (`.cmd`/`.ps1`), nunca EXE —
+    confirmado lendo `codex.cmd`: ele so encaminha para
+    `<pasta-do-shim>\node_modules\@openai\codex\bin\codex.js`, rodado com `node.exe`.
+    Chamar isso direto evita reproduzir cmd.exe/powershell.exe por cima do shim (que na
+    pratica devolveu erro de binding de argumento tentando `-File`), mesmo principio de
+    `Resolver-GitAutosync`. A saida vem de arquivo (`-o`), nao do stdout.
+#>
+function Invoke-PromptCodex {
+    param([string] $Prompt, [string] $Cwd)
+    $cmd = Get-Command 'codex' -ErrorAction SilentlyContinue
+    $node = Resolver-NodeExe
+    if (-not $cmd -or -not $node) { return $null }
+
+    $entryJs = Join-Path (Split-Path -Parent $cmd.Source) 'node_modules\@openai\codex\bin\codex.js'
+    if (-not (Test-Path -LiteralPath $entryJs)) { return $null }
+
+    $arquivoSaida = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString('N') + '.txt')
+    try {
+        Invoke-ProcessoComEntrada -Executavel $node -DiretorioTrabalho $Cwd -Entrada $Prompt `
+            -Argumentos @($entryJs, 'exec', '--sandbox', 'read-only', '--skip-git-repo-check', '-C', $Cwd, '-o', $arquivoSaida, '-') `
+        | Out-Null
+        if (-not (Test-Path -LiteralPath $arquivoSaida)) { return $null }
+        $texto = Get-Content -LiteralPath $arquivoSaida -Raw -ErrorAction SilentlyContinue
+        return $(if ($texto -and $texto.Trim()) { $texto.Trim() } else { $null })
+    }
+    finally {
+        Remove-Item -LiteralPath $arquivoSaida -ErrorAction SilentlyContinue
+    }
+}
+
+<#
+    Garante, so por complemento (merge, nunca sobrescreve o resto do arquivo), um agente
+    OpenCode sem write/edit/bash/webfetch — mesmo motivo do git-autosync: gerar texto a
+    partir de um prompt nao deveria nunca poder mexer em arquivo ou rodar comando.
+
+    Sem `-AsHashtable`: este helper roda em Windows PowerShell 5.1 (exigido pelo DPAPI —
+    ver `Proteger-Texto`), onde `ConvertFrom-Json` so devolve PSCustomObject.
+#>
+function Garantir-AgenteOpencodeSeguro {
+    $caminhoCfg = Join-Path $env:USERPROFILE '.config\opencode\opencode.json'
+    try {
+        New-Item -ItemType Directory -Path (Split-Path -Parent $caminhoCfg) -Force -ErrorAction SilentlyContinue |
+            Out-Null
+
+        $dados = $null
+        if (Test-Path -LiteralPath $caminhoCfg) {
+            try { $dados = Get-Content -LiteralPath $caminhoCfg -Raw | ConvertFrom-Json -ErrorAction Stop }
+            catch { $dados = $null }
+        }
+        if (-not $dados) { $dados = [PSCustomObject]@{} }
+
+        if (-not ($dados.PSObject.Properties.Name -contains 'agent')) {
+            $dados | Add-Member -NotePropertyName 'agent' -NotePropertyValue ([PSCustomObject]@{})
+        }
+        if (-not ($dados.agent.PSObject.Properties.Name -contains $script:OpencodeAgenteSeguro)) {
+            $agenteSeguro = [PSCustomObject]@{
+                description = 'Gera texto a partir de um prompt, sem tocar em arquivos nem rodar comandos (usado pelo sankhya-hub).'
+                permission  = [PSCustomObject]@{ write = 'deny'; edit = 'deny'; bash = 'deny'; webfetch = 'deny' }
+            }
+            $dados.agent | Add-Member -NotePropertyName $script:OpencodeAgenteSeguro -NotePropertyValue $agenteSeguro
+            ($dados | ConvertTo-Json -Depth 10) | Set-Content -LiteralPath $caminhoCfg -Encoding utf8
+        }
+    }
+    catch {}
+}
+
+function Invoke-PromptOpencode {
+    param([string] $Prompt, [string] $Cwd)
+    $cmd = Get-Command 'opencode' -ErrorAction SilentlyContinue
+    if (-not $cmd) { return $null }
+    Garantir-AgenteOpencodeSeguro
+
+    # `opencode` tambem instala como shim (`.cmd`/`.ps1`) — mas o binario real e um EXE
+    # proprio, `node_modules\opencode-ai\bin\opencode.exe` (confirmado lendo o shim),
+    # sem precisar de `node.exe` por cima.
+    $exeReal = Join-Path (Split-Path -Parent $cmd.Source) 'node_modules\opencode-ai\bin\opencode.exe'
+    if (-not (Test-Path -LiteralPath $exeReal)) { $exeReal = $cmd.Source }
+
+    $resultado = Invoke-ProcessoComEntrada -Executavel $exeReal -DiretorioTrabalho $Cwd -Entrada $Prompt `
+        -Argumentos @('run', '--dir', $Cwd, '--agent', $script:OpencodeAgenteSeguro, '--format', 'json')
+    if (-not $resultado.ok) { return $null }
+
+    $texto = $null
+    foreach ($linha in (([string] $resultado.saida) -split "`r?`n")) {
+        $linha = $linha.Trim()
+        if (-not $linha) { continue }
+        try {
+            $evento = $linha | ConvertFrom-Json -ErrorAction Stop
+            if ($evento.type -eq 'text' -and $evento.part -and $evento.part.text) { $texto = $evento.part.text }
+        }
+        catch {}
+    }
+    return $(if ($texto -and $texto.Trim()) { $texto.Trim() } else { $null })
+}
+
+function Invoke-PromptAgente {
+    param([string] $Agente, [string] $Prompt, [string] $Cwd)
+    switch ($Agente) {
+        'claude' { return Invoke-PromptClaude -Prompt $Prompt -Cwd $Cwd }
+        'codex' { return Invoke-PromptCodex -Prompt $Prompt -Cwd $Cwd }
+        'opencode' { return Invoke-PromptOpencode -Prompt $Prompt -Cwd $Cwd }
+        default { return $null }
+    }
+}
+
+<# Explicito (se instalado) ou o primeiro disponivel, mesma ordem do git-autosync. #>
+function Resolver-AgenteIA {
+    param([string] $Preferido)
+
+    if ($Preferido -and $Preferido -ne 'auto') {
+        if (Get-Command $Preferido -ErrorAction SilentlyContinue) { return $Preferido }
+        return $null
+    }
+    foreach ($nome in $script:AgentesIA) {
+        if (Get-Command $nome -ErrorAction SilentlyContinue) { return $nome }
+    }
+    return $null
+}
+
+function Construir-PromptEvidencia {
+    param([string] $Log, [string] $Diff)
+
+    return (
+        "Voce e uma agente deterministica e impessoal, especialista em analisar historico " +
+        "de codigo, responsavel por resumir para um CLIENTE NAO TECNICO o que foi entregue " +
+        "num periodo, a partir do log de commits e do diff abaixo. Nunca se refere a si " +
+        "mesma nem ao usuario, nunca opina sobre arquitetura ou qualidade de codigo fora " +
+        "do escopo. Responda somente em portugues do Brasil, em texto plano puro (sem " +
+        "markdown, sem crases, sem titulos, sem lista com marcadores).`n`n" +
+        "Escreva de 1 a 3 paragrafos corridos descrevendo o que foi entregue, em " +
+        "linguagem de negocio (o que mudou para quem usa o sistema), sem jargao tecnico " +
+        "de git — nao mencione nome de arquivo, hash de commit nem termos como " +
+        "'refactor'/'diff'/'commit'. Nao inclua nada alem do resumo (sem preambulo, sem " +
+        "saudacao, sem assinatura).`n`ncommits:`n$Log`n`ndiff:`n$Diff"
+    )
+}
+
+function Invoke-RotaIA {
+    param([string] $Metodo, [string[]] $Segmentos, [string] $Corpo)
+
+    $acao = if ($Segmentos.Length -ge 2) { $Segmentos[1] } else { '' }
+    if ("$Metodo $acao" -ne 'POST evidencia') {
+        return @{ status = 404; corpo = @{ ok = $false; erro = 'use POST /ia/evidencia' } }
+    }
+
+    try { $dados = $Corpo | ConvertFrom-Json } catch { $dados = $null }
+    $caminho = if ($dados) { [string] $dados.caminho } else { '' }
+    $desde = if ($dados) { [string] $dados.desde } else { '' }
+    $ate = if ($dados) { [string] $dados.ate } else { '' }
+    $agentePreferido = if ($dados -and $dados.agente) { [string] $dados.agente } else { 'auto' }
+
+    if (-not $caminho -or -not (Test-Path -LiteralPath (Join-Path $caminho '.git'))) {
+        return @{ status = 400; corpo = @{ ok = $false; erro = 'caminho inválido — não é um repositório git' } }
+    }
+    if ($desde -notmatch '^\d{4}-\d{2}-\d{2}$' -or $ate -notmatch '^\d{4}-\d{2}-\d{2}$') {
+        return @{ status = 400; corpo = @{ ok = $false; erro = 'envie { desde, ate } em YYYY-MM-DD' } }
+    }
+
+    $gitCmd = Get-Command 'git' -ErrorAction SilentlyContinue
+    if (-not $gitCmd) {
+        return @{ status = 500; corpo = @{ ok = $false; erro = 'git não encontrado nesta máquina' } }
+    }
+
+    $desdeArg = "--since=$desde 00:00:00"
+    $ateArg = "--until=$ate 23:59:59"
+
+    $logBruto = & $gitCmd.Source -C $caminho log $desdeArg $ateArg '--format=%h %ad %s' '--date=short' 2>$null
+    $log = ((@($logBruto) | ForEach-Object { [string] $_ }) -join "`n").Trim()
+    if (-not $log) {
+        return @{ status = 404; corpo = @{ ok = $false; erro = 'nenhum commit no período informado' } }
+    }
+
+    # Mesmo limite de `_generate_commit_message` no git-autosync: diff maior que isso
+    # estoura o que os agentes locais aceitam bem de entrada.
+    $diffBruto = & $gitCmd.Source -C $caminho log $desdeArg $ateArg '-p' '--no-color' '--no-ext-diff' '--no-textconv' 2>$null
+    $diff = (@($diffBruto) | ForEach-Object { [string] $_ }) -join "`n"
+    if ($diff.Length -gt 12000) { $diff = $diff.Substring(0, 12000) + "`n...(diff truncado)..." }
+
+    $agente = Resolver-AgenteIA -Preferido $agentePreferido
+    if (-not $agente) {
+        return @{ status = 500; corpo = @{ ok = $false; erro = 'nenhum agente de IA (claude/codex/opencode) disponível nesta máquina' } }
+    }
+
+    $prompt = Construir-PromptEvidencia -Log $log -Diff $diff
+
+    # Diretorio isolado e vazio: o prompt ja tem o diff embutido, o agente nunca precisa
+    # (nem deveria poder) olhar o repositorio de verdade.
+    $isolado = Join-Path ([System.IO.Path]::GetTempPath()) ('hub-ia-' + [System.Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $isolado -Force | Out-Null
+    try {
+        $texto = Invoke-PromptAgente -Agente $agente -Prompt $prompt -Cwd $isolado
+    }
+    finally {
+        Remove-Item -LiteralPath $isolado -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    if (-not $texto) {
+        return @{ status = 502; corpo = @{ ok = $false; erro = "agente '$agente' não retornou texto" } }
+    }
+    return @{ status = 200; corpo = @{ ok = $true; texto = $texto } }
+}
+
 function Invoke-Rota {
     param([hashtable] $Requisicao)
 
@@ -1525,11 +2033,15 @@ function Invoke-Rota {
         return @{ status = $(if ($resultado.ok) { 200 } else { 404 }); corpo = $resultado }
     }
     if ($segmentos[0] -eq 'browser') {
-        return Invoke-RotaNavegador -Metodo $Requisicao.metodo -Segmentos $segmentos -Corpo $Requisicao.corpo
+        return Invoke-RotaNavegador -Metodo $Requisicao.metodo -Segmentos $segmentos `
+            -Query $Requisicao.query -Corpo $Requisicao.corpo
     }
     if ($segmentos[0] -eq 'git-autosync') {
         return Invoke-RotaGitAutosync -Metodo $Requisicao.metodo -Segmentos $segmentos `
             -Query $Requisicao.query -Corpo $Requisicao.corpo
+    }
+    if ($segmentos[0] -eq 'ia') {
+        return Invoke-RotaIA -Metodo $Requisicao.metodo -Segmentos $segmentos -Corpo $Requisicao.corpo
     }
 
     return @{ status = 404; corpo = @{ ok = $false; erro = "rota desconhecida: $($Requisicao.caminho)" } }

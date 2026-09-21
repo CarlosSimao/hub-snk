@@ -5,10 +5,11 @@
  * inalterado — o painel de monitoramento nao sabe que estas existem.
  */
 import type { FastifyInstance, FastifyReply } from 'fastify';
-import { HelperError, HelperIndisponivelError, type HubHelper } from './sankhya/helper.ts';
+import { HelperError, HelperIndisponivelError, lerTokenArquivo, type HubHelper } from './sankhya/helper.ts';
 import { ehSistemaValido, type Credenciais } from './sankhya/credenciais.ts';
 import type { Clientes } from './sankhya/clientes.ts';
 import type { AgendaRecursos } from './sankhya/agenda.ts';
+import type { SessaoDesktopStore } from './sankhya/sessaoDesktop.ts';
 import {
   SISTEMAS_SANKHYA,
   type Cliente,
@@ -17,13 +18,22 @@ import {
   type InstalacaoWildfly,
   type ListagemPastas,
 } from './types.ts';
+import { Pastas, PastaInacessivelError } from './pastas.ts';
+import { ConfigWildflyInvalidaError, type Wildfly } from './wildfly.ts';
 import { normalizarLista } from './sankhya/credenciais.ts';
 
 export interface RouteSankhyaDeps {
+  /** Navegacao de pastas: nativa no Windows, pelo helper em container. */
+  pastas: Pastas;
+  /** Caminhos e deteccao de instalacao do WildFly — mesma divisao. */
+  wildfly: Wildfly;
   helper: HubHelper;
   credenciais: Credenciais;
   clientes: Clientes;
   agenda: AgendaRecursos;
+  /** Presentes só quando `SANKHYA_DESKTOP_BRIDGE_URL` está configurado (src/index.ts). */
+  sessaoDesktop?: SessaoDesktopStore;
+  desktopBridgeTokenFile?: string;
 }
 
 /**
@@ -45,6 +55,12 @@ function numeroOpcional(valor: unknown): number | null | 'invalido' {
   if (valor === null || valor === undefined || valor === '') return null;
   const numero = Number(valor);
   return Number.isInteger(numero) && numero >= 0 ? numero : 'invalido';
+}
+
+/** `YYYY-MM-DD` ou vazio. Data mal formada vira vazio em vez de virar filtro quebrado. */
+function ehDiaOuVazio(valor: unknown): string {
+  const texto = typeof valor === 'string' ? valor.trim() : '';
+  return /^\d{4}-\d{2}-\d{2}$/.test(texto) ? texto : '';
 }
 
 function normalizarCliente(corpo: unknown): ClienteEntrada | string {
@@ -78,15 +94,74 @@ function normalizarCliente(corpo: unknown): ClienteEntrada | string {
     experiencePersonId: personId,
     agendaRecursoUsuario: texto('agendaRecursoUsuario'),
     agendaCodparc: codparc,
+    agendaDemandaId: texto('agendaDemandaId'),
     sankhyaUrl: url,
     repositorioLocal: texto('repositorioLocal'),
     repositorioRemoto: texto('repositorioRemoto'),
     anotacoes: typeof dados['anotacoes'] === 'string' ? (dados['anotacoes'] as string) : '',
+    anotacoesNotificar: dados['anotacoesNotificar'] === true,
+    demandaFim: ehDiaOuVazio(dados['demandaFim']),
+    emailFinalizacaoEm: ehDiaOuVazio(dados['emailFinalizacaoEm']),
   };
 }
 
 export function registerRoutesSankhya(app: FastifyInstance, deps: RouteSankhyaDeps): void {
-  const { helper, credenciais, clientes, agenda } = deps;
+  const { helper, credenciais, clientes, agenda, pastas, wildfly, sessaoDesktop, desktopBridgeTokenFile } =
+    deps;
+
+  /**
+   * So' o proprio shell desktop chama isto (ver desktop/src/backendClient.ts) — nunca o
+   * navegador. Autentica com o mesmo token do bridge (Secao "Decisao de transporte" do
+   * plano de Fase 2): arquivo local, nunca exposto ao front.
+   */
+  function autenticarShellDesktop(request: { headers: Record<string, unknown> }, reply: FastifyReply): boolean {
+    if (!desktopBridgeTokenFile) {
+      reply.code(503).send({ error: 'shell desktop não configurado neste backend' });
+      return false;
+    }
+    let esperado: string;
+    try {
+      esperado = lerTokenArquivo(desktopBridgeTokenFile, 'token do shell desktop indisponível');
+    } catch {
+      reply.code(503).send({ error: 'token do shell desktop indisponível' });
+      return false;
+    }
+    if (request.headers['x-hub-token'] !== esperado) {
+      reply.code(401).send({ error: 'token inválido' });
+      return false;
+    }
+    return true;
+  }
+
+  app.post<{ Params: { sistema: string }; Body: { usuario?: unknown; token?: unknown; expira?: unknown } }>(
+    '/api/sankhya/desktop/sessao/:sistema',
+    async (request, reply) => {
+      if (!autenticarShellDesktop(request, reply)) return reply;
+      const { sistema } = request.params;
+      // So' a Experience usa sessao empurrada nesta fase — ver sessaoDesktop.ts.
+      if (sistema !== 'sankhya-experience') {
+        return reply.code(404).send({ error: `sistema "${sistema}" não aceita sessão empurrada` });
+      }
+      const { usuario, token, expira } = request.body ?? {};
+      if (typeof usuario !== 'string' || typeof token !== 'string' || !token) {
+        return reply.code(400).send({ error: 'envie { usuario, token, expira? }' });
+      }
+      sessaoDesktop?.definir({ usuario, token, expira: typeof expira === 'string' ? expira : '' });
+      return { ok: true };
+    },
+  );
+
+  app.delete<{ Params: { sistema: string } }>(
+    '/api/sankhya/desktop/sessao/:sistema',
+    async (request, reply) => {
+      if (!autenticarShellDesktop(request, reply)) return reply;
+      if (request.params.sistema !== 'sankhya-experience') {
+        return reply.code(404).send({ error: `sistema "${request.params.sistema}" não aceita sessão empurrada` });
+      }
+      sessaoDesktop?.limpar();
+      return { ok: true };
+    },
+  );
 
   app.get('/api/sankhya/helper', async () => ({ disponivel: await helper.disponivel() }));
 
@@ -97,10 +172,12 @@ export function registerRoutesSankhya(app: FastifyInstance, deps: RouteSankhyaDe
   app.get<{ Querystring: { caminho?: string } }>(
     '/api/sistema/pastas',
     async (request, reply) => {
-      const busca = new URLSearchParams({ caminho: request.query.caminho ?? '' });
       try {
-        return await helper.requisitar<ListagemPastas>(`/pastas?${busca}`);
+        return await pastas.listar(request.query.caminho ?? '');
       } catch (err) {
+        if (err instanceof PastaInacessivelError) {
+          return reply.code(404).send({ error: err.message });
+        }
         return responderErroHelper(reply, err);
       }
     },
@@ -115,7 +192,7 @@ export function registerRoutesSankhya(app: FastifyInstance, deps: RouteSankhyaDe
    */
   app.get('/api/infra/wildfly', async (_request, reply) => {
     try {
-      return await helper.requisitar<ConfigWildfly>('/wildfly/config');
+      return await wildfly.config();
     } catch (err) {
       return responderErroHelper(reply, err);
     }
@@ -126,15 +203,13 @@ export function registerRoutesSankhya(app: FastifyInstance, deps: RouteSankhyaDe
     async (request, reply) => {
       const texto = (valor: unknown) => (typeof valor === 'string' ? valor.trim() : '');
       try {
-        return await helper.requisitar<ConfigWildfly>('/wildfly/config', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            pasta: texto(request.body?.pasta),
-            arquivoLog: texto(request.body?.arquivoLog),
-          }),
-        });
+        return await wildfly.gravarConfig(texto(request.body?.pasta), texto(request.body?.arquivoLog));
       } catch (err) {
+        // Pasta que nao e instalacao do WildFly e erro do usuario, nao do helper: a tela
+        // mostra a mensagem ao lado do campo em vez de "helper indisponivel".
+        if (err instanceof ConfigWildflyInvalidaError) {
+          return reply.code(400).send({ error: err.message });
+        }
         return responderErroHelper(reply, err);
       }
     },
@@ -143,13 +218,7 @@ export function registerRoutesSankhya(app: FastifyInstance, deps: RouteSankhyaDe
   /** Procura instalações do WildFly no disco, para não ter que digitar o caminho. */
   app.get('/api/infra/wildfly/detectar', async (_request, reply) => {
     try {
-      const corpo = await helper.requisitar<{ instalacoes: InstalacaoWildfly[] }>(
-        '/wildfly/detectar',
-        {},
-        // Varre várias raízes do disco; 10s é pouco quando a máquina está ocupada.
-        { timeoutMs: 45_000 },
-      );
-      return { instalacoes: normalizarLista(corpo.instalacoes) };
+      return { instalacoes: normalizarLista(await wildfly.detectar()) };
     } catch (err) {
       return responderErroHelper(reply, err);
     }
@@ -240,6 +309,29 @@ export function registerRoutesSankhya(app: FastifyInstance, deps: RouteSankhyaDe
       return responderErroHelper(reply, err);
     }
   });
+
+  /**
+   * Lista os favoritos de um perfil pessoal, para virarem cadastro de cliente.
+   *
+   * GET e só leitura: o arquivo do usuário não é tocado. Quem escolhe o que vira
+   * cliente é a tela — aqui nada é criado.
+   */
+  app.get<{ Querystring: { navegador?: string; perfil?: string } }>(
+    '/api/sankhya/navegador/favoritos',
+    async (request, reply) => {
+      const navegador = request.query.navegador?.trim() ?? '';
+      const perfil = request.query.perfil?.trim() ?? '';
+      if (!navegador || !perfil) {
+        return reply.code(400).send({ error: 'informe ?navegador=&perfil=' });
+      }
+
+      try {
+        return await credenciais.listarFavoritos(navegador, perfil);
+      } catch (err) {
+        return responderErroHelper(reply, err);
+      }
+    },
+  );
 
   /** Traz só os favoritos de um perfil pessoal — nada de senha, cookie ou histórico. */
   app.post<{ Body: { navegador?: unknown; perfil?: unknown } }>(

@@ -12,11 +12,14 @@
  * a senha ate o navegador.
  */
 import type { HubHelper } from './helper.ts';
+import { DesktopBridgeIndisponivelError, type DesktopBridge } from './desktopBridge.ts';
+import type { SessaoDesktopStore } from './sessaoDesktop.ts';
 import {
   SISTEMAS_SANKHYA,
   type SistemaSankhya,
   type StatusCredencial,
   type StatusNavegador,
+  type FavoritoNavegador,
 } from '../types.ts';
 
 /** O que o helper devolve nas rotas de credencial, sem o `sistema`. */
@@ -61,29 +64,79 @@ export function ehSistemaValido(valor: string): valor is SistemaSankhya {
 
 export class Credenciais {
   readonly #helper: HubHelper;
+  readonly #bridge: DesktopBridge | undefined;
+  readonly #sessaoDesktop: SessaoDesktopStore | undefined;
 
-  constructor(helper: HubHelper) {
+  constructor(helper: HubHelper, sessaoDesktop?: SessaoDesktopStore, bridge?: DesktopBridge) {
     this.#helper = helper;
+    this.#bridge = bridge;
+    this.#sessaoDesktop = sessaoDesktop;
+  }
+
+  /**
+   * Shell desktop primeiro, `hub-helper.ps1` como retaguarda.
+   *
+   * O cofre do shell usa `safeStorage` — DPAPI, igual ao helper — mas vive dentro do
+   * processo do Electron e so' e' alcancavel por `127.0.0.1`. Enquanto os dois convivem,
+   * quem manda e' quem esta no ar.
+   *
+   * So' a INDISPONIBILIDADE do shell faz cair para o helper: se o shell respondeu com
+   * erro de negocio (sistema desconhecido, corpo invalido), repetir a chamada no helper
+   * daria a mesma resposta e mascararia o erro real.
+   */
+  async #preferindoShell<T>(
+    viaShell: (bridge: DesktopBridge) => Promise<T>,
+    viaHelper: () => Promise<T>,
+  ): Promise<T> {
+    if (this.#bridge) {
+      try {
+        return await viaShell(this.#bridge);
+      } catch (err) {
+        if (!(err instanceof DesktopBridgeIndisponivelError)) throw err;
+      }
+    }
+    return viaHelper();
   }
 
   async status(sistema: SistemaSankhya): Promise<StatusCredencial> {
-    const corpo = await this.#helper.requisitar<RespostaCredencial>(`/credentials/${sistema}`);
+    if (sistema === 'sankhya-experience') {
+      const sessao = this.#sessaoDesktop?.obter();
+      if (sessao) {
+        return {
+          sistema,
+          usuario: sessao.usuario,
+          definido: true,
+          sessaoCapturada: true,
+          sessaoExpiraEm: sessao.expira,
+        };
+      }
+    }
+    const corpo = await this.#preferindoShell<RespostaCredencial>(
+      (bridge) => bridge.statusCredencial<RespostaCredencial>(sistema),
+      () => this.#helper.requisitar<RespostaCredencial>(`/credentials/${sistema}`),
+    );
     return montar(sistema, corpo);
   }
 
   async gravar(sistema: SistemaSankhya, usuario: string, senha: string): Promise<StatusCredencial> {
-    const corpo = await this.#helper.requisitar<RespostaCredencial>(`/credentials/${sistema}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ usuario, senha }),
-    });
+    const corpo = await this.#preferindoShell<RespostaCredencial>(
+      (bridge) => bridge.gravarCredencial<RespostaCredencial>(sistema, usuario, senha),
+      () =>
+        this.#helper.requisitar<RespostaCredencial>(`/credentials/${sistema}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ usuario, senha }),
+        }),
+    );
     return montar(sistema, corpo);
   }
 
   async remover(sistema: SistemaSankhya): Promise<StatusCredencial> {
-    const corpo = await this.#helper.requisitar<RespostaCredencial>(`/credentials/${sistema}`, {
-      method: 'DELETE',
-    });
+    const corpo = await this.#preferindoShell<RespostaCredencial>(
+      (bridge) => bridge.removerCredencial<RespostaCredencial>(sistema),
+      () =>
+        this.#helper.requisitar<RespostaCredencial>(`/credentials/${sistema}`, { method: 'DELETE' }),
+    );
     return montar(sistema, corpo);
   }
 
@@ -95,11 +148,23 @@ export class Credenciais {
    * legado, cujo `service.sbr` vai por cookie.
    */
   async revelar(sistema: SistemaSankhya): Promise<SegredoSankhya> {
-    return this.#helper.requisitar<SegredoSankhya>(`/credentials/${sistema}/reveal`);
+    if (sistema === 'sankhya-experience') {
+      const sessao = this.#sessaoDesktop?.obter();
+      if (sessao) {
+        return { usuario: sessao.usuario, senha: '', sessao: '', token: sessao.token, expira: sessao.expira };
+      }
+    }
+    return this.#preferindoShell<SegredoSankhya>(
+      (bridge) => bridge.revelarCredencial<SegredoSankhya>(sistema),
+      () => this.#helper.requisitar<SegredoSankhya>(`/credentials/${sistema}/reveal`),
+    );
   }
 
   async statusNavegador(): Promise<StatusNavegador> {
-    const corpo = await this.#helper.requisitar<StatusNavegador>('/browser/status');
+    const corpo = await this.#preferindoShell<StatusNavegador>(
+      (bridge) => bridge.statusNavegador<StatusNavegador>(),
+      () => this.#helper.requisitar<StatusNavegador>('/browser/status'),
+    );
     return {
       navegador: Boolean(corpo.navegador),
       disponiveis: normalizarLista(corpo.disponiveis),
@@ -114,7 +179,28 @@ export class Credenciais {
 
   /** Fecha só a janela do hub; o navegador pessoal do usuário não é tocado. */
   fecharNavegador(): Promise<{ mensagem: string }> {
-    return this.#helper.requisitar<{ mensagem: string }>('/browser/fechar', { method: 'POST' });
+    return this.#preferindoShell<{ mensagem: string }>(
+      (bridge) => bridge.fecharNavegador<{ mensagem: string }>(),
+      () => this.#helper.requisitar<{ mensagem: string }>('/browser/fechar', { method: 'POST' }),
+    );
+  }
+
+  /**
+   * Le os favoritos de um perfil pessoal, sem alterar nada.
+   *
+   * Serve para a tela oferecer os parceiros ja salvos no navegador como ponto de
+   * partida de um cadastro: o nome do favorito vira o nome do cliente e a URL vira a
+   * base. Nao e o mesmo que `importarFavoritos`, que copia o arquivo para o perfil do
+   * hub — aqui nada e escrito e o navegador pode estar aberto.
+   */
+  listarFavoritos(navegador: string, perfil: string): Promise<{ favoritos: FavoritoNavegador[] }> {
+    return this.#preferindoShell<{ favoritos: FavoritoNavegador[] }>(
+      (bridge) => bridge.favoritosNavegador<{ favoritos: FavoritoNavegador[] }>(navegador, perfil),
+      () => {
+        const busca = new URLSearchParams({ navegador, perfil });
+        return this.#helper.requisitar<{ favoritos: FavoritoNavegador[] }>(`/browser/favoritos?${busca}`);
+      },
+    );
   }
 
   /**
@@ -125,11 +211,15 @@ export class Credenciais {
    * quando o perfil é o padrão, e sem DevTools o hub não lê a sessão.
    */
   importarFavoritos(navegador: string, perfil: string): Promise<{ ok: boolean }> {
-    return this.#helper.requisitar<{ ok: boolean }>('/browser/favoritos', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ navegador, perfil }),
-    });
+    return this.#preferindoShell<{ ok: boolean }>(
+      (bridge) => bridge.importarFavoritos<{ ok: boolean }>(navegador, perfil),
+      () =>
+        this.#helper.requisitar<{ ok: boolean }>('/browser/favoritos', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ navegador, perfil }),
+        }),
+    );
   }
 
   /**
@@ -143,18 +233,23 @@ export class Credenciais {
     sistema: SistemaSankhya,
     opcoes: { tela?: string; navegador?: string } = {},
   ): Promise<{ url: string }> {
-    return this.#helper.requisitar<{ url: string }>(`/browser/abrir/${sistema}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(opcoes),
-    });
+    return this.#preferindoShell<{ url: string }>(
+      (bridge) => bridge.abrirNavegador<{ url: string }>(sistema, opcoes),
+      () =>
+        this.#helper.requisitar<{ url: string }>(`/browser/abrir/${sistema}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(opcoes),
+        }),
+    );
   }
 
   /** Lê os cookies daquela janela e guarda cifrados. */
   capturarSessao(sistema: SistemaSankhya): Promise<{ ok: boolean; cookies: number; erro?: string }> {
-    return this.#helper.requisitar<{ ok: boolean; cookies: number; erro?: string }>(
-      `/browser/capturar/${sistema}`,
-      { method: 'POST' },
+    type Resultado = { ok: boolean; cookies: number; erro?: string };
+    return this.#preferindoShell<Resultado>(
+      (bridge) => bridge.capturarSessao<Resultado>(sistema),
+      () => this.#helper.requisitar<Resultado>(`/browser/capturar/${sistema}`, { method: 'POST' }),
     );
   }
 }

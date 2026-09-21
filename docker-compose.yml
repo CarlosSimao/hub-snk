@@ -29,6 +29,12 @@ services:
       # scripts/hub-helper.ps1, rodando nativamente no Windows (DPAPI + git-autosync).
       HUB_HELPER_URL: http://host.docker.internal:4102
       HUB_HELPER_TOKEN_FILE: /app/helper-ipc/token.txt
+      # Shell desktop (desktop/), quando estiver rodando: fetch da Agenda dentro da aba
+      # ERP autenticada, sem CDP externo (ver docs/specs/sankhya-hub-desktop-especificacao.md,
+      # Secao 7). Vazio por padrao — sem o shell no ar, o hub usa o caminho de sempre
+      # (hub-helper.ps1). Mesma pasta helper-ipc do token acima, token proprio.
+      SANKHYA_DESKTOP_BRIDGE_URL: "http://host.docker.internal:4103"
+      DESKTOP_BRIDGE_TOKEN_FILE: /app/helper-ipc/desktop-token.txt
     volumes:
       # services.yaml montado do host: editar o arquivo + POST /api/reload (ou o botao
       # "Recarregar config" no dashboard) aplica sem rebuild da imagem.

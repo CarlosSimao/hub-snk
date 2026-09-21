@@ -12,6 +12,7 @@
 import type { Credenciais } from './credenciais.ts';
 import type {
   AprovadorExperience,
+  DetalheOrdem,
   OrdemCriada,
   OrdemExperience,
   PreparoOrdem,
@@ -183,6 +184,24 @@ export class Experience {
     );
   }
 
+  /**
+   * O detalhe de uma OS ja lancada — o que ficou escrito em "Tarefas Realizadas".
+   *
+   * Existe como chamada separada porque `/orders/filtering` nao traz esse texto:
+   * medido em 2026-09-15 no projeto 10269, a listagem devolve as colunas da grade
+   * (tipo, numos, horas, aceite) e nenhuma `additional_information`. Uma OS por
+   * requisicao — por isso a tela so pede as do dia aberto, nao as do mes.
+   */
+  async detalharOrdem(orderId: number): Promise<DetalheOrdem> {
+    const corpo = await this.#chamar<{ data?: Record<string, unknown> }>(`/orders/${orderId}`);
+    const dados = corpo.data ?? {};
+    return {
+      id: orderId,
+      tarefasRealizadas: texto(dados['additional_information']),
+      notas: texto(dados['additional_notes']),
+    };
+  }
+
   /** Uma chamada avulsa, fora do padrão paginado. */
   async #chamar<T>(caminho: string, init: RequestInit = {}): Promise<T> {
     const token = await this.#token();
@@ -333,24 +352,47 @@ export class Experience {
 
     if (!entrada.enviarParaAprovacao || !orderId) return resultado;
 
+    const { aceiteId, emailEnviado } = await this.gerarAceite(orderId, entrada.projetoId, entrada.personId, {
+      enviarEmail: true,
+    });
+    resultado.aceiteId = aceiteId;
+    resultado.emailEnviado = emailEnviado;
+
+    return resultado;
+  }
+
+  /**
+   * Gera o aceite de uma OS e, se pedido, dispara o e-mail de aprovação — extraído de
+   * `criarOrdem` para ser reutilizável numa OS JÁ LANÇADA, sem recriá-la. Mesma chamada,
+   * mesma ordem (aceite antes de e-mail: não há e-mail sem `aceiteId`).
+   *
+   * ATENÇÃO: `enviarEmail: true` manda e-mail para o CLIENTE. Não é reversível pelo hub.
+   */
+  async gerarAceite(
+    orderId: number,
+    projetoId: number,
+    personId: number,
+    opcoes: { enviarEmail: boolean },
+  ): Promise<{ aceiteId: number | null; emailEnviado: boolean }> {
     const aceite = await this.#chamar<{ data?: { id?: number } }>('/accepted-os', {
       method: 'POST',
       body: JSON.stringify({
-        accepted_os: { person_id: entrada.personId, implantation_id: entrada.projetoId },
+        accepted_os: { person_id: personId, implantation_id: projetoId },
         accepted_os_orders: { orders_id: [orderId] },
       }),
     });
-    resultado.aceiteId = Number(aceite.data?.id ?? 0) || null;
+    const aceiteId = Number(aceite.data?.id ?? 0) || null;
 
-    if (resultado.aceiteId) {
+    let emailEnviado = false;
+    if (aceiteId && opcoes.enviarEmail) {
       await this.#chamar('/accepted-os/send-email', {
         method: 'POST',
-        body: JSON.stringify({ accepted_id: resultado.aceiteId }),
+        body: JSON.stringify({ accepted_id: aceiteId }),
       });
-      resultado.emailEnviado = true;
+      emailEnviado = true;
     }
 
-    return resultado;
+    return { aceiteId, emailEnviado };
   }
 
   /** `periodo` em `YYYY-MM-DD`; a API espera o dia com hora. */

@@ -10,6 +10,7 @@ import { loadConfig, ConfigError } from './config.ts';
 import type { Engine } from './engine.ts';
 import type { DockerClient } from './docker.ts';
 import { executeAction, ActionNotFoundError } from './actions.ts';
+import type { Wildfly } from './wildfly.ts';
 import type { Cofre } from './segredos.ts';
 import type { Desativados } from './desativados.ts';
 import type { ConfiguracoesCheck } from './configuracoesCheck.ts';
@@ -23,6 +24,7 @@ const TIMEOUT_MAX_S = 120;
 export interface RouteDeps {
   engine: Engine;
   docker: DockerClient;
+  wildfly: Wildfly;
   configPath: string;
   startedAt: number;
   cofre: Cofre;
@@ -31,7 +33,7 @@ export interface RouteDeps {
 }
 
 export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
-  const { engine, docker, configPath, startedAt, cofre, desativados, configuracoes } = deps;
+  const { engine, docker, wildfly, configPath, startedAt, cofre, desativados, configuracoes } = deps;
 
   /**
    * Recarrega a config. Cada servico e interpolado com o ambiente global mais os
@@ -198,6 +200,7 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
           actionId,
           docker,
           (sid, cid) => engine.runNow(sid, cid),
+          wildfly,
         );
         return reply.code(result.ok ? 200 : 502).send(result);
       } catch (err) {

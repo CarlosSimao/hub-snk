@@ -112,6 +112,11 @@ explícita, não descuido:
   da máquina Windows, sem token. Qualquer dispositivo na mesma rede local consegue
   iniciar/parar/reiniciar o WildFly ou ler o `server.log`. Não exponha essas portas
   além da rede confiável.
+
+  **Só valem no modo container.** Rodando pelo shell desktop (`npm run app`), o backend
+  controla o WildFly direto e serve o log em `/api/wildfly/log` — as duas portas deixam
+  de ser usadas e podem ficar fechadas. Ver
+  [docs/specs/sankhya-hub-sem-docker-plano.md](docs/specs/sankhya-hub-sem-docker-plano.md).
 - **Helper do hub** (`scripts/hub-helper.ps1`, porta 4102): também escuta em todas as
   interfaces — o container alcança o host por `host.docker.internal`, que não chega
   pelo loopback —, mas este **exige token** em toda rota, diferente dos dois acima. A
@@ -129,6 +134,10 @@ explícita, não descuido:
   faz o login nela, e o hub lê só o cookie de sessão que sobra. A porta do DevTools
   (9222) fica em `127.0.0.1` e **não** é publicada para o container — quem fala com ela
   é o helper, e o hub recebe o resultado pela 4102, que exige token.
+
+  **No aplicativo desktop (`npm run app`) isso tudo deixa de existir:** as abas do
+  Sankhya são do próprio aplicativo, a sessão é lida direto (`session.cookies`), e não há
+  Chrome paralelo nem porta 9222.
 - **Trabalhe o Sankhya nessa janela.** Abrir uma sessão do Sankhya em outro navegador
   derruba a anterior — inclusive a do hub. Com o trabalho na janela do hub existe uma
   sessão só, e ela não briga com a sua. O hub apenas observa as guias: nunca fecha

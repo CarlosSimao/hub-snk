@@ -6,6 +6,7 @@
  * mandá-los pela URL deixaria a tela livre para consultar projeto de qualquer um.
  */
 import type { FastifyInstance, FastifyReply } from 'fastify';
+import { limitesDoMes } from './calendario.ts';
 import { HelperError, HelperIndisponivelError } from './sankhya/helper.ts';
 import { SessaoExpiradaError, type Experience } from './sankhya/experience.ts';
 import type { Clientes } from './sankhya/clientes.ts';
@@ -32,24 +33,20 @@ function responderErro(reply: FastifyReply, err: unknown): FastifyReply {
   return reply.code(502).send({ error: (err as Error).message });
 }
 
+/**
+ * Teto de OS por consulta de detalhe.
+ *
+ * Cada uma e uma requisicao propria a Experience; um dia com mais de dez OS lancadas
+ * nao existe na pratica, e o numero redondo evita que um `?ids=` colado a mao vire
+ * centenas de chamadas.
+ */
+const MAX_DETALHES_OS = 20;
+
 /** Um dia no formato `YYYY-MM-DD`. */
 function ehDia(valor: string | undefined): valor is string {
   return typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor);
 }
 
-/** Primeiro e último dia do mês `YYYY-MM`, em `YYYY-MM-DD`. */
-function limitesDoMes(mes: string): { de: string; ate: string } | null {
-  const partes = /^(\d{4})-(\d{2})$/.exec(mes);
-  if (!partes) return null;
-
-  const ano = Number(partes[1]);
-  const numeroMes = Number(partes[2]);
-  if (numeroMes < 1 || numeroMes > 12) return null;
-
-  // Dia 0 do mês seguinte é o último dia deste — evita tabela de dias e ano bissexto.
-  const ultimo = new Date(Date.UTC(ano, numeroMes, 0)).getUTCDate();
-  return { de: `${mes}-01`, ate: `${mes}-${String(ultimo).padStart(2, '0')}` };
-}
 
 export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperienceDeps): void {
   const { experience, clientes, agenda } = deps;
@@ -188,6 +185,50 @@ export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperi
   );
 
   /**
+   * O texto de "Tarefas Realizadas" das OS pedidas.
+   *
+   * Uma chamada da Experience por OS — por isso a tela pede so as do dia aberto, e o
+   * teto existe para que uma URL montada a mao nao vire uma rajada contra a API deles.
+   *
+   * Uma OS que falhar nao derruba as outras: a resposta traz o que deu certo. O dia
+   * inteiro sumir da tela por causa de uma OS seria pior que a OS aparecer sem texto.
+   */
+  app.get<{ Querystring: { ids?: string } }>(
+    '/api/experience/os/detalhes',
+    async (request, reply) => {
+      const ids = [
+        ...new Set(
+          (request.query.ids ?? '')
+            .split(',')
+            .map((parte) => Number(parte.trim()))
+            .filter((id) => Number.isInteger(id) && id > 0),
+        ),
+      ];
+      if (!ids.length) return reply.code(400).send({ error: 'informe ?ids=1,2,3' });
+      if (ids.length > MAX_DETALHES_OS) {
+        return reply.code(400).send({ error: `no máximo ${MAX_DETALHES_OS} OS por consulta` });
+      }
+
+      try {
+        const resultados = await Promise.allSettled(ids.map((id) => experience.detalharOrdem(id)));
+
+        // Sessão vencida é de todas, não de uma: devolver 200 com a lista vazia
+        // esconderia o único erro que a tela sabe resolver.
+        const expirada = resultados.find(
+          (r) => r.status === 'rejected' && r.reason instanceof SessaoExpiradaError,
+        );
+        if (expirada && expirada.status === 'rejected') return responderErro(reply, expirada.reason);
+
+        return {
+          detalhes: resultados.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : [])),
+        };
+      } catch (err) {
+        return responderErro(reply, err);
+      }
+    },
+  );
+
+  /**
    * Lê tudo que o modal "Gerar OS" precisa. Só leitura: nenhuma destas chamadas cria OS.
    */
   app.post<{ Body: { clienteId?: unknown; tarefaIds?: unknown } }>(
@@ -302,6 +343,55 @@ export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperi
         ]);
 
         return { tarefas, ordens };
+      } catch (err) {
+        return responderErro(reply, err);
+      }
+    },
+  );
+
+  /**
+   * Gera aceite (e, se pedido, dispara e-mail) de uma OS JÁ LANÇADA — sem recriá-la.
+   * `orderId` vem da URL; `projetoId`/`personId` vêm sempre do cadastro, nunca do
+   * corpo da requisição, pelo mesmo motivo de `/api/experience/os`: quem chama não
+   * decide de qual pessoa/projeto a escrita sai.
+   *
+   * Verificação de identidade: antes de escrever, confirma que o e-mail do JWT da
+   * sessão Experience autenticada AGORA resolve para o mesmo `person_id` que o
+   * cadastro espera (mesmo mecanismo de `GET /api/experience/person-id`). Isso NÃO
+   * é uma reautenticação completa — só confirma que a sessão de sistema atualmente
+   * capturada pertence à mesma pessoa do cadastro antes de um efeito irreversível
+   * (e-mail ao cliente). A autoridade real continua sendo a própria API da
+   * Experience: se ela aceitar a chamada, a operação é válida por conta dela.
+   *
+   * ATENÇÃO: `enviarEmail: true` manda e-mail para o CLIENTE. Não é reversível pelo hub.
+   */
+  app.post<{ Params: { orderId: string }; Body: { clienteId?: unknown; enviarEmail?: unknown } }>(
+    '/api/experience/os/:orderId/aceite',
+    async (request, reply) => {
+      const orderId = Number(request.params.orderId);
+      if (!Number.isInteger(orderId) || orderId <= 0) {
+        return reply.code(400).send({ error: 'orderId inválido' });
+      }
+
+      const cliente = clientes.obter(Number(request.body?.clienteId));
+      if (!cliente?.experienceProjetoId || !cliente.experiencePersonId) {
+        return reply.code(400).send({ error: 'cliente sem ID do projeto ou person_id no cadastro' });
+      }
+
+      try {
+        const eu = await experience.descobrirPersonId(cliente.experienceProjetoId);
+        if (!eu || eu.personId !== cliente.experiencePersonId) {
+          return reply.code(409).send({
+            error:
+              'a sessão Experience autenticada agora não corresponde à pessoa esperada para este cliente — recapture a sessão certa antes de gerar aceite',
+            identidadeDivergente: true,
+          });
+        }
+
+        const enviarEmail = request.body?.enviarEmail === true;
+        return await experience.gerarAceite(orderId, cliente.experienceProjetoId, cliente.experiencePersonId, {
+          enviarEmail,
+        });
       } catch (err) {
         return responderErro(reply, err);
       }

@@ -150,3 +150,35 @@ describe('GitAutosync — agendamento', () => {
     );
   });
 });
+
+describe('GitAutosync — terminal e log', () => {
+  test('terminal manda o caminho e o tipo para o helper, sem passar pelo CLI', async () => {
+    const { helper, chamadas } = helperFalso({ '/git-autosync/terminal': null });
+
+    await new GitAutosync(helper).terminal('C:\\Projetos\\solo', 'git-bash');
+
+    assert.equal(chamadas.length, 1);
+    assert.equal(chamadas[0]?.caminho, '/git-autosync/terminal');
+    assert.equal(chamadas[0]?.metodo, 'POST');
+    assert.deepEqual(chamadas[0]?.corpo, { caminho: 'C:\\Projetos\\solo', tipo: 'git-bash' });
+  });
+
+  test('log devolve as linhas e usa o limite pedido na query', async () => {
+    const { helper, chamadas } = helperFalso({
+      '/git-autosync/log': ['linha 1', 'linha 2'],
+    });
+
+    const linhas = await new GitAutosync(helper).log(50);
+
+    assert.deepEqual(linhas, ['linha 1', 'linha 2']);
+    assert.equal(chamadas[0]?.caminho, '/git-autosync/log?limite=50');
+  });
+
+  test('log sem linhas registradas devolve lista vazia, não null', async () => {
+    const { helper } = helperFalso({ '/git-autosync/log': null });
+
+    const linhas = await new GitAutosync(helper).log();
+
+    assert.deepEqual(linhas, []);
+  });
+});

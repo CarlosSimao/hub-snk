@@ -1,5 +1,12 @@
 # Especificação — Sankhya Hub Suite (Agenda + Experience + Git Autosync)
 
+> **Atualização de arquitetura — 2026-09-16:** para a evolução desktop, consultar
+> [Sankhya Hub Desktop](sankhya-hub-desktop-especificacao.md) e o
+> [relatório da PoC](sankhya-hub-desktop-poc-relatorio.md). A proposta desktop usa
+> Electron/WebContentsView no lugar da estratégia proxy/iframe descrita abaixo.
+> Estado atual: GO CONDICIONAL para continuar validação, sem aprovação da migração
+> completa. Regras funcionais existentes, especialmente OS, devem ser preservadas.
+
 Documento de especificação completa para implementação numa branch dedicada do
 `sankhya-hub`. Escrito para que um agente (ou desenvolvedor) consiga construir a feature
 sem precisar re-descobrir o que já foi investigado.
