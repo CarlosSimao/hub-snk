@@ -22,9 +22,11 @@
  *    historico da sessao, visivel na tela.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { homedir as homedirDoUsuario, tmpdir } from 'node:os';
+
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { MODELOS_SKILL, type EstadoSessaoSkill, type ModeloSkill, type SkillDisponivel } from './types.ts';
 
@@ -37,7 +39,7 @@ export function ehModelo(valor: string): valor is ModeloSkill {
 /** Erro de uso: skill desconhecida, pasta invalida, sessao que nao existe. */
 export class PedidoSkillError extends Error {}
 
-const PASTA_CLAUDE = join(homedir(), '.claude');
+const PASTA_CLAUDE = join(homedirDoUsuario(), '.claude');
 const PLUGINS_INSTALADOS = join(PASTA_CLAUDE, 'plugins', 'installed_plugins.json');
 const SKILLS_DO_USUARIO = join(PASTA_CLAUDE, 'skills');
 
@@ -145,6 +147,22 @@ export function listarSkills(): SkillDisponivel[] {
   return achadas.sort((a, b) => a.id.localeCompare(b.id));
 }
 
+
+/**
+ * Dito a skill quando o navegador do hub esta' disponivel.
+ *
+ * As skills que capturam tela procuram as tools da extensao `claude-in-chrome`; este
+ * texto apresenta as do hub como equivalentes, sem precisar tocar na skill — que e' o
+ * que mantem ela atualizavel pelo plugin.
+ */
+const AVISO_NAVEGADOR = [
+  'O Sankhya Hub expoe um navegador proprio por MCP, no servidor sankhya-hub-navegador.',
+  'As abas dele JA ESTAO AUTENTICADAS no Sankhya ERP e na Experience: nao peca login e nao abra outro navegador.',
+  'Para qualquer captura de tela ou navegacao, use mcp__sankhya-hub-navegador__* (abrir, navegar, capturar, clicar, digitar, tecla, texto_da_pagina).',
+  'Elas cumprem o papel das ferramentas mcp__claude-in-chrome__*: quando uma instrucao pedir a extensao do navegador, use estas.',
+  'A ferramenta capturar grava PNG no caminho absoluto que voce informar e devolve o caminho gravado.',
+].join(' ');
+
 /** Um evento do stream, guardado como veio — a tela decide o que mostrar. */
 export interface EventoSkill {
   seq: number;
@@ -164,6 +182,47 @@ const LIMITE_EVENTOS = 2000;
 
 export class Skills {
   readonly #sessoes = new Map<string, Sessao>();
+  /** Escrito uma vez por processo; o caminho entra na linha de comando de cada sessao. */
+  #arquivoMcp = '';
+
+/**
+   * Arquivo de configuracao do MCP do navegador, ou `null` quando nao ha shell desktop.
+   *
+   * A presenca do shell e' medida pelo arquivo de token do bridge: e' ele que o shell
+   * escreve no boot, e sem ele o servidor MCP nao teria como se autenticar de qualquer
+   * forma. O arquivo de configuracao vive numa pasta temporaria propria, criada uma vez
+   * por processo do hub.
+   */
+  #configMcp(): { arquivo: string } | null {
+    const tokenBridge = process.env['DESKTOP_BRIDGE_TOKEN_FILE'] ?? '';
+    if (!tokenBridge || !existsSync(tokenBridge)) return null;
+
+    const servidor = join(dirname(fileURLToPath(import.meta.url)), 'mcpNavegador.js');
+    if (!existsSync(servidor)) return null;
+
+    if (this.#arquivoMcp) return { arquivo: this.#arquivoMcp };
+
+    const pasta = mkdtempSync(join(tmpdir(), 'sankhya-hub-mcp-'));
+    const arquivo = join(pasta, 'navegador.json');
+    writeFileSync(
+      arquivo,
+      JSON.stringify({
+        mcpServers: {
+          'sankhya-hub-navegador': {
+            command: process.execPath,
+            args: [servidor],
+            env: {
+              SANKHYA_DESKTOP_BRIDGE_URL: process.env['SANKHYA_DESKTOP_BRIDGE_URL'] ?? 'http://127.0.0.1:4103',
+              DESKTOP_BRIDGE_TOKEN_FILE: tokenBridge,
+            },
+          },
+        },
+      }),
+      'utf8',
+    );
+    this.#arquivoMcp = arquivo;
+    return { arquivo };
+  }
 
   listar(): SkillDisponivel[] {
     return listarSkills();
@@ -203,6 +262,21 @@ export class Skills {
       '--verbose',
     ];
     if (modelo) args.push('--model', modelo);
+
+    // Navegador do hub, quando o shell desktop esta' no ar: as abas dele ja' estao
+    // autenticadas no Sankhya, e e' o que permite uma skill tirar evidencia de tela sem
+    // segundo navegador e sem novo login. Sem shell, a skill segue o caminho dela
+    // (Playwright ou modo manual) — por isso isto e' acrescimo, nunca exigencia.
+    const mcp = this.#configMcp();
+    if (mcp) {
+      args.push('--mcp-config', mcp.arquivo);
+      // A skill de documento de entrega procura literalmente as tools da extensao
+      // `claude-in-chrome`. Em vez de batizar o servidor com o nome dela — o que
+      // colidiria com a extensao de verdade em quem a tem —, o system prompt diz que as
+      // ferramentas do hub cumprem esse papel. Assim a skill fica intocada e continua
+      // sendo atualizada pelo plugin.
+      args.push('--append-system-prompt', AVISO_NAVEGADOR);
+    }
 
     const processo = spawn('claude', args, {
       cwd: pasta,
