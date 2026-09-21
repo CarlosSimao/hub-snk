@@ -22,7 +22,16 @@ const ROTULO: Record<Ferramenta, string> = {
   claude: 'Abrir o Claude Code nesta pasta',
 };
 
-export function AbrirRepoEm({ caminho, toast }: { caminho: string; toast: Avisar }) {
+export function AbrirRepoEm({
+  caminho,
+  toast,
+  onDocumentoEntrega,
+}: {
+  caminho: string;
+  toast: Avisar;
+  /** Quando existe, entra um quarto botao que leva para a aba Skills nesta pasta. */
+  onDocumentoEntrega?: () => void;
+}) {
   const [ocupada, setOcupada] = useState<Ferramenta | null>(null);
 
   async function abrir(ferramenta: Ferramenta): Promise<void> {
@@ -54,7 +63,40 @@ export function AbrirRepoEm({ caminho, toast }: { caminho: string; toast: Avisar
           <Icone ferramenta={ferramenta} />
         </button>
       ))}
+
+      {onDocumentoEntrega && (
+        <button
+          type="button"
+          className="btn-quadrado"
+          aria-label="Gerar documento de entrega com a skill do Claude Code"
+          title="Gerar documento de entrega (abre a aba Skills nesta pasta)"
+          onClick={onDocumentoEntrega}
+        >
+          <IconeDocumento />
+        </button>
+      )}
     </div>
+  );
+}
+
+/** Folha com linhas de texto: o documento de entrega. */
+function IconeDocumento() {
+  return (
+    <svg
+      width={16}
+      height={16}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7z" />
+      <path d="M14 3v4h4" />
+      <path d="M9 12h6M9 16h6" />
+    </svg>
   );
 }
 

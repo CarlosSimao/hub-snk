@@ -13,23 +13,25 @@ import { Footer, Toasts, Warnings } from './components/Chrome.tsx';
 import { PainelInfra } from './components/PainelInfra.tsx';
 import { PainelSankhya } from './components/sankhya/PainelSankhya.tsx';
 import { PainelGit } from './components/git/PainelGit.tsx';
+import { PainelSkills, type AberturaSkill } from './components/skills/PainelSkills.tsx';
 import { PainelConfiguracoes } from './components/ConfiguracoesGerais.tsx';
 
 const CHAVE_SELECIONADO = 'sankhya-hub-selecionado';
 const CHAVE_ABA = 'sankhya-hub-aba';
 
-type AbaTopo = 'infra' | 'sankhya' | 'git' | 'config';
+type AbaTopo = 'infra' | 'sankhya' | 'git' | 'skills' | 'config';
 
 const ABAS: Aba<AbaTopo>[] = [
   { id: 'infra', rotulo: 'Infra', titulo: 'Monitoramento de WildFly, Oracle e containers' },
   { id: 'sankhya', rotulo: 'Sankhya', titulo: 'Clientes, credenciais e agenda' },
   { id: 'git', rotulo: 'Git', titulo: 'Repositórios do git-autosync' },
+  { id: 'skills', rotulo: 'Skills', titulo: 'Executa skills do Claude Code numa pasta de repositório' },
   { id: 'config', rotulo: 'Configurações', titulo: 'Ajustes que valem para o hub inteiro' },
 ];
 
 function abaSalva(): AbaTopo {
   const valor = localStorage.getItem(CHAVE_ABA);
-  return valor === 'sankhya' || valor === 'git' || valor === 'config' ? valor : 'infra';
+  return valor === 'sankhya' || valor === 'git' || valor === 'skills' || valor === 'config' ? valor : 'infra';
 }
 
 export function App() {
@@ -37,6 +39,8 @@ export function App() {
   const notificacoes = useNotificacoes();
 
   const [aba, setAba] = useState<AbaTopo>(abaSalva);
+  // Atalho do cartão do cliente: abre a aba Skills com skill e pasta já preenchidas.
+  const [aberturaSkill, setAberturaSkill] = useState<AberturaSkill | undefined>(undefined);
 
   /**
    * Projeto selecionado na lista lateral, preservado entre recargas.
@@ -54,8 +58,12 @@ export function App() {
       // Um serviço que CAI traz o painel de Infra para a frente e abre o projeto. É a
       // única navegação automática: quando algo quebra, você quer o detalhe na tela sem
       // ter que caçar a aba e o projeto certos.
+      //
+      // Exceto na aba Skills: lá existe uma conversa em andamento, e trocar a aba no meio
+      // dela tira da tela justamente o que estava sendo acompanhado. O toast continua
+      // avisando da queda, e a aba Infra continua a um clique.
       if (alert.severity === 'critical') {
-        setAba('infra');
+        setAba((atual) => (atual === 'skills' ? atual : 'infra'));
         setSelecionado(alert.serviceId);
       }
       toast(
@@ -161,9 +169,19 @@ export function App() {
           />
         )}
 
-        {aba === 'sankhya' && <PainelSankhya toast={toast} />}
+        {aba === 'sankhya' && (
+          <PainelSankhya
+            toast={toast}
+            onAbrirSkill={(pedido) => {
+              setAberturaSkill(pedido);
+              setAba('skills');
+            }}
+          />
+        )}
 
         {aba === 'git' && <PainelGit toast={toast} />}
+
+        {aba === 'skills' && <PainelSkills toast={toast} abertura={aberturaSkill} />}
 
         {aba === 'config' && <PainelConfiguracoes toast={toast} />}
       </main>

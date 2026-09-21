@@ -25,7 +25,14 @@ export interface FocoCliente {
   seq: number;
 }
 
-export function PainelSankhya({ toast }: { toast: Avisar }) {
+export function PainelSankhya({
+  toast,
+  onAbrirSkill,
+}: {
+  toast: Avisar;
+  /** Atalho do cartao do cliente para a aba Skills, com skill e pasta preenchidas. */
+  onAbrirSkill?: (pedido: { skill: string; pasta: string }) => void;
+}) {
   const modoDesktop = useModoDesktop();
   // Credenciais é o fluxo antigo (navegador externo dedicado, hub-helper.ps1 + CDP).
   // Dentro do shell desktop, login já acontece direto nas abas ERP/Experience do
@@ -47,7 +54,7 @@ export function PainelSankhya({ toast }: { toast: Avisar }) {
     <>
       <TabBar abas={abas} ativa={aba} onTrocar={setAba} variante="sub" />
 
-      {aba === 'clientes' && <TelaClientes toast={toast} foco={foco} />}
+      {aba === 'clientes' && <TelaClientes toast={toast} foco={foco} onAbrirSkill={onAbrirSkill} />}
       {aba === 'credenciais' && !modoDesktop && <TelaCredenciais toast={toast} />}
       {aba === 'agenda' && <AgendaMensal onAbrirCliente={abrirCliente} />}
       {aba === 'agenda-erp' && <TelaAgendaErp toast={toast} />}

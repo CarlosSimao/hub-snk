@@ -3470,3 +3470,157 @@ Processos: ...").
   font-size: 11px;
   color: var(--text-faint);
 }
+
+/* ----------------------------- aba Skills -----------------------------
+   Conversa com uma skill do Claude Code. O que a skill EXECUTA (arquivo escrito, comando
+   rodado) aparece em linha propria e discreta: e a contrapartida de nada pedir
+   confirmacao — fica tudo registrado a vista. */
+.painel-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.skills-config {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 14px;
+}
+
+.skills-config .campo {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.skills-config select,
+.skills-config input {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-solid);
+  color: var(--text);
+  font: 12px var(--sans);
+}
+
+.skills-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.skills-sessao {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.skills-sessao-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.skills-custo {
+  font-variant-numeric: tabular-nums;
+}
+
+.skills-conversa {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.skills-balao {
+  max-width: 78ch;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  /* A skill responde em Markdown com quebras que importam (listas, perguntas numeradas). */
+  white-space: pre-wrap;
+}
+
+.skills-balao.skill {
+  border: 1px solid var(--border);
+  background: var(--surface-solid);
+  color: var(--text);
+}
+
+.skills-balao.usuario {
+  align-self: flex-end;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text);
+}
+
+.skills-ferramenta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.skills-ferramenta-nome {
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  text-transform: lowercase;
+}
+
+.skills-ferramenta code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skills-fim {
+  margin: 2px 0;
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.skills-fim.erro {
+  color: var(--down);
+}
+
+.skills-rodando {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.skills-entrada {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 12px;
+}
+
+.skills-entrada textarea {
+  flex: 1;
+  resize: vertical;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-solid);
+  color: var(--text);
+  font: 12.5px var(--sans);
+}

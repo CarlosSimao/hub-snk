@@ -32,7 +32,15 @@ const ABAS_CLIENTE: Aba<AbaCliente>[] = [
  */
 type Editor = { cliente: Cliente | undefined } | null;
 
-export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoCliente | null }) {
+export function TelaClientes({
+  toast,
+  foco,
+  onAbrirSkill,
+}: {
+  toast: Avisar;
+  foco?: FocoCliente | null;
+  onAbrirSkill?: (pedido: { skill: string; pasta: string }) => void;
+}) {
   const { clientes, carregando, salvar, remover, recarregar } = useClientes(toast);
   const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
   const [editor, setEditor] = useState<Editor>(null);
@@ -128,6 +136,7 @@ export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoClient
 
             {abaCliente === 'cartao' && (
               <CartaoDoCliente
+                onAbrirSkill={onAbrirSkill}
                 key={selecionado.id}
                 cliente={selecionado}
                 toast={toast}

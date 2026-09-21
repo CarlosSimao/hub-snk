@@ -874,3 +874,33 @@ export function worstStatus(statuses: Status[]): Status {
   }
   return seen ? worst : 'unknown';
 }
+
+/* ----------------------------- skills do Claude Code ----------------------------- */
+
+/** Modelos que a tela oferece. Vazio = o padrao do `claude` instalado na maquina. */
+export const MODELOS_SKILL = ['', 'opus', 'sonnet', 'haiku'] as const;
+export type ModeloSkill = (typeof MODELOS_SKILL)[number];
+
+export interface SkillDisponivel {
+  /** Como a skill e' invocada: `plugin:skill`, ou so' `skill` quando e' do usuario. */
+  id: string;
+  nome: string;
+  descricao: string;
+  origem: 'plugin' | 'usuario';
+  /** Plugin e versao instalada — o que a tela mostra para dizer de onde a skill veio. */
+  plugin: string;
+  versao: string;
+}
+
+export interface EstadoSessaoSkill {
+  id: string;
+  skill: string;
+  pasta: string;
+  modelo: ModeloSkill;
+  /** `session_id` do proprio Claude Code, para um futuro `--resume`. */
+  sessaoClaude: string;
+  viva: boolean;
+  /** Custo acumulado reportado pela CLI — a tela mostra o da execucao. */
+  custoUsd: number;
+  iniciadaEm: string;
+}

@@ -45,6 +45,13 @@ const PORTA_PADRAO: Record<Sgbd, string> = {
   outro: '',
 };
 
+/**
+ * A skill que o atalho do repositorio aciona. Fixa de proposito: o botao existe para o
+ * caso comum (documentar o que foi entregue); qualquer outra skill sai pela aba Skills,
+ * que lista todas as instaladas.
+ */
+const SKILL_DOC_ENTREGA = 'sankhya:sankhya-doc-entrega';
+
 /** Um banco só aparece no cartão se alguém anotou alguma coisa nele. */
 function bancoPreenchido(banco: BancoDaBase): boolean {
   return Boolean(
@@ -55,12 +62,14 @@ function bancoPreenchido(banco: BancoDaBase): boolean {
 interface Props {
   cliente: Cliente;
   toast: Avisar;
+  /** Abre a aba Skills com a skill e a pasta deste repositorio ja escolhidas. */
+  onAbrirSkill?: (pedido: { skill: string; pasta: string }) => void;
   onEditar: () => void;
   onRemover: () => void | Promise<unknown>;
   onSalvarCliente: (entrada: ClienteEntrada) => Promise<unknown>;
 }
 
-export function CartaoDoCliente({ cliente, toast, onEditar, onRemover, onSalvarCliente }: Props) {
+export function CartaoDoCliente({ cliente, toast, onAbrirSkill, onEditar, onRemover, onSalvarCliente }: Props) {
   const dados = useCartaoCliente(cliente.id, toast);
   const git = useGitAutosync(toast);
   const [editor, setEditor] = useState<Editor>(null);
@@ -276,7 +285,18 @@ export function CartaoDoCliente({ cliente, toast, onEditar, onRemover, onSalvarC
                 branch={branchDoRemoto(repo.remoto)}
               />
               {/* Só com caminho cadastrado: sem pasta não há o que abrir. */}
-              {repo.caminhoLocal && <AbrirRepoEm caminho={repo.caminhoLocal} toast={toast} />}
+              {repo.caminhoLocal && (
+                <AbrirRepoEm
+                  caminho={repo.caminhoLocal}
+                  toast={toast}
+                  {...(onAbrirSkill
+                    ? {
+                        onDocumentoEntrega: () =>
+                          onAbrirSkill({ skill: SKILL_DOC_ENTREGA, pasta: repo.caminhoLocal }),
+                      }
+                    : {})}
+                />
+              )}
             </div>
             <AcoesItem
               onEditar={() => setEditor({ tipo: 'repo', item: repo })}

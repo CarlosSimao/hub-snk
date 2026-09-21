@@ -26,24 +26,12 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { MODELOS_SKILL, type EstadoSessaoSkill, type ModeloSkill, type SkillDisponivel } from './types.ts';
 
-/** Modelos oferecidos na tela. Vazio = o padrao do `claude` da maquina. */
-export const MODELOS = ['', 'opus', 'sonnet', 'haiku'] as const;
-export type ModeloSkill = (typeof MODELOS)[number];
+export type { EstadoSessaoSkill, ModeloSkill, SkillDisponivel };
 
 export function ehModelo(valor: string): valor is ModeloSkill {
-  return (MODELOS as readonly string[]).includes(valor);
-}
-
-export interface SkillDisponivel {
-  /** Como a skill e' invocada: `plugin:skill` ou so' `skill` quando e' do usuario. */
-  id: string;
-  nome: string;
-  descricao: string;
-  origem: 'plugin' | 'usuario';
-  /** Plugin e versao instalada — o que a tela mostra para dizer de onde a skill veio. */
-  plugin: string;
-  versao: string;
+  return (MODELOS_SKILL as readonly string[]).includes(valor);
 }
 
 /** Erro de uso: skill desconhecida, pasta invalida, sessao que nao existe. */
@@ -164,20 +152,7 @@ export interface EventoSkill {
   bruto: unknown;
 }
 
-export interface EstadoSessao {
-  id: string;
-  skill: string;
-  pasta: string;
-  modelo: ModeloSkill;
-  /** `session_id` do proprio Claude Code, para um futuro `--resume`. */
-  sessaoClaude: string;
-  viva: boolean;
-  /** Soma dos `total_cost_usd` reportados — a tela mostra o custo da execucao. */
-  custoUsd: number;
-  iniciadaEm: string;
-}
-
-interface Sessao extends EstadoSessao {
+interface Sessao extends EstadoSessaoSkill {
   processo: ChildProcess;
   eventos: EventoSkill[];
   ouvintes: Set<(evento: EventoSkill) => void>;
@@ -201,7 +176,7 @@ export class Skills {
    * O `cwd` e' a pasta do repositorio: e' dele que a skill le os fontes e e' nele que ela
    * grava o documento.
    */
-  iniciar(entrada: { skill: string; pasta: string; modelo: string; mensagem: string }): EstadoSessao {
+  iniciar(entrada: { skill: string; pasta: string; modelo: string; mensagem: string }): EstadoSessaoSkill {
     const skill = entrada.skill.trim();
     if (!skill) throw new PedidoSkillError('informe a skill');
     if (!this.listar().some((disponivel) => disponivel.id === skill)) {
@@ -275,7 +250,7 @@ export class Skills {
   }
 
   /** Nova mensagem do usuario na sessao — retoma o mesmo contexto. */
-  enviar(id: string, mensagem: string): EstadoSessao {
+  enviar(id: string, mensagem: string): EstadoSessaoSkill {
     const sessao = this.#sessao(id);
     if (!sessao.viva) throw new PedidoSkillError('esta sessão já foi encerrada');
 
@@ -293,14 +268,14 @@ export class Skills {
     return this.estado(id);
   }
 
-  encerrar(id: string): EstadoSessao {
+  encerrar(id: string): EstadoSessaoSkill {
     const sessao = this.#sessao(id);
     if (sessao.viva) sessao.processo.kill();
     sessao.viva = false;
     return this.estado(id);
   }
 
-  estado(id: string): EstadoSessao {
+  estado(id: string): EstadoSessaoSkill {
     const { processo, eventos, ouvintes, parcial, ...publico } = this.#sessao(id);
     void processo;
     void eventos;
@@ -309,7 +284,7 @@ export class Skills {
     return publico;
   }
 
-  sessoes(): EstadoSessao[] {
+  sessoes(): EstadoSessaoSkill[] {
     return [...this.#sessoes.keys()].map((id) => this.estado(id));
   }
 
