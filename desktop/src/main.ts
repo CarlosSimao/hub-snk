@@ -63,6 +63,8 @@ function criarJanela(): void {
   tabs.criarAbaPrincipal('experience', EXPERIENCE_URL, PARTICAO);
   tabs.reposicionar();
   tabs.mostrar('hub');
+  // Depois de criar as tres: aplica o que estava escondido na sessao anterior.
+  tabs.restaurarGuiasEscondidas();
   void tabs.carregarBasesCadastradas();
 
   // Captura/recaptura periódica: a Experience é SPA e o token pode surgir depois do
@@ -102,6 +104,7 @@ ipcMain.handle('layout:definirAlturaTopo', (_evt, altura: number) => {
 });
 
 ipcMain.handle('tabs:mostrar', (_evt, id: string) => ({ ok: tabs?.mostrar(id) ?? false }));
+ipcMain.handle('guias:estado', () => tabs?.guiasPrincipais() ?? []);
 ipcMain.handle('tabs:recarregar', (_evt, id: string) => ({ ok: tabs?.recarregar(id) ?? false }));
 ipcMain.handle('links:fechar', (_evt, origin: string) => ({ ok: tabs?.fecharAbaCliente(origin) ?? false }));
 ipcMain.handle('links:lista', () => tabs?.abasClientesAbertas() ?? []);

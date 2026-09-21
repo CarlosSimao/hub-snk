@@ -31,9 +31,26 @@ export function montarMenu(janela: () => BrowserWindow | null, tabs: () => TabMa
     {
       label: 'Guias',
       submenu: [
-        { label: 'Painel', accelerator: 'CmdOrCtrl+1', click: () => tabs()?.mostrar('hub') },
-        { label: 'Sankhya Om', accelerator: 'CmdOrCtrl+2', click: () => tabs()?.mostrar('erp') },
-        { label: 'Experience', accelerator: 'CmdOrCtrl+3', click: () => tabs()?.mostrar('experience') },
+        { label: 'Ir para o Painel', accelerator: 'CmdOrCtrl+1', click: () => tabs()?.mostrar('hub') },
+        { label: 'Ir para o Sankhya Om', accelerator: 'CmdOrCtrl+2', click: () => tabs()?.mostrar('erp') },
+        { label: 'Ir para a Experience', accelerator: 'CmdOrCtrl+3', click: () => tabs()?.mostrar('experience') },
+        { type: 'separator' },
+        { label: 'Mostrar na barra', enabled: false },
+        // Uma caixa por guia: marcada = aparece na barra. Esconder nao fecha nem
+        // recarrega — a guia continua viva, so' sai de vista.
+        ...(tabs()?.guiasPrincipais() ?? []).map((guia) => ({
+          label: guia.rotulo,
+          type: 'checkbox' as const,
+          checked: guia.visivel,
+          click: () => {
+            const gerenciador = tabs();
+            if (!gerenciador) return;
+            // A ultima guia visivel nao pode sair: a janela ficaria em branco. Quando o
+            // gerenciador recusa, o menu e' remontado e a caixa volta a marcada.
+            gerenciador.definirGuiaVisivel(guia.id, !guia.visivel);
+            montarMenu(janela, tabs);
+          },
+        })),
       ],
     },
     {

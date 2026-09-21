@@ -14,6 +14,12 @@ contextBridge.exposeInMainWorld('hub', {
     mostrar: (id: string) => ipcRenderer.invoke('tabs:mostrar', id),
     recarregar: (id: string) => ipcRenderer.invoke('tabs:recarregar', id),
   },
+  guias: {
+    /** Estado das guias de cima (rotulo e se estao visiveis) — a barra redesenha com isto. */
+    aoAtualizar: (cb: (guias: Array<{ id: string; rotulo: string; visivel: boolean }>) => void) =>
+      ipcRenderer.on('guias:estado', (_e, guias) => cb(guias)),
+    estado: () => ipcRenderer.invoke('guias:estado'),
+  },
   links: {
     listar: () => ipcRenderer.invoke('links:lista'),
     fechar: (origin: string) => ipcRenderer.invoke('links:fechar', origin),

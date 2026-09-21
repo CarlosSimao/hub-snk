@@ -80,3 +80,21 @@ async function atualizarStatus() {
 }
 atualizarStatus();
 setInterval(atualizarStatus, 20_000);
+
+/**
+ * Guias escondidas pelo menu do aplicativo.
+ *
+ * Esconder e' so' visual: a guia continua carregada no shell, entao trazer de volta e'
+ * instantaneo. O botao sai da barra, e a altura muda — por isso informa a altura de novo,
+ * senao o conteudo das guias fica com um vao (ou sobrepondo a barra).
+ */
+function aplicarEstadoDasGuias(guias) {
+  for (const { id, visivel } of guias) {
+    const botao = document.querySelector(`#abas button[data-id="${id}"]`);
+    if (botao) botao.hidden = !visivel;
+  }
+  setTimeout(informarAlturaTopo, 0);
+}
+
+window.hub.guias.aoAtualizar(aplicarEstadoDasGuias);
+window.hub.guias.estado().then(aplicarEstadoDasGuias);

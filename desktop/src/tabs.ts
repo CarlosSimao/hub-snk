@@ -9,7 +9,9 @@
  * docs/specs/sankhya-hub-desktop-poc-relatorio.md, Rodada 3) — não é papel do shell de
  * produção reproduzir o arnês de investigação.
  */
-import { BrowserWindow, WebContentsView, session } from 'electron';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { BrowserWindow, WebContentsView, app, session } from 'electron';
 import { DOMINIOS_POPUP_PERMITIDOS, HUB_URL } from './config';
 import { logEvento, origemSemQuery } from './log';
 import { tentarAutofill } from './autofill';
@@ -71,6 +73,38 @@ function tituloBase(info: InfoBaseCliente): string {
   return info.clienteNome;
 }
 
+/** O que a barra escreve em cada guia de cima — igual ao HTML de `index.html`. */
+const ROTULO_GUIA: Record<TabId, string> = {
+  hub: 'Painel',
+  erp: 'Sankhya Om',
+  experience: 'Experience',
+};
+
+/** Onde a escolha de guias escondidas sobrevive ao fechamento do aplicativo. */
+function arquivoGuias(): string {
+  return join(app.getPath('userData'), 'guias.json');
+}
+
+function lerGuiasEscondidas(): string[] {
+  try {
+    const dados = JSON.parse(readFileSync(arquivoGuias(), 'utf8')) as { escondidas?: unknown };
+    return Array.isArray(dados.escondidas) ? dados.escondidas.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    // Primeira execucao, ou arquivo corrompido: todas as guias visiveis.
+    return [];
+  }
+}
+
+function gravarGuiasEscondidas(escondidas: string[]): void {
+  try {
+    writeFileSync(arquivoGuias(), JSON.stringify({ escondidas }, null, 2), 'utf8');
+  } catch (err) {
+    // Preferencia de tela nao vale travar o aplicativo: a sessao atual respeita a
+    // escolha, a proxima abre com tudo visivel.
+    logEvento('guias-nao-gravadas', { erro: (err as Error).message });
+  }
+}
+
 export class TabManager {
   readonly #janela: BrowserWindow;
   readonly #abas = new Map<string, WebContentsView>();
@@ -82,6 +116,14 @@ export class TabManager {
   readonly #basesPorOrigin = new Map<string, InfoBaseCliente>();
   #abaAtiva = 'hub';
   #alturaTopo = 96;
+  /**
+   * Guias que o usuario escondeu da barra.
+   *
+   * Esconder NAO fecha: a `WebContentsView` continua carregada, entao trazer a guia de
+   * volta e' instantaneo e nao perde o que estava na tela (formulario pela metade, tela
+   * do ERP aberta no lugar certo). E' o contrario de fechar uma aba de cliente.
+   */
+  readonly #escondidas = new Set<string>();
 
   constructor(janela: BrowserWindow) {
     this.#janela = janela;
@@ -180,6 +222,57 @@ export class TabManager {
     }
     logEvento('aba-ativada', { id });
     return true;
+  }
+
+  /** As guias de cima, com o rotulo que a barra mostra e se estao visiveis. */
+  guiasPrincipais(): { id: TabId; rotulo: string; visivel: boolean }[] {
+    return (['hub', 'erp', 'experience'] as TabId[])
+      .filter((id) => this.#abas.has(id))
+      .map((id) => ({ id, rotulo: ROTULO_GUIA[id], visivel: !this.#escondidas.has(id) }));
+  }
+
+  /**
+   * Esconde ou traz de volta uma guia da barra.
+   *
+   * Esconder a guia ATIVA troca para a primeira visivel: deixar a guia escondida na
+   * frente daria uma janela sem guia marcada na barra e sem jeito obvio de sair dela.
+   *
+   * A ultima guia visivel nao pode ser escondida — a janela ficaria em branco.
+   */
+  definirGuiaVisivel(id: string, visivel: boolean): boolean {
+    if (!this.#abas.has(id)) return false;
+
+    if (visivel) {
+      this.#escondidas.delete(id);
+    } else {
+      const visiveis = this.guiasPrincipais().filter((guia) => guia.visivel);
+      if (visiveis.length <= 1 && visiveis[0]?.id === id) return false;
+      this.#escondidas.add(id);
+    }
+
+    gravarGuiasEscondidas([...this.#escondidas]);
+
+    if (!visivel && this.#abaAtiva === id) {
+      const proxima = this.guiasPrincipais().find((guia) => guia.visivel);
+      if (proxima) this.mostrar(proxima.id);
+    }
+
+    logEvento('guia-visibilidade', { id, visivel });
+    this.#emitirGuias();
+    return true;
+  }
+
+  /** Manda a barra redesenhar — o HTML das guias de cima e fixo, o estado vem daqui. */
+  #emitirGuias(): void {
+    this.#janela.webContents.send('guias:estado', this.guiasPrincipais());
+  }
+
+  /** Chamado depois de criar as guias: aplica o que estava escondido da sessao anterior. */
+  restaurarGuiasEscondidas(): void {
+    for (const id of lerGuiasEscondidas()) {
+      if (this.#abas.has(id) && id !== this.#abaAtiva) this.#escondidas.add(id);
+    }
+    this.#emitirGuias();
   }
 
   recarregar(id: string): boolean {
