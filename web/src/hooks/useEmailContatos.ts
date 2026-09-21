@@ -65,7 +65,7 @@ export function useEmailContatos(clienteId: number, toast: Avisar) {
   }, [clienteId, toast]);
 
   const enviarEmail = useCallback(
-    async (mensagem: { assunto: string; corpo: string; anexo?: AnexoEmail }) => {
+    async (mensagem: { assunto: string; corpo: string; anexo?: AnexoEmail; documentos?: string[] }) => {
       setOcupado(true);
       try {
         const { ok, body } = await enviar<{ destinatarios: string[] }>(

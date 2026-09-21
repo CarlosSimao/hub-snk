@@ -904,3 +904,13 @@ export interface EstadoSessaoSkill {
   custoUsd: number;
   iniciadaEm: string;
 }
+
+/** Documento de entrega ja' gerado num repositorio do cliente — ver src/documentosEntrega.ts. */
+export interface DocumentoEntregaCliente {
+  /** Caminho absoluto; e' a chave no envio do e-mail. */
+  caminho: string;
+  nome: string;
+  repositorio: string;
+  bytes: number;
+  modificadoEm: string;
+}

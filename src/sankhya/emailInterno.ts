@@ -258,7 +258,7 @@ ${config.assinatura}` : mensagem.corpo,
 
   async enviar(
     clienteId: number,
-    mensagem: { assunto: string; corpo: string; anexo?: AnexoEmail },
+    mensagem: { assunto: string; corpo: string; anexo?: AnexoEmail; anexos?: AnexoEmail[] },
   ): Promise<{ destinatarios: string[] }> {
     const transporte = await this.#transporte();
     if (!transporte) throw new Error('e-mail não configurado — configure o SMTP antes de enviar');
@@ -294,20 +294,22 @@ ${config.assinatura}` : mensagem.corpo,
     // e-mails em rascunho.
     const corpo = config.assinatura ? `${mensagem.corpo}\n\n--\n${config.assinatura}` : mensagem.corpo;
 
+    // `anexo` (arquivo escolhido a mao) e `anexos` (os documentos de entrega marcados na
+    // tela) convivem: o primeiro e' anterior a esta lista e continua valendo.
+    const anexos = [...(mensagem.anexo ? [mensagem.anexo] : []), ...(mensagem.anexos ?? [])];
+
     await transporte.sendMail({
       from: remetente,
       to: destinatarios.join(', '),
       subject: mensagem.assunto,
       text: corpo,
-      ...(mensagem.anexo
+      ...(anexos.length
         ? {
-            attachments: [
-              {
-                filename: mensagem.anexo.nomeArquivo,
-                content: Buffer.from(mensagem.anexo.conteudoBase64, 'base64'),
-                contentType: mensagem.anexo.tipoMime || undefined,
-              },
-            ],
+            attachments: anexos.map((item) => ({
+              filename: item.nomeArquivo,
+              content: Buffer.from(item.conteudoBase64, 'base64'),
+              contentType: item.tipoMime || undefined,
+            })),
           }
         : {}),
     });

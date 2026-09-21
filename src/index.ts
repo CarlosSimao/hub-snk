@@ -229,7 +229,7 @@ async function main(): Promise<void> {
   const pendencias = new Pendencias(clientes, experience);
   const resumo = new ResumoAnotacoes(clientes, emailInterno, pendencias);
   resumo.iniciar((err) => app.log.warn({ err }, 'resumo diário de anotações falhou'));
-  registerRoutesEmail(app, { emailInterno, clientes, experience, resumo });
+  registerRoutesEmail(app, { emailInterno, clientes, experience, resumo, cartao });
 
   // Recifra no formato do shell o que o hub-helper.ps1 gravou. Depois da janela de
   // transicao, e o que permite apagar o helper sem deixar senha ilegivel para tras.

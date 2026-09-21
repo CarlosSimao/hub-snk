@@ -3624,3 +3624,31 @@ Processos: ...").
   color: var(--text);
   font: 12.5px var(--sans);
 }
+
+/* Documentos de entrega oferecidos como anexo na tela de e-mail do cliente. A lista sai
+   de `src/documentosEntrega.ts`, e o mais recente ja vem marcado. */
+.documentos-entrega {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.documentos-entrega label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.documentos-entrega .documento-nome {
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.documentos-entrega small {
+  font-size: 11px;
+  color: var(--text-faint);
+}

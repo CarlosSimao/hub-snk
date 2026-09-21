@@ -6,9 +6,11 @@ import type {
   ConfigEmail,
   ContatoEmailCliente,
   ContatoEmailClienteEntrada,
+  DocumentoEntregaCliente,
   PapelContatoEmail,
   RepoCliente,
 } from '../../types.ts';
+import { requisitar } from '../../lib/api.ts';
 import { useCartaoCliente } from '../../hooks/useCartaoCliente.ts';
 import { useEmailConfig } from '../../hooks/useEmailConfig.ts';
 import { useEmailContatos } from '../../hooks/useEmailContatos.ts';
@@ -201,6 +203,38 @@ function ComporEnviar({
   const [anexo, setAnexo] = useState<AnexoEmail | null>(null);
   const [anexando, setAnexando] = useState(false);
 
+  /**
+   * Documentos de entrega que a skill já gerou nos repositórios deste cliente.
+   *
+   * O mais recente nasce MARCADO: depois de gerar o documento, anexá-lo é o passo
+   * seguinte em praticamente todo envio. Desmarcar e marcar de novo é um clique, e nada
+   * vai junto sem estar marcado.
+   */
+  const [documentos, setDocumentos] = useState<DocumentoEntregaCliente[]>([]);
+  const [marcados, setMarcados] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelado = false;
+    void requisitar<{ documentos: DocumentoEntregaCliente[] }>(
+      `/api/clientes/${cliente.id}/email/documentos`,
+    ).then(({ ok, body }) => {
+      if (cancelado || !ok) return;
+      const achados = body.documentos ?? [];
+      setDocumentos(achados);
+      // Só o primeiro (o mais recente) entra marcado; os antigos ficam à disposição.
+      setMarcados(achados.length ? [achados[0]!.caminho] : []);
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [cliente.id]);
+
+  const alternarDocumento = (caminho: string) => {
+    setMarcados((atuais) =>
+      atuais.includes(caminho) ? atuais.filter((item) => item !== caminho) : [...atuais, caminho],
+    );
+  };
+
   const [repoId, setRepoId] = useState<number | ''>(repos[0]?.id ?? '');
   const [desde, setDesde] = useState(() => paraDataIso(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)));
   const [ate, setAte] = useState(() => paraDataIso(new Date()));
@@ -247,16 +281,19 @@ function ComporEnviar({
   };
 
   const enviar = async () => {
+    const nomesMarcados = documentos.filter((doc) => marcados.includes(doc.caminho)).map((doc) => doc.nome);
     const resumo =
       `Enviar e-mail sobre ${cliente.nome} para:\n${destinatarios.join('\n')}\n\n` +
       `Assunto: ${assunto}` +
-      (anexo ? `\nAnexo: ${anexo.nomeArquivo}` : '');
+      (anexo ? `\nAnexo: ${anexo.nomeArquivo}` : '') +
+      (nomesMarcados.length ? `\nDocumentos: ${nomesMarcados.join(', ')}` : '');
     if (!window.confirm(resumo)) return;
 
     const enviados = await contatosHook.enviarEmail({
       assunto,
       corpo,
       ...(anexo ? { anexo } : {}),
+      ...(marcados.length ? { documentos: marcados } : {}),
     });
     if (enviados) {
       setCorpo('');
@@ -306,6 +343,33 @@ function ComporEnviar({
             <small className="campo-dica">A assinatura configurada acima entra automaticamente, ao final.</small>
           )}
         </div>
+
+        {documentos.length > 0 && (
+          <div className="campo">
+            <label className="campo-nome">Documentos de entrega gerados</label>
+            <ul className="documentos-entrega">
+              {documentos.map((documento) => (
+                <li key={documento.caminho}>
+                  <label title={documento.caminho}>
+                    <input
+                      type="checkbox"
+                      checked={marcados.includes(documento.caminho)}
+                      onChange={() => alternarDocumento(documento.caminho)}
+                    />
+                    <span className="documento-nome">{documento.nome}</span>
+                    <small>
+                      {documento.repositorio} · {(documento.bytes / 1024).toFixed(0)} KB ·{' '}
+                      {new Date(documento.modificadoEm).toLocaleString('pt-BR')}
+                    </small>
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <small className="campo-dica">
+              O mais recente já vem marcado. O que estiver marcado vai anexado ao e-mail.
+            </small>
+          </div>
+        )}
 
         <div className="campo">
           <label className="campo-nome">Anexo</label>

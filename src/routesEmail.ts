@@ -12,6 +12,9 @@ import { EvidenciaUsoError } from './evidenciaIa.ts';
 import { paraLembrar, type ResumoAnotacoes } from './resumoAnotacoes.ts';
 import type { EmailInterno } from './sankhya/emailInterno.ts';
 import type { Clientes } from './sankhya/clientes.ts';
+import type { CartaoClientes } from './sankhya/cartao.ts';
+import { documentosDoCliente, tipoMime } from './documentosEntrega.ts';
+import { readFileSync } from 'node:fs';
 import {
   PAPEIS_CONTATO_EMAIL,
   type AgenteIA,
@@ -34,6 +37,8 @@ function ehDia(valor: unknown): valor is string {
 }
 
 export interface RouteEmailDeps {
+  /** Cartao do cliente — e dele que saem os repositorios onde os documentos moram. */
+  cartao: CartaoClientes;
   /** Resumo diario das anotacoes — so' para o disparo manual da tela. */
   resumo?: ResumoAnotacoes;
   emailInterno: EmailInterno;
@@ -85,7 +90,7 @@ function lerContatos(corpo: unknown): ContatoEmailClienteEntrada[] | null {
 }
 
 export function registerRoutesEmail(app: FastifyInstance, deps: RouteEmailDeps): void {
-  const { emailInterno, clientes, experience, resumo } = deps;
+  const { emailInterno, clientes, experience, resumo, cartao } = deps;
 
   app.get<{ Params: { id: string } }>('/api/clientes/:id/email/contatos', async (request, reply) => {
     const clienteId = Number(request.params.id);
@@ -108,6 +113,19 @@ export function registerRoutesEmail(app: FastifyInstance, deps: RouteEmailDeps):
    * Experience. Melhor esforco: sem projeto vinculado, devolve lista vazia em vez de erro
    * — o cadastro manual continua funcionando sem Experience nenhuma.
    */
+/**
+   * Documentos de entrega ja' gerados nos repositorios do cliente.
+   *
+   * A tela de e-mail usa para oferecer o anexo pronto logo depois de a skill gerar o
+   * documento — e e' esta lista que autoriza o envio: caminho que nao esta' aqui nao
+   * vira anexo (ver a rota de envio).
+   */
+  app.get<{ Params: { id: string } }>('/api/clientes/:id/email/documentos', async (request, reply) => {
+    const clienteId = Number(request.params.id);
+    if (!clientes.obter(clienteId)) return reply.code(404).send({ error: 'cliente não encontrado' });
+    return { documentos: documentosDoCliente(cartao, clienteId) };
+  });
+
   app.get<{ Params: { id: string } }>('/api/clientes/:id/email/sugestao', async (request, reply) => {
     const cliente = clientes.obter(Number(request.params.id));
     if (!cliente) return reply.code(404).send({ error: 'cliente não encontrado' });
@@ -199,7 +217,7 @@ export function registerRoutesEmail(app: FastifyInstance, deps: RouteEmailDeps):
 
   app.post<{
     Params: { id: string };
-    Body: { assunto?: unknown; corpo?: unknown; anexo?: unknown };
+    Body: { assunto?: unknown; corpo?: unknown; anexo?: unknown; documentos?: unknown };
   }>(
     '/api/clientes/:id/email/enviar',
     // Corpo maior que o padrão do Fastify por causa do anexo em base64 — só nesta rota,
@@ -218,11 +236,35 @@ export function registerRoutesEmail(app: FastifyInstance, deps: RouteEmailDeps):
         return reply.code(400).send({ error: 'anexo inválido — envie { nomeArquivo, tipoMime, conteudoBase64 }' });
       }
 
+      // Os documentos vem por CAMINHO, e cada um e' conferido contra a lista real do
+      // cliente antes de ser lido. Sem essa conferencia, a rota viraria um jeito de
+      // mandar qualquer arquivo da maquina por e-mail informando o caminho.
+      const pedidos = Array.isArray(request.body?.documentos)
+        ? (request.body.documentos as unknown[]).filter((item): item is string => typeof item === 'string')
+        : [];
+
+      const disponiveis = new Map(documentosDoCliente(cartao, clienteId).map((doc) => [doc.caminho, doc]));
+      const anexos: AnexoEmail[] = [];
+      for (const caminho of pedidos) {
+        const documento = disponiveis.get(caminho);
+        if (!documento) return reply.code(400).send({ error: `documento não é deste cliente: ${caminho}` });
+        try {
+          anexos.push({
+            nomeArquivo: documento.nome,
+            tipoMime: tipoMime(documento.nome),
+            conteudoBase64: readFileSync(documento.caminho).toString('base64'),
+          });
+        } catch (err) {
+          return reply.code(409).send({ error: `não consegui ler ${documento.nome}: ${(err as Error).message}` });
+        }
+      }
+
       try {
         const resultado = await emailInterno.enviar(clienteId, {
           assunto,
           corpo,
           ...(anexo ? { anexo } : {}),
+          ...(anexos.length ? { anexos } : {}),
         });
         return { ok: true, ...resultado };
       } catch (err) {
