@@ -55,11 +55,29 @@ export interface PerfilNavegador {
   nome: string;
 }
 
-/** Pastas de perfil do Chrome e do Edge — de onde os favoritos pessoais sao lidos. */
-const RAIZES_PERFIL: { navegador: string; caminho: string }[] = [
-  { navegador: 'chrome', caminho: join(homedir(), 'AppData', 'Local', 'Google', 'Chrome', 'User Data') },
-  { navegador: 'edge', caminho: join(homedir(), 'AppData', 'Local', 'Microsoft', 'Edge', 'User Data') },
-];
+/**
+ * Pastas de perfil do Chrome e do Edge — de onde os favoritos pessoais sao lidos.
+ *
+ * O Linux tem tres convencoes convivendo: pacote do sistema (`~/.config/...`), Flatpak
+ * (`~/.var/app/...`) e Snap (`~/snap/...`). Todas entram; a que nao existir e' ignorada
+ * na leitura, entao listar demais nao custa nada.
+ */
+const RAIZES_PERFIL: { navegador: string; caminho: string }[] =
+  process.platform === 'win32'
+    ? [
+        { navegador: 'chrome', caminho: join(homedir(), 'AppData', 'Local', 'Google', 'Chrome', 'User Data') },
+        { navegador: 'edge', caminho: join(homedir(), 'AppData', 'Local', 'Microsoft', 'Edge', 'User Data') },
+      ]
+    : [
+        { navegador: 'chrome', caminho: join(homedir(), '.config', 'google-chrome') },
+        { navegador: 'chromium', caminho: join(homedir(), '.config', 'chromium') },
+        { navegador: 'edge', caminho: join(homedir(), '.config', 'microsoft-edge') },
+        {
+          navegador: 'chrome',
+          caminho: join(homedir(), '.var', 'app', 'com.google.Chrome', 'config', 'google-chrome'),
+        },
+        { navegador: 'chromium', caminho: join(homedir(), 'snap', 'chromium', 'common', 'chromium') },
+      ];
 
 interface NoFavorito {
   type?: string;

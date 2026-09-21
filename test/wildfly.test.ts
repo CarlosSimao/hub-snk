@@ -40,6 +40,18 @@ describe('Wildfly — identificacao do processo', () => {
     assert.equal(casaInstalacao(comEspaco, RAIZ), true);
   });
 
+  test('caminho Linux tambem separa instalacao de prefixo', () => {
+    // No Linux o separador e barra, e a linha vem de /proc/<pid>/cmdline com os
+    // argumentos colados por espaco. Exigir contrabarra no limite deixaria
+    // /opt/wildfly_producao2 passar pelo buraco que esta regra existe para fechar.
+    const raiz = '/opt/wildfly_producao';
+    const desta = '/usr/lib/jvm/java-17/bin/java -D[Standalone] -jar /opt/wildfly_producao/jboss-modules.jar -mp';
+    const doVizinho = '/usr/lib/jvm/java-17/bin/java -jar /opt/wildfly_producao2/jboss-modules.jar -mp';
+
+    assert.equal(casaInstalacao(desta, raiz), true);
+    assert.equal(casaInstalacao(doVizinho, raiz), false);
+  });
+
   test('caminho com espaco no nome nao vira regex quebrada', () => {
     const raiz = 'C:\\Arquivos de Programas\\wildfly (producao)';
     const cmd = `java.exe -jar ${raiz}\\jboss-modules.jar`;

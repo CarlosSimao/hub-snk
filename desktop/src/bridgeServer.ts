@@ -46,8 +46,9 @@ function tratarCredenciais(req: IncomingMessage, res: ServerResponse, corpo: str
   }
 
   if (!cofre.disponivel()) {
-    // Sem DPAPI disponível, gravar seria gravar em claro. Melhor recusar.
-    responderJson(res, 503, { ok: false, erro: 'criptografia do sistema indisponível neste perfil do Windows' });
+    // Sem criptografia real do sistema, gravar seria gravar em claro. Melhor recusar —
+    // o motivo muda entre Windows (DPAPI) e Linux (chaveiro), ver cofreCredenciais.
+    responderJson(res, 503, { ok: false, erro: cofre.motivoIndisponivel() });
     return;
   }
 
@@ -104,7 +105,7 @@ function tratarSegredo(req: IncomingMessage, res: ServerResponse, corpo: string)
   }
 
   if (!cofre.disponivel()) {
-    responderJson(res, 503, { ok: false, erro: 'criptografia do sistema indisponível neste perfil do Windows' });
+    responderJson(res, 503, { ok: false, erro: cofre.motivoIndisponivel() });
     return;
   }
 
@@ -203,7 +204,7 @@ async function tratarNavegador(
 
   if (req.method === 'POST' && acao === 'capturar') {
     if (!cofre.disponivel()) {
-      responderJson(res, 503, { ok: false, erro: 'criptografia do sistema indisponível neste perfil do Windows' });
+      responderJson(res, 503, { ok: false, erro: cofre.motivoIndisponivel() });
       return;
     }
     try {

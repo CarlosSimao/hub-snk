@@ -84,8 +84,16 @@ function executar(
   });
 }
 
-/** Procura um executavel no PATH, testando as extensoes do Windows. */
-function noPath(nome: string, extensoes = ['.exe', '.cmd', '.ps1', '']): string {
+const EH_WINDOWS = process.platform === 'win32';
+
+/**
+ * Procura um executavel no PATH.
+ *
+ * As extensoes sao do Windows; no Linux o nome puro e' o unico candidato, e as demais
+ * apenas nao casariam. A lista padrao cobre shim npm (`.cmd`/`.ps1`), que e' como
+ * `codex` e `opencode` se instalam por la'.
+ */
+function noPath(nome: string, extensoes = EH_WINDOWS ? ['.exe', '.cmd', '.ps1', ''] : ['']): string {
   for (const pasta of (process.env['PATH'] ?? '').split(delimiter)) {
     if (!pasta) continue;
     for (const extensao of extensoes) {
@@ -191,8 +199,25 @@ async function rodarCodex(prompt: string, cwd: string): Promise<string> {
   const node = noPath('node', ['.exe', '']);
   if (!shim || !node) return '';
 
+  // O layout `<pasta do shim>/node_modules/...` e' do npm no Windows. No Linux o shim e'
+  // um link para o proprio script, executavel por si — chamar o shim direto e' o
+  // caminho certo la', e continua sem shell no meio.
   const entrada = join(dirname(shim), 'node_modules', '@openai', 'codex', 'bin', 'codex.js');
-  if (!existsSync(entrada)) return '';
+  if (!existsSync(entrada)) {
+    if (EH_WINDOWS) return '';
+    const arquivoSaidaDireta = join(cwd, 'saida-codex.txt');
+    await executar(
+      shim,
+      ['exec', '--sandbox', 'read-only', '--skip-git-repo-check', '-C', cwd, '-o', arquivoSaidaDireta, '-'],
+      { cwd, entrada: prompt, timeoutMs: TIMEOUT_AGENTE_MS },
+    );
+    if (!existsSync(arquivoSaidaDireta)) return '';
+    try {
+      return readFileSync(arquivoSaidaDireta, 'utf8').trim();
+    } catch {
+      return '';
+    }
+  }
 
   const arquivoSaida = join(cwd, 'saida-codex.txt');
   await executar(
@@ -220,7 +245,13 @@ async function rodarOpencode(prompt: string, cwd: string): Promise<string> {
 
   garantirAgenteOpencodeSeguro();
 
-  const real = join(dirname(shim), 'node_modules', 'opencode-ai', 'bin', 'opencode.exe');
+  const real = join(
+    dirname(shim),
+    'node_modules',
+    'opencode-ai',
+    'bin',
+    EH_WINDOWS ? 'opencode.exe' : 'opencode',
+  );
   const exe = existsSync(real) ? real : shim;
 
   const { ok, saida } = await executar(

@@ -9,17 +9,43 @@
  * quem procura `C:\projetos` seria pior que recusar.
  */
 import { existsSync, readdirSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join, parse } from 'node:path';
 import type { HubHelper } from './sankhya/helper.ts';
 import type { ListagemPastas, PastaDoDisco } from './types.ts';
 
 export class PastaInacessivelError extends Error {}
 
+const EH_WINDOWS = process.platform === 'win32';
+
 /**
- * Unidades do Windows. Nao ha API em Node para lista-las, entao testa-se cada letra —
- * 26 chamadas de `existsSync`, que custam menos que abrir um processo para perguntar.
+ * Nativo = lista o disco desta maquina. Em container o disco visivel e' o do container,
+ * e a rota continua indo ao helper. `/.dockerenv` distingue os dois no Linux, onde
+ * `platform` sozinho ja' nao diz mais se e' container ou maquina do usuario.
  */
-function unidades(): PastaDoDisco[] {
+const NATIVO = EH_WINDOWS || !existsSync('/.dockerenv');
+
+/**
+ * Por onde a navegacao comeca.
+ *
+ * No Windows sao as unidades: nao ha API em Node para lista-las, entao testa-se cada
+ * letra — 26 chamadas de `existsSync`, que custam menos que abrir um processo para
+ * perguntar. No Linux nao existem unidades, e comecar na raiz obrigaria a descer
+ * `/home/<usuario>` a cada uso; entao a pasta do usuario vem primeiro, e a raiz fica
+ * como segunda opcao para quem guarda repositorio em `/srv` ou `/opt`.
+ */
+function pontosDePartida(): PastaDoDisco[] {
+  if (!EH_WINDOWS) {
+    const casa = homedir();
+    const partida: PastaDoDisco[] = [];
+    if (existsSync(casa)) partida.push({ nome: casa, caminho: casa, git: existsSync(join(casa, '.git')) });
+    partida.push({ nome: '/', caminho: '/', git: false });
+    return partida;
+  }
+  return unidadesDoWindows();
+}
+
+function unidadesDoWindows(): PastaDoDisco[] {
   const achadas: PastaDoDisco[] = [];
   for (let codigo = 'A'.charCodeAt(0); codigo <= 'Z'.charCodeAt(0); codigo += 1) {
     const letra = String.fromCharCode(codigo);
@@ -44,7 +70,7 @@ export class Pastas {
 
   constructor(helper: HubHelper) {
     this.#helper = helper;
-    this.#nativo = process.platform === 'win32';
+    this.#nativo = NATIVO;
   }
 
   async listar(caminho: string): Promise<ListagemPastas> {
@@ -54,7 +80,7 @@ export class Pastas {
     }
 
     // Sem caminho, as unidades: e' por onde a navegacao comeca.
-    if (!caminho) return { atual: '', pai: '', git: false, pastas: unidades() };
+    if (!caminho) return { atual: '', pai: '', git: false, pastas: pontosDePartida() };
 
     let ehPasta = false;
     try {

@@ -15,7 +15,7 @@ import { registerRoutes } from './routes.ts';
 import { registerRoutesWildfly } from './routesWildfly.ts';
 import { registerRoutesFerramentas } from './routesFerramentas.ts';
 import { Ferramentas } from './ferramentas.ts';
-import { Wildfly } from './wildfly.ts';
+import { NATIVO, Wildfly } from './wildfly.ts';
 import { Pastas } from './pastas.ts';
 import { registerRoutesSankhya } from './routesSankhya.ts';
 import { registerRoutesGitAutosync } from './routesGitAutosync.ts';
@@ -64,9 +64,18 @@ const HELPER_TOKEN_FILE = process.env['HUB_HELPER_TOKEN_FILE'] ?? '/app/helper-i
 
 // Caminhos do WildFly escolhidos na tela da aba Infra. Mesmo arquivo que o
 // `wildfly-helper.ps1` sempre leu — rodando nativo, o backend passa a le-lo direto.
+// `%APPDATA%` no Windows; no Linux a convencao e' XDG (`~/.config`), e cair no
+// `projectRoot` deixaria a escolha da instalacao dentro do pacote instalado, que e'
+// substituido a cada atualizacao.
 const WILDFLY_CONFIG_FILE =
   process.env['WILDFLY_CONFIG_FILE'] ??
-  join(process.env['APPDATA'] ?? projectRoot, 'sankhya-hub', 'wildfly.json');
+  join(
+    process.env['APPDATA'] ??
+      process.env['XDG_CONFIG_HOME'] ??
+      (process.env['HOME'] ? join(process.env['HOME'], '.config') : projectRoot),
+    'sankhya-hub',
+    'wildfly.json',
+  );
 // So usado fora do Windows (container), onde controlar processo do host e impossivel.
 const WILDFLY_HELPER_URL = process.env['WILDFLY_HELPER_URL'] ?? 'http://host.docker.internal:4100';
 
@@ -183,9 +192,11 @@ async function main(): Promise<void> {
     sessaoDesktop,
     desktopBridgeTokenFile: DESKTOP_BRIDGE_TOKEN_FILE,
   });
-  // Nativo no Windows chama o CLI direto (python.exe + app.py, sem shell); em container
-  // continua pelo hub-helper.ps1. Ver src/gitAutosyncCli.ts.
-  const transporteAutosync = process.platform === 'win32' ? new GitAutosyncCli() : helper;
+  // Nativo (Windows ou Linux fora de container) chama o CLI direto, sem shell; dentro do
+  // container continua pelo hub-helper.ps1, que e' quem enxerga a maquina do usuario.
+  // O agendamento lido difere: Agendador de Tarefas no Windows, crontab no Linux.
+  // Ver src/gitAutosyncCli.ts.
+  const transporteAutosync = NATIVO ? new GitAutosyncCli() : helper;
   registerRoutesGitAutosync(app, { gitAutosync: new GitAutosync(transporteAutosync) });
   const experience = new Experience(credenciais);
   registerRoutesExperience(app, { experience, clientes, agenda });
@@ -204,7 +215,7 @@ async function main(): Promise<void> {
     undefined,
     cifra,
     // O agente de IA roda na maquina do usuario; em container, quem o alcanca e o helper.
-    process.platform === 'win32' ? new EvidenciaIa() : undefined,
+    NATIVO ? new EvidenciaIa() : undefined,
   );
   // Resumo diario das anotacoes marcadas: um e-mail por dia, no horario da config, para
   // o proprio endereco do SMTP. Ver src/resumoAnotacoes.ts.

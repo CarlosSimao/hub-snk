@@ -9,25 +9,48 @@
  * O que isso fecha: o helper escutava em TODAS as interfaces da maquina, SEM token —
  * qualquer aparelho da rede local derrubava o WildFly. Aqui nao ha porta.
  *
- * Em container (`platform !== 'win32'`) o comportamento antigo continua: delega ao
- * helper por HTTP. Enquanto o `docker-compose.yml` for um jeito suportado de rodar o
- * hub, tirar isso quebraria quem ainda usa.
+ * Em CONTAINER o comportamento antigo continua: delega ao helper por HTTP. Enquanto o
+ * `docker-compose.yml` for um jeito suportado de rodar o hub, tirar isso quebraria quem
+ * ainda usa. O sinal de container e' `/.dockerenv`, e nao mais a plataforma — com o hub
+ * nativo no Linux, `platform !== 'win32'` passou a significar duas coisas diferentes.
  *
- * Uma dependencia do Windows permanece: descobrir a linha de comando de um processo nao
- * tem API em Node, entao a deteccao usa `Get-CimInstance` por um `powershell.exe`
- * pontual e oculto. A diferenca para antes e' de exposicao, nao de dependencia — o que
- * some e' o servidor HTTP aberto na rede, nao o PowerShell.
+ * O que muda entre os dois sistemas nativos:
+ *
+ *  - script de inicializacao: `standalone.bat` (via `cmd.exe`, que o Node exige para
+ *    `.bat`) contra `standalone.sh`, chamado direto;
+ *  - deteccao do processo: no Windows a linha de comando exige um `powershell.exe`
+ *    pontual, porque o Node nao expoe essa informacao; no Linux e' leitura de
+ *    `/proc/<pid>/cmdline`, sem processo auxiliar nenhum;
+ *  - encerramento: `SIGTERM` no Linux, que o WildFly trata como desligamento ordenado;
+ *    no Windows todo sinal e' `TerminateProcess`.
  */
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { HubHelper } from './sankhya/helper.ts';
 
 /** Casa a linha de comando do java.exe do WildFly entre outras JVMs da maquina. */
 const FILTRO_PROCESSO = 'jboss-modules.jar';
 
+const EH_WINDOWS = process.platform === 'win32';
+
+/**
+ * Nativo = o hub controla o processo do WildFly direto. Em container ele NAO enxerga
+ * processo do host (outro SO, outro espaco de processos) e delega ao helper.
+ *
+ * O sinal deixou de ser a plataforma: com o hub rodando nativo no Linux, `platform` nao
+ * distingue mais container de maquina do usuario. `/.dockerenv` distingue.
+ */
+export const NATIVO = EH_WINDOWS || !existsSync('/.dockerenv');
+
+/** `standalone.bat` no Windows, `standalone.sh` no Linux — e o que marca a instalacao. */
+export const SCRIPT_STANDALONE = EH_WINDOWS ? 'standalone.bat' : 'standalone.sh';
+
 /** Instalacao padrao primeiro; o fallback cobre outro host, outro checkout. */
-const PASTAS_PADRAO = ['C:\\Sankhya\\wildfly_producao', 'C:\\wildfly_producao'];
+const PASTAS_PADRAO = EH_WINDOWS
+  ? ['C:\\Sankhya\\wildfly_producao', 'C:\\wildfly_producao']
+  : ['/opt/sankhya/wildfly_producao', '/opt/wildfly_producao', join(homedir(), 'wildfly_producao')];
 
 const TIMEOUT_DETECCAO_MS = 15_000;
 /** `kill` devolve antes de o SO liberar a porta; sem esperar, o start novo acha a 8080 ocupada. */
@@ -83,7 +106,9 @@ export interface InstalacaoWildfly {
 }
 
 /** Onde procurar instalacao: raiz das unidades comuns e a pasta Sankhya de cada uma. */
-const RAIZES_BUSCA = ['C:\\', 'C:\\Sankhya', 'D:\\', 'D:\\Sankhya'];
+const RAIZES_BUSCA = EH_WINDOWS
+  ? ['C:\\', 'C:\\Sankhya', 'D:\\', 'D:\\Sankhya']
+  : ['/opt', '/opt/sankhya', '/srv', homedir()];
 
 /**
  * Esta linha de comando e' de um java.exe DESTA instalacao do WildFly?
@@ -92,15 +117,19 @@ const RAIZES_BUSCA = ['C:\\', 'C:\\Sankhya', 'D:\\', 'D:\\Sankhya'];
  *
  *  - `jboss-modules.jar` separa um WildFly de qualquer outra JVM da maquina (o nome do
  *    processo e' `java.exe` para todas).
- *  - o caminho da instalacao precisa TERMINAR ali — barra, aspas, espaco ou fim da
- *    linha. Com um `contains` cru, quem tem `C:\wildfly_producao` e
+ *  - o caminho da instalacao precisa TERMINAR ali — separador de pasta, aspas, espaco
+ *    ou fim da linha. Com um `contains` cru, quem tem `C:\wildfly_producao` e
  *    `C:\wildfly_producao2` lado a lado pararia os dois ao pedir para parar o primeiro,
  *    e o segundo cairia sem ninguem ter pedido.
+ *
+ * Os DOIS separadores entram no limite: no Linux o caminho e' `/opt/wildfly_producao`, e
+ * exigir contrabarra deixaria `/opt/wildfly_producao2` passar pelo mesmo buraco que a
+ * regra existe para fechar.
  */
 export function casaInstalacao(linhaDeComando: string, raiz: string): boolean {
   if (!linhaDeComando.includes(FILTRO_PROCESSO)) return false;
   const escapada = raiz.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`${escapada}(\\\\|"|\\s|$)`, 'i').test(linhaDeComando);
+  return new RegExp(`${escapada}([\\\\/]|"|\\s|$)`, 'i').test(linhaDeComando);
 }
 
 function esperar(ms: number): Promise<void> {
@@ -147,7 +176,7 @@ export class Wildfly {
     this.#arquivoConfig = arquivoConfig;
     this.#helperUrl = helperUrl.replace(/\/$/, '');
     this.#hubHelper = hubHelper;
-    this.#nativo = process.platform === 'win32';
+    this.#nativo = NATIVO;
   }
 
   /** Rotas de CONFIG, que moram no `hub-helper.ps1` (4102, com token). */
@@ -168,7 +197,7 @@ export class Wildfly {
     try {
       const config = JSON.parse(readFileSync(this.#arquivoConfig, 'utf8')) as { pasta?: string };
       const escolhida = (config.pasta ?? '').trim();
-      if (escolhida && existsSync(join(escolhida, 'bin', 'standalone.bat'))) return escolhida;
+      if (escolhida && existsSync(join(escolhida, 'bin', SCRIPT_STANDALONE))) return escolhida;
     } catch {
       // Config ausente ou quebrada nao pode tirar o WildFly do ar: cai no padrao.
     }
@@ -197,6 +226,7 @@ export class Wildfly {
    */
   async pids(): Promise<number[]> {
     if (!this.#nativo) return [];
+    if (!EH_WINDOWS) return this.#pidsLinux();
 
     const saida = await executar(
       'powershell.exe',
@@ -230,6 +260,38 @@ export class Wildfly {
       .filter((pid) => pid > 0);
   }
 
+  /**
+   * PIDs no Linux, lidos de `/proc`.
+   *
+   * Aqui nao ha processo auxiliar nenhum: `/proc/<pid>/cmdline` E' a linha de comando, com
+   * os argumentos separados por byte zero. No Windows a mesma informacao exige um
+   * `powershell.exe` de ~2s, porque o Node nao expoe API para isso.
+   */
+  #pidsLinux(): number[] {
+    const raiz = this.pasta();
+    let entradas: string[];
+    try {
+      entradas = readdirSync('/proc');
+    } catch {
+      return [];
+    }
+
+    const achados: number[] = [];
+    for (const entrada of entradas) {
+      const pid = Number(entrada);
+      if (!Number.isInteger(pid) || pid <= 0) continue;
+      try {
+        // O zero separa argumentos; virando espaco, a linha fica igual a do Windows e a
+        // mesma `casaInstalacao` serve para os dois.
+        const linha = readFileSync(`/proc/${pid}/cmdline`, 'utf8').replace(/\0/g, ' ').trim();
+        if (linha && casaInstalacao(linha, raiz)) achados.push(pid);
+      } catch {
+        // Processo que morreu entre a listagem e a leitura, ou de outro usuario.
+      }
+    }
+    return achados;
+  }
+
   async status(): Promise<StatusWildfly> {
     if (!this.#nativo) return this.#viaHelper<StatusWildfly>('/status');
 
@@ -252,11 +314,11 @@ export class Wildfly {
     if (pids.length) return { ok: true, mensagem: `já estava rodando (PID ${pids.join(', ')})` };
 
     const bin = join(this.pasta(), 'bin');
-    const standalone = join(bin, 'standalone.bat');
+    const standalone = join(bin, SCRIPT_STANDALONE);
     if (!existsSync(standalone)) {
       return {
         ok: false,
-        mensagem: `standalone.bat não encontrado em ${bin} — informe a pasta do WildFly na aba Infra do hub`,
+        mensagem: `${SCRIPT_STANDALONE} não encontrado em ${bin} — informe a pasta do WildFly na aba Infra do hub`,
       };
     }
 
@@ -264,15 +326,18 @@ export class Wildfly {
     // esperar o fim — o WildFly segue rodando em segundo plano, inclusive se o hub for
     // fechado (`detached` + `unref`).
     //
-    // Via `cmd.exe` porque o Node se recusa a executar `.bat` diretamente desde a
-    // correcao do CVE-2024-27980. O caminho vai entre aspas: ele vem da config e pode
-    // conter espaco.
-    const processo = spawn('cmd.exe', ['/c', `"${standalone}"`], {
-      cwd: bin,
-      detached: true,
-      windowsHide: true,
-      stdio: 'ignore',
-    });
+    // No Windows vai via `cmd.exe` porque o Node se recusa a executar `.bat` diretamente
+    // desde a correcao do CVE-2024-27980, e o caminho entre aspas porque vem da config e
+    // pode conter espaco. No Linux o `standalone.sh` e' executavel de verdade: chamada
+    // direta, sem shell no caminho e sem aspas para acertar.
+    const processo = EH_WINDOWS
+      ? spawn('cmd.exe', ['/c', `"${standalone}"`], {
+          cwd: bin,
+          detached: true,
+          windowsHide: true,
+          stdio: 'ignore',
+        })
+      : spawn(standalone, [], { cwd: bin, detached: true, stdio: 'ignore' });
     processo.unref();
 
     return { ok: true, mensagem: 'disparado' };
@@ -286,9 +351,12 @@ export class Wildfly {
 
     for (const pid of pids) {
       try {
-        // No Windows todo `kill` e' TerminateProcess; o sinal e' so' rotulo. O WildFly
-        // nao tem desligamento gracioso por sinal de qualquer forma.
-        process.kill(pid, 'SIGKILL');
+        // No Windows todo `kill` e' TerminateProcess e o sinal e' so' rotulo. No Linux o
+        // sinal vale: `SIGTERM` e' o que o `standalone.sh` trata para desligar o servidor
+        // com ordem (fecha conexoes, grava o log de shutdown) — `SIGKILL` levaria a JVM
+        // no meio da escrita. Quem insiste em morrer e' encerrado pela espera do
+        // `reiniciar`, que continua olhando os PIDs.
+        process.kill(pid, EH_WINDOWS ? 'SIGKILL' : 'SIGTERM');
       } catch {
         // Morreu entre a listagem e agora — o objetivo ja foi alcancado.
       }
@@ -344,7 +412,7 @@ export class Wildfly {
     return {
       pasta,
       arquivoLog,
-      pastaExiste: Boolean(pasta) && existsSync(join(pasta, 'bin', 'standalone.bat')),
+      pastaExiste: Boolean(pasta) && existsSync(join(pasta, 'bin', SCRIPT_STANDALONE)),
       logExiste: Boolean(arquivoLog) && existsSync(arquivoLog),
     };
   }
@@ -365,9 +433,9 @@ export class Wildfly {
     const limpa = pasta.trim();
     let log = arquivoLog.trim();
 
-    if (limpa && !existsSync(join(limpa, 'bin', 'standalone.bat'))) {
+    if (limpa && !existsSync(join(limpa, 'bin', SCRIPT_STANDALONE))) {
       throw new ConfigWildflyInvalidaError(
-        `não achei bin\\standalone.bat em ${limpa} — essa pasta não é uma instalação do WildFly`,
+        `não achei bin/${SCRIPT_STANDALONE} em ${limpa} — essa pasta não é uma instalação do WildFly`,
       );
     }
 
@@ -406,7 +474,7 @@ export class Wildfly {
       }
 
       for (const candidata of filhas) {
-        if (!existsSync(join(candidata, 'bin', 'standalone.bat'))) continue;
+        if (!existsSync(join(candidata, 'bin', SCRIPT_STANDALONE))) continue;
         if (vistos.has(candidata.toLowerCase())) continue;
         vistos.add(candidata.toLowerCase());
 

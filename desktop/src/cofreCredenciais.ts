@@ -193,6 +193,36 @@ export function vazio(): boolean {
   return SISTEMAS.every((sistema) => !cofre[sistema]);
 }
 
+/**
+ * Há criptografia REAL do sistema para gravar segredo aqui?
+ *
+ * No Windows a resposta do Electron basta: `isEncryptionAvailable()` só é verdadeira com
+ * DPAPI de pé. No Linux ela também é verdadeira quando o Electron caiu no backend
+ * `basic_text`, que cifra com uma chave FIXA e pública ("peanuts") — o arquivo fica, na
+ * prática, em texto claro para quem tiver acesso ao disco. Isso é indistinguível de
+ * proteção real pela API, e guardar senha de ERP assim seria pior do que recusar: quem
+ * recusa avisa; quem grava não.
+ *
+ * O backend real vem de libsecret (gnome-keyring) ou kwallet, declarados como dependência
+ * do pacote `.deb`. Sem eles, a tela mostra a recusa e diz o que instalar.
+ */
 export function disponivel(): boolean {
-  return safeStorage.isEncryptionAvailable();
+  if (!safeStorage.isEncryptionAvailable()) return false;
+  if (process.platform !== 'linux') return true;
+
+  const backend = safeStorage.getSelectedStorageBackend();
+  const real = backend !== 'basic_text' && backend !== 'unknown';
+  if (!real) logEvento('cofre-sem-protecao-real', { backend });
+  return real;
+}
+
+/** O que a tela mostra quando `disponivel()` é falso — muda por sistema operacional. */
+export function motivoIndisponivel(): string {
+  if (process.platform !== 'linux') {
+    return 'criptografia do sistema indisponível neste perfil do Windows';
+  }
+  return (
+    'sem chaveiro do sistema (libsecret/gnome-keyring ou kwallet), o Electron cifraria ' +
+    'com chave fixa e pública — instale o gnome-keyring e abra o hub de novo'
+  );
 }

@@ -612,12 +612,53 @@ bridge, o helper faz pelas rotas antigas. O que se perde é do shell, não do hu
 user agent limpo e a janela única. O custo real é manter o helper vivo em vez de
 aposentá-lo, e ele passa a ser parte do pacote (hoje é um script solto em `scripts/`).
 
-### 4.6 Fase 4b — instalador Linux
+### 4.6 Fase 4b — Linux 🔨 código adaptado, empacotamento por validar
 
-Viável. `electron-builder` com alvo **AppImage** (sem root, equivalente ao NSIS
-per-user) e `.deb` opcional; `resources/hub` não muda; ícone vira PNG 512.
+**Feito** (21/09/2026), tudo verificado por `npm test` e `npm run typecheck`:
 
-O que está preso ao Windows hoje:
+- **Container deixou de ser sinônimo de Linux.** O sinal passou a ser `/.dockerenv`
+  (`NATIVO`, em `src/wildfly.ts`). Antes, `platform !== 'win32'` significava "estou no
+  container e preciso do helper" — com o hub nativo no Linux isso passaria a delegar ao
+  helper que não existe lá. `src/pastas.ts` usa a mesma regra.
+- **WildFly**: `standalone.sh`, pastas padrão `/opt/sankhya/wildfly_producao`,
+  `/opt/wildfly_producao` e `~/wildfly_producao`, busca em `/opt`, `/srv` e `$HOME`.
+  Detecção de processo lê `/proc/<pid>/cmdline` — **sem processo auxiliar nenhum**,
+  contra os ~2s de um `powershell.exe` no Windows. Encerramento por `SIGTERM`, que o
+  WildFly trata como desligamento ordenado. E `casaInstalacao` passou a aceitar os dois
+  separadores: exigindo só contrabarra, `/opt/wildfly_producao2` passaria pelo buraco que
+  a regra existe para fechar (tem teste).
+- **Git AutoSync**: CLI direto também no Linux, e o agendamento lido do **crontab** (as
+  linhas que o `scheduler.py` marca com `# git-autosync`) no lugar do Agendador de
+  Tarefas. O cron não guarda histórico, então última execução e resultado vêm vazios — o
+  que sabe disso é o `autosync.log`.
+- **Terminal**: o `GitAutosyncCli` parou de ter implementação própria e passou a chamar
+  `src/ferramentas.ts`. Havia duas, e só uma recebeu a correção do alias do WindowsApps —
+  exatamente o que duas implementações do mesmo comportamento produzem.
+- **Agentes de IA**: `EvidenciaIa` habilitado fora do Windows; `codex` cai para o shim
+  direto quando o layout `node_modules/@openai/...` não existe (é o caso no Linux), e o
+  binário do `opencode` perde o `.exe`.
+- **Configuração do WildFly** sai de `%APPDATA%` para `$XDG_CONFIG_HOME` ou
+  `~/.config/sankhya-hub`.
+- **Shell**: ícone `.png` (extraído do próprio `.ico`, 256x256) porque o `.ico` não é
+  reconhecido no Linux; perfis de Chrome/Chromium/Edge nas três convenções que convivem
+  por lá (`~/.config`, Flatpak `~/.var/app`, Snap `~/snap`).
+- **Cofre**: `disponivel()` passou a recusar o backend `basic_text` do `safeStorage`. No
+  Linux `isEncryptionAvailable()` responde **verdadeiro** mesmo sem chaveiro, cifrando com
+  chave fixa e pública — indistinguível de proteção real pela API, e guardar senha de ERP
+  assim seria pior do que recusar. A mensagem diz o que instalar.
+- **Empacotamento**: alvos `AppImage` (sem root, equivalente ao NSIS per-user) e `.deb`,
+  que declara `libsecret-1-0` como dependência — sem ela o cofre acima se recusa a
+  gravar. O staging do autosync reconhece os binários sem `.exe` e manda gerar com
+  `python/build_linux.sh`.
+
+**Falta:** gerar o AppImage e o `.deb` de verdade. Precisa de máquina Linux (ou WSL, ou
+Docker): o electron-builder não monta esses alvos a partir do Windows, e o PyInstaller
+não faz cross-compile dos binários do autosync. Também sem validar em Linux: o
+`node:sqlite` sob o runtime do Electron (funciona no Windows, medido no §4.1) e a página
+de componentes do autosync, que é NSIS e não existe no AppImage — por lá o Git AutoSync
+fica manual, com o `install_standalone.sh` que viaja no pacote.
+
+Referência do que estava preso ao Windows antes desta rodada:
 
 | Onde | Hoje | No Linux |
 |---|---|---|

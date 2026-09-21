@@ -52,7 +52,16 @@ const RAIZ_AUTOSYNC = resolve(
 );
 
 const DIST = join(RAIZ_AUTOSYNC, 'python', 'dist');
-const EXECUTAVEIS = ['git-autosync.exe', 'git-autosync-sync.exe'];
+
+/**
+ * Os binários do PyInstaller têm nome por sistema, e o PyInstaller NÃO faz
+ * cross-compile: o pacote Linux precisa ser montado numa máquina Linux, com os binários
+ * gerados por `python/build_linux.sh` ali mesmo.
+ */
+const EH_WINDOWS = process.platform === 'win32';
+const EXECUTAVEIS = EH_WINDOWS
+  ? ['git-autosync.exe', 'git-autosync-sync.exe']
+  : ['git-autosync', 'git-autosync-sync'];
 
 function exigir(caminho, comoResolver) {
   if (!existsSync(caminho)) throw new Error(`faltando: ${caminho}\n  ${comoResolver}`);
@@ -66,8 +75,11 @@ if (!existsSync(RAIZ_AUTOSYNC)) {
   );
 }
 
+/** Quem gera os binários — exige Python só na máquina que empacota, nunca no destino. */
+const COMO_GERAR = EH_WINDOWS ? 'python\\build_windows.ps1' : 'python/build_linux.sh';
+
 for (const nome of EXECUTAVEIS) {
-  exigir(join(DIST, nome), 'gere com: python\\build_windows.ps1 (exige Python só na máquina que empacota)');
+  exigir(join(DIST, nome), `gere com: ${COMO_GERAR}`);
 }
 
 // Binário mais velho que fonte é binário de outra versão. Comparar data é grosseiro, e é
@@ -82,7 +94,7 @@ for (const nome of EXECUTAVEIS) {
   if (desatualizados.length) {
     throw new Error(
       `${nome} é mais antigo que ${desatualizados.length} fonte(s) — o pacote sairia com uma versão velha.\n` +
-        `  Regere com: ${join(RAIZ_AUTOSYNC, 'python', 'build_windows.ps1')}\n` +
+        `  Regere com: ${join(RAIZ_AUTOSYNC, COMO_GERAR)}\n` +
         `  Mais novos: ${desatualizados.map((f) => f.replace(RAIZ_AUTOSYNC, '')).join(', ')}`,
     );
   }
@@ -94,7 +106,11 @@ mkdirSync(DESTINO, { recursive: true });
 
 const arquivos = [
   ...EXECUTAVEIS.map((nome) => [join(DIST, nome), nome]),
-  [exigir(join(RAIZ_AUTOSYNC, 'installer', 'install-standalone.ps1'), 'esperado no repo do git-autosync'), 'install-standalone.ps1'],
+  // O instalador silencioso é o do Windows; no Linux o script equivalente ainda é o
+  // `installer/install_standalone.sh` interativo, então ele viaja no lugar.
+  EH_WINDOWS
+    ? [exigir(join(RAIZ_AUTOSYNC, 'installer', 'install-standalone.ps1'), 'esperado no repo do git-autosync'), 'install-standalone.ps1']
+    : [exigir(join(RAIZ_AUTOSYNC, 'installer', 'install_standalone.sh'), 'esperado no repo do git-autosync'), 'install_standalone.sh'],
   [exigir(join(RAIZ_AUTOSYNC, 'skill', 'SKILL.md'), 'esperado no repo do git-autosync'), 'SKILL.md'],
   [exigir(join(RAIZ_AUTOSYNC, 'python', 'VERSION'), 'esperado no repo do git-autosync'), 'VERSION'],
 ];

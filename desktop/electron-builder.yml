@@ -78,6 +78,37 @@ nsis:
   # O arquivo se desliga sozinho quando o pacote é montado sem o autosync.
   include: installer.nsh
 
+linux:
+  # AppImage é o equivalente ao NSIS per-user: roda sem root, sem instalar nada no
+  # sistema. O `.deb` fica para quem prefere pacote gerenciado, e é ele que declara as
+  # dependências de chaveiro.
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+  icon: assets/hub-snk.png
+  category: Development
+  synopsis: Painel do ambiente local do Sankhya
+  artifactName: sankhya-hub-${version}-${arch}.${ext}
+
+deb:
+  # `libsecret` é requisito de SEGURANÇA, não de conveniência: sem chaveiro do sistema o
+  # safeStorage do Electron cai para o backend `basic_text`, que cifra com chave fixa e
+  # pública. O shell recusa gravar segredo nesse estado (ver desktop/src/cofreCredenciais),
+  # então sem estas dependências o cofre simplesmente não funciona.
+  depends:
+    - libsecret-1-0
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+  recommends:
+    - gnome-keyring
+    - git
+
 # Nada de auto-update por enquanto (§4.4): sem servidor de publicação, um `latest.yml`
 # solto no release só confunde quem for verificar.
 publish: null

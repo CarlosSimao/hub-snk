@@ -28,6 +28,7 @@
  * de `Resolver-GitAutosync` no `hub-helper.ps1`.
  */
 import { spawn } from 'node:child_process';
+import { Ferramentas, PedidoFerramentaError } from './ferramentas.ts';
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -130,9 +131,11 @@ export function resolverCli(launcher = LAUNCHER): CliResolvido | null {
 
 export class GitAutosyncCli {
   readonly #launcher: string;
+  readonly #ferramentas: Ferramentas;
 
-  constructor(launcher = LAUNCHER) {
+  constructor(launcher = LAUNCHER, ferramentas = new Ferramentas()) {
     this.#launcher = launcher;
+    this.#ferramentas = ferramentas;
   }
 
   get instalado(): boolean {
@@ -157,8 +160,19 @@ export class GitAutosyncCli {
     }
   }
 
-  /** Tarefas do Agendador do Windows criadas pelo `install`. */
+  /**
+   * O agendamento que o sistema realmente tem.
+   *
+   * No Linux o autosync agenda por crontab (ver `scheduler.py` do git-autosync, que
+   * marca as linhas dele com o comentario `# git-autosync`), e nao existe Agendador de
+   * Tarefas para consultar. Cada linha marcada vira uma entrada com o mesmo formato que
+   * a tela ja' desenha, com o horario do cron no lugar do "proxima execucao" — o cron
+   * nao guarda historico de execucao, entao ultima execucao e resultado ficam vazios, e
+   * quem sabe disso e' o `autosync.log`.
+   */
   async #tarefas(): Promise<unknown[]> {
+    if (process.platform !== 'win32') return this.#tarefasCron();
+
     const saida = await executar(
       'powershell.exe',
       [
@@ -193,6 +207,34 @@ export class GitAutosyncCli {
     }
   }
 
+  /** Linhas do crontab marcadas pelo git-autosync, no formato que a tela espera. */
+  async #tarefasCron(): Promise<unknown[]> {
+    const { codigo, saida } = await executar('crontab', ['-l'], TIMEOUT_AGENDADOR_MS);
+    // Codigo diferente de zero aqui e' o normal de quem nao tem crontab nenhum: a tela
+    // mostra "sem agendamento", e nao um erro.
+    if (codigo !== 0 || !saida.trim()) return [];
+
+    return saida
+      .split(/\r?\n/)
+      .filter((linha) => linha.trim().endsWith('# git-autosync'))
+      .map((linha, indice) => {
+        const campos = linha.trim().split(/\s+/);
+        const minuto = campos[0] ?? '';
+        const hora = campos[1] ?? '';
+        const horario =
+          /^\d+$/.test(minuto) && /^\d+$/.test(hora)
+            ? `${hora.padStart(2, '0')}:${minuto.padStart(2, '0')}`
+            : '';
+        return {
+          nome: `cron ${indice + 1}`,
+          estado: 'Ready',
+          proximaExecucao: horario ? `todo dia ${horario}` : '',
+          ultimaExecucao: '',
+          ultimoResultado: null,
+        };
+      });
+  }
+
   #config(): unknown {
     if (!existsSync(ARQUIVO_CONFIG)) return null;
     try {
@@ -218,34 +260,23 @@ export class GitAutosyncCli {
    * Abre um terminal na pasta do repositorio, para resolver o que o hub nao resolve
    * sozinho (conflito, remoto trocado, credencial expirada). Nao chama o CLI.
    */
-  async #terminal(caminho: string, tipo: string): Promise<{ saida: string }> {
+  async #terminal(caminho: string, _tipo: string): Promise<{ saida: string }> {
     if (!existsSync(caminho)) throw new GitAutosyncUsoError(`pasta não encontrada: ${caminho}`);
 
-    const gitBash = ['C:\\Program Files\\Git\\git-bash.exe', 'C:\\Program Files (x86)\\Git\\git-bash.exe'].find(
-      (candidato) => existsSync(candidato),
-    );
-
-    let exe: string;
-    let rotulo: string;
-
-    if (tipo === 'cmd') {
-      exe = join(process.env['WINDIR'] ?? 'C:\\Windows', 'System32', 'cmd.exe');
-      rotulo = 'cmd';
-    } else if (tipo === 'git-bash') {
-      if (!gitBash) throw new GitAutosyncUsoError('Git Bash não encontrado nesta máquina');
-      exe = gitBash;
-      rotulo = 'git-bash';
-    } else if (gitBash) {
-      exe = gitBash;
-      rotulo = 'git-bash';
-    } else {
-      exe = 'powershell.exe';
-      rotulo = 'powershell';
+    // Delegado a `src/ferramentas.ts`, que e' onde mora o "abre terminal na pasta" usado
+    // tambem pelos atalhos do cartao do cliente. Havia duas implementacoes: esta preferia
+    // Git Bash e resolvia executavel com `existsSync`, que NAO enxerga o `wt.exe` do
+    // WindowsApps (alias de execucao de 0 byte). Uma delas ganhou correcao e a outra nao,
+    // que e' exatamente o que duas implementacoes do mesmo comportamento produzem.
+    //
+    // O parametro `tipo` (cmd, git-bash) deixou de ser honrado: a tela nunca o enviou, e
+    // a escolha agora e' a mesma do "Abrir no Terminal" do Windows.
+    try {
+      return this.#ferramentas.abrir('terminal', caminho);
+    } catch (err) {
+      if (err instanceof PedidoFerramentaError) throw new GitAutosyncUsoError(err.message);
+      throw new GitAutosyncFalhouError((err as Error).message);
     }
-
-    // `detached` + `unref`: a janela e' do usuario e sobrevive ao hub.
-    spawn(exe, [], { cwd: caminho, detached: true, stdio: 'ignore' }).unref();
-    return { saida: `terminal (${rotulo}) aberto em ${caminho}` };
   }
 
   /**

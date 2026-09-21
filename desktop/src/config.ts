@@ -108,7 +108,15 @@ export const TZ_PADRAO = 'America/Sao_Paulo';
  * Electron, que é o que denuncia "isto é um app genérico" antes de qualquer outra coisa.
  * O mesmo arquivo vira o ícone do instalador na Fase 4.
  */
-export const ICONE = join(__dirname, '..', 'assets', 'hub-snk.ico');
+export const ICONE = join(
+  __dirname,
+  '..',
+  'assets',
+  // O `.ico` é formato do Windows: no Linux ele não é reconhecido e a janela volta para o
+  // ícone genérico do Electron. O `.png` é extraído do próprio `.ico` (256x256, a maior
+  // imagem que ele carrega), então é o mesmo desenho nos dois sistemas.
+  process.platform === 'win32' ? 'hub-snk.ico' : 'hub-snk.png',
+);
 
 /**
  * User agent das abas remotas, sem `Electron/x.y.z` nem o nome do app.
