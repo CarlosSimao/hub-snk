@@ -192,8 +192,9 @@ export function ModalCaminhosWildfly({
 
       <div className="modal-foot">
         <p className="modal-nota">
-          Vale para os helpers do WildFly (portas 4100 e 4101). O hub em si mede o WildFly pela
-          URL, que fica na variável <code>WILDFLY_URL</code>, em <strong>Variáveis</strong>.
+          Vale para as ações de iniciar/parar e para o botão <strong>Log</strong>. O hub em si mede
+          o WildFly pela URL, que fica na variável <code>WILDFLY_URL</code>, em{' '}
+          <strong>Variáveis</strong>.
         </p>
         <div className="modal-acoes">
           <button className="btn tiny ghost" type="button" onClick={onFechar}>

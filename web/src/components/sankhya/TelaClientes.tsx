@@ -8,26 +8,35 @@ import { TabBar, type Aba } from '../TabBar.tsx';
 import { GitDoCliente } from './GitDoCliente.tsx';
 import { AgendaDoCliente } from './AgendaDoCliente.tsx';
 import { OrdensDoProjeto } from './OrdensDoProjeto.tsx';
-import { SeletorPasta } from './SeletorPasta.tsx';
 import { CartaoDoCliente } from './CartaoDoCliente.tsx';
+import { EmailDoCliente } from './EmailDoCliente.tsx';
+import { ImportarFavoritos } from './ImportarFavoritos.tsx';
 import type { FocoCliente } from './PainelSankhya.tsx';
 
-type AbaCliente = 'cartao' | 'cadastro' | 'agenda' | 'os' | 'git';
+type AbaCliente = 'cartao' | 'agenda' | 'os' | 'git' | 'email';
 
 const ABAS_CLIENTE: Aba<AbaCliente>[] = [
-  { id: 'cartao', rotulo: 'Visão geral', titulo: 'Bases, repositórios, links e anotações' },
-  { id: 'cadastro', rotulo: 'Cadastro', titulo: 'Os IDs que ligam o cliente aos três sistemas' },
+  { id: 'cartao', rotulo: 'Cadastro', titulo: 'Bases, repositórios, links, anotações e os IDs do cliente' },
   { id: 'agenda', rotulo: 'Agenda', titulo: 'Tarefas e ordens de serviço no Experience' },
   { id: 'os', rotulo: 'OS', titulo: 'Todas as OS lançadas no projeto, inclusive pelos outros' },
   { id: 'git', rotulo: 'Git', titulo: 'Repositório deste cliente no git-autosync' },
+  { id: 'email', rotulo: 'E-mail', titulo: 'E-mail para GP, consultor e líder deste cliente' },
 ];
 
-/** `null` = formulário de cadastro novo; nenhum selecionado = tela de boas-vindas. */
-type Selecao = { tipo: 'novo' } | { tipo: 'cliente'; cliente: Cliente } | null;
+/**
+ * O formulario de identificacao virou modal, aberto pelo botao Editar do cartao.
+ *
+ * Antes era uma aba propria ao lado da visao geral, e a divisao nao se sustentava: as
+ * duas eram o cadastro do mesmo cliente, so que uma mostrava e a outra deixava mudar.
+ * `cliente: undefined` e cadastro novo.
+ */
+type Editor = { cliente: Cliente | undefined } | null;
 
 export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoCliente | null }) {
-  const { clientes, carregando, salvar, remover } = useClientes(toast);
-  const [selecao, setSelecao] = useState<Selecao>(null);
+  const { clientes, carregando, salvar, remover, recarregar } = useClientes(toast);
+  const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
+  const [editor, setEditor] = useState<Editor>(null);
+  const [importador, setImportador] = useState(false);
   const [abaCliente, setAbaCliente] = useState<AbaCliente>('cartao');
 
   // A Agenda Mensal manda abrir um cliente. Aplicado uma vez por pedido: sem o
@@ -40,14 +49,13 @@ export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoClient
     if (!cliente) return;
 
     ultimoFoco.current = foco.seq;
-    setSelecao({ tipo: 'cliente', cliente });
+    setSelecionadoId(cliente.id);
     setAbaCliente('agenda');
   }, [foco, clientes]);
 
-  // O cliente do estado é uma cópia congelada no clique; relê da lista para refletir o
-  // que acabou de ser gravado sem precisar clicar de novo.
-  const selecionado =
-    selecao?.tipo === 'cliente' ? clientes.find((c) => c.id === selecao.cliente.id) : undefined;
+  // Guardar o id, e nao o objeto, e o que faz a tela refletir o que acabou de ser
+  // gravado sem precisar clicar no cliente de novo.
+  const selecionado = clientes.find((c) => c.id === selecionadoId);
 
   return (
     <div className="layout">
@@ -66,49 +74,52 @@ export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoClient
               className={`project-item${selecionado?.id === cliente.id ? ' active' : ''}`}
               aria-pressed={selecionado?.id === cliente.id}
               onClick={() => {
-                setSelecao({ tipo: 'cliente', cliente });
+                setSelecionadoId(cliente.id);
                 // Trocar de cliente sempre volta à visão geral: ficar no Git de um
                 // cliente e ver o repositório de outro confundiria mais que ajudaria.
                 setAbaCliente('cartao');
               }}
             >
               <div className="li-title">
-                <h2>{cliente.nome}</h2>
+                <h2>
+                  {cliente.nome}
+                  {cliente.anotacoes.trim() && (
+                    <span className="selo-anotacao" title="Tem anotações">📝</span>
+                  )}
+                  {/* Mesma regra do cartão e do e-mail: cobra do último dia em diante,
+                      até o envio ser marcado. Aqui é só para varrer a lista sem abrir
+                      cliente por cliente. */}
+                  {cliente.demandaFim &&
+                    !cliente.emailFinalizacaoEm &&
+                    cliente.demandaFim <= new Date().toISOString().slice(0, 10) && (
+                      <span className="selo-pendencia" title="E-mail de finalização pendente">
+                        ✉
+                      </span>
+                    )}
+                </h2>
                 <p className="li-summary">{resumo(cliente)}</p>
               </div>
             </button>
           ))}
         </div>
 
-        <button
-          className="btn tiny ghost bloco"
-          onClick={() => setSelecao({ tipo: 'novo' })}
-          disabled={selecao?.tipo === 'novo'}
-        >
+        <button className="btn tiny ghost bloco" onClick={() => setEditor({ cliente: undefined })}>
           + Novo cliente
+        </button>
+        {/* Os favoritos ja guardam a URL de cada parceiro; digitar tudo de novo seria
+            trabalho repetido. Ver ImportarFavoritos. */}
+        <button className="btn tiny ghost bloco" onClick={() => setImportador(true)}>
+          Importar dos favoritos
         </button>
       </aside>
 
       <section className="detail">
-        {selecao === null && (
+        {!selecionado && (
           <p className="detail-empty">
             {clientes.length
               ? 'Selecione um cliente ao lado.'
-              : 'Nenhum cliente cadastrado ainda — comece por "Novo cliente".'}
+              : 'Nenhum cliente cadastrado ainda — comece por "Novo cliente" ou traga os do navegador.'}
           </p>
-        )}
-
-        {selecao?.tipo === 'novo' && (
-          <FormularioCliente
-            key="novo"
-            cliente={undefined}
-            toast={toast}
-            onSalvar={async (entrada) => {
-              const criado = await salvar(null, entrada);
-              if (criado) setSelecao({ tipo: 'cliente', cliente: criado });
-            }}
-            onCancelar={() => setSelecao(null)}
-          />
         )}
 
         {selecionado && (
@@ -120,23 +131,11 @@ export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoClient
                 key={selecionado.id}
                 cliente={selecionado}
                 toast={toast}
-                onEditar={() => setAbaCliente('cadastro')}
+                onEditar={() => setEditor({ cliente: selecionado })}
                 onRemover={async () => {
-                  if (await remover(selecionado)) setSelecao(null);
+                  if (await remover(selecionado)) setSelecionadoId(null);
                 }}
                 onSalvarCliente={(entrada) => salvar(selecionado.id, entrada)}
-              />
-            )}
-
-            {abaCliente === 'cadastro' && (
-              <FormularioCliente
-                key={selecionado.id}
-                cliente={selecionado}
-                toast={toast}
-                onSalvar={(entrada) => salvar(selecionado.id, entrada)}
-                onRemover={async () => {
-                  if (await remover(selecionado)) setSelecao(null);
-                }}
               />
             )}
 
@@ -151,9 +150,47 @@ export function TelaClientes({ toast, foco }: { toast: Avisar; foco?: FocoClient
             {abaCliente === 'git' && (
               <GitDoCliente key={selecionado.id} cliente={selecionado} toast={toast} />
             )}
+
+            {abaCliente === 'email' && (
+              <EmailDoCliente key={selecionado.id} cliente={selecionado} toast={toast} />
+            )}
           </>
         )}
       </section>
+
+      {editor && (
+        <FormularioCliente
+          key={editor.cliente?.id ?? 'novo'}
+          cliente={editor.cliente}
+          toast={toast}
+          onSalvar={async (entrada) => {
+            const gravado = await salvar(editor.cliente?.id ?? null, entrada);
+            if (gravado) {
+              setSelecionadoId(gravado.id);
+              setEditor(null);
+            }
+          }}
+          onRemover={
+            editor.cliente
+              ? async () => {
+                  if (await remover(editor.cliente as Cliente)) {
+                    setSelecionadoId(null);
+                    setEditor(null);
+                  }
+                }
+              : undefined
+          }
+          onCancelar={() => setEditor(null)}
+        />
+      )}
+
+      <ImportarFavoritos
+        aberto={importador}
+        jaCadastrados={clientes.map((c) => c.nome)}
+        toast={toast}
+        onFechar={() => setImportador(false)}
+        onImportado={recarregar}
+      />
     </div>
   );
 }
@@ -165,7 +202,6 @@ function resumo(cliente: Cliente): string {
   if (cliente.experiencePersonId === null) faltando.push('person_id');
   if (!cliente.agendaRecursoUsuario) faltando.push('recurso');
   if (cliente.agendaCodparc === null) faltando.push('parceiro');
-  if (!cliente.repositorioLocal) faltando.push('repositório');
 
   return faltando.length ? `falta: ${faltando.join(', ')}` : 'cadastro completo';
 }
@@ -179,18 +215,20 @@ interface PropsFormulario {
 }
 
 function FormularioCliente({ cliente, toast, onSalvar, onRemover, onCancelar }: PropsFormulario) {
+  const dialogo = useRef<HTMLDialogElement>(null);
   const [salvando, setSalvando] = useState(false);
 
-  // Campos controlados: são os que algo além do teclado escreve — o seletor de pastas,
-  // a descoberta do person_id, a do parceiro da Agenda e o preenchimento do recurso.
+  // Montou, abriu: quem decide se o editor existe e a tela, com o estado `editor`.
+  useEffect(() => dialogo.current?.showModal(), []);
+
+  // Campos controlados: são os que algo além do teclado escreve — a descoberta do
+  // person_id, a do parceiro da Agenda e o preenchimento do recurso.
   const [projetoId, setProjetoId] = useState(String(cliente?.experienceProjetoId ?? ''));
   const [personId, setPersonId] = useState(String(cliente?.experiencePersonId ?? ''));
-  const [repositorioLocal, setRepositorioLocal] = useState(cliente?.repositorioLocal ?? '');
   const [nome, setNome] = useState(cliente?.nome ?? '');
   const [recurso, setRecurso] = useState(cliente?.agendaRecursoUsuario ?? '');
   const [codparc, setCodparc] = useState(String(cliente?.agendaCodparc ?? ''));
-  const [sankhyaUrl, setSankhyaUrl] = useState(cliente?.sankhyaUrl ?? '');
-  const [seletorAberto, setSeletorAberto] = useState(false);
+  const [demandaId, setDemandaId] = useState(cliente?.agendaDemandaId ?? '');
   const [descobrindo, setDescobrindo] = useState(false);
   const [buscandoParceiro, setBuscandoParceiro] = useState(false);
   const [atuacao, setAtuacao] = useState<AtuacaoCliente | null>(null);
@@ -288,11 +326,21 @@ function FormularioCliente({ cliente, toast, onSalvar, onRemover, onCancelar }: 
         experiencePersonId: texto('experiencePersonId') === '' ? null : Number(texto('experiencePersonId')),
         agendaRecursoUsuario: texto('agendaRecursoUsuario'),
         agendaCodparc: texto('agendaCodparc') === '' ? null : Number(texto('agendaCodparc')),
-        sankhyaUrl: texto('sankhyaUrl'),
-        repositorioLocal: texto('repositorioLocal'),
-        repositorioRemoto: texto('repositorioRemoto'),
+        agendaDemandaId: texto('agendaDemandaId'),
+        // Base e repositório se cadastram no cartão, em Bases e Repositórios — estes
+        // campos são o que sobrou do cadastro antigo de um só de cada. Vão de volta
+        // como estavam porque mandar vazio APAGARIA o que ainda está gravado neles.
+        sankhyaUrl: cliente?.sankhyaUrl ?? '',
+        repositorioLocal: cliente?.repositorioLocal ?? '',
+        repositorioRemoto: cliente?.repositorioRemoto ?? '',
         // Texto livre preserva quebra de linha e espaço — nada de `trim` aqui.
         anotacoes: String(dados.get('anotacoes') ?? ''),
+        // A marca de avisar é editada no cartão, não neste formulário: vai de volta como
+        // está, senão salvar o cadastro desligaria o aviso sem ninguém pedir.
+        anotacoesNotificar: cliente?.anotacoesNotificar ?? false,
+        // Mesmo motivo: a finalização é editada no cartão, não neste formulário.
+        demandaFim: cliente?.demandaFim ?? '',
+        emailFinalizacaoEm: cliente?.emailFinalizacaoEm ?? '',
       });
     } finally {
       setSalvando(false);
@@ -300,16 +348,17 @@ function FormularioCliente({ cliente, toast, onSalvar, onRemover, onCancelar }: 
   };
 
   return (
-    <article className="card detail-card">
+    <dialog className="modal editor-cadastro" ref={dialogo} onClose={() => onCancelar?.()}>
       <form onSubmit={(e) => void aoSubmeter(e)}>
-        <div className="detail-head">
+        <div className="modal-head">
           <div className="card-title">
             <h2>{cliente ? cliente.nome : 'Novo cliente'}</h2>
-            <p>Liga o projeto na Experience, o recurso na Agenda e o repositório local.</p>
+            <p>Liga o projeto na Experience e o recurso na Agenda. Base, repositório e links ficam no cartão.</p>
           </div>
+          <button className="btn tiny ghost" type="button" aria-label="Fechar" onClick={() => onCancelar?.()}>✕</button>
         </div>
 
-        <div className="form-campos">
+        <div className="modal-body form-campos">
           <Campo nome="nome" rotulo="Nome" valor={nome} aoMudar={setNome} obrigatorio
             dica="Como aparece no Sankhya Experience"
             // Cadastro novo tenta achar o parceiro sozinho ao sair do nome; em silêncio,
@@ -345,28 +394,12 @@ function FormularioCliente({ cliente, toast, onSalvar, onRemover, onCancelar }: 
               {atuacao.dias[0]?.dia} a {atuacao.dias[atuacao.dias.length - 1]?.dia}.
             </p>
           )}
-          <Campo nome="sankhyaUrl" rotulo="URL do Sankhya do cliente"
-            valor={sankhyaUrl} aoMudar={setSankhyaUrl}
-            dica="Endereço do ERP deste cliente, ex.: https://cliente.sankhya.com.br"
-            acao={
-              <button className="btn tiny ghost" type="button" disabled={!sankhyaUrl.trim()}
-                onClick={() => window.open(sankhyaUrl, '_blank', 'noopener,noreferrer')}>
-                Abrir
-              </button>
-            } />
-          <Campo nome="repositorioLocal" rotulo="Repositório local"
-            valor={repositorioLocal} aoMudar={setRepositorioLocal}
-            dica="Pasta no Windows — digite o caminho ou procure no disco"
-            acao={
-              <button className="btn tiny ghost" type="button" onClick={() => setSeletorAberto(true)}>
-                Procurar…
-              </button>
-            } />
-          <Campo nome="repositorioRemoto" rotulo="Repositório remoto"
-            valor={cliente?.repositorioRemoto ?? ''} dica="URL do remote — informativo, não é usado para autenticar" />
+          <Campo nome="agendaDemandaId" rotulo="ID da demanda (Agenda)"
+            valor={demandaId} aoMudar={setDemandaId}
+            dica="Codigo da demanda deste cliente na Agenda de Recursos — texto livre, preenchido a mao" />
         </div>
 
-        <div className="form-acoes">
+        <div className="modal-foot form-acoes">
           {onRemover && (
             <button className="btn tiny ghost danger" type="button" onClick={() => void onRemover()}>
               Remover
@@ -383,15 +416,7 @@ function FormularioCliente({ cliente, toast, onSalvar, onRemover, onCancelar }: 
           </button>
         </div>
       </form>
-
-      {/* Fora do <form>: dialog modal aninhado em formulário atrapalha o Enter e o submit. */}
-      <SeletorPasta
-        aberto={seletorAberto}
-        inicial={repositorioLocal}
-        onEscolher={setRepositorioLocal}
-        onFechar={() => setSeletorAberto(false)}
-      />
-    </article>
+    </dialog>
   );
 }
 

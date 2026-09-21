@@ -27,6 +27,9 @@ export function TelaAgendaErp({ toast }: { toast: Avisar }) {
   const [buscando, setBuscando] = useState(false);
   const [de, setDe] = useState(() => emDias(-30));
   const [ate, setAte] = useState(() => emDias(60));
+  // Só "Buscar do Sankhya" precisa aparecer no dia a dia — o resto (snapshot lido,
+  // colagem manual) é reserva/diagnóstico, então fica recolhido por padrão.
+  const [avancadoAberto, setAvancadoAberto] = useState(false);
 
   const recarregar = useCallback(async () => {
     const [snapshot, lista] = await Promise.all([
@@ -78,50 +81,6 @@ export function TelaAgendaErp({ toast }: { toast: Avisar }) {
 
   return (
     <section className="painel">
-      <p className="painel-nota">
-        Esta tela é o Sankhya ERP, não o Experience. O hub busca a agenda chamando o serviço
-        de dentro da janela de navegador dele — por isso ela precisa estar logada no ERP
-        (<strong>Credenciais › Abrir janela de login</strong>).
-      </p>
-
-      <article className="card">
-        <div className="detail-head">
-          <div className="card-title">
-            <h2>
-              Snapshot atual
-              {estado?.importadoEm ? (
-                <span className="selo ok">{estado.eventos} eventos</span>
-              ) : (
-                <span className="selo falta">nunca importado</span>
-              )}
-            </h2>
-            <p>
-              {estado?.importadoEm
-                ? `${estado.recursos} recurso(s) · capturado ${relativeTime(estado.importadoEm)}`
-                : 'Cole a resposta capturada abaixo para começar.'}
-            </p>
-          </div>
-        </div>
-
-        {recursos.length > 0 && (
-          <div className="form-campos">
-            {recursos.map((recurso) => (
-              <div className="linha-agenda" key={recurso.id}>
-                {/* A cor é a mesma que o Sankhya usa para o consultor na timeline. */}
-                <i
-                  className="ponto-recurso"
-                  style={recurso.corHex ? { background: recurso.corHex } : undefined}
-                />
-                <span className="linha-titulo">{recurso.nomeusu}</span>
-                <span className="linha-meta">
-                  {recurso.descrcargo || '—'} · {recurso.totalEventos} evento(s)
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </article>
-
       <article className="card">
         <div className="detail-head">
           <div className="card-title">
@@ -151,56 +110,114 @@ export function TelaAgendaErp({ toast }: { toast: Avisar }) {
         </div>
       </article>
 
-      <article className="card">
-        <form onSubmit={(e) => void importar(e)}>
-          <div className="detail-head">
-            <div className="card-title">
-              <h2>Colar captura manual</h2>
-              <p>Reserva, para quando a janela do hub não estiver logada no ERP.</p>
-            </div>
-          </div>
+      <div className="agenda-erp-avancado">
+        <button
+          className="btn tiny ghost"
+          type="button"
+          onClick={() => setAvancadoAberto((aberto) => !aberto)}
+        >
+          {avancadoAberto ? 'Ocultar' : 'Mais opções'} — snapshot lido e captura manual
+        </button>
 
-          <div className="form-campos">
-            <ol className="passos">
-              <li>
-                Abra a <strong>Agenda de Recursos</strong> no Sankhya, já logado.
-              </li>
-              <li>
-                <kbd>F12</kbd> → aba <strong>Network</strong> → filtro <strong>Fetch/XHR</strong>.
-              </li>
-              <li>
-                <kbd>F5</kbd> para recarregar a tela com o capturador ligado.
-              </li>
-              <li>
-                Ache a requisição a <code>service.sbr</code> com{' '}
-                <code>AgendaRecursosSP.carregarAgendas</code> — costuma ser a de maior{' '}
-                <strong>Size</strong>.
-              </li>
-              <li>
-                Aba <strong>Response</strong> → selecionar tudo → copiar → colar aqui.
-              </li>
-            </ol>
+        {avancadoAberto && (
+          <>
+            <p className="painel-nota">
+              Esta tela é o Sankhya ERP, não o Experience. O hub busca a agenda chamando o
+              serviço de dentro da janela de navegador dele — por isso ela precisa estar
+              logada no ERP (<strong>Credenciais › Abrir janela de login</strong>).
+            </p>
 
-            <label className="campo">
-              <span className="campo-nome">JSON capturado</span>
-              <textarea
-                name="conteudo"
-                rows={8}
-                required
-                spellCheck={false}
-                placeholder='{"status":"1","serviceName":"AgendaRecursosSP.carregarAgendas",...}'
-              />
-            </label>
-          </div>
+            <article className="card">
+              <div className="detail-head">
+                <div className="card-title">
+                  <h2>
+                    Snapshot atual
+                    {estado?.importadoEm ? (
+                      <span className="selo ok">{estado.eventos} eventos</span>
+                    ) : (
+                      <span className="selo falta">nunca importado</span>
+                    )}
+                  </h2>
+                  <p>
+                    {estado?.importadoEm
+                      ? `${estado.recursos} recurso(s) · capturado ${relativeTime(estado.importadoEm)}`
+                      : 'Cole a resposta capturada abaixo para começar.'}
+                  </p>
+                </div>
+              </div>
 
-          <div className="form-acoes">
-            <span className="modal-acoes-spacer" />
-            <button className="btn tiny" type="submit" disabled={importando}>
-              Importar
-            </button>
-          </div>
-        </form>
-      </article>
+              {recursos.length > 0 && (
+                <div className="form-campos">
+                  {recursos.map((recurso) => (
+                    <div className="linha-agenda" key={recurso.id}>
+                      {/* A cor é a mesma que o Sankhya usa para o consultor na timeline. */}
+                      <i
+                        className="ponto-recurso"
+                        style={recurso.corHex ? { background: recurso.corHex } : undefined}
+                      />
+                      <span className="linha-titulo">{recurso.nomeusu}</span>
+                      <span className="linha-meta">
+                        {recurso.descrcargo || '—'} · {recurso.totalEventos} evento(s)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </article>
+
+            <article className="card">
+              <form onSubmit={(e) => void importar(e)}>
+                <div className="detail-head">
+                  <div className="card-title">
+                    <h2>Colar captura manual</h2>
+                    <p>Reserva, para quando a janela do hub não estiver logada no ERP.</p>
+                  </div>
+                </div>
+
+                <div className="form-campos">
+                  <ol className="passos">
+                    <li>
+                      Abra a <strong>Agenda de Recursos</strong> no Sankhya, já logado.
+                    </li>
+                    <li>
+                      <kbd>F12</kbd> → aba <strong>Network</strong> → filtro <strong>Fetch/XHR</strong>.
+                    </li>
+                    <li>
+                      <kbd>F5</kbd> para recarregar a tela com o capturador ligado.
+                    </li>
+                    <li>
+                      Ache a requisição a <code>service.sbr</code> com{' '}
+                      <code>AgendaRecursosSP.carregarAgendas</code> — costuma ser a de maior{' '}
+                      <strong>Size</strong>.
+                    </li>
+                    <li>
+                      Aba <strong>Response</strong> → selecionar tudo → copiar → colar aqui.
+                    </li>
+                  </ol>
+
+                  <label className="campo">
+                    <span className="campo-nome">JSON capturado</span>
+                    <textarea
+                      name="conteudo"
+                      rows={8}
+                      required
+                      spellCheck={false}
+                      placeholder='{"status":"1","serviceName":"AgendaRecursosSP.carregarAgendas",...}'
+                    />
+                  </label>
+                </div>
+
+                <div className="form-acoes">
+                  <span className="modal-acoes-spacer" />
+                  <button className="btn tiny" type="submit" disabled={importando}>
+                    Importar
+                  </button>
+                </div>
+              </form>
+            </article>
+          </>
+        )}
+      </div>
     </section>
   );
 }

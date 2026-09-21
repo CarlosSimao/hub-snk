@@ -15,6 +15,7 @@ import { useCartaoCliente } from '../../hooks/useCartaoCliente.ts';
 import { useGitAutosync } from '../../hooks/useGitAutosync.ts';
 import { mesmoCaminho, StatusRepoCompacto } from '../git/DetalheRepo.tsx';
 import { SeletorPasta } from './SeletorPasta.tsx';
+import { AbrirRepoEm } from './AbrirRepoEm.tsx';
 
 type Editor =
   | { tipo: 'base'; item: BaseCliente | null }
@@ -66,9 +67,14 @@ export function CartaoDoCliente({ cliente, toast, onEditar, onRemover, onSalvarC
   const [senhas, setSenhas] = useState<Record<number, string>>({});
   const [senhasBanco, setSenhasBanco] = useState<Record<number, string>>({});
   const [anotacoes, setAnotacoes] = useState(cliente.anotacoes);
+  const [notificar, setNotificar] = useState(cliente.anotacoesNotificar);
+  const [demandaFim, setDemandaFim] = useState(cliente.demandaFim);
+  const [salvandoFinalizacao, setSalvandoFinalizacao] = useState(false);
   const [salvandoAnotacoes, setSalvandoAnotacoes] = useState(false);
 
   useEffect(() => setAnotacoes(cliente.anotacoes), [cliente.anotacoes]);
+  useEffect(() => setNotificar(cliente.anotacoesNotificar), [cliente.anotacoesNotificar]);
+  useEffect(() => setDemandaFim(cliente.demandaFim), [cliente.demandaFim]);
 
   const esconderSenha = (id: number) => {
     const tirar = (atuais: Record<number, string>) => {
@@ -124,10 +130,27 @@ export function CartaoDoCliente({ cliente, toast, onEditar, onRemover, onSalvarC
     }
   };
 
+  const hoje = new Date().toISOString().slice(0, 10);
+  // Mesma regra do backend (`emailFinalizacaoPendente`): cobra a partir do último dia,
+  // e só para quando o envio for marcado.
+  const finalizacaoPendente = Boolean(cliente.demandaFim) && !cliente.emailFinalizacaoEm && cliente.demandaFim <= hoje;
+
+  const salvarFinalizacao = async (campos: { demandaFim?: string; emailFinalizacaoEm?: string }) => {
+    setSalvandoFinalizacao(true);
+    try {
+      await onSalvarCliente({ ...cliente, demandaFim, ...campos });
+      await dados.recarregar();
+    } finally {
+      setSalvandoFinalizacao(false);
+    }
+  };
+
+  const anotacoesAlteradas = anotacoes !== cliente.anotacoes || notificar !== cliente.anotacoesNotificar;
+
   const salvarAnotacoes = async () => {
     setSalvandoAnotacoes(true);
     try {
-      await onSalvarCliente({ ...cliente, anotacoes });
+      await onSalvarCliente({ ...cliente, anotacoes, anotacoesNotificar: notificar });
       await dados.recarregar();
     } finally {
       setSalvandoAnotacoes(false);
@@ -151,6 +174,63 @@ export function CartaoDoCliente({ cliente, toast, onEditar, onRemover, onSalvarC
           <button className="btn tiny ghost danger" onClick={() => void onRemover()}>Remover</button>
         </div>
       </header>
+
+      {/* Faixa fixa: fica enquanto o e-mail de finalização não for marcado como enviado.
+          É o mesmo aviso que sai por e-mail todo dia — aqui para você resolver na hora. */}
+      {finalizacaoPendente && (
+        <div className="faixa-pendencia">
+          <span>
+            <b>E-mail de finalização pendente.</b> A demanda terminou em{' '}
+            {cliente.demandaFim.split('-').reverse().join('/')} e o envio ao parceiro ainda não foi
+            registrado — o aviso vai por e-mail todo dia até ser marcado.
+          </span>
+          <button
+            className="btn tiny"
+            type="button"
+            disabled={salvandoFinalizacao}
+            onClick={() => void salvarFinalizacao({ emailFinalizacaoEm: hoje })}
+          >
+            {salvandoFinalizacao ? 'Marcando…' : 'Marcar como enviado'}
+          </button>
+        </div>
+      )}
+
+      <section className="cartao-secao demanda-finalizacao">
+        <div className="cartao-secao-head"><h3>Finalização da demanda</h3></div>
+        <div className="demanda-campos">
+          <label className="campo">
+            <span className="campo-nome">Último dia da demanda</span>
+            <input
+              type="date"
+              value={demandaFim}
+              onChange={(event) => setDemandaFim(event.target.value)}
+              onBlur={() => demandaFim !== cliente.demandaFim && void salvarFinalizacao({})}
+            />
+          </label>
+          <div className="demanda-estado">
+            {cliente.emailFinalizacaoEm ? (
+              <>
+                <span className="pill ok">e-mail enviado</span>
+                <small>em {cliente.emailFinalizacaoEm.split('-').reverse().join('/')}</small>
+                <button
+                  className="btn tiny ghost"
+                  type="button"
+                  disabled={salvandoFinalizacao}
+                  onClick={() => void salvarFinalizacao({ emailFinalizacaoEm: '' })}
+                >
+                  Desfazer
+                </button>
+              </>
+            ) : (
+              <small>
+                {cliente.demandaFim
+                  ? 'Ainda não registrado como enviado.'
+                  : 'Informe o último dia para o hub cobrar o envio.'}
+              </small>
+            )}
+          </div>
+        </div>
+      </section>
 
       <Secao titulo="Bases" onAdicionar={() => setEditor({ tipo: 'base', item: null })}>
         {dados.cartao.bases.length === 0 && <Vazio>Nenhuma base cadastrada para este cliente.</Vazio>}
@@ -195,6 +275,8 @@ export function CartaoDoCliente({ cliente, toast, onEditar, onRemover, onSalvarC
                 repo={git.visao.repos.find((item) => mesmoCaminho(item.path, repo.caminhoLocal))}
                 branch={branchDoRemoto(repo.remoto)}
               />
+              {/* Só com caminho cadastrado: sem pasta não há o que abrir. */}
+              {repo.caminhoLocal && <AbrirRepoEm caminho={repo.caminhoLocal} toast={toast} />}
             </div>
             <AcoesItem
               onEditar={() => setEditor({ tipo: 'repo', item: repo })}
@@ -219,17 +301,33 @@ export function CartaoDoCliente({ cliente, toast, onEditar, onRemover, onSalvarC
         </div>
       </Secao>
 
-      <section className="cartao-secao anotacoes-cliente">
-        <div className="cartao-secao-head"><h3>Anotações</h3></div>
+      <section
+        className={`cartao-secao anotacoes-cliente${cliente.anotacoesNotificar && cliente.anotacoes.trim() ? ' anotacoes-marcadas' : ''}`}
+      >
+        <div className="cartao-secao-head">
+          <h3>Anotações</h3>
+          {cliente.anotacoesNotificar && cliente.anotacoes.trim() ? (
+            <span className="pill pill-aviso" title="Este cliente aparece no aviso ao abrir o hub e no resumo diário">
+              avisando
+            </span>
+          ) : null}
+        </div>
         <textarea
           value={anotacoes}
           onChange={(event) => setAnotacoes(event.target.value)}
           placeholder="Anotações avulsas sobre o cliente: contatos, particularidades, combinados."
           rows={5}
         />
+        <label className="anotacoes-avisar">
+          <input type="checkbox" checked={notificar} onChange={(event) => setNotificar(event.target.checked)} />
+          <span>
+            Ativar notificações
+            <small>Avisa ao abrir o Sankhya Hub e entra no resumo diário por e-mail.</small>
+          </span>
+        </label>
         <div className="cartao-anotacoes-foot">
-          <span>{anotacoes === cliente.anotacoes ? 'Sem alterações' : 'Alterações ainda não salvas'}</span>
-          <button className="btn tiny" disabled={salvandoAnotacoes || anotacoes === cliente.anotacoes} onClick={() => void salvarAnotacoes()}>
+          <span>{anotacoesAlteradas ? 'Alterações ainda não salvas' : 'Sem alterações'}</span>
+          <button className="btn tiny" disabled={salvandoAnotacoes || !anotacoesAlteradas} onClick={() => void salvarAnotacoes()}>
             {salvandoAnotacoes ? 'Salvando…' : 'Salvar anotações'}
           </button>
         </div>
@@ -326,6 +424,7 @@ function BaseLinha({
           senha={senhaBanco}
           onSenha={onSenhaBanco}
           onCopiar={onCopiarBanco}
+          onEditar={onEditar}
         />
       </div>
       <div className="cartao-base-status">
@@ -345,13 +444,30 @@ function BaseLinha({
  * olhe a cada abertura do cartao como a URL e o status. Base sem nada anotado nao
  * mostra a secao — linha vazia so ocuparia espaco.
  */
-function BancoDaBaseLinha({ banco, senha, onSenha, onCopiar }: {
+function BancoDaBaseLinha({ banco, senha, onSenha, onCopiar, onEditar }: {
   banco: BancoDaBase;
   senha?: string;
   onSenha: () => void;
   onCopiar: () => void;
+  onEditar: () => void;
 }) {
-  if (!bancoPreenchido(banco)) return null;
+  const abrirEdicao = (event: { preventDefault: () => void; stopPropagation: () => void }) => {
+    // `<summary>` alterna o `<details>` em qualquer clique dentro dele — sem parar
+    // aqui, clicar no ícone também abriria/fecharia o detalhe por baixo.
+    event.preventDefault();
+    event.stopPropagation();
+    onEditar();
+  };
+
+  if (!bancoPreenchido(banco)) {
+    return (
+      <div className="banco-base banco-base-vazio">
+        <span>Banco de dados</span>
+        <small>não configurado</small>
+        <button type="button" className="btn-icone quadrado" aria-label="Configurar banco de dados" onClick={abrirEdicao}>🗄</button>
+      </div>
+    );
+  }
 
   const endereco = [banco.host, banco.porta].filter(Boolean).join(':');
   return (
@@ -359,6 +475,7 @@ function BancoDaBaseLinha({ banco, senha, onSenha, onCopiar }: {
       <summary>
         <span>Banco de dados</span>
         <small>{[banco.sgbd ? SGBD[banco.sgbd] : '', endereco, banco.servico].filter(Boolean).join(' · ') || 'sem detalhes'}</small>
+        <button type="button" className="btn-icone quadrado" aria-label="Editar banco de dados" onClick={abrirEdicao}>🗄</button>
       </summary>
       <div className="credencial-base">
         <span><small>SGBD</small><strong>{banco.sgbd ? SGBD[banco.sgbd] : 'não informado'}</strong></span>

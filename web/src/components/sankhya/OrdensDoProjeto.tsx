@@ -27,13 +27,14 @@ function formatarHoras(total: number): string {
 /**
  * As OS lançadas num projeto do Experience.
  *
- * Diferente da Agenda, que mostra o SEU mês: aqui o recorte é o projeto inteiro,
- * inclusive o que os outros lançaram. É a visão de acompanhamento — precisa só do ID
- * do projeto, sem `person_id` e sem o resto do cadastro.
+ * Abre já filtrada nas próprias ("Só as minhas" ligado por padrão) — mas, diferente da
+ * Agenda, o toggle deixa ver o projeto inteiro, inclusive o que os outros lançaram, sem
+ * precisar de mais nada além do ID do projeto.
  */
 export function OrdensDoProjeto({ cliente, toast }: { cliente: Cliente; toast: Avisar }) {
   const [mes, setMes] = useState(mesAtual);
-  const [soMinhas, setSoMinhas] = useState(false);
+  // Padrão é só as próprias — ver as OS de todo mundo continua um clique de distância.
+  const [soMinhas, setSoMinhas] = useState(true);
   const [ordens, setOrdens] = useState<OrdemExperience[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);

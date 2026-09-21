@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { AtuacaoCliente, Cliente } from '../../types.ts';
+import type { AtuacaoCliente, Cliente, DetalheOrdem, OrdemExperience } from '../../types.ts';
 import type { Avisar } from '../../hooks/useToasts.ts';
 import { requisitar } from '../../lib/api.ts';
 import { ModalGerarOs } from './ModalGerarOs.tsx';
@@ -255,8 +255,44 @@ function Celula({
   );
 }
 
+/**
+ * O texto de "Tarefas Realizadas" das OS de um dia, por `id` da OS.
+ *
+ * So do dia aberto: e uma requisicao da Experience por OS, e o mes inteiro custaria
+ * uma centena delas para mostrar texto que ninguem esta olhando.
+ */
+function useTarefasRealizadas(ordens: OrdemExperience[]): Record<number, string> {
+  const [textos, setTextos] = useState<Record<number, string>>({});
+  const ids = ordens.map((ordem) => ordem.id).join(',');
+
+  useEffect(() => {
+    setTextos({});
+    if (!ids) return;
+
+    let cancelado = false;
+    void requisitar<{ detalhes: DetalheOrdem[] }>(
+      `/api/experience/os/detalhes?ids=${ids}`,
+    ).then(({ ok, body }) => {
+      // Silencioso de proposito: o texto e complemento da linha, e um aviso a cada
+      // dia clicado com a sessao vencida seria ruido em cima de um erro que a propria
+      // agenda ja anuncia.
+      if (cancelado || !ok) return;
+      setTextos(
+        Object.fromEntries((body.detalhes ?? []).map((d) => [d.id, d.tarefasRealizadas])),
+      );
+    });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [ids]);
+
+  return textos;
+}
+
 function DetalheDoDia({ dia, onGerarOs }: { dia: DiaAgenda; onGerarOs: () => void }) {
   const hoje = hojeIso();
+  const tarefasRealizadas = useTarefasRealizadas(dia.ordens);
 
   return (
     <div className="dia-detalhe">
@@ -265,14 +301,20 @@ function DetalheDoDia({ dia, onGerarOs }: { dia: DiaAgenda; onGerarOs: () => voi
       <h4>Ordens de serviço lançadas</h4>
       {dia.ordens.length === 0 && <p className="detail-empty">Nenhuma OS neste dia.</p>}
       {dia.ordens.map((ordem) => (
-        <div className="linha-agenda" key={ordem.id}>
-          <span className={`selo ${semAceite(ordem) ? 'falta' : 'ok'}`}>
-            {ordem.statusAceite || 'sem aceite'}
-          </span>
-          <span className="linha-titulo">{ordem.descricao}</span>
-          <span className="linha-meta">
-            {ordem.horasFeitas} · OS {ordem.numeroSankhya || '—'}
-          </span>
+        <div key={ordem.id}>
+          <div className="linha-agenda">
+            <span className={`selo ${semAceite(ordem) ? 'falta' : 'ok'}`}>
+              {ordem.statusAceite || 'sem aceite'}
+            </span>
+            <span className="linha-titulo">{ordem.descricao}</span>
+            <span className="linha-meta">
+              {ordem.horasFeitas} · OS {ordem.numeroSankhya || '—'}
+            </span>
+          </div>
+          {/* O que foi apontado no lançamento — é a resposta de "o que eu fiz nesse dia". */}
+          {tarefasRealizadas[ordem.id] && (
+            <p className="linha-apontamento">{tarefasRealizadas[ordem.id]}</p>
+          )}
         </div>
       ))}
 

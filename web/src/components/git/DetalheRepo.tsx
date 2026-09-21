@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { CommitAutosync, HistoryPoint, RepoAutosync } from '../../types.ts';
 import type { AcaoRepo, OpcoesHistorico } from '../../hooks/useGitAutosync.ts';
+import type { SugestaoFalha } from '../../lib/gitSugestoes.ts';
 import { HistoryBars } from '../HistoryBars.tsx';
 
 /** Só o nome da pasta: o caminho inteiro não cabe na coluna e a raiz é sempre a mesma. */
@@ -39,6 +40,9 @@ interface Props {
   repo: RepoAutosync;
   ocupado: boolean;
   onAcao: (tipo: AcaoRepo, repo: RepoAutosync) => Promise<void>;
+  /** Falha da última ação neste repositório, se houver — some quando uma ação seguinte dá certo. */
+  falha?: (SugestaoFalha & { mensagem: string }) | null;
+  onAbrirTerminal?: (repo: RepoAutosync, tipo: 'cmd' | 'git-bash') => Promise<void>;
   carregarHistorico: (
     repo: RepoAutosync,
     opcoes?: OpcoesHistorico,
@@ -57,6 +61,8 @@ export function DetalheRepo({
   repo,
   ocupado,
   onAcao,
+  falha,
+  onAbrirTerminal,
   carregarHistorico,
   semCabecalho,
   somenteHistorico = false,
@@ -134,6 +140,38 @@ export function DetalheRepo({
             <strong>Criar MR</strong>
             <span>abrir merge request no GitLab</span>
           </button>
+        </div>
+      )}
+
+      {falha && !somenteHistorico && (
+        <div className="git-falha">
+          <strong>{falha.motivo}</strong>
+          <p title={falha.mensagem}>{falha.mensagem.split('\n')[0]}</p>
+          <div className="git-falha-acoes">
+            {falha.comando && <code>{falha.comando}</code>}
+            {onAbrirTerminal && (
+              <span className="git-falha-terminais">
+                <button
+                  className="btn-icone"
+                  type="button"
+                  title="Abrir CMD na pasta do repositório"
+                  disabled={ocupado}
+                  onClick={() => void onAbrirTerminal(repo, 'cmd')}
+                >
+                  🖥 CMD
+                </button>
+                <button
+                  className="btn-icone"
+                  type="button"
+                  title="Abrir Git Bash na pasta do repositório"
+                  disabled={ocupado}
+                  onClick={() => void onAbrirTerminal(repo, 'git-bash')}
+                >
+                  ⌨ Git Bash
+                </button>
+              </span>
+            )}
+          </div>
         </div>
       )}
 

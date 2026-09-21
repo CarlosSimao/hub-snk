@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { TabBar, type Aba } from '../TabBar.tsx';
 import type { Avisar } from '../../hooks/useToasts.ts';
+import { useModoDesktop } from '../../hooks/useModoDesktop.ts';
 import { TelaClientes } from './TelaClientes.tsx';
 import { TelaCredenciais } from './TelaCredenciais.tsx';
 import { AgendaMensal } from './AgendaMensal.tsx';
@@ -25,8 +26,17 @@ export interface FocoCliente {
 }
 
 export function PainelSankhya({ toast }: { toast: Avisar }) {
-  const [aba, setAba] = useState<SubAba>('clientes');
+  const modoDesktop = useModoDesktop();
+  // Credenciais é o fluxo antigo (navegador externo dedicado, hub-helper.ps1 + CDP).
+  // Dentro do shell desktop, login já acontece direto nas abas ERP/Experience do
+  // próprio shell — "Abrir Sankhya" nessa tela abriria um terceiro navegador, sem
+  // relação com as abas do shell. Some só aqui; quem abre o hub num navegador comum
+  // (sem o shell) continua vendo e usando normalmente.
+  const abas = modoDesktop ? ABAS.filter((a) => a.id !== 'credenciais') : ABAS;
+
+  const [aba, setAbaBruta] = useState<SubAba>('clientes');
   const [foco, setFoco] = useState<FocoCliente | null>(null);
+  const setAba = (id: SubAba) => setAbaBruta(abas.some((a) => a.id === id) ? id : 'clientes');
 
   const abrirCliente = (id: number) => {
     setFoco((atual) => ({ id, seq: (atual?.seq ?? 0) + 1 }));
@@ -35,10 +45,10 @@ export function PainelSankhya({ toast }: { toast: Avisar }) {
 
   return (
     <>
-      <TabBar abas={ABAS} ativa={aba} onTrocar={setAba} variante="sub" />
+      <TabBar abas={abas} ativa={aba} onTrocar={setAba} variante="sub" />
 
       {aba === 'clientes' && <TelaClientes toast={toast} foco={foco} />}
-      {aba === 'credenciais' && <TelaCredenciais toast={toast} />}
+      {aba === 'credenciais' && !modoDesktop && <TelaCredenciais toast={toast} />}
       {aba === 'agenda' && <AgendaMensal onAbrirCliente={abrirCliente} />}
       {aba === 'agenda-erp' && <TelaAgendaErp toast={toast} />}
     </>

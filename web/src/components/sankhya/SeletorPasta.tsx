@@ -19,11 +19,13 @@ export function SeletorPasta({ aberto, inicial, onEscolher, onFechar }: Props) {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [selecionada, setSelecionada] = useState<PastaDoDisco | null>(null);
+  const [filtro, setFiltro] = useState('');
   const homeRef = useRef(extrairHome(inicial));
 
   const navegar = useCallback(async (caminho: string) => {
     setCarregando(true);
     setSelecionada(null);
+    setFiltro('');
     const busca = new URLSearchParams({ caminho });
     const { ok, body } = await requisitar<ListagemPastas>(`/api/sistema/pastas?${busca}`);
 
@@ -59,6 +61,9 @@ export function SeletorPasta({ aberto, inicial, onEscolher, onFechar }: Props) {
 
   const caminhoEscolhido = selecionada?.caminho ?? nivel.atual;
   const atalhos = montarAtalhos(homeRef.current);
+  const pastasFiltradas = filtro.trim()
+    ? nivel.pastas.filter((pasta) => pasta.nome.toLowerCase().includes(filtro.trim().toLowerCase()))
+    : nivel.pastas;
 
   const navegarLista = (event: KeyboardEvent<HTMLDivElement>) => {
     const alvo = event.target as HTMLElement;
@@ -114,12 +119,24 @@ export function SeletorPasta({ aberto, inicial, onEscolher, onFechar }: Props) {
           </aside>
 
           <section className="navegador-pastas">
+            <div className="seletor-pasta-busca">
+              <span aria-hidden="true">🔍</span>
+              <input
+                type="search"
+                placeholder="Buscar pasta nesta pasta…"
+                value={filtro}
+                onChange={(event) => setFiltro(event.target.value)}
+              />
+            </div>
             <div className="navegador-pastas-head"><span>Nome</span><span>Tipo</span></div>
             {carregando && <p className="detail-empty">Carregando…</p>}
             {!carregando && !nivel.pastas.length && <p className="detail-empty">Nenhuma subpasta aqui.</p>}
-            {!carregando && nivel.pastas.length > 0 && (
+            {!carregando && nivel.pastas.length > 0 && !pastasFiltradas.length && (
+              <p className="detail-empty">Nenhuma pasta bate com "{filtro}".</p>
+            )}
+            {!carregando && pastasFiltradas.length > 0 && (
               <div className="lista-pastas" role="listbox" onKeyDown={navegarLista}>
-                {nivel.pastas.map((pasta) => (
+                {pastasFiltradas.map((pasta) => (
                   <button
                     key={pasta.caminho}
                     type="button"

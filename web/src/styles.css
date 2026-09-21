@@ -388,6 +388,20 @@ main {
   letter-spacing: -0.01em;
 }
 
+.agenda-erp-avancado {
+  display: grid;
+  gap: 14px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+}
+
+.selo-anotacao {
+  margin-left: 5px;
+  font-size: 11px;
+  opacity: 0.75;
+  vertical-align: middle;
+}
+
 .li-summary {
   margin: 2px 0 0;
   font-size: 10.5px;
@@ -1359,6 +1373,87 @@ main {
   padding: 16px;
 }
 
+/*
+  O cadastro do cliente e a importacao de favoritos sao modais mais largos que o
+  padrao: o primeiro tem campo com botao de acao ao lado, o segundo mostra URL
+  inteira. Na largura de 480px os dois quebrariam linha a cada item.
+*/
+.editor-cadastro { width: min(560px, 94vw); }
+.importar-favoritos { width: min(680px, 94vw); }
+
+/* O modal ja tem o proprio padding; o do form-campos duplicaria a margem. */
+.modal-body.form-campos { padding: 14px 16px; }
+.modal-foot.form-acoes { padding: 12px 16px; }
+
+.favoritos-filtros {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.favoritos-filtros .campo {
+  flex: 1;
+  min-width: 180px;
+}
+
+.favoritos-selecao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.favoritos-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.favoritos-lista li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.favorito-dados {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.favorito-nome {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.favorito-bases {
+  display: grid;
+  gap: 4px;
+}
+
+.favorito-bases > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.favorito-bases code {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-faint);
+  overflow-wrap: anywhere;
+}
+
 .campo-dica {
   color: var(--text-faint);
   font-size: 10.5px;
@@ -1607,6 +1702,19 @@ main {
   padding: 6px 0;
   border-top: 1px solid var(--border);
   font-size: 12px;
+}
+
+/*
+ * O apontamento da OS: texto de várias linhas, escrito à mão no lançamento.
+ * `pre-wrap` porque a quebra de linha é do autor ("Etapa: ...
+Processos: ...").
+ */
+.linha-apontamento {
+  margin: 0 0 6px;
+  padding-left: 2px;
+  color: var(--text-faint);
+  font-size: 12px;
+  white-space: pre-wrap;
 }
 
 /* O título encolhe; o selo e a meta têm tamanho próprio e não podem ser espremidos. */
@@ -1947,6 +2055,34 @@ main {
   font: 11.5px var(--sans);
 }
 
+/* Barra de "adicionar repositorio cadastrado" da aba Git — ver
+   web/src/components/git/AdicionarRepositorio.tsx. O select cresce porque o valor
+   mostrado e' o caminho completo, que e' o que distingue dois repositorios de apelido
+   igual em clientes diferentes. */
+.git-adicionar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.git-adicionar label {
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.git-adicionar select {
+  flex: 1 1 320px;
+  min-width: 0;
+  max-width: 640px;
+  padding: 6px 28px 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-solid);
+  color: var(--text);
+  font: 11.5px var(--sans);
+}
+
 .git-repo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
@@ -2176,6 +2312,30 @@ main {
 .atalhos-pasta button.active { box-shadow: inset 2px 0 var(--accent); }
 
 .navegador-pastas { min-width: 0; background: color-mix(in srgb, var(--surface) 45%, transparent); }
+
+.seletor-pasta-busca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 10px;
+  padding: 6px 12px;
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.seletor-pasta-busca input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+
+.seletor-pasta-busca input::placeholder { color: var(--text-faint); }
 
 .navegador-pastas-head,
 .linha-pasta {
@@ -2491,6 +2651,25 @@ main {
 
 .banco-base > .credencial-base { margin-top: 8px; }
 
+.banco-base > summary .btn-icone,
+.banco-base-vazio .btn-icone { margin-left: auto; }
+
+.banco-base-vazio {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.banco-base-vazio small {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--text-faint);
+}
+
 /* Bloco de campos correlatos dentro de um editor, separado do resto por uma moldura. */
 .grupo-campos {
   border: 1px solid var(--border);
@@ -2526,6 +2705,47 @@ main {
 }
 
 .btn-icone:hover { color: var(--text); border-color: var(--border-strong); }
+
+/* Botao quadrado de 30px: os atalhos do repositorio (terminal, IntelliJ, Claude Code) e
+   o botao do banco de dados. Uma classe so' para os quatro nao terem tamanhos
+   diferentes na mesma tela. */
+.btn-quadrado,
+.btn-icone.quadrado {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.btn-quadrado:hover:not(:disabled),
+.btn-icone.quadrado:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.btn-quadrado:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Os tres atalhos do repositorio, lado a lado e centrados na vertical. */
+.abrir-repo-em {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
 
 .cartao-base-status {
   display: flex;
@@ -2621,6 +2841,72 @@ main {
   font-size: 11px;
   color: var(--text-faint);
   overflow-wrap: anywhere;
+}
+
+/* Anotação marcada para avisar: a borda existe para o cliente não passar despercebido
+   ao abrir o cartão — é o mesmo aviso que sai por notificação e no resumo diário. */
+.anotacoes-cliente.anotacoes-marcadas {
+  border-left: 3px solid var(--warn, #f59e0b);
+  padding-left: 12px;
+}
+
+.pill-aviso {
+  background: color-mix(in srgb, var(--warn, #f59e0b) 18%, transparent);
+  color: var(--warn, #f59e0b);
+  border: 1px solid color-mix(in srgb, var(--warn, #f59e0b) 35%, transparent);
+}
+
+.anotacoes-avisar {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.anotacoes-avisar input[type='checkbox'] {
+  /* As regras de formulário dão `width: 100%` aos inputs, e o checkbox esticava para
+     465px, jogando o texto para longe. Caixa de marcar tem tamanho próprio. */
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.anotacoes-avisar small {
+  display: block;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+/* `.campo` é grid, e o checkbox largo dele empurrava o texto para a coluna de baixo.
+   Aqui o conteúdo é uma coluna só, com a hora num campo estreito — é uma hora, não um
+   endereço. */
+.campo-resumo-anotacoes {
+  display: block;
+}
+
+.campo-resumo-anotacoes .anotacoes-avisar {
+  margin-top: 4px;
+}
+
+.campo-resumo-anotacoes .campo-hora {
+  display: block;
+  width: 110px;
+  margin-top: 8px;
+  padding: 6px 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.campo-resumo-anotacoes .campo-hora:disabled {
+  opacity: 0.5;
 }
 
 .anotacoes-cliente textarea {
@@ -3061,5 +3347,126 @@ main {
   width: 100%;
   margin: 0;
   font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.git-falha {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--danger, #b3413a);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--danger, #b3413a) 10%, transparent);
+}
+
+.git-falha strong {
+  font-size: 12px;
+}
+
+.git-falha p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.git-falha-acoes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.git-falha-terminais {
+  display: flex;
+  gap: 6px;
+}
+
+.git-falha-acoes code {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+}
+
+.git-log-autosync {
+  margin: 0;
+  max-height: 55vh;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-solid);
+  font-family: var(--mono);
+  font-size: 11px;
+  white-space: pre-wrap;
+}
+
+/* Aba de configurações: uma coluna estreita, porque é formulário e não painel de
+   monitoramento — campo largo demais só faz o olho percorrer distância à toa. */
+.painel-config {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 720px;
+}
+
+.painel-config-head h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.painel-config-head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+/* Pendência de e-mail de finalização: faixa no cartão e selo na lista. Some quando o
+   envio é marcado — é o mesmo gatilho do aviso diário por e-mail. */
+.faixa-pendencia {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--warn, #f59e0b) 40%, transparent);
+  background: color-mix(in srgb, var(--warn, #f59e0b) 12%, transparent);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.selo-pendencia {
+  margin-left: 6px;
+  color: var(--warn, #f59e0b);
+  font-size: 12px;
+}
+
+.demanda-campos {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.demanda-campos input[type='date'] {
+  padding: 6px 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.demanda-estado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
   color: var(--text-faint);
 }

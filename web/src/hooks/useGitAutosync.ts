@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { CommitAutosync, RepoAutosync, TarefaAutosync } from '../types.ts';
 import { enviar, requisitar } from '../lib/api.ts';
+import { sugerirFalha, type SugestaoFalha } from '../lib/gitSugestoes.ts';
 import type { Avisar } from './useToasts.ts';
 
 export interface VisaoAutosync {
@@ -34,6 +35,8 @@ export function useGitAutosync(toast: Avisar) {
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [ocupado, setOcupado] = useState(false);
+  /** Falha da última ação por repositório, com sugestão — some ao repetir a ação com sucesso. */
+  const [falhas, setFalhas] = useState<Record<string, SugestaoFalha & { mensagem: string }>>({});
 
   const recarregar = useCallback(async () => {
     const { ok, body } = await requisitar<VisaoAutosync>('/api/git-autosync');
@@ -65,16 +68,48 @@ export function useGitAutosync(toast: Avisar) {
           ...extra,
         });
         if (!ok) {
-          toast(`${tipo}: falhou`, 'err', body.error);
+          const mensagem = body.error ?? 'falhou sem detalhe';
+          toast(`${tipo}: falhou`, 'err', mensagem);
+          setFalhas((atuais) => ({
+            ...atuais,
+            [repo.path]: { mensagem, ...(sugerirFalha(mensagem) ?? { motivo: mensagem }) },
+          }));
           return;
         }
         toast(`${tipo}: concluído`, 'ok', body.saida);
+        // Ação seguinte deu certo: a falha anterior desse repositório deixou de valer.
+        setFalhas((atuais) => {
+          if (!(repo.path in atuais)) return atuais;
+          const { [repo.path]: _descartada, ...resto } = atuais;
+          return resto;
+        });
         await recarregar();
       } finally {
         setOcupado(false);
       }
     },
     [recarregar, toast],
+  );
+
+  /** Abre CMD ou Git Bash na pasta do repositório — não passa pelo CLI do git-autosync. */
+  const abrirTerminal = useCallback(
+    async (repo: RepoAutosync, tipo: 'cmd' | 'git-bash') => {
+      setOcupado(true);
+      try {
+        const { ok, body } = await enviar<{ saida: string }>('/api/git-autosync/terminal', {
+          caminho: repo.path,
+          tipo,
+        });
+        if (!ok) {
+          toast('Não consegui abrir o terminal', 'err', body.error);
+          return;
+        }
+        toast('Terminal aberto.', 'ok', body.saida);
+      } finally {
+        setOcupado(false);
+      }
+    },
+    [toast],
   );
 
   const definirAtivo = useCallback(
@@ -163,6 +198,22 @@ export function useGitAutosync(toast: Avisar) {
     [recarregar, toast],
   );
 
+  const [log, setLog] = useState<string[] | null>(null);
+  const [logCarregando, setLogCarregando] = useState(false);
+
+  /** Últimas linhas do `autosync.log` — texto simples gravado a cada rodada agendada. */
+  const carregarLog = useCallback(async (limite = 200) => {
+    setLogCarregando(true);
+    try {
+      const { ok, body } = await requisitar<{ linhas: string[] }>(
+        `/api/git-autosync/log?limite=${limite}`,
+      );
+      setLog(ok ? (body.linhas ?? []) : []);
+    } finally {
+      setLogCarregando(false);
+    }
+  }, []);
+
   const definirIa = useCallback(
     async (ligada: boolean, agente: string) => {
       setOcupado(true);
@@ -191,11 +242,16 @@ export function useGitAutosync(toast: Avisar) {
     carregando,
     ocupado,
     acao,
+    falhas,
+    abrirTerminal,
     definirAtivo,
     definirHorarios,
     definirInstalacao,
     definirIa,
     historico,
+    log,
+    logCarregando,
+    carregarLog,
     recarregar,
   };
 }

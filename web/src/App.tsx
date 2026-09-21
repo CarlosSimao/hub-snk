@@ -13,21 +13,23 @@ import { Footer, Toasts, Warnings } from './components/Chrome.tsx';
 import { PainelInfra } from './components/PainelInfra.tsx';
 import { PainelSankhya } from './components/sankhya/PainelSankhya.tsx';
 import { PainelGit } from './components/git/PainelGit.tsx';
+import { PainelConfiguracoes } from './components/ConfiguracoesGerais.tsx';
 
 const CHAVE_SELECIONADO = 'sankhya-hub-selecionado';
 const CHAVE_ABA = 'sankhya-hub-aba';
 
-type AbaTopo = 'infra' | 'sankhya' | 'git';
+type AbaTopo = 'infra' | 'sankhya' | 'git' | 'config';
 
 const ABAS: Aba<AbaTopo>[] = [
   { id: 'infra', rotulo: 'Infra', titulo: 'Monitoramento de WildFly, Oracle e containers' },
   { id: 'sankhya', rotulo: 'Sankhya', titulo: 'Clientes, credenciais e agenda' },
   { id: 'git', rotulo: 'Git', titulo: 'Repositórios do git-autosync' },
+  { id: 'config', rotulo: 'Configurações', titulo: 'Ajustes que valem para o hub inteiro' },
 ];
 
 function abaSalva(): AbaTopo {
   const valor = localStorage.getItem(CHAVE_ABA);
-  return valor === 'sankhya' || valor === 'git' ? valor : 'infra';
+  return valor === 'sankhya' || valor === 'git' || valor === 'config' ? valor : 'infra';
 }
 
 export function App() {
@@ -162,6 +164,8 @@ export function App() {
         {aba === 'sankhya' && <PainelSankhya toast={toast} />}
 
         {aba === 'git' && <PainelGit toast={toast} />}
+
+        {aba === 'config' && <PainelConfiguracoes toast={toast} />}
       </main>
 
       <Footer checks={totalChecks} generatedAt={model.generatedAt} />

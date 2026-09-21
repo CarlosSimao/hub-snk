@@ -56,5 +56,5 @@ export function useClientes(toast: Avisar) {
     [recarregar, toast],
   );
 
-  return { clientes, carregando, salvar, remover };
+  return { clientes, carregando, salvar, remover, recarregar };
 }

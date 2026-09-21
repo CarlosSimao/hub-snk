@@ -4,6 +4,8 @@ import { useGitAutosync } from '../../hooks/useGitAutosync.ts';
 import type { TarefaAutosync } from '../../types.ts';
 import type { Avisar } from '../../hooks/useToasts.ts';
 import { DetalheRepo, nomeCurto } from './DetalheRepo.tsx';
+import { ModalLogAutosync } from './ModalLogAutosync.tsx';
+import { AdicionarRepositorio } from './AdicionarRepositorio.tsx';
 
 const ESTADO_ROTULO: Record<string, string> = {
   synced: 'sincronizado',
@@ -18,15 +20,21 @@ export function PainelGit({ toast }: { toast: Avisar }) {
     carregando,
     ocupado,
     acao,
+    falhas,
+    abrirTerminal,
     definirAtivo,
     definirHorarios,
     definirInstalacao,
     definirIa,
     historico,
+    log,
+    logCarregando,
+    carregarLog,
     recarregar,
   } = useGitAutosync(toast);
   const [modo, setModo] = useState<'repos' | 'historico'>('repos');
   const [dias, setDias] = useState<number | undefined>(7);
+  const [logAberto, setLogAberto] = useState(false);
 
   if (erro) return <AvisoHelperFora erro={erro} />;
 
@@ -37,10 +45,23 @@ export function PainelGit({ toast }: { toast: Avisar }) {
           <h1>Repositórios</h1>
           <p>Revise execuções, controle o agendamento e mantenha cada remoto atualizado.</p>
         </div>
-        <button className="btn ghost" disabled={carregando || ocupado} onClick={() => void recarregar()}>
-          Atualizar
-        </button>
+        <div className="detail-actions">
+          <button className="btn tiny ghost" onClick={() => setLogAberto(true)}>
+            Ver log do autosync
+          </button>
+          <button className="btn ghost" disabled={carregando || ocupado} onClick={() => void recarregar()}>
+            Atualizar
+          </button>
+        </div>
       </header>
+
+      <ModalLogAutosync
+        aberto={logAberto}
+        linhas={log}
+        carregando={logCarregando}
+        onCarregar={carregarLog}
+        onFechar={() => setLogAberto(false)}
+      />
 
       <section className="git-overview" aria-label="Resumo do Git AutoSync">
         <Resumo valor={visao.repos.length} rotulo={plural(visao.repos.length, 'repositório', 'repositórios')} />
@@ -85,10 +106,19 @@ export function PainelGit({ toast }: { toast: Avisar }) {
         )}
       </div>
 
+      {/* Fora da visão de histórico: lá a pergunta é "o que já rodou", não "o que vigiar". */}
+      {modo === 'repos' && !carregando && (
+        <AdicionarRepositorio
+          jaNoAutosync={visao.repos}
+          ocupado={ocupado}
+          onAdicionar={definirAtivo}
+        />
+      )}
+
       {carregando ? (
         <p className="detail-empty">Carregando repositórios…</p>
       ) : visao.repos.length === 0 ? (
-        <p className="detail-empty">Nenhum repositório configurado.</p>
+        <p className="detail-empty">Nenhum repositório no git-autosync ainda.</p>
       ) : (
         <section className={`git-repo-grid ${modo}`}>
           {visao.repos.map((repo) => (
@@ -115,6 +145,8 @@ export function PainelGit({ toast }: { toast: Avisar }) {
               repo={repo}
               ocupado={ocupado}
               onAcao={acao}
+              falha={falhas[repo.path]}
+              onAbrirTerminal={abrirTerminal}
               carregarHistorico={historico}
               semCabecalho
               somenteHistorico={modo === 'historico'}
