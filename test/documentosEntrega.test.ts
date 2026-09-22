@@ -124,6 +124,31 @@ describe('Documentos de entrega', () => {
     }),
   );
 
+  test(
+    'encontra entregas em subpastas sem entrar em ocultas, dependencias ou alem do limite',
+    comCartao((cartao, clientes, dir) => {
+      clientes.criar(CLIENTE);
+      const repo = join(dir, 'amatools');
+      const pastas = [
+        join(repo, 'comissao2996', 'Documentacao'),
+        join(repo, '.template', 'nomedemanda', 'Documentacao'),
+        join(repo, '.git', 'Documentacao'),
+        join(repo, 'node_modules', 'pacote', 'Documentacao'),
+        join(repo, 'nivel1', 'nivel2', 'nivel3', 'Documentacao'),
+      ];
+      for (const pasta of pastas) {
+        mkdirSync(pasta, { recursive: true });
+        writeFileSync(join(pasta, 'Entrega - Comissionamento.docx'), 'documento', 'utf8');
+      }
+      cartao.gravarRepo(1, { nome: 'AMATOOLS', remoto: '', caminhoLocal: repo, ordem: 0 });
+
+      const documentos = documentosDoCliente(cartao, 1);
+
+      assert.deepEqual(documentos.map((doc) => doc.nome), ['Entrega - Comissionamento.docx']);
+      assert.equal(documentos[0]?.repositorio, 'AMATOOLS / comissao2996');
+    }),
+  );
+
   test('o tipo MIME acompanha a extensao — o Word abre no Word', () => {
     assert.match(tipoMime('Entrega - X.docx'), /wordprocessingml/);
     assert.equal(tipoMime('Entrega - X.html'), 'text/html');
