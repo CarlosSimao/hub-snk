@@ -19,6 +19,12 @@ async function mostrarAba(id) {
   if (resultado.ok) marcarAtiva(id);
 }
 
+function definirVisibilidade(botao, visivel) {
+  if (!botao) return;
+  botao.hidden = !visivel;
+  botao.setAttribute('aria-hidden', String(!visivel));
+}
+
 for (const botao of botoesFixos) {
   botao.addEventListener('click', () => mostrarAba(botao.dataset.id));
 }
@@ -32,10 +38,11 @@ function renderizarAbasClientes(lista) {
   // A barra pode crescer (quebrar linha) conforme guias de cliente abrem/fecham — o
   // shell reposiciona as WebContentsView pela altura informada, então precisa saber.
   setTimeout(informarAlturaTopo, 0);
-  for (const { origin, titulo } of lista) {
+  for (const { origin, titulo, visivel } of lista) {
     const botao = document.createElement('span');
     botao.className = 'aba-cliente' + (origin === abaAtiva ? ' ativa' : '');
     botao.dataset.origin = origin;
+    definirVisibilidade(botao, visivel);
 
     const rotulo = document.createElement('span');
     rotulo.textContent = titulo;
@@ -58,6 +65,7 @@ function renderizarAbasClientes(lista) {
 
 window.hub.links.aoAtualizarLista(renderizarAbasClientes);
 window.hub.links.listar().then(renderizarAbasClientes);
+window.hub.tabs.aoMostrar(marcarAtiva);
 
 function informarAlturaTopo() {
   window.hub.layout.definirAlturaTopo(document.getElementById('barra').offsetHeight);
@@ -90,8 +98,9 @@ setInterval(atualizarStatus, 20_000);
  */
 function aplicarEstadoDasGuias(guias) {
   for (const { id, visivel } of guias) {
-    const botao = document.querySelector(`#abas button[data-id="${id}"]`);
-    if (botao) botao.hidden = !visivel;
+    const botao = document.querySelector(`#abas button[data-id="${CSS.escape(id)}"]`)
+      ?? document.querySelector(`#abasClientes .aba-cliente[data-origin="${CSS.escape(id)}"]`);
+    definirVisibilidade(botao, visivel);
   }
   setTimeout(informarAlturaTopo, 0);
 }

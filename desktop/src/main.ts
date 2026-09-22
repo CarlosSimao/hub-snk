@@ -104,7 +104,7 @@ ipcMain.handle('layout:definirAlturaTopo', (_evt, altura: number) => {
 });
 
 ipcMain.handle('tabs:mostrar', (_evt, id: string) => ({ ok: tabs?.mostrar(id) ?? false }));
-ipcMain.handle('guias:estado', () => tabs?.guiasPrincipais() ?? []);
+ipcMain.handle('guias:estado', () => tabs?.guiasAbertas() ?? []);
 ipcMain.handle('tabs:recarregar', (_evt, id: string) => ({ ok: tabs?.recarregar(id) ?? false }));
 ipcMain.handle('links:fechar', (_evt, origin: string) => ({ ok: tabs?.fecharAbaCliente(origin) ?? false }));
 ipcMain.handle('links:lista', () => tabs?.abasClientesAbertas() ?? []);

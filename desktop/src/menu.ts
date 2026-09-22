@@ -9,12 +9,14 @@
  * senha. Sem um lugar para trazê-la à tela, a skill pedia "faça login na aba" e não havia
  * aba nenhuma para clicar.
  */
-import { Menu, app, shell, type BrowserWindow } from 'electron';
+import { Menu, app, shell, type BrowserWindow, type MenuItem } from 'electron';
 import { HUB_URL } from './config';
 import * as navegacaoSkill from './navegacaoSkill';
 import type { TabManager } from './tabs';
 
 export function montarMenu(janela: () => BrowserWindow | null, tabs: () => TabManager | null): void {
+  const gerenciador = tabs();
+  const guias = gerenciador?.guiasAbertas() ?? [];
   const menu = Menu.buildFromTemplate([
     {
       label: 'Hub',
@@ -38,17 +40,17 @@ export function montarMenu(janela: () => BrowserWindow | null, tabs: () => TabMa
         { label: 'Mostrar na barra', enabled: false },
         // Uma caixa por guia: marcada = aparece na barra. Esconder nao fecha nem
         // recarrega — a guia continua viva, so' sai de vista.
-        ...(tabs()?.guiasPrincipais() ?? []).map((guia) => ({
+        ...guias.map((guia) => ({
           label: guia.rotulo,
           type: 'checkbox' as const,
           checked: guia.visivel,
-          click: () => {
+          click: (itemMenu: MenuItem) => {
             const gerenciador = tabs();
             if (!gerenciador) return;
-            // A ultima guia visivel nao pode sair: a janela ficaria em branco. Quando o
-            // gerenciador recusa, o menu e' remontado e a caixa volta a marcada.
-            gerenciador.definirGuiaVisivel(guia.id, !guia.visivel);
-            montarMenu(janela, tabs);
+            // O estado real da caixa e' a fonte da visibilidade. Inclusive a ultima
+            // guia pode ser ocultada: a view continua carregada em segundo plano.
+            const alterou = gerenciador.definirGuiaVisivel(guia.id, itemMenu.checked);
+            if (!alterou) montarMenu(janela, tabs);
           },
         })),
       ],
@@ -96,4 +98,6 @@ export function montarMenu(janela: () => BrowserWindow | null, tabs: () => TabMa
   ]);
 
   Menu.setApplicationMenu(menu);
+  // O menu nativo nao e' reativo: abrir ou fechar uma aba exige reconstruir a lista.
+  gerenciador?.aoMudarGuias(() => montarMenu(janela, tabs));
 }

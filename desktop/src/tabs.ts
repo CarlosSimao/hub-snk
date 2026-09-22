@@ -31,6 +31,13 @@ export interface InfoBaseCliente {
 export interface AbaClienteInfo {
   origin: string;
   titulo: string;
+  visivel: boolean;
+}
+
+export interface GuiaInfo {
+  id: string;
+  rotulo: string;
+  visivel: boolean;
 }
 
 function origemPermitida(url: string, lista: string[]): boolean {
@@ -124,6 +131,7 @@ export class TabManager {
    * do ERP aberta no lugar certo). E' o contrario de fechar uma aba de cliente.
    */
   readonly #escondidas = new Set<string>();
+  #aoMudarGuias: (() => void) | null = null;
 
   constructor(janela: BrowserWindow) {
     this.#janela = janela;
@@ -137,7 +145,10 @@ export class TabManager {
   }
 
   abasClientesAbertas(): AbaClienteInfo[] {
-    return [...this.#abasClientes.values()];
+    return [...this.#abasClientes.values()].map((aba) => ({
+      ...aba,
+      visivel: !this.#escondidas.has(aba.origin),
+    }));
   }
 
   criarAbaPrincipal(id: TabId, url: string, particao: string): void {
@@ -216,28 +227,43 @@ export class TabManager {
 
   mostrar(id: string): boolean {
     if (!this.#abas.has(id)) return false;
+    // Abrir de novo uma guia escondida (por atalho ou pelo cartao do cliente) tambem a
+    // devolve para a barra. Assim nunca existe conteudo ativo sem guia correspondente.
+    if (this.#escondidas.delete(id)) {
+      this.#gravarGuiasEscondidas();
+      this.#emitirGuias();
+    }
     this.#abaAtiva = id;
     for (const [outroId, view] of this.#abas.entries()) {
       view.setVisible(outroId === id);
     }
+    this.#janela.webContents.send('tabs:ativa', id);
     logEvento('aba-ativada', { id });
     return true;
   }
 
   /** As guias de cima, com o rotulo que a barra mostra e se estao visiveis. */
-  guiasPrincipais(): { id: TabId; rotulo: string; visivel: boolean }[] {
-    return (['hub', 'erp', 'experience'] as TabId[])
+  guiasAbertas(): GuiaInfo[] {
+    const principais = (['hub', 'erp', 'experience'] as TabId[])
       .filter((id) => this.#abas.has(id))
       .map((id) => ({ id, rotulo: ROTULO_GUIA[id], visivel: !this.#escondidas.has(id) }));
+    const clientes = [...this.#abasClientes.values()].map((aba) => ({
+      id: aba.origin,
+      rotulo: aba.titulo,
+      visivel: !this.#escondidas.has(aba.origin),
+    }));
+    return [...principais, ...clientes];
+  }
+
+  aoMudarGuias(callback: () => void): void {
+    this.#aoMudarGuias = callback;
   }
 
   /**
    * Esconde ou traz de volta uma guia da barra.
    *
-   * Esconder a guia ATIVA troca para a primeira visivel: deixar a guia escondida na
-   * frente daria uma janela sem guia marcada na barra e sem jeito obvio de sair dela.
-   *
-   * A ultima guia visivel nao pode ser escondida — a janela ficaria em branco.
+   * Esconder a guia ATIVA troca para a primeira visivel. Se nenhuma outra estiver
+   * marcada, todas as views ficam invisiveis, mas continuam carregadas em background.
    */
   definirGuiaVisivel(id: string, visivel: boolean): boolean {
     if (!this.#abas.has(id)) return false;
@@ -245,16 +271,22 @@ export class TabManager {
     if (visivel) {
       this.#escondidas.delete(id);
     } else {
-      const visiveis = this.guiasPrincipais().filter((guia) => guia.visivel);
-      if (visiveis.length <= 1 && visiveis[0]?.id === id) return false;
       this.#escondidas.add(id);
     }
 
-    gravarGuiasEscondidas([...this.#escondidas]);
+    this.#gravarGuiasEscondidas();
 
     if (!visivel && this.#abaAtiva === id) {
-      const proxima = this.guiasPrincipais().find((guia) => guia.visivel);
-      if (proxima) this.mostrar(proxima.id);
+      const proxima = this.guiasAbertas().find((guia) => guia.visivel);
+      if (proxima) {
+        this.mostrar(proxima.id);
+      } else {
+        this.#abaAtiva = '';
+        for (const view of this.#abas.values()) view.setVisible(false);
+        this.#janela.webContents.send('tabs:ativa', '');
+      }
+    } else if (visivel && !this.#abaAtiva) {
+      this.mostrar(id);
     }
 
     logEvento('guia-visibilidade', { id, visivel });
@@ -264,13 +296,31 @@ export class TabManager {
 
   /** Manda a barra redesenhar — o HTML das guias de cima e fixo, o estado vem daqui. */
   #emitirGuias(): void {
-    this.#janela.webContents.send('guias:estado', this.guiasPrincipais());
+    this.#janela.webContents.send('guias:estado', this.guiasAbertas());
+    this.#emitirListaClientes();
+    this.#aoMudarGuias?.();
+  }
+
+  #gravarGuiasEscondidas(): void {
+    gravarGuiasEscondidas(
+      [...this.#escondidas].filter((id): id is TabId => id === 'hub' || id === 'erp' || id === 'experience'),
+    );
   }
 
   /** Chamado depois de criar as guias: aplica o que estava escondido da sessao anterior. */
   restaurarGuiasEscondidas(): void {
     for (const id of lerGuiasEscondidas()) {
-      if (this.#abas.has(id) && id !== this.#abaAtiva) this.#escondidas.add(id);
+      if (this.#abas.has(id)) this.#escondidas.add(id);
+    }
+    if (this.#escondidas.has(this.#abaAtiva)) {
+      const proxima = this.guiasAbertas().find((guia) => guia.visivel);
+      if (proxima) {
+        this.mostrar(proxima.id);
+      } else {
+        this.#abaAtiva = '';
+        for (const view of this.#abas.values()) view.setVisible(false);
+        this.#janela.webContents.send('tabs:ativa', '');
+      }
     }
     this.#emitirGuias();
   }
@@ -326,9 +376,10 @@ export class TabManager {
     view.webContents.loadURL(url);
     this.#janela.contentView.addChildView(view);
     this.#abas.set(origin, view);
-    this.#abasClientes.set(origin, { origin, titulo: tituloBase(info) });
+    this.#abasClientes.set(origin, { origin, titulo: tituloBase(info), visivel: true });
+    this.#escondidas.delete(origin);
     this.reposicionar();
-    this.#emitirListaClientes();
+    this.#emitirGuias();
     this.mostrar(origin);
     // Um único observador para a vida da aba, não um por navegação: o login é em duas
     // etapas (usuário -> "Prosseguir" -> senha) sem recarregar a página entre elas, e
@@ -342,7 +393,8 @@ export class TabManager {
     this.#janela.contentView.removeChildView(view);
     this.#abas.delete(origin);
     this.#abasClientes.delete(origin);
-    this.#emitirListaClientes();
+    this.#escondidas.delete(origin);
+    this.#emitirGuias();
     if (this.#abaAtiva === origin) this.mostrar('hub');
     return true;
   }
