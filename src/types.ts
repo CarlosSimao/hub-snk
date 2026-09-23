@@ -881,6 +881,16 @@ export function worstStatus(statuses: Status[]): Status {
 export const MODELOS_SKILL = ['', 'opus', 'sonnet', 'haiku'] as const;
 export type ModeloSkill = (typeof MODELOS_SKILL)[number];
 
+/**
+ * Niveis de esforco de raciocinio que a tela oferece. Vazio = o padrao do `claude`.
+ *
+ * Os valores sao os aceitos pelo flag `--effort` da CLI (medido: `low, medium, high,
+ * xhigh, max`); a CLI ignora um valor fora da lista, mas validar aqui devolve erro
+ * legivel em vez de um esforco silenciosamente descartado.
+ */
+export const ESFORCOS_SKILL = ['', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
+export type EsforcoSkill = (typeof ESFORCOS_SKILL)[number];
+
 export interface SkillDisponivel {
   /** Como a skill e' invocada: `plugin:skill`, ou so' `skill` quando e' do usuario. */
   id: string;
@@ -897,6 +907,7 @@ export interface EstadoSessaoSkill {
   skill: string;
   pasta: string;
   modelo: ModeloSkill;
+  esforco: EsforcoSkill;
   /** `session_id` do proprio Claude Code, para um futuro `--resume`. */
   sessaoClaude: string;
   viva: boolean;
@@ -913,4 +924,116 @@ export interface DocumentoEntregaCliente {
   repositorio: string;
   bytes: number;
   modificadoEm: string;
+}
+
+/* ------------------------- monitor de log das bases (serverlog) ------------------------- */
+
+/** Um botão de ação do módulo `serverlog`, como está registrado na base. */
+export interface BotaoServerLog {
+  id: string;
+  descricao: string;
+  codModulo: string;
+}
+
+/** O que a verificação encontrou numa base — ver `desktop/src/serverLog.ts`. */
+export interface StatusServerLog {
+  botaoLer: BotaoServerLog | null;
+  botaoMonitor: BotaoServerLog | null;
+  modulo: { cod: string; resourceId: string; descricao: string } | null;
+  leituraOk?: boolean;
+  erroLeitura?: string;
+}
+
+/**
+ * Registro de que o módulo está (ou esteve) numa base de cliente.
+ *
+ * Existe para o módulo não ficar esquecido lá depois da demanda: `removerAte` é o prazo,
+ * `vencida` liga o aviso, e `removidoEm` só é preenchido depois de uma verificação
+ * confirmar que módulo e botões sumiram da base.
+ */
+export interface InstalacaoServerLog {
+  origin: string;
+  clienteNome: string;
+  detectadoEm: string;
+  /** `YYYY-MM-DD`, data local. */
+  removerAte: string;
+  demanda: string;
+  removidoEm: string;
+  modulo: string;
+  botaoId: string;
+  botaoMonitorId: string;
+  ultimaVerificacao: string;
+  ultimoStatus: string;
+  ativa: boolean;
+  vencida: boolean;
+}
+
+/* ------------------------- escopo e kanban de tarefas do cliente ------------------------- */
+
+/** As colunas do kanban, na ordem em que aparecem. */
+export const ESTADOS_TAREFA = ['backlog', 'a_fazer', 'em_andamento', 'em_revisao', 'concluido'] as const;
+export type EstadoTarefa = (typeof ESTADOS_TAREFA)[number];
+
+export const PRIORIDADES_TAREFA = ['alta', 'media', 'baixa'] as const;
+export type PrioridadeTarefa = (typeof PRIORIDADES_TAREFA)[number];
+
+/**
+ * O tipo de artefato Sankhya que a tarefa produz — é o que diz a quem distribuir e ajuda
+ * a separar o que é código do que é configuração ou teste.
+ */
+export const TIPOS_TAREFA = [
+  'backend',
+  'frontend',
+  'dados',
+  'relatorio',
+  'bi',
+  'integracao',
+  'configuracao',
+  'teste',
+  'documentacao',
+  'outro',
+] as const;
+export type TipoTarefa = (typeof TIPOS_TAREFA)[number];
+
+export type StatusDocumentoEscopo = 'enviado' | 'analisando' | 'analisado' | 'falhou';
+
+export interface DocumentoEscopo {
+  id: number;
+  clienteId: number;
+  nome: string;
+  /** `docx`, `pdf`, `md` ou `txt`. */
+  tipo: string;
+  bytes: number;
+  enviadoEm: string;
+  status: StatusDocumentoEscopo;
+  analisadoEm: string;
+  /** Resumo que a IA escreveu do escopo. */
+  resumo: string;
+  erro: string;
+  /** Quantos caracteres de texto foram extraídos — 0 em PDF, que a IA lê direto. */
+  caracteres: number;
+}
+
+export interface TarefaEscopo {
+  id: number;
+  clienteId: number;
+  /** Documento que gerou a tarefa; `null` quando foi criada à mão. */
+  documentoId: number | null;
+  titulo: string;
+  descricao: string;
+  /** Feature ou épico a que a tarefa pertence — agrupa os cartões visualmente. */
+  grupo: string;
+  tipo: TipoTarefa;
+  estimativaHoras: number;
+  prioridade: PrioridadeTarefa;
+  criteriosAceite: string;
+  estado: EstadoTarefa;
+  ordem: number;
+  criadaEm: string;
+  atualizadaEm: string;
+}
+
+export interface EscopoDoCliente {
+  documentos: DocumentoEscopo[];
+  tarefas: TarefaEscopo[];
 }

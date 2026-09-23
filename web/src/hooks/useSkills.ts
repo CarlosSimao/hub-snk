@@ -21,6 +21,8 @@ export type ItemConversa =
 
 /** O modelo escolhido vale para a próxima execução e fica salvo como padrão. */
 const CHAVE_MODELO = 'sankhya-hub-skill-modelo';
+/** Idem para o nível de raciocínio (`--effort`). */
+const CHAVE_ESFORCO = 'sankhya-hub-skill-esforco';
 
 export function modeloSalvo(): string {
   try {
@@ -33,6 +35,22 @@ export function modeloSalvo(): string {
 export function salvarModelo(modelo: string): void {
   try {
     localStorage.setItem(CHAVE_MODELO, modelo);
+  } catch {
+    // Navegador sem storage (janela privada): a escolha vale só para esta execução.
+  }
+}
+
+export function esforcoSalvo(): string {
+  try {
+    return localStorage.getItem(CHAVE_ESFORCO) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export function salvarEsforco(esforco: string): void {
+  try {
+    localStorage.setItem(CHAVE_ESFORCO, esforco);
   } catch {
     // Navegador sem storage (janela privada): a escolha vale só para esta execução.
   }
@@ -163,7 +181,7 @@ export function useSkills(toast: Avisar) {
   }, [acompanhar]);
 
   const iniciar = useCallback(
-    async (entrada: { skill: string; pasta: string; modelo: string; mensagem: string }) => {
+    async (entrada: { skill: string; pasta: string; modelo: string; esforco: string; mensagem: string }) => {
       setOcupado(true);
       try {
         const { ok, body } = await enviar<EstadoSessaoSkill>('/api/skills/sessoes', entrada);
@@ -172,6 +190,7 @@ export function useSkills(toast: Avisar) {
           return;
         }
         salvarModelo(entrada.modelo);
+        salvarEsforco(entrada.esforco);
         setConversa([]);
         setSessao(body as EstadoSessaoSkill);
         setRodando(true);

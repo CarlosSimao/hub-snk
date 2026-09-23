@@ -28,12 +28,23 @@ import { homedir as homedirDoUsuario, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
-import { MODELOS_SKILL, type EstadoSessaoSkill, type ModeloSkill, type SkillDisponivel } from './types.ts';
+import {
+  ESFORCOS_SKILL,
+  MODELOS_SKILL,
+  type EsforcoSkill,
+  type EstadoSessaoSkill,
+  type ModeloSkill,
+  type SkillDisponivel,
+} from './types.ts';
 
-export type { EstadoSessaoSkill, ModeloSkill, SkillDisponivel };
+export type { EsforcoSkill, EstadoSessaoSkill, ModeloSkill, SkillDisponivel };
 
 export function ehModelo(valor: string): valor is ModeloSkill {
   return (MODELOS_SKILL as readonly string[]).includes(valor);
+}
+
+export function ehEsforco(valor: string): valor is EsforcoSkill {
+  return (ESFORCOS_SKILL as readonly string[]).includes(valor);
 }
 
 /** Erro de uso: skill desconhecida, pasta invalida, sessao que nao existe. */
@@ -238,7 +249,13 @@ export class Skills {
    * O `cwd` e' a pasta do repositorio: e' dele que a skill le os fontes e e' nele que ela
    * grava o documento.
    */
-  iniciar(entrada: { skill: string; pasta: string; modelo: string; mensagem: string }): EstadoSessaoSkill {
+  iniciar(entrada: {
+    skill: string;
+    pasta: string;
+    modelo: string;
+    esforco: string;
+    mensagem: string;
+  }): EstadoSessaoSkill {
     const skill = entrada.skill.trim();
     if (!skill) throw new PedidoSkillError('informe a skill');
     if (!this.listar().some((disponivel) => disponivel.id === skill)) {
@@ -257,6 +274,9 @@ export class Skills {
     const modelo = entrada.modelo.trim();
     if (!ehModelo(modelo)) throw new PedidoSkillError(`modelo desconhecido: ${modelo}`);
 
+    const esforco = entrada.esforco.trim();
+    if (!ehEsforco(esforco)) throw new PedidoSkillError(`nível de raciocínio desconhecido: ${esforco}`);
+
     const args = [
       '-p',
       '--input-format', 'stream-json',
@@ -265,6 +285,7 @@ export class Skills {
       '--verbose',
     ];
     if (modelo) args.push('--model', modelo);
+    if (esforco) args.push('--effort', esforco);
 
     // Navegador do hub, quando o shell desktop esta' no ar: as abas dele ja' estao
     // autenticadas no Sankhya, e e' o que permite uma skill tirar evidencia de tela sem
@@ -297,6 +318,7 @@ export class Skills {
       skill,
       pasta,
       modelo,
+      esforco,
       sessaoClaude: '',
       viva: true,
       custoUsd: 0,

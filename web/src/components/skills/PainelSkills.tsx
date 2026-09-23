@@ -14,13 +14,22 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RepoCadastrado } from '../../types.ts';
 import { requisitar } from '../../lib/api.ts';
 import type { Avisar } from '../../hooks/useToasts.ts';
-import { modeloSalvo, useSkills, type ItemConversa } from '../../hooks/useSkills.ts';
+import { esforcoSalvo, modeloSalvo, useSkills, type ItemConversa } from '../../hooks/useSkills.ts';
 
 const MODELOS = [
   { valor: '', rotulo: 'padrão do Claude Code' },
   { valor: 'opus', rotulo: 'Opus (mais capaz)' },
   { valor: 'sonnet', rotulo: 'Sonnet (equilíbrio)' },
   { valor: 'haiku', rotulo: 'Haiku (mais barato)' },
+];
+
+const ESFORCOS = [
+  { valor: '', rotulo: 'padrão do Claude Code' },
+  { valor: 'low', rotulo: 'Baixo (mais rápido)' },
+  { valor: 'medium', rotulo: 'Médio' },
+  { valor: 'high', rotulo: 'Alto' },
+  { valor: 'xhigh', rotulo: 'Muito alto' },
+  { valor: 'max', rotulo: 'Máximo (mais lento)' },
 ];
 
 export interface AberturaSkill {
@@ -33,6 +42,7 @@ export function PainelSkills({ toast, abertura }: { toast: Avisar; abertura?: Ab
   const [skill, setSkill] = useState('');
   const [pasta, setPasta] = useState('');
   const [modelo, setModelo] = useState(modeloSalvo);
+  const [esforco, setEsforco] = useState(esforcoSalvo);
   const [mensagem, setMensagem] = useState('');
   const [repos, setRepos] = useState<RepoCadastrado[]>([]);
   const fim = useRef<HTMLDivElement | null>(null);
@@ -63,6 +73,7 @@ export function PainelSkills({ toast, abertura }: { toast: Avisar; abertura?: Ab
       skill,
       pasta,
       modelo,
+      esforco,
       // A skill é invocada como comando: é assim que a CLI a resolve pelo nome.
       mensagem: mensagem.trim() || `/${skill}`,
     });
@@ -121,6 +132,17 @@ export function PainelSkills({ toast, abertura }: { toast: Avisar; abertura?: Ab
           </select>
         </label>
 
+        <label className="campo">
+          <span className="campo-nome">Raciocínio</span>
+          <select value={esforco} disabled={Boolean(sessao?.viva)} onChange={(e) => setEsforco(e.target.value)}>
+            {ESFORCOS.map((item) => (
+              <option key={item.valor} value={item.valor}>
+                {item.rotulo}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <div className="skills-acoes">
           <button className="btn" disabled={!podeIniciar} onClick={começar}>
             {ocupado && !sessao ? 'Iniciando…' : 'Executar skill'}
@@ -142,7 +164,8 @@ export function PainelSkills({ toast, abertura }: { toast: Avisar; abertura?: Ab
               <strong>{sessao.skill}</strong> em <code>{sessao.pasta}</code>
             </span>
             <span className="skills-custo">
-              {sessao.modelo || 'modelo padrão'} · US$ {sessao.custoUsd.toFixed(4)}
+              {sessao.modelo || 'modelo padrão'}
+              {sessao.esforco ? ` · ${sessao.esforco}` : ''} · US$ {sessao.custoUsd.toFixed(4)}
               {sessao.viva ? '' : ' · encerrada'}
             </span>
           </div>

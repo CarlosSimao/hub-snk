@@ -26,7 +26,7 @@ describe('Skills — guardas antes de abrir processo', () => {
     const dir = dirTemporario();
     try {
       assert.throws(
-        () => skills.iniciar({ skill: 'nao:existe', pasta: dir.path, modelo: '', mensagem: 'oi' }),
+        () => skills.iniciar({ skill: 'nao:existe', pasta: dir.path, modelo: '', esforco: '', mensagem: 'oi' }),
         PedidoSkillError,
       );
     } finally {
@@ -39,7 +39,7 @@ describe('Skills — guardas antes de abrir processo', () => {
     if (!disponivel) return; // Máquina sem skill nenhuma: nada a provar.
 
     assert.throws(
-      () => skills.iniciar({ skill: disponivel.id, pasta: join('C:', 'nao', 'existe'), modelo: '', mensagem: 'oi' }),
+      () => skills.iniciar({ skill: disponivel.id, pasta: join('C:', 'nao', 'existe'), modelo: '', esforco: '', mensagem: 'oi' }),
       PedidoSkillError,
     );
   });
@@ -50,7 +50,21 @@ describe('Skills — guardas antes de abrir processo', () => {
     try {
       if (!disponivel) return;
       assert.throws(
-        () => skills.iniciar({ skill: disponivel.id, pasta: dir.path, modelo: 'gpt-5', mensagem: 'oi' }),
+        () => skills.iniciar({ skill: disponivel.id, pasta: dir.path, modelo: 'gpt-5', esforco: '', mensagem: 'oi' }),
+        PedidoSkillError,
+      );
+    } finally {
+      dir.remove();
+    }
+  });
+
+  test('nivel de raciocinio fora da lista e recusado', () => {
+    const disponivel = listarSkills()[0];
+    const dir = dirTemporario();
+    try {
+      if (!disponivel) return;
+      assert.throws(
+        () => skills.iniciar({ skill: disponivel.id, pasta: dir.path, modelo: '', esforco: 'turbo', mensagem: 'oi' }),
         PedidoSkillError,
       );
     } finally {
