@@ -47,7 +47,7 @@ interface Execucao {
 }
 
 /** Roda um processo com o prompt pelo stdin. Sem `shell` em lugar nenhum. */
-function executar(
+export function executar(
   executavel: string,
   args: string[],
   opcoes: { cwd: string; entrada?: string; timeoutMs: number },
@@ -93,7 +93,7 @@ const EH_WINDOWS = process.platform === 'win32';
  * apenas nao casariam. A lista padrao cobre shim npm (`.cmd`/`.ps1`), que e' como
  * `codex` e `opencode` se instalam por la'.
  */
-function noPath(nome: string, extensoes = EH_WINDOWS ? ['.exe', '.cmd', '.ps1', ''] : ['']): string {
+export function noPath(nome: string, extensoes = EH_WINDOWS ? ['.exe', '.cmd', '.ps1', ''] : ['']): string {
   for (const pasta of (process.env['PATH'] ?? '').split(delimiter)) {
     if (!pasta) continue;
     for (const extensao of extensoes) {

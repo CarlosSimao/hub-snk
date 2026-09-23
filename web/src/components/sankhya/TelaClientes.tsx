@@ -10,10 +10,11 @@ import { AgendaDoCliente } from './AgendaDoCliente.tsx';
 import { OrdensDoProjeto } from './OrdensDoProjeto.tsx';
 import { CartaoDoCliente } from './CartaoDoCliente.tsx';
 import { EmailDoCliente } from './EmailDoCliente.tsx';
+import { EscopoDoCliente } from './EscopoDoCliente.tsx';
 import { ImportarFavoritos } from './ImportarFavoritos.tsx';
 import type { FocoCliente } from './PainelSankhya.tsx';
 
-type AbaCliente = 'cartao' | 'agenda' | 'os' | 'git' | 'email';
+type AbaCliente = 'cartao' | 'agenda' | 'os' | 'git' | 'email' | 'escopo';
 
 const ABAS_CLIENTE: Aba<AbaCliente>[] = [
   { id: 'cartao', rotulo: 'Cadastro', titulo: 'Bases, repositórios, links, anotações e os IDs do cliente' },
@@ -21,6 +22,7 @@ const ABAS_CLIENTE: Aba<AbaCliente>[] = [
   { id: 'os', rotulo: 'OS', titulo: 'Todas as OS lançadas no projeto, inclusive pelos outros' },
   { id: 'git', rotulo: 'Git', titulo: 'Repositório deste cliente no git-autosync' },
   { id: 'email', rotulo: 'E-mail', titulo: 'E-mail para GP, consultor e líder deste cliente' },
+  { id: 'escopo', rotulo: 'Escopo e tarefas', titulo: 'Documento de escopo, tarefas geradas e o quadro kanban' },
 ];
 
 /**
@@ -162,6 +164,10 @@ export function TelaClientes({
 
             {abaCliente === 'email' && (
               <EmailDoCliente key={selecionado.id} cliente={selecionado} toast={toast} />
+            )}
+
+            {abaCliente === 'escopo' && (
+              <EscopoDoCliente key={selecionado.id} cliente={selecionado} toast={toast} />
             )}
           </>
         )}
