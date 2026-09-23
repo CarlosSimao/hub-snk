@@ -4178,3 +4178,13 @@ Processos: ...").
     grid-template-columns: 1fr;
   }
 }
+
+/* Checkbox com rótulo ao lado, dentro de um `.campo` de formulário. */
+.campo-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+}

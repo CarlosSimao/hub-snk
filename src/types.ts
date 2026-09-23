@@ -240,6 +240,8 @@ export interface ConfigWildfly {
   /** Raiz da instalacao: a pasta que contem `bin\standalone.bat`. */
   pasta: string;
   arquivoLog: string;
+  /** Iniciar com o console do WildFly a vista (padrão: oculto — fechar a janela derruba o servidor). */
+  mostrarConsole: boolean;
   /** Medido na hora — a tela avisa ANTES de o Iniciar falhar por caminho errado. */
   pastaExiste: boolean;
   logExiste: boolean;

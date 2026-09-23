@@ -10,7 +10,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { casaInstalacao, ConfigWildflyInvalidaError, Wildfly } from '../src/wildfly.ts';
+import { casaInstalacao, comandoInicioWindows, ConfigWildflyInvalidaError, Wildfly } from '../src/wildfly.ts';
 import { dirTemporario } from './helpers.ts';
 
 const RAIZ = 'C:\\wildfly_producao';
@@ -212,6 +212,53 @@ describe('Wildfly — tela de caminhos', () => {
       for (const achado of achados) {
         assert.ok(existsSync(join(achado.pasta, 'bin', 'standalone.bat')));
       }
+    } finally {
+      dir.remove();
+    }
+  });
+});
+
+describe('Wildfly — disparo no Windows', () => {
+  // Espaço e apóstrofo de propósito: são os caracteres que quebrariam o comando.
+  const BIN = "C:\\Program Files\\wild'fly\\bin";
+  const BAT = `${BIN}\\standalone.bat`;
+
+  test('oculto vai pelo PowerShell com os caminhos em variavel de ambiente, nunca no comando', () => {
+    const { comando, args, opcoes } = comandoInicioWindows(BIN, BAT, false);
+    assert.equal(comando, 'powershell.exe');
+    const script = args[args.length - 1]!;
+    assert.match(script, /-WindowStyle Hidden/);
+    // Apostrofo e espaco na pasta nao podem chegar ao comando: iriam quebrar o PowerShell.
+    assert.doesNotMatch(script, /wild'fly/);
+    assert.equal(opcoes.env?.['HUB_WF_BAT'], BAT);
+    assert.equal(opcoes.env?.['HUB_WF_BIN'], BIN);
+    assert.equal(opcoes.env?.['NOPAUSE'], 'true');
+    assert.equal(opcoes.windowsHide, true);
+    // detached trava o echo|findstr do standalone.bat — medido.
+    assert.notEqual(opcoes.detached, true);
+  });
+
+  test('com console usa start, com aspas literais e sem detached', () => {
+    const { comando, args, opcoes } = comandoInicioWindows(BIN, BAT, true);
+    assert.equal(comando, 'cmd.exe');
+    assert.match(args[1]!, /^start "WildFly" \/d "/);
+    assert.equal(opcoes.windowsVerbatimArguments, true);
+    assert.notEqual(opcoes.detached, true);
+  });
+
+  test('gravar so a pasta mantem a escolha do console; mandar o booleano troca', async (t) => {
+    if (process.platform !== 'win32') return t.skip('config nativa e do Windows');
+    const dir = dirTemporario();
+    try {
+      const pasta = join(dir.path, 'wf');
+      mkdirSync(join(pasta, 'bin'), { recursive: true });
+      writeFileSync(join(pasta, 'bin', 'standalone.bat'), '@echo off', 'utf8');
+      const wildfly = new Wildfly(join(dir.path, 'wildfly.json'), 'http://127.0.0.1:4100');
+
+      assert.equal((await wildfly.gravarConfig(pasta, '')).mostrarConsole, false);
+      assert.equal((await wildfly.gravarConfig(pasta, '', true)).mostrarConsole, true);
+      assert.equal((await wildfly.gravarConfig(pasta, '')).mostrarConsole, true);
+      assert.equal((await wildfly.gravarConfig(pasta, '', false)).mostrarConsole, false);
     } finally {
       dir.remove();
     }

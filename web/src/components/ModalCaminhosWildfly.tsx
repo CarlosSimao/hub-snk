@@ -4,7 +4,7 @@ import { requisitar } from '../lib/api.ts';
 import type { Avisar } from '../hooks/useToasts.ts';
 import { SeletorPasta } from './sankhya/SeletorPasta.tsx';
 
-const VAZIA: ConfigWildfly = { pasta: '', arquivoLog: '', pastaExiste: false, logExiste: false };
+const VAZIA: ConfigWildfly = { pasta: '', arquivoLog: '', mostrarConsole: false, pastaExiste: false, logExiste: false };
 
 /**
  * Onde fica o WildFly desta máquina.
@@ -27,6 +27,7 @@ export function ModalCaminhosWildfly({
   const [config, setConfig] = useState<ConfigWildfly>(VAZIA);
   const [pasta, setPasta] = useState('');
   const [arquivoLog, setArquivoLog] = useState('');
+  const [mostrarConsole, setMostrarConsole] = useState(false);
   const [seletor, setSeletor] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [procurando, setProcurando] = useState(false);
@@ -42,6 +43,7 @@ export function ModalCaminhosWildfly({
     setConfig(atual);
     setPasta(atual.pasta);
     setArquivoLog(atual.arquivoLog);
+    setMostrarConsole(Boolean(atual.mostrarConsole));
   }, [toast]);
 
   useEffect(() => {
@@ -76,7 +78,7 @@ export function ModalCaminhosWildfly({
     const { ok, body } = await requisitar<ConfigWildfly>('/api/infra/wildfly', {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ pasta: pasta.trim(), arquivoLog: arquivoLog.trim() }),
+      body: JSON.stringify({ pasta: pasta.trim(), arquivoLog: arquivoLog.trim(), mostrarConsole }),
     });
     setSalvando(false);
 
@@ -186,6 +188,17 @@ export function ModalCaminhosWildfly({
           />
           <small className="campo-dica">
             É o que o botão <strong>Log</strong> do WildFly acompanha ao vivo.
+          </small>
+        </div>
+
+        <div className="campo">
+          <label className="campo-check">
+            <input type="checkbox" checked={mostrarConsole} onChange={(e) => setMostrarConsole(e.target.checked)} />
+            <span>Mostrar o console ao iniciar</span>
+          </label>
+          <small className="campo-dica">
+            Desligado, o WildFly sobe sem janela. Ligue só para acompanhar um boot que falha antes de
+            escrever no <code>server.log</code> — com o console aberto, fechar a janela derruba o servidor.
           </small>
         </div>
       </div>

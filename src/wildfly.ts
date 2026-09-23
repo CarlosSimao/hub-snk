@@ -24,7 +24,7 @@
  *  - encerramento: `SIGTERM` no Linux, que o WildFly trata como desligamento ordenado;
  *    no Windows todo sinal e' `TerminateProcess`.
  */
-import { spawn } from 'node:child_process';
+import { spawn, type SpawnOptions } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -95,6 +95,11 @@ export type OperacaoWildfly = 'iniciar' | 'parar' | 'reiniciar';
 export interface ConfigWildfly {
   pasta: string;
   arquivoLog: string;
+  /**
+   * Iniciar com o console do WildFly a vista. Desligado por padrao: fechar essa janela
+   * derruba o servidor. Serve para acompanhar um boot que falha antes de escrever no log.
+   */
+  mostrarConsole: boolean;
   /** Medido na hora — a tela avisa ANTES de o Iniciar falhar por caminho errado. */
   pastaExiste: boolean;
   logExiste: boolean;
@@ -130,6 +135,62 @@ export function casaInstalacao(linhaDeComando: string, raiz: string): boolean {
   if (!linhaDeComando.includes(FILTRO_PROCESSO)) return false;
   const escapada = raiz.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`${escapada}([\\\\/]|"|\\s|$)`, 'i').test(linhaDeComando);
+}
+
+/**
+ * Como disparar o `standalone.bat` no Windows.
+ *
+ * Tres exigencias, e cada forma testada em 2026-09-23 com um `.bat` que imita o
+ * `standalone.bat` (mesmo `echo | findstr` do comeco, depois fica vivo como servidor):
+ *
+ *  1. PASSAR do `echo(!SERVER_OPTS! | findstr ...` do inicio do script. Com
+ *     `detached: true` esse pipe nunca termina e a janela fica parada no `findstr`.
+ *  2. SOBREVIVER ao hub. Filho direto do backend morre junto: o Node poe os filhos num
+ *     job do Windows que e' encerrado quando o backend sai — medido, o WildFly caia.
+ *  3. Nao abrir console (a menos que pedido). Fechar essa janela no X, ou Ctrl+C nela,
+ *     derruba o WildFly — console a vista e' convite ao acidente.
+ *
+ * Oculto: `Start-Process -WindowStyle Hidden` do PowerShell cumpre as tres (o VBScript
+ * `Run ..., 0` tambem cumpre, mas depende do Windows Script Host, que politica
+ * corporativa costuma desligar). O `cmd` nasce do PowerShell, que termina logo em
+ * seguida — o WildFly fica fora da arvore do backend. Os caminhos vao por VARIAVEL DE
+ * AMBIENTE, nunca interpolados no comando: aspas ou apostrofo na pasta nao quebram nada.
+ * `windowsHide` no proprio `powershell.exe`, senao ele pisca uma janela.
+ *
+ * Com console: `start`, que abre um console proprio e independente, como o duplo-clique
+ * — cumpre 1 e 2, e serve para acompanhar um boot que nao chega a escrever no log.
+ * `windowsVerbatimArguments` e' o que faz o `cmd.exe` receber as aspas como escritas;
+ * sem ele o Node as re-escapa e o script nem executa.
+ *
+ * `NOPAUSE`: o `standalone.bat` termina com `pause` sem ela, e o `cmd` ficaria preso
+ * esperando uma tecla depois que o WildFly parasse — oculto, para sempre.
+ */
+export function comandoInicioWindows(
+  bin: string,
+  standalone: string,
+  mostrarConsole: boolean,
+): { comando: string; args: string[]; opcoes: SpawnOptions } {
+  const env = { ...process.env, NOPAUSE: 'true', HUB_WF_BIN: bin, HUB_WF_BAT: standalone };
+
+  if (mostrarConsole) {
+    return {
+      comando: 'cmd.exe',
+      args: ['/c', `start "WildFly" /d "${bin}" "${standalone}"`],
+      opcoes: { cwd: bin, windowsHide: true, stdio: 'ignore', windowsVerbatimArguments: true, env },
+    };
+  }
+
+  return {
+    comando: 'powershell.exe',
+    args: [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      "Start-Process -FilePath cmd.exe -ArgumentList ('/c \"' + $env:HUB_WF_BAT + '\"') " +
+        '-WorkingDirectory $env:HUB_WF_BIN -WindowStyle Hidden',
+    ],
+    opcoes: { cwd: bin, windowsHide: true, stdio: 'ignore', env },
+  };
 }
 
 function esperar(ms: number): Promise<void> {
@@ -322,44 +383,12 @@ export class Wildfly {
       };
     }
 
-    // Mesma coisa que o `start_wildfly.vbs`: diretorio no `bin`, janela oculta, sem
-    // esperar o fim — o WildFly segue rodando em segundo plano, inclusive se o hub for
-    // fechado (`detached` + `unref`).
-    //
-    // No Windows vai via `cmd.exe` porque o Node se recusa a executar `.bat` diretamente
-    // desde a correcao do CVE-2024-27980, e o caminho entre aspas porque vem da config e
-    // pode conter espaco. No Linux o `standalone.sh` e' executavel de verdade: chamada
-    // direta, sem shell no caminho e sem aspas para acertar.
-    //
-    // Duas armadilhas do Windows, as duas reproduzidas com um `.bat` de teste em
-    // 2026-09-23 antes desta forma:
-    //
-    //  1. Aspas. Sem `windowsVerbatimArguments` o Node re-escapa as aspas no padrao do
-    //     MSVCRT (`"\"C:\...\""`), que o `cmd.exe` nao entende: o script nao rodava, e
-    //     calado, porque o `stdio` e' ignorado.
-    //  2. `detached: true` TRAVA o `standalone.bat`. Logo no comeco ele faz
-    //     `echo(!SERVER_OPTS! | findstr ...`, e esse pipe nunca termina num processo
-    //     destacado com as saidas redirecionadas — a janela ficava parada no `findstr`.
-    //     Sem `detached` o pipe passa, mas o WildFly viraria filho do backend e morreria
-    //     com ele ao fechar o hub.
-    //
-    // `start` resolve as duas: abre o WildFly num console PROPRIO e independente (como o
-    // duplo-clique do usuario), e o `cmd` que o chamou termina na hora — o WildFly fica
-    // orfao, fora da arvore de processos do backend, e sobrevive ao hub. Minimizado em
-    // vez de oculto: com o Windows Terminal como console padrao a janela aparece de
-    // qualquer jeito, e minimizada ela fica a um clique para quem quiser ver o console.
-    //
-    // `NOPAUSE`: o `standalone.bat` termina com `pause` quando a variavel nao existe, e
-    // o console ficaria esperando uma tecla depois que o WildFly parasse.
-    const processo = EH_WINDOWS
-      ? spawn('cmd.exe', ['/c', `start "WildFly" /min /d "${bin}" "${standalone}"`], {
-          cwd: bin,
-          windowsHide: true,
-          stdio: 'ignore',
-          windowsVerbatimArguments: true,
-          env: { ...process.env, NOPAUSE: 'true' },
-        })
-      : spawn(standalone, [], { cwd: bin, detached: true, stdio: 'ignore' });
+    // Sem esperar o fim: o WildFly segue rodando em segundo plano, inclusive depois que o
+    // hub fecha. Como isso e' feito no Windows esta' em `comandoInicioWindows`.
+    const { comando, args, opcoes } = EH_WINDOWS
+      ? comandoInicioWindows(bin, standalone, this.#mostrarConsole())
+      : { comando: standalone, args: [], opcoes: { cwd: bin, detached: true, stdio: 'ignore' as const } };
+    const processo = spawn(comando, args, opcoes);
     processo.unref();
 
     return { ok: true, mensagem: 'disparado' };
@@ -415,6 +444,16 @@ export class Wildfly {
    * Em container, quem enxerga o disco do Windows e' o helper — o container veria os
    * caminhos como inexistentes e a tela acusaria erro no que esta' certo.
    */
+  /** Lido a cada Iniciar, como os caminhos: mudar na tela vale na hora. */
+  #mostrarConsole(): boolean {
+    try {
+      const salvo = JSON.parse(readFileSync(this.#arquivoConfig, 'utf8')) as { mostrarConsole?: unknown };
+      return salvo.mostrarConsole === true;
+    } catch {
+      return false;
+    }
+  }
+
   async config(): Promise<ConfigWildfly> {
     if (!this.#nativo) {
       const corpo = await this.#helperJson<ConfigWildfly>('/wildfly/config');
@@ -423,10 +462,12 @@ export class Wildfly {
 
     let pasta = '';
     let arquivoLog = '';
+    let mostrarConsole = false;
     try {
-      const salvo = JSON.parse(readFileSync(this.#arquivoConfig, 'utf8')) as ConfigWildfly;
+      const salvo = JSON.parse(readFileSync(this.#arquivoConfig, 'utf8')) as Partial<ConfigWildfly>;
       pasta = (salvo.pasta ?? '').trim();
       arquivoLog = (salvo.arquivoLog ?? '').trim();
+      mostrarConsole = salvo.mostrarConsole === true;
     } catch {
       // Sem config ainda: a tela nasce vazia, que e' o certo — nao inventamos caminho.
     }
@@ -434,6 +475,7 @@ export class Wildfly {
     return {
       pasta,
       arquivoLog,
+      mostrarConsole,
       pastaExiste: Boolean(pasta) && existsSync(join(pasta, 'bin', SCRIPT_STANDALONE)),
       logExiste: Boolean(arquivoLog) && existsSync(arquivoLog),
     };
@@ -443,12 +485,12 @@ export class Wildfly {
    * Grava os caminhos. Recusa pasta que nao e' instalacao do WildFly: descobrir isso
    * so' quando o Iniciar falha manda procurar defeito no lugar errado.
    */
-  async gravarConfig(pasta: string, arquivoLog: string): Promise<ConfigWildfly> {
+  async gravarConfig(pasta: string, arquivoLog: string, mostrarConsole?: boolean): Promise<ConfigWildfly> {
     if (!this.#nativo) {
       return this.#helperJson<ConfigWildfly>('/wildfly/config', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ pasta, arquivoLog }),
+        body: JSON.stringify({ pasta, arquivoLog, mostrarConsole }),
       });
     }
 
@@ -466,7 +508,14 @@ export class Wildfly {
     if (limpa && !log) log = join(limpa, 'standalone', 'log', 'server.log');
 
     mkdirSync(dirname(this.#arquivoConfig), { recursive: true });
-    writeFileSync(this.#arquivoConfig, JSON.stringify({ pasta: limpa, arquivoLog: log }, null, 2), 'utf8');
+    // Sem o valor na chamada, mantem o que estava: quem so' troca a pasta nao deve
+    // religar o console sem ter pedido.
+    const comConsole = mostrarConsole ?? this.#mostrarConsole();
+    writeFileSync(
+      this.#arquivoConfig,
+      JSON.stringify({ pasta: limpa, arquivoLog: log, mostrarConsole: comConsole }, null, 2),
+      'utf8',
+    );
 
     return this.config();
   }

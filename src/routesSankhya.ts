@@ -198,12 +198,14 @@ export function registerRoutesSankhya(app: FastifyInstance, deps: RouteSankhyaDe
     }
   });
 
-  app.put<{ Body: { pasta?: unknown; arquivoLog?: unknown } }>(
+  app.put<{ Body: { pasta?: unknown; arquivoLog?: unknown; mostrarConsole?: unknown } }>(
     '/api/infra/wildfly',
     async (request, reply) => {
       const texto = (valor: unknown) => (typeof valor === 'string' ? valor.trim() : '');
       try {
-        return await wildfly.gravarConfig(texto(request.body?.pasta), texto(request.body?.arquivoLog));
+        // Ausente = manter o que estava; só booleano de verdade muda a escolha.
+        const comConsole = typeof request.body?.mostrarConsole === 'boolean' ? request.body.mostrarConsole : undefined;
+        return await wildfly.gravarConfig(texto(request.body?.pasta), texto(request.body?.arquivoLog), comConsole);
       } catch (err) {
         // Pasta que nao e instalacao do WildFly e erro do usuario, nao do helper: a tela
         // mostra a mensagem ao lado do campo em vez de "helper indisponivel".
