@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { isAbsolute } from 'node:path';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import pacote from '../../package.json' with { type: 'json' };
 import { versaoEhMaisNova } from '../sistema/comparacaoDeVersao.ts';
 import { PastaNaoEncontradaError } from '../sistema/pasta.ts';

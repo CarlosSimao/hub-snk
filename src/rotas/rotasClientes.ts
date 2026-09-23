@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { isAbsolute } from 'node:path';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
 import {
   abrirPastaNoSistema,

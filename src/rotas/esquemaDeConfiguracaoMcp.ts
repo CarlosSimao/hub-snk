@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 /**
  * Validação do corpo enviado para gravar o `.sankhya-mcp.env`.
