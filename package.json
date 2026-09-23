@@ -4,6 +4,10 @@
   "private": true,
   "license": "MIT",
   "description": "Painel de monitoramento do ambiente local do Sankhya: WildFly + Oracle",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarlosSimao/hub-snk.git"
+  },
   "type": "module",
   "engines": {
     "node": ">=22.5"
