@@ -10,6 +10,7 @@
  * sem exigir mudanca de volume no docker-compose.
  */
 import { lerTokenArquivo } from './helper.ts';
+import type { StatusServerLog } from '../types.ts';
 
 export class DesktopBridgeIndisponivelError extends Error {}
 
@@ -76,6 +77,45 @@ export class DesktopBridge {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ de, ate }),
+      },
+      TIMEOUT_AGENDA_MS,
+    );
+  }
+
+  /**
+   * Um trecho do `server.log` da base de cliente identificada por `origin`.
+   *
+   * Vai pelo shell porque a leitura roda dentro da aba já logada daquela base — ver
+   * `desktop/src/serverLog.ts`. `actionId` é opcional: sem ele o shell descobre o botão
+   * na base e devolve o id, para as leituras seguintes não repetirem a descoberta.
+   *
+   * Timeout de Agenda: um bloco de ~512 KB atravessa shell, aba e Sankhya.
+   */
+  lerServerLog(entrada: {
+    origin: string;
+    offset: number;
+    maxLinhas?: number;
+    actionId?: string;
+  }): Promise<{ linhas: string[]; novoOffset: number; actionId: string }> {
+    return this.#requisitar<{ linhas: string[]; novoOffset: number; actionId: string }>(
+      '/serverlog/ler',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(entrada),
+      },
+      TIMEOUT_AGENDA_MS,
+    );
+  }
+
+  /** O que do módulo `serverlog` está instalado na base — roda na aba logada dela. */
+  statusServerLog(origin: string): Promise<StatusServerLog> {
+    return this.#requisitar<StatusServerLog>(
+      '/serverlog/status',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ origin }),
       },
       TIMEOUT_AGENDA_MS,
     );

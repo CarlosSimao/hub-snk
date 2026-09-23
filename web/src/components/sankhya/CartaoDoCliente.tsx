@@ -16,6 +16,7 @@ import { useGitAutosync } from '../../hooks/useGitAutosync.ts';
 import { mesmoCaminho, StatusRepoCompacto } from '../git/DetalheRepo.tsx';
 import { SeletorPasta } from './SeletorPasta.tsx';
 import { AbrirRepoEm } from './AbrirRepoEm.tsx';
+import { ServerLogDaBase } from './ServerLogDaBase.tsx';
 
 type Editor =
   | { tipo: 'base'; item: BaseCliente | null }
@@ -247,6 +248,7 @@ export function CartaoDoCliente({ cliente, toast, onAbrirSkill, onEditar, onRemo
           <BaseLinha
             key={base.id}
             base={base}
+            demandaFim={cliente.demandaFim}
             status={dados.statusBases[base.id]}
             medindo={dados.medindo.has(base.id)}
             senha={senhas[base.id]}
@@ -396,6 +398,7 @@ function Vazio({ children }: { children: ReactNode }) {
 
 function BaseLinha({
   base,
+  demandaFim,
   status,
   medindo,
   senha,
@@ -410,6 +413,8 @@ function BaseLinha({
   onRemover,
 }: {
   base: BaseCliente;
+  /** Fim da demanda do cliente — prazo sugerido para tirar o módulo serverlog da base. */
+  demandaFim: string;
   status?: StatusBase;
   medindo: boolean;
   senha?: string;
@@ -429,6 +434,7 @@ function BaseLinha({
       <span className={`ambiente ambiente-${base.ambiente}`}>{AMBIENTE[base.ambiente]}</span>
       <div className="cartao-base-dados">
         <LinhaUrl url={base.url} />
+        <ServerLogDaBase url={base.url} demandaFim={demandaFim} />
         <div className="credencial-base">
           <span><small>Usuário</small><strong>{base.usuario || 'não informado'}</strong></span>
           <span>

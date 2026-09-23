@@ -23,6 +23,11 @@ import { registerRoutesSankhya } from './routesSankhya.ts';
 import { registerRoutesGitAutosync } from './routesGitAutosync.ts';
 import { registerRoutesExperience } from './routesExperience.ts';
 import { registerRoutesAgenda } from './routesAgenda.ts';
+import { registerRoutesServerLog } from './routesServerLog.ts';
+import { ServerLogInstalacoes } from './sankhya/serverLogInstalacoes.ts';
+import { registerRoutesEscopo } from './routesEscopo.ts';
+import { Escopo } from './sankhya/escopo.ts';
+import { analisarEscopo } from './sankhya/escopoIa.ts';
 import { registerRoutesCartao } from './routesCartao.ts';
 import { registerRoutesEmail } from './routesEmail.ts';
 import { CartaoClientes } from './sankhya/cartao.ts';
@@ -211,6 +216,29 @@ async function main(): Promise<void> {
   // moram no construtor dele, e o mesmo arquivo SQLite e aberto pelos dois.
   const cartao = new CartaoClientes(DATA_DIR, helper, cifra);
   registerRoutesCartao(app, { cartao, clientes, monitor: new MonitorBases(cartao) });
+
+  // Depois do cartão: o aviso de remoção do módulo serverlog diz o NOME da base e usa o
+  // FIM DA DEMANDA do cliente como prazo — os dois saem do cadastro, casando pelo origin.
+  const instalacoesServerLog = new ServerLogInstalacoes(DATA_DIR);
+  const baseDoOrigin = (origin: string): { nome: string; demandaFim: string } => {
+    for (const cliente of clientes.listar()) {
+      for (const base of cartao.bases(cliente.id)) {
+        try {
+          if (new URL(base.url).origin === origin) {
+            const nome = base.ambiente && base.ambiente !== 'producao' ? `${cliente.nome} · ${base.ambiente}` : cliente.nome;
+            return { nome, demandaFim: cliente.demandaFim };
+          }
+        } catch {
+          /* URL de base inválida no cadastro: não é esta */
+        }
+      }
+    }
+    return { nome: '', demandaFim: '' };
+  };
+  registerRoutesServerLog(app, { desktopBridge, instalacoes: instalacoesServerLog, baseDoOrigin });
+
+  // Documento de escopo do cliente -> tarefas (via Claude) -> kanban. Mesmo sankhya.db.
+  registerRoutesEscopo(app, { escopo: new Escopo(DATA_DIR), clientes, analisar: analisarEscopo, log: app.log });
 
   // Mesmo motivo do cartao: as tabelas de contatos/config de e-mail moram no construtor
   // de `Clientes`, e `EmailInterno` so abre o mesmo `sankhya.db`.

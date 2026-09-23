@@ -10,6 +10,7 @@ import { HUB_URL, ERP_URL, EXPERIENCE_URL, ICONE, PARTICAO, userAgentLimpo } fro
 import { logEvento } from './log';
 import { TabManager } from './tabs';
 import { AgendaFetcher } from './agenda';
+import { ServerLogFetcher } from './serverLog';
 import { criarBridgeServer } from './bridgeServer';
 import { pushSessaoExperience, limparSessaoExperience } from './backendClient';
 import { capturarTokenExperience, diagnosticoCookiesErp } from './sessions';
@@ -19,7 +20,7 @@ import { migrarCofreDoHelper } from './migracaoCofre';
 import { prepararArquivosDoUsuario } from './primeiroBoot';
 import { migrarPastaDeDados } from './migracaoNome';
 import { montarMenu } from './menu';
-import { avisarAnotacoes } from './lembretes';
+import { avisarAnotacoes, avisarServerLog } from './lembretes';
 
 if (!app.requestSingleInstanceLock()) {
   // app.quit() só agenda o encerramento — sem process.exit aqui, o resto do módulo
@@ -146,7 +147,9 @@ app.whenReady().then(async () => {
   // O `AgendaFetcher` recebe uma função, não a aba: a janela ainda não existe aqui, e
   // quando existir ele passa a enxergá-la.
   const agenda = new AgendaFetcher(() => tabs?.aba('erp'));
-  criarBridgeServer(agenda, () => tabs);
+  // O log de base de cliente sai da aba DAQUELA base (isolada por origin), não da aba ERP.
+  const serverLog = new ServerLogFetcher((origin) => tabs?.abaCliente(origin));
+  criarBridgeServer(agenda, () => tabs, serverLog);
 
   // Antes da janela: o painel é a primeira aba a carregar e apontaria para uma porta
   // fechada. Esperar aqui custa o tempo de boot do Fastify uma vez, e evita que a
@@ -163,6 +166,7 @@ app.whenReady().then(async () => {
   // Depois da janela e sem `await`: o aviso é útil, mas não é motivo para segurar a
   // abertura do aplicativo se o backend demorar a responder.
   void avisarAnotacoes();
+  void avisarServerLog();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) criarJanela();

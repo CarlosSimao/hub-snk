@@ -2597,6 +2597,146 @@ Processos: ...").
   overflow-wrap: anywhere;
 }
 
+/* --- monitor de log da base ------------------------------------------------ */
+
+/* Log é leitura larga: stacktrace de Java passa fácil dos 200 caracteres, e num modal
+   estreito cada linha vira cinco, o que torna a pilha ilegível. */
+.modal-log {
+  width: min(1680px, 96vw);
+  max-width: min(1680px, 96vw);
+  height: min(920px, 92vh);
+}
+
+.modal-log .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  flex: 1;
+}
+
+.log-barra {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.log-barra input[type='search'] {
+  flex: 1 1 220px;
+  min-width: 160px;
+}
+
+.log-barra-2 {
+  padding-top: 2px;
+  border-top: 1px solid var(--border);
+}
+
+.log-sep {
+  flex: 1;
+}
+
+.log-campo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.log-campo input[type='datetime-local'] {
+  font-size: 12px;
+  padding: 2px 6px;
+}
+
+.log-niveis {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* Chip de nível: clicar oculta o nível. O `off` precisa ser óbvio, senão o usuário não
+   percebe que está escondendo linhas e acha que o log parou de chegar. */
+.log-chip {
+  border: 1px solid currentColor;
+  background: transparent;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11px;
+  cursor: pointer;
+  line-height: 1.6;
+}
+
+.log-chip b {
+  font-variant-numeric: tabular-nums;
+}
+
+.log-chip.off {
+  opacity: 0.35;
+  text-decoration: line-through;
+}
+
+.log-chip-error { color: #ff5555; }
+.log-chip-warn { color: #ffb86c; }
+.log-chip-info { color: #8be9fd; }
+.log-chip-debug { color: #6272a4; }
+.log-chip-trace { color: #7b7f98; }
+.log-chip-outro { color: var(--text-dim); }
+
+.log-periodo {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.log-erro {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--down) 14%, transparent);
+  color: var(--down);
+  font-size: 12px;
+}
+
+/* Fundo escuro fixo: log é leitura de terminal, e a cor por nível abaixo foi escolhida
+   para contrastar com ele — seguir o tema claro apagaria os níveis. */
+.log-conteudo {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: #21222c;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Sem quebra por padrão + rolagem horizontal: é assim que a pilha continua legível,
+   uma entrada por linha. O `quebra` existe para quem prefere ver tudo sem rolar. */
+.log-linha {
+  white-space: pre;
+  color: #f8f8f2;
+}
+
+.log-conteudo.quebra .log-linha {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.log-linha.log-error { color: #ff5555; }
+.log-linha.log-warn { color: #ffb86c; }
+.log-linha.log-info { color: #8be9fd; }
+.log-linha.log-debug { color: #6272a4; }
+.log-linha.log-trace { color: #7b7f98; }
+.log-linha.log-outro { color: #f8f8f2; }
+
+.log-vazio {
+  margin: 0;
+  color: #6272a4;
+  font-size: 12px;
+}
+
 .credencial-base {
   display: flex;
   flex-wrap: wrap;
@@ -3651,4 +3791,390 @@ Processos: ...").
 .documentos-entrega small {
   font-size: 11px;
   color: var(--text-faint);
+}
+
+/* --- módulo serverlog na base: verificação e prazo de remoção ---------------- */
+
+.serverlog-base {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.serverlog-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.serverlog-pill {
+  font-size: 11px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  line-height: 1.6;
+}
+
+.serverlog-pill.ok { color: var(--up); }
+.serverlog-pill.aviso { color: var(--degraded); }
+.serverlog-pill.info { color: var(--text-dim); }
+
+.serverlog-checklist {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--degraded);
+}
+
+/* Item feito fica neutro: o que continua colorido é só o que falta fazer. */
+.serverlog-checklist li.feito {
+  color: var(--text-dim);
+}
+
+.serverlog-checklist li.feito::marker {
+  content: '✓  ';
+}
+
+.serverlog-instalacao {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.serverlog-instalacao p {
+  margin: 0;
+}
+
+/* Vencido tem que chamar atenção no cartão tanto quanto a notificação do Windows. */
+.serverlog-instalacao.vencida {
+  border-color: var(--down);
+  background: color-mix(in srgb, var(--down) 10%, transparent);
+}
+
+.serverlog-instalacao.vencida strong {
+  color: var(--down);
+}
+
+.serverlog-campos {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.serverlog-campos label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.serverlog-campos label span {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.serverlog-demanda {
+  flex: 1 1 200px;
+}
+
+.serverlog-nota {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.serverlog-msg {
+  margin: 0;
+  font-size: 12px;
+}
+
+.serverlog-msg.ok { color: var(--up); }
+.serverlog-msg.erro { color: var(--down); }
+
+/* --- escopo do cliente e kanban ------------------------------------------------ */
+
+.escopo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.escopo-docs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.escopo-docs-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.escopo-docs-head h3 {
+  margin: 0 0 4px;
+}
+
+.escopo-doc {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.escopo-doc.status-falhou {
+  border-color: color-mix(in srgb, var(--down) 55%, transparent);
+}
+
+.escopo-doc-linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.escopo-doc-nome {
+  overflow-wrap: anywhere;
+}
+
+.escopo-doc-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.escopo-sep {
+  flex: 1;
+}
+
+.escopo-status {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  color: var(--text-dim);
+}
+
+.escopo-status.analisando { color: var(--accent); }
+.escopo-status.analisado { color: var(--up); }
+.escopo-status.falhou { color: var(--down); }
+
+.escopo-erro {
+  margin: 0;
+  font-size: 12px;
+  color: var(--down);
+}
+
+.escopo-resumo summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.escopo-resumo p {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.escopo-quadro-barra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.escopo-quadro-barra input[type='search'] {
+  flex: 0 1 220px;
+}
+
+.escopo-progresso {
+  flex: 1 1 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.escopo-progresso strong {
+  color: var(--text);
+}
+
+.escopo-barra {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.escopo-barra > span {
+  display: block;
+  height: 100%;
+  background: var(--up);
+  transition: width 0.3s ease;
+}
+
+/* Cinco colunas lado a lado; em tela estreita o quadro rola na horizontal em vez de
+   espremer os cartões até o título virar uma palavra por linha. */
+.kanban {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(230px, 1fr));
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  align-items: start;
+}
+
+.kanban-coluna {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  min-height: 180px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.kanban-coluna.alvo {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+}
+
+.kanban-coluna-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.kanban-contagem {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.kanban-cartoes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  flex: 1;
+}
+
+.kanban-cartao {
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kanban-cartao:hover {
+  border-color: var(--border-strong);
+}
+
+.kanban-cartao:active {
+  cursor: grabbing;
+}
+
+.kanban-cartao.arrastando {
+  opacity: 0.4;
+}
+
+/* A prioridade vai na borda: dá para ler a coluna inteira de relance sem abrir cartão. */
+.kanban-cartao.prioridade-alta { border-left-color: var(--down); }
+.kanban-cartao.prioridade-media { border-left-color: var(--degraded); }
+.kanban-cartao.prioridade-baixa { border-left-color: var(--text-faint); }
+
+.kanban-grupo {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.kanban-titulo {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.kanban-rodape {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.kanban-sep {
+  flex: 1;
+}
+
+.kanban-rodape select {
+  font-size: 11px;
+  padding: 1px 4px;
+  max-width: 110px;
+}
+
+.kanban-tipo {
+  padding: 0 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-strong);
+}
+
+.kanban-marca {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  margin: -2px 0;
+}
+
+.kanban-vazio {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+  text-align: center;
+  padding: 18px 0;
+}
+
+.escopo-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.escopo-form-largo {
+  grid-column: 1 / -1;
+}
+
+.escopo-form textarea {
+  resize: vertical;
+  font-family: var(--sans);
+}
+
+@media (max-width: 720px) {
+  .escopo-form {
+    grid-template-columns: 1fr;
+  }
 }

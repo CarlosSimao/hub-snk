@@ -12,6 +12,7 @@ import * as cofre from './cofreCredenciais';
 import * as navegador from './navegador';
 import * as navegacaoSkill from './navegacaoSkill';
 import type { AgendaFetcher } from './agenda';
+import type { ServerLogFetcher } from './serverLog';
 import type { TabManager } from './tabs';
 
 function lerCorpo(req: IncomingMessage): Promise<string> {
@@ -307,7 +308,11 @@ async function tratarNavegacaoSkill(
   responderJson(res, 404, { erro: `acao de navegacao desconhecida: ${acao}` });
 }
 
-export function criarBridgeServer(agenda: AgendaFetcher, tabs: () => TabManager | null): Server {
+export function criarBridgeServer(
+  agenda: AgendaFetcher,
+  tabs: () => TabManager | null,
+  serverLog: ServerLogFetcher,
+): Server {
   const servidor = createServer((req, res) => {
     void (async () => {
       if (req.headers['x-hub-token'] !== garantirToken()) {
@@ -354,6 +359,60 @@ export function criarBridgeServer(agenda: AgendaFetcher, tabs: () => TabManager 
             return;
           }
           responderJson(res, 200, { conteudo: resultado.conteudo });
+        } catch (err) {
+          responderJson(res, 500, { erro: String(err) });
+        }
+        return;
+      }
+
+      // Log do WildFly de uma base de cliente. O `origin` identifica QUAL base: a leitura
+      // roda dentro da aba já logada daquela base (ver desktop/src/serverLog.ts), então
+      // origin de base que não está aberta simplesmente não tem onde executar.
+      if (req.method === 'POST' && req.url === '/serverlog/ler') {
+        try {
+          const corpo = JSON.parse((await lerCorpo(req)) || '{}') as {
+            origin?: string;
+            offset?: number;
+            maxLinhas?: number;
+            actionId?: string;
+          };
+          if (!corpo.origin) {
+            responderJson(res, 400, { erro: 'informe { origin } da base' });
+            return;
+          }
+          const resultado = await serverLog.ler(corpo.origin, {
+            offset: Number(corpo.offset ?? 0) || 0,
+            ...(corpo.maxLinhas ? { maxLinhas: Number(corpo.maxLinhas) } : {}),
+            ...(corpo.actionId ? { actionId: String(corpo.actionId) } : {}),
+          });
+          if (!resultado.ok) {
+            responderJson(res, 409, { erro: resultado.erro ?? 'falha ao ler o log' });
+            return;
+          }
+          responderJson(res, 200, {
+            linhas: resultado.linhas ?? [],
+            novoOffset: resultado.novoOffset ?? 0,
+            actionId: resultado.actionId ?? '',
+          });
+        } catch (err) {
+          responderJson(res, 500, { erro: String(err) });
+        }
+        return;
+      }
+
+      if (req.method === 'POST' && req.url === '/serverlog/status') {
+        try {
+          const corpo = JSON.parse((await lerCorpo(req)) || '{}') as { origin?: string };
+          if (!corpo.origin) {
+            responderJson(res, 400, { erro: 'informe { origin } da base' });
+            return;
+          }
+          const status = await serverLog.status(corpo.origin);
+          if (!status.ok) {
+            responderJson(res, 409, { erro: status.erro ?? 'falha ao verificar a base' });
+            return;
+          }
+          responderJson(res, 200, status);
         } catch (err) {
           responderJson(res, 500, { erro: String(err) });
         }

@@ -107,6 +107,23 @@ function DetailCard({
             </button>
           )}
           {/*
+            Os `links` do services.yaml (ex.: o Sankhya local em localhost:8080/mge). No
+            shell desktop, endereço local abre numa aba do próprio app — ver o tratamento
+            de loopback em desktop/src/tabs.ts; no navegador comum, uma aba normal.
+          */}
+          {service.links.map((link) => (
+            <a
+              key={link.url}
+              className="btn tiny ghost"
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={link.url}
+            >
+              {link.label} ↗
+            </a>
+          ))}
+          {/*
             Fica junto das ações e não no cabeçalho porque configurar é tarefa ocasional
             — o cabeçalho recolhido precisa do espaço para status, que é o que se olha o
             tempo todo. Único ponto de entrada pro formulário de variáveis.

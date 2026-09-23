@@ -60,3 +60,52 @@ export async function avisarAnotacoes(): Promise<number> {
   if (lembretes.length) logEvento('lembretes-notificados', { total: lembretes.length });
   return lembretes.length;
 }
+
+interface PendenciaServerLog {
+  origin: string;
+  clienteNome: string;
+  detectadoEm: string;
+  removerAte: string;
+  demanda: string;
+  modulo: string;
+  botaoId: string;
+}
+
+function dataCurta(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('pt-BR');
+}
+
+/**
+ * Lembra de tirar o módulo `serverlog` das bases cujo prazo de remoção venceu.
+ *
+ * O módulo é instalado na base DO CLIENTE só para a demanda — deixar lá esquecido é
+ * código nosso rodando em produção de terceiro sem motivo. A notificação diz o que tirar
+ * (módulo e botão), porque "remova o módulo" sem dizer qual obriga a ir procurar.
+ */
+export async function avisarServerLog(): Promise<number> {
+  if (!Notification.isSupported()) return 0;
+
+  let pendencias: PendenciaServerLog[];
+  try {
+    const resposta = await fetch(`${HUB_URL}/api/serverlog/pendencias`, { signal: AbortSignal.timeout(5_000) });
+    if (!resposta.ok) return 0;
+    pendencias = ((await resposta.json()) as { pendencias?: PendenciaServerLog[] }).pendencias ?? [];
+  } catch {
+    return 0;
+  }
+
+  for (const p of pendencias) {
+    const oQue = [p.modulo ? `módulo ${p.modulo}` : 'o módulo serverlog', p.botaoId ? `botão ${p.botaoId}` : 'o botão Ler Log']
+      .join(' e ');
+    new Notification({
+      title: `Remover monitor de log — ${p.clienteNome || p.origin}`,
+      body: `Prazo venceu em ${dataCurta(p.removerAte)}${p.demanda ? ` (${p.demanda})` : ''}. Retire ${oQue} da base.`,
+      icon: ICONE,
+      silent: true,
+    }).show();
+  }
+
+  if (pendencias.length) logEvento('serverlog-lembretes-notificados', { total: pendencias.length });
+  return pendencias.length;
+}

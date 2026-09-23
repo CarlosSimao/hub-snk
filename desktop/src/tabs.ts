@@ -49,6 +49,16 @@ function origemPermitida(url: string, lista: string[]): boolean {
   }
 }
 
+/** `localhost`, `127.x` ou `[::1]` — o que roda nesta máquina, como o Sankhya local. */
+function origemLocal(origin: string): boolean {
+  try {
+    const host = new URL(origin).hostname;
+    return host === 'localhost' || host === '[::1]' || /^127\.\d+\.\d+\.\d+$/.test(host);
+  } catch {
+    return false;
+  }
+}
+
 function registrarDownload(sessaoRotulo: string, janelasFilhas: Set<BrowserWindow>) {
   return (_evt: unknown, item: Electron.DownloadItem, webContentsOrigem: Electron.WebContents) => {
     logEvento('download-iniciado', {
@@ -144,6 +154,18 @@ export class TabManager {
     return this.#abas.get(id);
   }
 
+  /**
+   * A aba de uma base de cliente, pelo origin.
+   *
+   * Só devolve se o origin for de uma aba de cliente ABERTA — nunca uma guia principal
+   * nem um origin qualquer. É o que impede o backend de pedir uma execução de script em
+   * um destino que não seja uma base cadastrada e já logada pelo usuário.
+   */
+  abaCliente(origin: string): WebContentsView | undefined {
+    if (!this.#abasClientes.has(origin)) return undefined;
+    return this.#abas.get(origin);
+  }
+
   abasClientesAbertas(): AbaClienteInfo[] {
     return [...this.#abasClientes.values()].map((aba) => ({
       ...aba,
@@ -188,8 +210,50 @@ export class TabManager {
       // são SSO — ganham aba própria isolada em vez da lista branca de pop-up.
       const infoBase = id === 'hub' ? this.#basesPorOrigin.get(origin) : undefined;
       if (infoBase) {
-        logEvento('link-cliente-solicitado', { alvo: origemSemQuery(alvo) });
-        this.abrirAbaCliente(origin, alvo, infoBase);
+        // O botão "Monitor de log" abre a URL do JSP com o marcador `#__hubmonitor` no
+        // hash — invisível para o servidor (o próprio JSP descarta o hash) e para o
+        // usuário, mas suficiente para o shell saber que é o monitor: navega a aba da
+        // base para o JSP e não dispara o autofill de login.
+        let ehMonitor = false;
+        let alvoLimpo = alvo;
+        try {
+          const u = new URL(alvo);
+          if (u.hash.includes('__hubmonitor')) {
+            ehMonitor = true;
+            u.hash = '';
+            alvoLimpo = u.href;
+          }
+        } catch {
+          /* URL inválida — trata como link normal de base */
+        }
+        logEvento('link-cliente-solicitado', { alvo: origemSemQuery(alvoLimpo), monitor: ehMonitor });
+        this.abrirAbaCliente(
+          origin,
+          alvoLimpo,
+          infoBase,
+          ehMonitor ? { autofill: false, forcarUrl: true } : {},
+        );
+        return { action: 'deny' };
+      }
+      // Endereço da própria máquina (o Sankhya local em localhost:8080/mge, o console do
+      // WildFly na 9990) vira aba do app, isolada como uma base de cliente. Antes caía
+      // na lista de pop-ups, que não tem `localhost`, e o clique morria em silêncio. O
+      // próprio hub fica de fora: abrir o painel dentro dele mesmo não faz sentido.
+      if (id === 'hub' && origin && origemLocal(origin) && origin !== new URL(HUB_URL).origin) {
+        logEvento('link-local-solicitado', { alvo: origemSemQuery(alvo) });
+        this.abrirAbaCliente(
+          origin,
+          alvo,
+          {
+            clienteId: 0,
+            baseId: 0,
+            clienteNome: `Local · ${new URL(origin).host}`,
+            ambiente: 'outro',
+            usuario: '',
+            temSenha: false,
+          },
+          { autofill: false },
+        );
         return { action: 'deny' };
       }
       const permitido = origemPermitida(alvo, DOMINIOS_POPUP_PERMITIDOS);
@@ -355,24 +419,67 @@ export class TabManager {
    * existia uma aba de link por vez, então uma partição única não misturava nada; com
    * várias ao mesmo tempo, compartilhar viraria problema real).
    */
-  abrirAbaCliente(origin: string, url: string, info: InfoBaseCliente): void {
-    if (this.#abas.has(origin)) {
+  abrirAbaCliente(
+    origin: string,
+    url: string,
+    info: InfoBaseCliente,
+    opcoes: { autofill?: boolean; forcarUrl?: boolean } = {},
+  ): void {
+    const existente = this.#abas.get(origin);
+    if (existente) {
+      // O monitor de log compartilha o origin da base, então cai na mesma aba. Quando é
+      // ele que está sendo aberto (`forcarUrl`), navega a aba para o JSP em vez de só
+      // focá-la — senão o clique não sairia da tela do Sankhya que já estava aberta.
+      if (opcoes.forcarUrl) void existente.webContents.loadURL(url);
       this.mostrar(origin);
       return;
     }
+    const particao = `link:${origin}`;
     const view = new WebContentsView({
       webPreferences: {
-        partition: `link:${origin}`,
+        partition: particao,
         contextIsolation: true,
         sandbox: true,
         nodeIntegration: false,
         webSecurity: true,
       },
     });
+    // Sem isto, um download servido pela partição isolada do cliente não dispara nada: o
+    // listener de `will-download` só existia na sessão padrão e nas partições das abas
+    // principais, então baixar de dentro de uma aba de cliente falhava em silêncio.
+    session.fromPartition(particao).on('will-download', registrarDownload(particao, this.#janelasFilhas));
     view.webContents.on('did-finish-load', () => {
       logEvento('aba-cliente-carregada', { clienteId: info.clienteId, url: origemSemQuery(view.webContents.getURL()) });
     });
-    view.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    // Antes isto negava TODO `window.open`, e como o download do Sankhya costuma abrir
+    // uma guia nova para servir o arquivo, o download morria aqui. Agora a janela é
+    // permitida como filha na MESMA partição isolada do cliente (nada vaza para outra
+    // base), fica registrada para não ser coletada pelo GC no meio do download, e o
+    // `registrarDownload` a fecha sozinha quando o arquivo termina — igual às abas
+    // principais.
+    view.webContents.setWindowOpenHandler(({ url: alvo }) => {
+      logEvento('popup-cliente-solicitado', { clienteId: info.clienteId, alvo: origemSemQuery(alvo) });
+      return {
+        action: 'allow',
+        createWindow: (options) => {
+          const filha = new BrowserWindow({
+            ...options,
+            webPreferences: {
+              ...options.webPreferences,
+              partition: particao,
+              contextIsolation: true,
+              sandbox: true,
+              nodeIntegration: false,
+              webSecurity: true,
+              preload: undefined,
+            },
+          });
+          this.#janelasFilhas.add(filha);
+          filha.on('closed', () => this.#janelasFilhas.delete(filha));
+          return filha.webContents;
+        },
+      };
+    });
     view.webContents.loadURL(url);
     this.#janela.contentView.addChildView(view);
     this.#abas.set(origin, view);
@@ -384,7 +491,11 @@ export class TabManager {
     // Um único observador para a vida da aba, não um por navegação: o login é em duas
     // etapas (usuário -> "Prosseguir" -> senha) sem recarregar a página entre elas, e
     // `did-finish-load` só dispararia de novo se houvesse navegação de verdade.
-    void tentarAutofill(view, info);
+    //
+    // O monitor de log NÃO recebe autofill: a página dele tem um campo de senha PRÓPRIO
+    // (a senha do JSP, não a do Sankhya), e o preenchedor colocaria a credencial da base
+    // no lugar errado.
+    if (opcoes.autofill !== false) void tentarAutofill(view, info);
   }
 
   fecharAbaCliente(origin: string): boolean {
