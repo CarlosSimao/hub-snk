@@ -330,12 +330,34 @@ export class Wildfly {
     // desde a correcao do CVE-2024-27980, e o caminho entre aspas porque vem da config e
     // pode conter espaco. No Linux o `standalone.sh` e' executavel de verdade: chamada
     // direta, sem shell no caminho e sem aspas para acertar.
+    //
+    // Duas armadilhas do Windows, as duas reproduzidas com um `.bat` de teste em
+    // 2026-09-23 antes desta forma:
+    //
+    //  1. Aspas. Sem `windowsVerbatimArguments` o Node re-escapa as aspas no padrao do
+    //     MSVCRT (`"\"C:\...\""`), que o `cmd.exe` nao entende: o script nao rodava, e
+    //     calado, porque o `stdio` e' ignorado.
+    //  2. `detached: true` TRAVA o `standalone.bat`. Logo no comeco ele faz
+    //     `echo(!SERVER_OPTS! | findstr ...`, e esse pipe nunca termina num processo
+    //     destacado com as saidas redirecionadas — a janela ficava parada no `findstr`.
+    //     Sem `detached` o pipe passa, mas o WildFly viraria filho do backend e morreria
+    //     com ele ao fechar o hub.
+    //
+    // `start` resolve as duas: abre o WildFly num console PROPRIO e independente (como o
+    // duplo-clique do usuario), e o `cmd` que o chamou termina na hora — o WildFly fica
+    // orfao, fora da arvore de processos do backend, e sobrevive ao hub. Minimizado em
+    // vez de oculto: com o Windows Terminal como console padrao a janela aparece de
+    // qualquer jeito, e minimizada ela fica a um clique para quem quiser ver o console.
+    //
+    // `NOPAUSE`: o `standalone.bat` termina com `pause` quando a variavel nao existe, e
+    // o console ficaria esperando uma tecla depois que o WildFly parasse.
     const processo = EH_WINDOWS
-      ? spawn('cmd.exe', ['/c', `"${standalone}"`], {
+      ? spawn('cmd.exe', ['/c', `start "WildFly" /min /d "${bin}" "${standalone}"`], {
           cwd: bin,
-          detached: true,
           windowsHide: true,
           stdio: 'ignore',
+          windowsVerbatimArguments: true,
+          env: { ...process.env, NOPAUSE: 'true' },
         })
       : spawn(standalone, [], { cwd: bin, detached: true, stdio: 'ignore' });
     processo.unref();
