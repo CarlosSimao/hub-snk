@@ -38,6 +38,7 @@ export function registerRoutesSkills(app: FastifyInstance, deps: RouteSkillsDeps
         skill: texto(request.body, 'skill'),
         pasta: texto(request.body, 'pasta'),
         modelo: texto(request.body, 'modelo'),
+        esforco: texto(request.body, 'esforco'),
         mensagem: texto(request.body, 'mensagem') || `/${texto(request.body, 'skill')}`,
       });
     } catch (err) {
