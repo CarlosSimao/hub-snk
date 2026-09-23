@@ -21,6 +21,7 @@ import { prepararArquivosDoUsuario } from './primeiroBoot';
 import { migrarPastaDeDados } from './migracaoNome';
 import { montarMenu } from './menu';
 import { avisarAnotacoes, avisarServerLog } from './lembretes';
+import { registrarEsquemaRuffle, registrarIpcRuffle } from './ruffle';
 
 if (!app.requestSingleInstanceLock()) {
   // app.quit() só agenda o encerramento — sem process.exit aqui, o resto do módulo
@@ -29,6 +30,10 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
   process.exit(0);
 }
+
+// Antes do `ready`, por exigência do Electron: esquema privilegiado só se registra aqui.
+registrarEsquemaRuffle();
+registrarIpcRuffle();
 
 let janelaPrincipal: BrowserWindow | null = null;
 let tabs: TabManager | null = null;

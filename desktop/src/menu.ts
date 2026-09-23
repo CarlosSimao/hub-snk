@@ -13,6 +13,7 @@ import { Menu, app, shell, type BrowserWindow, type MenuItem } from 'electron';
 import { HUB_URL } from './config';
 import * as navegacaoSkill from './navegacaoSkill';
 import type { TabManager } from './tabs';
+import { definirRuffleAtivo, ruffleAtivo } from './ruffle';
 
 export function montarMenu(janela: () => BrowserWindow | null, tabs: () => TabManager | null): void {
   const gerenciador = tabs();
@@ -25,6 +26,15 @@ export function montarMenu(janela: () => BrowserWindow | null, tabs: () => TabMa
           label: 'Recarregar a guia atual',
           accelerator: 'CmdOrCtrl+R',
           click: () => tabs()?.recarregar(''),
+        },
+        { type: 'separator' },
+        {
+          // Vale para as telas abertas depois do clique: a que já está aberta mantém o
+          // estado que tinha — recarregar a guia aplica na hora.
+          label: 'Ruffle (Flash) nas telas do Sankhya',
+          type: 'checkbox',
+          checked: ruffleAtivo(),
+          click: (item: MenuItem) => definirRuffleAtivo(item.checked),
         },
         { type: 'separator' },
         { label: 'Sair', role: 'quit' },

@@ -15,6 +15,7 @@ import { BrowserWindow, WebContentsView, app, session } from 'electron';
 import { DOMINIOS_POPUP_PERMITIDOS, HUB_URL } from './config';
 import { logEvento, origemSemQuery } from './log';
 import { tentarAutofill } from './autofill';
+import { PRELOAD_RUFFLE, prepararRuffle } from './ruffle';
 
 export type TabId = 'hub' | 'erp' | 'experience';
 
@@ -181,7 +182,10 @@ export class TabManager {
         sandbox: true,
         nodeIntegration: false,
         webSecurity: true,
-        // Nenhum preload nas abas remotas: zero bridge para conteúdo de fora.
+        // Nenhuma PONTE nas abas remotas: nada do app é exposto à página. A guia do ERP
+        // ganha só o preload do Ruffle, que executa código na página sem expor API —
+        // e precisa rodar em iframe também, onde as telas Flex vivem.
+        ...(id === 'erp' ? { preload: PRELOAD_RUFFLE, nodeIntegrationInSubFrames: true } : {}),
       },
     });
     session.fromPartition(particao).on('will-download', registrarDownload(particao, this.#janelasFilhas));
@@ -271,7 +275,9 @@ export class TabManager {
               sandbox: true,
               nodeIntegration: false,
               webSecurity: true,
-              preload: undefined,
+              ...(id === 'erp'
+                ? { preload: PRELOAD_RUFFLE, nodeIntegrationInSubFrames: true }
+                : { preload: undefined }),
             },
           });
           // Sem isto a BrowserWindow fica sem referência forte e o Electron pode
@@ -279,11 +285,15 @@ export class TabManager {
           // documentação do Electron, reproduzido de verdade na PoC (download real).
           this.#janelasFilhas.add(filha);
           filha.on('closed', () => this.#janelasFilhas.delete(filha));
+          // Tela Flex do ERP pode abrir em pop-up: o Ruffle vai junto.
+          if (id === 'erp') prepararRuffle(filha.webContents);
           logEvento('popup-aberto-janela-filha', { id, alvo: origemSemQuery(alvo) });
           return filha.webContents;
         },
       };
     });
+    // Ruffle (Flash) só na guia do ERP: Painel e Experience não têm tela Flex.
+    if (id === 'erp') prepararRuffle(view.webContents);
     view.webContents.loadURL(url);
     this.#janela.contentView.addChildView(view);
     this.#abas.set(id, view);
@@ -442,6 +452,9 @@ export class TabManager {
         sandbox: true,
         nodeIntegration: false,
         webSecurity: true,
+        // Base de cliente é Sankhya: o Ruffle entra no início de cada frame (ver ruffle.ts).
+        preload: PRELOAD_RUFFLE,
+        nodeIntegrationInSubFrames: true,
       },
     });
     // Sem isto, um download servido pela partição isolada do cliente não dispara nada: o
@@ -471,15 +484,20 @@ export class TabManager {
               sandbox: true,
               nodeIntegration: false,
               webSecurity: true,
-              preload: undefined,
+              preload: PRELOAD_RUFFLE,
+              nodeIntegrationInSubFrames: true,
             },
           });
           this.#janelasFilhas.add(filha);
           filha.on('closed', () => this.#janelasFilhas.delete(filha));
+          prepararRuffle(filha.webContents);
           return filha.webContents;
         },
       };
     });
+    // Base de cliente é Sankhya: tela Flex abre aqui também, e cada base tem a sua
+    // partição — o `prepararRuffle` registra o protocolo nela.
+    prepararRuffle(view.webContents);
     view.webContents.loadURL(url);
     this.#janela.contentView.addChildView(view);
     this.#abas.set(origin, view);
