@@ -795,6 +795,15 @@ main {
   font-size: 14.5px;
   font-weight: 650;
   overflow-wrap: anywhere;
+  flex: 1;
+}
+
+.botao-alternar-projeto svg {
+  transition: transform 0.15s ease;
+}
+
+.botao-alternar-projeto[aria-expanded='true'] svg {
+  transform: rotate(180deg);
 }
 
 .card-projeto-corpo {
@@ -802,6 +811,10 @@ main {
   flex-direction: column;
   gap: 16px;
   padding: 16px 20px 20px;
+}
+
+.card-projeto-corpo[hidden] {
+  display: none;
 }
 
 .card-projeto-corpo .secao-recursos {
