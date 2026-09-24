@@ -1014,12 +1014,36 @@ export interface DocumentoEscopo {
   erro: string;
   /** Quantos caracteres de texto foram extraídos — 0 em PDF, que a IA lê direto. */
   caracteres: number;
+  /**
+   * Nome da demanda que este documento representa. Cada documento é uma demanda: é o
+   * que separa, no mesmo cliente, os quadros de trabalhos diferentes.
+   */
+  demanda: string;
+  /** Pasta onde o arquivo de tarefas compartilhado com IAs externas é mantido; '' = desligado. */
+  compartilharEm: string;
+  /** Nome do JSON dentro de `compartilharEm`, escolhido por quem compartilhou. */
+  compartilharNome: string;
+  /** Presente só quando `compartilharEm` está ligado. */
+  compartilhamento?: CompartilhamentoEscopo;
+}
+
+export interface CompartilhamentoEscopo {
+  /** Caminho completo do JSON que outros modelos leem e editam. */
+  arquivo: string;
+  /** Última vez que o hub escreveu ou importou o arquivo. */
+  sincronizadoEm: string;
+  /** Última vez que uma mudança feita FORA do hub foi importada. */
+  importadoEm: string;
+  /** Quantas mudanças a última importação aplicou. */
+  mudancasImportadas: number;
+  /** JSON inválido, estado desconhecido, pasta sumiu... '' quando está tudo certo. */
+  erro: string;
 }
 
 export interface TarefaEscopo {
   id: number;
   clienteId: number;
-  /** Documento que gerou a tarefa; `null` quando foi criada à mão. */
+  /** Documento (demanda) de origem; `null` quando é avulsa. */
   documentoId: number | null;
   titulo: string;
   descricao: string;
@@ -1029,6 +1053,8 @@ export interface TarefaEscopo {
   estimativaHoras: number;
   prioridade: PrioridadeTarefa;
   criteriosAceite: string;
+  /** Andamento registrado por quem executa — pessoa ou IA externa pelo arquivo compartilhado. */
+  notas: string;
   estado: EstadoTarefa;
   ordem: number;
   criadaEm: string;
@@ -1038,4 +1064,6 @@ export interface TarefaEscopo {
 export interface EscopoDoCliente {
   documentos: DocumentoEscopo[];
   tarefas: TarefaEscopo[];
+  /** Pasta que a tela sugere ao ligar o compartilhamento. */
+  pastaSugerida: string;
 }

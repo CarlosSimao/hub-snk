@@ -5,9 +5,22 @@ import type { Avisar } from './useToasts.ts';
 
 /** Enquanto houver documento em análise, a tela pergunta de novo neste intervalo. */
 const INTERVALO_ACOMPANHAMENTO_MS = 4_000;
+/** Com arquivo compartilhado, uma IA de fora pode mover cartões a qualquer momento. */
+const INTERVALO_COMPARTILHADO_MS = 5_000;
 
 export type EntradaTarefa = Partial<
-  Pick<TarefaEscopo, 'titulo' | 'descricao' | 'grupo' | 'tipo' | 'estimativaHoras' | 'prioridade' | 'criteriosAceite'>
+  Pick<
+    TarefaEscopo,
+    | 'titulo'
+    | 'descricao'
+    | 'grupo'
+    | 'tipo'
+    | 'estimativaHoras'
+    | 'prioridade'
+    | 'criteriosAceite'
+    | 'notas'
+    | 'documentoId'
+  >
 >;
 
 function lerComoBase64(arquivo: File): Promise<string> {
@@ -23,31 +36,87 @@ function lerComoBase64(arquivo: File): Promise<string> {
 export function useEscopo(clienteId: number, toast: Avisar) {
   const [documentos, setDocumentos] = useState<DocumentoEscopo[]>([]);
   const [tarefas, setTarefas] = useState<TarefaEscopo[]>([]);
+  const [pastaSugerida, setPastaSugerida] = useState('');
   const [carregando, setCarregando] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const tarefasRef = useRef<TarefaEscopo[]>([]);
   tarefasRef.current = tarefas;
+  const ultimoRef = useRef('');
 
   const recarregar = useCallback(async () => {
     const { ok, body } = await requisitar<EscopoDoCliente>(`/api/clientes/${clienteId}/escopo`);
     if (ok) {
-      setDocumentos(body.documentos ?? []);
-      setTarefas(body.tarefas ?? []);
+      // O acompanhamento repete a leitura a cada poucos segundos; resposta igual não
+      // re-renderiza o quadro (e não atrapalha um arrasto em andamento).
+      const texto = JSON.stringify(body);
+      if (texto !== ultimoRef.current) {
+        ultimoRef.current = texto;
+        setDocumentos(body.documentos ?? []);
+        setTarefas(body.tarefas ?? []);
+        setPastaSugerida(body.pastaSugerida ?? '');
+      }
     }
     setCarregando(false);
   }, [clienteId]);
 
   useEffect(() => {
+    ultimoRef.current = '';
     void recarregar();
   }, [recarregar]);
 
-  // Acompanha a análise: ela roda em segundo plano no hub e leva minutos.
+  // Acompanha a análise (roda em segundo plano e leva minutos) e o arquivo compartilhado.
   const analisando = documentos.some((d) => d.status === 'analisando');
+  const compartilhando = documentos.some((d) => d.compartilharEm);
+  const intervalo = analisando ? INTERVALO_ACOMPANHAMENTO_MS : compartilhando ? INTERVALO_COMPARTILHADO_MS : 0;
   useEffect(() => {
-    if (!analisando) return;
-    const timer = setInterval(() => void recarregar(), INTERVALO_ACOMPANHAMENTO_MS);
+    if (!intervalo) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') void recarregar();
+    }, intervalo);
     return () => clearInterval(timer);
-  }, [analisando, recarregar]);
+  }, [intervalo, recarregar]);
+
+  const renomearDemanda = useCallback(
+    async (docId: number, demanda: string) => {
+      const { ok, body } = await requisitar(`/api/escopo/documentos/${docId}`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ demanda }),
+      });
+      if (!ok) {
+        toast('Não consegui renomear a demanda', 'err', body.error);
+        return false;
+      }
+      await recarregar();
+      return true;
+    },
+    [recarregar, toast],
+  );
+
+  /** `pasta` vazia desliga o compartilhamento. */
+  const compartilhar = useCallback(
+    async (docId: number, pasta: string, nome = '', criarPastaTarefas = false, ignorarNoGit = true) => {
+      const { ok, body } = await requisitar<{
+        documento: DocumentoEscopo;
+        gitignore?: { gitignore?: string; entrada?: string; adicionada?: boolean; erro?: string };
+      }>(`/api/escopo/documentos/${docId}/compartilhamento`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ pasta, nome, criarPastaTarefas, ignorarNoGit }),
+      });
+      if (!ok) {
+        toast(pasta ? 'Não consegui compartilhar as tarefas' : 'Não consegui parar o compartilhamento', 'err', body.error);
+        return false;
+      }
+      const g = body.gitignore;
+      if (g?.erro) toast('Compartilhado, mas o .gitignore não foi atualizado', 'err', g.erro);
+      else if (g?.adicionada) toast(`${g.entrada} adicionado ao .gitignore`, 'ok');
+      else if (g && !g.gitignore) toast('A pasta não está num repositório git — nada a ignorar', 'ok');
+      await recarregar();
+      return true;
+    },
+    [recarregar, toast],
+  );
 
   const enviarDocumento = useCallback(
     async (arquivo: File): Promise<DocumentoEscopo | null> => {
@@ -153,6 +222,8 @@ export function useEscopo(clienteId: number, toast: Avisar) {
 
       const { ok, body } = await enviar(`/api/escopo/tarefas/${id}/mover`, { estado, indice: posicao });
       if (!ok) toast('Não consegui mover a tarefa', 'err', body.error);
+      // O quadro local foi mexido à mão: a próxima resposta tem de valer mesmo se for igual à anterior.
+      ultimoRef.current = '';
       await recarregar();
     },
     [recarregar, toast],
@@ -173,6 +244,7 @@ export function useEscopo(clienteId: number, toast: Avisar) {
   return {
     documentos,
     tarefas,
+    pastaSugerida,
     carregando,
     enviando,
     analisando,
@@ -180,6 +252,8 @@ export function useEscopo(clienteId: number, toast: Avisar) {
     enviarDocumento,
     analisar,
     removerDocumento,
+    renomearDemanda,
+    compartilhar,
     criarTarefa,
     atualizarTarefa,
     mover,

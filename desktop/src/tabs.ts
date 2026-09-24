@@ -186,6 +186,9 @@ export class TabManager {
         // ganha só o preload do Ruffle, que executa código na página sem expor API —
         // e precisa rodar em iframe também, onde as telas Flex vivem.
         ...(id === 'erp' ? { preload: PRELOAD_RUFFLE, nodeIntegrationInSubFrames: true } : {}),
+        // O visor de PDF do Chromium é um plugin: sem isto o documento de escopo em PDF
+        // abre em branco no painel. Só o hub, que é conteúdo local.
+        ...(id === 'hub' ? { plugins: true } : {}),
       },
     });
     session.fromPartition(particao).on('will-download', registrarDownload(particao, this.#janelasFilhas));

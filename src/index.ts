@@ -28,6 +28,7 @@ import { ServerLogInstalacoes } from './sankhya/serverLogInstalacoes.ts';
 import { registerRoutesEscopo } from './routesEscopo.ts';
 import { Escopo } from './sankhya/escopo.ts';
 import { analisarEscopo } from './sankhya/escopoIa.ts';
+import { CompartilhamentoTarefas } from './sankhya/escopoCompartilhado.ts';
 import { registerRoutesCartao } from './routesCartao.ts';
 import { registerRoutesEmail } from './routesEmail.ts';
 import { CartaoClientes } from './sankhya/cartao.ts';
@@ -238,7 +239,10 @@ async function main(): Promise<void> {
   registerRoutesServerLog(app, { desktopBridge, instalacoes: instalacoesServerLog, baseDoOrigin });
 
   // Documento de escopo do cliente -> tarefas (via Claude) -> kanban. Mesmo sankhya.db.
-  registerRoutesEscopo(app, { escopo: new Escopo(DATA_DIR), clientes, analisar: analisarEscopo, log: app.log });
+  // O compartilhamento mantém um JSON por demanda que IAs externas leem e atualizam.
+  const escopo = new Escopo(DATA_DIR);
+  const compartilhamento = new CompartilhamentoTarefas(escopo, (id) => clientes.obter(id)?.nome ?? '');
+  registerRoutesEscopo(app, { escopo, clientes, compartilhamento, analisar: analisarEscopo, log: app.log });
 
   // Mesmo motivo do cartao: as tabelas de contatos/config de e-mail moram no construtor
   // de `Clientes`, e `EmailInterno` so abre o mesmo `sankhya.db`.

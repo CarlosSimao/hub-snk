@@ -34,7 +34,12 @@ export interface TarefaEntrada {
   estimativaHoras?: number;
   prioridade?: string;
   criteriosAceite?: string;
+  notas?: string;
+  /** Demanda da tarefa. `null` = avulsa; `undefined` = não mexe (na edição). */
+  documentoId?: number | null;
 }
+
+const LIMITE_NOTAS = 4000;
 
 interface LinhaDocumento {
   id: number;
@@ -49,6 +54,9 @@ interface LinhaDocumento {
   erro: string;
   texto: string;
   arquivo: string;
+  demanda: string;
+  compartilhar_em: string;
+  compartilhar_nome: string;
 }
 
 interface LinhaTarefa {
@@ -62,6 +70,7 @@ interface LinhaTarefa {
   estimativa_horas: number;
   prioridade: string;
   criterios_aceite: string;
+  notas: string;
   estado: string;
   ordem: number;
   criada_em: string;
@@ -102,6 +111,9 @@ function documento(l: LinhaDocumento): DocumentoEscopo {
     resumo: l.resumo,
     erro: l.erro,
     caracteres: l.texto.length,
+    demanda: l.demanda || l.nome.replace(/\.[^.]+$/, ''),
+    compartilharEm: l.compartilhar_em,
+    compartilharNome: l.compartilhar_nome,
   };
 }
 
@@ -117,6 +129,7 @@ function tarefa(l: LinhaTarefa): TarefaEscopo {
     estimativaHoras: l.estimativa_horas,
     prioridade: l.prioridade as PrioridadeTarefa,
     criteriosAceite: l.criterios_aceite,
+    notas: l.notas,
     estado: l.estado as EstadoTarefa,
     ordem: l.ordem,
     criadaEm: l.criada_em,
@@ -132,6 +145,7 @@ function nomeEmDisco(nome: string): string {
 export class Escopo {
   readonly #db: DatabaseSync;
   readonly #pasta: string;
+  readonly #ouvintes = new Set<(clienteId: number) => void>();
 
   constructor(dataDir: string) {
     mkdirSync(dataDir, { recursive: true });
@@ -173,11 +187,42 @@ export class Escopo {
       );
       CREATE INDEX IF NOT EXISTS idx_escopo_tarefa_coluna ON escopo_tarefas (cliente_id, estado, ordem);
     `);
+    this.#garantirColunas('escopo_documentos', [
+      ['demanda', "TEXT NOT NULL DEFAULT ''"],
+      ['compartilhar_em', "TEXT NOT NULL DEFAULT ''"],
+      ['compartilhar_nome', "TEXT NOT NULL DEFAULT ''"],
+    ]);
+    this.#garantirColunas('escopo_tarefas', [['notas', "TEXT NOT NULL DEFAULT ''"]]);
     // Análise que estava rodando quando o hub caiu nunca vai terminar: sem isto o
     // documento ficaria "analisando" para sempre e o botão de reanalisar, travado.
     this.#db
       .prepare(`UPDATE escopo_documentos SET status = 'falhou', erro = 'a análise foi interrompida (o hub reiniciou)' WHERE status = 'analisando'`)
       .run();
+  }
+
+  /** Base criada antes da coluna existir não pode perder o quadro para ganhar campo novo. */
+  #garantirColunas(tabela: string, colunas: [string, string][]): void {
+    const existentes = new Set(
+      (this.#db.prepare(`PRAGMA table_info(${tabela})`).all() as unknown as { name: string }[]).map((c) => c.name),
+    );
+    for (const [coluna, tipo] of colunas) {
+      if (!existentes.has(coluna)) this.#db.exec(`ALTER TABLE ${tabela} ADD COLUMN ${coluna} ${tipo}`);
+    }
+  }
+
+  /** Avisado depois de toda mudança em tarefas do cliente — é o que mantém o arquivo compartilhado em dia. */
+  aoMudar(ouvinte: (clienteId: number) => void): () => void {
+    this.#ouvintes.add(ouvinte);
+    return () => this.#ouvintes.delete(ouvinte);
+  }
+
+  #avisar(clienteId: number): void {
+    for (const o of this.#ouvintes) o(clienteId);
+  }
+
+  /** Onde o compartilhamento cai quando o cliente não tem repositório local configurado. */
+  pastaPadraoCompartilhada(clienteId: number): string {
+    return join(this.#pasta, String(clienteId), 'compartilhado');
   }
 
   // --- documentos -------------------------------------------------------------------
@@ -219,6 +264,31 @@ export class Escopo {
     this.#db.prepare('UPDATE escopo_documentos SET arquivo = ? WHERE id = ?').run(arquivo, id);
 
     return this.documento(id)!;
+  }
+
+  renomearDemanda(id: number, demanda: string): DocumentoEscopo | undefined {
+    const nome = demanda.trim().slice(0, 120);
+    if (!nome) throw new EscopoUsoError('o nome da demanda não pode ficar vazio');
+    const r = this.#db.prepare('UPDATE escopo_documentos SET demanda = ? WHERE id = ?').run(nome, id);
+    if (!r.changes) return undefined;
+    const doc = this.documento(id)!;
+    this.#avisar(doc.clienteId);
+    return doc;
+  }
+
+  /** `pasta` vazia desliga. Quem valida pasta e nome é a rota: aqui é só o registro. */
+  definirCompartilhamento(id: number, pasta: string, nome = ''): DocumentoEscopo | undefined {
+    const r = this.#db
+      .prepare('UPDATE escopo_documentos SET compartilhar_em = ?, compartilhar_nome = ? WHERE id = ?')
+      .run(pasta, pasta ? nome : '', id);
+    return r.changes ? this.documento(id) : undefined;
+  }
+
+  documentosCompartilhados(): DocumentoEscopo[] {
+    const linhas = this.#db
+      .prepare(`SELECT * FROM escopo_documentos WHERE compartilhar_em <> '' ORDER BY id`)
+      .all() as unknown as LinhaDocumento[];
+    return linhas.map(documento);
   }
 
   marcarAnalisando(id: number): void {
@@ -284,6 +354,7 @@ export class Escopo {
         .prepare(`UPDATE escopo_documentos SET status = 'analisado', analisado_em = ?, resumo = ?, erro = '' WHERE id = ?`)
         .run(agora, resumo, id);
       this.#db.exec('COMMIT');
+      this.#avisar(doc.clienteId);
       return { criadas, mantidas };
     } catch (err) {
       this.#db.exec('ROLLBACK');
@@ -296,11 +367,14 @@ export class Escopo {
    * trabalho do time; apagar o escopo errado não pode levar o andamento junto.
    */
   removerDocumento(id: number): boolean {
-    const l = this.#db.prepare('SELECT arquivo FROM escopo_documentos WHERE id = ?').get(id) as { arquivo: string } | undefined;
+    const l = this.#db.prepare('SELECT arquivo, cliente_id FROM escopo_documentos WHERE id = ?').get(id) as
+      | { arquivo: string; cliente_id: number }
+      | undefined;
     if (!l) return false;
     this.#db.prepare('UPDATE escopo_tarefas SET documento_id = NULL WHERE documento_id = ?').run(id);
     this.#db.prepare('DELETE FROM escopo_documentos WHERE id = ?').run(id);
     if (l.arquivo && existsSync(l.arquivo)) rmSync(l.arquivo, { force: true });
+    this.#avisar(l.cliente_id);
     return true;
   }
 
@@ -313,24 +387,41 @@ export class Escopo {
     return linhas.map(tarefa);
   }
 
+  tarefasDaDemanda(documentoId: number): TarefaEscopo[] {
+    const linhas = this.#db
+      .prepare('SELECT * FROM escopo_tarefas WHERE documento_id = ? ORDER BY estado, ordem, id')
+      .all(documentoId) as unknown as LinhaTarefa[];
+    return linhas.map(tarefa);
+  }
+
   tarefa(id: number): TarefaEscopo | undefined {
     const l = this.#db.prepare('SELECT * FROM escopo_tarefas WHERE id = ?').get(id) as LinhaTarefa | undefined;
     return l ? tarefa(l) : undefined;
   }
 
+  /** Tarefa só pode apontar para demanda do MESMO cliente — senão sumiria de um quadro e apareceria em outro. */
+  #demandaValida(clienteId: number, documentoId: number | null | undefined): number | null {
+    if (documentoId === null || documentoId === undefined) return null;
+    const doc = this.documento(documentoId);
+    if (!doc || doc.clienteId !== clienteId) throw new EscopoUsoError('demanda não encontrada neste cliente');
+    return doc.id;
+  }
+
   criarTarefa(clienteId: number, entrada: TarefaEntrada, estado: EstadoTarefa = 'backlog'): TarefaEscopo {
     const titulo = (entrada.titulo ?? '').trim();
     if (!titulo) throw new EscopoUsoError('informe o título da tarefa');
+    const documentoId = this.#demandaValida(clienteId, entrada.documentoId);
     const agora = new Date().toISOString();
     const r = this.#db
       .prepare(
         `INSERT INTO escopo_tarefas
            (cliente_id, documento_id, titulo, descricao, grupo, tipo, estimativa_horas, prioridade,
-            criterios_aceite, estado, ordem, criada_em, atualizada_em)
-         VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            criterios_aceite, notas, estado, ordem, criada_em, atualizada_em)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         clienteId,
+        documentoId,
         titulo.slice(0, 200),
         (entrada.descricao ?? '').trim(),
         (entrada.grupo ?? '').trim().slice(0, 100),
@@ -338,11 +429,13 @@ export class Escopo {
         horasValidas(entrada.estimativaHoras),
         prioridadeValida(entrada.prioridade),
         (entrada.criteriosAceite ?? '').trim(),
+        (entrada.notas ?? '').trim().slice(0, LIMITE_NOTAS),
         estado,
         this.#proximaOrdem(clienteId, estado),
         agora,
         agora,
       );
+    this.#avisar(clienteId);
     return this.tarefa(Number(r.lastInsertRowid))!;
   }
 
@@ -351,10 +444,12 @@ export class Escopo {
     if (!atual) return undefined;
     const titulo = entrada.titulo !== undefined ? entrada.titulo.trim() : atual.titulo;
     if (!titulo) throw new EscopoUsoError('o título não pode ficar vazio');
+    const documentoId =
+      entrada.documentoId !== undefined ? this.#demandaValida(atual.clienteId, entrada.documentoId) : atual.documentoId;
     this.#db
       .prepare(
         `UPDATE escopo_tarefas SET titulo = ?, descricao = ?, grupo = ?, tipo = ?, estimativa_horas = ?,
-           prioridade = ?, criterios_aceite = ?, atualizada_em = ? WHERE id = ?`,
+           prioridade = ?, criterios_aceite = ?, notas = ?, documento_id = ?, atualizada_em = ? WHERE id = ?`,
       )
       .run(
         titulo.slice(0, 200),
@@ -364,9 +459,12 @@ export class Escopo {
         entrada.estimativaHoras !== undefined ? horasValidas(entrada.estimativaHoras) : atual.estimativaHoras,
         entrada.prioridade !== undefined ? prioridadeValida(entrada.prioridade) : atual.prioridade,
         entrada.criteriosAceite !== undefined ? entrada.criteriosAceite.trim() : atual.criteriosAceite,
+        entrada.notas !== undefined ? entrada.notas.trim().slice(0, LIMITE_NOTAS) : atual.notas,
+        documentoId,
         new Date().toISOString(),
         id,
       );
+    this.#avisar(atual.clienteId);
     return this.tarefa(id);
   }
 
@@ -402,6 +500,7 @@ export class Escopo {
       this.#db.exec('ROLLBACK');
       throw err;
     }
+    this.#avisar(atual.clienteId);
     return this.tarefa(id);
   }
 
@@ -410,6 +509,7 @@ export class Escopo {
     if (!atual) return false;
     this.#db.prepare('DELETE FROM escopo_tarefas WHERE id = ?').run(id);
     this.#renumerar(atual.clienteId, atual.estado);
+    this.#avisar(atual.clienteId);
     return true;
   }
 
