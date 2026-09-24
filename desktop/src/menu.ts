@@ -3,15 +3,9 @@
  *
  * Substitui o menu padrão do Electron (File/Edit/View/Window, em inglês e cheio de itens
  * que não significam nada aqui) por um menu que fala das guias do hub.
- *
- * O item que motivou o menu é o último: a página que as skills usam para navegar no
- * Sankhya nasce OCULTA, e quando o login expira alguém precisa vê-la para digitar a
- * senha. Sem um lugar para trazê-la à tela, a skill pedia "faça login na aba" e não havia
- * aba nenhuma para clicar.
  */
 import { Menu, app, shell, type BrowserWindow, type MenuItem } from 'electron';
 import { HUB_URL } from './config';
-import * as navegacaoSkill from './navegacaoSkill';
 import type { TabManager } from './tabs';
 
 export function montarMenu(janela: () => BrowserWindow | null, tabs: () => TabManager | null): void {
@@ -53,26 +47,6 @@ export function montarMenu(janela: () => BrowserWindow | null, tabs: () => TabMa
             if (!alterou) montarMenu(janela, tabs);
           },
         })),
-      ],
-    },
-    {
-      label: 'Skills',
-      submenu: [
-        {
-          // O caso do login: a skill avisa que precisa de sessão, e é por aqui que a
-          // página aparece para digitar usuário e senha.
-          label: 'Mostrar a página de navegação das skills',
-          click: () => navegacaoSkill.exibir(),
-        },
-        {
-          label: 'Ocultar a página de navegação das skills',
-          click: () => navegacaoSkill.esconder(),
-        },
-        { type: 'separator' },
-        {
-          label: 'Fechar a página de navegação das skills',
-          click: () => navegacaoSkill.fechar(),
-        },
       ],
     },
     {

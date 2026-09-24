@@ -1,7 +1,6 @@
 /**
- * Bootstrap do shell desktop — Fase 2 da migração
- * (docs/specs/sankhya-hub-desktop-especificacao.md). Sucessor de produção da PoC
- * (`poc-desktop/`, mantida intocada como evidência histórica).
+ * Bootstrap do shell desktop do HUB SNK. Veio da branch `flaviano-sankhya-hub` e foi
+ * adaptado ao backend da `dev` — ver docs/plano-migracao-electron.md.
  */
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { join } from 'node:path';
@@ -10,17 +9,13 @@ import { HUB_URL, ERP_URL, EXPERIENCE_URL, ICONE, PARTICAO, userAgentLimpo } fro
 import { logEvento } from './log';
 import { TabManager } from './tabs';
 import { AgendaFetcher } from './agenda';
-import { ServerLogFetcher } from './serverLog';
 import { criarBridgeServer } from './bridgeServer';
 import { pushSessaoExperience, limparSessaoExperience } from './backendClient';
 import { capturarTokenExperience, diagnosticoCookiesErp } from './sessions';
 import { backendDisponivel } from './services';
 import { backendGerenciado, iniciarBackend, pararBackend } from './backendProcess';
 import { migrarCofreDoHelper } from './migracaoCofre';
-import { prepararArquivosDoUsuario } from './primeiroBoot';
-import { migrarPastaDeDados } from './migracaoNome';
 import { montarMenu } from './menu';
-import { avisarAnotacoes, avisarServerLog } from './lembretes';
 
 if (!app.requestSingleInstanceLock()) {
   // app.quit() só agenda o encerramento — sem process.exit aqui, o resto do módulo
@@ -41,7 +36,7 @@ function criarJanela(): void {
   janelaPrincipal = new BrowserWindow({
     width: 1280,
     height: 860,
-    title: 'Development Switch',
+    title: 'HUB SNK',
     icon: ICONE,
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
@@ -55,9 +50,8 @@ function criarJanela(): void {
   janelaPrincipal.on('resize', () => tabs?.reposicionar());
 
   tabs = new TabManager(janelaPrincipal);
-  // `?desktop=1` só na aba Hub: é o sinal que o React lê (useModoDesktop) pra esconder
-  // a tela de credenciais do fluxo antigo (navegador externo) — ela abriria um terceiro
-  // navegador, sem relação com as abas deste shell.
+  // `?desktop=1` só na aba Hub: sinal para o painel de que ele roda dentro do shell,
+  // e não num navegador comum.
   const hubUrlComFlag = `${HUB_URL}${HUB_URL.includes('?') ? '&' : '?'}desktop=1`;
   tabs.criarAbaPrincipal('hub', hubUrlComFlag, PARTICAO);
   tabs.criarAbaPrincipal('erp', ERP_URL, PARTICAO);
@@ -73,9 +67,9 @@ function criarJanela(): void {
   // de outra forma — ver Seção 6.3 da especificação.
   //
   // Empurra em TODO tick em que a sessão está presente, não só quando muda: o backend
-  // guarda em memória (SessaoDesktopStore), então um restart dele (deploy, crash) perde
+  // guarda em memória (`SessaoDoDesktop`), então um restart dele (deploy, crash) perde
   // o valor sem avisar o shell — reempurrar sempre é a única forma de o backend nunca
-  // ficar mais de um tick (15s) desatualizado. `SessaoDesktopStore.definir` é
+  // ficar mais de um tick (15s) desatualizado. `SessaoDoDesktop.definir` é
   // idempotente, então repetir o mesmo valor não tem custo além da chamada HTTP local.
   setInterval(() => {
     void (async () => {
@@ -125,31 +119,17 @@ app.whenReady().then(async () => {
   app.userAgentFallback = userAgentLimpo(app.userAgentFallback);
   logEvento('user-agent-definido', { ua: app.userAgentFallback, icone: ICONE, iconeExiste: existsSync(ICONE) });
 
-  // Primeiro de tudo: o aplicativo mudou de nome, e com ele a pasta de dados. Sem esta
-  // migração o histórico, o cofre e o services.yaml do usuário ficariam na pasta antiga
-  // e o app abriria vazio, parecendo perda de dados.
-  migrarPastaDeDados();
-
-  // Antes de tudo que lê configuração: numa instalação nova o `services.yaml` ainda só
-  // existe dentro do pacote, e é aqui que ele vira arquivo do usuário.
-  prepararArquivosDoUsuario();
-
-  // Antes do backend: ele consulta credenciais logo no primeiro ciclo de checks, e o
-  // cofre precisa já estar preenchido para o shell responder em vez de devolver vazio.
+  // Antes do backend: a primeira tela que consulta credenciais precisa encontrar o
+  // cofre já preenchido com o que estava no `hub-helper.ps1`.
   await migrarCofreDoHelper();
 
-  // Também antes do backend, e por um motivo que só apareceu rodando: o bridge vivia
-  // dentro de `criarJanela`, que roda DEPOIS de `iniciarBackend`. O backend subia, fazia
-  // a migração de segredos e as primeiras consultas de credencial sem ter com quem
-  // falar — a migração cifrava pelo helper, o resultado saía sem a marca do shell e era
-  // (corretamente) recusada, reportando tudo como pendente para sempre.
+  // Também antes do backend: as primeiras consultas de credencial dele já precisam ter
+  // com quem falar, senão caem para o helper sem necessidade.
   //
   // O `AgendaFetcher` recebe uma função, não a aba: a janela ainda não existe aqui, e
   // quando existir ele passa a enxergá-la.
   const agenda = new AgendaFetcher(() => tabs?.aba('erp'));
-  // O log de base de cliente sai da aba DAQUELA base (isolada por origin), não da aba ERP.
-  const serverLog = new ServerLogFetcher((origin) => tabs?.abaCliente(origin));
-  criarBridgeServer(agenda, () => tabs, serverLog);
+  criarBridgeServer(agenda, () => tabs);
 
   // Antes da janela: o painel é a primeira aba a carregar e apontaria para uma porta
   // fechada. Esperar aqui custa o tempo de boot do Fastify uma vez, e evita que a
@@ -157,16 +137,11 @@ app.whenReady().then(async () => {
   const backend = await iniciarBackend();
   if (backend.modo === 'falhou') {
     logEvento('backend-falhou-no-boot');
-    dialog.showErrorBox('Development Switch — o backend não subiu', backend.erro);
+    dialog.showErrorBox('HUB SNK — o backend não subiu', backend.erro);
   }
 
   criarJanela();
   montarMenu(() => janelaPrincipal, () => tabs);
-
-  // Depois da janela e sem `await`: o aviso é útil, mas não é motivo para segurar a
-  // abertura do aplicativo se o backend demorar a responder.
-  void avisarAnotacoes();
-  void avisarServerLog();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) criarJanela();
@@ -176,7 +151,7 @@ app.whenReady().then(async () => {
 let encerrando = false;
 app.on('before-quit', (evento) => {
   // `pararBackend` é assíncrono e o Electron não espera handler nenhum: sem segurar o
-  // quit aqui, o processo do backend sobraria órfão segurando a porta 4000, e a próxima
+  // quit aqui, o processo do backend sobraria órfão segurando a porta 4100, e a próxima
   // abertura do shell acharia que há "backend externo" no ar.
   if (encerrando) return;
   evento.preventDefault();

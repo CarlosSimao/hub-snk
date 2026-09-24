@@ -113,7 +113,7 @@ A meta é provar que o backend da `dev` roda do jeito que o shell vai executá-l
   - [x] a aba do painel carregada como `http://127.0.0.1:4100` (Host e Origin loopback; já coberto por `protecaoDeOrigem.test.ts`);
   - [x] as chamadas do shell sem `Origin` (validado com `curl`). Uma chamada com `Origin` estranho às rotas de sessão recebe 403 antes mesmo de o token ser conferido.
 - [x] Tratar `SIGTERM`/`SIGINT`: fecha o observador da pasta de dados, depois `servidor.close()` com `forceCloseConnections` (uma conexão SSE aberta não segura o encerramento), depois o SQLite da agenda. **Só typecheck**: no Windows não há como mandar o sinal fora de um console interativo; validar com Ctrl+C no `npm start` e no Linux.
-  - [ ] Avaliar uma rota `POST /api/sistema/encerrar` só para loopback e token, porque no Windows o `kill()` não entrega sinal. **Decisão pendente** do Carlos.
+  - [x] Rota `POST /api/sistema/encerrar` (decidida em 2026-09-24): exige o token do shell (`src/rotas/autenticacaoDoShell.ts`, compartilhado com as rotas de sessão), responde 202 e só então dispara o mesmo encerramento dos sinais, que roda uma vez só. Testes em `rotasSistema.test.ts`.
 - [x] Log do backend legível em arquivo: `pino-pretty` com `colorize: process.stdout.isTTY`. Validado: 0 códigos ANSI no log gravado.
 - [x] Portar do Flaviano, adaptando para zod v4 e as convenções da `dev` (nomes em português):
   - [x] `src/sankhya/ponteDoDesktop.ts` (`desktopBridge.ts` do Flaviano), o cliente do bridge, com `SANKHYA_DESKTOP_BRIDGE_URL` (padrão `http://127.0.0.1:4103`) e `DESKTOP_BRIDGE_TOKEN_FILE` (padrão `%APPDATA%\sankhya-hub\ipc\desktop-token.txt`) em `configuracao.ts`. Mantém o mesmo contrato do helper (`requisitar(caminho, init, opcoes)`), sem os métodos de `serverlog`, `secret` e favoritos, que a `dev` não usa.
@@ -124,28 +124,35 @@ A meta é provar que o backend da `dev` roda do jeito que o shell vai executá-l
 
 ## Fase 3 — Trazer o shell `desktop/`
 
-- [ ] `git checkout da69e32 -- desktop/`. Não trazer `poc-desktop/`.
-- [ ] Incluir no `.gitignore`: `desktop/node_modules/`, `desktop/dist/`, `desktop/build/`, `desktop/.perfil/`, `release/`.
-- [ ] `desktop/src/config.ts`:
-  - [ ] `HUB_URL` padrão `http://127.0.0.1:4100`.
-  - [ ] Entrypoint `src/index.ts`, configurável por env; `cwd` = raiz do projeto, não `dirname(entrypoint)`.
-  - [ ] Remover `SERVICES_YAML`, `CONFIG_PATH`, `DOCKER_SOCKET`, `WILDFLY_URL` e `ORACLE_HOST`.
-  - [ ] Pasta de dados: `%LOCALAPPDATA%\HubSnk\dados` empacotado e `<raiz>/dados-hub-snk` em desenvolvimento (D4).
-- [ ] `desktop/src/backendProcess.ts`:
-  - [ ] Passar `HUB_PORTA=4100`, `HUB_HOST=127.0.0.1`, `HUB_DADOS_DIR`, `SANKHYA_DESKTOP_BRIDGE_URL`, `DESKTOP_BRIDGE_TOKEN_FILE` e `TZ`. Não passar `HUB_HELPER_*` (D3).
-  - [ ] Runtime: sempre `process.execPath` com `ELECTRON_RUN_AS_NODE=1` (D2). Remover a busca por `node` no PATH, a menos que a Fase 1 obrigue ao plano B.
-  - [ ] Trocar a mensagem "Rode `npm run build`".
-  - [ ] Encerramento limpo (rota de encerrar, se aprovada na Fase 2, antes do `kill`).
-- [ ] Remover o que depende de backend inexistente na `dev`:
-  - [ ] `primeiroBoot.ts` (`services.yaml`).
-  - [ ] `lembretes.ts` e a chamada `avisarAnotacoes`/`avisarServerLog` no `main.ts`.
-  - [ ] `serverLog.ts` e as rotas `/serverlog/*` do bridge.
-  - [ ] `navegacaoSkill.ts` e as rotas `/navegacao/*` do bridge (skills não existem na `dev`).
-  - [ ] Itens de menu "Skills" em `menu.ts`.
-- [ ] `migracaoNome.ts`: remover. Não existe instalação Electron anterior do HUB SNK.
-- [ ] Identidade (D1): título "HUB SNK" em `main.ts:44`, rótulos de `tabs.ts:94-98`, `productName` "HUB SNK", `appId` `br.dev.hubsnk.desktop`, ícones em `desktop/assets` (mover `instalador/hub-snk.ico` e gerar o `.png`).
-- [ ] Em `desktop/package.json`, trocar `build:hub`/`start` para não chamar `npm run build` na raiz.
-- [ ] `npm --prefix desktop install` e `npm --prefix desktop run build` compilam sem erro.
+- [x] `git checkout da69e32 -- desktop/`, commitado sem alterações para a adaptação aparecer como diff próprio. `poc-desktop/` não veio.
+- [x] `.gitignore`: o `desktop/.gitignore` do Flaviano já cobre `node_modules/`, `dist/`, `build/` e `.perfil/`; `release/` entrou no da raiz.
+- [x] `desktop/src/config.ts`:
+  - [x] `HUB_URL` padrão `http://127.0.0.1:4100` (IPv4 explícito: o backend não escuta em `::1`).
+  - [x] Entrypoint `src/index.ts`; `cwd` = raiz do projeto, onde estão o `package.json` com `"type": "module"` e o `node_modules`.
+  - [x] Removidos `SERVICES_YAML`, `CONFIG_PATH`, `DOCKER_SOCKET`, `WILDFLY_URL` e `ORACLE_HOST`.
+  - [x] `DIRETORIO_DE_DADOS`: `%LOCALAPPDATA%\HubSnk\dados` (Windows) ou `$XDG_DATA_HOME/hub-snk/dados` (Linux, o mesmo do `instalar-hub-snk.sh`) empacotado; `<raiz>/dados-hub-snk` em desenvolvimento; `HUB_DADOS_DIR` sobrescreve (D4).
+- [x] `desktop/src/backendProcess.ts` reescrito:
+  - [x] Passa `ELECTRON_RUN_AS_NODE=1`, `HUB_PORTA`, `HUB_HOST=127.0.0.1`, `HUB_DADOS_DIR`, `HUB_ABRIR_JANELA=0`, `TZ`, `SANKHYA_DESKTOP_BRIDGE_URL` e `DESKTOP_BRIDGE_TOKEN_FILE`. Não passa `HUB_HELPER_*` e remove `HUB_PERMITIR_REDE`/`HUB_NAVEGADOR` herdados (D3/D5).
+  - [x] Runtime: sempre `process.execPath` (D2). Removidas a busca por `node` no PATH e a `SANKHYA_HUB_NODE`.
+  - [x] Mensagens de erro sem `npm run build`, `desenvolver.ps1` ou Docker; o modo `externo` aponta para `npm run dev`.
+  - [x] Encerramento limpo: `POST /api/sistema/encerrar` com o token do shell, espera de 5 s e só então `kill()`/`SIGKILL`. Removido o `reiniciarBackend`, que ninguém chamava.
+- [x] Removido o que depende de backend inexistente na `dev`:
+  - [x] `primeiroBoot.ts` (`services.yaml`).
+  - [x] `lembretes.ts` e as chamadas `avisarAnotacoes`/`avisarServerLog` no `main.ts`.
+  - [x] `serverLog.ts` e as rotas `/serverlog/*` do bridge.
+  - [x] `navegacaoSkill.ts` e as rotas `/navegacao/*` do bridge.
+  - [x] Menu "Skills" em `menu.ts`.
+  - [x] `scripts/preparar-autosync.mjs` e os scripts `empacotar:sem-autosync`/`preparar-autosync` (D7). O `installer.nsh` do autosync fica para a Fase 6.
+- [x] `migracaoNome.ts` removido.
+- [x] Identidade (D1): título "HUB SNK" na janela, no `index.html` e no diálogo de erro; `desktop/package.json` com `name` `hub-snk-desktop`, `productName` "HUB SNK" e versão 1.1.0 (a mesma da raiz). O ícone de `desktop/assets` já é idêntico ao `instalador/hub-snk.ico` (mesmo MD5). Rótulos das guias (`Painel`/`Sankhya Om`/`Experience`) mantidos. O `appId` fica no `electron-builder.yml`, na Fase 6.
+- [x] `desktop/package.json`: `start` = `tsc` + `electron .`, sem `build` na raiz.
+- [x] `npm install` e `npm run build` no `desktop/` compilam sem erro.
+  - **Atenção:** o npm 11.16 bloqueia scripts de instalação por padrão, e o `postinstall` do `electron` (que baixa o binário) não roda. O `allowScripts` foi gravado no `desktop/package.json` com `npm approve-scripts electron`, mas mesmo assim foi preciso rodar `node node_modules/electron/install.js`. Documentar no README (Fase 7) e tratar no CI.
+- [x] Validação real (Windows, porta 4199 e dados no scratchpad, para não colidir com o HUB SNK em uso):
+  - [x] O shell subiu o backend pelo Node do Electron, e o painel carregou na guia Hub (captura de tela conferida).
+  - [x] O bridge respondeu em 4103 (`/health` com `cofre: true`); `/api/sankhya/helper` = disponível e `/api/sankhya/credenciais`/`navegador` responderam **pelo shell**, sem helper no ar.
+  - [x] Ao fechar a janela: `backend-parando` e depois `backend-encerrado`, sem `backend-kill-forcado`; o backend respondeu 202 ao encerrar; o `sankhya.db` ficou sem `-wal`/`-shm` (SQLite fechado direito); nenhum `electron.exe` sobrou.
+- [x] Prettier aplicado ao `desktop/` num commit separado, só de formatação.
 
 ## Fase 4 — Adaptar o contrato shell ↔ backend
 

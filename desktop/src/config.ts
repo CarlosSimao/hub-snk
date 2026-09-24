@@ -1,13 +1,17 @@
 /**
  * Constantes e caminhos do shell desktop. Tudo sobrescrevível por variável de
- * ambiente — os defaults são os mesmos endereços já usados por
- * `scripts/hub-helper.ps1` e pela PoC (`poc-desktop/src/main.js`), para não introduzir
- * um terceiro conjunto de URLs "corretas" no projeto.
+ * ambiente — os defaults são os mesmos endereços que o backend do HUB SNK e o
+ * `hub-helper.ps1` já usam, para não haver um segundo conjunto de URLs "corretas".
  */
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { app } from 'electron';
 
-export const HUB_URL = process.env['SANKHYA_HUB_URL'] ?? 'http://localhost:4000';
+/*
+ * `127.0.0.1`, não `localhost`: o backend escuta só no IPv4 de loopback, e
+ * `localhost` pode resolver para `::1` primeiro e levar a conexão recusada.
+ */
+export const HUB_URL = process.env['SANKHYA_HUB_URL'] ?? 'http://127.0.0.1:4100';
 export const ERP_URL = process.env['SANKHYA_ERP_URL'] ?? 'https://skw.sankhya.com.br/mge/';
 export const EXPERIENCE_URL = process.env['SANKHYA_EXPERIENCE_URL'] ?? 'https://experience.sankhya.com.br/';
 export const EXPERIENCE_API =
@@ -31,74 +35,63 @@ export const BRIDGE_PORT = Number(process.env['SANKHYA_DESKTOP_BRIDGE_PORT'] ?? 
 export const BRIDGE_HOST = '127.0.0.1';
 
 /**
- * Mesma pasta que `hub-helper.ps1` usa para `token.txt` (montada read-only no
- * container em `/app/helper-ipc`) — o shell desktop grava um arquivo próprio ali do
- * lado do Windows, sem exigir mudança de volume no `docker-compose.yml`.
+ * Mesma pasta que `hub-helper.ps1` usa para `token.txt`: o shell grava o próprio token
+ * ao lado, e o backend acha os dois pelo mesmo padrão (`src/configuracao.ts`).
  */
 export const PASTA_IPC = process.env['SANKHYA_HUB_IPC_DIR'] ?? join(app.getPath('appData'), 'sankhya-hub', 'ipc');
 export const ARQUIVO_TOKEN_BRIDGE = join(PASTA_IPC, 'desktop-token.txt');
 /** Gerado por `scripts/hub-helper.ps1` no primeiro boot; o shell só lê. */
 export const ARQUIVO_TOKEN_HELPER = join(PASTA_IPC, 'token.txt');
 
-// --- backend hospedado pelo shell (Fase 1 da migração "sem Docker") ----------------
+// --- backend hospedado pelo shell --------------------------------------------------
 
 /**
  * `externo` desliga o gerenciamento: o shell não sobe backend nenhum e só espera alguém
- * atender em `HUB_URL`. É o que `scripts/desenvolver.ps1` e o container querem.
+ * atender em `HUB_URL`. É o modo de quem desenvolve o backend com `npm run dev` numa
+ * janela e o shell noutra.
  */
 export const MODO_BACKEND = (process.env['SANKHYA_HUB_BACKEND'] ?? 'gerenciado').toLowerCase();
 
 /** Porta que o backend abre — derivada de `HUB_URL` para não haver dois valores a manter. */
-export const PORTA_HUB = Number(new URL(HUB_URL).port || '4000');
+export const PORTA_HUB = Number(new URL(HUB_URL).port || '4100');
 
 /**
- * Raiz do checkout do hub (onde vivem `dist/`, `config/` e `node_modules/`).
+ * Raiz do checkout do hub (onde vivem `src/`, `public/` e `node_modules/`).
  *
  * Em desenvolvimento `__dirname` é `desktop/dist`, então dois níveis acima é o repo.
- * Empacotado, o backend vai para `resources/hub` (ver a configuração do electron-builder
- * na Fase 4).
+ * Empacotado, o backend vai para `resources/hub` (ver `electron-builder.yml`).
  */
 export const RAIZ_PROJETO =
   process.env['SANKHYA_HUB_RAIZ'] ??
   (app.isPackaged ? join(process.resourcesPath, 'hub') : join(__dirname, '..', '..'));
 
-export const ENTRYPOINT_BACKEND = join(RAIZ_PROJETO, 'dist', 'index.js');
-
-/** `services.yaml` de fábrica, dentro do pacote. Só é lido para semear o do usuário. */
-export const SERVICES_YAML_EMBUTIDO = join(RAIZ_PROJETO, 'config', 'services.yaml');
+/**
+ * O backend roda direto do TypeScript, sem build: o Node embutido no Electron faz o
+ * type stripping sozinho (validado na Fase 1 do plano de migração).
+ */
+export const ENTRYPOINT_BACKEND = join(RAIZ_PROJETO, 'src', 'index.ts');
 
 /**
- * `services.yaml` que o backend realmente lê.
- *
- * Empacotado, ele NÃO pode ser o de dentro do pacote: a pasta da instalação é
- * substituída a cada atualização, e a configuração de quem instalou iria junto. O
- * arquivo é copiado uma vez para `userData` (ver `src/primeiroBoot.ts`) e a partir daí é
- * do usuário. Em desenvolvimento continua sendo o do repo, que é o que se quer editar.
+ * Pasta de dados empacotada: a mesma que a instalação PWA antiga usava, para quem
+ * atualiza não perder o cadastro nem precisar de migração.
  */
-export const SERVICES_YAML =
-  process.env['CONFIG_PATH'] ??
-  (app.isPackaged ? join(app.getPath('userData'), 'config', 'services.yaml') : SERVICES_YAML_EMBUTIDO);
+function pastaDeDadosInstalada(): string {
+  if (process.platform === 'win32') {
+    return join(process.env['LOCALAPPDATA'] ?? app.getPath('appData'), 'HubSnk', 'dados');
+  }
+  return join(process.env['XDG_DATA_HOME'] ?? join(homedir(), '.local', 'share'), 'hub-snk', 'dados');
+}
 
 /**
- * Histórico (SQLite) e cofre dos alvos monitorados. Em desenvolvimento aponta para o
- * `data/` do repo, que é onde o histórico já existe; empacotado vai para o `userData`,
- * porque `Program Files` não é gravável pelo usuário.
+ * Cadastro do HUB SNK (`clientes.json`, `sankhya.db` e companhia). Em desenvolvimento é o
+ * `dados-hub-snk/` do repo, o mesmo padrão do `npm start`. Empacotado fica fora da pasta
+ * de instalação, que é substituída a cada atualização.
  */
-export const DATA_DIR =
-  process.env['SANKHYA_HUB_DATA_DIR'] ??
-  (app.isPackaged ? join(app.getPath('userData'), 'data') : join(RAIZ_PROJETO, 'data'));
+export const DIRETORIO_DE_DADOS =
+  process.env['HUB_DADOS_DIR'] ??
+  (app.isPackaged ? pastaDeDadosInstalada() : join(RAIZ_PROJETO, 'dados-hub-snk'));
 
-/**
- * No Windows a Docker Engine API atende por named pipe, não por unix socket. O Docker
- * deixa de ser o hospedeiro do hub e passa a ser só mais um alvo monitorado — os checks
- * `type: docker` continuam funcionando se o Docker Desktop estiver instalado, e apenas
- * ficam indisponíveis se não estiver.
- */
-export const DOCKER_SOCKET =
-  process.env['DOCKER_SOCKET'] ??
-  (process.platform === 'win32' ? '\\\\.\\pipe\\docker_engine' : '/var/run/docker.sock');
-
-/** Agora é a mesma máquina: `host.docker.internal` não tem mais razão de ser. */
+/** Só a migração do cofre ainda fala com o helper — ver `migracaoCofre.ts`. */
 export const HELPER_URL = process.env['HUB_HELPER_URL'] ?? 'http://127.0.0.1:4102';
 
 export const TZ_PADRAO = 'America/Sao_Paulo';
@@ -106,7 +99,7 @@ export const TZ_PADRAO = 'America/Sao_Paulo';
 /**
  * Ícone da janela e da barra de tarefas. Sem isto o Windows mostra o ícone padrão do
  * Electron, que é o que denuncia "isto é um app genérico" antes de qualquer outra coisa.
- * O mesmo arquivo vira o ícone do instalador na Fase 4.
+ * O mesmo arquivo é o ícone do instalador.
  */
 export const ICONE = join(
   __dirname,

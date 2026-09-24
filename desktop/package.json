@@ -1,26 +1,26 @@
 {
-  "name": "sankhya-hub-desktop",
-  "version": "0.1.0",
+  "name": "hub-snk-desktop",
+  "productName": "HUB SNK",
+  "version": "1.1.0",
   "private": true,
-  "description": "Shell desktop do Sankhya Hub (Electron) — Fase 2 da migração descrita em docs/specs/sankhya-hub-desktop-especificacao.md. Sucessor de produção da PoC em ../poc-desktop.",
+  "description": "Shell desktop (Electron) do HUB SNK — ver docs/plano-migracao-electron.md.",
   "main": "dist/main.js",
   "type": "commonjs",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "build:hub": "npm --prefix .. run build",
-    "start": "npm run build:hub && npm run build && electron .",
-    "start:shell": "npm run build && electron .",
+    "start": "npm run build && electron .",
     "dev": "tsc -p tsconfig.json --watch",
     "preparar-hub": "node scripts/preparar-hub.mjs",
-    "preparar-autosync": "node scripts/preparar-autosync.mjs",
-    "empacotar": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs && electron-builder --config electron-builder.yml",
-    "empacotar:sem-autosync": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs --sem-autosync && electron-builder --config electron-builder.yml",
-    "empacotar:rapido": "npm run build && node scripts/preparar-hub.mjs --sem-build && node scripts/preparar-autosync.mjs && electron-builder --config electron-builder.yml --dir"
+    "empacotar": "npm run build && node scripts/preparar-hub.mjs && electron-builder --config electron-builder.yml",
+    "empacotar:rapido": "npm run build && node scripts/preparar-hub.mjs && electron-builder --config electron-builder.yml --dir"
   },
   "devDependencies": {
     "@types/node": "^24.3.0",
     "electron": "^44.4.1",
     "electron-builder": "^26.15.3",
     "typescript": "^5.9.2"
+  },
+  "allowScripts": {
+    "electron@44.4.1": true
   }
 }

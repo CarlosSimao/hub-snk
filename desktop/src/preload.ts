@@ -3,7 +3,7 @@
  * Nenhuma aba remota (Hub/ERP/Experience/Link) recebe este preload.
  *
  * Sem `agenda.fetch`/`experience.*`/`os.*`: essas operações continuam sendo chamadas
- * HTTP normais feitas pela própria tela React (rodando dentro da aba Hub) contra o
+ * HTTP normais feitas pelo próprio painel (rodando dentro da aba Hub) contra o
  * backend, como hoje — o shell não duplica esse caminho, só dá a barra de abas e o
  * status.
  */

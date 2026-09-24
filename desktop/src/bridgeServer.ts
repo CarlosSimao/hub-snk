@@ -1,8 +1,8 @@
 /**
- * Serviço local que o backend (container) chama via `host.docker.internal` para pedir
- * a Agenda — mesmo modelo de `scripts/hub-helper.ps1` (porta fixa, token de arquivo,
- * `x-hub-token`), na direção inversa: aqui é o Windows que escuta, não o container.
- * Ver "Decisão de transporte" no plano de Fase 2.
+ * Serviço local que o backend chama (`src/sankhya/ponteDoDesktop.ts`) para o que só a
+ * guia autenticada do Electron consegue fazer: cofre de credenciais, captura de sessão e
+ * consultas ao `service.sbr` de dentro da página logada. Mesmo modelo e mesmo contrato
+ * de `hub-helper.ps1` (porta fixa, token de arquivo, `x-hub-token`), só em 127.0.0.1.
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { BRIDGE_HOST, BRIDGE_PORT } from './config';
@@ -10,9 +10,7 @@ import { garantirToken } from './tokenStore';
 import { logEvento } from './log';
 import * as cofre from './cofreCredenciais';
 import * as navegador from './navegador';
-import * as navegacaoSkill from './navegacaoSkill';
 import type { AgendaFetcher } from './agenda';
-import type { ServerLogFetcher } from './serverLog';
 import type { TabManager } from './tabs';
 
 function lerCorpo(req: IncomingMessage): Promise<string> {
@@ -225,94 +223,7 @@ async function tratarNavegador(
  *   janela, e guardar a referencia no boot deixaria o bridge preso a um TabManager que
  *   pode ser recriado (`activate` no macOS, janela fechada e reaberta).
  */
-
-/**
- * Navegacao e captura para as skills — ver `navegacaoSkill.ts`.
- *
- * Fica no bridge, e nao numa porta nova, porque a protecao ja existe aqui: token no
- * cabecalho e escuta so em 127.0.0.1. Abrir uma segunda porta para isto seria repetir a
- * mesma decisao de seguranca num lugar a mais para errar.
- */
-async function tratarNavegacaoSkill(
-  req: IncomingMessage,
-  res: ServerResponse,
-  corpo: string,
-  tabs: TabManager | null,
-): Promise<void> {
-  const acao = (req.url ?? '').split('?')[0]?.split('/').filter(Boolean)[1] ?? '';
-
-  let dados: Record<string, unknown> = {};
-  try {
-    dados = JSON.parse(corpo || '{}') as Record<string, unknown>;
-  } catch {
-    dados = {};
-  }
-  const texto = (chave: string) => (typeof dados[chave] === 'string' ? (dados[chave] as string) : '');
-  const numero = (chave: string) => (typeof dados[chave] === 'number' ? (dados[chave] as number) : 0);
-  const aba = texto('aba') || 'evidencias';
-
-  try {
-    if (req.method === 'GET' && acao === 'abas') {
-      responderJson(res, 200, { ok: true, ...navegacaoSkill.listar(tabs) });
-      return;
-    }
-    if (req.method === 'POST' && acao === 'abrir') {
-      responderJson(res, 200, { ok: true, ...(await navegacaoSkill.abrir(tabs, texto('url'))) });
-      return;
-    }
-    if (req.method === 'POST' && acao === 'navegar') {
-      responderJson(res, 200, { ok: true, ...(await navegacaoSkill.navegar(tabs, aba, texto('url'))) });
-      return;
-    }
-    if (req.method === 'POST' && acao === 'capturar') {
-      responderJson(res, 200, { ok: true, ...(await navegacaoSkill.capturar(tabs, aba, texto('caminho'))) });
-      return;
-    }
-    if (req.method === 'POST' && acao === 'clicar') {
-      responderJson(res, 200, navegacaoSkill.clicar(tabs, aba, numero('x'), numero('y')));
-      return;
-    }
-    if (req.method === 'POST' && acao === 'digitar') {
-      responderJson(res, 200, navegacaoSkill.digitar(tabs, aba, texto('texto')));
-      return;
-    }
-    if (req.method === 'POST' && acao === 'tecla') {
-      responderJson(res, 200, navegacaoSkill.tecla(tabs, aba, texto('tecla')));
-      return;
-    }
-    if (req.method === 'POST' && acao === 'exibir') {
-      responderJson(res, 200, navegacaoSkill.exibir());
-      return;
-    }
-    if (req.method === 'POST' && acao === 'ocultar') {
-      responderJson(res, 200, navegacaoSkill.esconder());
-      return;
-    }
-    if (req.method === 'POST' && acao === 'fechar') {
-      responderJson(res, 200, navegacaoSkill.fechar());
-      return;
-    }
-    if (req.method === 'POST' && acao === 'texto') {
-      responderJson(res, 200, { ok: true, ...(await navegacaoSkill.texto(tabs, aba)) });
-      return;
-    }
-  } catch (err) {
-    if (err instanceof navegacaoSkill.NavegacaoIndisponivelError) {
-      responderJson(res, 409, { erro: err.message });
-      return;
-    }
-    responderJson(res, 500, { erro: String(err) });
-    return;
-  }
-
-  responderJson(res, 404, { erro: `acao de navegacao desconhecida: ${acao}` });
-}
-
-export function criarBridgeServer(
-  agenda: AgendaFetcher,
-  tabs: () => TabManager | null,
-  serverLog: ServerLogFetcher,
-): Server {
+export function criarBridgeServer(agenda: AgendaFetcher, tabs: () => TabManager | null): Server {
   const servidor = createServer((req, res) => {
     void (async () => {
       if (req.headers['x-hub-token'] !== garantirToken()) {
@@ -335,11 +246,6 @@ export function criarBridgeServer(
         return;
       }
 
-      if (req.url?.startsWith('/navegacao/')) {
-        await tratarNavegacaoSkill(req, res, await lerCorpo(req), tabs());
-        return;
-      }
-
       if (req.url?.startsWith('/browser/')) {
         await tratarNavegador(req, res, await lerCorpo(req), tabs());
         return;
@@ -359,60 +265,6 @@ export function criarBridgeServer(
             return;
           }
           responderJson(res, 200, { conteudo: resultado.conteudo });
-        } catch (err) {
-          responderJson(res, 500, { erro: String(err) });
-        }
-        return;
-      }
-
-      // Log do WildFly de uma base de cliente. O `origin` identifica QUAL base: a leitura
-      // roda dentro da aba já logada daquela base (ver desktop/src/serverLog.ts), então
-      // origin de base que não está aberta simplesmente não tem onde executar.
-      if (req.method === 'POST' && req.url === '/serverlog/ler') {
-        try {
-          const corpo = JSON.parse((await lerCorpo(req)) || '{}') as {
-            origin?: string;
-            offset?: number;
-            maxLinhas?: number;
-            actionId?: string;
-          };
-          if (!corpo.origin) {
-            responderJson(res, 400, { erro: 'informe { origin } da base' });
-            return;
-          }
-          const resultado = await serverLog.ler(corpo.origin, {
-            offset: Number(corpo.offset ?? 0) || 0,
-            ...(corpo.maxLinhas ? { maxLinhas: Number(corpo.maxLinhas) } : {}),
-            ...(corpo.actionId ? { actionId: String(corpo.actionId) } : {}),
-          });
-          if (!resultado.ok) {
-            responderJson(res, 409, { erro: resultado.erro ?? 'falha ao ler o log' });
-            return;
-          }
-          responderJson(res, 200, {
-            linhas: resultado.linhas ?? [],
-            novoOffset: resultado.novoOffset ?? 0,
-            actionId: resultado.actionId ?? '',
-          });
-        } catch (err) {
-          responderJson(res, 500, { erro: String(err) });
-        }
-        return;
-      }
-
-      if (req.method === 'POST' && req.url === '/serverlog/status') {
-        try {
-          const corpo = JSON.parse((await lerCorpo(req)) || '{}') as { origin?: string };
-          if (!corpo.origin) {
-            responderJson(res, 400, { erro: 'informe { origin } da base' });
-            return;
-          }
-          const status = await serverLog.status(corpo.origin);
-          if (!status.ok) {
-            responderJson(res, 409, { erro: status.erro ?? 'falha ao verificar a base' });
-            return;
-          }
-          responderJson(res, 200, status);
         } catch (err) {
           responderJson(res, 500, { erro: String(err) });
         }
