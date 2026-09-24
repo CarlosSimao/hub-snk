@@ -235,9 +235,16 @@ emocao-da-versao-pwa.log` e na tela de detalhes do NSIS.
   - [x] Segunda execução: não faz nada, código 0.
   - [x] Trava: com o `hub-snk.env` apontando para uma pasta que não é a PWA, a pasta ficou intacta e só a configuração saiu.
 - [x] Instalador gerado: `release/HUB-SNK-Setup-1.1.0.exe` (146 MB, com o Git AutoSync 4.0.0). `release/win-unpacked` validado com dados e porta de teste: o backend subiu de `resources\hub\src\index.ts` pelo próprio `HUB SNK.exe`, e o encerramento foi limpo (SQLite sem `-wal`, nenhum processo sobrando).
-- [ ] Instalação limpa no Windows: o NSIS per-user instala sem UAC, o atalho abre o app, o backend sobe, o painel carrega.
-- [ ] Instalação por cima da PWA real desta máquina (aguardando confirmação): os dados aparecem, não sobra `node.exe` nem atalho antigo, e `restos-*` fica com o `log/`.
-- [ ] Página do Git AutoSync no instalador e desinstalação dele.
+- [x] **Instalação por cima da PWA real** (2026-09-24, com backup prévio do cadastro no scratchpad):
+  - [x] O NSIS per-user instalou sem UAC em `%LOCALAPPDATA%\Programs\HUB SNK` (a pasta vem do `productName`, não `hub-snk-desktop`) e abriu o app no fim.
+  - [x] Versão PWA removida: `Programs\HubSnk`, `hub-snk.env` e `hub-snk.log`. `log/` (16 `server.log*` do WildFly) e a pasta UUID foram para `restos-da-versao-pwa-20260924-124653`. Nenhum `node.exe` antigo sobrou.
+  - [x] Atalhos: o NSIS **sobrescreve** os `HUB SNK.lnk` antigos (mesmo nome) antes do `customInstall`, então o script os encontrou já apontando para o app novo e corretamente os manteve. Resultado: Menu Iniciar e Área de Trabalho apontam para `Programs\HUB SNK\HUB SNK.exe`, e não há atalho na pasta Inicializar.
+  - [x] Cadastro intacto: `clientes.json` com o mesmo SHA-256 de antes; 32 clientes no arquivo e 32 pela API; 38 bases carregadas como abas pelo shell.
+  - [x] Backend subindo de `resources\hub\src\index.ts` pelo `HUB SNK.exe` na 4100; `/api/healthz` ok e `/api/sankhya/shell` disponível.
+  - [x] Git AutoSync 4.0.0 instalado pelo instalador (`~/.git-autosync`, tarefa `GitAutoSyncPy` pronta, `instalado-pelo-hub.txt` gravado).
+  - Observação: o primeiro boot levou 9 s até o `/api/healthz` (1,5 s nos testes). Provável varredura do antivírus na primeira execução; conferir nas próximas aberturas.
+- [x] Página do Git AutoSync no instalador (instalação validada acima).
+- [ ] Desinstalação do Git AutoSync pelo desinstalador do HUB SNK.
 - [ ] Desinstalação preserva os dados (`deleteAppDataOnUninstall: false` + `%LOCALAPPDATA%\HubSnk\dados`).
 - [ ] Linux: gerar AppImage + deb (precisa de máquina Linux: o PyInstaller não faz cross-compile e o electron-builder não gera AppImage no Windows), validar o `safeStorage` com o `libsecret` e remover a instalação antiga do `instalar-hub-snk.sh` (`.desktop` e autostart). **Ainda não implementado.**
 - [ ] Assinatura: o `electron-builder` rodou o `signtool`, mas sem certificado o `.exe` sai sem assinatura, e o SmartScreen vai avisar na primeira execução.
