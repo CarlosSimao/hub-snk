@@ -9,6 +9,24 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [Development Switch 0.3.0] - 2026-09-24
+
+### Adicionado
+
+- **Várias demandas por cliente** na aba Escopo e tarefas: cada documento de
+  escopo é uma demanda com quadro próprio, nome editável e seletor no kanban.
+  Tarefa criada à mão entra na demanda aberta e pode trocar de demanda.
+- **Ver o documento de escopo dentro do app**: PDF no visor do Chromium; .md e
+  .txt como texto; .docx pelo texto extraído, com o original para baixar.
+- **Tarefas compartilhadas com IAs externas**: um JSON por demanda, com nome
+  escolhido e, por padrão, na subpasta `Tarefas` do repositório do cliente.
+  Claude Code, Codex, Copilot ou qualquer IA que edite arquivos lê o que fazer e
+  atualiza `estado` e `notas`; o kanban acompanha em segundos. Toda mudança no
+  quadro regrava o arquivo.
+- A pasta `Tarefas` (ou o arquivo) entra sozinha no `.gitignore` do repositório;
+  há uma opção para não mexer nele.
+- **Notas de andamento** nas tarefas, visíveis no cartão.
+
 ## [Development Switch 0.2.0] - 2026-09-24
 
 O aplicativo desktop (Electron, em `desktop/`) tem numeração própria, a partir de

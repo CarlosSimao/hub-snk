@@ -1,6 +1,6 @@
 {
   "name": "sankhya-hub-desktop",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Shell desktop do Sankhya Hub (Electron) — Fase 2 da migração descrita em docs/specs/sankhya-hub-desktop-especificacao.md. Sucessor de produção da PoC em ../poc-desktop.",
   "author": {
