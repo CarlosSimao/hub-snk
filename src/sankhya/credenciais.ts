@@ -1,14 +1,12 @@
 /**
- * Credenciais do Sankhya ERP e do Sankhya Experience, guardadas pelo shell
- * desktop (`safeStorage`) ou, na retaguarda, pelo `hub-helper.ps1` (DPAPI) —
- * nunca em texto puro pelo HUB SNK.
+ * Credenciais do Sankhya ERP e do Sankhya Experience, guardadas pelo cofre do
+ * shell desktop (`safeStorage` do Electron) — nunca em texto puro pelo HUB SNK.
  *
  * `revelar()` não tem rota HTTP correspondente, de propósito: o valor
  * decriptado só existe dentro do backend, para autenticar chamadas server-to-
  * server (`Experience`). Nenhum caminho leva a senha ou o token até o navegador.
  */
-import type { HubHelper, OpcoesHelper } from './helper.ts';
-import { PonteDoDesktopIndisponivelError, type PonteDoDesktop } from './ponteDoDesktop.ts';
+import type { OpcoesDaPonte, PonteDoDesktop } from './ponteDoDesktop.ts';
 import type { SessaoDoDesktop, SessaoEmpurrada } from './sessaoDoDesktop.ts';
 import {
   SISTEMAS_SANKHYA,
@@ -32,13 +30,12 @@ export interface SegredoSankhya {
 /** A consulta atravessa o shell, a guia do ERP e o Sankhya — bem além do padrão. */
 const TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS = 120_000;
 
-/** O que o helper devolve nas rotas de credencial, sem o `sistema`. */
+/** O que o shell devolve nas rotas de credencial, sem o `sistema`. */
 type RespostaCredencial = Omit<StatusCredencial, 'sistema'>;
 
-/** Objeto, array ou ausente -> array. O PowerShell colapsa lista de um item só. */
-export function normalizarLista<T>(valor: unknown): T[] {
-  if (Array.isArray(valor)) return valor as T[];
-  return valor === null || valor === undefined ? [] : [valor as T];
+/** O que a aba ERP devolve das consultas: o JSON do Sankhya, ainda em texto. */
+interface ConsultaNaGuia {
+  conteudo: string;
 }
 
 export function ehSistemaValido(valor: string): valor is SistemaSankhya {
@@ -46,7 +43,7 @@ export function ehSistemaValido(valor: string): valor is SistemaSankhya {
 }
 
 /**
- * Monta o status campo a campo em vez de espalhar a resposta do helper: ele
+ * Monta o status campo a campo em vez de espalhar a resposta do shell: ele
  * devolve um `ok` de transporte que não tem nada a ver com o estado da
  * credencial e que acabaria vazando para a API do hub.
  */
@@ -62,40 +59,18 @@ function montar(sistema: SistemaSankhya, corpo: RespostaCredencial): StatusCrede
 
 export class Credenciais {
   readonly #ponte: PonteDoDesktop;
-  readonly #helper: HubHelper;
   readonly #sessaoDoDesktop: SessaoDoDesktop;
 
-  constructor(ponte: PonteDoDesktop, helper: HubHelper, sessaoDoDesktop: SessaoDoDesktop) {
+  constructor(ponte: PonteDoDesktop, sessaoDoDesktop: SessaoDoDesktop) {
     this.#ponte = ponte;
-    this.#helper = helper;
     this.#sessaoDoDesktop = sessaoDoDesktop;
   }
 
-  /**
-   * Shell desktop primeiro, `hub-helper.ps1` como retaguarda enquanto a
-   * migração para o Electron não termina.
-   *
-   * Só a indisponibilidade do shell faz cair para o helper: um erro de negócio
-   * (sistema desconhecido, corpo inválido) se repetiria no helper e esconderia
-   * a causa real.
-   */
-  async #requisitar<T>(
-    caminho: string,
-    init: RequestInit = {},
-    opcoes: OpcoesHelper = {},
-  ): Promise<T> {
-    try {
-      return await this.#ponte.requisitar<T>(caminho, init, opcoes);
-    } catch (erro) {
-      if (!(erro instanceof PonteDoDesktopIndisponivelError)) {
-        throw erro;
-      }
-    }
-
-    return this.#helper.requisitar<T>(caminho, init, opcoes);
+  #requisitar<T>(caminho: string, init: RequestInit = {}, opcoes: OpcoesDaPonte = {}): Promise<T> {
+    return this.#ponte.requisitar<T>(caminho, init, opcoes);
   }
 
-  /** Shell ou helper no ar. Best-effort: alimenta o aviso na tela, nunca lança. */
+  /** Shell no ar. Best-effort: alimenta o aviso na tela, nunca lança. */
   async disponivel(): Promise<boolean> {
     try {
       await this.#requisitar('/health');
@@ -168,20 +143,20 @@ export class Credenciais {
     const corpo = await this.#requisitar<StatusNavegador>('/browser/status');
     return {
       navegador: Boolean(corpo.navegador),
-      disponiveis: normalizarLista(corpo.disponiveis),
+      disponiveis: corpo.disponiveis ?? [],
       aberto: Boolean(corpo.aberto),
-      abas: normalizarLista(corpo.abas),
+      abas: corpo.abas ?? [],
     };
   }
 
   /**
-   * Busca a Agenda de Recursos chamando `service.sbr` de DENTRO da guia
-   * autenticada (o helper faz isso via CDP) — a ACL do Sankhya nega essa
-   * chamada quando ela vem de fora do navegador.
+   * Busca a Agenda de Recursos chamando `service.sbr` de DENTRO da aba ERP
+   * autenticada do shell — a ACL do Sankhya nega essa chamada quando ela vem de
+   * fora do navegador.
    */
-  consultarAgendaDeRecursos(de: string, ate: string): Promise<{ ok: boolean; conteudo: string }> {
-    return this.#requisitar<{ ok: boolean; conteudo: string }>(
-      '/browser/agenda',
+  consultarAgendaDeRecursos(de: string, ate: string): Promise<ConsultaNaGuia> {
+    return this.#requisitar<ConsultaNaGuia>(
+      '/agenda/fetch',
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -192,9 +167,9 @@ export class Credenciais {
   }
 
   /** Negociações de um parceiro do ERP — de onde saem os números de FAP dele. */
-  consultarNegociacoesDoParceiro(codParceiro: number): Promise<{ ok: boolean; conteudo: string }> {
-    return this.#requisitar<{ ok: boolean; conteudo: string }>(
-      '/browser/agenda-negociacoes',
+  consultarNegociacoesDoParceiro(codParceiro: number): Promise<ConsultaNaGuia> {
+    return this.#requisitar<ConsultaNaGuia>(
+      '/agenda/negociacoes',
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -209,9 +184,9 @@ export class Credenciais {
   }
 
   /**
-   * Abre a janela do hub na tela de login. Passos separados de propósito: entre
-   * abrir e capturar, quem age é o usuário, digitando a senha no navegador — o
-   * hub nunca vê a senha, só o cookie que sobra depois.
+   * Mostra a aba do sistema no shell, na tela de login. Passos separados de
+   * propósito: entre abrir e capturar, quem age é o usuário, digitando a senha
+   * na aba — o hub nunca vê a senha, só o cookie que sobra depois.
    */
   abrirNavegador(sistema: SistemaSankhya): Promise<{ url: string }> {
     return this.#requisitar<{ url: string }>(`/browser/abrir/${sistema}`, {
@@ -221,7 +196,7 @@ export class Credenciais {
     });
   }
 
-  /** Lê os cookies daquela janela e guarda cifrados. */
+  /** Lê os cookies daquela aba e guarda cifrados. */
   capturarSessao(
     sistema: SistemaSankhya,
   ): Promise<{ ok: boolean; cookies: number; erro?: string }> {

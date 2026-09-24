@@ -1,34 +1,15 @@
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { ehSistemaValido, type Credenciais } from '../sankhya/credenciais.ts';
-import { HelperError, HelperIndisponivelError } from '../sankhya/helper.ts';
-import { PonteDoDesktopError, PonteDoDesktopIndisponivelError } from '../sankhya/ponteDoDesktop.ts';
 import type { SessaoDoDesktop } from '../sankhya/sessaoDoDesktop.ts';
 import { SISTEMAS_SANKHYA } from '../tipos.ts';
 import { requisicaoVeioDoShell } from './autenticacaoDoShell.ts';
+import { responderErroDoShell } from './respostasDoShell.ts';
 
 /** Único sistema cuja sessão o shell empurra: o ERP é consultado dentro da guia. */
 const SISTEMA_COM_SESSAO_EMPURRADA = 'sankhya-experience';
 
-/**
- * Rotas de integração com o Sankhya ERP/Experience, via shell desktop ou, na
- * retaguarda, `hub-helper.ps1`.
- */
-
-/**
- * Helper fora do ar é situação NORMAL (o processo Windows pode não ter
- * subido), não defeito do HUB SNK — vira 503 com a mensagem original, que é o
- * que a tela mostra.
- */
-function responderErroHelper(resposta: FastifyReply, erro: unknown): FastifyReply {
-  if (erro instanceof HelperIndisponivelError || erro instanceof PonteDoDesktopIndisponivelError) {
-    return resposta.status(503).send({ mensagem: erro.message, helperIndisponivel: true });
-  }
-  if (erro instanceof HelperError || erro instanceof PonteDoDesktopError) {
-    return resposta.status(erro.status).send({ mensagem: erro.message });
-  }
-  throw erro;
-}
+/** Rotas de integração com o Sankhya ERP/Experience, via shell desktop. */
 
 const esquemaDaSessaoEmpurrada = z.object({
   usuario: z.string(),
@@ -99,7 +80,7 @@ export function registrarRotasDeSankhya(
     try {
       return { credenciais: await Promise.all(SISTEMAS_SANKHYA.map((s) => credenciais.status(s))) };
     } catch (erro) {
-      return responderErroHelper(resposta, erro);
+      return responderErroDoShell(resposta, erro);
     }
   });
 
@@ -119,7 +100,7 @@ export function registrarRotasDeSankhya(
       try {
         return await credenciais.gravar(sistema, usuario.trim(), senha);
       } catch (erro) {
-        return responderErroHelper(resposta, erro);
+        return responderErroDoShell(resposta, erro);
       }
     },
   );
@@ -135,7 +116,7 @@ export function registrarRotasDeSankhya(
       try {
         return await credenciais.remover(sistema);
       } catch (erro) {
-        return responderErroHelper(resposta, erro);
+        return responderErroDoShell(resposta, erro);
       }
     },
   );
@@ -144,7 +125,7 @@ export function registrarRotasDeSankhya(
     try {
       return await credenciais.statusNavegador();
     } catch (erro) {
-      return responderErroHelper(resposta, erro);
+      return responderErroDoShell(resposta, erro);
     }
   });
 
@@ -175,7 +156,7 @@ export function registrarRotasDeSankhya(
           }
           return resultado;
         } catch (erro) {
-          return responderErroHelper(resposta, erro);
+          return responderErroDoShell(resposta, erro);
         }
       },
     );
@@ -185,7 +166,7 @@ export function registrarRotasDeSankhya(
     try {
       return await credenciais.fecharNavegador();
     } catch (erro) {
-      return responderErroHelper(resposta, erro);
+      return responderErroDoShell(resposta, erro);
     }
   });
 }

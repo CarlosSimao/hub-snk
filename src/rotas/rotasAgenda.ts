@@ -1,10 +1,8 @@
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
 import { AgendaRecursos } from '../sankhya/agenda.ts';
 import { parsearAgenda, PayloadInvalidoError } from '../sankhya/agendaParser.ts';
-import { HelperError, HelperIndisponivelError } from '../sankhya/helper.ts';
-import { PonteDoDesktopError, PonteDoDesktopIndisponivelError } from '../sankhya/ponteDoDesktop.ts';
 import type { Credenciais } from '../sankhya/credenciais.ts';
 import { SessaoExpiradaError, type Experience } from '../sankhya/experience.ts';
 import {
@@ -12,6 +10,7 @@ import {
   parsearNegociacoes,
   PayloadDeNegociacoesInvalidoError,
 } from '../sankhya/negociacoes.ts';
+import { responderErroDoShell } from './respostasDoShell.ts';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const esquemaDeConsulta = z.object({
@@ -25,20 +24,9 @@ function paraFormatoBrasileiro(iso: string): string {
   return `${dia}/${mes}/${ano}`;
 }
 
-function responderErroHelper(resposta: FastifyReply, erro: unknown): FastifyReply {
-  if (erro instanceof HelperIndisponivelError || erro instanceof PonteDoDesktopIndisponivelError) {
-    return resposta.status(503).send({ mensagem: erro.message, helperIndisponivel: true });
-  }
-  if (erro instanceof HelperError || erro instanceof PonteDoDesktopError) {
-    return resposta.status(erro.status).send({ mensagem: erro.message });
-  }
-  throw erro;
-}
-
 /**
  * Rotas da Agenda de Recursos do Sankhya ERP: snapshot em SQLite, alimentado
- * pela consulta automática na guia autenticada (via `hub-helper.ps1` + CDP —
- * ver docs/port-sankhya-credenciais-agenda.md).
+ * pela consulta automática na aba ERP autenticada do shell desktop.
  */
 export function registrarRotasDeAgenda(
   servidor: FastifyInstance,
@@ -80,14 +68,14 @@ export function registrarRotasDeAgenda(
       return resposta.status(400).send({ mensagem: primeiraMensagem });
     }
 
-    let resultado: { ok: boolean; conteudo: string };
+    let resultado: { conteudo: string };
     try {
       resultado = await credenciais.consultarAgendaDeRecursos(
         paraFormatoBrasileiro(dados.data.de),
         paraFormatoBrasileiro(dados.data.ate),
       );
     } catch (erro) {
-      return responderErroHelper(resposta, erro);
+      return responderErroDoShell(resposta, erro);
     }
 
     let bruto: unknown;
@@ -131,7 +119,7 @@ export function registrarRotasDeAgenda(
       try {
         negociacoesResultado = await credenciais.consultarNegociacoesDoParceiro(codparc);
       } catch (erro) {
-        return responderErroHelper(resposta, erro);
+        return responderErroDoShell(resposta, erro);
       }
 
       let faps: number[];
@@ -156,7 +144,7 @@ export function registrarRotasDeAgenda(
         if (erro instanceof SessaoExpiradaError) {
           return resposta.status(409).send({ mensagem: erro.message, sessaoExpirada: true });
         }
-        return responderErroHelper(resposta, erro);
+        return responderErroDoShell(resposta, erro);
       }
     },
   );

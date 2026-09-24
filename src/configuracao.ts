@@ -1,3 +1,4 @@
+import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -7,7 +8,6 @@ const HOSTS_DE_LOOPBACK = new Set(['127.0.0.1', '::1', 'localhost']);
 const VALOR_QUE_LIBERA_A_REDE = '1';
 const VALOR_QUE_IMPEDE_A_JANELA = '0';
 const NAVEGADOR_PADRAO_DA_JANELA = 'auto';
-const HELPER_URL_PADRAO = 'http://127.0.0.1:4102';
 const PONTE_DO_DESKTOP_URL_PADRAO = 'http://127.0.0.1:4103';
 
 const raizDoProjeto = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -68,17 +68,18 @@ function lerDiretorioDeDados(): string {
 }
 
 /**
- * O HUB SNK roda nativo, então o padrão já é a pasta de IPC local que o
- * `hub-helper.ps1` e o shell desktop compartilham — nada de `host.docker.internal`
- * ou bind mount de container, isso é coisa de quem roda dentro do Docker.
+ * O shell desktop passa o caminho explicitamente. O padrão repete o dele
+ * (`app.getPath('appData')`: `%APPDATA%` no Windows, `~/.config` no Linux) para
+ * quem sobe o backend sozinho com `npm run dev` enquanto o shell está aberto.
  */
-function lerArquivoDeToken(variavelDeAmbiente: string, nomeDoArquivo: string): string {
-  const bruto = process.env[variavelDeAmbiente];
+function lerArquivoDeTokenDoDesktop(): string {
+  const bruto = process.env.DESKTOP_BRIDGE_TOKEN_FILE;
   if (bruto) {
     return bruto;
   }
 
-  return join(process.env.APPDATA ?? '', 'sankhya-hub', 'ipc', nomeDoArquivo);
+  const pastaDeDadosDeAplicativos = process.env.APPDATA ?? join(homedir(), '.config');
+  return join(pastaDeDadosDeAplicativos, 'sankhya-hub', 'ipc', 'desktop-token.txt');
 }
 
 const host = lerHost();
@@ -103,8 +104,6 @@ export const configuracao = {
     process.env.HUB_ABRIR_JANELA !== VALOR_QUE_IMPEDE_A_JANELA &&
     !process.execArgv.includes('--watch'),
   navegador: process.env.HUB_NAVEGADOR?.trim().toLowerCase() || NAVEGADOR_PADRAO_DA_JANELA,
-  helperUrl: process.env.HUB_HELPER_URL ?? HELPER_URL_PADRAO,
-  helperTokenFile: lerArquivoDeToken('HUB_HELPER_TOKEN_FILE', 'token.txt'),
   ponteDoDesktopUrl: process.env.SANKHYA_DESKTOP_BRIDGE_URL ?? PONTE_DO_DESKTOP_URL_PADRAO,
-  ponteDoDesktopTokenFile: lerArquivoDeToken('DESKTOP_BRIDGE_TOKEN_FILE', 'desktop-token.txt'),
+  ponteDoDesktopTokenFile: lerArquivoDeTokenDoDesktop(),
 } as const;

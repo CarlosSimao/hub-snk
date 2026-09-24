@@ -19,7 +19,6 @@ import { registrarRotasDeSistema } from './rotas/rotasSistema.ts';
 import { AgendaRecursos } from './sankhya/agenda.ts';
 import { Credenciais } from './sankhya/credenciais.ts';
 import { Experience } from './sankhya/experience.ts';
-import { HubHelper } from './sankhya/helper.ts';
 import { PonteDoDesktop } from './sankhya/ponteDoDesktop.ts';
 import { SessaoDoDesktop } from './sankhya/sessaoDoDesktop.ts';
 import { abrirJanelaDoAplicativo } from './sistema/abrirJanelaDoAplicativo.ts';
@@ -63,17 +62,21 @@ async function iniciarServidor(): Promise<void> {
     configuracao.diretorioDeDados,
   );
   const repositorioLocal = new RepositorioLocalArquivo(configuracao.diretorioDeDados);
-  const helper = new HubHelper(configuracao.helperUrl, configuracao.helperTokenFile);
   const ponteDoDesktop = new PonteDoDesktop(
     configuracao.ponteDoDesktopUrl,
     configuracao.ponteDoDesktopTokenFile,
   );
   const sessaoDoDesktop = new SessaoDoDesktop();
-  const credenciaisSankhya = new Credenciais(ponteDoDesktop, helper, sessaoDoDesktop);
+  const credenciaisSankhya = new Credenciais(ponteDoDesktop, sessaoDoDesktop);
   const agendaDeRecursos = new AgendaRecursos(configuracao.diretorioDeDados);
   const experience = new Experience(credenciaisSankhya);
 
-  registrarRotasDeClientes(servidor, repositorioDeClientes, repositorioDeConfiguracao);
+  registrarRotasDeClientes(
+    servidor,
+    repositorioDeClientes,
+    repositorioDeConfiguracao,
+    configuracao.ponteDoDesktopTokenFile,
+  );
   registrarRotasDeConfiguracao(servidor, repositorioDeConfiguracao);
   registrarRotasDeGit(servidor, repositorioDeClientes, repositorioDeConfiguracao);
   registrarRotasDeLocal(servidor, repositorioLocal, repositorioDeConfiguracao);

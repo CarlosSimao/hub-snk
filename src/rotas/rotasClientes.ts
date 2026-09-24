@@ -14,6 +14,7 @@ import {
   lerConfiguracaoMcp,
 } from '../sistema/arquivoMcp.ts';
 import { PastaNaoEncontradaError } from '../sistema/pasta.ts';
+import { requisicaoVeioDoShell } from './autenticacaoDoShell.ts';
 import { esquemaDeConfiguracaoMcp } from './esquemaDeConfiguracaoMcp.ts';
 import type { Cliente, RepositorioGit } from '../tipos.ts';
 import {
@@ -350,6 +351,7 @@ export function registrarRotasDeClientes(
   servidor: FastifyInstance,
   repositorio: RepositorioClientes,
   repositorioDeConfiguracao: RepositorioConfiguracao,
+  arquivoTokenDoDesktop: string,
 ): void {
   /**
    * Localiza o repositório e devolve o caminho local, ou uma resposta de erro
@@ -641,6 +643,31 @@ export function registrarRotasDeClientes(
     registrarAmostraDaBaseDoCliente(base.id, { em: new Date().toISOString(), urlOk });
 
     return { urlOk, versaoDaPlataforma, historico: obterHistoricoDaBaseDoCliente(base.id) };
+  });
+
+  /*
+   * Senha de uma base só, para o shell desktop preencher o login da aba daquela
+   * base. Rota à parte, e com o token do shell, para o shell não trafegar o
+   * cadastro inteiro a cada aba aberta. `POST` porque revela um segredo: não é
+   * leitura que um cache ou o histórico devam guardar.
+   */
+  servidor.post('/api/clientes/:id/bases/:idBase/senha', async (requisicao, resposta) => {
+    if (!requisicaoVeioDoShell(requisicao, resposta, arquivoTokenDoDesktop)) {
+      return resposta;
+    }
+
+    const parametros = esquemaDeParametrosDeBase.safeParse(requisicao.params);
+    if (!parametros.success) {
+      return responderErroDeValidacao(resposta, parametros.error);
+    }
+
+    const cliente = await repositorio.buscarPorId(parametros.data.id);
+    const base = cliente?.bases.find((candidata) => candidata.id === parametros.data.idBase);
+    if (!base) {
+      return resposta.status(404).send({ mensagem: 'Base não encontrada.' });
+    }
+
+    return { senha: base.senha };
   });
 
   /* Uma base tem no máximo um banco: `PUT` vincula ou substitui, sem `POST`. */

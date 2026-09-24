@@ -5,7 +5,6 @@ import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { Credenciais } from '../sankhya/credenciais.ts';
-import { HubHelper } from '../sankhya/helper.ts';
 import { PonteDoDesktop } from '../sankhya/ponteDoDesktop.ts';
 import { SessaoDoDesktop } from '../sankhya/sessaoDoDesktop.ts';
 import { registrarRotasDeSankhya } from './rotasSankhya.ts';
@@ -28,7 +27,6 @@ function criarServidor(arquivoTokenDoDesktop = arquivoDeToken): {
   const sessaoDoDesktop = new SessaoDoDesktop();
   const credenciais = new Credenciais(
     new PonteDoDesktop(URL_SEM_NINGUEM_ESCUTANDO, arquivoTokenDoDesktop),
-    new HubHelper(URL_SEM_NINGUEM_ESCUTANDO, arquivoTokenDoDesktop),
     sessaoDoDesktop,
   );
   const servidor = Fastify();

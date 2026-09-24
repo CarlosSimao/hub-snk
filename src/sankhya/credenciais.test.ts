@@ -5,7 +5,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import { Credenciais } from './credenciais.ts';
-import { HubHelper } from './helper.ts';
 import { PonteDoDesktop, PonteDoDesktopError } from './ponteDoDesktop.ts';
 import { SessaoDoDesktop } from './sessaoDoDesktop.ts';
 
@@ -15,7 +14,6 @@ const URL_SEM_NINGUEM_ESCUTANDO = 'http://127.0.0.1:1';
 const pasta = mkdtempSync(join(tmpdir(), 'hub-snk-credenciais-'));
 const arquivoDeToken = join(pasta, 'token.txt');
 writeFileSync(arquivoDeToken, 'token-de-teste');
-const arquivoDeTokenAusente = join(pasta, 'nao-existe.txt');
 
 after(() => rmSync(pasta, { recursive: true, force: true }));
 
@@ -44,75 +42,53 @@ function subirServidorFalso(status: number, corpo: unknown): Promise<ServidorFal
 
 function criarCredenciais(parametros: {
   urlDaPonte: string;
-  tokenDaPonte: string;
-  urlDoHelper: string;
   sessaoDoDesktop?: SessaoDoDesktop;
 }): Credenciais {
   return new Credenciais(
-    new PonteDoDesktop(parametros.urlDaPonte, parametros.tokenDaPonte),
-    new HubHelper(parametros.urlDoHelper, arquivoDeToken),
+    new PonteDoDesktop(parametros.urlDaPonte, arquivoDeToken),
     parametros.sessaoDoDesktop ?? new SessaoDoDesktop(),
   );
 }
 
-const CREDENCIAL_DEFINIDA = { usuario: 'usuario', definido: true };
-
 describe('Credenciais', () => {
-  it('usa o shell desktop quando ele está no ar, sem chamar o helper', async () => {
-    const shell = await subirServidorFalso(200, CREDENCIAL_DEFINIDA);
-    const helper = await subirServidorFalso(200, CREDENCIAL_DEFINIDA);
+  it('consulta o cofre do shell desktop', async () => {
+    const shell = await subirServidorFalso(200, { usuario: 'usuario', definido: true });
 
     try {
-      const credenciais = criarCredenciais({
-        urlDaPonte: shell.url,
-        tokenDaPonte: arquivoDeToken,
-        urlDoHelper: helper.url,
-      });
-      const status = await credenciais.status('sankhya-erp');
+      const status = await criarCredenciais({ urlDaPonte: shell.url }).status('sankhya-erp');
 
       assert.equal(status.definido, true);
+      assert.equal(status.usuario, 'usuario');
       assert.deepEqual(shell.chamadas, ['/credentials/sankhya-erp']);
-      assert.deepEqual(helper.chamadas, []);
     } finally {
       shell.servidor.close();
-      helper.servidor.close();
     }
   });
 
-  it('cai para o helper quando o shell desktop está fora do ar', async () => {
-    const helper = await subirServidorFalso(200, CREDENCIAL_DEFINIDA);
-
-    try {
-      const credenciais = criarCredenciais({
-        urlDaPonte: URL_SEM_NINGUEM_ESCUTANDO,
-        tokenDaPonte: arquivoDeTokenAusente,
-        urlDoHelper: helper.url,
-      });
-      const status = await credenciais.status('sankhya-erp');
-
-      assert.equal(status.usuario, 'usuario');
-      assert.deepEqual(helper.chamadas, ['/credentials/sankhya-erp']);
-    } finally {
-      helper.servidor.close();
-    }
-  });
-
-  it('não repete no helper o erro de negócio devolvido pelo shell', async () => {
+  it('propaga o erro de negócio devolvido pelo shell', async () => {
     const shell = await subirServidorFalso(400, { erro: 'corpo inválido' });
-    const helper = await subirServidorFalso(200, CREDENCIAL_DEFINIDA);
 
     try {
-      const credenciais = criarCredenciais({
-        urlDaPonte: shell.url,
-        tokenDaPonte: arquivoDeToken,
-        urlDoHelper: helper.url,
-      });
+      const credenciais = criarCredenciais({ urlDaPonte: shell.url });
 
       await assert.rejects(() => credenciais.gravar('sankhya-erp', 'u', 's'), PonteDoDesktopError);
-      assert.deepEqual(helper.chamadas, []);
     } finally {
       shell.servidor.close();
-      helper.servidor.close();
+    }
+  });
+
+  it('consulta a agenda e as negociações pela aba ERP do shell', async () => {
+    const shell = await subirServidorFalso(200, { conteudo: '{"status":"1"}' });
+
+    try {
+      const credenciais = criarCredenciais({ urlDaPonte: shell.url });
+      const agenda = await credenciais.consultarAgendaDeRecursos('01/09/2026', '30/09/2026');
+      await credenciais.consultarNegociacoesDoParceiro(42);
+
+      assert.equal(agenda.conteudo, '{"status":"1"}');
+      assert.deepEqual(shell.chamadas, ['/agenda/fetch', '/agenda/negociacoes']);
+    } finally {
+      shell.servidor.close();
     }
   });
 
@@ -121,8 +97,6 @@ describe('Credenciais', () => {
     sessaoDoDesktop.definir({ usuario: 'usuario', token: 'jwt-da-guia', expira: '' });
     const credenciais = criarCredenciais({
       urlDaPonte: URL_SEM_NINGUEM_ESCUTANDO,
-      tokenDaPonte: arquivoDeToken,
-      urlDoHelper: URL_SEM_NINGUEM_ESCUTANDO,
       sessaoDoDesktop,
     });
 
@@ -140,12 +114,7 @@ describe('Credenciais', () => {
     const shell = await subirServidorFalso(200, { usuario: 'do-cofre', token: 'jwt-do-cofre' });
 
     try {
-      const credenciais = criarCredenciais({
-        urlDaPonte: shell.url,
-        tokenDaPonte: arquivoDeToken,
-        urlDoHelper: URL_SEM_NINGUEM_ESCUTANDO,
-        sessaoDoDesktop,
-      });
+      const credenciais = criarCredenciais({ urlDaPonte: shell.url, sessaoDoDesktop });
       const segredo = await credenciais.revelar('sankhya-erp');
 
       assert.equal(segredo.token, 'jwt-do-cofre');
@@ -154,12 +123,8 @@ describe('Credenciais', () => {
     }
   });
 
-  it('informa indisponível quando nem o shell nem o helper respondem', async () => {
-    const credenciais = criarCredenciais({
-      urlDaPonte: URL_SEM_NINGUEM_ESCUTANDO,
-      tokenDaPonte: arquivoDeToken,
-      urlDoHelper: URL_SEM_NINGUEM_ESCUTANDO,
-    });
+  it('informa indisponível quando o shell não responde', async () => {
+    const credenciais = criarCredenciais({ urlDaPonte: URL_SEM_NINGUEM_ESCUTANDO });
 
     assert.equal(await credenciais.disponivel(), false);
   });

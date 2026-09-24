@@ -208,9 +208,9 @@ export const SISTEMAS_SANKHYA = ['sankhya-erp', 'sankhya-experience'] as const;
 export type SistemaSankhya = (typeof SISTEMAS_SANKHYA)[number];
 
 /**
- * Estado de uma credencial do Sankhya guardada pelo `hub-helper.ps1` — diz se há
- * valor guardado e para qual usuário, nunca a senha. A senha é cifrada com
- * DPAPI fora do processo Node; só o helper a decripta.
+ * Estado de uma credencial do Sankhya guardada pelo cofre do shell desktop — diz
+ * se há valor guardado e para qual usuário, nunca a senha. A senha é cifrada com
+ * `safeStorage` fora do processo do backend; só o shell a decripta.
  */
 export interface StatusCredencial {
   sistema: SistemaSankhya;
