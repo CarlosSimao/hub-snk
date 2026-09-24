@@ -1,14 +1,11 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { ehSistemaValido, type Credenciais } from '../sankhya/credenciais.ts';
 import { HelperError, HelperIndisponivelError } from '../sankhya/helper.ts';
-import {
-  lerTokenDoDesktop,
-  PonteDoDesktopError,
-  PonteDoDesktopIndisponivelError,
-} from '../sankhya/ponteDoDesktop.ts';
+import { PonteDoDesktopError, PonteDoDesktopIndisponivelError } from '../sankhya/ponteDoDesktop.ts';
 import type { SessaoDoDesktop } from '../sankhya/sessaoDoDesktop.ts';
 import { SISTEMAS_SANKHYA } from '../tipos.ts';
+import { requisicaoVeioDoShell } from './autenticacaoDoShell.ts';
 
 /** Único sistema cuja sessão o shell empurra: o ERP é consultado dentro da guia. */
 const SISTEMA_COM_SESSAO_EMPURRADA = 'sankhya-experience';
@@ -40,31 +37,9 @@ const esquemaDaSessaoEmpurrada = z.object({
 });
 
 /**
- * Só o shell desktop chama as rotas de sessão, nunca a tela: por isso exigem o
- * token do shell, um arquivo local que o navegador não alcança. Sem isso,
- * qualquer página aberta na máquina poderia trocar o JWT usado pelo backend.
+ * Só o shell desktop empurra sessão: sem o token dele, qualquer processo da
+ * máquina poderia trocar o JWT que o backend usa na Experience.
  */
-function requisicaoVeioDoShell(
-  requisicao: FastifyRequest,
-  resposta: FastifyReply,
-  arquivoTokenDoDesktop: string,
-): boolean {
-  let esperado: string;
-  try {
-    esperado = lerTokenDoDesktop(arquivoTokenDoDesktop);
-  } catch (erro) {
-    resposta.status(503).send({ mensagem: (erro as Error).message });
-    return false;
-  }
-
-  if (requisicao.headers['x-hub-token'] !== esperado) {
-    resposta.status(401).send({ mensagem: 'Token do shell desktop inválido.' });
-    return false;
-  }
-
-  return true;
-}
-
 function registrarRotasDeSessaoDoDesktop(
   servidor: FastifyInstance,
   sessaoDoDesktop: SessaoDoDesktop,

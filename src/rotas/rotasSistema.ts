@@ -10,6 +10,7 @@ import {
 } from '../sistema/selecionarPasta.ts';
 import { consultarUltimaVersaoPublicada } from '../sistema/ultimaVersaoPublicada.ts';
 import { varrerRepositoriosLocais } from '../sistema/varreduraDeRepositorios.ts';
+import { requisicaoVeioDoShell } from './autenticacaoDoShell.ts';
 
 const TAMANHO_MAXIMO_DO_CAMINHO = 400;
 const QUANTIDADE_MAXIMA_DE_PASTAS_VARRIDAS = 20;
@@ -34,13 +35,21 @@ const esquemaDeVarreduraDeRepositorios = z.object({
     ),
 });
 
+export interface EncerramentoPeloShell {
+  arquivoTokenDoDesktop: string;
+  encerrar: () => void;
+}
+
 /**
  * Recursos do sistema operacional que não pertencem a nenhum cadastro.
  *
  * A seleção de pasta serve a qualquer campo de caminho do HUB SNK — repositório,
  * WildFly, sankhya-schema-mcp —, por isso não mora nas rotas de cliente.
  */
-export function registrarRotasDeSistema(servidor: FastifyInstance): void {
+export function registrarRotasDeSistema(
+  servidor: FastifyInstance,
+  encerramento: EncerramentoPeloShell,
+): void {
   /*
    * A versão vem do package.json, fonte única também para o `npm version`. O
    * rodapé a exibe para que um relato de problema já diga qual versão está
@@ -53,6 +62,22 @@ export function registrarRotasDeSistema(servidor: FastifyInstance): void {
    * painel. Não toca disco nem rede: responder já prova que o servidor subiu.
    */
   servidor.get('/api/healthz', async () => ({ ok: true }));
+
+  /*
+   * O shell desktop pede o encerramento por aqui antes de fechar, porque no
+   * Windows o `kill()` do processo filho não entrega sinal: o backend morreria
+   * sem fechar o SQLite nem as conexões. A resposta sai antes de o servidor
+   * começar a fechar, para o shell não ver a conexão cair no meio.
+   */
+  servidor.post('/api/sistema/encerrar', async (requisicao, resposta) => {
+    if (!requisicaoVeioDoShell(requisicao, resposta, encerramento.arquivoTokenDoDesktop)) {
+      return resposta;
+    }
+
+    await resposta.status(202).send({ ok: true });
+    setImmediate(encerramento.encerrar);
+    return resposta;
+  });
 
   /*
    * Separada da rota acima de propósito: a versão instalada é leitura local e

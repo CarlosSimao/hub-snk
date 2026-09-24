@@ -9,8 +9,8 @@
  *
  * Toda rota exige o header `X-Hub-Token`. O shell grava o token em
  * `desktop-token.txt`, na mesma pasta de IPC do helper, e ele é lido daqui a
- * cada chamada: o shell gera um token novo a cada início, e uma cópia em memória
- * responderia 401 depois de um reinício do app.
+ * cada chamada: o shell recria o token quando o arquivo some, e uma cópia em
+ * memória responderia 401 para sempre depois disso.
  */
 import { readFileSync } from 'node:fs';
 

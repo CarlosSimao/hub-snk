@@ -1,5 +1,6 @@
 import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
+import type { FSWatcher } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { configuracao } from './configuracao.ts';
 import { ArquivoDeDadosInvalidoError, EsquemaMaisNovoError } from './repositorio/arquivoDeDados.ts';
@@ -77,7 +78,19 @@ async function iniciarServidor(): Promise<void> {
   registrarRotasDeGit(servidor, repositorioDeClientes, repositorioDeConfiguracao);
   registrarRotasDeLocal(servidor, repositorioLocal, repositorioDeConfiguracao);
   registrarRotasDeAtalhos(servidor, repositorioDeConfiguracao);
-  registrarRotasDeSistema(servidor);
+  let observadorDosDados: FSWatcher | null = null;
+  const encerrarOHub = criarEncerramento(async () => {
+    observadorDosDados?.close();
+    await servidor.close();
+    agendaDeRecursos.close();
+  });
+  process.once('SIGINT', encerrarOHub);
+  process.once('SIGTERM', encerrarOHub);
+
+  registrarRotasDeSistema(servidor, {
+    arquivoTokenDoDesktop: configuracao.ponteDoDesktopTokenFile,
+    encerrar: encerrarOHub,
+  });
   registrarRotasDeSankhya(
     servidor,
     credenciaisSankhya,
@@ -119,7 +132,7 @@ async function iniciarServidor(): Promise<void> {
    */
   await mkdir(configuracao.diretorioDeDados, { recursive: true });
 
-  const observadorDosDados = observarAlteracoesNosDados({
+  observadorDosDados = observarAlteracoesNosDados({
     diretorioDeDados: configuracao.diretorioDeDados,
     cachesPorArquivo: new Map<string, CacheDescartavel>([
       ['clientes.json', repositorioDeClientes],
@@ -131,32 +144,33 @@ async function iniciarServidor(): Promise<void> {
       warn: (mensagem) => servidor.log.warn(mensagem),
     },
   });
-
-  encerrarAoReceberSinal(async () => {
-    observadorDosDados?.close();
-    await servidor.close();
-    agendaDeRecursos.close();
-  });
 }
 
 /**
- * Encerramento limpo no Ctrl+C do terminal e no `SIGTERM` do Linux e do
- * `node --watch`: fecha as conexões e o SQLite antes de sair, em vez de deixar o
- * processo morrer no meio de uma gravação. No Windows, o `kill()` do shell
- * desktop não entrega sinal nenhum, então este caminho não roda lá.
+ * Encerramento limpo: fecha as conexões e o SQLite antes de sair, em vez de
+ * deixar o processo morrer no meio de uma gravação. Disparado pelo Ctrl+C do
+ * terminal, pelo `SIGTERM` do Linux e do `node --watch`, e pelo shell desktop
+ * via `POST /api/sistema/encerrar` — no Windows o `kill()` não entrega sinal.
+ *
+ * Roda uma vez só: um sinal que chegue durante o pedido do shell não fecha o
+ * servidor duas vezes.
  */
-function encerrarAoReceberSinal(encerrar: () => Promise<void>): void {
-  const aoReceberSinal = (): void => {
-    encerrar()
+function criarEncerramento(fecharRecursos: () => Promise<void>): () => void {
+  let jaEncerrando = false;
+
+  return () => {
+    if (jaEncerrando) {
+      return;
+    }
+    jaEncerrando = true;
+
+    fecharRecursos()
       .catch((erro: unknown) => {
         console.error('Falha ao encerrar o HUB SNK:', erro);
         process.exitCode = 1;
       })
       .finally(() => process.exit());
   };
-
-  process.once('SIGINT', aoReceberSinal);
-  process.once('SIGTERM', aoReceberSinal);
 }
 
 iniciarServidor().catch((erro: unknown) => {
