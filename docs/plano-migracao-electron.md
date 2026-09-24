@@ -195,33 +195,52 @@ O frontend passa a rodar só dentro do shell (D5), então não há modo condicio
 
 ## Fase 6 — Empacotamento
 
-- [ ] Reescrever `desktop/scripts/preparar-hub.mjs`:
-  - [ ] Sem `npm run build`; copiar `src/` (sem `*.test.ts`), `public/` (sem testes), `package.json` e `package-lock.json`.
-  - [ ] `npm ci --omit=dev` em `build/hub`.
-  - [ ] Validar a existência de `build/hub/src/index.ts` e de `node_modules`.
-  - [ ] Reaproveitar a lógica de exclusão de `scripts/empacotar-comum.mjs` em vez de duplicá-la.
-- [ ] `electron-builder.yml`:
-  - [ ] `appId` `br.dev.hubsnk.desktop`, `productName`/`shortcutName` "HUB SNK", `artifactName` `HUB-SNK-Setup-${version}.${ext}` (D1).
-  - [ ] Manter as duas entradas de `extraResources` (`build/hub` e `build/hub/node_modules`), que são obrigatórias.
-  - [ ] Manter `build/git-autosync` no `extraResources` e o `include: installer.nsh` (D7).
+- [x] `desktop/scripts/preparar-hub.mjs` reescrito:
+  - [x] Sem build: copia `src/` e `public/` (sem `*.test.ts`/`*.test.js`), `package.json`, `package-lock.json` e `LICENSE`.
+  - [x] `npm ci --omit=dev` em `build/hub` (84 pacotes, 28 MB, 0 vulnerabilidades).
+  - [x] Valida `build/hub/src/index.ts` e `node_modules`. Validado rodando o backend de dentro de `build/hub` pelo Node do Electron: `/api/healthz` e painel com 200.
+  - [x] Filtro de testes feito no próprio script, e não reaproveitando `scripts/empacotar-comum.mjs`, porque este sai na Fase 9.
+- [x] `electron-builder.yml`:
+  - [x] `appId` `br.dev.hubsnk.desktop`, `productName`/`shortcutName` "HUB SNK", `artifactName` `HUB-SNK-Setup-${version}.${ext}` (Linux: `hub-snk-${version}-${arch}.${ext}`), `copyright` do autor do projeto (D1).
+  - [x] As duas entradas de `extraResources` (`build/hub` e `build/hub/node_modules`) mantidas; entrou `instalador/*.ps1`, fora do `app.asar`, porque o PowerShell não lê dentro do asar.
+  - [x] Alvos: NSIS (Windows x64), AppImage + deb (Linux x64). Sem `dmg` (D6).
+  - [x] `build/git-autosync` mantido no `extraResources` e o `include: installer.nsh` (D7). A macro `customInstall` do Flaviano virou `GasInstalar`, chamada pela `customInstall` nova depois da remoção da versão PWA.
   - [x] Git AutoSync: repositório `https://github.com/FlavianoRS/git-autosync` clonado em `C:\Workspace\scripts\git-autosync` (o caminho padrão do `preparar-autosync.mjs`).
     - **Usar a branch `master` (4.0.0), não a `main` (3.10.0, a padrão do GitHub).** Só a `master` tem o `installer/install-standalone.ps1` que o `installer.nsh` chama. As duas divergiram: a `master` tem 11 commits que a `main` não tem, e a `main` tem 3 que a `master` não tem. Avisar o Flaviano para unificar.
     - Binários gerados com `pythonuild_windows.ps1`, num venv em `python\.venv` (Python 3.14.6, PyInstaller 6.22.3, dependências do `requirements-dev.txt`), sem instalar nada no Python global: `git-autosync.exe` (19,7 MB) e `git-autosync-sync.exe` (9,0 MB).
     - `node scripts/preparar-autosync.mjs` montou o `desktop/build/git-autosync` e o `gas-version.nsh` (`GAS_VERSION "4.0.0"`).
   - [ ] Validar a página de componentes do instalador (instalar, tarefa diária, bandeja, atalhos, skills, PATH) e a desinstalação do autosync pelo NSIS.
   - [ ] CI (`distribuicao.yml`): de onde vêm os binários do Git AutoSync no build de release (checkout do outro repositório ou artefato publicado).
-  - [ ] Alvos: NSIS (Windows x64), AppImage + deb (Linux x64). Sem `dmg` (D6).
-- [ ] Remoção da instalação PWA antiga, porque não há convivência (D5). Fazer no `installer.nsh` ou na primeira execução do shell:
-  - [ ] Detectar `%LOCALAPPDATA%\Programs\HubSnk`.
-  - [ ] Encerrar o `node.exe` antigo (mesma regra do `encerrar-hub-snk.vbs`: linha de comando com `src\index.ts` dentro da instalação).
-  - [ ] Apagar os atalhos do Menu Iniciar, da Área de Trabalho e da pasta Inicializar.
-  - [ ] Apagar `%LOCALAPPDATA%\Programs\HubSnk` e o `hub-snk.env`, **preservando `%LOCALAPPDATA%\HubSnk\dados`**.
-  - [ ] Registrar em log o que foi removido.
-  - [ ] Se o `hub-snk.env` tinha uma porta diferente de 4100, avisar o usuário, porque ela deixa de valer.
+- [x] Remoção da instalação PWA antiga (D5): `desktop/instalador/remover-versao-pwa.ps1`, chamado pelo `customInstall` do `installer.nsh` em toda instalação. Falha não aborta: o instalador avisa e aponta o log.
+  - [x] Reconhece a instalação só se a pasta tiver `abrir-hub-snk.vbs` **e** `src\index.ts`. Um `HUB_PROGRAMA_DIR` apontando para outra pasta não apaga nada.
+  - [x] Encerra `node.exe`/`cmd.exe` com `<programa>\src\index.ts` na linha de comando e o `wscript.exe` do launcher.
+  - [x] Atalhos (Menu Iniciar, Inicializar, Área de Trabalho): remove só os que apontam para o `abrir-hub-snk.vbs` antigo. O atalho novo do NSIS tem o **mesmo nome** (`HUB SNK.lnk`), e apagar pelo nome o levaria junto.
+  - [x] Remove `hub-snk.env`, `hub-snk.log` e `navegador.txt`. **Nunca toca a pasta de dados.**
+  - [x] Do programa, apaga só os itens do pacote PWA. O que sobrar vai para `%LOCALAPPDATA%\HubSnk
+estos-da-versao-pwa-<data>`. Na instalação real, sobram `log\server.log*` (logs do WildFly que caíram ali) e uma pasta com UUID.
+  - [x] `HUB_DADOS_DIR` personalizado no `hub-snk.env`: o caminho vai para `%LOCALAPPDATA%\HubSnk\pasta-de-dados.txt`, que o shell lê (`pastaDeDadosEscolhidaNaVersaoPwa` em `desktop/src/config.ts`; o `trim()` também descarta o BOM do PowerShell).
+  - [x] `HUB_PORTA` diferente de 4100: registra um aviso no log.
+  - [x] Log em `%LOCALAPPDATA%\HubSnk
+emocao-da-versao-pwa.log` e na tela de detalhes do NSIS.
+  - [x] Compatível com o Windows PowerShell 5.1: UTF-8 com BOM, CRLF e sintaxe validada pelo parser do 5.1.
+  - [x] **Teste em cópia simulada** (`scratchpad\sim`), com backend falso rodando, atalhos antigos, atalho "novo" com o mesmo nome, dados padrão e personalizados, porta 4150 e itens estranhos na pasta do programa:
+    - processos encerrados;
+    - os 2 atalhos antigos removidos e o novo mantido;
+    - `pasta-de-dados.txt` gravado;
+    - aviso de porta registrado;
+    - estado removido;
+    - `log/` e UUID movidos para `restos-*`;
+    - os dois `clientes.json` intactos;
+    - código de saída 0.
+  - [x] Segunda execução: não faz nada, código 0.
+  - [x] Trava: com o `hub-snk.env` apontando para uma pasta que não é a PWA, a pasta ficou intacta e só a configuração saiu.
+- [x] Instalador gerado: `release/HUB-SNK-Setup-1.1.0.exe` (146 MB, com o Git AutoSync 4.0.0). `release/win-unpacked` validado com dados e porta de teste: o backend subiu de `resources\hub\src\index.ts` pelo próprio `HUB SNK.exe`, e o encerramento foi limpo (SQLite sem `-wal`, nenhum processo sobrando).
 - [ ] Instalação limpa no Windows: o NSIS per-user instala sem UAC, o atalho abre o app, o backend sobe, o painel carrega.
-- [ ] Instalação por cima de uma PWA antiga: os dados aparecem e não sobra `node.exe` nem atalho antigo.
+- [ ] Instalação por cima da PWA real desta máquina (aguardando confirmação): os dados aparecem, não sobra `node.exe` nem atalho antigo, e `restos-*` fica com o `log/`.
+- [ ] Página do Git AutoSync no instalador e desinstalação dele.
 - [ ] Desinstalação preserva os dados (`deleteAppDataOnUninstall: false` + `%LOCALAPPDATA%\HubSnk\dados`).
-- [ ] Linux: gerar AppImage + deb e validar o `safeStorage` com o `libsecret`. Remover a instalação antiga do `instalar-hub-snk.sh` (`.desktop` e autostart) na primeira execução.
+- [ ] Linux: gerar AppImage + deb (precisa de máquina Linux: o PyInstaller não faz cross-compile e o electron-builder não gera AppImage no Windows), validar o `safeStorage` com o `libsecret` e remover a instalação antiga do `instalar-hub-snk.sh` (`.desktop` e autostart). **Ainda não implementado.**
+- [ ] Assinatura: o `electron-builder` rodou o `signtool`, mas sem certificado o `.exe` sai sem assinatura, e o SmartScreen vai avisar na primeira execução.
 
 ## Fase 7 — Scripts, CI e documentação
 

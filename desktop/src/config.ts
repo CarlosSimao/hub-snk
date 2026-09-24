@@ -3,6 +3,7 @@
  * ambiente — os defaults são os mesmos endereços que o backend do HUB SNK e o
  * `hub-helper.ps1` já usam, para não haver um segundo conjunto de URLs "corretas".
  */
+import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { app } from 'electron';
@@ -75,12 +76,26 @@ export const RAIZ_PROJETO =
 export const ENTRYPOINT_BACKEND = join(RAIZ_PROJETO, 'src', 'index.ts');
 
 /**
+ * Caminho que o instalador deixa em `HubSnk\pasta-de-dados.txt` quando a instalação PWA
+ * antiga guardava o cadastro fora do padrão (`desktop/instalador/remover-versao-pwa.ps1`).
+ * O `trim()` também descarta o BOM que o PowerShell 5.1 grava no início do arquivo.
+ */
+function pastaDeDadosEscolhidaNaVersaoPwa(pastaDeEstado: string): string {
+  try {
+    return readFileSync(join(pastaDeEstado, 'pasta-de-dados.txt'), 'utf8').trim();
+  } catch {
+    return '';
+  }
+}
+
+/**
  * Pasta de dados empacotada: a mesma que a instalação PWA antiga usava, para quem
  * atualiza não perder o cadastro nem precisar de migração.
  */
 function pastaDeDadosInstalada(): string {
   if (process.platform === 'win32') {
-    return join(process.env['LOCALAPPDATA'] ?? app.getPath('appData'), 'HubSnk', 'dados');
+    const pastaDeEstado = join(process.env['LOCALAPPDATA'] ?? app.getPath('appData'), 'HubSnk');
+    return pastaDeDadosEscolhidaNaVersaoPwa(pastaDeEstado) || join(pastaDeEstado, 'dados');
   }
   return join(
     process.env['XDG_DATA_HOME'] ?? join(homedir(), '.local', 'share'),

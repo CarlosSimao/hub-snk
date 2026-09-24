@@ -1,5 +1,7 @@
-; Pagina de componentes do Git AutoSync — Fase 4, §4.3 (opcao A) do plano
-; docs/specs/sankhya-hub-sem-docker-plano.md.
+; Personalizacoes do instalador NSIS do HUB SNK desktop:
+;
+;  1. Remocao da instalacao PWA antiga, sempre (resources\instalador\remover-versao-pwa.ps1).
+;  2. Pagina de componentes do Git AutoSync, quando o pacote foi montado com ele.
 ;
 ; Os binarios do Git AutoSync viajam SEMPRE dentro do pacote (resources\git-autosync).
 ; Sao inertes ate alguem os instalar. O que esta pagina decide e' so' o que tem efeito
@@ -86,7 +88,7 @@ Function GasPaginaCriar
   ${NSD_SetState} $CheckInstalar ${BST_CHECKED}
   ${NSD_OnClick} $CheckInstalar GasAtualizarEstado
 
-  ${NSD_CreateLabel} 12u 15u 90% 18u "Os arquivos vao para %USERPROFILE%\.git-autosync. Requer o Git instalado; sem ele a instalacao do Git AutoSync e' recusada e o Sankhya Hub e' instalado do mesmo jeito."
+  ${NSD_CreateLabel} 12u 15u 90% 18u "Os arquivos vao para %USERPROFILE%\.git-autosync. Requer o Git instalado; sem ele a instalacao do Git AutoSync e' recusada e o HUB SNK e' instalado do mesmo jeito."
   Pop $0
 
   ${NSD_CreateCheckbox} 12u 36u 60% 12u "Sincronizar todo dia as"
@@ -142,7 +144,7 @@ FunctionEnd
 !macroend
 
 ; Roda depois de os arquivos estarem no lugar — `resources\git-autosync` ja' existe aqui.
-!macro customInstall
+!macro GasInstalar
   ${If} $GasInstalar == ${BST_CHECKED}
     StrCpy $R0 ""
     ${If} $GasTarefa == ${BST_CHECKED}
@@ -165,9 +167,9 @@ FunctionEnd
     nsExec::ExecToLog 'powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$INSTDIR\resources\git-autosync\install-standalone.ps1" -Source "$INSTDIR\resources\git-autosync"$R0'
     Pop $R1
     ${If} $R1 != 0
-      ; Nao aborta a instalacao do Hub: o painel funciona sem o autosync, e desfazer
+      ; Nao aborta a instalacao do HUB SNK: o painel funciona sem o autosync, e desfazer
       ; tudo por causa de um componente opcional seria pior para quem so' queria o Hub.
-      MessageBox MB_ICONEXCLAMATION "O Sankhya Hub foi instalado, mas o Git AutoSync nao.$\r$\n$\r$\nMotivo mais comum: o Git nao esta instalado nesta maquina.$\r$\nDepois de instalar o Git, rode:$\r$\n$INSTDIR\resources\git-autosync\install-standalone.ps1"
+      MessageBox MB_ICONEXCLAMATION "O HUB SNK foi instalado, mas o Git AutoSync nao.$\r$\n$\r$\nMotivo mais comum: o Git nao esta instalado nesta maquina.$\r$\nDepois de instalar o Git, rode:$\r$\n$INSTDIR\resources\git-autosync\install-standalone.ps1"
     ${Else}
       ; Marca de quem instalou: a desinstalacao so' remove o que ELA instalou, nunca uma
       ; instalacao que o usuario ja' tinha antes.
@@ -192,3 +194,31 @@ FunctionEnd
 !macroend
 
 !endif ; GAS_PRESENTE
+
+; --- remocao da versao PWA ----------------------------------------------------------
+;
+; Fora do `GAS_PRESENTE`: roda em todo pacote, com ou sem o Git AutoSync. O script so'
+; remove o que reconhece como a instalacao PWA (launcher + backend na pasta), preserva
+; o cadastro e e' idempotente — numa maquina sem a versao antiga, nao faz nada.
+
+!ifndef BUILD_UNINSTALLER
+
+!macro HubSnkRemoverVersaoPwa
+  DetailPrint "Removendo a versao PWA antiga do HUB SNK, se houver..."
+  nsExec::ExecToLog 'powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$INSTDIR\resources\instalador\remover-versao-pwa.ps1"'
+  Pop $R1
+  ${If} $R1 != 0
+    ; Nao aborta: o aplicativo novo funciona mesmo com restos da versao antiga. O detalhe
+    ; da falha fica em %LOCALAPPDATA%\HubSnk\remocao-da-versao-pwa.log.
+    MessageBox MB_ICONEXCLAMATION "O HUB SNK foi instalado, mas a versao antiga (PWA) nao foi removida por completo.$\r$\n$\r$\nVeja o motivo em:$\r$\n$LOCALAPPDATA\HubSnk\remocao-da-versao-pwa.log"
+  ${EndIf}
+!macroend
+
+!macro customInstall
+  !insertmacro HubSnkRemoverVersaoPwa
+  !ifdef GAS_PRESENTE
+    !insertmacro GasInstalar
+  !endif
+!macroend
+
+!endif ; BUILD_UNINSTALLER

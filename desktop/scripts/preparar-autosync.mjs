@@ -21,7 +21,16 @@
  * análise registrou: os `.exe` distribuídos eram de uma versão anterior à do `VERSION`,
  * e ninguém percebeu porque nada verificava.
  */
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -109,9 +118,24 @@ const arquivos = [
   // O instalador silencioso é o do Windows; no Linux o script equivalente ainda é o
   // `installer/install_standalone.sh` interativo, então ele viaja no lugar.
   EH_WINDOWS
-    ? [exigir(join(RAIZ_AUTOSYNC, 'installer', 'install-standalone.ps1'), 'esperado no repo do git-autosync'), 'install-standalone.ps1']
-    : [exigir(join(RAIZ_AUTOSYNC, 'installer', 'install_standalone.sh'), 'esperado no repo do git-autosync'), 'install_standalone.sh'],
-  [exigir(join(RAIZ_AUTOSYNC, 'skill', 'SKILL.md'), 'esperado no repo do git-autosync'), 'SKILL.md'],
+    ? [
+        exigir(
+          join(RAIZ_AUTOSYNC, 'installer', 'install-standalone.ps1'),
+          'esperado no repo do git-autosync',
+        ),
+        'install-standalone.ps1',
+      ]
+    : [
+        exigir(
+          join(RAIZ_AUTOSYNC, 'installer', 'install_standalone.sh'),
+          'esperado no repo do git-autosync',
+        ),
+        'install_standalone.sh',
+      ],
+  [
+    exigir(join(RAIZ_AUTOSYNC, 'skill', 'SKILL.md'), 'esperado no repo do git-autosync'),
+    'SKILL.md',
+  ],
   [exigir(join(RAIZ_AUTOSYNC, 'python', 'VERSION'), 'esperado no repo do git-autosync'), 'VERSION'],
 ];
 
@@ -124,9 +148,12 @@ const versao = readFileSync(join(DESTINO, 'VERSION'), 'utf8').trim();
 
 writeFileSync(
   DEFINES_NSIS,
-  ['; Gerado por scripts/preparar-autosync.mjs — não editar à mão.', '!define GAS_PRESENTE', `!define GAS_VERSION "${versao}"`, ''].join(
-    '\n',
-  ),
+  [
+    '; Gerado por scripts/preparar-autosync.mjs — não editar à mão.',
+    '!define GAS_PRESENTE',
+    `!define GAS_VERSION "${versao}"`,
+    '',
+  ].join('\n'),
   'utf8',
 );
 console.log(`  + gas-version.nsh (${versao})`);

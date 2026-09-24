@@ -1,15 +1,12 @@
-# Empacotamento do Development Switch — Fase 4 de docs/specs/sankhya-hub-sem-docker-plano.md.
+# Empacotamento do HUB SNK desktop — ver docs/plano-migracao-electron.md (Fase 6).
 #
-# Antes de rodar: `node scripts/preparar-hub.mjs`, que monta `build/hub` com o backend
-# compilado e só as dependências de produção. É essa pasta que vira `resources/hub`, o
-# caminho que `desktop/src/config.ts` já procura quando `app.isPackaged`.
-# Identificador novo junto com o nome: o anterior era br.com.sankhya.hub, e manter um
-# identificador de marca alheia num produto renomeado justamente para nao usar essa marca
-# seria trocar o rotulo e guardar o problema. Instalacao anterior nao e atualizada por
-# cima — desinstale a antiga.
-appId: br.dev.switch.desktop
-productName: Development Switch
-copyright: Sankhya
+# Antes de rodar: `node scripts/preparar-hub.mjs`, que monta `build/hub` com o backend e
+# só as dependências de produção, e `node scripts/preparar-autosync.mjs`, que monta
+# `build/git-autosync`. `npm run empacotar` faz os dois. `build/hub` vira `resources/hub`,
+# o caminho que `desktop/src/config.ts` procura quando `app.isPackaged`.
+appId: br.dev.hubsnk.desktop
+productName: HUB SNK
+copyright: Carlos Nascimento
 
 directories:
   output: ../release
@@ -50,6 +47,12 @@ extraResources:
     to: git-autosync
     filter:
       - '**/*'
+  # Fora do `app.asar` porque quem o executa é o PowerShell, chamado pelo `installer.nsh`,
+  # e o PowerShell não enxerga dentro do asar.
+  - from: instalador
+    to: instalador
+    filter:
+      - '*.ps1'
 
 # `asar: true` mantém o shell num arquivo só. O backend está fora dele (extraResources),
 # que é o necessário para o `spawn` do `dist/index.js` funcionar.
@@ -73,11 +76,11 @@ nsis:
   allowElevation: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: Development Switch
+  shortcutName: HUB SNK
   # A desinstalação remove os binários; `userData` (histórico, cofre, services.yaml do
   # usuário) fica. Apagar dados de quem só está reinstalando seria irreversível.
   deleteAppDataOnUninstall: false
-  artifactName: Development-Switch-Setup-${version}.${ext}
+  artifactName: HUB-SNK-Setup-${version}.${ext}
   # Página de componentes do Git AutoSync e as chamadas de instalação/desinstalação dele.
   # O arquivo se desliga sozinho quando o pacote é montado sem o autosync.
   include: installer.nsh
@@ -93,8 +96,8 @@ linux:
       arch: [x64]
   icon: assets/hub-snk.png
   category: Development
-  synopsis: Painel do ambiente local de desenvolvimento
-  artifactName: development-switch-${version}-${arch}.${ext}
+  synopsis: Cadastro de clientes e ambiente Sankhya
+  artifactName: hub-snk-${version}-${arch}.${ext}
 
 deb:
   # `libsecret` é requisito de SEGURANÇA, não de conveniência: sem chaveiro do sistema o
