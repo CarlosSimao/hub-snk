@@ -12,3 +12,6 @@ docs/videos/
 .claude-secundario
 .DS_Store
 Thumbs.db
+
+# Bancos SQLite soltos na raiz; os dados de verdade ficam em dados-hub-snk/.
+data/
