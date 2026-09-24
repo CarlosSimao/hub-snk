@@ -10,6 +10,9 @@ import {
   ClienteNaoEncontradoError,
   FavoritoDuplicadoNaImportacaoError,
   NomeDeClienteDuplicadoError,
+  NomeDeProjetoDuplicadoError,
+  ProjetoNaoEncontradoError,
+  UrlDeLinkDuplicadaError,
 } from './repositorioClientes.ts';
 import { RepositorioClientesArquivo } from './repositorioClientesArquivo.ts';
 
@@ -386,5 +389,110 @@ describe('RepositorioClientesArquivo com arquivo no formato antigo', () => {
     assert.deepEqual(cliente?.links, []);
     /* `nome` existiu no passado e some do repositório na primeira leitura. */
     assert.equal('nome' in (cliente?.repositorios[0] ?? {}), false);
+  });
+});
+
+describe('RepositorioClientesArquivo — projetos', () => {
+  it('cria projeto vazio dentro do cliente', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+
+    const projeto = await repositorio.adicionarProjeto(cliente.id, {
+      nome: '  Addon Faturamento ',
+    });
+
+    assert.equal(projeto.nome, 'Addon Faturamento');
+    assert.equal(projeto.anotacoes, '');
+    assert.deepEqual(projeto.links, []);
+    assert.equal((await repositorio.buscarPorId(cliente.id))?.projetos.length, 1);
+  });
+
+  it('recusa nome de projeto repetido no mesmo cliente, ignorando caixa', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    await repositorio.adicionarProjeto(cliente.id, { nome: 'Addon' });
+
+    await assert.rejects(
+      repositorio.adicionarProjeto(cliente.id, { nome: 'ADDON' }),
+      NomeDeProjetoDuplicadoError,
+    );
+  });
+
+  it('permite renomear o projeto para o próprio nome', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    const projeto = await repositorio.adicionarProjeto(cliente.id, { nome: 'Addon' });
+
+    const atualizado = await repositorio.atualizarProjeto(cliente.id, projeto.id, {
+      nome: 'Addon',
+    });
+
+    assert.equal(atualizado.nome, 'Addon');
+  });
+
+  it('grava anotações e links do projeto sem afetar os do cliente', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    const projeto = await repositorio.adicionarProjeto(cliente.id, { nome: 'Addon' });
+
+    await repositorio.definirAnotacoesDoProjeto(cliente.id, projeto.id, 'texto do projeto');
+    await repositorio.adicionarLinkDoProjeto(cliente.id, projeto.id, {
+      nome: 'Docs',
+      url: 'https://exemplo.com/docs',
+    });
+
+    const gravado = await repositorio.buscarPorId(cliente.id);
+    assert.equal(gravado?.projetos[0]?.anotacoes, 'texto do projeto');
+    assert.equal(gravado?.projetos[0]?.links.length, 1);
+    assert.equal(gravado?.anotacoes, '');
+    assert.deepEqual(gravado?.links, []);
+  });
+
+  it('recusa URL de link repetida dentro do mesmo projeto', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    const projeto = await repositorio.adicionarProjeto(cliente.id, { nome: 'Addon' });
+    const link = { nome: 'Docs', url: 'https://exemplo.com/docs' };
+    await repositorio.adicionarLinkDoProjeto(cliente.id, projeto.id, link);
+
+    await assert.rejects(
+      repositorio.adicionarLinkDoProjeto(cliente.id, projeto.id, link),
+      UrlDeLinkDuplicadaError,
+    );
+  });
+
+  it('falha com projeto inexistente', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+
+    await assert.rejects(
+      repositorio.removerProjeto(cliente.id, 'inexistente'),
+      ProjetoNaoEncontradoError,
+    );
+  });
+});
+
+describe('RepositorioClientesArquivo — agenda', () => {
+  it('grava os codparcs do cliente', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+
+    const atualizado = await repositorio.definirAgenda(cliente.id, { agendaCodparcs: [10, 20] });
+
+    assert.deepEqual(atualizado.agendaCodparcs, [10, 20]);
+  });
+
+  it('converte o antigo agendaCodparc singular em lista na leitura', async () => {
+    await writeFile(
+      caminhoDoArquivo(),
+      JSON.stringify({
+        versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+        clientes: [
+          { id: 'a', nome: 'Com parceiro', agendaCodparc: 42, agendaRecursoUsuario: 'fulano' },
+          { id: 'b', nome: 'Sem parceiro', agendaCodparc: null },
+        ],
+      }),
+      'utf8',
+    );
+
+    const [comParceiro, semParceiro] = await repositorio.listar();
+
+    assert.deepEqual(comParceiro?.agendaCodparcs, [42]);
+    assert.deepEqual(semParceiro?.agendaCodparcs, []);
+    assert.equal('agendaCodparc' in (comParceiro ?? {}), false);
+    assert.equal('agendaRecursoUsuario' in (comParceiro ?? {}), false);
   });
 });
