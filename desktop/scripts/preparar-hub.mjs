@@ -47,7 +47,22 @@ const semBuild = process.argv.includes('--sem-build');
  */
 function rodar(comando, cwd) {
   console.log(`> ${comando}  (${cwd})`);
-  execSync(comando, { cwd, stdio: 'inherit' });
+  execSync(comando, { cwd, stdio: 'inherit', env: ambienteSemAllowScripts() });
+}
+
+/**
+ * Chamado por `npm run empacotar`, este script herda do npm pai a config do `.npmrc` do
+ * usuário como variável `npm_config_allow_scripts`. O npm 12 lê essa variável no filho
+ * como se fosse `--allow-scripts` e recusa o `npm ci` do projeto (EALLOWSCRIPTS). Rodar
+ * `node scripts/preparar-hub.mjs` direto não passa por isso — por isso só quebrava pelo
+ * `npm run`. O `.npmrc` continua valendo: o filho o relê sozinho.
+ */
+function ambienteSemAllowScripts() {
+  const env = { ...process.env };
+  for (const chave of Object.keys(env)) {
+    if (/^npm_config_allow[-_]scripts$/i.test(chave)) delete env[chave];
+  }
+  return env;
 }
 
 function copiar(relativo) {
