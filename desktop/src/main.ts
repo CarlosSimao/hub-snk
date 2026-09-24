@@ -2,6 +2,7 @@
  * Bootstrap do shell desktop do HUB SNK. Veio da branch `flaviano-sankhya-hub` e foi
  * adaptado ao backend da `dev` — ver docs/plano-migracao-electron.md.
  */
+import './nomeDoApp';
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
