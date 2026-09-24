@@ -12,17 +12,6 @@ import {
   PayloadDeNegociacoesInvalidoError,
 } from '../sankhya/negociacoes.ts';
 
-const TAMANHO_MAXIMO_DO_TEXTO_COLADO = 5_000_000;
-
-const esquemaDeImportacao = z.object({
-  texto: z
-    .string({ error: 'Cole o JSON da resposta de AgendaRecursosSP.carregarAgendas.' })
-    .max(
-      TAMANHO_MAXIMO_DO_TEXTO_COLADO,
-      `O texto colado deve ter no máximo ${TAMANHO_MAXIMO_DO_TEXTO_COLADO} caracteres.`,
-    ),
-});
-
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const esquemaDeConsulta = z.object({
   de: z.string().regex(ISO, 'Informe "de" no formato YYYY-MM-DD.'),
@@ -46,10 +35,9 @@ function responderErroHelper(resposta: FastifyReply, erro: unknown): FastifyRepl
 }
 
 /**
- * Rotas da Agenda de Recursos do Sankhya ERP: snapshot em SQLite. Duas formas
- * de alimentar o snapshot: colar o JSON manualmente, ou consultar automático
- * pela guia autenticada (via `hub-helper.ps1` + CDP — ver
- * docs/port-sankhya-credenciais-agenda.md).
+ * Rotas da Agenda de Recursos do Sankhya ERP: snapshot em SQLite, alimentado
+ * pela consulta automática na guia autenticada (via `hub-helper.ps1` + CDP —
+ * ver docs/port-sankhya-credenciais-agenda.md).
  */
 export function registrarRotasDeAgenda(
   servidor: FastifyInstance,
@@ -75,35 +63,6 @@ export function registrarRotasDeAgenda(
       return { eventos: agenda.eventos(`${de} 00:00:00`, `${ate} 23:59:59`) };
     },
   );
-
-  /**
-   * Importa colando o JSON de `AgendaRecursosSP.carregarAgendas` — a mesma
-   * resposta que a aba Network do DevTools mostra depois de abrir a Agenda
-   * de Recursos no ERP.
-   */
-  servidor.post('/api/agenda/importar', async (requisicao, resposta) => {
-    const dados = esquemaDeImportacao.safeParse(requisicao.body);
-    if (!dados.success) {
-      const primeiraMensagem = dados.error.issues[0]?.message ?? 'Dados inválidos.';
-      return resposta.status(400).send({ mensagem: primeiraMensagem });
-    }
-
-    let bruto: unknown;
-    try {
-      bruto = JSON.parse(dados.data.texto);
-    } catch {
-      return resposta.status(400).send({ mensagem: 'O texto colado não é um JSON válido.' });
-    }
-
-    try {
-      return agenda.importar(parsearAgenda(bruto));
-    } catch (erro) {
-      if (erro instanceof PayloadInvalidoError) {
-        return resposta.status(400).send({ mensagem: erro.message });
-      }
-      throw erro;
-    }
-  });
 
   /**
    * Consulta automática: pede pro helper buscar a Agenda de Recursos de
