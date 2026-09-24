@@ -115,6 +115,21 @@ const arquivos = [
   [exigir(join(RAIZ_AUTOSYNC, 'python', 'VERSION'), 'esperado no repo do git-autosync'), 'VERSION'],
 ];
 
+// O NSIS chama o `powershell.exe` 5.1, que lê `.ps1` sem BOM como ANSI. Um `—` em UTF-8
+// vira `â€”`, e o 0x94 do fim é `”`, que o PowerShell aceita como aspa: a string fecha no
+// meio, o script inteiro não compila e o instalador culpa a falta do Git. Medido na 0.2.0.
+for (const [origem, nome] of arquivos) {
+  if (!nome.endsWith('.ps1')) continue;
+  const bytes = readFileSync(origem);
+  const temBom = bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
+  if (!temBom && bytes.some((b) => b > 0x7f)) {
+    throw new Error(
+      `${origem} tem caractere fora do ASCII e não tem BOM — o powershell.exe 5.1 não o compila.\n` +
+        '  Troque os acentos e travessões por ASCII (ou salve como UTF-8 com BOM).',
+    );
+  }
+}
+
 for (const [origem, nome] of arquivos) {
   cpSync(origem, join(DESTINO, nome));
   console.log(`  + ${nome}`);
