@@ -41,45 +41,38 @@ interface ClienteDoCadastro {
   bases?: Array<{ id: string; url: string; tipo: string; usuario: string; senha?: string }>;
   links?: LinkDoCadastro[];
   projetos?: Array<{ nome: string; links?: LinkDoCadastro[] }>;
+  repositorios?: Array<{ url: string }>;
 }
 
 type DestinoDeLink = 'hub' | 'navegador-padrao';
 
-/** Espelha `AberturaDeLinks` de `src/tipos.ts`: a escolha fica na configuração global. */
-interface AberturaDeLinks {
-  bases: DestinoDeLink;
-  linksGerais: DestinoDeLink;
-  linksDeProjeto: DestinoDeLink;
-}
-
 /**
  * O que vale se a configuração não puder ser lida — o mesmo padrão do backend, que é o
  * que o HUB SNK já fazia antes de a escolha existir.
+ *
+ * Espelha `destinoDosLinks` de `src/tipos.ts`: uma escolha só, para todo link clicável
+ * do cadastro — bases, repositório, links gerais e de projeto.
  */
-const ABERTURA_DE_LINKS_PADRAO: AberturaDeLinks = {
-  bases: 'hub',
-  linksGerais: 'navegador-padrao',
-  linksDeProjeto: 'navegador-padrao',
-};
+const DESTINO_DOS_LINKS_PADRAO: DestinoDeLink = 'hub';
 
 /** Um link cadastrado, reconhecido pela URL exata quando o painel o abre. */
 interface LinkCadastrado {
-  tipo: 'linksGerais' | 'linksDeProjeto';
+  tipo: 'linksGerais' | 'linksDeProjeto' | 'repositorio';
   /** Título da guia, quando o link abre no HUB SNK. */
   titulo: string;
 }
 
-async function lerAberturaDeLinks(): Promise<AberturaDeLinks> {
+async function lerDestinoDosLinks(): Promise<DestinoDeLink> {
   try {
     const resposta = await fetch(`${HUB_URL}/api/configuracao`, {
       signal: AbortSignal.timeout(5000),
     });
     if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
-    const { aberturaDeLinks } = (await resposta.json()) as { aberturaDeLinks?: AberturaDeLinks };
-    return { ...ABERTURA_DE_LINKS_PADRAO, ...aberturaDeLinks };
+    const { destinoDosLinks } = (await resposta.json()) as { destinoDosLinks?: DestinoDeLink };
+    return destinoDosLinks ?? DESTINO_DOS_LINKS_PADRAO;
   } catch (err) {
-    logEvento('abertura-de-links-falhou-ler', { erro: String(err) });
-    return ABERTURA_DE_LINKS_PADRAO;
+    logEvento('destino-dos-links-falhou-ler', { erro: String(err) });
+    return DESTINO_DOS_LINKS_PADRAO;
   }
 }
 
@@ -420,26 +413,26 @@ export class TabManager {
 
   /**
    * Link aberto a partir do painel. Relê o cadastro (a base ou o link pode ter sido
-   * cadastrado depois do boot) e a escolha de abertura de links, e decide:
+   * cadastrado depois do boot) e a escolha única de destino dos links, e decide:
    *
-   *  - link geral ou de projeto, pela URL exata: guia do HUB SNK ou navegador padrão,
-   *    conforme a escolha daquele tipo. A URL exata vale mais que a origem de uma base,
-   *    para um link que aponta para uma tela da base seguir a escolha dos links;
+   *  - link geral, de projeto ou de repositório, pela URL exata: guia do HUB SNK ou
+   *    navegador padrão. A URL exata vale mais que a origem de uma base, para um link
+   *    que aponta para uma tela da base seguir a mesma escolha;
    *  - base, pela origem: guia com o login preenchido ou navegador padrão;
    *  - qualquer outro endereço: navegador padrão.
    */
   async #abrirLinkDoPainel(alvo: string): Promise<void> {
-    const [aberturaDeLinks] = await Promise.all([lerAberturaDeLinks(), this.carregarCadastro()]);
+    const [destinoDosLinks] = await Promise.all([lerDestinoDosLinks(), this.carregarCadastro()]);
     const origin = origemDe(alvo);
 
     const link = this.#linksPorUrl.get(urlNormalizada(alvo));
     if (link) {
       logEvento('link-cadastrado-solicitado', {
         tipo: link.tipo,
-        destino: aberturaDeLinks[link.tipo],
+        destino: destinoDosLinks,
         alvo: origemSemQuery(alvo),
       });
-      if (aberturaDeLinks[link.tipo] === 'hub') {
+      if (destinoDosLinks === 'hub') {
         this.#abrirLinkNoHub(origin, alvo, link.titulo);
         return;
       }
@@ -451,12 +444,12 @@ export class TabManager {
     if (infoBase) {
       const monitor = separarMarcadorDoMonitor(alvo);
       logEvento('link-cliente-solicitado', {
-        destino: aberturaDeLinks.bases,
+        destino: destinoDosLinks,
         alvo: origemSemQuery(monitor.alvo),
         monitor: monitor.ehMonitor,
       });
       // O monitor de log é da base, mas não é login: abre sempre na guia dela.
-      if (aberturaDeLinks.bases === 'hub' || monitor.ehMonitor) {
+      if (destinoDosLinks === 'hub' || monitor.ehMonitor) {
         this.abrirAbaCliente(
           origin,
           monitor.alvo,
@@ -798,6 +791,12 @@ export class TabManager {
                 titulo: `${cliente.nome} · ${projeto.nome} · ${link.nome}`,
               });
             }
+          }
+        }
+        for (const repositorio of cliente.repositorios ?? []) {
+          const url = urlNormalizada(repositorio.url);
+          if (url) {
+            linksPorUrl.set(url, { tipo: 'repositorio', titulo: `${cliente.nome} · repositório` });
           }
         }
       }

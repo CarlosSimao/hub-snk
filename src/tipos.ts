@@ -21,6 +21,14 @@
  *
  * `atalhos` são programas da máquina disparados pelo botão de atalhos da barra
  * do topo.
+ *
+ * `caminhoDoExecutavelDaIde` é o executável da IDE usada no botão "Abrir IDE"
+ * de cada repositório. Vazio desliga o botão: sem IDE escolhida, não há o que
+ * abrir.
+ *
+ * `destinoDosLinks` vale para todo link clicável do cadastro — bases,
+ * repositório, links gerais e de projeto —, uma escolha só em vez de uma por
+ * tipo de link.
  */
 export interface ConfiguracaoGlobal {
   scriptPadrao: string;
@@ -28,7 +36,8 @@ export interface ConfiguracaoGlobal {
   tempoLimiteSegundos: number;
   caminhoDoSchemaMcp: string;
   atalhos: Atalho[];
-  aberturaDeLinks: AberturaDeLinks;
+  destinoDosLinks: DestinoDeLink;
+  caminhoDoExecutavelDaIde: string;
 }
 
 /**
@@ -39,13 +48,6 @@ export interface ConfiguracaoGlobal {
 export const DESTINOS_DE_LINK = ['hub', 'navegador-padrao'] as const;
 
 export type DestinoDeLink = (typeof DESTINOS_DE_LINK)[number];
-
-/** Onde cada tipo de link do cadastro abre quando é clicado no painel. */
-export interface AberturaDeLinks {
-  bases: DestinoDeLink;
-  linksGerais: DestinoDeLink;
-  linksDeProjeto: DestinoDeLink;
-}
 
 /**
  * Atalho para um programa da máquina.

@@ -173,8 +173,15 @@ arquivo entra normalmente.
 
 Repositório com **caminho local** cadastrado ganha quatro botões na própria
 linha: **Arquivos** abre a pasta no gerenciador de arquivos, **Shell** abre o
-terminal já posicionado nela, **`{ }`** abre a pasta como projeto no IntelliJ
-IDEA e a **tomada** edita o `.sankhya-mcp.env`.
+terminal já posicionado nela, **Abrir IDE** (`{ }`) abre a pasta como projeto
+na IDE configurada em _Configurações_ e a **tomada** edita o
+`.sankhya-mcp.env`.
+
+O botão **Abrir IDE** chama o executável cadastrado no campo **Executável da
+IDE** (_Configurações_ › _Geral_), passando a pasta do repositório como
+argumento de linha de comando — funciona com qualquer IDE que aceite esse
+contrato (IntelliJ IDEA, VS Code, WebStorm, Rider e outras). Sem executável
+cadastrado, o botão responde com aviso pedindo para configurar.
 
 Se o **Script padrão** estiver preenchido em _Configurações_ (engrenagem no
 topo), o botão Shell o executa assim que o terminal abre, e a janela continua
@@ -187,18 +194,17 @@ aberta depois para você ler a saída.
 
 ### Que programa é chamado em cada sistema
 
-| Botão                            | Windows                                                                                                                    | macOS                                                                        | Linux                                                                                         |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **Arquivos**                     | `explorer.exe`                                                                                                             | `open`                                                                       | `xdg-open`                                                                                    |
-| **Shell**                        | Windows Terminal quando existe; o shell é `pwsh.exe`, `powershell.exe` ou `cmd.exe`, o primeiro encontrado no PATH         | `Terminal.app`, via `osascript` quando há script a executar                  | primeiro entre `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal` e `xterm` |
-| **`{ }`**                        | primeiro no PATH entre `idea64.exe`, `idea.exe`, `idea.cmd` e `idea.bat`; os `.cmd`/`.bat` são executados via `cmd.exe /c` | `open -n -a "IntelliJ IDEA"` (ou a edição _CE_), com `idea` como alternativa | primeiro entre `intellij-idea-ultimate`, `intellij-idea-community`, `idea` e `idea.sh`        |
-| **Seletor de arquivo** (atalhos) | `OpenFileDialog` do Windows Forms, via `powershell.exe -STA`                                                               | `choose file`, via `osascript`                                               | `zenity --file-selection`, com `kdialog` como alternativa                                     |
+| Botão                            | Windows                                                                                                            | macOS                                                            | Linux                                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Arquivos**                     | `explorer.exe`                                                                                                     | `open`                                                           | `xdg-open`                                                                                    |
+| **Shell**                        | Windows Terminal quando existe; o shell é `pwsh.exe`, `powershell.exe` ou `cmd.exe`, o primeiro encontrado no PATH | `Terminal.app`, via `osascript` quando há script a executar      | primeiro entre `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal` e `xterm` |
+| **Abrir IDE**                    | o executável cadastrado; `.cmd`/`.bat` são executados via `cmd.exe /c`                                             | o executável cadastrado; pacote `.app` é aberto via `open -n -a` | o executável cadastrado                                                                       |
+| **Seletor de arquivo** (atalhos) | `OpenFileDialog` do Windows Forms, via `powershell.exe -STA`                                                       | `choose file`, via `osascript`                                   | `zenity --file-selection`, com `kdialog` como alternativa                                     |
 
 Quando nada é encontrado, o HUB SNK mostra o aviso na tela — inclusive o
 **Arquivos** no Linux sem `xdg-open`, que responde pedindo a instalação do
-`xdg-utils`. No Windows, a pasta `bin` do IntelliJ precisa estar no PATH, ou o
-launcher de linha de comando precisa ter sido gerado pelo JetBrains Toolbox. No
-Linux sem `zenity` nem `kdialog`, resta digitar o caminho do atalho à mão.
+`xdg-utils`. No Linux sem `zenity` nem `kdialog`, resta digitar o caminho do
+atalho à mão.
 
 O programa não é dado como aberto só por ter nascido: o HUB SNK espera um
 instante e, se ele morreu com erro nesse intervalo, tenta o próximo candidato da

@@ -2493,6 +2493,18 @@ button.selo-situacao:focus-visible {
   align-items: center;
 }
 
+/* Campo de texto com botão de escolher arquivo ao lado, como no caminho da IDE. */
+.campo-com-botao {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.campo-com-botao input {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Bloco do botão + lista: `relative` ancora a lista logo abaixo do botão. */
 .menu-atalhos {
   position: relative;
@@ -2621,6 +2633,11 @@ button.selo-situacao:focus-visible {
 .bloco-sobre-destaque {
   color: var(--text);
   font-weight: 600;
+  text-decoration: none;
+}
+
+.bloco-sobre-destaque:hover {
+  text-decoration: underline;
 }
 
 /*

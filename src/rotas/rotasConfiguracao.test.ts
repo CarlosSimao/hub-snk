@@ -7,7 +7,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { RepositorioConfiguracaoArquivo } from '../repositorio/repositorioConfiguracaoArquivo.ts';
 import { registrarRotasDeConfiguracao } from './rotasConfiguracao.ts';
 
-const CONFIGURACAO_SEM_ABERTURA_DE_LINKS = {
+const CONFIGURACAO_SEM_DESTINO_DOS_LINKS = {
   scriptPadrao: '',
   intervaloDeExecucaoAutomaticaSegundos: 30,
   tempoLimiteSegundos: 5,
@@ -26,35 +26,27 @@ afterEach(async () => {
   await rm(diretorio, { recursive: true, force: true });
 });
 
-describe('PUT /api/configuracao — abertura de links', () => {
+describe('PUT /api/configuracao — destino dos links', () => {
   it('aplica o padrão quando a tela não manda a escolha', async () => {
     const resposta = await servidor.inject({
       method: 'PUT',
       url: '/api/configuracao',
-      payload: CONFIGURACAO_SEM_ABERTURA_DE_LINKS,
+      payload: CONFIGURACAO_SEM_DESTINO_DOS_LINKS,
     });
 
     assert.equal(resposta.statusCode, 200);
-    assert.deepEqual(resposta.json().aberturaDeLinks, {
-      bases: 'hub',
-      linksGerais: 'navegador-padrao',
-      linksDeProjeto: 'navegador-padrao',
-    });
+    assert.equal(resposta.json().destinoDosLinks, 'hub');
   });
 
-  it('completa com o padrão o tipo de link que faltou', async () => {
+  it('grava a escolha mandada', async () => {
     const resposta = await servidor.inject({
       method: 'PUT',
       url: '/api/configuracao',
-      payload: { ...CONFIGURACAO_SEM_ABERTURA_DE_LINKS, aberturaDeLinks: { linksGerais: 'hub' } },
+      payload: { ...CONFIGURACAO_SEM_DESTINO_DOS_LINKS, destinoDosLinks: 'navegador-padrao' },
     });
 
     assert.equal(resposta.statusCode, 200);
-    assert.deepEqual(resposta.json().aberturaDeLinks, {
-      bases: 'hub',
-      linksGerais: 'hub',
-      linksDeProjeto: 'navegador-padrao',
-    });
+    assert.equal(resposta.json().destinoDosLinks, 'navegador-padrao');
   });
 
   it('recusa um destino desconhecido', async () => {
@@ -62,8 +54,8 @@ describe('PUT /api/configuracao — abertura de links', () => {
       method: 'PUT',
       url: '/api/configuracao',
       payload: {
-        ...CONFIGURACAO_SEM_ABERTURA_DE_LINKS,
-        aberturaDeLinks: { bases: 'firefox' },
+        ...CONFIGURACAO_SEM_DESTINO_DOS_LINKS,
+        destinoDosLinks: 'firefox',
       },
     });
 

@@ -117,7 +117,7 @@ veja [Backup na nuvem](docs/funcionalidades.md#backup-na-nuvem).
 
 O backend escuta só em `127.0.0.1`, e a razão é o que ele faz: **não tem
 autenticação**, devolve o cadastro inteiro — senhas em texto puro incluídas — a
-quem pedir, e abre programas do seu computador (IntelliJ, DataGrip, terminal,
+quem pedir, e abre programas do seu computador (a IDE configurada, terminal,
 gerenciador de arquivos) a pedido de quem chama a API. Um `HUB_HOST` fora do
 loopback é recusado na largada.
 
@@ -152,7 +152,7 @@ Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 | **Guias do Sankhya**        | Sankhya Om e Experience dentro do aplicativo; cada base de cliente numa guia isolada, com usuário e senha preenchidos            |
 | **Agenda de Recursos**      | Consultada de dentro da guia do Sankhya Om já logada, cruzada com a Experience no calendário de cada cliente                     |
 | **Importação de favoritos** | Transforma favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, deduzindo Produção ou Teste do nome                     |
-| **Botões do repositório**   | Abrem a pasta, o terminal (rodando o script padrão) e o IntelliJ; e editam o `.sankhya-mcp.env` do MCP Claude                    |
+| **Botões do repositório**   | Abrem a pasta, o terminal (rodando o script padrão) e a IDE configurada; e editam o `.sankhya-mcp.env` do MCP Claude             |
 | **Atalhos**                 | Lista de programas da sua máquina, iniciados com um clique pelo botão de raio, com busca a partir de seis cadastrados            |
 | **Bases locais (Local)**    | Ligam, param e reiniciam o WildFly da sua máquina, com a situação do serviço, o log ao vivo e o `.sankhya-mcp.env` da instalação |
 | **Bancos locais (Local)**   | Ligam, param e reiniciam o container Docker do banco, conferindo se ele responde login com as credenciais cadastradas            |

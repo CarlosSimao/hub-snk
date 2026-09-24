@@ -42,20 +42,19 @@ cadastro.
         "caminhoDoExecutavel": "C:\\Program Files\\JetBrains\\DataGrip\\bin\\datagrip64.exe"
       }
     ],
-    "aberturaDeLinks": {
-      "bases": "hub",
-      "linksGerais": "navegador-padrao",
-      "linksDeProjeto": "navegador-padrao"
-    }
+    "destinoDosLinks": "hub",
+    "caminhoDoExecutavelDaIde": "C:\\Program Files\\JetBrains\\IntelliJ IDEA\\bin\\idea64.exe"
   }
 }
 ```
 
-`aberturaDeLinks` diz onde cada tipo de link abre quando é clicado no aplicativo
-desktop: `hub` (guia do aplicativo) ou `navegador-padrao` (o navegador do
-sistema). Arquivo de antes deste campo, ou com um valor desconhecido num dos
-tipos, vale o padrão acima naquele tipo — é o que o HUB SNK fazia antes de a
-escolha existir.
+`destinoDosLinks` diz onde todo link clicável do cadastro abre no aplicativo
+desktop — bases, repositório, links gerais e de projeto: `hub` (guia do
+aplicativo) ou `navegador-padrao` (o navegador do sistema). Arquivo de antes
+deste campo, ou com um valor desconhecido, vale `hub`.
+
+`caminhoDoExecutavelDaIde` é o executável chamado pelo botão **Abrir IDE** de
+cada repositório, com a pasta como argumento. Vazio desliga o botão.
 
 ## Cadastro de clientes
 

@@ -34,8 +34,8 @@ Verificado em execução, não precisa de ação:
   executado.
 - Atalho apontando para arquivo sem bit de execução: delegado ao `xdg-open`,
   como projetado.
-- Ausência de `zenity`, `kdialog`, terminal ou IntelliJ produz os erros de
-  domínio corretos, que viram 503 na API.
+- Ausência de `zenity`, `kdialog`, terminal ou executável da IDE produz os
+  erros de domínio corretos, que viram 503 na API.
 - Finais de linha: o `*.sh text eol=lf` do `.gitattributes` está correto — os
   scripts rodaram sem o problema de shebang com `\r`.
 

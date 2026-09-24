@@ -32,6 +32,10 @@ versão antiga e mantém o cadastro onde está.
   padrão do sistema. Padrão: bases no HUB SNK, links no navegador padrão.
 - Links do painel que não estão no cadastro (GitHub, página de release) abrem no
   navegador do sistema.
+- **Executável da IDE**, na aba Geral das configurações: o botão **Abrir IDE** de
+  cada repositório passa a chamar o executável cadastrado ali, com a pasta como
+  argumento — funciona com qualquer IDE (IntelliJ IDEA, VS Code, WebStorm, Rider
+  e outras), em vez de só tentar descobrir o IntelliJ sozinho.
 
 ### Alterado
 

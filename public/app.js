@@ -155,8 +155,7 @@ const ICONES = {
   pasta: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z',
   terminal: 'M4 17l6-6-6-6 M12 19h8',
   /* Chaves de bloco de código: o botão que abre o projeto na IDE. */
-  intellij:
-    'M10 4h-.5a2 2 0 0 0-2 2v3.2a2 2 0 0 1-2 2 2 2 0 0 1 2 2V17a2 2 0 0 0 2 2h.5 M14 4h.5a2 2 0 0 1 2 2v3.2a2 2 0 0 0 2 2 2 2 0 0 0-2 2V17a2 2 0 0 1-2 2H14',
+  ide: 'M10 4h-.5a2 2 0 0 0-2 2v3.2a2 2 0 0 1-2 2 2 2 0 0 1 2 2V17a2 2 0 0 0 2 2h.5 M14 4h.5a2 2 0 0 1 2 2v3.2a2 2 0 0 0 2 2 2 2 0 0 0-2 2V17a2 2 0 0 1-2 2H14',
   banco:
     'M12 8c4.97 0 9-1.34 9-3s-4.03-3-9-3-9 1.34-9 3 4.03 3 9 3z M3 5v7c0 1.66 4.03 3 9 3s9-1.34 9-3V5 M3 12v7c0 1.66 4.03 3 9 3s9-1.34 9-3v-7',
   plugue: 'M9 2v6 M15 2v6 M6 8h12v3a6 6 0 0 1-12 0z M12 17v5',
@@ -389,9 +388,9 @@ const elementos = {
     'campo-intervalo-execucao-automatica',
   ),
   campoTempoLimite: document.getElementById('campo-tempo-limite'),
-  campoAberturaBases: document.getElementById('campo-abertura-bases'),
-  campoAberturaLinksGerais: document.getElementById('campo-abertura-links-gerais'),
-  campoAberturaLinksDeProjeto: document.getElementById('campo-abertura-links-de-projeto'),
+  campoDestinoDosLinks: document.getElementById('campo-destino-dos-links'),
+  campoCaminhoExecutavelDaIde: document.getElementById('campo-caminho-executavel-ide'),
+  botaoSelecionarExecutavelDaIde: document.getElementById('btn-selecionar-executavel-ide'),
   campoCaminhoSchemaMcp: document.getElementById('campo-caminho-schema-mcp'),
   campoConfigMcpHost: document.getElementById('campo-config-mcp-host'),
   campoConfigMcpPorta: document.getElementById('campo-config-mcp-port'),
@@ -738,8 +737,8 @@ const api = {
       metodo: 'POST',
     }),
 
-  abrirIntelliJDoRepositorio: (idDoCliente, idDoRepositorio) =>
-    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/repositorios/${idDoRepositorio}/abrir-intellij`, {
+  abrirIdeDoRepositorio: (idDoCliente, idDoRepositorio) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/repositorios/${idDoRepositorio}/abrir-ide`, {
       metodo: 'POST',
     }),
 
@@ -1292,14 +1291,14 @@ function criarAcoesDeUsoDoRepositorio(cliente, repositorio) {
       ),
   );
 
-  const botaoDeIntelliJ = criarBotaoDeIcone(
+  const botaoDeIde = criarBotaoDeIcone(
     'btn tiny',
-    ICONES.intellij,
-    `Abrir ${repositorio.caminhoLocal} no IntelliJ IDEA`,
+    ICONES.ide,
+    `Abrir IDE em ${repositorio.caminhoLocal}`,
     () =>
       executarAcaoDoSistema(
-        () => api.abrirIntelliJDoRepositorio(cliente.id, repositorio.id),
-        botaoDeIntelliJ,
+        () => api.abrirIdeDoRepositorio(cliente.id, repositorio.id),
+        botaoDeIde,
       ),
   );
 
@@ -1311,7 +1310,7 @@ function criarAcoesDeUsoDoRepositorio(cliente, repositorio) {
     () => abrirModalDeMcp(alvoDoMcpDoRepositorio(cliente, repositorio)),
   );
 
-  return [botaoDeArquivos, botaoDeShell, botaoDeIntelliJ, botaoDeMcp];
+  return [botaoDeArquivos, botaoDeShell, botaoDeIde, botaoDeMcp];
 }
 
 /* --------------------------- situação do Git ------------------------------ */
@@ -4699,8 +4698,9 @@ async function abrirModalDeConfiguracao() {
   elementos.campoScriptPadrao.value = '';
   elementos.campoIntervaloDeExecucaoAutomatica.value = INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S;
   elementos.campoTempoLimite.value = TEMPO_LIMITE_PADRAO_S;
-  preencherAberturaDeLinks(ABERTURA_DE_LINKS_PADRAO);
+  elementos.campoDestinoDosLinks.value = DESTINO_DOS_LINKS_PADRAO;
   preencherAtalhosDaConfiguracao([]);
+  elementos.campoCaminhoExecutavelDaIde.value = '';
 
   try {
     const configuracao = await api.lerConfiguracao();
@@ -4710,8 +4710,9 @@ async function abrirModalDeConfiguracao() {
       INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S;
     elementos.campoTempoLimite.value = configuracao.tempoLimiteSegundos ?? TEMPO_LIMITE_PADRAO_S;
     elementos.campoCaminhoSchemaMcp.value = configuracao.caminhoDoSchemaMcp ?? '';
-    preencherAberturaDeLinks(configuracao.aberturaDeLinks ?? ABERTURA_DE_LINKS_PADRAO);
+    elementos.campoDestinoDosLinks.value = configuracao.destinoDosLinks ?? DESTINO_DOS_LINKS_PADRAO;
     preencherAtalhosDaConfiguracao(configuracao.atalhos ?? []);
+    elementos.campoCaminhoExecutavelDaIde.value = configuracao.caminhoDoExecutavelDaIde ?? '';
   } catch (erro) {
     exibirAviso(`Não foi possível carregar as configurações: ${erro.message}`, 'erro');
     return;
@@ -4733,28 +4734,11 @@ async function abrirModalDeConfiguracao() {
 }
 
 /*
- * O mesmo padrão do servidor: é o que o HUB SNK já fazia antes de a escolha
- * existir. Quem aplica a escolha é o aplicativo desktop, na hora do clique.
+ * O mesmo padrão do servidor. Vale para todo link clicável do cadastro —
+ * bases, repositório, links gerais e de projeto. Quem aplica a escolha é o
+ * aplicativo desktop, na hora do clique.
  */
-const ABERTURA_DE_LINKS_PADRAO = {
-  bases: 'hub',
-  linksGerais: 'navegador-padrao',
-  linksDeProjeto: 'navegador-padrao',
-};
-
-function preencherAberturaDeLinks(aberturaDeLinks) {
-  elementos.campoAberturaBases.value = aberturaDeLinks.bases;
-  elementos.campoAberturaLinksGerais.value = aberturaDeLinks.linksGerais;
-  elementos.campoAberturaLinksDeProjeto.value = aberturaDeLinks.linksDeProjeto;
-}
-
-function lerAberturaDeLinks() {
-  return {
-    bases: elementos.campoAberturaBases.value,
-    linksGerais: elementos.campoAberturaLinksGerais.value,
-    linksDeProjeto: elementos.campoAberturaLinksDeProjeto.value,
-  };
-}
+const DESTINO_DOS_LINKS_PADRAO = 'hub';
 
 async function salvarConfiguracao(evento) {
   evento.preventDefault();
@@ -4793,7 +4777,8 @@ async function salvarConfiguracao(evento) {
       ),
       tempoLimiteSegundos: Number(elementos.campoTempoLimite.value),
       atalhos,
-      aberturaDeLinks: lerAberturaDeLinks(),
+      destinoDosLinks: elementos.campoDestinoDosLinks.value,
+      caminhoDoExecutavelDaIde: elementos.campoCaminhoExecutavelDaIde.value.trim(),
     });
     elementos.modalConfiguracao.close();
     exibirAviso('Configurações salvas.');
@@ -7046,6 +7031,13 @@ function registrarEventos() {
     const linha = adicionarLinhaDeAtalho({ id: '', nome: '', caminhoDoExecutavel: '' });
     linha.querySelector('input').focus();
   });
+  elementos.botaoSelecionarExecutavelDaIde.append(criarIcone(ICONES.pasta));
+  elementos.botaoSelecionarExecutavelDaIde.addEventListener('click', () =>
+    escolherExecutavelDoAtalho(
+      elementos.campoCaminhoExecutavelDaIde,
+      elementos.botaoSelecionarExecutavelDaIde,
+    ),
+  );
   elementos.botaoCancelarConfiguracao.addEventListener('click', () =>
     elementos.modalConfiguracao.close(),
   );

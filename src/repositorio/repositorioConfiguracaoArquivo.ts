@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import {
   DESTINOS_DE_LINK,
-  type AberturaDeLinks,
   type Atalho,
   type ConfiguracaoGlobal,
   type DestinoDeLink,
@@ -25,15 +24,7 @@ const INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S = 30;
 const TEMPO_LIMITE_PADRAO_S = 5;
 const MILISSEGUNDOS_POR_SEGUNDO = 1000;
 
-/*
- * O que o HUB SNK já fazia antes de a escolha existir: a base abre na guia do
- * aplicativo, com o login preenchido, e os outros links no navegador do sistema.
- */
-const ABERTURA_DE_LINKS_PADRAO: AberturaDeLinks = {
-  bases: 'hub',
-  linksGerais: 'navegador-padrao',
-  linksDeProjeto: 'navegador-padrao',
-};
+const DESTINO_DOS_LINKS_PADRAO: DestinoDeLink = 'hub';
 
 const CONFIGURACAO_INICIAL: ConfiguracaoGlobal = {
   scriptPadrao: '',
@@ -41,7 +32,8 @@ const CONFIGURACAO_INICIAL: ConfiguracaoGlobal = {
   tempoLimiteSegundos: TEMPO_LIMITE_PADRAO_S,
   caminhoDoSchemaMcp: '',
   atalhos: [],
-  aberturaDeLinks: ABERTURA_DE_LINKS_PADRAO,
+  destinoDosLinks: DESTINO_DOS_LINKS_PADRAO,
+  caminhoDoExecutavelDaIde: '',
 };
 
 /**
@@ -69,26 +61,9 @@ function ehDestinoDeLink(valor: unknown): valor is DestinoDeLink {
   return (DESTINOS_DE_LINK as readonly unknown[]).includes(valor);
 }
 
-/**
- * Campo a campo: arquivo de antes desta versão não tem a chave, e um valor
- * editado à mão que não seja um destino conhecido volta ao padrão só naquele
- * tipo de link, sem derrubar os outros.
- */
-function lerAberturaDeLinks(bruto: unknown): AberturaDeLinks {
-  const dados = (typeof bruto === 'object' && bruto !== null ? bruto : {}) as Record<
-    string,
-    unknown
-  >;
-  const destino = (chave: keyof AberturaDeLinks): DestinoDeLink => {
-    const valor = dados[chave];
-    return ehDestinoDeLink(valor) ? valor : ABERTURA_DE_LINKS_PADRAO[chave];
-  };
-
-  return {
-    bases: destino('bases'),
-    linksGerais: destino('linksGerais'),
-    linksDeProjeto: destino('linksDeProjeto'),
-  };
+/** Arquivo de antes desta versão não tem a chave, e um valor editado à mão inválido volta ao padrão. */
+function lerDestinoDosLinks(valor: unknown): DestinoDeLink {
+  return ehDestinoDeLink(valor) ? valor : DESTINO_DOS_LINKS_PADRAO;
 }
 
 /** Atalho recém-cadastrado chega sem id: é aqui que ele ganha um. */
@@ -140,7 +115,9 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       caminhoDoSchemaMcp: dados.caminhoDoSchemaMcp ?? '',
       // Idem: sem a chave no arquivo, o HUB SNK começa sem atalho nenhum.
       atalhos: dados.atalhos ?? [],
-      aberturaDeLinks: lerAberturaDeLinks(dados.aberturaDeLinks),
+      destinoDosLinks: lerDestinoDosLinks(dados.destinoDosLinks),
+      // Idem: arquivo de antes desta versão não tem IDE escolhida.
+      caminhoDoExecutavelDaIde: dados.caminhoDoExecutavelDaIde ?? '',
     };
 
     if (precisaMigrar(conteudo)) {
@@ -162,7 +139,8 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       tempoLimiteSegundos: configuracao.tempoLimiteSegundos,
       caminhoDoSchemaMcp: configuracao.caminhoDoSchemaMcp.trim(),
       atalhos: configuracao.atalhos.map(normalizarAtalho),
-      aberturaDeLinks: { ...configuracao.aberturaDeLinks },
+      destinoDosLinks: configuracao.destinoDosLinks,
+      caminhoDoExecutavelDaIde: configuracao.caminhoDoExecutavelDaIde.trim(),
     };
 
     await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);

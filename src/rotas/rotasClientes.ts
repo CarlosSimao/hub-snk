@@ -6,7 +6,11 @@ import {
   abrirPastaNoSistema,
   GerenciadorDeArquivosIndisponivelError,
 } from '../sistema/abrirPasta.ts';
-import { abrirIntelliJNaPasta, IntelliJIndisponivelError } from '../sistema/abrirIntelliJ.ts';
+import {
+  abrirIdeNaPasta,
+  IdeIndisponivelError,
+  IdeNaoConfiguradaError,
+} from '../sistema/abrirIde.ts';
 import { abrirShellNaPasta, TerminalIndisponivelError } from '../sistema/abrirShell.ts';
 import {
   estadoDoArquivoMcp,
@@ -1008,12 +1012,12 @@ export function registrarRotasDeClientes(
   );
 
   /*
-   * Abre a pasta do repositório como projeto do IntelliJ IDEA. Como nas demais
-   * ações de sistema, a pasta vem do cadastro e a requisição só diz qual
-   * repositório abrir.
+   * Abre a pasta do repositório como projeto na IDE configurada. Como nas
+   * demais ações de sistema, a pasta vem do cadastro e a requisição só diz
+   * qual repositório abrir; o executável da IDE vem da configuração global.
    */
   servidor.post(
-    '/api/clientes/:id/repositorios/:idRepositorio/abrir-intellij',
+    '/api/clientes/:id/repositorios/:idRepositorio/abrir-ide',
     async (requisicao, resposta) => {
       const parametros = esquemaDeParametrosDeRepositorio.safeParse(requisicao.params);
       if (!parametros.success) {
@@ -1030,15 +1034,16 @@ export function registrarRotasDeClientes(
       }
 
       const caminhoLocal = repositorioGit.caminhoLocal as string;
+      const { caminhoDoExecutavelDaIde } = await repositorioDeConfiguracao.ler();
 
       try {
-        await abrirIntelliJNaPasta(caminhoLocal);
+        await abrirIdeNaPasta(caminhoDoExecutavelDaIde, caminhoLocal);
         return resposta.status(204).send();
       } catch (erro) {
         if (erro instanceof PastaNaoEncontradaError) {
           return resposta.status(404).send({ mensagem: `Pasta não encontrada: ${caminhoLocal}` });
         }
-        if (erro instanceof IntelliJIndisponivelError) {
+        if (erro instanceof IdeNaoConfiguradaError || erro instanceof IdeIndisponivelError) {
           return resposta.status(503).send({ mensagem: erro.message });
         }
         throw erro;

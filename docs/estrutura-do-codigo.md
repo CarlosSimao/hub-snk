@@ -40,8 +40,7 @@ src/
   sistema/pasta.ts                          checagem de existência de diretório
   sistema/abrirPasta.ts                     abre uma pasta no gerenciador do SO
   sistema/abrirShell.ts                     abre o terminal do SO na pasta
-  sistema/lancadorJetBrains.ts              descobre e dispara launchers das IDEs JetBrains
-  sistema/abrirIntelliJ.ts                  abre a pasta como projeto no IntelliJ IDEA
+  sistema/abrirIde.ts                        abre a pasta como projeto na IDE configurada
   sistema/abrirExecutavel.ts                inicia o programa de um atalho
   sistema/selecionarArquivo.ts              abre o seletor de arquivo do SO
   sistema/selecionarPasta.ts                abre o seletor de pasta do SO

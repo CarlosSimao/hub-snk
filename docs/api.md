@@ -29,40 +29,40 @@ O servidor só escuta em loopback: um `HUB_HOST` fora dele é recusado na largad
 
 ## Rotas
 
-| Método   | Rota                                                           | Resposta                                                                |
-| -------- | -------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `GET`    | `/api/clientes`                                                | `200` — lista ordenada por nome, com as bases                           |
-| `POST`   | `/api/clientes`                                                | `201` — cliente criado                                                  |
-| `PUT`    | `/api/clientes/:id`                                            | `200` — cliente atualizado                                              |
-| `GET`    | `/api/clientes/:id`                                            | `200` — um cliente, com a situação do MCP de cada repositório           |
-| `PUT`    | `/api/clientes/:id/anotacoes`                                  | `200` — cliente com as anotações gravadas                               |
-| `DELETE` | `/api/clientes/:id`                                            | `204` — sem conteúdo                                                    |
-| `POST`   | `/api/clientes/importacao`                                     | `201` — bases criadas a partir dos favoritos do navegador               |
-| `POST`   | `/api/clientes/importacao-de-repositorios`                     | `201` — repositórios criados a partir da varredura de pastas            |
-| `POST`   | `/api/clientes/importacao-de-cadastros`                        | `201` — clientes e bases lidos de um arquivo de cadastros do HUB SNK    |
-| `POST`   | `/api/clientes/:id/bases`                                      | `201` — base criada                                                     |
-| `PUT`    | `/api/clientes/:id/bases/:idBase`                              | `200` — base atualizada                                                 |
-| `DELETE` | `/api/clientes/:id/bases/:idBase`                              | `204` — sem conteúdo                                                    |
-| `PUT`    | `/api/clientes/:id/bases/:idBase/banco`                        | `200` — banco vinculado ou substituído                                  |
-| `DELETE` | `/api/clientes/:id/bases/:idBase/banco`                        | `204` — banco desvinculado                                              |
-| `POST`   | `/api/clientes/:id/repositorios`                               | `201` — repositório criado                                              |
-| `PUT`    | `/api/clientes/:id/repositorios/:idRepositorio`                | `200` — repositório atualizado                                          |
-| `DELETE` | `/api/clientes/:id/repositorios/:idRepositorio`                | `204` — sem conteúdo                                                    |
-| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-pasta`    | `204` — pasta aberta; `503` quando o gerenciador falta                  |
-| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-shell`    | `204` — terminal aberto; `503` quando nenhum abre                       |
-| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-intellij` | `204` — projeto aberto; `503` sem IntelliJ                              |
-| `GET`    | `/api/clientes/:id/repositorios/:idRepositorio/mcp`            | `200` — conteúdo do `.sankhya-mcp.env`                                  |
-| `PUT`    | `/api/clientes/:id/repositorios/:idRepositorio/mcp`            | `204` — arquivo criado ou sobrescrito                                   |
-| `POST`   | `/api/clientes/:id/links`                                      | `201` — link criado                                                     |
-| `PUT`    | `/api/clientes/:id/links/:idLink`                              | `200` — link atualizado                                                 |
-| `DELETE` | `/api/clientes/:id/links/:idLink`                              | `204` — sem conteúdo                                                    |
-| `GET`    | `/api/situacao-git?forcar=true`                                | `200` — situação Git dos repositórios com pasta local, indexada pelo id |
-| `GET`    | `/api/configuracao`                                            | `200` — configuração global                                             |
-| `PUT`    | `/api/configuracao`                                            | `200` — configuração salva                                              |
-| `POST`   | `/api/atalhos/selecionar-executavel`                           | `200` — caminho escolhido; `204` quando cancelado                       |
-| `POST`   | `/api/atalhos/:id/abrir`                                       | `204` — programa iniciado; `503` se ele não subir                       |
-| `GET`    | `/api/sistema/versao`                                          | `200` — `{ "versao": "1.0.0" }`, a mesma exibida no rodapé              |
-| `GET`    | `/api/sistema/atualizacao`                                     | `200` — comparação com a última release publicada no GitHub             |
+| Método   | Rota                                                        | Resposta                                                                |
+| -------- | ----------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `GET`    | `/api/clientes`                                             | `200` — lista ordenada por nome, com as bases                           |
+| `POST`   | `/api/clientes`                                             | `201` — cliente criado                                                  |
+| `PUT`    | `/api/clientes/:id`                                         | `200` — cliente atualizado                                              |
+| `GET`    | `/api/clientes/:id`                                         | `200` — um cliente, com a situação do MCP de cada repositório           |
+| `PUT`    | `/api/clientes/:id/anotacoes`                               | `200` — cliente com as anotações gravadas                               |
+| `DELETE` | `/api/clientes/:id`                                         | `204` — sem conteúdo                                                    |
+| `POST`   | `/api/clientes/importacao`                                  | `201` — bases criadas a partir dos favoritos do navegador               |
+| `POST`   | `/api/clientes/importacao-de-repositorios`                  | `201` — repositórios criados a partir da varredura de pastas            |
+| `POST`   | `/api/clientes/importacao-de-cadastros`                     | `201` — clientes e bases lidos de um arquivo de cadastros do HUB SNK    |
+| `POST`   | `/api/clientes/:id/bases`                                   | `201` — base criada                                                     |
+| `PUT`    | `/api/clientes/:id/bases/:idBase`                           | `200` — base atualizada                                                 |
+| `DELETE` | `/api/clientes/:id/bases/:idBase`                           | `204` — sem conteúdo                                                    |
+| `PUT`    | `/api/clientes/:id/bases/:idBase/banco`                     | `200` — banco vinculado ou substituído                                  |
+| `DELETE` | `/api/clientes/:id/bases/:idBase/banco`                     | `204` — banco desvinculado                                              |
+| `POST`   | `/api/clientes/:id/repositorios`                            | `201` — repositório criado                                              |
+| `PUT`    | `/api/clientes/:id/repositorios/:idRepositorio`             | `200` — repositório atualizado                                          |
+| `DELETE` | `/api/clientes/:id/repositorios/:idRepositorio`             | `204` — sem conteúdo                                                    |
+| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-pasta` | `204` — pasta aberta; `503` quando o gerenciador falta                  |
+| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-shell` | `204` — terminal aberto; `503` quando nenhum abre                       |
+| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-ide`   | `204` — projeto aberto; `503` sem IDE configurada ou indisponível       |
+| `GET`    | `/api/clientes/:id/repositorios/:idRepositorio/mcp`         | `200` — conteúdo do `.sankhya-mcp.env`                                  |
+| `PUT`    | `/api/clientes/:id/repositorios/:idRepositorio/mcp`         | `204` — arquivo criado ou sobrescrito                                   |
+| `POST`   | `/api/clientes/:id/links`                                   | `201` — link criado                                                     |
+| `PUT`    | `/api/clientes/:id/links/:idLink`                           | `200` — link atualizado                                                 |
+| `DELETE` | `/api/clientes/:id/links/:idLink`                           | `204` — sem conteúdo                                                    |
+| `GET`    | `/api/situacao-git?forcar=true`                             | `200` — situação Git dos repositórios com pasta local, indexada pelo id |
+| `GET`    | `/api/configuracao`                                         | `200` — configuração global                                             |
+| `PUT`    | `/api/configuracao`                                         | `200` — configuração salva                                              |
+| `POST`   | `/api/atalhos/selecionar-executavel`                        | `200` — caminho escolhido; `204` quando cancelado                       |
+| `POST`   | `/api/atalhos/:id/abrir`                                    | `204` — programa iniciado; `503` se ele não subir                       |
+| `GET`    | `/api/sistema/versao`                                       | `200` — `{ "versao": "1.0.0" }`, a mesma exibida no rodapé              |
+| `GET`    | `/api/sistema/atualizacao`                                  | `200` — comparação com a última release publicada no GitHub             |
 
 ## Integração com o Sankhya e com o aplicativo desktop
 
@@ -232,7 +232,7 @@ Erros retornam `{ "mensagem": "..." }` com `400` (dados inválidos), `403`
 (origem recusada), `404` (cliente ou base inexistente), `409` (conflito) ou
 `503` (recurso indisponível). O `503` também sai quando o aplicativo desktop não
 responde — com `shellIndisponivel: true` — e cobre as rotas que
-abrem programa da máquina — gerenciador de arquivos, terminal, IntelliJ, seletor
+abrem programa da máquina — gerenciador de arquivos, terminal, IDE, seletor
 de arquivo e de pasta, atalho — quando o programa não existe ou não chega a
 subir; a mensagem diz o que instalar. São
 conflito o nome de cliente repetido, o par URL + usuário repetido nas bases do

@@ -92,14 +92,17 @@ const esquemaDeConfiguracao = z.object({
     .default(''),
   /* Ausente vale como lista vazia, pelo mesmo motivo do caminho do MCP. */
   atalhos: z.array(esquemaDeAtalho).default([]),
-  /* Ausente, ou sem um dos tipos, vale o que o HUB SNK já fazia antes da escolha. */
-  aberturaDeLinks: z
-    .object({
-      bases: esquemaDeDestinoDeLink.default('hub'),
-      linksGerais: esquemaDeDestinoDeLink.default('navegador-padrao'),
-      linksDeProjeto: esquemaDeDestinoDeLink.default('navegador-padrao'),
-    })
-    .prefault({}),
+  /* Ausente ou vazio desliga o botão "Abrir IDE" dos repositórios. */
+  caminhoDoExecutavelDaIde: z
+    .string()
+    .trim()
+    .max(
+      TAMANHO_MAXIMO_DO_CAMINHO,
+      `O caminho deve ter no máximo ${TAMANHO_MAXIMO_DO_CAMINHO} caracteres.`,
+    )
+    .default(''),
+  /* Vale para todo link clicável do cadastro: bases, repositório, links gerais e de projeto. */
+  destinoDosLinks: esquemaDeDestinoDeLink.default('hub'),
 });
 
 /**

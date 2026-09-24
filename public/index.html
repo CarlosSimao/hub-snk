@@ -615,50 +615,52 @@
               <input id="campo-tempo-limite" type="number" min="1" max="60" />
             </div>
 
-            <div class="campo campo-estreito">
-              <label for="campo-abertura-bases">
-                Abrir as bases em
+            <div class="campo">
+              <label for="campo-caminho-executavel-ide">
+                Executável da IDE
+                <span class="opcional">opcional</span>
                 <span class="dica" tabindex="0"
                   >?<span class="dica-texto" role="tooltip"
-                    >Navegador do HUB SNK: cada base abre numa guia do aplicativo, isolada das
-                    outras, com usuário e senha já preenchidos. Navegador padrão: abre no navegador
-                    do sistema, sem o preenchimento.</span
+                    >Executável aberto pelo botão "Abrir IDE" de cada repositório, já com a pasta
+                    carregada como projeto. Funciona com qualquer IDE que aceite a pasta como
+                    argumento de linha de comando: IntelliJ IDEA, VS Code, WebStorm, Rider e outras.
+                    Vazio desliga o botão.</span
                   ></span
                 >
               </label>
-              <select id="campo-abertura-bases">
-                <option value="hub">Navegador do HUB SNK</option>
-                <option value="navegador-padrao">Navegador padrão</option>
-              </select>
+              <div class="campo-com-botao">
+                <input
+                  id="campo-caminho-executavel-ide"
+                  type="text"
+                  maxlength="400"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="Ex.: C:\Program Files\JetBrains\IntelliJ IDEA\bin\idea64.exe"
+                />
+                <button
+                  class="btn tiny botao-icone"
+                  id="btn-selecionar-executavel-ide"
+                  type="button"
+                  title="Escolher o executável"
+                  aria-label="Escolher o executável"
+                ></button>
+              </div>
             </div>
 
             <div class="campo campo-estreito">
-              <label for="campo-abertura-links-gerais">
-                Abrir os links gerais em
+              <label for="campo-destino-dos-links">
+                Abrir os links em
                 <span class="dica" tabindex="0"
                   >?<span class="dica-texto" role="tooltip"
-                    >Os links cadastrados em Links gerais de cada cliente. No HUB SNK, abrem numa
-                    guia do aplicativo; no navegador padrão, abrem com a sessão e o login único
-                    (SSO) que você já usa nele.</span
+                    >Vale para todo link clicável do cadastro: bases, repositórios, links gerais e
+                    links de projeto. Navegador do HUB SNK: abre numa guia do aplicativo — bases
+                    isoladas das outras, com usuário e senha já preenchidos. Navegador padrão: abre
+                    no navegador do sistema, com a sessão e o login único (SSO) que você já usa
+                    nele, mas sem o preenchimento das bases.</span
                   ></span
                 >
               </label>
-              <select id="campo-abertura-links-gerais">
-                <option value="hub">Navegador do HUB SNK</option>
-                <option value="navegador-padrao">Navegador padrão</option>
-              </select>
-            </div>
-
-            <div class="campo campo-estreito">
-              <label for="campo-abertura-links-de-projeto">
-                Abrir os links de projeto em
-                <span class="dica" tabindex="0"
-                  >?<span class="dica-texto" role="tooltip"
-                    >Os links cadastrados em Links do projeto. Mesmas opções dos links gerais.</span
-                  ></span
-                >
-              </label>
-              <select id="campo-abertura-links-de-projeto">
+              <select id="campo-destino-dos-links">
                 <option value="hub">Navegador do HUB SNK</option>
                 <option value="navegador-padrao">Navegador padrão</option>
               </select>
@@ -789,7 +791,13 @@
             <section class="bloco-sobre">
               <h3 class="bloco-sobre-titulo">Versão</h3>
               <div class="bloco-sobre-corpo">
-                <span class="bloco-sobre-destaque">HUB SNK <span id="rodape-versao"></span></span>
+                <a
+                  class="bloco-sobre-destaque"
+                  href="https://github.com/CarlosSimao/hub-snk"
+                  target="_blank"
+                  rel="noreferrer"
+                  >HUB SNK <span id="rodape-versao"></span
+                ></a>
                 <a
                   class="rodape-atualizacao"
                   id="rodape-atualizacao"
@@ -801,7 +809,7 @@
             </section>
 
             <section class="bloco-sobre">
-              <h3 class="bloco-sobre-titulo">Powered by</h3>
+              <h3 class="bloco-sobre-titulo">Desenvolvido por</h3>
               <div class="bloco-sobre-corpo">
                 <a
                   class="rodape-link"
@@ -823,6 +831,9 @@
                   rel="noreferrer"
                   >Reportar problema</a
                 >
+                <a class="rodape-link" href="mailto:carlos.snuk@gmail.com">
+                  carlos.snuk@gmail.com
+                </a>
               </div>
             </section>
           </div>
