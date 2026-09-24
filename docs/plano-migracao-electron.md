@@ -204,7 +204,10 @@ O frontend passa a rodar só dentro do shell (D5), então não há modo condicio
   - [ ] `appId` `br.dev.hubsnk.desktop`, `productName`/`shortcutName` "HUB SNK", `artifactName` `HUB-SNK-Setup-${version}.${ext}` (D1).
   - [ ] Manter as duas entradas de `extraResources` (`build/hub` e `build/hub/node_modules`), que são obrigatórias.
   - [ ] Manter `build/git-autosync` no `extraResources` e o `include: installer.nsh` (D7).
-  - [ ] Git AutoSync: o repositório **não está nesta máquina** (o padrão do `preparar-autosync.mjs` é `C:\Workspace\scripts\git-autosync`). Obter o repositório, gerar os binários (`python/dist`, PyInstaller; o Linux precisa ser montado no Linux) e apontar `GIT_AUTOSYNC_DIR`. Sem ele, só `empacotar:sem-autosync` funciona.
+  - [x] Git AutoSync: repositório `https://github.com/FlavianoRS/git-autosync` clonado em `C:\Workspace\scripts\git-autosync` (o caminho padrão do `preparar-autosync.mjs`).
+    - **Usar a branch `master` (4.0.0), não a `main` (3.10.0, a padrão do GitHub).** Só a `master` tem o `installer/install-standalone.ps1` que o `installer.nsh` chama. As duas divergiram: a `master` tem 11 commits que a `main` não tem, e a `main` tem 3 que a `master` não tem. Avisar o Flaviano para unificar.
+    - Binários gerados com `pythonuild_windows.ps1`, num venv em `python\.venv` (Python 3.14.6, PyInstaller 6.22.3, dependências do `requirements-dev.txt`), sem instalar nada no Python global: `git-autosync.exe` (19,7 MB) e `git-autosync-sync.exe` (9,0 MB).
+    - `node scripts/preparar-autosync.mjs` montou o `desktop/build/git-autosync` e o `gas-version.nsh` (`GAS_VERSION "4.0.0"`).
   - [ ] Validar a página de componentes do instalador (instalar, tarefa diária, bandeja, atalhos, skills, PATH) e a desinstalação do autosync pelo NSIS.
   - [ ] CI (`distribuicao.yml`): de onde vêm os binários do Git AutoSync no build de release (checkout do outro repositório ou artefato publicado).
   - [ ] Alvos: NSIS (Windows x64), AppImage + deb (Linux x64). Sem `dmg` (D6).
