@@ -1,15 +1,15 @@
 /**
  * Preenche usuário/senha na tela de login de uma base de cliente, quando já guardados
- * no cadastro do HUB SNK (`clientes.json`). Só preenche — nunca aperta o
- * botão de login: um seletor errado numa base com HTML diferente não pode disparar uma
- * tentativa de login sozinho.
+ * no cadastro do HUB SNK (`clientes.json`).
  *
  * O login do Sankhya Om é em DUAS etapas (usuário, "Prosseguir", só então aparece o
- * campo de senha) — confirmado testando de verdade com uma base real. Por isso não dá
- * pra rodar o preenchimento uma vez só logo depois do carregamento: é preciso continuar
- * observando a página enquanto a aba estiver aberta, porque o campo de senha só existe
- * depois de o usuário clicar "Prosseguir" manualmente na etapa 1 (nunca clicamos por
- * ele).
+ * campo de senha) — confirmado testando de verdade com uma base real. Por isso, depois
+ * de preencher o usuário, o próprio autofill clica no botão que avança para a etapa 2 —
+ * do contrário a senha ficaria esperando um clique manual. O clique só acontece uma vez,
+ * na mesma checagem que já confirmou tratar-se de tela de login (poucos campos de texto,
+ * exatamente um vazio): o candidato a botão é o que tem texto de "prosseguir" (ou
+ * equivalente), e só na ausência de um assim é que um botão único na tela é aceito —
+ * nunca um clique às cegas em página com vários botões visíveis.
  *
  * A senha só existe em texto claro entre esta função e a página de destino: nunca passa
  * pelo preload, pelo renderer da UI local, nem é logada — `logEvento` abaixo só recebe
@@ -71,10 +71,10 @@ function scriptAutofillTick(usuario: string, senha: string, jaPreencheuUsuario: 
       // Component com Shadow DOM — 'document.querySelectorAll' sozinho não enxerga
       // nada lá dentro. Desce recursivamente por qualquer shadow root ABERTA
       // (shadowRoot fechada não tem contorno possível a partir daqui).
-      const todosInputs = () => {
+      const todos = (seletor) => {
         const achados = [];
         const visitar = (raiz) => {
-          for (const el of raiz.querySelectorAll('input')) achados.push(el);
+          for (const el of raiz.querySelectorAll(seletor)) achados.push(el);
           for (const el of raiz.querySelectorAll('*')) {
             if (el.shadowRoot) visitar(el.shadowRoot);
           }
@@ -82,8 +82,22 @@ function scriptAutofillTick(usuario: string, senha: string, jaPreencheuUsuario: 
         visitar(document);
         return achados;
       };
+      const todosInputs = () => todos('input');
       const ehTexto = (el) => el.tagName === 'INPUT' && (!el.type || el.type === 'text' || el.type === 'email');
       const textos = () => todosInputs().filter(ehTexto).filter(visivel);
+
+      // Botão que avança para a etapa 2 (senha): o de texto "prosseguir"/"continuar"/
+      // "avançar" é preferido por nome; sem um assim, só um botão visível na tela — a
+      // essa altura já confirmada como tela de login pela contagem de campos de texto —
+      // é aceito. Duas ou mais opções sem nome reconhecido são ambíguas demais pra clicar.
+      const botaoDeProsseguir = () => {
+        const candidatos = todos('button, input[type="submit"], [role="button"]').filter(visivel);
+        const porTexto = candidatos.find((el) =>
+          /prosseguir|continuar|avan[cç]ar/i.test((el.innerText || el.value || '').trim()),
+        );
+        if (porTexto) return porTexto;
+        return candidatos.length === 1 ? candidatos[0] : null;
+      };
 
       const senhaEl = todosInputs().find((el) => el.type === 'password' && visivel(el));
       if (senhaEl) {
@@ -111,7 +125,9 @@ function scriptAutofillTick(usuario: string, senha: string, jaPreencheuUsuario: 
       const vazios = camposDeTexto.filter((el) => !el.value);
       if (vazios.length === 1) {
         setar(vazios[0], ${usuarioJson});
-        return { ok: true, etapa: 'usuario' };
+        const botao = botaoDeProsseguir();
+        if (botao) botao.click();
+        return { ok: true, etapa: 'usuario', clicouProsseguir: !!botao };
       }
       return { ok: false, motivo: vazios.length > 1 ? 'ambiguo' : 'sem-campo-reconhecido' };
     } catch (e) {
@@ -120,8 +136,12 @@ function scriptAutofillTick(usuario: string, senha: string, jaPreencheuUsuario: 
   })()`;
 }
 
-/** Observa por até esse tanto de tempo — generoso o bastante pro usuário clicar
- * "Prosseguir" na etapa 1 sem pressa, mas não roda pra sempre numa aba esquecida aberta. */
+/**
+ * Observa por até esse tanto de tempo. O clique em "Prosseguir" é automático, mas a
+ * página pode demorar a carregar ou, num layout sem botão reconhecível, esperar o
+ * usuário clicar na mão — generoso o bastante pros dois casos, mas sem rodar pra sempre
+ * numa aba esquecida aberta.
+ */
 const JANELA_OBSERVACAO_MS = 90_000;
 const INTERVALO_MS = 1_000;
 
@@ -163,6 +183,7 @@ export async function tentarAutofill(view: WebContentsView, info: InfoBaseClient
           ok: boolean;
           etapa?: string;
           motivo?: string;
+          clicouProsseguir?: boolean;
         };
         if (resultado.ok && resultado.etapa === 'senha') {
           clearInterval(intervalo);
@@ -172,6 +193,7 @@ export async function tentarAutofill(view: WebContentsView, info: InfoBaseClient
           logEvento('autofill-preencheu-usuario', {
             clienteId: info.clienteId,
             baseId: info.baseId,
+            clicouProsseguir: resultado.clicouProsseguir ?? false,
           });
         } else if (resultado.motivo) {
           ultimoMotivo = resultado.motivo;
