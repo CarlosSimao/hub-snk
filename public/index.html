@@ -7,8 +7,6 @@
     <meta name="theme-color" content="#070b14" />
     <title>HUB SNK</title>
     <link rel="icon" href="/img/icone-192.png" />
-    <link rel="apple-touch-icon" href="/img/icone-192.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -172,8 +170,9 @@
         </div>
 
         <div class="secao-recursos">
-          <p class="aviso-helper" id="aviso-helper-agenda" hidden>
-            Helper indisponível. Confira se o <code>hub-helper.ps1</code> está rodando.
+          <p class="aviso-shell" id="aviso-shell-agenda" hidden>
+            A consulta ao Sankhya precisa do aplicativo HUB SNK aberto, com login feito na guia
+            Sankhya Om.
           </p>
           <!-- Navegação de mês, calendário e detalhe do dia são montados pelo app.js
                (`criarWidgetDeAgenda`) — o mesmo widget usado na aba Agenda do cadastro
@@ -794,13 +793,15 @@
         <h2>Credenciais Sankhya</h2>
         <p>
           Login usado pelo HUB SNK para capturar sessão no ERP e na Experience. A senha é cifrada
-          pelo helper do Windows — nunca fica em texto puro aqui.
+          pelo cofre do sistema operacional, pelo aplicativo HUB SNK — nunca fica em texto puro
+          aqui.
         </p>
       </div>
 
       <div class="modal-corpo">
-        <p class="aviso-helper" id="aviso-helper-sankhya" hidden>
-          Helper indisponível. Confira se o <code>hub-helper.ps1</code> está rodando.
+        <p class="aviso-shell" id="aviso-shell-sankhya" hidden>
+          O aplicativo HUB SNK não está respondendo. As credenciais e as guias do Sankhya só
+          funcionam com o painel aberto por ele.
         </p>
 
         <section class="cartao-credencial" data-sistema="sankhya-erp">
@@ -835,9 +836,7 @@
             <button class="btn ghost" type="button" data-papel="salvar">Salvar credencial</button>
             <button class="btn ghost" type="button" data-papel="remover">Remover</button>
             <span class="rodape-espacador"></span>
-            <button class="btn ghost" type="button" data-papel="abrir-navegador">
-              Abrir navegador
-            </button>
+            <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
             <button class="btn ghost" type="button" data-papel="capturar-sessao">
               Capturar sessão
             </button>
@@ -878,9 +877,7 @@
             <button class="btn ghost" type="button" data-papel="salvar">Salvar credencial</button>
             <button class="btn ghost" type="button" data-papel="remover">Remover</button>
             <span class="rodape-espacador"></span>
-            <button class="btn ghost" type="button" data-papel="abrir-navegador">
-              Abrir navegador
-            </button>
+            <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
             <button class="btn ghost" type="button" data-papel="capturar-sessao">
               Capturar sessão
             </button>
@@ -888,14 +885,9 @@
 
           <p class="erro-formulario" data-papel="erro" hidden></p>
         </section>
-
-        <p class="texto-auxiliar" id="status-navegador-sankhya"></p>
       </div>
 
       <div class="modal-rodape">
-        <button class="btn ghost" type="button" id="btn-fechar-navegador-sankhya">
-          Fechar navegador
-        </button>
         <span class="rodape-espacador"></span>
         <button class="btn primario" type="button" id="btn-fechar-credenciais-sankhya">
           Fechar

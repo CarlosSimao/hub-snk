@@ -183,11 +183,15 @@ A meta é provar que o backend da `dev` roda do jeito que o shell vai executá-l
 
 O frontend passa a rodar só dentro do shell (D5), então não há modo condicional por `?desktop=1`.
 
-- [ ] Remover o registro do `sw.js` no `app.js` (`:7211-7219`) e incluir um desregistro único de SW remanescente, para quem abrir pelo menu "Abrir o painel no navegador" com cache antigo do Edge/Chrome.
-- [ ] Trocar as ações de login/captura pelo navegador externo do helper por "abrir na aba ERP/Experience".
-- [ ] Trocar as mensagens de `helperIndisponivel` (`index.html:176,803`) pelo estado do bridge.
-- [ ] Links de base (`app.js:850,1585`) continuam `target=_blank`: o shell os converte em aba com autofill. Validar.
-- [ ] Remover do `index.html` o link do `manifest.webmanifest` e as metas de PWA.
+- [x] Registro do `sw.js` removido do `app.js`. No lugar, `removerServiceWorkerDaVersaoPwa()` desfaz qualquer registro que tenha sobrado, para quem abrir o painel num navegador com o cache da versão PWA. Validado no app: nenhum SW registrado.
+- [x] Login e captura: o botão "Abrir navegador" virou **"Abrir guia"**, que troca para a guia Sankhya Om/Experience do app (validado). "Capturar sessão" continua. O botão "Fechar navegador" saiu, porque no shell era um no-op.
+- [x] Aviso de indisponibilidade: `helperIndisponivel` virou `shellIndisponivel` (backend e tela), `/api/sankhya/helper` virou `/api/sankhya/shell`, e `aviso-helper-*`/`.aviso-helper` viraram `aviso-shell-*`/`.aviso-shell`. Os textos passaram a falar do aplicativo HUB SNK. Validado com o backend sozinho: 503 com `shellIndisponivel: true` e `disponivel: false`.
+- [x] Linha "Navegador aberto (N guias)" removida do modal. A troca por um status por guia foi testada e descartada: a heurística do shell (URL sem "login" = logado) marcou o ERP como **logado com a tela de login aberta**. Sem sinal confiável, a linha mentiria. Saíram junto `GET /api/sankhya/navegador`, `Credenciais.statusNavegador` e os tipos `StatusNavegador`/`AbaNavegador`. No bridge sobra o `/browser/status`, sem uso pela `dev`.
+- [x] Rotas do bridge sem uso removidas: `POST /browser/fechar` e `POST /browser/favoritos` (no-ops). `GET /browser/favoritos` fica; a `dev` lê os favoritos pelo arquivo escolhido na tela.
+- [x] Links de base (`app.js:850,1585`) continuam `target=_blank`, e o shell os converte em aba com autofill (validado na Fase 4).
+- [x] Removidos do `index.html`: o link do `manifest.webmanifest` e o `apple-touch-icon`. Os arquivos `sw.js`/`manifest.webmanifest` somem na Fase 9.
+- [x] Typecheck, 125 testes e prettier verdes.
+- [ ] Atualizar `docs/api.md` com `/api/sankhya/shell` e sem `/api/sankhya/navegador*`/`fechar` (Fase 7).
 
 ## Fase 6 — Empacotamento
 

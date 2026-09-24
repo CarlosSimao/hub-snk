@@ -70,7 +70,7 @@ export function registrarRotasDeSankhya(
 ): void {
   registrarRotasDeSessaoDoDesktop(servidor, sessaoDoDesktop, arquivoTokenDoDesktop);
 
-  servidor.get('/api/sankhya/helper', async () => ({ disponivel: await credenciais.disponivel() }));
+  servidor.get('/api/sankhya/shell', async () => ({ disponivel: await credenciais.disponivel() }));
 
   /**
    * Estado das duas credenciais. Nunca devolve senha — só o nome de usuário e
@@ -121,14 +121,6 @@ export function registrarRotasDeSankhya(
     },
   );
 
-  servidor.get('/api/sankhya/navegador', async (_requisicao, resposta) => {
-    try {
-      return await credenciais.statusNavegador();
-    } catch (erro) {
-      return responderErroDoShell(resposta, erro);
-    }
-  });
-
   /**
    * Abre a janela do hub na tela de login, e depois lê o cookie de sessão
    * dela. Dois passos de propósito: entre um e outro, quem digita a senha é o
@@ -161,12 +153,4 @@ export function registrarRotasDeSankhya(
       },
     );
   }
-
-  servidor.post('/api/sankhya/navegador/fechar', async (_requisicao, resposta) => {
-    try {
-      return await credenciais.fecharNavegador();
-    } catch (erro) {
-      return responderErroDoShell(resposta, erro);
-    }
-  });
 }

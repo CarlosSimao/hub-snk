@@ -331,7 +331,7 @@ const elementos = {
   visualizacaoClientes: document.getElementById('visualizacao-clientes'),
   visualizacaoLocal: document.getElementById('visualizacao-local'),
   visualizacaoAgenda: document.getElementById('visualizacao-agenda'),
-  avisoHelperAgenda: document.getElementById('aviso-helper-agenda'),
+  avisoShellAgenda: document.getElementById('aviso-shell-agenda'),
   botaoAtualizarAgenda: document.getElementById('btn-atualizar-agenda'),
   ultimaAtualizacaoAgenda: document.getElementById('ultima-atualizacao-agenda'),
   mountAgendaGeral: document.getElementById('mount-agenda-geral'),
@@ -365,9 +365,7 @@ const elementos = {
 
   botaoCredenciaisSankhya: document.getElementById('btn-credenciais-sankhya'),
   modalCredenciaisSankhya: document.getElementById('modal-credenciais-sankhya'),
-  avisoHelperSankhya: document.getElementById('aviso-helper-sankhya'),
-  statusNavegadorSankhya: document.getElementById('status-navegador-sankhya'),
-  botaoFecharNavegadorSankhya: document.getElementById('btn-fechar-navegador-sankhya'),
+  avisoShellSankhya: document.getElementById('aviso-shell-sankhya'),
   botaoFecharCredenciaisSankhya: document.getElementById('btn-fechar-credenciais-sankhya'),
 
   modalConfiguracao: document.getElementById('modal-configuracao'),
@@ -583,8 +581,8 @@ async function requisitar(caminho, opcoes = {}) {
   const conteudo = await resposta.json().catch(() => null);
   if (!resposta.ok) {
     const erro = new Error(conteudo?.mensagem ?? `Falha na requisição (HTTP ${resposta.status}).`);
-    // Repassado pra quem chama decidir, ex.: mostrar "helper fora do ar" em vez do erro genérico.
-    erro.helperIndisponivel = Boolean(conteudo?.helperIndisponivel);
+    // Repassado pra quem chama decidir, ex.: mostrar "app desktop fora do ar" em vez do erro genérico.
+    erro.shellIndisponivel = Boolean(conteudo?.shellIndisponivel);
     throw erro;
   }
 
@@ -592,7 +590,7 @@ async function requisitar(caminho, opcoes = {}) {
 }
 
 const api = {
-  helperSankhya: () => requisitar('/api/sankhya/helper'),
+  shellSankhya: () => requisitar('/api/sankhya/shell'),
   credenciaisSankhya: () => requisitar('/api/sankhya/credenciais'),
   salvarCredencialSankhya: (sistema, usuario, senha) =>
     requisitar(`/api/sankhya/credenciais/${sistema}`, {
@@ -601,12 +599,10 @@ const api = {
     }),
   removerCredencialSankhya: (sistema) =>
     requisitar(`/api/sankhya/credenciais/${sistema}`, { metodo: 'DELETE' }),
-  navegadorSankhya: () => requisitar('/api/sankhya/navegador'),
   abrirNavegadorSankhya: (sistema) =>
     requisitar(`/api/sankhya/navegador/abrir/${sistema}`, { metodo: 'POST' }),
   capturarSessaoSankhya: (sistema) =>
     requisitar(`/api/sankhya/navegador/capturar/${sistema}`, { metodo: 'POST' }),
-  fecharNavegadorSankhya: () => requisitar('/api/sankhya/navegador/fechar', { metodo: 'POST' }),
   estadoAgenda: () => requisitar('/api/agenda/estado'),
   salvarAgenda: (id, dados) =>
     requisitar(`${CAMINHO_DA_API}/${id}/agenda`, { metodo: 'PUT', corpo: dados }),
@@ -3055,7 +3051,7 @@ const widgetAgendaGeral = criarWidgetDeAgenda({
 /** Consulta ao vivo o mês em exibição, direto da guia autenticada, e recarrega a grade. */
 async function atualizarAgendaGeral() {
   limparErro(widgetAgendaGeral.elementoErro);
-  elementos.avisoHelperAgenda.hidden = true;
+  elementos.avisoShellAgenda.hidden = true;
   elementos.botaoAtualizarAgenda.disabled = true;
   widgetAgendaGeral.elementoStatus.textContent = 'Consultando a Sankhya…';
 
@@ -3064,8 +3060,8 @@ async function atualizarAgendaGeral() {
     await api.consultarAgenda(de, ate);
     await widgetAgendaGeral.carregar();
   } catch (erro) {
-    if (erro.helperIndisponivel) {
-      elementos.avisoHelperAgenda.hidden = false;
+    if (erro.shellIndisponivel) {
+      elementos.avisoShellAgenda.hidden = false;
     }
     exibirErro(widgetAgendaGeral.elementoErro, erro.message);
     widgetAgendaGeral.elementoStatus.textContent = '';
@@ -4226,7 +4222,7 @@ function elementosDoCartaoDeCredencial(cartao) {
     botaoVerSenha: cartao.querySelector('[data-papel="ver-senha"]'),
     botaoSalvar: cartao.querySelector('[data-papel="salvar"]'),
     botaoRemover: cartao.querySelector('[data-papel="remover"]'),
-    botaoAbrirNavegador: cartao.querySelector('[data-papel="abrir-navegador"]'),
+    botaoAbrirAba: cartao.querySelector('[data-papel="abrir-aba"]'),
     botaoCapturarSessao: cartao.querySelector('[data-papel="capturar-sessao"]'),
     erro: cartao.querySelector('[data-papel="erro"]'),
   };
@@ -4238,7 +4234,7 @@ function cartoesDeCredenciaisSankhya() {
   );
 }
 
-/** Pinta o selo do cartão a partir do status devolvido pelo helper. */
+/** Pinta o selo do cartão a partir do status devolvido pelo cofre do app desktop. */
 function renderizarStatusCredencial(cartaoElementos, status) {
   const { campoUsuario, status: selo } = cartaoElementos;
   campoUsuario.value = status.usuario;
@@ -4262,17 +4258,17 @@ function renderizarStatusCredencial(cartaoElementos, status) {
   selo.textContent = 'Sem credencial';
 }
 
-/** Recarrega os dois cartões e o status do navegador; helper fora do ar avisa uma vez só. */
+/** Recarrega os dois cartões; app desktop fora do ar avisa uma vez só. */
 async function atualizarCredenciaisSankhya() {
   const cartoes = cartoesDeCredenciaisSankhya();
 
-  let helperDisponivel = true;
+  let shellDisponivel = true;
   try {
-    ({ disponivel: helperDisponivel } = await api.helperSankhya());
+    ({ disponivel: shellDisponivel } = await api.shellSankhya());
   } catch {
-    helperDisponivel = false;
+    shellDisponivel = false;
   }
-  elementos.avisoHelperSankhya.hidden = helperDisponivel;
+  elementos.avisoShellSankhya.hidden = shellDisponivel;
 
   for (const cartaoElementos of cartoes) {
     limparErro(cartaoElementos.erro);
@@ -4290,15 +4286,6 @@ async function atualizarCredenciaisSankhya() {
     for (const cartaoElementos of cartoes) {
       exibirErro(cartaoElementos.erro, erro.message);
     }
-  }
-
-  try {
-    const navegador = await api.navegadorSankhya();
-    elementos.statusNavegadorSankhya.textContent = navegador.aberto
-      ? `Navegador aberto (${navegador.abas.length} guia${navegador.abas.length === 1 ? '' : 's'}).`
-      : 'Navegador do hub fechado.';
-  } catch {
-    elementos.statusNavegadorSankhya.textContent = '';
   }
 }
 
@@ -4346,17 +4333,20 @@ async function removerCredencialDoCartao(cartaoElementos) {
   }
 }
 
-async function abrirNavegadorDoCartao(cartaoElementos) {
+/**
+ * Troca para a guia do sistema no app desktop. O modal fica aberto por baixo:
+ * ao voltar para o Painel depois do login, o "Capturar sessão" está à mão.
+ */
+async function abrirAbaDoCartao(cartaoElementos) {
   limparErro(cartaoElementos.erro);
-  cartaoElementos.botaoAbrirNavegador.disabled = true;
+  cartaoElementos.botaoAbrirAba.disabled = true;
   try {
     await api.abrirNavegadorSankhya(cartaoElementos.sistema);
-    exibirAviso('Janela aberta — faça login e depois clique em "Capturar sessão".');
-    await atualizarCredenciaisSankhya();
+    exibirAviso('Faça login na guia e volte ao Painel para clicar em "Capturar sessão".');
   } catch (erro) {
     exibirErro(cartaoElementos.erro, erro.message);
   } finally {
-    cartaoElementos.botaoAbrirNavegador.disabled = false;
+    cartaoElementos.botaoAbrirAba.disabled = false;
   }
 }
 
@@ -4389,9 +4379,7 @@ function registrarEventosDoCartaoDeCredencial(cartaoElementos) {
   cartaoElementos.botaoRemover.addEventListener('click', () =>
     removerCredencialDoCartao(cartaoElementos),
   );
-  cartaoElementos.botaoAbrirNavegador.addEventListener('click', () =>
-    abrirNavegadorDoCartao(cartaoElementos),
-  );
+  cartaoElementos.botaoAbrirAba.addEventListener('click', () => abrirAbaDoCartao(cartaoElementos));
   cartaoElementos.botaoCapturarSessao.addEventListener('click', () =>
     capturarSessaoDoCartao(cartaoElementos),
   );
@@ -6980,14 +6968,6 @@ function registrarEventos() {
   elementos.botaoFecharCredenciaisSankhya.addEventListener('click', () =>
     elementos.modalCredenciaisSankhya.close(),
   );
-  elementos.botaoFecharNavegadorSankhya.addEventListener('click', async () => {
-    try {
-      await api.fecharNavegadorSankhya();
-      await atualizarCredenciaisSankhya();
-    } catch (erro) {
-      exibirAviso(erro.message, 'erro');
-    }
-  });
   for (const cartaoElementos of cartoesDeCredenciaisSankhya()) {
     registrarEventosDoCartaoDeCredencial(cartaoElementos);
   }
@@ -7208,14 +7188,22 @@ function registrarEventosDaImportacao() {
   elementos.botaoBaixarExportacaoDeCadastros.addEventListener('click', baixarExportacaoDeCadastros);
 }
 
-function registrarServiceWorker() {
+/*
+ * O HUB SNK deixou de ser PWA: roda dentro do app desktop. Quem abrir o painel
+ * num navegador que ainda guarda o service worker da versão antiga ficaria
+ * preso ao cache dela, então o registro remanescente é desfeito aqui.
+ */
+async function removerServiceWorkerDaVersaoPwa() {
   if (!('serviceWorker' in navigator)) {
     return;
   }
 
-  navigator.serviceWorker.register('/sw.js').catch((erro) => {
-    console.error('Falha ao registrar o service worker:', erro);
-  });
+  try {
+    const registros = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registros.map((registro) => registro.unregister()));
+  } catch (erro) {
+    console.error('Falha ao remover o service worker da versão PWA:', erro);
+  }
 }
 
 /*
@@ -7254,7 +7242,7 @@ async function exibirAvisoDeVersaoNova() {
 async function iniciar() {
   restaurarTema();
   registrarEventos();
-  registrarServiceWorker();
+  void removerServiceWorkerDaVersaoPwa();
   void exibirVersaoNoRodape();
   void exibirAvisoDeVersaoNova();
 

@@ -221,23 +221,6 @@ export interface StatusCredencial {
   sessaoCapturada: boolean;
 }
 
-/** Uma guia aberta na janela do hub que o helper controla. */
-export interface AbaNavegador {
-  id: string;
-  url: string;
-  titulo: string;
-  sistema: SistemaSankhya | '';
-  logado: boolean;
-}
-
-/** O navegador que o helper controla, separado do navegador pessoal do usuário. */
-export interface StatusNavegador {
-  navegador: boolean;
-  disponiveis: string[];
-  aberto: boolean;
-  abas: AbaNavegador[];
-}
-
 /* ------------------- Agenda de Recursos (Sankhya ERP) -------------------- */
 
 /** Um consultor na Agenda de Recursos. */

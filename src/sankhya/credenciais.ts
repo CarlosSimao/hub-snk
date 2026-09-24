@@ -8,12 +8,7 @@
  */
 import type { OpcoesDaPonte, PonteDoDesktop } from './ponteDoDesktop.ts';
 import type { SessaoDoDesktop, SessaoEmpurrada } from './sessaoDoDesktop.ts';
-import {
-  SISTEMAS_SANKHYA,
-  type SistemaSankhya,
-  type StatusCredencial,
-  type StatusNavegador,
-} from '../tipos.ts';
+import { SISTEMAS_SANKHYA, type SistemaSankhya, type StatusCredencial } from '../tipos.ts';
 
 /** O que sai do cofre decriptado. Nunca sai do backend. */
 export interface SegredoSankhya {
@@ -139,16 +134,6 @@ export class Credenciais {
     return this.#requisitar<SegredoSankhya>(`/credentials/${sistema}/reveal`);
   }
 
-  async statusNavegador(): Promise<StatusNavegador> {
-    const corpo = await this.#requisitar<StatusNavegador>('/browser/status');
-    return {
-      navegador: Boolean(corpo.navegador),
-      disponiveis: corpo.disponiveis ?? [],
-      aberto: Boolean(corpo.aberto),
-      abas: corpo.abas ?? [],
-    };
-  }
-
   /**
    * Busca a Agenda de Recursos chamando `service.sbr` de DENTRO da aba ERP
    * autenticada do shell — a ACL do Sankhya nega essa chamada quando ela vem de
@@ -177,10 +162,6 @@ export class Credenciais {
       },
       { timeoutMs: TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS },
     );
-  }
-
-  fecharNavegador(): Promise<{ mensagem: string }> {
-    return this.#requisitar<{ mensagem: string }>('/browser/fechar', { method: 'POST' });
   }
 
   /**

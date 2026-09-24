@@ -169,27 +169,6 @@ async function tratarNavegador(
     return;
   }
 
-  if (req.method === 'POST' && acao === 'favoritos') {
-    // Nao ha mais para onde copiar: o perfil separado do Chrome existia so' porque o
-    // hub precisava de uma janela propria com DevTools. A leitura (GET) continua
-    // servindo ao cadastro de cliente, que era o uso real.
-    responderJson(res, 200, {
-      ok: true,
-      mensagem: 'no aplicativo desktop os favoritos são lidos direto, sem precisar importar',
-    });
-    return;
-  }
-
-  if (req.method === 'POST' && acao === 'fechar') {
-    // Antes fechava a janela do Chrome do hub. Aqui a janela e' o proprio aplicativo, e
-    // fecha-la seria encerrar o hub inteiro.
-    responderJson(res, 200, {
-      ok: true,
-      mensagem: 'as abas do Sankhya fazem parte do aplicativo — feche pela própria janela',
-    });
-    return;
-  }
-
   if (!cofre.ehSistemaValido(sistema)) {
     responderJson(res, 404, { ok: false, erro: `sistema desconhecido: ${sistema}` });
     return;
