@@ -142,24 +142,40 @@ export async function tentarAutofill(view: WebContentsView, info: InfoBaseClient
       }
       if (Date.now() - inicio > JANELA_OBSERVACAO_MS) {
         clearInterval(intervalo);
-        logEvento('autofill-desistiu', { clienteId: info.clienteId, baseId: info.baseId, preencheuUsuario, ultimoMotivo });
+        logEvento('autofill-desistiu', {
+          clienteId: info.clienteId,
+          baseId: info.baseId,
+          preencheuUsuario,
+          ultimoMotivo,
+        });
         return;
       }
       try {
         const script = scriptAutofillTick(info.usuario, senha, preencheuUsuario);
-        const resultado = (await view.webContents.executeJavaScript(script, true)) as { ok: boolean; etapa?: string; motivo?: string };
+        const resultado = (await view.webContents.executeJavaScript(script, true)) as {
+          ok: boolean;
+          etapa?: string;
+          motivo?: string;
+        };
         if (resultado.ok && resultado.etapa === 'senha') {
           clearInterval(intervalo);
           logEvento('autofill-preencheu-senha', { clienteId: info.clienteId, baseId: info.baseId });
         } else if (resultado.ok && resultado.etapa === 'usuario' && !preencheuUsuario) {
           preencheuUsuario = true;
-          logEvento('autofill-preencheu-usuario', { clienteId: info.clienteId, baseId: info.baseId });
+          logEvento('autofill-preencheu-usuario', {
+            clienteId: info.clienteId,
+            baseId: info.baseId,
+          });
         } else if (resultado.motivo) {
           ultimoMotivo = resultado.motivo;
         }
       } catch (err) {
         clearInterval(intervalo);
-        logEvento('autofill-falhou', { clienteId: info.clienteId, baseId: info.baseId, erro: String(err) });
+        logEvento('autofill-falhou', {
+          clienteId: info.clienteId,
+          baseId: info.baseId,
+          erro: String(err),
+        });
       }
     })();
   }, INTERVALO_MS);

@@ -81,7 +81,9 @@ const ignorarScripts = !Number.isFinite(majorNpm) || majorNpm < 12 ? ' --ignore-
 rodar(`${NPM} ci --omit=dev${ignorarScripts}`, DESTINO);
 
 const entrypoint = join(DESTINO, 'dist', 'index.js');
-if (!existsSync(entrypoint)) throw new Error(`o backend não foi compilado: ${entrypoint} não existe`);
-if (!statSync(join(DESTINO, 'node_modules')).isDirectory()) throw new Error('node_modules não foi instalado');
+if (!existsSync(entrypoint))
+  throw new Error(`o backend não foi compilado: ${entrypoint} não existe`);
+if (!statSync(join(DESTINO, 'node_modules')).isDirectory())
+  throw new Error('node_modules não foi instalado');
 
 console.log(`\nPronto. Empacote com: npm run empacotar`);

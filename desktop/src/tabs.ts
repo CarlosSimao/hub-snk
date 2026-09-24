@@ -105,7 +105,9 @@ function arquivoGuias(): string {
 function lerGuiasEscondidas(): string[] {
   try {
     const dados = JSON.parse(readFileSync(arquivoGuias(), 'utf8')) as { escondidas?: unknown };
-    return Array.isArray(dados.escondidas) ? dados.escondidas.filter((id): id is string => typeof id === 'string') : [];
+    return Array.isArray(dados.escondidas)
+      ? dados.escondidas.filter((id): id is string => typeof id === 'string')
+      : [];
   } catch {
     // Primeira execucao, ou arquivo corrompido: todas as guias visiveis.
     return [];
@@ -184,7 +186,9 @@ export class TabManager {
         // Nenhum preload nas abas remotas: zero bridge para conteúdo de fora.
       },
     });
-    session.fromPartition(particao).on('will-download', registrarDownload(particao, this.#janelasFilhas));
+    session
+      .fromPartition(particao)
+      .on('will-download', registrarDownload(particao, this.#janelasFilhas));
     // Diagnóstico das abas remotas: sem isto, um erro de JS dentro da página do Sankhya
     // só aparece como caixa de alerta na tela do usuário, sem rastro nenhum de onde veio.
     // Só `error` (level 3) — `warning` do Sankhya é ruidoso demais para valer log.
@@ -226,7 +230,10 @@ export class TabManager {
         } catch {
           /* URL inválida — trata como link normal de base */
         }
-        logEvento('link-cliente-solicitado', { alvo: origemSemQuery(alvoLimpo), monitor: ehMonitor });
+        logEvento('link-cliente-solicitado', {
+          alvo: origemSemQuery(alvoLimpo),
+          monitor: ehMonitor,
+        });
         this.abrirAbaCliente(
           origin,
           alvoLimpo,
@@ -367,7 +374,9 @@ export class TabManager {
 
   #gravarGuiasEscondidas(): void {
     gravarGuiasEscondidas(
-      [...this.#escondidas].filter((id): id is TabId => id === 'hub' || id === 'erp' || id === 'experience'),
+      [...this.#escondidas].filter(
+        (id): id is TabId => id === 'hub' || id === 'erp' || id === 'experience',
+      ),
     );
   }
 
@@ -404,7 +413,12 @@ export class TabManager {
   reposicionar(): void {
     const [w, h] = this.#janela.getContentSize();
     for (const view of this.#abas.values()) {
-      view.setBounds({ x: 0, y: this.#alturaTopo, width: w, height: Math.max(0, h - this.#alturaTopo) });
+      view.setBounds({
+        x: 0,
+        y: this.#alturaTopo,
+        width: w,
+        height: Math.max(0, h - this.#alturaTopo),
+      });
     }
   }
 
@@ -447,9 +461,14 @@ export class TabManager {
     // Sem isto, um download servido pela partição isolada do cliente não dispara nada: o
     // listener de `will-download` só existia na sessão padrão e nas partições das abas
     // principais, então baixar de dentro de uma aba de cliente falhava em silêncio.
-    session.fromPartition(particao).on('will-download', registrarDownload(particao, this.#janelasFilhas));
+    session
+      .fromPartition(particao)
+      .on('will-download', registrarDownload(particao, this.#janelasFilhas));
     view.webContents.on('did-finish-load', () => {
-      logEvento('aba-cliente-carregada', { clienteId: info.clienteId, url: origemSemQuery(view.webContents.getURL()) });
+      logEvento('aba-cliente-carregada', {
+        clienteId: info.clienteId,
+        url: origemSemQuery(view.webContents.getURL()),
+      });
     });
     // Antes isto negava TODO `window.open`, e como o download do Sankhya costuma abrir
     // uma guia nova para servir o arquivo, o download morria aqui. Agora a janela é
@@ -458,7 +477,10 @@ export class TabManager {
     // `registrarDownload` a fecha sozinha quando o arquivo termina — igual às abas
     // principais.
     view.webContents.setWindowOpenHandler(({ url: alvo }) => {
-      logEvento('popup-cliente-solicitado', { clienteId: info.clienteId, alvo: origemSemQuery(alvo) });
+      logEvento('popup-cliente-solicitado', {
+        clienteId: info.clienteId,
+        alvo: origemSemQuery(alvo),
+      });
       return {
         action: 'allow',
         createWindow: (options) => {
@@ -513,7 +535,9 @@ export class TabManager {
   /** Bases vindas do cadastro real (`GET /api/clientes` + `/cartao`) — nenhuma inventada. */
   async carregarBasesCadastradas(): Promise<void> {
     try {
-      const resposta = await fetch(`${HUB_URL}/api/clientes`, { signal: AbortSignal.timeout(5000) });
+      const resposta = await fetch(`${HUB_URL}/api/clientes`, {
+        signal: AbortSignal.timeout(5000),
+      });
       const corpo = (await resposta.json()) as { clientes?: Array<{ id: number; nome: string }> };
       const clientes = corpo.clientes ?? [];
 
@@ -524,7 +548,13 @@ export class TabManager {
               signal: AbortSignal.timeout(5000),
             });
             const cartao = (await respostaCartao.json()) as {
-              bases?: Array<{ id: number; url: string; ambiente: string; usuario: string; temSenha: boolean }>;
+              bases?: Array<{
+                id: number;
+                url: string;
+                ambiente: string;
+                usuario: string;
+                temSenha: boolean;
+              }>;
             };
             for (const base of cartao.bases ?? []) {
               if (!base.url) continue;
@@ -535,7 +565,11 @@ export class TabManager {
                 // criando uma segunda entrada pro mesmo cliente) — quando duas bases
                 // caem no mesmo origin, a que tem usuário/senha vence sobre a vazia,
                 // em vez de whatever veio por último em `GET /api/clientes`.
-                if (existente && (existente.usuario || existente.temSenha) && !(base.usuario || base.temSenha)) {
+                if (
+                  existente &&
+                  (existente.usuario || existente.temSenha) &&
+                  !(base.usuario || base.temSenha)
+                ) {
                   continue;
                 }
                 this.#basesPorOrigin.set(origin, {

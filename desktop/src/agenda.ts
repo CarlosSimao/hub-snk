@@ -68,10 +68,16 @@ interface ResultadoFetch {
 async function executar(view: WebContentsView, de: string, ate: string): Promise<ResultadoFetch> {
   const url = view.webContents.getURL();
   if (!origemPermitida(url, DOMINIOS_ERP)) {
-    return { ok: false, erro: `aba ERP não está na origem esperada (está em ${origemSemQuery(url)})` };
+    return {
+      ok: false,
+      erro: `aba ERP não está na origem esperada (está em ${origemSemQuery(url)})`,
+    };
   }
 
-  const resultado = (await view.webContents.executeJavaScript(scriptAgendaFetch(de, ate), true)) as {
+  const resultado = (await view.webContents.executeJavaScript(
+    scriptAgendaFetch(de, ate),
+    true,
+  )) as {
     ok: boolean;
     conteudo?: string;
     erro?: string;
@@ -79,7 +85,8 @@ async function executar(view: WebContentsView, de: string, ate: string): Promise
   if (!resultado.ok) return { ok: false, erro: resultado.erro };
 
   const texto = resultado.conteudo ?? '';
-  if (!texto) return { ok: false, erro: 'a guia não devolveu nada — sessão do ERP pode ter expirado' };
+  if (!texto)
+    return { ok: false, erro: 'a guia não devolveu nada — sessão do ERP pode ter expirado' };
   if (texto.trimStart().startsWith('<')) {
     return { ok: false, erro: 'o Sankhya respondeu HTML, não JSON — faça login na aba ERP' };
   }

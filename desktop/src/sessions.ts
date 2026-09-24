@@ -43,7 +43,9 @@ function decodificarJwt(token: string): { email: string; expIso: string } {
 }
 
 /** Captura o `localStorage.token` da aba Experience — mesma chave que o app usa hoje. */
-export async function capturarTokenExperience(view: WebContentsView | undefined): Promise<SessaoExperience> {
+export async function capturarTokenExperience(
+  view: WebContentsView | undefined,
+): Promise<SessaoExperience> {
   if (!view) return { presente: false, usuario: '', token: '', expIso: '' };
 
   const url = view.webContents.getURL();
@@ -67,11 +69,19 @@ export async function capturarTokenExperience(view: WebContentsView | undefined)
 }
 
 /** Diagnóstico local: nomes/contagem de cookies, nunca o valor. */
-export async function diagnosticoCookiesErp(): Promise<{ total: number; httpOnly: number; nomes: string[] }> {
+export async function diagnosticoCookiesErp(): Promise<{
+  total: number;
+  httpOnly: number;
+  nomes: string[];
+}> {
   const ses = session.fromPartition(PARTICAO);
   const porUrl = await ses.cookies.get({ url: ERP_URL });
-  const porDominio = (await Promise.all(DOMINIOS_ERP.map((d) => ses.cookies.get({ domain: d })))).flat();
-  const unicos = new Map([...porUrl, ...porDominio].map((c) => [`${c.domain}|${c.name}|${c.path}`, c]));
+  const porDominio = (
+    await Promise.all(DOMINIOS_ERP.map((d) => ses.cookies.get({ domain: d })))
+  ).flat();
+  const unicos = new Map(
+    [...porUrl, ...porDominio].map((c) => [`${c.domain}|${c.name}|${c.path}`, c]),
+  );
   const lista = [...unicos.values()];
   return {
     total: lista.length,

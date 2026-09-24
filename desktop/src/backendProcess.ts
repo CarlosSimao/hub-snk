@@ -73,7 +73,9 @@ function abrirArquivoDeSaida(): WriteStream {
 /** Health check do backend, seja ele nosso ou de terceiros. */
 async function backendRespondendo(timeoutMs = 1500): Promise<boolean> {
   try {
-    const resposta = await fetch(`${HUB_URL}/api/healthz`, { signal: AbortSignal.timeout(timeoutMs) });
+    const resposta = await fetch(`${HUB_URL}/api/healthz`, {
+      signal: AbortSignal.timeout(timeoutMs),
+    });
     return resposta.ok;
   } catch {
     return false;

@@ -98,8 +98,9 @@ setInterval(atualizarStatus, 20_000);
  */
 function aplicarEstadoDasGuias(guias) {
   for (const { id, visivel } of guias) {
-    const botao = document.querySelector(`#abas button[data-id="${CSS.escape(id)}"]`)
-      ?? document.querySelector(`#abasClientes .aba-cliente[data-origin="${CSS.escape(id)}"]`);
+    const botao =
+      document.querySelector(`#abas button[data-id="${CSS.escape(id)}"]`) ??
+      document.querySelector(`#abasClientes .aba-cliente[data-origin="${CSS.escape(id)}"]`);
     definirVisibilidade(botao, visivel);
   }
   setTimeout(informarAlturaTopo, 0);

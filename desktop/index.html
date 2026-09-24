@@ -1,66 +1,139 @@
 <!doctype html>
 <html lang="pt-br">
-<head>
-<meta charset="utf-8" />
-<title>HUB SNK</title>
-<style>
-  * { box-sizing: border-box; }
-  [hidden] { display: none !important; }
-  body { font-family: system-ui, sans-serif; margin: 0; background: #12151b; color: #e6e6e6; }
+  <head>
+    <meta charset="utf-8" />
+    <title>HUB SNK</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        background: #12151b;
+        color: #e6e6e6;
+      }
 
-  /* A barra e a "trilha" das guias: mesmo fundo do corpo, borda só embaixo — é nela que
+      /* A barra e a "trilha" das guias: mesmo fundo do corpo, borda só embaixo — é nela que
      a guia ativa "encosta" pra dar a sensação de continuar no conteúdo abaixo. */
-  #barra { display: flex; align-items: flex-end; gap: 0; padding: 8px 10px 0; background: #12151b; border-bottom: 1px solid #333; flex-wrap: wrap; }
+      #barra {
+        display: flex;
+        align-items: flex-end;
+        gap: 0;
+        padding: 8px 10px 0;
+        background: #12151b;
+        border-bottom: 1px solid #333;
+        flex-wrap: wrap;
+      }
 
-  #abas, #abasClientes { display: flex; align-items: flex-end; gap: 2px; flex-wrap: wrap; }
+      #abas,
+      #abasClientes {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        flex-wrap: wrap;
+      }
 
-  /* Guia de navegador: cantos só em cima, sem borda embaixo (a ativa cobre o traço da
+      /* Guia de navegador: cantos só em cima, sem borda embaixo (a ativa cobre o traço da
      barra), levemente mais baixa quando inativa — realça qual guia "está na frente". */
-  #abas button, .aba-cliente {
-    display: flex; align-items: center; gap: 6px;
-    padding: 7px 14px; margin-bottom: 0;
-    border: 1px solid #333; border-bottom: none;
-    border-radius: 8px 8px 0 0;
-    background: #1b1f27; color: #b7bfcc;
-    font: inherit; font-size: 12.5px; cursor: pointer;
-    transition: background 0.12s ease, color 0.12s ease;
-  }
-  #abas button:hover, .aba-cliente:hover { background: #232833; color: #e6e6e6; }
-  #abas button.ativa, .aba-cliente.ativa {
-    background: #2d6cdf; color: #fff; border-color: #2d6cdf;
-    box-shadow: 0 -2px 0 0 #2d6cdf inset, 0 -3px 8px rgba(0, 0, 0, 0.25);
-    position: relative; z-index: 1;
-  }
+      #abas button,
+      .aba-cliente {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        margin-bottom: 0;
+        border: 1px solid #333;
+        border-bottom: none;
+        border-radius: 8px 8px 0 0;
+        background: #1b1f27;
+        color: #b7bfcc;
+        font: inherit;
+        font-size: 12.5px;
+        cursor: pointer;
+        transition:
+          background 0.12s ease,
+          color 0.12s ease;
+      }
+      #abas button:hover,
+      .aba-cliente:hover {
+        background: #232833;
+        color: #e6e6e6;
+      }
+      #abas button.ativa,
+      .aba-cliente.ativa {
+        background: #2d6cdf;
+        color: #fff;
+        border-color: #2d6cdf;
+        box-shadow:
+          0 -2px 0 0 #2d6cdf inset,
+          0 -3px 8px rgba(0, 0, 0, 0.25);
+        position: relative;
+        z-index: 1;
+      }
 
-  .aba-cliente .fechar { opacity: 0; padding: 0 2px; border-radius: 3px; }
-  .aba-cliente:hover .fechar, .aba-cliente.ativa .fechar { opacity: 0.75; }
-  .aba-cliente .fechar:hover { opacity: 1; background: rgba(255, 255, 255, 0.15); }
+      .aba-cliente .fechar {
+        opacity: 0;
+        padding: 0 2px;
+        border-radius: 3px;
+      }
+      .aba-cliente:hover .fechar,
+      .aba-cliente.ativa .fechar {
+        opacity: 0.75;
+      }
+      .aba-cliente .fechar:hover {
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.15);
+      }
 
-  /* Controles (recarregar, status) ficam fora da fileira de guias — navegador de
+      /* Controles (recarregar, status) ficam fora da fileira de guias — navegador de
      verdade nunca mistura ação de navegação com guia. */
-  #controles { display: flex; align-items: center; gap: 10px; margin-left: auto; padding-bottom: 8px; }
-  #recarregar {
-    border: none; background: transparent; color: #b7bfcc; cursor: pointer;
-    font-size: 15px; line-height: 1; padding: 4px 6px; border-radius: 4px;
-  }
-  #recarregar:hover { background: #232833; color: #e6e6e6; }
-  #status { font-size: 12px; color: #999; }
-  #status.offline { color: #e05252; }
-</style>
-</head>
-<body>
-  <div id="barra">
-    <div id="abas">
-      <button data-id="hub" class="ativa">Hub</button>
-      <button data-id="erp">Sankhya Om</button>
-      <button data-id="experience">Experience</button>
+      #controles {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-left: auto;
+        padding-bottom: 8px;
+      }
+      #recarregar {
+        border: none;
+        background: transparent;
+        color: #b7bfcc;
+        cursor: pointer;
+        font-size: 15px;
+        line-height: 1;
+        padding: 4px 6px;
+        border-radius: 4px;
+      }
+      #recarregar:hover {
+        background: #232833;
+        color: #e6e6e6;
+      }
+      #status {
+        font-size: 12px;
+        color: #999;
+      }
+      #status.offline {
+        color: #e05252;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="barra">
+      <div id="abas">
+        <button data-id="hub" class="ativa">Hub</button>
+        <button data-id="erp">Sankhya Om</button>
+        <button data-id="experience">Experience</button>
+      </div>
+      <div id="abasClientes"></div>
+      <div id="controles">
+        <button id="recarregar" title="Recarregar a guia ativa" aria-label="Recarregar">⟳</button>
+        <span id="status">verificando…</span>
+      </div>
     </div>
-    <div id="abasClientes"></div>
-    <div id="controles">
-      <button id="recarregar" title="Recarregar a guia ativa" aria-label="Recarregar">⟳</button>
-      <span id="status">verificando…</span>
-    </div>
-  </div>
-  <script src="renderer.js"></script>
-</body>
+    <script src="renderer.js"></script>
+  </body>
 </html>

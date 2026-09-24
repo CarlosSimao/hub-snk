@@ -13,9 +13,11 @@ import { app } from 'electron';
  */
 export const HUB_URL = process.env['SANKHYA_HUB_URL'] ?? 'http://127.0.0.1:4100';
 export const ERP_URL = process.env['SANKHYA_ERP_URL'] ?? 'https://skw.sankhya.com.br/mge/';
-export const EXPERIENCE_URL = process.env['SANKHYA_EXPERIENCE_URL'] ?? 'https://experience.sankhya.com.br/';
+export const EXPERIENCE_URL =
+  process.env['SANKHYA_EXPERIENCE_URL'] ?? 'https://experience.sankhya.com.br/';
 export const EXPERIENCE_API =
-  process.env['SANKHYA_EXPERIENCE_API'] ?? 'https://d83n39pk6d.execute-api.sa-east-1.amazonaws.com/prod';
+  process.env['SANKHYA_EXPERIENCE_API'] ??
+  'https://d83n39pk6d.execute-api.sa-east-1.amazonaws.com/prod';
 
 /** Domínios cujos cookies interessam ao diagnóstico local do ERP — nunca saem do processo. */
 export const DOMINIOS_ERP = ['sankhya.com.br'];
@@ -38,7 +40,8 @@ export const BRIDGE_HOST = '127.0.0.1';
  * Mesma pasta que `hub-helper.ps1` usa para `token.txt`: o shell grava o próprio token
  * ao lado, e o backend acha os dois pelo mesmo padrão (`src/configuracao.ts`).
  */
-export const PASTA_IPC = process.env['SANKHYA_HUB_IPC_DIR'] ?? join(app.getPath('appData'), 'sankhya-hub', 'ipc');
+export const PASTA_IPC =
+  process.env['SANKHYA_HUB_IPC_DIR'] ?? join(app.getPath('appData'), 'sankhya-hub', 'ipc');
 export const ARQUIVO_TOKEN_BRIDGE = join(PASTA_IPC, 'desktop-token.txt');
 /** Gerado por `scripts/hub-helper.ps1` no primeiro boot; o shell só lê. */
 export const ARQUIVO_TOKEN_HELPER = join(PASTA_IPC, 'token.txt');
@@ -79,7 +82,11 @@ function pastaDeDadosInstalada(): string {
   if (process.platform === 'win32') {
     return join(process.env['LOCALAPPDATA'] ?? app.getPath('appData'), 'HubSnk', 'dados');
   }
-  return join(process.env['XDG_DATA_HOME'] ?? join(homedir(), '.local', 'share'), 'hub-snk', 'dados');
+  return join(
+    process.env['XDG_DATA_HOME'] ?? join(homedir(), '.local', 'share'),
+    'hub-snk',
+    'dados',
+  );
 }
 
 /**
@@ -129,4 +136,3 @@ export function userAgentLimpo(padrao: string): string {
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
-

@@ -8,7 +8,10 @@ import { Menu, app, shell, type BrowserWindow, type MenuItem } from 'electron';
 import { HUB_URL } from './config';
 import type { TabManager } from './tabs';
 
-export function montarMenu(janela: () => BrowserWindow | null, tabs: () => TabManager | null): void {
+export function montarMenu(
+  janela: () => BrowserWindow | null,
+  tabs: () => TabManager | null,
+): void {
   const gerenciador = tabs();
   const guias = gerenciador?.guiasAbertas() ?? [];
   const menu = Menu.buildFromTemplate([
@@ -27,9 +30,21 @@ export function montarMenu(janela: () => BrowserWindow | null, tabs: () => TabMa
     {
       label: 'Guias',
       submenu: [
-        { label: 'Ir para o Painel', accelerator: 'CmdOrCtrl+1', click: () => tabs()?.mostrar('hub') },
-        { label: 'Ir para o Sankhya Om', accelerator: 'CmdOrCtrl+2', click: () => tabs()?.mostrar('erp') },
-        { label: 'Ir para a Experience', accelerator: 'CmdOrCtrl+3', click: () => tabs()?.mostrar('experience') },
+        {
+          label: 'Ir para o Painel',
+          accelerator: 'CmdOrCtrl+1',
+          click: () => tabs()?.mostrar('hub'),
+        },
+        {
+          label: 'Ir para o Sankhya Om',
+          accelerator: 'CmdOrCtrl+2',
+          click: () => tabs()?.mostrar('erp'),
+        },
+        {
+          label: 'Ir para a Experience',
+          accelerator: 'CmdOrCtrl+3',
+          click: () => tabs()?.mostrar('experience'),
+        },
         { type: 'separator' },
         { label: 'Mostrar na barra', enabled: false },
         // Uma caixa por guia: marcada = aparece na barra. Esconder nao fecha nem

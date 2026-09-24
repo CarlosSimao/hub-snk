@@ -75,7 +75,11 @@ function criarJanela(): void {
     void (async () => {
       const sessao = await capturarTokenExperience(tabs?.aba('experience'));
       if (sessao.presente) {
-        const ok = await pushSessaoExperience({ usuario: sessao.usuario, token: sessao.token, expira: sessao.expIso });
+        const ok = await pushSessaoExperience({
+          usuario: sessao.usuario,
+          token: sessao.token,
+          expira: sessao.expIso,
+        });
         if (ok && sessao.expIso !== ultimoExpEmpurrado) {
           logEvento('experience-sessao-empurrada');
         }
@@ -101,7 +105,9 @@ ipcMain.handle('layout:definirAlturaTopo', (_evt, altura: number) => {
 ipcMain.handle('tabs:mostrar', (_evt, id: string) => ({ ok: tabs?.mostrar(id) ?? false }));
 ipcMain.handle('guias:estado', () => tabs?.guiasAbertas() ?? []);
 ipcMain.handle('tabs:recarregar', (_evt, id: string) => ({ ok: tabs?.recarregar(id) ?? false }));
-ipcMain.handle('links:fechar', (_evt, origin: string) => ({ ok: tabs?.fecharAbaCliente(origin) ?? false }));
+ipcMain.handle('links:fechar', (_evt, origin: string) => ({
+  ok: tabs?.fecharAbaCliente(origin) ?? false,
+}));
 ipcMain.handle('links:lista', () => tabs?.abasClientesAbertas() ?? []);
 
 ipcMain.handle('diag:status', async () => ({
@@ -117,7 +123,11 @@ app.whenReady().then(async () => {
   // Antes de qualquer janela: o user agent vale para todas as requisições, e páginas do
   // Sankhya que detectam Electron tentam `require(...)` e quebram com um alert.
   app.userAgentFallback = userAgentLimpo(app.userAgentFallback);
-  logEvento('user-agent-definido', { ua: app.userAgentFallback, icone: ICONE, iconeExiste: existsSync(ICONE) });
+  logEvento('user-agent-definido', {
+    ua: app.userAgentFallback,
+    icone: ICONE,
+    iconeExiste: existsSync(ICONE),
+  });
 
   // Antes do backend: a primeira tela que consulta credenciais precisa encontrar o
   // cofre já preenchido com o que estava no `hub-helper.ps1`.
@@ -141,7 +151,10 @@ app.whenReady().then(async () => {
   }
 
   criarJanela();
-  montarMenu(() => janelaPrincipal, () => tabs);
+  montarMenu(
+    () => janelaPrincipal,
+    () => tabs,
+  );
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) criarJanela();

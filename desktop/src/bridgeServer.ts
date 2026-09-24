@@ -122,7 +122,8 @@ function tratarSegredo(req: IncomingMessage, res: ServerResponse, corpo: string)
   }
 
   try {
-    const resultado = acao === 'encrypt' ? cofre.cifrarSegredo(valor) : cofre.decifrarSegredo(valor);
+    const resultado =
+      acao === 'encrypt' ? cofre.cifrarSegredo(valor) : cofre.decifrarSegredo(valor);
     responderJson(res, 200, { ok: true, valor: resultado });
   } catch (err) {
     // Blob de outro usuário/máquina, ou perfil do Windows recriado: o DPAPI não volta atrás.
@@ -152,7 +153,8 @@ async function tratarNavegador(
   } catch {
     dados = {};
   }
-  const texto = (chave: string) => (typeof dados[chave] === 'string' ? (dados[chave] as string) : '');
+  const texto = (chave: string) =>
+    typeof dados[chave] === 'string' ? (dados[chave] as string) : '';
 
   if (req.method === 'GET' && acao === 'status') {
     responderJson(res, 200, { ok: true, ...navegador.status(tabs) });
@@ -210,7 +212,10 @@ async function tratarNavegador(
     try {
       responderJson(res, 200, await navegador.capturar(tabs, sistema));
     } catch (err) {
-      responderJson(res, 502, { ok: false, erro: `falha lendo a sessão: ${(err as Error).message}` });
+      responderJson(res, 502, {
+        ok: false,
+        erro: `falha lendo a sessão: ${(err as Error).message}`,
+      });
     }
     return;
   }

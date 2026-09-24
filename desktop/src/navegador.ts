@@ -65,8 +65,14 @@ export interface PerfilNavegador {
 const RAIZES_PERFIL: { navegador: string; caminho: string }[] =
   process.platform === 'win32'
     ? [
-        { navegador: 'chrome', caminho: join(homedir(), 'AppData', 'Local', 'Google', 'Chrome', 'User Data') },
-        { navegador: 'edge', caminho: join(homedir(), 'AppData', 'Local', 'Microsoft', 'Edge', 'User Data') },
+        {
+          navegador: 'chrome',
+          caminho: join(homedir(), 'AppData', 'Local', 'Google', 'Chrome', 'User Data'),
+        },
+        {
+          navegador: 'edge',
+          caminho: join(homedir(), 'AppData', 'Local', 'Microsoft', 'Edge', 'User Data'),
+        },
       ]
     : [
         { navegador: 'chrome', caminho: join(homedir(), '.config', 'google-chrome') },
@@ -76,7 +82,10 @@ const RAIZES_PERFIL: { navegador: string; caminho: string }[] =
           navegador: 'chrome',
           caminho: join(homedir(), '.var', 'app', 'com.google.Chrome', 'config', 'google-chrome'),
         },
-        { navegador: 'chromium', caminho: join(homedir(), 'snap', 'chromium', 'common', 'chromium') },
+        {
+          navegador: 'chromium',
+          caminho: join(homedir(), 'snap', 'chromium', 'common', 'chromium'),
+        },
       ];
 
 interface NoFavorito {
@@ -144,7 +153,9 @@ export function favoritos(navegador: string, perfil: string): FavoritoNavegador[
   if (!existsSync(arquivo)) return [];
 
   try {
-    const dados = JSON.parse(readFileSync(arquivo, 'utf8')) as { roots?: Record<string, NoFavorito> };
+    const dados = JSON.parse(readFileSync(arquivo, 'utf8')) as {
+      roots?: Record<string, NoFavorito>;
+    };
     const saida: FavoritoNavegador[] = [];
     for (const no of Object.values(dados.roots ?? {})) {
       if (no && typeof no === 'object') achatar(no, '', saida);
@@ -205,7 +216,10 @@ export interface ResultadoCaptura {
  *    cookie anonimo existe antes do login e daria falso positivo;
  *  - para o ERP, sem cookie nenhum do dominio nao ha o que capturar.
  */
-export async function capturar(tabs: TabManager | null, sistema: Sistema): Promise<ResultadoCaptura> {
+export async function capturar(
+  tabs: TabManager | null,
+  sistema: Sistema,
+): Promise<ResultadoCaptura> {
   const particao = session.fromPartition(PARTICAO);
 
   const cookies = (
@@ -241,7 +255,11 @@ export async function capturar(tabs: TabManager | null, sistema: Sistema): Promi
     ...(expira ? { expira } : {}),
   });
 
-  logEvento('navegador-sessao-capturada', { sistema, cookies: cookies.length, token: Boolean(token) });
+  logEvento('navegador-sessao-capturada', {
+    sistema,
+    cookies: cookies.length,
+    token: Boolean(token),
+  });
   return { ok: true, cookies: cookies.length, token: Boolean(token), expira };
 }
 

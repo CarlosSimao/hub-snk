@@ -27,7 +27,11 @@ async function chamar(caminho: string, init: RequestInit): Promise<boolean> {
   }
 }
 
-export function pushSessaoExperience(dados: { usuario: string; token: string; expira: string }): Promise<boolean> {
+export function pushSessaoExperience(dados: {
+  usuario: string;
+  token: string;
+  expira: string;
+}): Promise<boolean> {
   return chamar('/api/sankhya/desktop/sessao/sankhya-experience', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

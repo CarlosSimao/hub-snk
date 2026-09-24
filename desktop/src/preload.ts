@@ -24,8 +24,9 @@ contextBridge.exposeInMainWorld('hub', {
   links: {
     listar: () => ipcRenderer.invoke('links:lista'),
     fechar: (origin: string) => ipcRenderer.invoke('links:fechar', origin),
-    aoAtualizarLista: (cb: (lista: Array<{ origin: string; titulo: string; visivel: boolean }>) => void) =>
-      ipcRenderer.on('links:lista', (_e, lista) => cb(lista)),
+    aoAtualizarLista: (
+      cb: (lista: Array<{ origin: string; titulo: string; visivel: boolean }>) => void,
+    ) => ipcRenderer.on('links:lista', (_e, lista) => cb(lista)),
   },
   layout: {
     definirAlturaTopo: (altura: number) => ipcRenderer.invoke('layout:definirAlturaTopo', altura),
