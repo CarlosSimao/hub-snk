@@ -7,6 +7,7 @@ const HOSTS_DE_LOOPBACK = new Set(['127.0.0.1', '::1', 'localhost']);
 const VALOR_QUE_LIBERA_A_REDE = '1';
 const VALOR_QUE_IMPEDE_A_JANELA = '0';
 const NAVEGADOR_PADRAO_DA_JANELA = 'auto';
+const HELPER_URL_PADRAO = 'http://127.0.0.1:4102';
 
 const raizDoProjeto = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -65,6 +66,20 @@ function lerDiretorioDeDados(): string {
   return bruto ? resolve(bruto) : join(raizDoProjeto, 'dados-hub-snk');
 }
 
+/**
+ * O HUB SNK roda nativo no Windows, então o padrão já é o caminho local do
+ * `hub-helper.ps1` — nada de `host.docker.internal` ou bind mount de container,
+ * isso é coisa de quem roda dentro do Docker.
+ */
+function lerHelperTokenFile(): string {
+  const bruto = process.env.HUB_HELPER_TOKEN_FILE;
+  if (bruto) {
+    return bruto;
+  }
+
+  return join(process.env.APPDATA ?? '', 'sankhya-hub', 'ipc', 'token.txt');
+}
+
 const host = lerHost();
 
 export const configuracao = {
@@ -87,4 +102,6 @@ export const configuracao = {
     process.env.HUB_ABRIR_JANELA !== VALOR_QUE_IMPEDE_A_JANELA &&
     !process.execArgv.includes('--watch'),
   navegador: process.env.HUB_NAVEGADOR?.trim().toLowerCase() || NAVEGADOR_PADRAO_DA_JANELA,
+  helperUrl: process.env.HUB_HELPER_URL ?? HELPER_URL_PADRAO,
+  helperTokenFile: lerHelperTokenFile(),
 } as const;

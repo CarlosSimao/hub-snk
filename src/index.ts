@@ -11,8 +11,14 @@ import { registrarRotasDeAtalhos } from './rotas/rotasAtalhos.ts';
 import { registrarRotasDeClientes } from './rotas/rotasClientes.ts';
 import { registrarRotasDeConfiguracao } from './rotas/rotasConfiguracao.ts';
 import { registrarRotasDeGit } from './rotas/rotasGit.ts';
+import { registrarRotasDeAgenda } from './rotas/rotasAgenda.ts';
 import { registrarRotasDeLocal } from './rotas/rotasLocal.ts';
+import { registrarRotasDeSankhya } from './rotas/rotasSankhya.ts';
 import { registrarRotasDeSistema } from './rotas/rotasSistema.ts';
+import { AgendaRecursos } from './sankhya/agenda.ts';
+import { Credenciais } from './sankhya/credenciais.ts';
+import { Experience } from './sankhya/experience.ts';
+import { HubHelper } from './sankhya/helper.ts';
 import { abrirJanelaDoAplicativo } from './sistema/abrirJanelaDoAplicativo.ts';
 import { observarAlteracoesNosDados, type CacheDescartavel } from './sistema/observadorDeDados.ts';
 
@@ -38,6 +44,10 @@ async function iniciarServidor(): Promise<void> {
     configuracao.diretorioDeDados,
   );
   const repositorioLocal = new RepositorioLocalArquivo(configuracao.diretorioDeDados);
+  const helper = new HubHelper(configuracao.helperUrl, configuracao.helperTokenFile);
+  const credenciaisSankhya = new Credenciais(helper);
+  const agendaDeRecursos = new AgendaRecursos(configuracao.diretorioDeDados);
+  const experience = new Experience(credenciaisSankhya);
 
   registrarRotasDeClientes(servidor, repositorioDeClientes, repositorioDeConfiguracao);
   registrarRotasDeConfiguracao(servidor, repositorioDeConfiguracao);
@@ -45,6 +55,14 @@ async function iniciarServidor(): Promise<void> {
   registrarRotasDeLocal(servidor, repositorioLocal, repositorioDeConfiguracao);
   registrarRotasDeAtalhos(servidor, repositorioDeConfiguracao);
   registrarRotasDeSistema(servidor);
+  registrarRotasDeSankhya(servidor, helper, credenciaisSankhya);
+  registrarRotasDeAgenda(
+    servidor,
+    agendaDeRecursos,
+    repositorioDeClientes,
+    credenciaisSankhya,
+    experience,
+  );
 
   /*
    * Leitura antecipada dos três arquivos: arquivo em esquema desconhecido e
