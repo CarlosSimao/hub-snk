@@ -49,6 +49,12 @@ export function registrarRotasDeSistema(servidor: FastifyInstance): void {
   servidor.get('/api/sistema/versao', async () => ({ versao: pacote.version }));
 
   /*
+   * Sonda de vida do shell desktop, que espera esta rota antes de mostrar o
+   * painel. Não toca disco nem rede: responder já prova que o servidor subiu.
+   */
+  servidor.get('/api/healthz', async () => ({ ok: true }));
+
+  /*
    * Separada da rota acima de propósito: a versão instalada é leitura local e
    * instantânea, enquanto esta fala com o GitHub e pode demorar ou falhar.
    * Juntar as duas seguraria o rodapé refém da rede.

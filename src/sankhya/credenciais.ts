@@ -1,12 +1,15 @@
 /**
- * Credenciais do Sankhya ERP e do Sankhya Experience, guardadas com DPAPI pelo
- * `hub-helper.ps1` — nunca em texto puro pelo HUB SNK.
+ * Credenciais do Sankhya ERP e do Sankhya Experience, guardadas pelo shell
+ * desktop (`safeStorage`) ou, na retaguarda, pelo `hub-helper.ps1` (DPAPI) —
+ * nunca em texto puro pelo HUB SNK.
  *
  * `revelar()` não tem rota HTTP correspondente, de propósito: o valor
  * decriptado só existe dentro do backend, para autenticar chamadas server-to-
  * server (`Experience`). Nenhum caminho leva a senha ou o token até o navegador.
  */
-import type { HubHelper } from './helper.ts';
+import type { HubHelper, OpcoesHelper } from './helper.ts';
+import { PonteDoDesktopIndisponivelError, type PonteDoDesktop } from './ponteDoDesktop.ts';
+import type { SessaoDoDesktop, SessaoEmpurrada } from './sessaoDoDesktop.ts';
 import {
   SISTEMAS_SANKHYA,
   type SistemaSankhya,
@@ -25,6 +28,9 @@ export interface SegredoSankhya {
   /** ISO-8601 do `exp` do JWT, quando há um. */
   expira: string;
 }
+
+/** A consulta atravessa o shell, a guia do ERP e o Sankhya — bem além do padrão. */
+const TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS = 120_000;
 
 /** O que o helper devolve nas rotas de credencial, sem o `sistema`. */
 type RespostaCredencial = Omit<StatusCredencial, 'sistema'>;
@@ -55,19 +61,76 @@ function montar(sistema: SistemaSankhya, corpo: RespostaCredencial): StatusCrede
 }
 
 export class Credenciais {
+  readonly #ponte: PonteDoDesktop;
   readonly #helper: HubHelper;
+  readonly #sessaoDoDesktop: SessaoDoDesktop;
 
-  constructor(helper: HubHelper) {
+  constructor(ponte: PonteDoDesktop, helper: HubHelper, sessaoDoDesktop: SessaoDoDesktop) {
+    this.#ponte = ponte;
     this.#helper = helper;
+    this.#sessaoDoDesktop = sessaoDoDesktop;
+  }
+
+  /**
+   * Shell desktop primeiro, `hub-helper.ps1` como retaguarda enquanto a
+   * migração para o Electron não termina.
+   *
+   * Só a indisponibilidade do shell faz cair para o helper: um erro de negócio
+   * (sistema desconhecido, corpo inválido) se repetiria no helper e esconderia
+   * a causa real.
+   */
+  async #requisitar<T>(
+    caminho: string,
+    init: RequestInit = {},
+    opcoes: OpcoesHelper = {},
+  ): Promise<T> {
+    try {
+      return await this.#ponte.requisitar<T>(caminho, init, opcoes);
+    } catch (erro) {
+      if (!(erro instanceof PonteDoDesktopIndisponivelError)) {
+        throw erro;
+      }
+    }
+
+    return this.#helper.requisitar<T>(caminho, init, opcoes);
+  }
+
+  /** Shell ou helper no ar. Best-effort: alimenta o aviso na tela, nunca lança. */
+  async disponivel(): Promise<boolean> {
+    try {
+      await this.#requisitar('/health');
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async status(sistema: SistemaSankhya): Promise<StatusCredencial> {
-    const corpo = await this.#helper.requisitar<RespostaCredencial>(`/credentials/${sistema}`);
+    const sessaoEmpurrada = this.#sessaoDaExperience(sistema);
+    if (sessaoEmpurrada) {
+      return {
+        sistema,
+        usuario: sessaoEmpurrada.usuario,
+        definido: true,
+        sessaoCapturada: true,
+        sessaoExpiraEm: sessaoEmpurrada.expira,
+      };
+    }
+
+    const corpo = await this.#requisitar<RespostaCredencial>(`/credentials/${sistema}`);
     return montar(sistema, corpo);
   }
 
+  /**
+   * O JWT que o shell lê da guia Experience vale mais que o do cofre: é o da
+   * sessão que o usuário está usando agora, renovado a cada ciclo.
+   */
+  #sessaoDaExperience(sistema: SistemaSankhya): SessaoEmpurrada | undefined {
+    return sistema === 'sankhya-experience' ? this.#sessaoDoDesktop.obter() : undefined;
+  }
+
   async gravar(sistema: SistemaSankhya, usuario: string, senha: string): Promise<StatusCredencial> {
-    const corpo = await this.#helper.requisitar<RespostaCredencial>(`/credentials/${sistema}`, {
+    const corpo = await this.#requisitar<RespostaCredencial>(`/credentials/${sistema}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ usuario, senha }),
@@ -76,7 +139,7 @@ export class Credenciais {
   }
 
   async remover(sistema: SistemaSankhya): Promise<StatusCredencial> {
-    const corpo = await this.#helper.requisitar<RespostaCredencial>(`/credentials/${sistema}`, {
+    const corpo = await this.#requisitar<RespostaCredencial>(`/credentials/${sistema}`, {
       method: 'DELETE',
     });
     return montar(sistema, corpo);
@@ -86,12 +149,23 @@ export class Credenciais {
    * Tudo em claro: senha, cookies e o JWT. Uso interno do backend — nunca
    * exponha por rota HTTP nem devolva ao navegador.
    */
-  revelar(sistema: SistemaSankhya): Promise<SegredoSankhya> {
-    return this.#helper.requisitar<SegredoSankhya>(`/credentials/${sistema}/reveal`);
+  async revelar(sistema: SistemaSankhya): Promise<SegredoSankhya> {
+    const sessaoEmpurrada = this.#sessaoDaExperience(sistema);
+    if (sessaoEmpurrada) {
+      return {
+        usuario: sessaoEmpurrada.usuario,
+        senha: '',
+        sessao: '',
+        token: sessaoEmpurrada.token,
+        expira: sessaoEmpurrada.expira,
+      };
+    }
+
+    return this.#requisitar<SegredoSankhya>(`/credentials/${sistema}/reveal`);
   }
 
   async statusNavegador(): Promise<StatusNavegador> {
-    const corpo = await this.#helper.requisitar<StatusNavegador>('/browser/status');
+    const corpo = await this.#requisitar<StatusNavegador>('/browser/status');
     return {
       navegador: Boolean(corpo.navegador),
       disponiveis: normalizarLista(corpo.disponiveis),
@@ -106,27 +180,32 @@ export class Credenciais {
    * chamada quando ela vem de fora do navegador.
    */
   consultarAgendaDeRecursos(de: string, ate: string): Promise<{ ok: boolean; conteudo: string }> {
-    return this.#helper.requisitar<{ ok: boolean; conteudo: string }>('/browser/agenda', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ de, ate }),
-    });
+    return this.#requisitar<{ ok: boolean; conteudo: string }>(
+      '/browser/agenda',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ de, ate }),
+      },
+      { timeoutMs: TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS },
+    );
   }
 
   /** Negociações de um parceiro do ERP — de onde saem os números de FAP dele. */
   consultarNegociacoesDoParceiro(codParceiro: number): Promise<{ ok: boolean; conteudo: string }> {
-    return this.#helper.requisitar<{ ok: boolean; conteudo: string }>(
+    return this.#requisitar<{ ok: boolean; conteudo: string }>(
       '/browser/agenda-negociacoes',
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ codParceiro: String(codParceiro) }),
       },
+      { timeoutMs: TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS },
     );
   }
 
   fecharNavegador(): Promise<{ mensagem: string }> {
-    return this.#helper.requisitar<{ mensagem: string }>('/browser/fechar', { method: 'POST' });
+    return this.#requisitar<{ mensagem: string }>('/browser/fechar', { method: 'POST' });
   }
 
   /**
@@ -135,7 +214,7 @@ export class Credenciais {
    * hub nunca vê a senha, só o cookie que sobra depois.
    */
   abrirNavegador(sistema: SistemaSankhya): Promise<{ url: string }> {
-    return this.#helper.requisitar<{ url: string }>(`/browser/abrir/${sistema}`, {
+    return this.#requisitar<{ url: string }>(`/browser/abrir/${sistema}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({}),
@@ -146,7 +225,7 @@ export class Credenciais {
   capturarSessao(
     sistema: SistemaSankhya,
   ): Promise<{ ok: boolean; cookies: number; erro?: string }> {
-    return this.#helper.requisitar<{ ok: boolean; cookies: number; erro?: string }>(
+    return this.#requisitar<{ ok: boolean; cookies: number; erro?: string }>(
       `/browser/capturar/${sistema}`,
       { method: 'POST' },
     );

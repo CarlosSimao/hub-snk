@@ -1,13 +1,21 @@
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { z } from 'zod';
 import { ehSistemaValido, type Credenciais } from '../sankhya/credenciais.ts';
-import { HelperError, HelperIndisponivelError, type HubHelper } from '../sankhya/helper.ts';
+import { HelperError, HelperIndisponivelError } from '../sankhya/helper.ts';
+import {
+  lerTokenDoDesktop,
+  PonteDoDesktopError,
+  PonteDoDesktopIndisponivelError,
+} from '../sankhya/ponteDoDesktop.ts';
+import type { SessaoDoDesktop } from '../sankhya/sessaoDoDesktop.ts';
 import { SISTEMAS_SANKHYA } from '../tipos.ts';
 
+/** Único sistema cuja sessão o shell empurra: o ERP é consultado dentro da guia. */
+const SISTEMA_COM_SESSAO_EMPURRADA = 'sankhya-experience';
+
 /**
- * Rotas de integração com o Sankhya ERP/Experience, via `hub-helper.ps1`.
- *
- * Fase 2 do port: credenciais e captura de sessão. Agenda vem depois — ver
- * docs/port-sankhya-credenciais-agenda.md.
+ * Rotas de integração com o Sankhya ERP/Experience, via shell desktop ou, na
+ * retaguarda, `hub-helper.ps1`.
  */
 
 /**
@@ -16,21 +24,97 @@ import { SISTEMAS_SANKHYA } from '../tipos.ts';
  * que a tela mostra.
  */
 function responderErroHelper(resposta: FastifyReply, erro: unknown): FastifyReply {
-  if (erro instanceof HelperIndisponivelError) {
+  if (erro instanceof HelperIndisponivelError || erro instanceof PonteDoDesktopIndisponivelError) {
     return resposta.status(503).send({ mensagem: erro.message, helperIndisponivel: true });
   }
-  if (erro instanceof HelperError) {
+  if (erro instanceof HelperError || erro instanceof PonteDoDesktopError) {
     return resposta.status(erro.status).send({ mensagem: erro.message });
   }
   throw erro;
 }
 
+const esquemaDaSessaoEmpurrada = z.object({
+  usuario: z.string(),
+  token: z.string().min(1),
+  expira: z.string().optional().default(''),
+});
+
+/**
+ * Só o shell desktop chama as rotas de sessão, nunca a tela: por isso exigem o
+ * token do shell, um arquivo local que o navegador não alcança. Sem isso,
+ * qualquer página aberta na máquina poderia trocar o JWT usado pelo backend.
+ */
+function requisicaoVeioDoShell(
+  requisicao: FastifyRequest,
+  resposta: FastifyReply,
+  arquivoTokenDoDesktop: string,
+): boolean {
+  let esperado: string;
+  try {
+    esperado = lerTokenDoDesktop(arquivoTokenDoDesktop);
+  } catch (erro) {
+    resposta.status(503).send({ mensagem: (erro as Error).message });
+    return false;
+  }
+
+  if (requisicao.headers['x-hub-token'] !== esperado) {
+    resposta.status(401).send({ mensagem: 'Token do shell desktop inválido.' });
+    return false;
+  }
+
+  return true;
+}
+
+function registrarRotasDeSessaoDoDesktop(
+  servidor: FastifyInstance,
+  sessaoDoDesktop: SessaoDoDesktop,
+  arquivoTokenDoDesktop: string,
+): void {
+  const caminho = '/api/sankhya/desktop/sessao/:sistema';
+
+  servidor.post<{ Params: { sistema: string } }>(caminho, async (requisicao, resposta) => {
+    if (!requisicaoVeioDoShell(requisicao, resposta, arquivoTokenDoDesktop)) {
+      return resposta;
+    }
+    if (requisicao.params.sistema !== SISTEMA_COM_SESSAO_EMPURRADA) {
+      return resposta
+        .status(404)
+        .send({ mensagem: `sistema "${requisicao.params.sistema}" não aceita sessão empurrada` });
+    }
+
+    const sessao = esquemaDaSessaoEmpurrada.safeParse(requisicao.body);
+    if (!sessao.success) {
+      return resposta.status(400).send({ mensagem: 'Envie { usuario, token, expira? }.' });
+    }
+
+    sessaoDoDesktop.definir(sessao.data);
+    return { ok: true };
+  });
+
+  servidor.delete<{ Params: { sistema: string } }>(caminho, async (requisicao, resposta) => {
+    if (!requisicaoVeioDoShell(requisicao, resposta, arquivoTokenDoDesktop)) {
+      return resposta;
+    }
+    if (requisicao.params.sistema !== SISTEMA_COM_SESSAO_EMPURRADA) {
+      return resposta
+        .status(404)
+        .send({ mensagem: `sistema "${requisicao.params.sistema}" não aceita sessão empurrada` });
+    }
+
+    sessaoDoDesktop.limpar();
+    return { ok: true };
+  });
+}
+
 export function registrarRotasDeSankhya(
   servidor: FastifyInstance,
-  helper: HubHelper,
   credenciais: Credenciais,
+  sessaoDoDesktop: SessaoDoDesktop,
+  arquivoTokenDoDesktop: string,
 ): void {
-  servidor.get('/api/sankhya/helper', async () => ({ disponivel: await helper.disponivel() }));
+  registrarRotasDeSessaoDoDesktop(servidor, sessaoDoDesktop, arquivoTokenDoDesktop);
+
+  servidor.get('/api/sankhya/helper', async () => ({ disponivel: await credenciais.disponivel() }));
 
   /**
    * Estado das duas credenciais. Nunca devolve senha — só o nome de usuário e

@@ -4,6 +4,7 @@ import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts'
 import { AgendaRecursos } from '../sankhya/agenda.ts';
 import { parsearAgenda, PayloadInvalidoError } from '../sankhya/agendaParser.ts';
 import { HelperError, HelperIndisponivelError } from '../sankhya/helper.ts';
+import { PonteDoDesktopError, PonteDoDesktopIndisponivelError } from '../sankhya/ponteDoDesktop.ts';
 import type { Credenciais } from '../sankhya/credenciais.ts';
 import { SessaoExpiradaError, type Experience } from '../sankhya/experience.ts';
 import {
@@ -25,10 +26,10 @@ function paraFormatoBrasileiro(iso: string): string {
 }
 
 function responderErroHelper(resposta: FastifyReply, erro: unknown): FastifyReply {
-  if (erro instanceof HelperIndisponivelError) {
+  if (erro instanceof HelperIndisponivelError || erro instanceof PonteDoDesktopIndisponivelError) {
     return resposta.status(503).send({ mensagem: erro.message, helperIndisponivel: true });
   }
-  if (erro instanceof HelperError) {
+  if (erro instanceof HelperError || erro instanceof PonteDoDesktopError) {
     return resposta.status(erro.status).send({ mensagem: erro.message });
   }
   throw erro;

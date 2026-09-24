@@ -108,19 +108,19 @@ A meta é provar que o backend da `dev` roda do jeito que o shell vai executá-l
 
 ## Fase 2 — Ajustes no backend da `dev` para ser hospedado
 
-- [ ] Adicionar `GET /api/healthz` (resposta `200 {ok:true}`, sem I/O) em `rotasSistema.ts`, com teste.
-- [ ] Confirmar que `protecaoDeOrigem` aceita:
-  - [ ] a aba do painel carregada como `http://127.0.0.1:4100` (Host e Origin loopback);
-  - [ ] as chamadas do shell sem `Origin` (fetch do processo principal).
-- [ ] Tratar `SIGTERM`/`SIGINT`: `servidor.close()` e fechar o SQLite da agenda.
-  - [ ] Avaliar uma rota `POST /api/sistema/encerrar` só para loopback e token, porque no Windows o `kill()` não entrega sinal. Decidir se entra.
-- [ ] Log do backend legível em arquivo: desligar as cores do `pino-pretty` quando não houver TTY.
-- [ ] Portar do Flaviano, adaptando para zod v4 e as convenções da `dev`:
-  - [ ] `src/sankhya/desktopBridge.ts`, o cliente do bridge (`SANKHYA_DESKTOP_BRIDGE_URL` + `DESKTOP_BRIDGE_TOKEN_FILE`).
-  - [ ] `src/sankhya/sessaoDesktop.ts` e as rotas `POST`/`DELETE /api/sankhya/desktop/sessao/:sistema` (token do bridge; só `sankhya-experience`).
-  - [ ] Em `src/sankhya/credenciais.ts`: usar o bridge e dar prioridade à sessão empurrada na Experience. O fallback para o helper é tolerado só enquanto a Fase 4 não termina (D3).
-  - [ ] Os testes `desktopBridge.test.ts` e `sessaoDesktop.test.ts`, movidos para ficar ao lado do código, no padrão da `dev`.
-- [ ] `npm run typecheck` e `npm test` verdes.
+- [x] Adicionar `GET /api/healthz` (resposta `200 {ok:true}`, sem I/O) em `rotasSistema.ts`, com teste (`rotasSistema.test.ts`).
+- [x] Confirmar que `protecaoDeOrigem` aceita:
+  - [x] a aba do painel carregada como `http://127.0.0.1:4100` (Host e Origin loopback; já coberto por `protecaoDeOrigem.test.ts`);
+  - [x] as chamadas do shell sem `Origin` (validado com `curl`). Uma chamada com `Origin` estranho às rotas de sessão recebe 403 antes mesmo de o token ser conferido.
+- [x] Tratar `SIGTERM`/`SIGINT`: fecha o observador da pasta de dados, depois `servidor.close()` com `forceCloseConnections` (uma conexão SSE aberta não segura o encerramento), depois o SQLite da agenda. **Só typecheck**: no Windows não há como mandar o sinal fora de um console interativo; validar com Ctrl+C no `npm start` e no Linux.
+  - [ ] Avaliar uma rota `POST /api/sistema/encerrar` só para loopback e token, porque no Windows o `kill()` não entrega sinal. **Decisão pendente** do Carlos.
+- [x] Log do backend legível em arquivo: `pino-pretty` com `colorize: process.stdout.isTTY`. Validado: 0 códigos ANSI no log gravado.
+- [x] Portar do Flaviano, adaptando para zod v4 e as convenções da `dev` (nomes em português):
+  - [x] `src/sankhya/ponteDoDesktop.ts` (`desktopBridge.ts` do Flaviano), o cliente do bridge, com `SANKHYA_DESKTOP_BRIDGE_URL` (padrão `http://127.0.0.1:4103`) e `DESKTOP_BRIDGE_TOKEN_FILE` (padrão `%APPDATA%\sankhya-hub\ipc\desktop-token.txt`) em `configuracao.ts`. Mantém o mesmo contrato do helper (`requisitar(caminho, init, opcoes)`), sem os métodos de `serverlog`, `secret` e favoritos, que a `dev` não usa.
+  - [x] `src/sankhya/sessaoDoDesktop.ts` (`sessaoDesktop.ts` do Flaviano) e as rotas `POST`/`DELETE /api/sankhya/desktop/sessao/:sistema` em `rotasSankhya.ts` (token do bridge; só `sankhya-experience`; corpo validado com zod).
+  - [x] Em `src/sankhya/credenciais.ts`: shell primeiro, e o helper só quando o shell está indisponível (um erro de negócio do shell não é repetido no helper). A sessão empurrada tem prioridade em `status`/`revelar` da Experience. As consultas de agenda e negociações passaram a ter timeout de 120 s. `/api/sankhya/helper` passa a responder "shell ou helper no ar".
+  - [x] Testes ao lado do código: `ponteDoDesktop.test.ts`, `sessaoDoDesktop.test.ts`, `credenciais.test.ts` (fallback e prioridade da sessão) e `rotasSankhya.test.ts` (autenticação das rotas de sessão).
+- [x] `npm run typecheck`, `npm test` (120 testes, 0 falhas) e `prettier --check` verdes. O backend também foi validado rodando no Node do Electron: `/api/healthz` 200, sessão empurrada 200 e fallback para o helper com 503 `helperIndisponivel` quando nenhum dos dois está no ar.
 
 ## Fase 3 — Trazer o shell `desktop/`
 
