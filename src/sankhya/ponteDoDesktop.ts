@@ -1,6 +1,6 @@
 /**
  * Transporte para o shell desktop (Electron, `desktop/`), que expõe em
- * `127.0.0.1:4103` o mesmo contrato do `hub-helper.ps1`: `/credentials/*`,
+ * `127.0.0.1:4103` o mesmo contrato do antigo `hub-helper.ps1`: `/credentials/*`,
  * `/browser/*` e as consultas feitas de dentro da guia autenticada do ERP.
  *
  * Existe porque, com o HUB SNK hospedado pelo shell, o navegador logado no

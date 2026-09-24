@@ -7,7 +7,7 @@
  * devolve 200.
  *
  * Escopo reduzido de propósito (Fase 4, só leitura): sem geração de OS nem
- * envio de e-mail — ver docs/port-sankhya-credenciais-agenda.md.
+ * envio de e-mail.
  */
 import type { Credenciais } from './credenciais.ts';
 import type { OrdemExperience, TarefaExperience } from '../tipos.ts';

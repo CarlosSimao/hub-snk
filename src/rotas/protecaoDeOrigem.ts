@@ -84,8 +84,8 @@ export interface CabecalhosDeOrigem {
 }
 
 /**
- * Requisição sem `Origin` é aceita: navegação direta, a própria PWA abrindo o
- * shell e chamadas de linha de comando não mandam o cabeçalho, e o `Host` já
+ * Requisição sem `Origin` é aceita: navegação direta, o shell desktop chamando
+ * o backend e chamadas de linha de comando não mandam o cabeçalho, e o `Host` já
  * garantiu que o endereço usado foi o local.
  */
 export function requisicaoVeioDaMaquinaLocal({ host, origem, porta }: CabecalhosDeOrigem): boolean {
@@ -102,19 +102,6 @@ export function requisicaoVeioDaMaquinaLocal({ host, origem, porta }: Cabecalhos
  * de clientes já devolve as senhas em texto puro.
  */
 export function registrarProtecaoDeOrigem(servidor: FastifyInstance): void {
-  /*
-   * Com a rede liberada não há lista de endereços válidos a comparar: o usuário
-   * chega pelo IP da máquina, pelo nome dela ou por qualquer apelido de DNS. A
-   * checagem seria só teatro, então ela sai e o aviso fica.
-   */
-  if (configuracao.escutaNaRede) {
-    servidor.log.warn(
-      `HUB SNK escutando em ${configuracao.host}: sem autenticação e sem proteção de origem. ` +
-        'Qualquer máquina que alcance esta porta lê as senhas do cadastro e abre programas daqui.',
-    );
-    return;
-  }
-
   servidor.addHook('onRequest', async (requisicao, resposta) => {
     const confiavel = requisicaoVeioDaMaquinaLocal({
       host: requisicao.headers.host,

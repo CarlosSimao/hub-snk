@@ -2,7 +2,7 @@
   "name": "hub-snk",
   "version": "1.1.0",
   "private": true,
-  "description": "HUB SNK — cadastro de clientes, roda local como PWA em janela separada",
+  "description": "HUB SNK — cadastro de clientes e ambiente Sankhya, em aplicativo desktop (Electron)",
   "author": "Carlos Nascimento <carlos.nascimento@sankhya.com.br>",
   "license": "MIT",
   "repository": {
@@ -24,10 +24,8 @@
     "test": "node --test",
     "formatar": "prettier --write .",
     "conferir-formato": "prettier --check .",
-    "gerar-icones": "node scripts/gerar-icones.mjs",
-    "empacotar-windows": "node scripts/empacotar-windows.mjs",
-    "empacotar-unix": "node scripts/empacotar-unix.mjs",
-    "version": "node scripts/sincronizar-versao-do-cache.mjs && git add public/sw.js"
+    "app": "npm --prefix desktop start",
+    "empacotar-desktop": "npm --prefix desktop run empacotar"
   },
   "dependencies": {
     "@fastify/static": "^10.1.3",

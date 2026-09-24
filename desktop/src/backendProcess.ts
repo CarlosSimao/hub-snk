@@ -96,17 +96,10 @@ function montarAmbiente(): NodeJS.ProcessEnv {
     HUB_PORTA: String(PORTA_HUB),
     HUB_HOST: '127.0.0.1',
     HUB_DADOS_DIR: DIRETORIO_DE_DADOS,
-    // Quem mostra o painel é o shell; o backend abrindo o Edge/Chrome daria duas janelas.
-    HUB_ABRIR_JANELA: '0',
     TZ: process.env['TZ'] ?? TZ_PADRAO,
     SANKHYA_DESKTOP_BRIDGE_URL: `http://${BRIDGE_HOST}:${BRIDGE_PORT}`,
     DESKTOP_BRIDGE_TOKEN_FILE: ARQUIVO_TOKEN_BRIDGE,
   };
-
-  // Herdados de uma instalação PWA antiga, levariam o backend a escutar fora do
-  // loopback ou a abrir janela por conta própria.
-  delete ambiente['HUB_PERMITIR_REDE'];
-  delete ambiente['HUB_NAVEGADOR'];
 
   return ambiente;
 }

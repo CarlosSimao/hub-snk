@@ -5,9 +5,6 @@ import { fileURLToPath } from 'node:url';
 const PORTA_PADRAO = 4100;
 const HOST_PADRAO = '127.0.0.1';
 const HOSTS_DE_LOOPBACK = new Set(['127.0.0.1', '::1', 'localhost']);
-const VALOR_QUE_LIBERA_A_REDE = '1';
-const VALOR_QUE_IMPEDE_A_JANELA = '0';
-const NAVEGADOR_PADRAO_DA_JANELA = 'auto';
 const PONTE_DO_DESKTOP_URL_PADRAO = 'http://127.0.0.1:4103';
 
 const raizDoProjeto = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -29,8 +26,8 @@ function lerPorta(): number {
 /**
  * O HUB SNK não tem autenticação: quem alcança a porta lê o cadastro inteiro,
  * senhas incluídas, e dispara a abertura de executáveis da máquina. Escutar fora
- * do loopback transforma isso em execução de comando remota, então a exposição
- * na rede precisa ser pedida de propósito, nunca acontecer por descuido.
+ * do loopback transformaria isso em execução de comando remota, e o aplicativo
+ * desktop não tem uso para isso: só o loopback é aceito.
  */
 function lerHost(): string {
   const bruto = process.env.HUB_HOST;
@@ -38,16 +35,11 @@ function lerHost(): string {
     return HOST_PADRAO;
   }
 
-  if (HOSTS_DE_LOOPBACK.has(bruto)) {
-    return bruto;
-  }
-
-  if (process.env.HUB_PERMITIR_REDE !== VALOR_QUE_LIBERA_A_REDE) {
+  if (!HOSTS_DE_LOOPBACK.has(bruto)) {
     throw new Error(
-      `HUB_HOST="${bruto}" expõe o HUB SNK para outras máquinas da rede. ` +
+      `HUB_HOST="${bruto}" exporia o HUB SNK para outras máquinas da rede. ` +
         'O servidor não tem autenticação, devolve as senhas do cadastro pela API e ' +
-        'abre programas do sistema operacional. Se é isso mesmo que você quer, ' +
-        `defina HUB_PERMITIR_REDE=${VALOR_QUE_LIBERA_A_REDE}.`,
+        `abre programas do sistema operacional. Use ${[...HOSTS_DE_LOOPBACK].join(', ')}.`,
     );
   }
 
@@ -82,28 +74,11 @@ function lerArquivoDeTokenDoDesktop(): string {
   return join(pastaDeDadosDeAplicativos, 'sankhya-hub', 'ipc', 'desktop-token.txt');
 }
 
-const host = lerHost();
-
 export const configuracao = {
   porta: lerPorta(),
-  host,
-  /* Ligado só quando o usuário confirmou a exposição pela HUB_PERMITIR_REDE. */
-  escutaNaRede: !HOSTS_DE_LOOPBACK.has(host),
+  host: lerHost(),
   diretorioPublico: join(raizDoProjeto, 'public'),
   diretorioDeDados: lerDiretorioDeDados(),
-  /*
-   * Abrir a janela é o padrão porque quem roda o `node` direto do pacote não
-   * tem outro caminho até a tela. O launcher, que abre a janela por conta
-   * própria, desliga isso com HUB_ABRIR_JANELA=0 para não abrir duas.
-   *
-   * O `--watch` do desenvolvimento fica de fora sem precisar de variável: ali o
-   * processo reinicia a cada arquivo salvo, e uma janela por salvamento
-   * inviabilizaria o modo.
-   */
-  abrirJanela:
-    process.env.HUB_ABRIR_JANELA !== VALOR_QUE_IMPEDE_A_JANELA &&
-    !process.execArgv.includes('--watch'),
-  navegador: process.env.HUB_NAVEGADOR?.trim().toLowerCase() || NAVEGADOR_PADRAO_DA_JANELA,
   ponteDoDesktopUrl: process.env.SANKHYA_DESKTOP_BRIDGE_URL ?? PONTE_DO_DESKTOP_URL_PADRAO,
   ponteDoDesktopTokenFile: lerArquivoDeTokenDoDesktop(),
 } as const;

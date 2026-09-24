@@ -21,7 +21,6 @@ import { Credenciais } from './sankhya/credenciais.ts';
 import { Experience } from './sankhya/experience.ts';
 import { PonteDoDesktop } from './sankhya/ponteDoDesktop.ts';
 import { SessaoDoDesktop } from './sankhya/sessaoDoDesktop.ts';
-import { abrirJanelaDoAplicativo } from './sistema/abrirJanelaDoAplicativo.ts';
 import { observarAlteracoesNosDados, type CacheDescartavel } from './sistema/observadorDeDados.ts';
 
 async function iniciarServidor(): Promise<void> {
@@ -46,16 +45,7 @@ async function iniciarServidor(): Promise<void> {
   /* Antes de qualquer rota: vale também para os arquivos estáticos. */
   registrarProtecaoDeOrigem(servidor);
 
-  await servidor.register(fastifyStatic, {
-    root: configuracao.diretorioPublico,
-    // O service worker precisa ser servido sem cache para que uma nova versão
-    // do app seja detectada já na primeira visita após o deploy local.
-    setHeaders(resposta, caminho) {
-      if (caminho.endsWith('sw.js')) {
-        resposta.header('cache-control', 'no-cache');
-      }
-    },
-  });
+  await servidor.register(fastifyStatic, { root: configuracao.diretorioPublico });
 
   const repositorioDeClientes = new RepositorioClientesArquivo(configuracao.diretorioDeDados);
   const repositorioDeConfiguracao = new RepositorioConfiguracaoArquivo(
@@ -121,13 +111,6 @@ async function iniciarServidor(): Promise<void> {
 
   await servidor.listen({ port: configuracao.porta, host: configuracao.host });
   servidor.log.info(`Dados em ${configuracao.diretorioDeDados}`);
-
-  if (configuracao.abrirJanela) {
-    await abrirJanelaDoAplicativo(
-      `http://${configuracao.host}:${configuracao.porta}`,
-      configuracao.navegador,
-    );
-  }
 
   /*
    * A pasta precisa existir para ser vigiada, e numa instalação nova ela só

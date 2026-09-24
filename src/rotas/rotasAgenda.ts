@@ -59,7 +59,7 @@ export function registrarRotasDeAgenda(
    * importa o resultado no mesmo snapshot.
    *
    * É sempre a agenda do usuário logado na guia — não existe seleção de
-   * consultor aqui, de propósito (ver docs/port-sankhya-credenciais-agenda.md).
+   * consultor aqui, de propósito.
    */
   servidor.post('/api/agenda/consultar', async (requisicao, resposta) => {
     const dados = esquemaDeConsulta.safeParse(requisicao.body);
