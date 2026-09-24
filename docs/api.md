@@ -19,16 +19,13 @@ Por isso, antes de chegar a qualquer rota, dois cabeçalhos são conferidos:
 - **`Host`** — precisa ser `127.0.0.1`, `localhost` ou `[::1]`, na porta em que o
   servidor está escutando. Um nome de domínio ali denuncia o rebinding.
 - **`Origin`** — quando presente, precisa ser a própria origem do HUB SNK.
-  Requisição sem `Origin` é aceita: navegação direta, a própria PWA carregando o
-  shell e chamadas de linha de comando não mandam o cabeçalho, e o `Host` já foi
+  Requisição sem `Origin` é aceita: navegação direta, o shell desktop chamando o
+  backend e chamadas de linha de comando não mandam o cabeçalho, e o `Host` já foi
   conferido.
 
 O que não passa recebe `403` e fica registrado no log do servidor.
 
-Com `HUB_PERMITIR_REDE=1` e um `HUB_HOST` de rede, a conferência sai: não há
-lista de endereços válidos a comparar quando o acesso é pelo IP ou pelo nome da
-máquina, e manter a checagem seria teatro. O servidor registra um aviso no log ao
-subir nesse modo.
+O servidor só escuta em loopback: um `HUB_HOST` fora dele é recusado na largada.
 
 ## Rotas
 
@@ -66,6 +63,43 @@ subir nesse modo.
 | `POST`   | `/api/atalhos/:id/abrir`                                       | `204` — programa iniciado; `503` se ele não subir                       |
 | `GET`    | `/api/sistema/versao`                                          | `200` — `{ "versao": "1.0.0" }`, a mesma exibida no rodapé              |
 | `GET`    | `/api/sistema/atualizacao`                                     | `200` — comparação com a última release publicada no GitHub             |
+
+## Integração com o Sankhya e com o aplicativo desktop
+
+Estas rotas dependem do shell desktop (Electron): quem tem a sessão do Sankhya e o
+cofre das credenciais é ele, e o backend fala com ele pela ponte local
+`127.0.0.1:4103` (`src/sankhya/ponteDoDesktop.ts`). Com o backend rodando sozinho
+(`npm run dev`, sem o aplicativo aberto), elas respondem
+`503 { "mensagem": "...", "shellIndisponivel": true }`.
+
+| Método   | Rota                                        | Resposta                                                                           |
+| -------- | ------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `GET`    | `/api/sankhya/shell`                        | `200` — `{ "disponivel": true }` quando o aplicativo desktop responde              |
+| `GET`    | `/api/sankhya/credenciais`                  | `200` — estado das credenciais do ERP e da Experience, sem senha                   |
+| `POST`   | `/api/sankhya/credenciais/:sistema`         | `200` — credencial gravada no cofre do aplicativo (`{ usuario, senha }`)           |
+| `DELETE` | `/api/sankhya/credenciais/:sistema`         | `200` — credencial removida                                                        |
+| `POST`   | `/api/sankhya/navegador/abrir/:sistema`     | `200` — a guia do sistema passa a ser a guia ativa do aplicativo                   |
+| `POST`   | `/api/sankhya/navegador/capturar/:sistema`  | `200` — sessão da guia guardada no cofre; `409` quando a guia não está logada      |
+| `GET`    | `/api/agenda/estado`                        | `200` — quantos recursos e eventos há no snapshot e quando foi importado           |
+| `POST`   | `/api/agenda/consultar`                     | `200` — consulta a Agenda de Recursos na guia Sankhya Om (`{ de, ate }`) e importa |
+| `GET`    | `/api/agenda/situacao-do-dia?codparc=&dia=` | `200` — sem tarefa, tarefa aberta ou OS lançada na Experience naquele dia          |
+
+`:sistema` é `sankhya-erp` ou `sankhya-experience`.
+
+### Rotas que só o aplicativo desktop chama
+
+Estas exigem o cabeçalho `x-hub-token` com o conteúdo de
+`%APPDATA%\sankhya-hub\ipc\desktop-token.txt`, o arquivo que o shell grava ao
+abrir. A tela não tem acesso a ele, então nenhuma página aberta na máquina
+consegue chamá-las. Sem o arquivo, a resposta é `503`; com o token errado, `401`.
+
+| Método   | Rota                                             | Resposta                                                                           |
+| -------- | ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `GET`    | `/api/healthz`                                   | `200` — `{ "ok": true }`. Não exige token: é a sonda de vida do shell              |
+| `POST`   | `/api/sistema/encerrar`                          | `202` — fecha as conexões e o SQLite e encerra o processo                          |
+| `POST`   | `/api/sankhya/desktop/sessao/sankhya-experience` | `200` — guarda em memória o JWT da guia Experience (`{ usuario, token, expira? }`) |
+| `DELETE` | `/api/sankhya/desktop/sessao/sankhya-experience` | `200` — esquece a sessão (logout na guia)                                          |
+| `POST`   | `/api/clientes/:id/bases/:idBase/senha`          | `200` — `{ "senha": "..." }`, para o login automático da guia daquela base         |
 
 ## Aviso de versão nova
 
@@ -196,7 +230,8 @@ bases por chamada.
 
 Erros retornam `{ "mensagem": "..." }` com `400` (dados inválidos), `403`
 (origem recusada), `404` (cliente ou base inexistente), `409` (conflito) ou
-`503` (recurso do sistema operacional indisponível). O `503` cobre as rotas que
+`503` (recurso indisponível). O `503` também sai quando o aplicativo desktop não
+responde — com `shellIndisponivel: true` — e cobre as rotas que
 abrem programa da máquina — gerenciador de arquivos, terminal, IntelliJ, seletor
 de arquivo e de pasta, atalho — quando o programa não existe ou não chega a
 subir; a mensagem diz o que instalar. São

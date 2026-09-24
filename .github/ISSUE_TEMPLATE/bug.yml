@@ -26,16 +26,16 @@ body:
       options:
         - Windows
         - Linux
-        - macOS
     validations:
       required: true
 
-  - type: input
-    id: node
+  - type: dropdown
+    id: como-roda
     attributes:
-      label: Versão do Node.js
-      description: Saída de `node -v`.
-      placeholder: v22.18.0
+      label: Como o HUB SNK está rodando
+      options:
+        - Aplicativo instalado pelo HUB-SNK-Setup
+        - Pelo código-fonte (npm run app ou npm run dev)
     validations:
       required: true
 

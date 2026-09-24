@@ -251,14 +251,27 @@ emocao-da-versao-pwa.log` e na tela de detalhes do NSIS.
 
 ## Fase 7 — Scripts, CI e documentação
 
-- [ ] `package.json` raiz: scripts `app` (`npm --prefix desktop run start`) e `empacotar-desktop`. Remover `empacotar-windows`, `empacotar-unix`, `gerar-icones` e o hook `version`.
-- [ ] `ci.yml`:
-  - [ ] Job de typecheck e build do `desktop/`, e teste de fumaça do backend via `/api/healthz`.
-  - [ ] Remover os jobs de empacotamento e instalação real da PWA (Linux e macOS).
-  - [ ] A matriz de testes do backend pode continuar com macOS (o backend roda lá), mas sem job de distribuição.
-- [ ] `distribuicao.yml`: substituir os jobs de zip e tar.gz pelo instalador NSIS (Windows) e AppImage/deb (Linux) na tag `v*`, e publicar na release.
-- [ ] Atualizar `README.md` (instalação e uso; aviso de fim do suporte ao macOS), `docs/distribuicao.md`, `docs/estrutura-do-codigo.md`, `docs/api.md` (`/api/healthz` e rotas de sessão), `docs/manutencao.md`, `docs/correcoes-multiplataforma.md` e `CHANGELOG.md` (quebra de compatibilidade: PWA removida, macOS sem distribuição, porta fixa).
-- [ ] Atualizar ou remover o `docs/port-sankhya-credenciais-agenda.md`, que está desatualizado (cita a porta 4200 e rotas que não existem mais).
+- [x] `package.json` raiz: `app` (`npm --prefix desktop start`) e `empacotar-desktop` (`npm --prefix desktop run empacotar`). Saíram `empacotar-windows`, `empacotar-unix`, `gerar-icones` e o hook `version`. A `description` agora fala do aplicativo desktop.
+- [x] `ci.yml`:
+  - [x] A matriz `verificar` (Ubuntu/Windows/macOS × Node 22.18/24) continua: o backend segue rodando com o Node do sistema em desenvolvimento.
+  - [x] Job novo `desktop` (Windows): `npm ci` da raiz e do `desktop/`; `install.js` do Electron (o bloqueio de scripts do npm 11); `tsc` do shell; `preparar-hub.mjs`; backend do pacote no Node do Electron até o `/api/healthz`; sintaxe do `remover-versao-pwa.ps1` no Windows PowerShell 5.1; `electron-builder --dir`, sem o Git AutoSync.
+  - [x] Saíram os jobs `empacotamento` e `instalacao-unix` da PWA.
+- [x] `distribuicao.yml`:
+  - [x] Na tag `v*`: confere a tag contra a versão do `package.json` da raiz e do `desktop/`; faz checkout do `FlavianoRS/git-autosync` na branch `master`; gera os binários com o `build_windows.ps1` (Python 3.13); roda typecheck e testes; gera o `HUB-SNK-Setup-*.exe` e anexa à release.
+  - [x] Sem job Linux, até o pacote Linux ser validado (Fase 6).
+  - [ ] **Não executado**: o workflow só roda no GitHub. Validado localmente só o YAML (pelo parser do Prettier) e os passos equivalentes feitos à mão nas Fases 1, 3 e 6.
+- [x] Documentação:
+  - [x] `README.md` reescrito: instalação pelo `.exe`, migração da versão 1, guias do aplicativo, variáveis que ainda valem, segurança, onde ficam dados e logs, solução de problemas. O aviso de fim do macOS está no topo e no CHANGELOG.
+  - [x] `docs/distribuicao.md` reescrito para o Electron: as três peças, portas, caminhos, como gerar, Git AutoSync, remoção da PWA, assinatura, Linux e macOS.
+  - [x] `docs/api.md`: `/api/healthz`, `/api/sistema/encerrar`, sessão empurrada, senha da base, `/api/sankhya/*`, `/api/agenda/*`, token do shell e `shellIndisponivel`. Saiu o trecho do `HUB_PERMITIR_REDE`.
+  - [x] `docs/estrutura-do-codigo.md`: módulos novos do backend e o mapa do `desktop/`.
+  - [x] `docs/manutencao.md`: desenvolvimento com `npm run app` e `SANKHYA_HUB_BACKEND=externo`, a nota do `install.js` do Electron, o CI novo, as duas versões a subir na release e como gerar o instalador.
+  - [x] `docs/correcoes-multiplataforma.md`: marcado como histórico da versão 1.
+  - [x] `CHANGELOG.md`: seção "Não publicado" com a quebra de compatibilidade (adicionado, alterado, removido e migração da versão 1). Entraram também projetos e agenda no cadastro, que estavam na `dev` sem registro.
+  - [x] `.github/ISSUE_TEMPLATE/bug.yml`: sem macOS, e com "como está rodando" (instalado ou código-fonte) no lugar da versão do Node.
+  - [x] `docs/port-sankhya-credenciais-agenda.md` removido: descrevia o port pelo `hub-helper.ps1`, que não existe mais. As referências a ele no código saíram.
+- [x] **Correção achada na revisão:** em desenvolvimento, o shell usava o mesmo nome do aplicativo instalado e, com isso, o mesmo perfil, o mesmo cofre e a mesma trava de instância única. Com o instalado aberto, o `npm run app` fechava na hora. `desktop/src/nomeDoApp.ts` (primeiro import do `main.ts`) passa a chamá-lo "HUB SNK (desenvolvimento)". Validado: o de desenvolvimento subiu ao lado do instalado, em outras portas, com perfil próprio.
+- [ ] Versão: a release é MAJOR (2.0.0). Subir a raiz e o `desktop/` juntos na hora da release (`docs/manutencao.md`).
 
 ## Fase 8 — Validação funcional (Windows)
 
@@ -277,17 +290,16 @@ emocao-da-versao-pwa.log` e na tela de detalhes do NSIS.
 
 ## Fase 9 — Remoção da PWA e do instalador antigo (mesma release, D5)
 
-Esta fase faz parte da mesma release e precisa estar concluída antes da tag. A remoção automática da
-instalação antiga (Fase 6) usa as regras do `encerrar-hub-snk.vbs` e do `desinstalar-hub-snk.ps1`:
-extraia o que for preciso antes de apagá-los.
-
-- [ ] Remover o `public/sw.js`, o `public/manifest.webmanifest`, os ícones de PWA sem uso e o `scripts/sincronizar-versao-do-cache.mjs`.
-- [ ] Remover `src/sistema/abrirJanelaDoAplicativo.ts`, `HUB_ABRIR_JANELA`, `HUB_NAVEGADOR`, `HUB_PERMITIR_REDE` e a abertura automática de janela no `src/index.ts`.
-- [ ] Remover `instalador/*`, `scripts/empacotar-comum.mjs`, `scripts/empacotar-windows.mjs`, `scripts/empacotar-unix.mjs` e `scripts/gerar-icones.mjs` (os ícones já estão em `desktop/assets`).
-- [ ] Remover `iniciar.vbs` e `iniciar.sh`. O modo desenvolvimento passa a ser `npm run dev` (só o backend) + `npm run app` (shell).
-- [ ] Remover o `cache-control` específico do `sw.js` em `src/index.ts:35-39`.
-- [ ] Confirmar que não sobrou referência: `grep -rn "sw.js\|manifest.webmanifest\|HUB_ABRIR_JANELA\|HUB_NAVEGADOR\|HUB_PERMITIR_REDE\|hub-helper\|abrir-hub-snk" src public docs scripts .github`.
-- [ ] Publicar nas notas da release o passo a passo para quem usa a PWA: instalar o `.exe`, que remove a versão antiga e preserva os dados. Para macOS, avisar que não há distribuição nesta versão.
+- [x] Removidos `public/sw.js`, `public/manifest.webmanifest`, `public/img/icone-512.png`, `public/img/icone-maskable-512.png` e `scripts/sincronizar-versao-do-cache.mjs`. O `icone-192.png` fica: é o favicon e a marca do painel.
+- [x] Removidos `src/sistema/abrirJanelaDoAplicativo.ts`, `HUB_ABRIR_JANELA`, `HUB_NAVEGADOR`, `HUB_PERMITIR_REDE` e a abertura automática de janela no `src/index.ts`. O `HUB_HOST` só aceita loopback, e o `escutaNaRede`, com o desvio da proteção de origem que dependia dele, saiu junto.
+- [x] Removidos `instalador/*` (a lógica que a remoção da PWA precisava já estava no `remover-versao-pwa.ps1`), `scripts/empacotar-*.mjs` e `scripts/gerar-icones.mjs`. A pasta `scripts/` deixou de existir.
+- [x] Removidos `iniciar.vbs` e `iniciar.sh`. Desenvolvimento: `npm run dev` (backend) e `npm run app` (shell).
+- [x] Removido o `cache-control` do `sw.js` no `src/index.ts`.
+- [x] O shell deixou de passar `HUB_ABRIR_JANELA` e de apagar `HUB_PERMITIR_REDE`/`HUB_NAVEGADOR` do ambiente, porque o backend não os lê mais.
+- [x] `.prettierignore`: sai `instalador/hub-snk.ico`, entram `desktop/build/` e `release/`.
+- [x] Referências conferidas. O que sobrou é legítimo: a descrição da remoção no `distribuicao.md`, no `CHANGELOG.md` e no próprio `remover-versao-pwa.ps1`, e o `npm run build` do `desktop/`, que é o `tsc` do shell. O `correcoes-multiplataforma.md` e este plano são histórico.
+- [x] Typecheck, 125 testes, `tsc` do shell e prettier verdes depois das remoções.
+- [ ] Publicar nas notas da release o passo a passo para quem usa a PWA. O texto está pronto no `CHANGELOG.md` ("Migração da versão 1") e no README ("Quem já usava a versão 1").
 
 ## Riscos
 

@@ -1,5 +1,11 @@
 # Correções multiplataforma — Linux e macOS
 
+> **Histórico da versão 1.** Esta auditoria é da distribuição por scripts (zip,
+> tar.gz, launchers `.sh`/`.vbs` e janela `--app` do navegador), removida na
+> versão 2 junto com o `abrirJanelaDoAplicativo.ts` e o `instalador/`. Os itens que
+> falam de backend (processos, Docker, terminal) continuam valendo; os de launcher,
+> atalho e janela não se aplicam mais. Ver [distribuicao.md](distribuicao.md).
+
 Lista de pendências levantadas na auditoria de compatibilidade com Linux e
 macOS. Marque cada item conforme for corrigindo.
 

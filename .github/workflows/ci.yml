@@ -9,9 +9,10 @@ on:
 
 jobs:
   verificar:
-    # O HUB SNK roda nos três sistemas, e o Node se comporta diferente entre
-    # eles — foi assim que a chamada do npm apareceu quebrada no Windows. A
-    # matriz cobre a versão mínima suportada e a mais recente.
+    # O backend continua rodando com o Node do sistema em desenvolvimento
+    # (`npm run dev`), e o Node se comporta diferente entre os sistemas — foi
+    # assim que a chamada do npm apareceu quebrada no Windows. A matriz cobre a
+    # versão mínima suportada e a mais recente.
     strategy:
       fail-fast: false
       matrix:
@@ -42,156 +43,78 @@ jobs:
         if: matrix.sistema == 'ubuntu-latest' && matrix.node == '24'
         run: npm run conferir-formato
 
-  # Confere que o empacotamento continua funcionando, sem esperar uma tag para
-  # descobrir que a release quebrou.
-  empacotamento:
-    runs-on: ubuntu-latest
+  # O aplicativo desktop de ponta a ponta, sem esperar uma tag para descobrir que
+  # a release quebrou: compila o shell, monta o backend como ele vai no pacote,
+  # sobe esse backend no Node embutido do Electron e empacota a pasta do app.
+  desktop:
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '22.18'
+          node-version: '24'
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
 
-      - run: npm ci
-
-      - name: Gerar os ícones
-        run: npm run gerar-icones
-
-      - name: Conferir se o ícone do instalador saiu íntegro
+      - name: Instalar dependências
         run: |
-          test -s instalador/hub-snk.ico
-          # Um ICO começa com 00 00 01 00 — reservado, seguido do tipo "ícone".
-          assinatura=$(head -c 4 instalador/hub-snk.ico | od -An -tx1 | tr -d ' ')
-          if [ "$assinatura" != "00000100" ]; then
-            echo "O hub-snk.ico não começa com a assinatura de um arquivo ICO." >&2
-            exit 1
-          fi
+          npm ci
+          npm --prefix desktop ci
 
-      - name: Empacotar Linux e macOS
-        run: npm run empacotar-unix
+      # O npm 11 bloqueia scripts de instalação por padrão, e o `postinstall` do
+      # Electron é o que baixa o binário. Rodar o instalador dele de novo é
+      # inofensivo quando o binário já está lá.
+      - name: Garantir o binário do Electron
+        run: node desktop/node_modules/electron/install.js
 
-      # Sem o bit de execução, o pacote chega do outro lado exigindo um chmod que
-      # ninguém adivinha. É o motivo de os pacotes Unix serem tar, e não zip.
-      - name: Conferir se os scripts saíram executáveis
+      - name: Compilar o shell
+        run: npm --prefix desktop run build
+
+      - name: Montar o backend do pacote
+        run: node desktop/scripts/preparar-hub.mjs
+
+      # Prova o que a Fase 1 do plano de migração provou à mão: o backend roda
+      # direto do TypeScript no Node do Electron, só com as dependências de produção.
+      - name: Subir o backend do pacote no Node do Electron
+        shell: pwsh
         run: |
-          for pacote in dist/hub-snk-*.tar.gz; do
-            for script in hub-snk.sh instalar-hub-snk.sh desinstalar-hub-snk.sh; do
-              permissoes=$(tar -tzvf "$pacote" | grep -E "/$script$" | awk '{print $1}')
-              echo "$pacote -> $script -> ${permissoes:-AUSENTE}"
-              case "$permissoes" in
-                -rwx*) ;;
-                *) echo "O $script saiu do pacote sem permissão de execução." >&2; exit 1 ;;
-              esac
-            done
-          done
+          $env:ELECTRON_RUN_AS_NODE = '1'
+          $env:HUB_DADOS_DIR = Join-Path $env:RUNNER_TEMP 'dados-hub-snk'
+          $electron = Resolve-Path 'desktop\node_modules\electron\dist\electron.exe'
+          $backend = Start-Process $electron -ArgumentList 'src\index.ts' `
+            -WorkingDirectory 'desktop\build\hub' -PassThru -NoNewWindow
+          $pronto = $false
+          foreach ($tentativa in 1..60) {
+            try {
+              Invoke-RestMethod http://127.0.0.1:4100/api/healthz | Out-Null
+              $pronto = $true
+              break
+            } catch { Start-Sleep -Milliseconds 500 }
+          }
+          Stop-Process -Id $backend.Id -Force
+          if (-not $pronto) { throw 'O backend do pacote não respondeu em /api/healthz.' }
 
-  # Instala e desinstala de verdade, nos dois sistemas que usam os scripts .sh.
-  #
-  # A matriz do `verificar` não cobre isto: os testes são de funções puras e não
-  # encostam no instalador nem em nada específico de sistema. O atalho e o início
-  # na sessão são justamente a parte que muda entre Linux e macOS, e já estiveram
-  # quebrados no macOS sem ninguém perceber — o `.desktop` do XDG era gravado e
-  # ignorado em silêncio.
-  instalacao-unix:
-    strategy:
-      fail-fast: false
-      matrix:
-        sistema: [ubuntu-latest, macos-latest]
-
-    runs-on: ${{ matrix.sistema }}
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22.18'
-          cache: npm
-
-      - run: npm ci
-
-      # Erro de sintaxe num .sh só apareceria na máquina de quem baixou. O `sh`
-      # do Ubuntu é o dash e o do macOS é o bash: rodar nos dois pega o que é
-      # bashismo acidental.
-      - name: Conferir a sintaxe dos scripts
+      # Quem roda este script é o Windows PowerShell 5.1, chamado pelo NSIS: um erro
+      # de sintaxe só apareceria na máquina de quem instalou.
+      - name: Conferir a sintaxe do script de remoção da versão PWA
+        shell: powershell
         run: |
-          for script in instalador/*.sh iniciar.sh; do
-            sh -n "$script" || { echo "$script tem erro de sintaxe." >&2; exit 1; }
-          done
+          $erros = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'desktop\instalador\remover-versao-pwa.ps1'), [ref]$null, [ref]$erros) | Out-Null
+          if ($erros.Count -gt 0) {
+            $erros | ForEach-Object { Write-Host $_ }
+            throw 'remover-versao-pwa.ps1 tem erro de sintaxe.'
+          }
 
-      - name: Empacotar e descompactar
+      # Sem o Git AutoSync (que vem de outro repositório) e sem o instalador NSIS: o que
+      # se quer aqui é saber que o electron-builder ainda monta o app.
+      - name: Empacotar a pasta do aplicativo
+        working-directory: desktop
         run: |
-          npm run empacotar-unix
-          if [ "$(uname -s)" = Darwin ]; then
-            [ "$(uname -m)" = arm64 ] && alvo=macos-arm64 || alvo=macos-x64
-          else
-            alvo=linux-x64
-          fi
-          mkdir -p /tmp/pacote
-          tar -xzf dist/hub-snk-*-"$alvo".tar.gz -C /tmp/pacote
-          set -- /tmp/pacote/hub-snk-*-"$alvo"
-          echo "PACOTE=$1" >> "$GITHUB_ENV"
-
-      # Enter nos cinco parâmetros, sim para o atalho e para o início na sessão,
-      # não para abrir ao final — a tela é aberta adiante, pelo launcher.
-      - name: Instalar
-        run: printf '\n\n\n\n\ns\ns\nn\n' | "$PACOTE/instalar-hub-snk.sh"
-
-      - name: Conferir o atalho e o início na sessão do Linux
-        if: runner.os == 'Linux'
-        run: |
-          atalho="$HOME/.local/share/applications/hub-snk.desktop"
-          logon="$HOME/.config/autostart/hub-snk.desktop"
-          test -f "$atalho" || { echo 'Atalho .desktop não foi criado.' >&2; exit 1; }
-          test -f "$logon" || { echo 'Entrada de autostart não foi criada.' >&2; exit 1; }
-          # O Exec é dividido em espaços: sem aspas, uma pasta com espaço quebra o atalho.
-          grep -q '^Exec="' "$atalho" || { echo 'O Exec do atalho está sem aspas.' >&2; exit 1; }
-          test ! -d "$HOME/Applications/HUB SNK.app" || { echo 'Criou pacote .app no Linux.' >&2; exit 1; }
-
-      - name: Conferir o aplicativo e o LaunchAgent do macOS
-        if: runner.os == 'macOS'
-        run: |
-          executavel="$HOME/Applications/HUB SNK.app/Contents/MacOS/hub-snk"
-          agente="$HOME/Library/LaunchAgents/com.hubsnk.servidor.plist"
-          test -x "$executavel" || { echo 'O executável do .app não foi criado.' >&2; exit 1; }
-          test -f "$agente" || { echo 'O LaunchAgent não foi criado.' >&2; exit 1; }
-          # plist malformado só falharia no logon seguinte, longe daqui.
-          plutil -lint "$HOME/Applications/HUB SNK.app/Contents/Info.plist"
-          plutil -lint "$agente"
-          test ! -f "$HOME/.local/share/applications/hub-snk.desktop" \
-            || { echo 'Criou .desktop do XDG no macOS, que o sistema ignora.' >&2; exit 1; }
-
-      - name: Subir o servidor pelo launcher instalado e responder
-        run: |
-          programa="$HOME/.local/share/hub-snk/programa"
-          "$programa/hub-snk.sh" servidor
-          # O launcher volta quando o processo existe, e o Fastify ainda leva um
-          # instante para atender na porta — daí a espera, em vez de um curl seco.
-          tentativa=0
-          until curl -fsS http://127.0.0.1:4100/api/sistema/versao; do
-            tentativa=$((tentativa + 1))
-            if [ "$tentativa" -ge 30 ]; then
-              echo 'O servidor subiu mas não respondeu na porta.' >&2
-              cat "$HOME/.local/share/hub-snk/hub-snk.log" >&2 || true
-              exit 1
-            fi
-            sleep 1
-          done
-          "$programa/hub-snk.sh" parar
-
-      - name: Desinstalar sem levar o cadastro junto
-        run: |
-          programa="$HOME/.local/share/hub-snk/programa"
-          printf 's\n' | "$programa/desinstalar-hub-snk.sh"
-          test ! -d "$programa" || { echo 'A pasta do programa continua lá.' >&2; exit 1; }
-          test -d "$HOME/.local/share/hub-snk/dados" \
-            || { echo 'A desinstalação levou o cadastro junto.' >&2; exit 1; }
-          test ! -d "$HOME/Applications/HUB SNK.app" \
-            || { echo 'O pacote .app sobreviveu à desinstalação.' >&2; exit 1; }
-          test ! -f "$HOME/Library/LaunchAgents/com.hubsnk.servidor.plist" \
-            || { echo 'O LaunchAgent sobreviveu à desinstalação.' >&2; exit 1; }
-          test ! -f "$HOME/.local/share/applications/hub-snk.desktop" \
-            || { echo 'O atalho sobreviveu à desinstalação.' >&2; exit 1; }
+          node scripts/preparar-autosync.mjs --sem-autosync
+          npx electron-builder --config electron-builder.yml --dir

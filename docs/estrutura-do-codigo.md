@@ -21,7 +21,17 @@ src/
   rotas/rotasGit.ts                         rota da situação dos repositórios locais
   rotas/rotasAtalhos.ts                     rota que dispara os atalhos cadastrados
   rotas/rotasLocal.ts                       rotas das bases e bancos da máquina
-  rotas/rotasSistema.ts                     versão, aviso de atualização, seletores do SO e varredura
+  rotas/rotasSistema.ts                     versão, sonda de vida, encerramento, seletores do SO e varredura
+  rotas/rotasSankhya.ts                     credenciais, guias do Sankhya e sessão empurrada pelo shell
+  rotas/rotasAgenda.ts                      Agenda de Recursos e situação do dia na Experience
+  rotas/autenticacaoDoShell.ts              confere o token das rotas que só o shell desktop chama
+  rotas/respostasDoShell.ts                 traduz a falha da ponte com o shell em resposta HTTP
+  sankhya/ponteDoDesktop.ts                 cliente HTTP da ponte do shell desktop (127.0.0.1:4103)
+  sankhya/sessaoDoDesktop.ts                JWT da Experience empurrado pelo shell, em memória
+  sankhya/credenciais.ts                    credenciais e consultas feitas de dentro da guia do ERP
+  sankhya/agenda.ts  sankhya/agendaParser.ts   snapshot da Agenda de Recursos em SQLite
+  sankhya/negociacoes.ts                    FAPs de um parceiro, a partir das negociações do ERP
+  sankhya/experience.ts                     leitura da API da Experience com o JWT da guia
   git/executarGit.ts                        executa comandos git sem shell e sem prompt
   git/provedorDeHospedagem.ts               lê a URL do remoto: host, GitHub ou GitLab
   git/situacaoDoRepositorio.ts              diagnóstico de um repositório local
@@ -45,16 +55,33 @@ public/
   leitorDeFavoritos.js                      lê o arquivo de favoritos de qualquer navegador suportado
   leitorDeArquivoDeCadastros.js             lê o .txt de cadastros gerado pelo Exportar e pelo Compartilhar
   tipoDeBaseNoNome.js                       tira Produção/Teste do nome do favorito
-  manifest.webmanifest  sw.js               o que torna o HUB SNK instalável
-scripts/
-  gerar-icones.mjs                          gera os PNG do manifest (npm run gerar-icones)
-  sincronizar-versao-do-cache.mjs           alinha o cache do service worker à versão (npm version)
+  log.html  log.js                          log ao vivo de uma base local, em janela própria
+desktop/                                    shell Electron: o aplicativo que o usuário instala
+  src/main.ts                               boot: ponte, backend, janela, guias e menu
+  src/nomeDoApp.ts                          nome, perfil e trava próprios em desenvolvimento
+  src/backendProcess.ts                     sobe o src/index.ts no Node do Electron e o encerra pela API
+  src/config.ts                             endereços, portas e caminhos, em desenvolvimento e empacotado
+  src/tabs.ts                               guias fixas e por base, política de pop-up e de links
+  src/bridgeServer.ts                       ponte que o backend chama: cofre, guias e consultas ao ERP
+  src/cofreCredenciais.ts                   cofre das credenciais com o safeStorage do Electron
+  src/navegador.ts  src/sessions.ts         abrir e capturar a sessão das guias do Sankhya
+  src/agenda.ts                             Agenda de Recursos e negociações, de dentro da guia do ERP
+  src/autofill.ts                           preenche o login da guia de uma base de cliente
+  src/backendClient.ts                      empurra a sessão da Experience para o backend
+  src/migracaoCofre.ts                      traz as credenciais do antigo hub-helper.ps1, uma vez
+  src/menu.ts  src/preload.ts  index.html  renderer.js   menu nativo e a barra de guias
+  scripts/preparar-hub.mjs                  monta o backend do pacote, só com as dependências de produção
+  scripts/preparar-autosync.mjs             monta os binários do Git AutoSync para o instalador
+  instalador/remover-versao-pwa.ps1         remove a instalação PWA antiga, preservando o cadastro
+  assets/installer.nsh                      personalização do NSIS: remoção da PWA e página do Git AutoSync
+  electron-builder.yml                      identidade, recursos e alvos do instalador
 ```
 
 As rotas dependem apenas da interface `RepositorioClientes`. Trocar o
 armazenamento local por outro — banco, API remota — é implementar essa interface
 e injetá-la no `index.ts`; nada mais muda.
 
-O servidor não tem etapa de build: a partir do Node 22.18 os arquivos `.ts`
-rodam direto, e o `npm run typecheck` existe para conferir os tipos que o Node
-ignora ao apagá-los.
+O servidor não tem etapa de build: os arquivos `.ts` rodam direto, no Node 22.18
+ou mais novo em desenvolvimento e no Node embutido no Electron no aplicativo. O
+`npm run typecheck` existe para conferir os tipos que o Node ignora ao apagá-los.
+O shell em `desktop/` é compilado pelo próprio `tsc` para `desktop/dist/`.

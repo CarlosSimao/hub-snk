@@ -9,6 +9,58 @@ número significa aqui.
 
 ## [Não publicado]
 
+Versão de quebra de compatibilidade (MAJOR): o HUB SNK passa a ser um aplicativo
+desktop. Quem usa a versão 1 só precisa rodar o instalador novo — ele remove a
+versão antiga e mantém o cadastro onde está.
+
+### Adicionado
+
+- **Aplicativo desktop (Electron)**, com instalador `HUB-SNK-Setup-<versão>.exe`
+  por usuário, sem pedir administrador e sem exigir Node.js instalado. A janela
+  tem as guias **Painel**, **Sankhya Om** e **Experience**, e cada base de cliente
+  abre na sua própria guia, isolada das outras, com usuário e senha preenchidos.
+- **Git AutoSync no instalador**, opcional: commit e push automáticos dos
+  repositórios, com tarefa diária, ícone na bandeja, atalhos, skill para os
+  agentes de IA e entrada no PATH. A desinstalação pergunta se ele sai junto.
+- **Agenda de Recursos e Experience** consultadas de dentro das guias do
+  aplicativo, sem o `hub-helper.ps1` e sem Chrome separado. A sessão da
+  Experience é lida da guia sozinha, a cada 15 segundos.
+- **Projetos no cadastro do cliente** e **agenda no cadastro do cliente**, com o
+  vínculo do cliente aos parceiros da Agenda de Recursos.
+- Links do painel que não são de uma base cadastrada (Jira, GitHub,
+  documentação) abrem no navegador do sistema.
+
+### Alterado
+
+- As credenciais do Sankhya ERP e da Experience ficam no cofre do aplicativo
+  (`safeStorage`, o cofre do sistema operacional). As que estavam no
+  `hub-helper.ps1` são trazidas uma vez, na primeira abertura.
+- No modal de credenciais, **Abrir navegador** virou **Abrir guia**, que troca
+  para a guia do sistema dentro do aplicativo.
+- A porta (4100) e o endereço (`127.0.0.1`) são fixos no aplicativo.
+
+### Removido
+
+- A **PWA** e a janela `--app` do Edge ou do Chrome, com o service worker e o
+  manifest.
+- O **instalador por script** (`instalar-hub-snk.bat`/`.ps1`/`.sh`), os pacotes zip
+  e tar.gz e os launchers `iniciar.vbs`/`iniciar.sh`.
+- O **`hub-helper.ps1`**: tudo o que ele fazia é do aplicativo agora.
+- As variáveis `HUB_PERMITIR_REDE`, `HUB_NAVEGADOR` e `HUB_ABRIR_JANELA`. O
+  `HUB_HOST` só aceita loopback.
+- A distribuição para **macOS**. O pacote para Linux está em preparação.
+
+### Migração da versão 1
+
+- O instalador encerra o servidor antigo, apaga o programa, o `hub-snk.env` e os
+  atalhos antigos, e **não toca o cadastro** (`%LOCALAPPDATA%\HubSnk\dados`). O que
+  estava na pasta do programa e não era dele vai para
+  `%LOCALAPPDATA%\HubSnk\restos-da-versao-pwa-<data>`; o registro fica em
+  `%LOCALAPPDATA%\HubSnk\remocao-da-versao-pwa.log`.
+- Cadastro numa pasta escolhida à mão (`HUB_DADOS_DIR`) continua sendo usado.
+- Uma porta diferente de 4100 no `hub-snk.env` deixa de valer, e o log da
+  remoção avisa.
+
 ## [1.1.0] - 2026-08-13
 
 ### Adicionado

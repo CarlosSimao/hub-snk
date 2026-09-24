@@ -1,7 +1,7 @@
 name: Distribuição
 
-# Monta os pacotes do Windows, do Linux e do macOS a cada tag de versão, e anexa
-# tudo à release correspondente.
+# Gera o instalador do aplicativo desktop a cada tag de versão e anexa à release
+# correspondente.
 #
 # Um workflow só, com um job de publicação no fim: dois workflows disparados
 # pela mesma tag disputariam a criação da release.
@@ -14,6 +14,13 @@ on:
 permissions:
   contents: write
 
+env:
+  # O Git AutoSync entra no instalador (decisão D7 do plano de migração) e mora em
+  # outro repositório. A branch é a `master`: só ela tem o `install-standalone.ps1`
+  # que o `installer.nsh` chama.
+  REPOSITORIO_GIT_AUTOSYNC: FlavianoRS/git-autosync
+  BRANCH_GIT_AUTOSYNC: master
+
 jobs:
   windows:
     runs-on: windows-latest
@@ -21,84 +28,62 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Tag e `package.json` fora de sincronia gerariam um instalador com a versão
+      # errada no nome e no "Sobre" do aplicativo.
+      - name: Conferir a versão da tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $esperada = '${{ github.ref_name }}'.TrimStart('v')
+          foreach ($arquivo in @('package.json', 'desktop\package.json')) {
+            $versao = (Get-Content $arquivo -Raw | ConvertFrom-Json).version
+            if ($versao -ne $esperada) { throw "$arquivo está na versão $versao, e a tag é $esperada." }
+          }
+
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ env.REPOSITORIO_GIT_AUTOSYNC }}
+          ref: ${{ env.BRANCH_GIT_AUTOSYNC }}
+          path: git-autosync
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Gerar os binários do Git AutoSync
+        shell: pwsh
+        run: |
+          python -m pip install -r git-autosync\python\requirements-dev.txt
+          & git-autosync\python\build_windows.ps1
+
       - uses: actions/setup-node@v7
         with:
-          node-version: '22.18'
+          node-version: '24'
 
       - name: Instalar dependências
-        run: npm ci
+        run: |
+          npm ci
+          npm --prefix desktop ci
+          node desktop/node_modules/electron/install.js
 
       - name: Conferir tipos e testes
         run: |
           npm run typecheck
           npm test
 
-      - name: Gerar os ícones
-        run: npm run gerar-icones
-
-      - name: Empacotar a distribuição
-        run: npm run empacotar-windows
-
-      # O script de instalação é o que o usuário roda depois de descompactar:
-      # um erro de sintaxe nele só apareceria na máquina de quem baixou.
-      - name: Conferir a sintaxe dos scripts de instalação
-        shell: pwsh
-        run: |
-          foreach ($script in @('instalar-hub-snk.ps1', 'desinstalar-hub-snk.ps1')) {
-            $erros = $null
-            [System.Management.Automation.Language.Parser]::ParseFile(
-              (Resolve-Path "instalador\$script"), [ref]$null, [ref]$erros) | Out-Null
-            if ($erros.Count -gt 0) {
-              $erros | ForEach-Object { Write-Host $_ }
-              throw "$script tem erro de sintaxe."
-            }
-          }
+      - name: Gerar o instalador
+        env:
+          GIT_AUTOSYNC_DIR: ${{ github.workspace }}\git-autosync
+        run: npm run empacotar-desktop
 
       - uses: actions/upload-artifact@v7
         with:
-          name: pacote-windows
-          path: dist/hub-snk-*-windows-x64.zip
-          if-no-files-found: error
-
-  unix:
-    # No Linux para o `tar` preservar o bit de execução dos scripts — empacotar
-    # no Windows entregaria um pacote cujo hub-snk.sh não roda do outro lado.
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22.18'
-
-      - name: Instalar dependências
-        run: npm ci
-
-      - name: Empacotar Linux e macOS
-        run: npm run empacotar-unix
-
-      - name: Conferir se os scripts saíram executáveis
-        run: |
-          for pacote in dist/hub-snk-*.tar.gz; do
-            for script in hub-snk.sh instalar-hub-snk.sh desinstalar-hub-snk.sh; do
-              permissoes=$(tar -tzvf "$pacote" | grep -E "/$script$" | awk '{print $1}')
-              echo "$pacote -> $script -> ${permissoes:-AUSENTE}"
-              case "$permissoes" in
-                -rwx*) ;;
-                *) echo "O $script saiu do pacote sem permissão de execução." >&2; exit 1 ;;
-              esac
-            done
-          done
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: pacotes-unix
-          path: dist/hub-snk-*.tar.gz
+          name: instalador-windows
+          path: release/HUB-SNK-Setup-*.exe
           if-no-files-found: error
 
   publicar:
-    needs: [windows, unix]
+    needs: [windows]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
@@ -108,7 +93,7 @@ jobs:
           path: artefatos
           merge-multiple: true
 
-      - name: Anexar os artefatos à release
+      - name: Anexar o instalador à release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
