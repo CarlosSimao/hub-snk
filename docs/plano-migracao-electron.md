@@ -64,7 +64,7 @@ Decididas em 2026-09-24.
 | D4  | Pasta de dados                                   | Manter **`%LOCALAPPDATA%\HubSnk\dados`** via `HUB_DADOS_DIR`, sem migração.                                                                                                                                                                                               |
 | D5  | PWA e instalador antigo                          | **Remover na mesma release** do Electron.                                                                                                                                                                                                                                 |
 | D6  | macOS                                            | **Fora desta migração.** O Electron sai para Windows + Linux.                                                                                                                                                                                                             |
-| D7  | Git AutoSync no instalador                       | **Fora desta migração.** Empacotar sempre com `--sem-autosync`.                                                                                                                                                                                                           |
+| D7  | Git AutoSync no instalador                       | **Mantido no instalador** (mudança de 2026-09-24; a decisão anterior era deixá-lo de fora). O `installer.nsh` do Flaviano e o `preparar-autosync.mjs` ficam; `empacotar:sem-autosync` segue disponível para gerar pacote sem ele.                                         |
 
 Consequências da combinação D5 + D6 que o plano precisa cobrir:
 
@@ -142,7 +142,7 @@ A meta é provar que o backend da `dev` roda do jeito que o shell vai executá-l
   - [x] `serverLog.ts` e as rotas `/serverlog/*` do bridge.
   - [x] `navegacaoSkill.ts` e as rotas `/navegacao/*` do bridge.
   - [x] Menu "Skills" em `menu.ts`.
-  - [x] `scripts/preparar-autosync.mjs` e os scripts `empacotar:sem-autosync`/`preparar-autosync` (D7). O `installer.nsh` do autosync fica para a Fase 6.
+  - [x] ~~`scripts/preparar-autosync.mjs` e os scripts `empacotar:sem-autosync`/`preparar-autosync`~~ — removidos na Fase 3 e **restaurados** quando D7 mudou (mesmo conteúdo do commit de importação `a2e375a`).
 - [x] `migracaoNome.ts` removido.
 - [x] Identidade (D1): título "HUB SNK" na janela, no `index.html` e no diálogo de erro; `desktop/package.json` com `name` `hub-snk-desktop`, `productName` "HUB SNK" e versão 1.1.0 (a mesma da raiz). O ícone de `desktop/assets` já é idêntico ao `instalador/hub-snk.ico` (mesmo MD5). Rótulos das guias (`Painel`/`Sankhya Om`/`Experience`) mantidos. O `appId` fica no `electron-builder.yml`, na Fase 6.
 - [x] `desktop/package.json`: `start` = `tsc` + `electron .`, sem `build` na raiz.
@@ -203,7 +203,10 @@ O frontend passa a rodar só dentro do shell (D5), então não há modo condicio
 - [ ] `electron-builder.yml`:
   - [ ] `appId` `br.dev.hubsnk.desktop`, `productName`/`shortcutName` "HUB SNK", `artifactName` `HUB-SNK-Setup-${version}.${ext}` (D1).
   - [ ] Manter as duas entradas de `extraResources` (`build/hub` e `build/hub/node_modules`), que são obrigatórias.
-  - [ ] Retirar `build/git-autosync`, `preparar-autosync.mjs`, os scripts `empacotar:sem-autosync` e o `installer.nsh` do autosync (D7).
+  - [ ] Manter `build/git-autosync` no `extraResources` e o `include: installer.nsh` (D7).
+  - [ ] Git AutoSync: o repositório **não está nesta máquina** (o padrão do `preparar-autosync.mjs` é `C:\Workspace\scripts\git-autosync`). Obter o repositório, gerar os binários (`python/dist`, PyInstaller; o Linux precisa ser montado no Linux) e apontar `GIT_AUTOSYNC_DIR`. Sem ele, só `empacotar:sem-autosync` funciona.
+  - [ ] Validar a página de componentes do instalador (instalar, tarefa diária, bandeja, atalhos, skills, PATH) e a desinstalação do autosync pelo NSIS.
+  - [ ] CI (`distribuicao.yml`): de onde vêm os binários do Git AutoSync no build de release (checkout do outro repositório ou artefato publicado).
   - [ ] Alvos: NSIS (Windows x64), AppImage + deb (Linux x64). Sem `dmg` (D6).
 - [ ] Remoção da instalação PWA antiga, porque não há convivência (D5). Fazer no `installer.nsh` ou na primeira execução do shell:
   - [ ] Detectar `%LOCALAPPDATA%\Programs\HubSnk`.

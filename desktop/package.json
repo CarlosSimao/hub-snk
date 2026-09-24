@@ -11,8 +11,10 @@
     "start": "npm run build && electron .",
     "dev": "tsc -p tsconfig.json --watch",
     "preparar-hub": "node scripts/preparar-hub.mjs",
-    "empacotar": "npm run build && node scripts/preparar-hub.mjs && electron-builder --config electron-builder.yml",
-    "empacotar:rapido": "npm run build && node scripts/preparar-hub.mjs && electron-builder --config electron-builder.yml --dir"
+    "preparar-autosync": "node scripts/preparar-autosync.mjs",
+    "empacotar": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs && electron-builder --config electron-builder.yml",
+    "empacotar:sem-autosync": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs --sem-autosync && electron-builder --config electron-builder.yml",
+    "empacotar:rapido": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs && electron-builder --config electron-builder.yml --dir"
   },
   "devDependencies": {
     "@types/node": "^24.3.0",
