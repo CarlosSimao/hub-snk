@@ -1,8 +1,13 @@
 {
   "name": "sankhya-hub-desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Shell desktop do Sankhya Hub (Electron) — Fase 2 da migração descrita em docs/specs/sankhya-hub-desktop-especificacao.md. Sucessor de produção da PoC em ../poc-desktop.",
+  "author": {
+    "name": "Flaviano Santos",
+    "email": "flaviano.santos@sankhya.com.br"
+  },
+  "homepage": "https://github.com/CarlosSimao/hub-snk",
   "main": "dist/main.js",
   "type": "commonjs",
   "scripts": {

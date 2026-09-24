@@ -126,6 +126,13 @@ function resolverRuntimeNode(): RuntimeNode {
     return { caminho: padraoWindows, viaElectron: false };
   }
 
+  // App aberto pelo Finder não herda o PATH do shell: o Node do Homebrew (Apple Silicon
+  // e Intel) ou do instalador oficial fica invisível para o `acharNoPath`.
+  if (process.platform === 'darwin') {
+    const padraoMac = ['/opt/homebrew/bin/node', '/usr/local/bin/node'].find((c) => existsSync(c));
+    if (padraoMac) return { caminho: padraoMac, viaElectron: false };
+  }
+
   return { caminho: process.execPath, viaElectron: true };
 }
 

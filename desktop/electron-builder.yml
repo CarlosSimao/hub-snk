@@ -113,6 +113,29 @@ deb:
     - gnome-keyring
     - git
 
+mac:
+  # `.dmg` para instalar arrastando para Aplicativos; `.zip` para quem distribui sem
+  # montar imagem. Um pacote por arquitetura: Intel (x64) e Apple Silicon (arm64).
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+  # O macOS exige ícone de pelo menos 512x512; o `hub-snk.png` tem 256.
+  icon: assets/hub-snk-mac.png
+  category: public.app-category.developer-tools
+  # Sem certificado Apple ainda (§4.4). Assinatura ad hoc (`-`) em vez de nenhuma: no
+  # Apple Silicon um binário sem assinatura nenhuma é morto pelo kernel ao abrir. Com a
+  # ad hoc ele abre depois do "Abrir mesmo assim" (ou `xattr -dr com.apple.quarantine`).
+  identity: '-'
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  artifactName: development-switch-${version}-mac-${arch}.${ext}
+
+dmg:
+  title: Development Switch ${version}
+  artifactName: development-switch-${version}-mac-${arch}.${ext}
+
 # Nada de auto-update por enquanto (§4.4): sem servidor de publicação, um `latest.yml`
 # solto no release só confunde quem for verificar.
 publish: null
