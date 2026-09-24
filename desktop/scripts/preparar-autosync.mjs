@@ -51,7 +51,14 @@ if (process.argv.includes('--sem-autosync')) {
   // para ela, e uma origem inexistente derrubaria o empacotamento inteiro.
   rmSync(DESTINO, { recursive: true, force: true });
   mkdirSync(DESTINO, { recursive: true });
-  rmSync(DEFINES_NSIS, { force: true });
+  // Arquivo sem o `GAS_PRESENTE`, em vez de arquivo nenhum: o `!include /NONFATAL` de um
+  // arquivo ausente vira o warning 7000, que o NSIS do electron-builder trata como erro
+  // e derruba o instalador.
+  writeFileSync(
+    DEFINES_NSIS,
+    '; Gerado por scripts/preparar-autosync.mjs --sem-autosync — pacote sem o Git AutoSync.\n',
+    'utf8',
+  );
   console.log('Pacote sem o Git AutoSync: nenhuma opção dele aparecerá no instalador.');
   process.exit(0);
 }
