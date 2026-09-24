@@ -9,6 +9,29 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [Development Switch 0.2.0] - 2026-09-24
+
+O aplicativo desktop (Electron, em `desktop/`) tem numeração própria, a partir de
+0.1.0; as versões 1.x abaixo são do HUB SNK web.
+
+### Adicionado
+
+- **Instalador para macOS** (`.dmg` e `.zip`, Intel e Apple Silicon), além do
+  Windows (`.exe`) e do Linux (`.AppImage` e `.deb`). Sem certificado Apple ainda:
+  na primeira abertura, clique com o botão direito no app e escolha **Abrir**.
+- **Telas Flex do Sankhya** abrem dentro do app, com o Ruffle embutido.
+- **Documento de escopo vira tarefas e kanban**.
+- **Monitor do `server.log`** das bases fora do cliente.
+- **Skills do Claude Code** pelo hub: aba de conversa, execução, nível de esforço
+  de raciocínio e o navegador do hub como MCP para as evidências.
+- **E-mail** oferece o documento de entrega como anexo e acha entregas em
+  subpastas de demanda.
+- **Guias** escondem e aparecem pelo menu, inclusive as de clientes.
+
+### Corrigido
+
+- `standalone.bat` do WildFly no Windows: sobe oculto e não trava no `findstr`.
+
 ## [1.1.0] - 2026-08-13
 
 ### Adicionado
