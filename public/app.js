@@ -170,6 +170,8 @@ const ICONES = {
     'M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M10 11v6 M14 11v6',
   /* Raio: o botão que abre a lista de atalhos. */
   raio: 'M13 2L3 14h7l-1 8 10-12h-7l1-8z',
+  /* Cadeado: o botão que abre as credenciais do Sankhya. */
+  cadeado: 'M5 11h14v10H5z M8 11V7a4 4 0 0 1 8 0v4',
   /* Funil: o botão que abre o painel de filtros da lista de clientes. */
   funil: 'M3 4h18l-7 8.5V20l-4-2.5v-5z',
   /* Triângulo de play: iniciar processo. */
@@ -190,11 +192,15 @@ const ICONES = {
   importar: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3',
   /* A mesma bandeja com a seta saindo: o botão que exporta os cadastros. */
   exportar: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 8l5-5 5 5 M12 3v12',
+  /* Elos de corrente: o botão que vincula um evento da Agenda a um cliente do hub. */
+  link: 'M15 7h3a5 5 0 0 1 0 10h-3 M9 17H6a5 5 0 0 1 0-10h3 M8 12h8',
 };
 
 const estado = {
   clientes: [],
   idSelecionado: null,
+  /** Aba ativa no detalhe do cliente; reiniciada em 'geral' ao trocar de cliente. */
+  abaDetalheAtiva: 'geral',
   filtro: '',
   /*
    * Situações do Git marcadas nos chips da coluna lateral. Vazio significa
@@ -208,6 +214,10 @@ const estado = {
   repositorioEmEdicao: null,
   clienteDoLinkEmEdicao: null,
   linkEmEdicao: null,
+  /** Projeto dono do link em edição no modal de link; `null` quando o link é do cliente. */
+  projetoDoLinkEmEdicao: null,
+  clienteDoProjetoEmEdicao: null,
+  projetoEmEdicao: null,
   clienteDoBancoEmEdicao: null,
   baseDoBancoEmEdicao: null,
   /* Alvo do modal do MCP: repositório de cliente ou base local. */
@@ -226,6 +236,8 @@ const estado = {
    * rascunho, o que estivesse sendo digitado sumiria no meio da frase.
    */
   anotacoesEmEdicao: null,
+  /** Mesma ideia de `anotacoesEmEdicao`, mas para anotações de projeto: `{ idDoCliente, idDoProjeto, texto }`. */
+  anotacoesDoProjetoEmEdicao: null,
   senhasReveladas: new Set(),
   /* Situação Git por id de repositório, preenchida depois do primeiro desenho. */
   situacoesGit: {},
@@ -315,8 +327,14 @@ const elementos = {
 
   botaoVisualizacaoClientes: document.getElementById('btn-visualizacao-clientes'),
   botaoVisualizacaoLocal: document.getElementById('btn-visualizacao-local'),
+  botaoVisualizacaoAgenda: document.getElementById('btn-visualizacao-agenda'),
   visualizacaoClientes: document.getElementById('visualizacao-clientes'),
   visualizacaoLocal: document.getElementById('visualizacao-local'),
+  visualizacaoAgenda: document.getElementById('visualizacao-agenda'),
+  avisoHelperAgenda: document.getElementById('aviso-helper-agenda'),
+  botaoAtualizarAgenda: document.getElementById('btn-atualizar-agenda'),
+  ultimaAtualizacaoAgenda: document.getElementById('ultima-atualizacao-agenda'),
+  mountAgendaGeral: document.getElementById('mount-agenda-geral'),
   secaoBasesLocais: document.getElementById('secao-bases-locais'),
   secaoBancosLocais: document.getElementById('secao-bancos-locais'),
 
@@ -345,14 +363,23 @@ const elementos = {
   botaoSalvarBancoLocal: document.getElementById('btn-salvar-banco-local'),
   botaoCancelarBancoLocal: document.getElementById('btn-cancelar-banco-local'),
 
+  botaoCredenciaisSankhya: document.getElementById('btn-credenciais-sankhya'),
+  modalCredenciaisSankhya: document.getElementById('modal-credenciais-sankhya'),
+  avisoHelperSankhya: document.getElementById('aviso-helper-sankhya'),
+  statusNavegadorSankhya: document.getElementById('status-navegador-sankhya'),
+  botaoFecharNavegadorSankhya: document.getElementById('btn-fechar-navegador-sankhya'),
+  botaoFecharCredenciaisSankhya: document.getElementById('btn-fechar-credenciais-sankhya'),
+
   modalConfiguracao: document.getElementById('modal-configuracao'),
   formularioConfiguracao: document.getElementById('formulario-configuracao'),
   abaConfiguracaoGeral: document.getElementById('aba-configuracao-geral'),
   abaConfiguracaoMcp: document.getElementById('aba-configuracao-mcp'),
   abaConfiguracaoAtalhos: document.getElementById('aba-configuracao-atalhos'),
+  abaConfiguracaoSobre: document.getElementById('aba-configuracao-sobre'),
   painelConfiguracaoGeral: document.getElementById('painel-configuracao-geral'),
   painelConfiguracaoMcp: document.getElementById('painel-configuracao-mcp'),
   painelConfiguracaoAtalhos: document.getElementById('painel-configuracao-atalhos'),
+  painelConfiguracaoSobre: document.getElementById('painel-configuracao-sobre'),
   listaDeAtalhosDaConfiguracao: document.getElementById('lista-atalhos-config'),
   botaoAdicionarAtalho: document.getElementById('btn-adicionar-atalho'),
   campoScriptPadrao: document.getElementById('campo-script-padrao'),
@@ -431,7 +458,6 @@ const elementos = {
   formularioRepositorio: document.getElementById('formulario-repositorio'),
   modalRepositorioTitulo: document.getElementById('modal-repositorio-titulo'),
   modalRepositorioSubtitulo: document.getElementById('modal-repositorio-subtitulo'),
-  campoNomeRepositorio: document.getElementById('campo-nome-repositorio'),
   campoUrlRepositorio: document.getElementById('campo-url-repositorio'),
   campoCaminhoLocal: document.getElementById('campo-caminho-local'),
   botaoEscolherCaminhoLocal: document.getElementById('btn-escolher-caminho-local'),
@@ -448,6 +474,15 @@ const elementos = {
   erroLink: document.getElementById('erro-link'),
   botaoSalvarLink: document.getElementById('btn-salvar-link'),
   botaoCancelarLink: document.getElementById('btn-cancelar-link'),
+
+  modalProjeto: document.getElementById('modal-projeto'),
+  formularioProjeto: document.getElementById('formulario-projeto'),
+  modalProjetoTitulo: document.getElementById('modal-projeto-titulo'),
+  modalProjetoSubtitulo: document.getElementById('modal-projeto-subtitulo'),
+  campoNomeProjeto: document.getElementById('campo-nome-projeto'),
+  erroProjeto: document.getElementById('erro-projeto'),
+  botaoSalvarProjeto: document.getElementById('btn-salvar-projeto'),
+  botaoCancelarProjeto: document.getElementById('btn-cancelar-projeto'),
 
   modalImportacao: document.getElementById('modal-importacao'),
   formularioImportacao: document.getElementById('formulario-importacao'),
@@ -547,13 +582,48 @@ async function requisitar(caminho, opcoes = {}) {
 
   const conteudo = await resposta.json().catch(() => null);
   if (!resposta.ok) {
-    throw new Error(conteudo?.mensagem ?? `Falha na requisição (HTTP ${resposta.status}).`);
+    const erro = new Error(conteudo?.mensagem ?? `Falha na requisição (HTTP ${resposta.status}).`);
+    // Repassado pra quem chama decidir, ex.: mostrar "helper fora do ar" em vez do erro genérico.
+    erro.helperIndisponivel = Boolean(conteudo?.helperIndisponivel);
+    throw erro;
   }
 
   return conteudo;
 }
 
 const api = {
+  helperSankhya: () => requisitar('/api/sankhya/helper'),
+  credenciaisSankhya: () => requisitar('/api/sankhya/credenciais'),
+  salvarCredencialSankhya: (sistema, usuario, senha) =>
+    requisitar(`/api/sankhya/credenciais/${sistema}`, {
+      metodo: 'POST',
+      corpo: { usuario, senha },
+    }),
+  removerCredencialSankhya: (sistema) =>
+    requisitar(`/api/sankhya/credenciais/${sistema}`, { metodo: 'DELETE' }),
+  navegadorSankhya: () => requisitar('/api/sankhya/navegador'),
+  abrirNavegadorSankhya: (sistema) =>
+    requisitar(`/api/sankhya/navegador/abrir/${sistema}`, { metodo: 'POST' }),
+  capturarSessaoSankhya: (sistema) =>
+    requisitar(`/api/sankhya/navegador/capturar/${sistema}`, { metodo: 'POST' }),
+  fecharNavegadorSankhya: () => requisitar('/api/sankhya/navegador/fechar', { metodo: 'POST' }),
+  estadoAgenda: () => requisitar('/api/agenda/estado'),
+  salvarAgenda: (id, dados) =>
+    requisitar(`${CAMINHO_DA_API}/${id}/agenda`, { metodo: 'PUT', corpo: dados }),
+  sugestaoDeAgenda: (nome) => requisitar(`/api/agenda/sugestao?nome=${encodeURIComponent(nome)}`),
+  consultarAgenda: (de, ate) =>
+    requisitar('/api/agenda/consultar', { metodo: 'POST', corpo: { de, ate } }),
+  eventosDaAgenda: (de, ate) =>
+    requisitar(`/api/agenda/eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`),
+  eventosDoClienteNaAgenda: (id, de, ate) =>
+    requisitar(
+      `${CAMINHO_DA_API}/${id}/agenda-eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`,
+    ),
+  situacaoDoDiaNoExperience: (codparc, dia) =>
+    requisitar(
+      `/api/agenda/situacao-do-dia?codparc=${encodeURIComponent(codparc)}&dia=${encodeURIComponent(dia)}`,
+    ),
+
   listar: () => requisitar(CAMINHO_DA_API),
   buscar: (id) => requisitar(`${CAMINHO_DA_API}/${id}`),
   criar: (nome) => requisitar(CAMINHO_DA_API, { metodo: 'POST', corpo: { nome } }),
@@ -618,6 +688,35 @@ const api = {
     }),
   removerLink: (idDoCliente, idDoLink) =>
     requisitar(`${CAMINHO_DA_API}/${idDoCliente}/links/${idDoLink}`, { metodo: 'DELETE' }),
+
+  adicionarProjeto: (idDoCliente, projeto) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/projetos`, { metodo: 'POST', corpo: projeto }),
+  atualizarProjeto: (idDoCliente, idDoProjeto, projeto) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/projetos/${idDoProjeto}`, {
+      metodo: 'PUT',
+      corpo: projeto,
+    }),
+  removerProjeto: (idDoCliente, idDoProjeto) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/projetos/${idDoProjeto}`, { metodo: 'DELETE' }),
+  salvarAnotacoesDoProjeto: (idDoCliente, idDoProjeto, anotacoes) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/projetos/${idDoProjeto}/anotacoes`, {
+      metodo: 'PUT',
+      corpo: { anotacoes },
+    }),
+  adicionarLinkDoProjeto: (idDoCliente, idDoProjeto, link) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/projetos/${idDoProjeto}/links`, {
+      metodo: 'POST',
+      corpo: link,
+    }),
+  atualizarLinkDoProjeto: (idDoCliente, idDoProjeto, idDoLink, link) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/projetos/${idDoProjeto}/links/${idDoLink}`, {
+      metodo: 'PUT',
+      corpo: link,
+    }),
+  removerLinkDoProjeto: (idDoCliente, idDoProjeto, idDoLink) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/projetos/${idDoProjeto}/links/${idDoLink}`, {
+      metodo: 'DELETE',
+    }),
 
   abrirPastaDoRepositorio: (idDoCliente, idDoRepositorio) =>
     requisitar(`${CAMINHO_DA_API}/${idDoCliente}/repositorios/${idDoRepositorio}/abrir-pasta`, {
@@ -1390,7 +1489,7 @@ function renderizarIndicadorGitGlobal() {
 function criarLinhaDeRepositorio(cliente, repositorio) {
   const informacoes = criarElemento('div', 'recurso-info');
   informacoes.append(
-    criarElemento('p', 'recurso-nome', repositorio.nome),
+    criarElemento('p', 'recurso-nome', nomeDeExibicaoDoRepositorio(repositorio)),
     criarLinhaDeUrl(repositorio.url, 'secundaria'),
   );
 
@@ -1417,12 +1516,16 @@ function criarLinhaDeRepositorio(cliente, repositorio) {
 }
 
 /** Bloco de "Bases" ou "Repositórios": cabeçalho, botão de adicionar e as linhas. */
+/**
+ * `titulo` nulo omite o `h3`: usado quando o título repetiria o rótulo da aba
+ * ativa (Projetos, Bases, Repositórios), redundante logo abaixo dela.
+ */
 function criarSecaoDeRecursos({ titulo, rotuloDoBotao, aoAdicionar, linhas, mensagemVazia }) {
   const cabecalho = criarElemento('div', 'secao-cabecalho');
-  cabecalho.append(
-    criarElemento('h3', null, titulo),
-    criarBotaoDeIcone('btn tiny primario', ICONES.mais, rotuloDoBotao, aoAdicionar),
-  );
+  if (titulo) {
+    cabecalho.append(criarElemento('h3', null, titulo));
+  }
+  cabecalho.append(criarBotaoDeIcone('btn tiny primario', ICONES.mais, rotuloDoBotao, aoAdicionar));
 
   const secao = criarElemento('div', 'secao-recursos');
   secao.append(cabecalho);
@@ -1451,7 +1554,7 @@ function basesOrdenadasPorTipo(bases) {
 
 function criarSecaoDeBases(cliente) {
   return criarSecaoDeRecursos({
-    titulo: 'Bases',
+    titulo: null,
     rotuloDoBotao: 'Adicionar base',
     aoAdicionar: () => abrirModalDeCadastroDeBase(cliente),
     linhas: basesOrdenadasPorTipo(cliente.bases).map((base) => criarLinhaDeBase(cliente, base)),
@@ -1461,7 +1564,7 @@ function criarSecaoDeBases(cliente) {
 
 function criarSecaoDeRepositorios(cliente) {
   return criarSecaoDeRecursos({
-    titulo: 'Repositórios',
+    titulo: null,
     rotuloDoBotao: 'Adicionar repositório',
     aoAdicionar: () => abrirModalDeCadastroDeRepositorio(cliente),
     linhas: cliente.repositorios.map((repositorio) =>
@@ -1471,12 +1574,22 @@ function criarSecaoDeRepositorios(cliente) {
   });
 }
 
+/** Nome do link como hiperlink, quando a URL é navegável; texto simples caso contrário. */
+function criarNomeDeLink(link) {
+  if (!ehEnderecoNavegavel(link.url)) {
+    return criarElemento('p', 'recurso-nome', link.nome);
+  }
+
+  const nome = criarElemento('a', 'recurso-nome', link.nome);
+  nome.href = link.url;
+  nome.target = '_blank';
+  nome.rel = 'noopener noreferrer';
+  return nome;
+}
+
 function criarLinhaDeLink(cliente, link) {
   const informacoes = criarElemento('div', 'recurso-info');
-  informacoes.append(
-    criarElemento('p', 'recurso-nome', link.nome),
-    criarLinhaDeUrl(link.url, 'secundaria'),
-  );
+  informacoes.append(criarNomeDeLink(link));
 
   const acoes = criarAcoesDeRecurso({
     rotuloDeEdicao: 'Editar link',
@@ -1492,11 +1605,97 @@ function criarLinhaDeLink(cliente, link) {
 
 function criarSecaoDeLinks(cliente) {
   return criarSecaoDeRecursos({
-    titulo: 'Links',
+    titulo: 'Links gerais',
     rotuloDoBotao: 'Adicionar link',
     aoAdicionar: () => abrirModalDeCadastroDeLink(cliente),
     linhas: cliente.links.map((link) => criarLinhaDeLink(cliente, link)),
     mensagemVazia: 'Nenhum link cadastrado para este cliente.',
+  });
+}
+
+/* -------------------------------- projetos --------------------------------- */
+
+function criarLinhaDeLinkDeProjeto(cliente, projeto, link) {
+  const informacoes = criarElemento('div', 'recurso-info');
+  informacoes.append(criarNomeDeLink(link));
+
+  const acoes = criarAcoesDeRecurso({
+    rotuloDeEdicao: 'Editar link',
+    aoEditar: () => abrirModalDeEdicaoDeLinkDeProjeto(cliente, projeto, link),
+    rotuloDeExclusao: 'Excluir link',
+    aoExcluir: () => pedirExclusaoDeLinkDeProjeto(cliente, projeto, link),
+  });
+
+  const linha = criarElemento('div', 'linha-recurso');
+  linha.append(informacoes, acoes);
+  return linha;
+}
+
+function criarSecaoDeLinksDoProjeto(cliente, projeto) {
+  return criarSecaoDeRecursos({
+    titulo: 'Links do projeto',
+    rotuloDoBotao: 'Adicionar link',
+    aoAdicionar: () => abrirModalDeCadastroDeLinkDeProjeto(cliente, projeto),
+    linhas: projeto.links.map((link) => criarLinhaDeLinkDeProjeto(cliente, projeto, link)),
+    mensagemVazia: 'Nenhum link cadastrado para este projeto.',
+  });
+}
+
+/** O rascunho tem precedência sobre o gravado, igual `anotacoesEmExibicao`. */
+function anotacoesDoProjetoEmExibicao(projeto) {
+  const rascunho = estado.anotacoesDoProjetoEmEdicao;
+  return rascunho?.idDoProjeto === projeto.id ? rascunho.texto : (projeto.anotacoes ?? '');
+}
+
+function criarCampoDeAnotacoesDoProjeto(cliente, projeto) {
+  const campo = criarElemento('textarea', 'campo-anotacoes');
+  campo.rows = LINHAS_DO_CAMPO_DE_ANOTACOES;
+  campo.maxLength = TAMANHO_MAXIMO_DAS_ANOTACOES;
+  campo.placeholder = 'Anotações deste projeto.';
+  campo.value = anotacoesDoProjetoEmExibicao(projeto);
+
+  campo.addEventListener('input', () => {
+    estado.anotacoesDoProjetoEmEdicao = {
+      idDoCliente: cliente.id,
+      idDoProjeto: projeto.id,
+      texto: campo.value,
+    };
+  });
+  campo.addEventListener('blur', () => salvarAnotacoesDoProjeto(cliente.id, projeto.id));
+
+  return campo;
+}
+
+function criarCardDeProjeto(cliente, projeto) {
+  const cabecalho = criarElemento('div', 'card-projeto-cabecalho');
+  cabecalho.append(criarElemento('h3', 'card-projeto-titulo', projeto.nome));
+  cabecalho.append(
+    criarAcoesDeRecurso({
+      rotuloDeEdicao: 'Editar projeto',
+      aoEditar: () => abrirModalDeEdicaoDeProjeto(cliente, projeto),
+      rotuloDeExclusao: 'Excluir projeto',
+      aoExcluir: () => pedirExclusaoDeProjeto(cliente, projeto),
+    }),
+  );
+
+  const corpo = criarElemento('div', 'card-projeto-corpo');
+  corpo.append(
+    criarCampoDeAnotacoesDoProjeto(cliente, projeto),
+    criarSecaoDeLinksDoProjeto(cliente, projeto),
+  );
+
+  const card = criarElemento('div', 'card card-projeto');
+  card.append(cabecalho, corpo);
+  return card;
+}
+
+function criarSecaoDeProjetos(cliente) {
+  return criarSecaoDeRecursos({
+    titulo: null,
+    rotuloDoBotao: 'Adicionar projeto',
+    aoAdicionar: () => abrirModalDeCadastroDeProjeto(cliente),
+    linhas: cliente.projetos.map((projeto) => criarCardDeProjeto(cliente, projeto)),
+    mensagemVazia: 'Nenhum projeto cadastrado para este cliente.',
   });
 }
 
@@ -1513,9 +1712,205 @@ function anotacoesEmExibicao(cliente) {
  * o texto digitado fica no estado, e é de lá que o campo é preenchido a cada
  * redesenho do detalhe.
  */
+/* ---- calendário mensal: só leitura, sem geração de OS nem envio de e-mail ---- */
+
+const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+
+function mesAtualIso() {
+  const agora = new Date();
+  return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function deslocarMes(mes, passo) {
+  const [ano, numero] = mes.split('-').map(Number);
+  const data = new Date(Date.UTC(ano, numero - 1 + passo, 1));
+  return `${data.getUTCFullYear()}-${String(data.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function nomeDoMes(mes) {
+  const [ano, numero] = mes.split('-').map(Number);
+  const data = new Date(Date.UTC(ano, numero - 1, 1));
+  const nome = data.toLocaleDateString('pt-BR', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+  return nome.charAt(0).toUpperCase() + nome.slice(1);
+}
+
+/** Monta a grade de 42 células (6 semanas): cabeçalho de dias da semana + uma célula por dia. */
+function criarGradeDoCalendario(grade, criarCelula) {
+  const container = criarElemento('div', 'calendario-sankhya');
+
+  const cabecalhoSemana = criarElemento('div', 'calendario-cabecalho-semana');
+  for (const rotulo of DIAS_SEMANA) {
+    cabecalhoSemana.append(criarElemento('span', null, rotulo));
+  }
+  container.append(cabecalhoSemana);
+
+  const dias = criarElemento('div', 'calendario-dias');
+  for (const dia of grade) {
+    dias.append(criarCelula(dia));
+  }
+  container.append(dias);
+
+  return container;
+}
+
+/**
+ * Vínculo do cliente com a Agenda de Recursos do ERP (`codparc`) e a agenda
+ * mensal — igual à aba Agenda do topo, só que recortada pra este cliente. A
+ * situação de cada evento no Experience (sem tarefa/tarefa aberta/OS
+ * lançada) sai sozinha do `codparc`, sem campo nenhum pra preencher à mão.
+ */
+function criarSecaoDeAgenda(cliente) {
+  const erro = criarElemento('p', 'erro-formulario');
+  erro.hidden = true;
+
+  const areaSugestao = criarElemento('div');
+  const listaDeCodparcs = criarElemento('div', 'lista-codparcs');
+
+  /**
+   * Grava a lista inteira de `codparcs` (substitui, não soma) — é o mesmo
+   * ponto usado por adicionar, remover e pela sugestão, pra manter só um
+   * caminho de gravação.
+   */
+  const salvarVinculo = async (agendaCodparcs) => {
+    limparErro(erro);
+    try {
+      await api.salvarAgenda(cliente.id, { agendaCodparcs });
+      // Atualiza em memória pra sugestão, lista e calendário refletirem sem
+      // precisar reabrir o detalhe do cliente.
+      cliente.agendaCodparcs = agendaCodparcs;
+      renderizarListaDeCodparcs();
+      void carregarSugestao();
+      void widgetDeAgendaDoCliente.carregar();
+    } catch (erroDeGravacao) {
+      exibirErro(erro, erroDeGravacao.message);
+    }
+  };
+
+  const campoNovoCodparc = criarElemento('input');
+  campoNovoCodparc.type = 'number';
+  campoNovoCodparc.min = '0';
+  campoNovoCodparc.placeholder = 'Código de parceiro';
+
+  const areaAdicionarCodparc = criarElemento('div', 'linha-codparc-nova');
+
+  /** Volta a área de adição ao estado padrão: só o botão "+". */
+  function mostrarBotaoAdicionarCodparc() {
+    areaAdicionarCodparc.replaceChildren(
+      criarBotaoDeIcone(
+        'btn tiny ghost',
+        ICONES.mais,
+        'Adicionar código de parceiro',
+        mostrarCampoNovoCodparc,
+      ),
+    );
+  }
+
+  /** Troca o botão "+" pelo campo de digitar o código, com foco imediato. */
+  function mostrarCampoNovoCodparc() {
+    campoNovoCodparc.value = '';
+    areaAdicionarCodparc.replaceChildren(campoNovoCodparc);
+    campoNovoCodparc.focus();
+  }
+
+  const adicionarCodparc = () => {
+    const bruto = campoNovoCodparc.value.trim();
+    mostrarBotaoAdicionarCodparc();
+    if (bruto === '') return;
+    const codparc = Number(bruto);
+    if (cliente.agendaCodparcs.includes(codparc)) return;
+    void salvarVinculo([...cliente.agendaCodparcs, codparc]);
+  };
+  campoNovoCodparc.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Enter') {
+      evento.preventDefault();
+      adicionarCodparc();
+    }
+    if (evento.key === 'Escape') {
+      mostrarBotaoAdicionarCodparc();
+    }
+  });
+  campoNovoCodparc.addEventListener('blur', adicionarCodparc);
+
+  /** Um cliente do hub pode ter mais de um `codparc` no Sankhya — lista com botão de remover cada um, e o "+" de adicionar ao lado. */
+  function renderizarListaDeCodparcs() {
+    listaDeCodparcs.replaceChildren();
+    for (const codparc of cliente.agendaCodparcs) {
+      const linha = criarElemento('div', 'linha-codparc');
+      linha.append(criarElemento('span', null, String(codparc)));
+      linha.append(
+        criarBotaoDeIcone('btn tiny ghost', ICONES.lixeira, `Remover o parceiro ${codparc}`, () =>
+          salvarVinculo(cliente.agendaCodparcs.filter((valor) => valor !== codparc)),
+        ),
+      );
+      listaDeCodparcs.append(linha);
+    }
+    if (!cliente.agendaCodparcs.length) {
+      listaDeCodparcs.append(
+        criarElemento('p', 'texto-auxiliar', 'Nenhum parceiro amarrado ainda.'),
+      );
+    }
+    mostrarBotaoAdicionarCodparc();
+    listaDeCodparcs.append(areaAdicionarCodparc);
+  }
+  renderizarListaDeCodparcs();
+
+  /**
+   * Sugestão de parceiro pelo nome do cliente, casando contra o snapshot já
+   * importado da Agenda de Recursos (`AgendaRecursos.casarParceiro` no
+   * backend) — só aparece quando o candidato ainda não está na lista.
+   * Silenciosa se falhar: é um extra, não uma etapa obrigatória.
+   */
+  const carregarSugestao = async () => {
+    areaSugestao.replaceChildren();
+
+    let resultado;
+    try {
+      resultado = await api.sugestaoDeAgenda(cliente.nome);
+    } catch {
+      return;
+    }
+    if (!resultado.parceiro || cliente.agendaCodparcs.includes(resultado.parceiro.codparc)) return;
+
+    const linha = criarElemento(
+      'p',
+      'texto-auxiliar',
+      `Sugestão: ${resultado.parceiro.codparc} - ${resultado.parceiro.nomeparc} ` +
+        `(${resultado.parceiro.eventos} evento(s) no snapshot). `,
+    );
+    linha.append(
+      criarBotao('btn tiny ghost', 'Usar esta sugestão', () =>
+        salvarVinculo([...cliente.agendaCodparcs, resultado.parceiro.codparc]),
+      ),
+    );
+    areaSugestao.append(linha);
+  };
+  void carregarSugestao();
+
+  const linhaCodparc = criarElemento('div', 'campo');
+  linhaCodparc.append(
+    criarElemento('label', null, 'Códigos de parceiro (codparc)'),
+    listaDeCodparcs,
+    areaSugestao,
+  );
+
+  const widgetDeAgendaDoCliente = criarWidgetDeAgenda({
+    buscarEventos: (de, ate) =>
+      api.eventosDoClienteNaAgenda(cliente.id, de, ate).then((resposta) => resposta.eventos),
+  });
+
+  const secao = criarElemento('div', 'secao-recursos');
+  secao.replaceChildren(linhaCodparc, erro, widgetDeAgendaDoCliente.elemento);
+  void widgetDeAgendaDoCliente.carregar();
+  return secao;
+}
+
 function criarSecaoDeAnotacoes(cliente) {
   const cabecalho = criarElemento('div', 'secao-cabecalho');
-  cabecalho.append(criarElemento('h3', null, 'Anotações'));
+  cabecalho.append(criarElemento('h3', null, 'Anotações gerais'));
 
   const campo = criarElemento('textarea', 'campo-anotacoes');
   campo.id = ID_DO_CAMPO_DE_ANOTACOES;
@@ -1562,6 +1957,33 @@ async function salvarAnotacoes(idDoCliente) {
     // O rascunho volta para o estado: o texto digitado não pode se perder num erro de rede.
     estado.anotacoesEmEdicao = { idDoCliente, texto };
     exibirAviso(`Não foi possível salvar as anotações: ${erro.message}`, 'erro');
+  }
+}
+
+/** Grava o rascunho pendente das anotações do projeto, igual `salvarAnotacoes`. */
+async function salvarAnotacoesDoProjeto(idDoCliente, idDoProjeto) {
+  const rascunho = estado.anotacoesDoProjetoEmEdicao;
+  if (!rascunho || rascunho.idDoCliente !== idDoCliente || rascunho.idDoProjeto !== idDoProjeto) {
+    return;
+  }
+
+  const cliente = estado.clientes.find((candidato) => candidato.id === idDoCliente);
+  const projeto = cliente?.projetos.find((candidato) => candidato.id === idDoProjeto);
+  const texto = rascunho.texto.trim();
+  estado.anotacoesDoProjetoEmEdicao = null;
+
+  if (!projeto || texto === projeto.anotacoes) {
+    return;
+  }
+
+  try {
+    const atualizado = await api.salvarAnotacoesDoProjeto(idDoCliente, idDoProjeto, texto);
+    projeto.anotacoes = atualizado.anotacoes;
+    projeto.atualizadoEm = atualizado.atualizadoEm;
+    exibirAviso('Anotações do projeto salvas.');
+  } catch (erro) {
+    estado.anotacoesDoProjetoEmEdicao = { idDoCliente, idDoProjeto, texto };
+    exibirAviso(`Não foi possível salvar as anotações do projeto: ${erro.message}`, 'erro');
   }
 }
 
@@ -2126,20 +2548,561 @@ async function carregarLocal() {
 }
 
 /** Troca entre as visões "Clientes" e "Local", refletindo na chave e no conteúdo visível. */
+/* ------------------------- aba Agenda (visão geral) ------------------------ */
+
+/** Primeiro e último dia do mês `YYYY-MM`, em `YYYY-MM-DD`. */
+function limitesDoMesCliente(mes) {
+  const [ano, numero] = mes.split('-').map(Number);
+  const ultimo = new Date(Date.UTC(ano, numero, 0)).getUTCDate();
+  return { de: `${mes}-01`, ate: `${mes}-${String(ultimo).padStart(2, '0')}` };
+}
+
+/** Maior período (em dias) que um evento pode cobrir na grade — trava contra data absurda/malformada. */
+const LIMITE_DE_DIAS_DE_UM_EVENTO = 366;
+
+/** A grade de 42 células do mês, cada uma com os eventos que cobrem aquele dia. */
+function criarGradeMensalDeEventos(mes, eventos) {
+  const [ano, numero] = mes.split('-').map(Number);
+  const primeiro = new Date(Date.UTC(ano, numero - 1, 1));
+  const inicio = new Date(primeiro);
+  inicio.setUTCDate(inicio.getUTCDate() - primeiro.getUTCDay());
+  const hoje = dataIsoDeHoje();
+
+  // Evento pode durar vários dias (férias, projeto de semana inteira): entra em
+  // TODO dia que ele cobre, não só no dia em que começa — senão o resto do
+  // período some da grade.
+  const porDia = new Map();
+  for (const evento of eventos) {
+    const cursor = new Date(`${evento.inicio.slice(0, 10)}T00:00:00Z`);
+    const limite = new Date(`${evento.fim.slice(0, 10)}T00:00:00Z`);
+    for (let dias = 0; cursor <= limite && dias < LIMITE_DE_DIAS_DE_UM_EVENTO; dias += 1) {
+      const dia = cursor.toISOString().slice(0, 10);
+      porDia.set(dia, [...(porDia.get(dia) ?? []), evento]);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+  }
+
+  const grade = [];
+  for (let i = 0; i < 42; i += 1) {
+    const data = new Date(inicio);
+    data.setUTCDate(inicio.getUTCDate() + i);
+    const dia = data.toISOString().slice(0, 10);
+
+    grade.push({
+      dia,
+      numero: data.getUTCDate(),
+      doMes: dia.slice(0, 7) === mes,
+      hoje: dia === hoje,
+      eventos: porDia.get(dia) ?? [],
+    });
+
+    if (i % 7 === 6 && dia.slice(0, 7) > mes) break;
+  }
+  return grade;
+}
+
+function dataIsoDeHoje(deslocamentoEmDias = 0) {
+  const data = new Date();
+  data.setDate(data.getDate() + deslocamentoEmDias);
+  return data.toISOString().slice(0, 10);
+}
+
+/**
+ * Cache da situação do dia (cliente + data) no Experience — cada consulta
+ * dispara automação real no navegador do ERP (lenta, e pede pra tela da
+ * Agenda de Recursos estar aberta lá). Sem cache, reabrir o mesmo dia
+ * repetiria a mesma consulta à toa.
+ */
+const cacheSituacaoDoDia = new Map();
+
+/**
+ * Consulta (com cache) a situação de um cliente num dia no Experience.
+ * `forcar` descarta o valor em cache e consulta de novo — usado no botão de
+ * atualizar do card e sempre que o dia selecionado no calendário muda.
+ */
+function consultarSituacaoDoDia(codparc, dia, forcar = false) {
+  const chave = `${codparc}|${dia}`;
+  if (forcar) {
+    cacheSituacaoDoDia.delete(chave);
+  }
+  if (!cacheSituacaoDoDia.has(chave)) {
+    cacheSituacaoDoDia.set(
+      chave,
+      api
+        .situacaoDoDiaNoExperience(codparc, dia)
+        .catch((erro) => ({ falhou: true, mensagem: erro.message })),
+    );
+  }
+  return cacheSituacaoDoDia.get(chave);
+}
+
+/**
+ * Selo + sub-bloco de situação de um evento no Experience, com botão de
+ * atualizar ao lado. Três estados: sem tarefa aberta (vermelho), tarefa
+ * aberta (amarelo) e OS já lançada (verde, com o número, horários e
+ * "Tarefas Realizadas"). Começa neutro ("verificando…") pra não travar a
+ * lista inteira esperando o Experience responder.
+ */
+function anexarSituacaoDoEvento(linhaHorario, informacoes, codparc, dia, forcarNaAbertura) {
+  const selo = criarElemento('span', 'selo-situacao', 'Verificando situação no Experience…');
+  const botaoAtualizar = criarBotaoDeIcone(
+    'btn tiny ghost',
+    ICONES.recarregar,
+    'Atualizar situação no Experience',
+    () => executarAcaoDoSistema(() => carregar(true), botaoAtualizar),
+  );
+  linhaHorario.append(selo, botaoAtualizar);
+
+  let subbloco = null;
+
+  async function carregar(forcar) {
+    selo.className = 'selo-situacao';
+    selo.textContent = 'Verificando situação no Experience…';
+    selo.title = '';
+    if (subbloco) {
+      subbloco.remove();
+      subbloco = null;
+    }
+
+    const resultado = await consultarSituacaoDoDia(codparc, dia, forcar);
+
+    if (resultado.falhou) {
+      selo.classList.add('erro');
+      selo.textContent = 'Não verifiquei a situação no Experience';
+      selo.title = resultado.mensagem;
+      return;
+    }
+
+    const faps = resultado.faps.join(', ');
+    const situacao = resultado.situacao;
+    if (situacao.tipo === 'os-lancada') {
+      selo.classList.add('ok');
+      selo.textContent = `OS nº ${situacao.numeroOs}`;
+      selo.title = `FAP ${faps}`;
+
+      const detalhes = [
+        situacao.horaInicio && `Início ${situacao.horaInicio}`,
+        situacao.horaFim && `Fim ${situacao.horaFim}`,
+        situacao.intervalo && `Intervalo ${situacao.intervalo}`,
+        situacao.tempoRealizado && `Realizado ${situacao.tempoRealizado}`,
+        situacao.pedido && `Pedido ${situacao.pedido}`,
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      if (detalhes || situacao.tarefasRealizadas) {
+        subbloco = criarElemento('div', 'subbloco-os-lancada');
+        if (detalhes) {
+          subbloco.append(criarElemento('p', 'texto-auxiliar', detalhes));
+        }
+        if (situacao.tarefasRealizadas) {
+          subbloco.append(
+            criarElemento(
+              'p',
+              'texto-auxiliar texto-tarefas-realizadas',
+              situacao.tarefasRealizadas,
+            ),
+          );
+        }
+        informacoes.append(subbloco);
+      }
+    } else if (situacao.tipo === 'tarefa-aberta') {
+      selo.classList.add('atencao');
+      selo.textContent = 'Tarefa aberta no Experience';
+      selo.title = `FAP ${faps}`;
+    } else {
+      selo.classList.add('erro');
+      selo.textContent = 'Sem tarefa aberta no Experience';
+      selo.title = resultado.faps.length ? `FAP ${faps}` : 'Cliente sem FAP de implantação.';
+    }
+  }
+
+  void carregar(forcarNaAbertura);
+}
+
+/** Cliente do hub que já tem esse `codparc` do Sankhya amarrado, se houver. */
+function clientePorCodparc(codparc) {
+  return estado.clientes.find((cliente) => cliente.agendaCodparcs.includes(codparc)) ?? null;
+}
+
+/**
+ * Vincula um `codparc` do Sankhya a um cliente do hub — tira de quem já
+ * tinha (um `codparc` pertence a um cliente só) e adiciona no escolhido.
+ * Atualiza `estado.clientes` em memória depois de gravar, pra sugestão,
+ * lista e o próprio botão refletirem sem precisar recarregar a página.
+ */
+async function vincularCodparcAoCliente(codparc, idDoClienteEscolhido) {
+  const donoAtual = clientePorCodparc(codparc);
+  const escolhido = estado.clientes.find((cliente) => cliente.id === idDoClienteEscolhido);
+  if (!escolhido || escolhido === donoAtual) return;
+
+  if (donoAtual) {
+    const semCodparc = donoAtual.agendaCodparcs.filter((valor) => valor !== codparc);
+    await api.salvarAgenda(donoAtual.id, { agendaCodparcs: semCodparc });
+    donoAtual.agendaCodparcs = semCodparc;
+  }
+
+  const comCodparc = [...escolhido.agendaCodparcs, codparc];
+  await api.salvarAgenda(escolhido.id, { agendaCodparcs: comCodparc });
+  escolhido.agendaCodparcs = comCodparc;
+}
+
+/** Painel com busca e lista de clientes pra escolher quem recebe o `codparc`. */
+function criarSeletorDeClienteParaVinculo(codparc, aoConcluir) {
+  const painel = criarElemento('div', 'painel-vinculo');
+  const busca = criarElemento('input', 'painel-vinculo-busca');
+  busca.type = 'search';
+  busca.placeholder = 'Buscar cliente…';
+  busca.setAttribute('aria-label', 'Buscar cliente');
+  const lista = criarElemento('ul', 'painel-vinculo-lista');
+  painel.append(busca, lista);
+
+  const donoAtual = clientePorCodparc(codparc);
+
+  async function escolher(cliente) {
+    painel.classList.add('ocupado');
+    try {
+      await vincularCodparcAoCliente(codparc, cliente.id);
+    } catch (erro) {
+      exibirAviso(`Não consegui vincular: ${erro.message}`, 'erro');
+    }
+    aoConcluir();
+  }
+
+  function renderizarLista() {
+    const termo = busca.value.trim().toLowerCase();
+    const clientes = estado.clientes.filter((cliente) =>
+      cliente.nome.toLowerCase().includes(termo),
+    );
+    lista.replaceChildren();
+
+    if (!clientes.length) {
+      lista.append(criarElemento('li', 'painel-vinculo-vazio', 'Nenhum cliente encontrado.'));
+      return;
+    }
+
+    for (const cliente of clientes) {
+      const item = criarElemento('li');
+      const opcao = criarElemento('button', 'painel-vinculo-opcao', cliente.nome);
+      opcao.type = 'button';
+      if (cliente === donoAtual) {
+        opcao.classList.add('atual');
+        opcao.append(criarElemento('span', 'painel-vinculo-marca', 'vinculado'));
+      }
+      opcao.addEventListener('click', () => escolher(cliente));
+      item.append(opcao);
+      lista.append(item);
+    }
+  }
+
+  busca.addEventListener('input', renderizarLista);
+  busca.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Escape') aoConcluir();
+  });
+  renderizarLista();
+  requestAnimationFrame(() => busca.focus());
+
+  return painel;
+}
+
+/**
+ * Botão que vincula o `codparc` do Sankhya deste evento a um cliente do hub
+ * — fica "vinculado" (verde) quando já existe um cliente com esse código.
+ * Clicar abre, ao lado, o seletor de cliente; clicar de novo fecha sem
+ * escolher nada.
+ */
+function criarBotaoDeVinculo(linhaNome, evento) {
+  let seletor = null;
+
+  const botao = criarBotaoDeIcone('btn tiny ghost', ICONES.link, '', () => {
+    if (seletor) {
+      seletor.remove();
+      seletor = null;
+      return;
+    }
+    seletor = criarSeletorDeClienteParaVinculo(evento.codparc, () => {
+      seletor?.remove();
+      seletor = null;
+      atualizarBotao();
+    });
+    linhaNome.append(seletor);
+  });
+
+  function atualizarBotao() {
+    const dono = clientePorCodparc(evento.codparc);
+    botao.classList.toggle('vinculado', Boolean(dono));
+    const rotulo = dono
+      ? `Vinculado a "${dono.nome}" — clique pra trocar`
+      : 'Vincular a um cliente do hub';
+    botao.title = rotulo;
+    botao.setAttribute('aria-label', rotulo);
+  }
+  atualizarBotao();
+
+  return botao;
+}
+
+/**
+ * Widget de calendário mensal da Agenda de Recursos: navegação de mês, grade
+ * clicável e detalhe do dia selecionado, com a situação de cada evento no
+ * Experience (selo + sub-bloco de OS lançada). Cria os próprios elementos —
+ * quem usa só pluga `elemento` num container.
+ *
+ * Reusado em dois lugares: a aba Agenda do topo (todos os eventos do
+ * snapshot) e a aba Agenda do cadastro do cliente (só os eventos do
+ * `codparc` amarrado a ele) — a diferença é de onde vêm os eventos
+ * (`buscarEventos`) e o que fazer ao trocar de mês (`aoMudarMes`; sem ele,
+ * troca de mês só recarrega local — é o que a aba do cliente quer; a aba do
+ * topo passa isso pra disparar a consulta ao vivo na Sankhya).
+ */
+function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualIso() }) {
+  const estadoWidget = {
+    mes: mesInicial,
+    diaSelecionado: dataIsoDeHoje(),
+  };
+
+  const rotuloMes = criarElemento('span', 'rotulo-mes-calendario');
+  const navegacao = criarElemento('div', 'navegacao-calendario');
+  navegacao.append(
+    criarBotao('btn tiny ghost', '‹', () => mudarMes(-1)),
+    rotuloMes,
+    criarBotao('btn tiny ghost', '›', () => mudarMes(1)),
+  );
+
+  const status = criarElemento('p', 'texto-auxiliar texto-centralizado');
+  const erro = criarElemento('p', 'erro-formulario');
+  erro.hidden = true;
+  const areaCalendario = criarElemento('div');
+  const areaDetalhe = criarElemento('div', 'detalhe-dia-agenda');
+
+  const elemento = criarElemento('div', 'secao-agenda-geral');
+  elemento.append(erro, navegacao, status, areaCalendario, areaDetalhe);
+
+  /**
+   * Uma célula da grade: número do dia + bolinha quando há evento. A borda
+   * verde marca o dia SELECIONADO neste widget, não fixo em "hoje" — clicar
+   * noutro dia move a borda pra ele.
+   */
+  function celula(dia) {
+    const selecionado = dia.dia === estadoWidget.diaSelecionado;
+    const botaoCelula = criarElemento(
+      'button',
+      `celula-calendario celula-calendario-clicavel${dia.doMes ? '' : ' fora-do-mes'}${selecionado ? ' selecionado' : ''}`,
+    );
+    botaoCelula.type = 'button';
+    botaoCelula.dataset.dia = dia.dia;
+    botaoCelula.append(criarElemento('span', 'celula-calendario-numero', String(dia.numero)));
+
+    if (dia.eventos.length) {
+      const selo = criarElemento('span', 'selo-situacao ok', String(dia.eventos.length));
+      selo.title = `${dia.eventos.length} evento(s)`;
+      botaoCelula.append(selo);
+    }
+
+    botaoCelula.addEventListener('click', () => {
+      estadoWidget.diaSelecionado = dia.dia;
+      for (const outra of areaCalendario.querySelectorAll('.celula-calendario')) {
+        outra.classList.toggle('selecionado', outra.dataset.dia === dia.dia);
+      }
+      renderizarDetalhe(dia, true);
+    });
+    return botaoCelula;
+  }
+
+  /**
+   * Detalhe do dia selecionado: lista de eventos, abaixo da grade.
+   *
+   * `forcarAtualizacaoDaSituacao` ignora o cache de situação do Experience de
+   * cada evento — usado quando o clique é numa troca de dia de verdade, não
+   * na reabertura do mesmo dia que já estava selecionado.
+   */
+  function renderizarDetalhe(dia, forcarAtualizacaoDaSituacao = false) {
+    areaDetalhe.replaceChildren();
+    if (!dia) return;
+
+    const titulo = new Date(`${dia.dia}T00:00:00`).toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
+    });
+    areaDetalhe.append(criarElemento('h3', null, titulo));
+
+    if (!dia.eventos.length) {
+      areaDetalhe.append(criarElemento('p', 'texto-auxiliar', 'Nenhum evento neste dia.'));
+      return;
+    }
+
+    for (const evento of dia.eventos) {
+      const linha = criarElemento('div', 'linha-recurso');
+      const informacoes = criarElemento('div', 'recurso-info');
+      const horario =
+        evento.allday === 'S'
+          ? 'Dia todo'
+          : `${evento.inicio.slice(11, 16)}–${evento.fim.slice(11, 16)}`;
+      const tituloDoEvento = evento.nomeparc
+        ? `${evento.codparc ?? ''} - ${evento.nomeparc}`
+        : evento.descrlonga || evento.descrabrev || '(sem título)';
+      const descricaoCompleta = evento.descrlonga || evento.descrabrev;
+
+      if (evento.codparc) {
+        const linhaNome = criarElemento('div', 'linha-horario-situacao');
+        linhaNome.append(criarElemento('p', 'recurso-nome', tituloDoEvento));
+        linhaNome.append(criarBotaoDeVinculo(linhaNome, evento));
+        informacoes.append(linhaNome);
+      } else {
+        informacoes.append(criarElemento('p', 'recurso-nome', tituloDoEvento));
+      }
+      if (descricaoCompleta && descricaoCompleta !== tituloDoEvento) {
+        informacoes.append(criarElemento('p', 'texto-auxiliar', descricaoCompleta));
+      }
+
+      const linhaHorario = criarElemento('div', 'linha-horario-situacao');
+      linhaHorario.append(criarElemento('span', 'texto-auxiliar', horario));
+      informacoes.append(linhaHorario);
+
+      if (evento.codparc) {
+        // O dia certo pra checar é o dia sendo VISTO no calendário, não o de
+        // início do evento — um evento de período (férias, semana inteira)
+        // aparece em todo dia que cobre, e cada um tem sua própria situação.
+        anexarSituacaoDoEvento(
+          linhaHorario,
+          informacoes,
+          evento.codparc,
+          dia.dia,
+          forcarAtualizacaoDaSituacao,
+        );
+      }
+
+      linha.append(informacoes);
+      areaDetalhe.append(linha);
+    }
+  }
+
+  /** Busca os eventos do mês em exibição e redesenha a grade — sem consulta ao vivo. */
+  async function carregar() {
+    limparErro(erro);
+    rotuloMes.textContent = nomeDoMes(estadoWidget.mes);
+    areaCalendario.replaceChildren(criarElemento('p', 'texto-auxiliar', 'Carregando…'));
+    areaDetalhe.replaceChildren();
+
+    const { de, ate } = limitesDoMesCliente(estadoWidget.mes);
+    try {
+      const eventos = await buscarEventos(de, ate);
+      const grade = criarGradeMensalDeEventos(estadoWidget.mes, eventos);
+      areaCalendario.replaceChildren(criarGradeDoCalendario(grade, celula));
+      status.textContent = eventos.length
+        ? `${eventos.length} evento(s) neste mês.`
+        : 'Nenhum evento neste mês.';
+
+      // Reabre no dia selecionado antes (ou hoje, na primeira vez) — a borda
+      // verde da célula já sai marcada nele, via `celula`.
+      const diaSelecionado =
+        grade.find((dia) => dia.dia === estadoWidget.diaSelecionado) ??
+        grade.find((dia) => dia.hoje);
+      if (diaSelecionado) {
+        renderizarDetalhe(diaSelecionado);
+      }
+    } catch (erroDeCarga) {
+      areaCalendario.replaceChildren();
+      status.textContent = '';
+      exibirErro(erro, erroDeCarga.message);
+    }
+  }
+
+  async function mudarMes(passo) {
+    estadoWidget.mes = deslocarMes(estadoWidget.mes, passo);
+    if (aoMudarMes) {
+      await aoMudarMes(estadoWidget.mes);
+    } else {
+      await carregar();
+    }
+  }
+
+  return {
+    elemento,
+    carregar,
+    elementoErro: erro,
+    elementoStatus: status,
+    get mes() {
+      return estadoWidget.mes;
+    },
+  };
+}
+
+/** Discreto, ao lado do botão de atualizar — sem hora nunca importado ainda. */
+function renderizarUltimaAtualizacaoDaAgenda(importadoEm) {
+  elementos.ultimaAtualizacaoAgenda.textContent = importadoEm
+    ? `Atualizado em ${new Date(importadoEm).toLocaleString('pt-BR')}`
+    : '';
+}
+
+/**
+ * O widget da aba Agenda do topo: todos os eventos do snapshot, sem recorte
+ * de cliente. Trocar de mês dispara a consulta ao vivo (`atualizarAgendaGeral`)
+ * — é o comportamento que já existia, preservado aqui.
+ */
+const widgetAgendaGeral = criarWidgetDeAgenda({
+  buscarEventos: async (de, ate) => {
+    const [{ eventos }, estadoDoSnapshot] = await Promise.all([
+      api.eventosDaAgenda(de, ate),
+      api.estadoAgenda(),
+    ]);
+    renderizarUltimaAtualizacaoDaAgenda(estadoDoSnapshot.importadoEm);
+    return eventos;
+  },
+  aoMudarMes: () => atualizarAgendaGeral(),
+});
+
+/** Consulta ao vivo o mês em exibição, direto da guia autenticada, e recarrega a grade. */
+async function atualizarAgendaGeral() {
+  limparErro(widgetAgendaGeral.elementoErro);
+  elementos.avisoHelperAgenda.hidden = true;
+  elementos.botaoAtualizarAgenda.disabled = true;
+  widgetAgendaGeral.elementoStatus.textContent = 'Consultando a Sankhya…';
+
+  const { de, ate } = limitesDoMesCliente(widgetAgendaGeral.mes);
+  try {
+    await api.consultarAgenda(de, ate);
+    await widgetAgendaGeral.carregar();
+  } catch (erro) {
+    if (erro.helperIndisponivel) {
+      elementos.avisoHelperAgenda.hidden = false;
+    }
+    exibirErro(widgetAgendaGeral.elementoErro, erro.message);
+    widgetAgendaGeral.elementoStatus.textContent = '';
+  } finally {
+    elementos.botaoAtualizarAgenda.disabled = false;
+  }
+}
+
 function alternarVisualizacao(visualizacao) {
   estado.visualizacao = visualizacao;
 
-  const emClientes = visualizacao === 'clientes';
-  elementos.visualizacaoClientes.hidden = !emClientes;
-  elementos.visualizacaoLocal.hidden = emClientes;
+  const opcoes = [
+    {
+      chave: 'clientes',
+      botao: elementos.botaoVisualizacaoClientes,
+      area: elementos.visualizacaoClientes,
+    },
+    { chave: 'local', botao: elementos.botaoVisualizacaoLocal, area: elementos.visualizacaoLocal },
+    {
+      chave: 'agenda',
+      botao: elementos.botaoVisualizacaoAgenda,
+      area: elementos.visualizacaoAgenda,
+    },
+  ];
 
-  elementos.botaoVisualizacaoClientes.classList.toggle('ativo', emClientes);
-  elementos.botaoVisualizacaoClientes.setAttribute('aria-pressed', String(emClientes));
-  elementos.botaoVisualizacaoLocal.classList.toggle('ativo', !emClientes);
-  elementos.botaoVisualizacaoLocal.setAttribute('aria-pressed', String(!emClientes));
+  for (const { chave, botao, area } of opcoes) {
+    const ativa = chave === visualizacao;
+    area.hidden = !ativa;
+    botao.classList.toggle('ativa', ativa);
+    botao.setAttribute('aria-selected', String(ativa));
+  }
 
-  if (!emClientes) {
+  if (visualizacao === 'local') {
     carregarLocal();
+  }
+  if (visualizacao === 'agenda') {
+    void widgetAgendaGeral.carregar();
   }
 }
 
@@ -2215,6 +3178,46 @@ function restaurarCursorNasAnotacoes(posicao) {
   campo.setSelectionRange(posicao.inicio, posicao.fim);
 }
 
+/**
+ * Abas do detalhe do cliente. Trocar de aba só mostra/esconde o que já foi
+ * montado — sem chamar `renderizarDetalhe()` de novo, que descartaria o
+ * calendário aberto e qualquer outro estado local da aba.
+ */
+function criarAbasDeDetalhe(abas) {
+  const ativaInicial = abas.some((aba) => aba.chave === estado.abaDetalheAtiva)
+    ? estado.abaDetalheAtiva
+    : abas[0].chave;
+
+  const barra = criarElemento('div', 'abas-modal detalhe-abas');
+  barra.setAttribute('role', 'tablist');
+  const corpo = criarElemento('div', 'abas-empilhadas detalhe-abas-corpo');
+
+  for (const aba of abas) {
+    const botao = criarBotao(aba.chave === ativaInicial ? 'aba ativa' : 'aba', aba.rotulo, () => {
+      estado.abaDetalheAtiva = aba.chave;
+      for (const filho of barra.children) {
+        filho.classList.toggle('ativa', filho.dataset.chave === aba.chave);
+      }
+      for (const painel of corpo.children) {
+        painel.hidden = painel.dataset.chave !== aba.chave;
+      }
+    });
+    botao.setAttribute('role', 'tab');
+    botao.dataset.chave = aba.chave;
+    barra.append(botao);
+
+    const painel = criarElemento('div', 'painel-aba');
+    painel.dataset.chave = aba.chave;
+    painel.hidden = aba.chave !== ativaInicial;
+    painel.append(aba.conteudo);
+    corpo.append(painel);
+  }
+
+  const container = criarElemento('div', 'detalhe-abas-container');
+  container.append(barra, corpo);
+  return container;
+}
+
 function renderizarDetalhe() {
   const cliente = clienteSelecionado();
   if (!cliente) {
@@ -2242,13 +3245,23 @@ function renderizarDetalhe() {
   const cabecalho = criarElemento('div', 'detalhe-cabecalho');
   cabecalho.append(identidade, acoes);
 
+  const secaoGeral = criarElemento('div');
+  secaoGeral.append(criarSecaoDeAnotacoes(cliente), criarSecaoDeLinks(cliente));
+
   const card = criarElemento('div', 'card');
   card.append(
     cabecalho,
-    criarSecaoDeBases(cliente),
-    criarSecaoDeRepositorios(cliente),
-    criarSecaoDeLinks(cliente),
-    criarSecaoDeAnotacoes(cliente),
+    criarAbasDeDetalhe([
+      { chave: 'geral', rotulo: 'Geral', conteudo: secaoGeral },
+      { chave: 'projetos', rotulo: 'Projetos', conteudo: criarSecaoDeProjetos(cliente) },
+      { chave: 'bases', rotulo: 'Bases', conteudo: criarSecaoDeBases(cliente) },
+      {
+        chave: 'repositorios',
+        rotulo: 'Repositórios',
+        conteudo: criarSecaoDeRepositorios(cliente),
+      },
+      { chave: 'agenda', rotulo: 'Agenda', conteudo: criarSecaoDeAgenda(cliente) },
+    ]),
   );
   elementos.detalhe.replaceChildren(card);
   restaurarCursorNasAnotacoes(cursorNasAnotacoes);
@@ -2316,6 +3329,60 @@ async function salvarCliente(evento) {
     exibirErro(elementos.erroCliente, erro.message);
   } finally {
     elementos.botaoSalvarCliente.disabled = false;
+  }
+}
+
+function abrirModalDeCadastroDeProjeto(cliente) {
+  estado.clienteDoProjetoEmEdicao = cliente;
+  estado.projetoEmEdicao = null;
+  elementos.modalProjetoTitulo.textContent = 'Cadastrar projeto';
+  elementos.modalProjetoSubtitulo.textContent = `Cliente: ${cliente.nome}`;
+  elementos.campoNomeProjeto.value = '';
+  limparErro(elementos.erroProjeto);
+  elementos.modalProjeto.showModal();
+  elementos.campoNomeProjeto.focus();
+}
+
+function abrirModalDeEdicaoDeProjeto(cliente, projeto) {
+  estado.clienteDoProjetoEmEdicao = cliente;
+  estado.projetoEmEdicao = projeto;
+  elementos.modalProjetoTitulo.textContent = 'Editar projeto';
+  elementos.modalProjetoSubtitulo.textContent = `Cliente: ${cliente.nome}`;
+  elementos.campoNomeProjeto.value = projeto.nome;
+  limparErro(elementos.erroProjeto);
+  elementos.modalProjeto.showModal();
+  elementos.campoNomeProjeto.select();
+}
+
+async function salvarProjeto(evento) {
+  evento.preventDefault();
+
+  const nome = elementos.campoNomeProjeto.value.trim();
+  if (!nome) {
+    exibirErro(elementos.erroProjeto, 'Informe o nome do projeto.');
+    return;
+  }
+
+  limparErro(elementos.erroProjeto);
+  elementos.botaoSalvarProjeto.disabled = true;
+
+  try {
+    const cliente = estado.clienteDoProjetoEmEdicao;
+    const emEdicao = estado.projetoEmEdicao;
+
+    if (emEdicao) {
+      await api.atualizarProjeto(cliente.id, emEdicao.id, { nome });
+    } else {
+      await api.adicionarProjeto(cliente.id, { nome });
+    }
+
+    await recarregarClientes();
+    elementos.modalProjeto.close();
+    exibirAviso(emEdicao ? 'Projeto atualizado.' : 'Projeto cadastrado.');
+  } catch (erro) {
+    exibirErro(elementos.erroProjeto, erro.message);
+  } finally {
+    elementos.botaoSalvarProjeto.disabled = false;
   }
 }
 
@@ -2773,13 +3840,22 @@ function abrirModalDeRepositorio(cliente, repositorio) {
     ? 'Editar repositório'
     : 'Cadastrar repositório';
   elementos.modalRepositorioSubtitulo.textContent = `Cliente: ${cliente.nome}`;
-  elementos.campoNomeRepositorio.value = repositorio?.nome ?? '';
   elementos.campoUrlRepositorio.value = repositorio?.url ?? '';
   elementos.campoCaminhoLocal.value = repositorio?.caminhoLocal ?? '';
 
   limparErro(elementos.erroRepositorio);
   elementos.modalRepositorio.showModal();
-  elementos.campoNomeRepositorio.focus();
+  elementos.campoCaminhoLocal.focus();
+}
+
+/** Último componente do caminho, aceitando `\` e `/`. */
+function nomeDaPasta(caminho) {
+  return caminho.split(/[\\/]/).filter(Boolean).pop() ?? '';
+}
+
+/** Nome de exibição do repositório: a pasta do clone ou, sem clone, a URL. */
+function nomeDeExibicaoDoRepositorio(repositorio) {
+  return nomeDaPasta(repositorio.caminhoLocal ?? repositorio.url.replace(/\.git$/, ''));
 }
 
 /**
@@ -2816,13 +3892,12 @@ async function salvarRepositorio(evento) {
   evento.preventDefault();
 
   const dados = {
-    nome: elementos.campoNomeRepositorio.value.trim(),
     url: elementos.campoUrlRepositorio.value.trim(),
     caminhoLocal: elementos.campoCaminhoLocal.value.trim(),
   };
 
-  if (!dados.nome) {
-    exibirErro(elementos.erroRepositorio, 'Informe o nome do repositório.');
+  if (!dados.caminhoLocal) {
+    exibirErro(elementos.erroRepositorio, 'Informe o caminho local do repositório.');
     return;
   }
 
@@ -2861,12 +3936,16 @@ async function salvarRepositorio(evento) {
 
 /* ------------------------------ links do cliente -------------------------- */
 
-function abrirModalDeLink(cliente, link) {
+/** `projeto` é `null` quando o link é geral do cliente, não de um projeto. */
+function abrirModalDeLink(cliente, link, projeto = null) {
   estado.clienteDoLinkEmEdicao = cliente;
   estado.linkEmEdicao = link;
+  estado.projetoDoLinkEmEdicao = projeto;
 
   elementos.modalLinkTitulo.textContent = link ? 'Editar link' : 'Cadastrar link';
-  elementos.modalLinkSubtitulo.textContent = `Cliente: ${cliente.nome}`;
+  elementos.modalLinkSubtitulo.textContent = projeto
+    ? `Cliente: ${cliente.nome} · Projeto: ${projeto.nome}`
+    : `Cliente: ${cliente.nome}`;
   elementos.campoNomeLink.value = link?.nome ?? '';
   elementos.campoUrlLink.value = link?.url ?? '';
 
@@ -2881,6 +3960,14 @@ function abrirModalDeCadastroDeLink(cliente) {
 
 function abrirModalDeEdicaoDeLink(cliente, link) {
   abrirModalDeLink(cliente, link);
+}
+
+function abrirModalDeCadastroDeLinkDeProjeto(cliente, projeto) {
+  abrirModalDeLink(cliente, null, projeto);
+}
+
+function abrirModalDeEdicaoDeLinkDeProjeto(cliente, projeto, link) {
+  abrirModalDeLink(cliente, link, projeto);
 }
 
 async function salvarLink(evento) {
@@ -2911,9 +3998,16 @@ async function salvarLink(evento) {
 
   try {
     const cliente = estado.clienteDoLinkEmEdicao;
+    const projeto = estado.projetoDoLinkEmEdicao;
     const emEdicao = estado.linkEmEdicao;
 
-    if (emEdicao) {
+    if (projeto) {
+      if (emEdicao) {
+        await api.atualizarLinkDoProjeto(cliente.id, projeto.id, emEdicao.id, dados);
+      } else {
+        await api.adicionarLinkDoProjeto(cliente.id, projeto.id, dados);
+      }
+    } else if (emEdicao) {
       await api.atualizarLink(cliente.id, emEdicao.id, dados);
     } else {
       await api.adicionarLink(cliente.id, dados);
@@ -3120,6 +4214,189 @@ async function salvarConfiguracaoMcp(evento) {
   }
 }
 
+/* --------------------------- credenciais do sankhya ------------------------ */
+
+/** Os elementos de um cartão de credencial, lidos pelo atributo `data-papel`. */
+function elementosDoCartaoDeCredencial(cartao) {
+  return {
+    sistema: cartao.dataset.sistema,
+    status: cartao.querySelector('[data-papel="status"]'),
+    campoUsuario: cartao.querySelector('[data-papel="usuario"]'),
+    campoSenha: cartao.querySelector('[data-papel="senha"]'),
+    botaoVerSenha: cartao.querySelector('[data-papel="ver-senha"]'),
+    botaoSalvar: cartao.querySelector('[data-papel="salvar"]'),
+    botaoRemover: cartao.querySelector('[data-papel="remover"]'),
+    botaoAbrirNavegador: cartao.querySelector('[data-papel="abrir-navegador"]'),
+    botaoCapturarSessao: cartao.querySelector('[data-papel="capturar-sessao"]'),
+    erro: cartao.querySelector('[data-papel="erro"]'),
+  };
+}
+
+function cartoesDeCredenciaisSankhya() {
+  return [...elementos.modalCredenciaisSankhya.querySelectorAll('.cartao-credencial')].map(
+    elementosDoCartaoDeCredencial,
+  );
+}
+
+/** Pinta o selo do cartão a partir do status devolvido pelo helper. */
+function renderizarStatusCredencial(cartaoElementos, status) {
+  const { campoUsuario, status: selo } = cartaoElementos;
+  campoUsuario.value = status.usuario;
+
+  if (status.sessaoCapturada) {
+    const expira = status.sessaoExpiraEm
+      ? ` até ${new Date(status.sessaoExpiraEm).toLocaleString('pt-BR')}`
+      : '';
+    selo.className = 'selo-situacao ok';
+    selo.textContent = `Sessão ativa${expira}`;
+    return;
+  }
+
+  if (status.definido) {
+    selo.className = 'selo-situacao atencao';
+    selo.textContent = 'Credencial salva, sem sessão capturada';
+    return;
+  }
+
+  selo.className = 'selo-situacao';
+  selo.textContent = 'Sem credencial';
+}
+
+/** Recarrega os dois cartões e o status do navegador; helper fora do ar avisa uma vez só. */
+async function atualizarCredenciaisSankhya() {
+  const cartoes = cartoesDeCredenciaisSankhya();
+
+  let helperDisponivel = true;
+  try {
+    ({ disponivel: helperDisponivel } = await api.helperSankhya());
+  } catch {
+    helperDisponivel = false;
+  }
+  elementos.avisoHelperSankhya.hidden = helperDisponivel;
+
+  for (const cartaoElementos of cartoes) {
+    limparErro(cartaoElementos.erro);
+  }
+
+  try {
+    const { credenciais } = await api.credenciaisSankhya();
+    for (const status of credenciais) {
+      const cartaoElementos = cartoes.find((c) => c.sistema === status.sistema);
+      if (cartaoElementos) {
+        renderizarStatusCredencial(cartaoElementos, status);
+      }
+    }
+  } catch (erro) {
+    for (const cartaoElementos of cartoes) {
+      exibirErro(cartaoElementos.erro, erro.message);
+    }
+  }
+
+  try {
+    const navegador = await api.navegadorSankhya();
+    elementos.statusNavegadorSankhya.textContent = navegador.aberto
+      ? `Navegador aberto (${navegador.abas.length} guia${navegador.abas.length === 1 ? '' : 's'}).`
+      : 'Navegador do hub fechado.';
+  } catch {
+    elementos.statusNavegadorSankhya.textContent = '';
+  }
+}
+
+function abrirModalDeCredenciaisSankhya() {
+  elementos.modalCredenciaisSankhya.showModal();
+  void atualizarCredenciaisSankhya();
+}
+
+async function salvarCredencialDoCartao(cartaoElementos) {
+  const usuario = cartaoElementos.campoUsuario.value.trim();
+  const senha = cartaoElementos.campoSenha.value;
+  limparErro(cartaoElementos.erro);
+
+  if (!usuario || !senha) {
+    exibirErro(cartaoElementos.erro, 'Informe usuário e senha.');
+    return;
+  }
+
+  cartaoElementos.botaoSalvar.disabled = true;
+  try {
+    const status = await api.salvarCredencialSankhya(cartaoElementos.sistema, usuario, senha);
+    cartaoElementos.campoSenha.value = '';
+    renderizarStatusCredencial(cartaoElementos, status);
+    exibirAviso('Credencial salva.');
+  } catch (erro) {
+    exibirErro(cartaoElementos.erro, erro.message);
+  } finally {
+    cartaoElementos.botaoSalvar.disabled = false;
+  }
+}
+
+async function removerCredencialDoCartao(cartaoElementos) {
+  limparErro(cartaoElementos.erro);
+  cartaoElementos.botaoRemover.disabled = true;
+  try {
+    const status = await api.removerCredencialSankhya(cartaoElementos.sistema);
+    cartaoElementos.campoUsuario.value = '';
+    cartaoElementos.campoSenha.value = '';
+    renderizarStatusCredencial(cartaoElementos, status);
+    exibirAviso('Credencial removida.');
+  } catch (erro) {
+    exibirErro(cartaoElementos.erro, erro.message);
+  } finally {
+    cartaoElementos.botaoRemover.disabled = false;
+  }
+}
+
+async function abrirNavegadorDoCartao(cartaoElementos) {
+  limparErro(cartaoElementos.erro);
+  cartaoElementos.botaoAbrirNavegador.disabled = true;
+  try {
+    await api.abrirNavegadorSankhya(cartaoElementos.sistema);
+    exibirAviso('Janela aberta — faça login e depois clique em "Capturar sessão".');
+    await atualizarCredenciaisSankhya();
+  } catch (erro) {
+    exibirErro(cartaoElementos.erro, erro.message);
+  } finally {
+    cartaoElementos.botaoAbrirNavegador.disabled = false;
+  }
+}
+
+async function capturarSessaoDoCartao(cartaoElementos) {
+  limparErro(cartaoElementos.erro);
+  cartaoElementos.botaoCapturarSessao.disabled = true;
+  try {
+    await api.capturarSessaoSankhya(cartaoElementos.sistema);
+    exibirAviso('Sessão capturada.');
+    await atualizarCredenciaisSankhya();
+  } catch (erro) {
+    exibirErro(cartaoElementos.erro, erro.message);
+  } finally {
+    cartaoElementos.botaoCapturarSessao.disabled = false;
+  }
+}
+
+function registrarEventosDoCartaoDeCredencial(cartaoElementos) {
+  cartaoElementos.botaoVerSenha.append(criarIcone(ICONES.olho));
+  cartaoElementos.botaoVerSenha.addEventListener('click', () => {
+    definirVisibilidadeDoCampo(
+      cartaoElementos.campoSenha,
+      cartaoElementos.botaoVerSenha,
+      cartaoElementos.campoSenha.type === 'password',
+    );
+  });
+  cartaoElementos.botaoSalvar.addEventListener('click', () =>
+    salvarCredencialDoCartao(cartaoElementos),
+  );
+  cartaoElementos.botaoRemover.addEventListener('click', () =>
+    removerCredencialDoCartao(cartaoElementos),
+  );
+  cartaoElementos.botaoAbrirNavegador.addEventListener('click', () =>
+    abrirNavegadorDoCartao(cartaoElementos),
+  );
+  cartaoElementos.botaoCapturarSessao.addEventListener('click', () =>
+    capturarSessaoDoCartao(cartaoElementos),
+  );
+}
+
 /* ----------------------------- configuração global ------------------------ */
 
 /** Alterna entre as abas do modal de configuração. */
@@ -3128,6 +4405,7 @@ function selecionarAbaDaConfiguracao(abaEscolhida) {
     { aba: elementos.abaConfiguracaoGeral, painel: elementos.painelConfiguracaoGeral },
     { aba: elementos.abaConfiguracaoMcp, painel: elementos.painelConfiguracaoMcp },
     { aba: elementos.abaConfiguracaoAtalhos, painel: elementos.painelConfiguracaoAtalhos },
+    { aba: elementos.abaConfiguracaoSobre, painel: elementos.painelConfiguracaoSobre },
   ];
 
   for (const { aba, painel } of abas) {
@@ -4211,7 +5489,6 @@ async function concluirImportacaoDeRepositorios() {
 
   const repositorios = repositoriosSelecionadosParaImportacao().map((selecionado) => ({
     nomeDoCliente: selecionado.nomeDoCliente.trim(),
-    nome: selecionado.nome,
     url: selecionado.url,
     caminhoLocal: selecionado.caminho,
   }));
@@ -5454,6 +6731,24 @@ function pedirExclusaoDeLink(cliente, link) {
   );
 }
 
+function pedirExclusaoDeProjeto(cliente, projeto) {
+  pedirExclusao(
+    'Excluir projeto',
+    `Excluir o projeto "${projeto.nome}" de ${cliente.nome}? Esta ação não pode ser desfeita.`,
+    () => api.removerProjeto(cliente.id, projeto.id),
+    'Projeto excluído.',
+  );
+}
+
+function pedirExclusaoDeLinkDeProjeto(cliente, projeto, link) {
+  pedirExclusao(
+    'Excluir link',
+    `Excluir o link "${link.nome}" do projeto "${projeto.nome}"? Esta ação não pode ser desfeita.`,
+    () => api.removerLinkDoProjeto(cliente.id, projeto.id, link.id),
+    'Link excluído.',
+  );
+}
+
 async function confirmarExclusao() {
   const pendente = estado.exclusaoPendente;
   if (!pendente) {
@@ -5606,6 +6901,9 @@ async function recarregarCliente(id) {
  * descartado para não redesenhar por cima da nova seleção.
  */
 async function selecionarCliente(id) {
+  if (estado.idSelecionado !== id) {
+    estado.abaDetalheAtiva = 'geral';
+  }
   estado.idSelecionado = id;
   renderizar();
 
@@ -5652,6 +6950,10 @@ function registrarEventos() {
     alternarVisualizacao('clientes'),
   );
   elementos.botaoVisualizacaoLocal.addEventListener('click', () => alternarVisualizacao('local'));
+  elementos.botaoVisualizacaoAgenda.addEventListener('click', () => alternarVisualizacao('agenda'));
+  elementos.botaoAtualizarAgenda.append(criarIcone(ICONES.recarregar));
+  elementos.botaoAtualizarAgenda.addEventListener('click', atualizarAgendaGeral);
+  elementos.mountAgendaGeral.append(widgetAgendaGeral.elemento);
 
   elementos.botaoAtalhos.append(criarIcone(ICONES.raio));
   elementos.botaoAtalhos.addEventListener('click', alternarListaDeAtalhos);
@@ -5673,6 +6975,23 @@ function registrarEventos() {
     }
   });
 
+  elementos.botaoCredenciaisSankhya.append(criarIcone(ICONES.cadeado));
+  elementos.botaoCredenciaisSankhya.addEventListener('click', abrirModalDeCredenciaisSankhya);
+  elementos.botaoFecharCredenciaisSankhya.addEventListener('click', () =>
+    elementos.modalCredenciaisSankhya.close(),
+  );
+  elementos.botaoFecharNavegadorSankhya.addEventListener('click', async () => {
+    try {
+      await api.fecharNavegadorSankhya();
+      await atualizarCredenciaisSankhya();
+    } catch (erro) {
+      exibirAviso(erro.message, 'erro');
+    }
+  });
+  for (const cartaoElementos of cartoesDeCredenciaisSankhya()) {
+    registrarEventosDoCartaoDeCredencial(cartaoElementos);
+  }
+
   elementos.botaoConfiguracao.append(criarIcone(ICONES.engrenagem));
   elementos.botaoConfiguracao.addEventListener('click', abrirModalDeConfiguracao);
   elementos.formularioConfiguracao.addEventListener('submit', salvarConfiguracao);
@@ -5684,6 +7003,9 @@ function registrarEventos() {
   );
   elementos.abaConfiguracaoAtalhos.addEventListener('click', () =>
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoAtalhos),
+  );
+  elementos.abaConfiguracaoSobre.addEventListener('click', () =>
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoSobre),
   );
   elementos.botaoAdicionarAtalho.addEventListener('click', () => {
     const linha = adicionarLinhaDeAtalho({ id: '', nome: '', caminhoDoExecutavel: '' });
@@ -5734,6 +7056,9 @@ function registrarEventos() {
 
   elementos.formularioLink.addEventListener('submit', salvarLink);
   elementos.botaoCancelarLink.addEventListener('click', () => elementos.modalLink.close());
+
+  elementos.formularioProjeto.addEventListener('submit', salvarProjeto);
+  elementos.botaoCancelarProjeto.addEventListener('click', () => elementos.modalProjeto.close());
 
   elementos.formularioBaseLocal.addEventListener('submit', salvarBaseLocal);
   elementos.botaoEscolherCaminhoWildfly.append(criarIcone(ICONES.pasta));

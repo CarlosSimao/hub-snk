@@ -23,20 +23,43 @@
       </div>
 
       <div class="topbar-actions">
-        <!-- Chave Clientes/Local: os ícones são montados pelo app.js. -->
-        <div class="seletor-visualizacao" role="group" aria-label="Visualização">
+        <div class="abas-modal barra-visualizacao" role="tablist" aria-label="Visualização">
           <button
-            class="btn ghost ativo"
+            class="aba ativa"
             id="btn-visualizacao-clientes"
             type="button"
-            aria-pressed="true"
+            role="tab"
+            aria-selected="true"
           >
             Clientes
           </button>
-          <button class="btn ghost" id="btn-visualizacao-local" type="button" aria-pressed="false">
+          <button
+            class="aba"
+            id="btn-visualizacao-local"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
             Local
           </button>
+          <button
+            class="aba"
+            id="btn-visualizacao-agenda"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Agenda
+          </button>
         </div>
+        <!-- O ícone de cadeado é montado pelo app.js. -->
+        <button
+          class="btn ghost botao-icone"
+          id="btn-credenciais-sankhya"
+          type="button"
+          title="Credenciais Sankhya"
+          aria-label="Credenciais Sankhya"
+        ></button>
         <!-- O ícone de engrenagem é montado pelo app.js. -->
         <button
           class="btn ghost botao-icone"
@@ -127,6 +150,36 @@
         </div>
         <div class="secao-recursos" id="secao-bases-locais"></div>
         <div class="secao-recursos" id="secao-bancos-locais"></div>
+      </div>
+
+      <div class="card" id="visualizacao-agenda" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Agenda de Recursos</h2>
+            <p class="texto-auxiliar">Consulta ao vivo, direto da guia do Sankhya ERP já logada.</p>
+          </div>
+          <div class="detalhe-acoes">
+            <span class="texto-auxiliar" id="ultima-atualizacao-agenda"></span>
+            <!-- O ícone de recarregar é montado pelo app.js. -->
+            <button
+              class="btn ghost botao-icone"
+              type="button"
+              id="btn-atualizar-agenda"
+              title="Atualizar da Sankhya"
+              aria-label="Atualizar da Sankhya"
+            ></button>
+          </div>
+        </div>
+
+        <div class="secao-recursos">
+          <p class="aviso-helper" id="aviso-helper-agenda" hidden>
+            Helper indisponível. Confira se o <code>hub-helper.ps1</code> está rodando.
+          </p>
+          <!-- Navegação de mês, calendário e detalhe do dia são montados pelo app.js
+               (`criarWidgetDeAgenda`) — o mesmo widget usado na aba Agenda do cadastro
+               do cliente, só que sem recorte de cliente. -->
+          <div id="mount-agenda-geral"></div>
+        </div>
       </div>
     </main>
 
@@ -316,14 +369,24 @@
 
         <div class="modal-corpo">
           <div class="campo">
-            <label for="campo-nome-repositorio">Nome do repositório</label>
-            <input
-              id="campo-nome-repositorio"
-              type="text"
-              maxlength="120"
-              autocomplete="off"
-              placeholder="Ex.: Addon de faturamento"
-            />
+            <label for="campo-caminho-local">Caminho local</label>
+            <div class="campo-com-acao">
+              <input
+                id="campo-caminho-local"
+                type="text"
+                maxlength="400"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: C:\Workspace\projeto"
+                required
+              />
+              <!-- O ícone de pasta é montado pelo app.js. -->
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                id="btn-escolher-caminho-local"
+              ></button>
+            </div>
           </div>
 
           <div class="campo">
@@ -339,34 +402,42 @@
             />
           </div>
 
-          <div class="campo">
-            <label for="campo-caminho-local"
-              >Caminho local <span class="opcional">opcional</span></label
-            >
-            <div class="campo-com-acao">
-              <input
-                id="campo-caminho-local"
-                type="text"
-                maxlength="400"
-                autocomplete="off"
-                spellcheck="false"
-                placeholder="Ex.: C:\Workspace\projeto"
-              />
-              <!-- O ícone de pasta é montado pelo app.js. -->
-              <button
-                class="btn tiny botao-icone"
-                type="button"
-                id="btn-escolher-caminho-local"
-              ></button>
-            </div>
-          </div>
-
           <p class="erro-formulario" id="erro-repositorio" hidden></p>
         </div>
 
         <div class="modal-rodape">
           <button class="btn ghost" type="button" id="btn-cancelar-repositorio">Cancelar</button>
           <button class="btn primario" type="submit" id="btn-salvar-repositorio">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-projeto">
+      <form method="dialog" id="formulario-projeto" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-projeto-titulo">Cadastrar projeto</h2>
+          <p id="modal-projeto-subtitulo">Informe o nome do projeto.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-nome-projeto">Nome do projeto</label>
+            <input
+              id="campo-nome-projeto"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Ex.: Portal de chamados"
+              required
+            />
+          </div>
+
+          <p class="erro-formulario" id="erro-projeto" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-projeto">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-projeto">Salvar</button>
         </div>
       </form>
     </dialog>
@@ -450,6 +521,16 @@
             aria-controls="painel-configuracao-atalhos"
           >
             Atalhos
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-sobre"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-sobre"
+          >
+            Sobre
           </button>
         </div>
 
@@ -650,6 +731,54 @@
             </div>
           </div>
 
+          <div
+            class="painel-aba"
+            id="painel-configuracao-sobre"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-sobre"
+            hidden
+          >
+            <section class="bloco-sobre">
+              <h3 class="bloco-sobre-titulo">Versão</h3>
+              <div class="bloco-sobre-corpo">
+                <span class="bloco-sobre-destaque">HUB SNK <span id="rodape-versao"></span></span>
+                <a
+                  class="rodape-atualizacao"
+                  id="rodape-atualizacao"
+                  target="_blank"
+                  rel="noreferrer"
+                  hidden
+                ></a>
+              </div>
+            </section>
+
+            <section class="bloco-sobre">
+              <h3 class="bloco-sobre-titulo">Powered by</h3>
+              <div class="bloco-sobre-corpo">
+                <a
+                  class="rodape-link"
+                  href="https://github.com/CarlosSimao"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Carlos Nascimento</a
+                >
+              </div>
+            </section>
+
+            <section class="bloco-sobre">
+              <h3 class="bloco-sobre-titulo">Ajuda</h3>
+              <div class="bloco-sobre-corpo">
+                <a
+                  class="rodape-link"
+                  href="https://github.com/CarlosSimao/hub-snk/issues/new/choose"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Reportar problema</a
+                >
+              </div>
+            </section>
+          </div>
+
           <p class="erro-formulario" id="erro-configuracao" hidden></p>
         </div>
 
@@ -658,6 +787,120 @@
           <button class="btn primario" type="submit" id="btn-salvar-configuracao">Salvar</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog class="modal largo" id="modal-credenciais-sankhya">
+      <div class="modal-cabecalho">
+        <h2>Credenciais Sankhya</h2>
+        <p>
+          Login usado pelo HUB SNK para capturar sessão no ERP e na Experience. A senha é cifrada
+          pelo helper do Windows — nunca fica em texto puro aqui.
+        </p>
+      </div>
+
+      <div class="modal-corpo">
+        <p class="aviso-helper" id="aviso-helper-sankhya" hidden>
+          Helper indisponível. Confira se o <code>hub-helper.ps1</code> está rodando.
+        </p>
+
+        <section class="cartao-credencial" data-sistema="sankhya-erp">
+          <div class="cartao-credencial-cabecalho">
+            <h3>Sankhya ERP</h3>
+            <span class="selo-situacao" data-papel="status"></span>
+          </div>
+
+          <div class="campo campo-em-linha">
+            <label>Usuário</label>
+            <input type="text" maxlength="200" autocomplete="off" data-papel="usuario" />
+          </div>
+          <div class="campo campo-em-linha">
+            <label>Senha</label>
+            <div class="campo-com-acao">
+              <input
+                type="password"
+                maxlength="200"
+                autocomplete="new-password"
+                data-papel="senha"
+              />
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                data-papel="ver-senha"
+                aria-pressed="false"
+              ></button>
+            </div>
+          </div>
+
+          <div class="cartao-credencial-acoes">
+            <button class="btn ghost" type="button" data-papel="salvar">Salvar credencial</button>
+            <button class="btn ghost" type="button" data-papel="remover">Remover</button>
+            <span class="rodape-espacador"></span>
+            <button class="btn ghost" type="button" data-papel="abrir-navegador">
+              Abrir navegador
+            </button>
+            <button class="btn ghost" type="button" data-papel="capturar-sessao">
+              Capturar sessão
+            </button>
+          </div>
+
+          <p class="erro-formulario" data-papel="erro" hidden></p>
+        </section>
+
+        <section class="cartao-credencial" data-sistema="sankhya-experience">
+          <div class="cartao-credencial-cabecalho">
+            <h3>Sankhya Experience</h3>
+            <span class="selo-situacao" data-papel="status"></span>
+          </div>
+
+          <div class="campo campo-em-linha">
+            <label>Usuário</label>
+            <input type="text" maxlength="200" autocomplete="off" data-papel="usuario" />
+          </div>
+          <div class="campo campo-em-linha">
+            <label>Senha</label>
+            <div class="campo-com-acao">
+              <input
+                type="password"
+                maxlength="200"
+                autocomplete="new-password"
+                data-papel="senha"
+              />
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                data-papel="ver-senha"
+                aria-pressed="false"
+              ></button>
+            </div>
+          </div>
+
+          <div class="cartao-credencial-acoes">
+            <button class="btn ghost" type="button" data-papel="salvar">Salvar credencial</button>
+            <button class="btn ghost" type="button" data-papel="remover">Remover</button>
+            <span class="rodape-espacador"></span>
+            <button class="btn ghost" type="button" data-papel="abrir-navegador">
+              Abrir navegador
+            </button>
+            <button class="btn ghost" type="button" data-papel="capturar-sessao">
+              Capturar sessão
+            </button>
+          </div>
+
+          <p class="erro-formulario" data-papel="erro" hidden></p>
+        </section>
+
+        <p class="texto-auxiliar" id="status-navegador-sankhya"></p>
+      </div>
+
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-fechar-navegador-sankhya">
+          Fechar navegador
+        </button>
+        <span class="rodape-espacador"></span>
+        <button class="btn primario" type="button" id="btn-fechar-credenciais-sankhya">
+          Fechar
+        </button>
+      </div>
     </dialog>
 
     <dialog class="modal largo" id="modal-mcp">
@@ -1147,36 +1390,6 @@
         <button class="btn danger" type="button" id="btn-confirmar-exclusao">Excluir</button>
       </div>
     </dialog>
-
-    <footer class="rodape">
-      <span>HUB SNK <span id="rodape-versao"></span></span>
-      <a
-        class="rodape-atualizacao"
-        id="rodape-atualizacao"
-        target="_blank"
-        rel="noreferrer"
-        hidden
-      ></a>
-      <span class="rodape-separador" aria-hidden="true">·</span>
-      <span>
-        by
-        <a
-          class="rodape-link"
-          href="https://github.com/CarlosSimao"
-          target="_blank"
-          rel="noreferrer"
-          >Carlos Nascimento</a
-        >
-      </span>
-      <span class="rodape-separador" aria-hidden="true">·</span>
-      <a
-        class="rodape-link"
-        href="https://github.com/CarlosSimao/hub-snk/issues/new/choose"
-        target="_blank"
-        rel="noreferrer"
-        >Reportar problema</a
-      >
-    </footer>
 
     <div class="avisos" id="avisos" aria-live="polite"></div>
 

@@ -130,8 +130,15 @@ body {
   gap: 8px;
 }
 
-.topbar-actions .seletor-visualizacao {
+.topbar-actions .barra-visualizacao {
   height: var(--altura-dos-controles);
+}
+
+/* Mesmo visual das abas do modal, sem a borda inferior corrida da barra inteira. */
+.barra-visualizacao {
+  padding: 0;
+  border-bottom: none;
+  align-items: center;
 }
 
 .topbar-actions .botao-icone {
@@ -302,30 +309,108 @@ a.btn {
   background: color-mix(in srgb, var(--marca) 12%, transparent);
 }
 
-/* Chave Clientes/Local: dois botões colados, só um "ativo" por vez. */
-.seletor-visualizacao {
+/* Painel de escolha de cliente no vínculo de `codparc` da agenda. */
+.painel-vinculo {
+  flex-basis: 100%;
+  max-width: 360px;
   display: flex;
-  padding: 3px;
-  gap: 2px;
-  border-radius: 9px;
-  border: 1px solid var(--border-strong);
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
   background: var(--surface-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
 }
 
-/* Largura fixa: a chave não muda de tamanho conforme o rótulo de cada opção. */
-.seletor-visualizacao .btn {
-  width: 72px;
-  border: none;
-  border-radius: 7px;
-  padding: 5px 0;
-  text-align: center;
+.painel-vinculo.ocupado {
+  opacity: 0.6;
+  pointer-events: none;
 }
 
-.seletor-visualizacao .btn.ativo {
+.painel-vinculo-busca {
+  width: 100%;
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0 10px 0 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-soft)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E")
+    no-repeat 10px center;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.painel-vinculo-busca::placeholder {
+  color: var(--text-faint);
+}
+
+.painel-vinculo-busca::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
+.painel-vinculo-busca:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.painel-vinculo-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.painel-vinculo-opcao {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.painel-vinculo-opcao:hover,
+.painel-vinculo-opcao:focus-visible {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  outline: none;
+}
+
+.painel-vinculo-opcao.atual {
   color: var(--marca);
-  background: color-mix(in srgb, var(--marca) 16%, transparent);
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
 }
 
+.painel-vinculo-marca {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.painel-vinculo-vazio {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+/* Chave Clientes/Local: dois botões colados, só um "ativo" por vez. */
 /* ------------------------------- layout -------------------------------- */
 
 main {
@@ -595,7 +680,53 @@ main {
 
 .detalhe-acoes {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+/* Título + subtítulo empilhados — diferente de `.detalhe-identidade`, que é só o nome. */
+.detalhe-titulo-com-subtitulo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.detalhe-titulo-com-subtitulo h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+/* ------------------------------- agenda geral ------------------------------ */
+
+.secao-agenda-geral {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.secao-agenda-geral .calendario-sankhya {
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.detalhe-dia-agenda:empty {
+  display: none;
+}
+
+.detalhe-dia-agenda {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.detalhe-dia-agenda h3 {
+  margin: 0;
+  font-size: 13px;
+  text-transform: capitalize;
 }
 
 /* ---------------------- recursos do cliente (bases, repositórios) -------- */
@@ -649,6 +780,35 @@ main {
   border-color: transparent;
 }
 
+/* Card de projeto: cabeçalho com o nome de verdade (não o rótulo pequeno de seção) + corpo com respiro. */
+.card-projeto-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-projeto-titulo {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.card-projeto-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 20px 20px;
+}
+
+.card-projeto-corpo .secao-recursos {
+  padding: 0;
+  border-top: none;
+}
+
 .secao-vazia {
   margin: 0;
   font-size: 12.5px;
@@ -676,14 +836,17 @@ main {
 .linha-recurso {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 11px 13px;
+  gap: 14px;
+  padding: 13px 15px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--bg-soft) 55%, transparent);
 }
 
 .recurso-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   flex: 1;
   min-width: 0;
 }
@@ -753,6 +916,17 @@ main {
   font-size: 13px;
   font-weight: 550;
   overflow-wrap: anywhere;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Só o link tem algo pra clicar: o nome do recurso vira <a> quando a URL é navegável. */
+a.recurso-nome {
+  display: inline-block;
+}
+
+a.recurso-nome:hover {
+  text-decoration: underline;
 }
 
 /* A seta acompanha a URL: se o endereço quebrar em várias linhas, ela desce junto. */
@@ -980,6 +1154,63 @@ button.selo-situacao:focus-visible {
   background: color-mix(in srgb, var(--marca) 8%, transparent);
 }
 
+/* Texto de "Tarefas Realizadas": vem com quebra de linha de verdade (etapa,
+   processos, observações), não é uma frase corrida. */
+.texto-tarefas-realizadas {
+  white-space: pre-line;
+  line-height: 1.5;
+}
+
+.lista-codparcs {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.linha-codparc {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  width: fit-content;
+}
+
+/* Botão "+" de adicionar código de parceiro, ou o campo que o substitui ao clicar. */
+.linha-codparc-nova {
+  width: fit-content;
+}
+
+.linha-codparc-nova input {
+  width: 140px;
+}
+
+/* Horário do evento + selo de situação do Experience, lado a lado. */
+.linha-horario-situacao {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Detalhe da OS lançada (horários, pedido, tarefas realizadas): sub-bloco
+   levemente separado do resto do evento, não solto na mesma coluna. */
+.subbloco-os-lancada {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--marca) 5%, transparent);
+}
+
 .selo-branch {
   flex: none;
   display: inline-flex;
@@ -1145,6 +1376,148 @@ button.selo-situacao:focus-visible {
 /* Formulários com rótulos longos (as variáveis do MCP) precisam de mais largura. */
 .modal.largo {
   width: min(680px, 94vw);
+}
+
+/* -------------------------- credenciais do sankhya ------------------------ */
+
+.cartao-credencial {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.cartao-credencial-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cartao-credencial-cabecalho h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.cartao-credencial-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ------------------------------ abas do detalhe ---------------------------- */
+
+.detalhe-abas {
+  padding: 0;
+  margin: 0;
+  border-bottom: none;
+}
+
+.detalhe-abas-corpo {
+  display: grid;
+  gap: 14px;
+  padding: 0;
+}
+
+/* ---------------------------- calendário sankhya --------------------------- */
+
+.navegacao-calendario {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 4px 0;
+}
+
+.rotulo-mes-calendario {
+  font-size: 12.5px;
+  font-weight: 600;
+  min-width: 140px;
+  text-align: center;
+}
+
+.calendario-cabecalho-semana,
+.calendario-dias {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.calendario-cabecalho-semana {
+  margin-bottom: 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.celula-calendario {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 4px;
+  min-height: 46px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--text-faint) 5%, transparent);
+  font-size: 10.5px;
+}
+
+.celula-calendario.fora-do-mes {
+  opacity: 0.35;
+}
+
+.celula-calendario.hoje,
+.celula-calendario.selecionado {
+  outline: 1px solid var(--marca);
+}
+
+.celula-calendario.atrasado {
+  background: color-mix(in srgb, var(--perigo) 12%, transparent);
+}
+
+.celula-calendario-numero {
+  font-weight: 600;
+}
+
+.celula-calendario-clicavel {
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  width: 100%;
+}
+
+.celula-calendario-clicavel:hover {
+  background: color-mix(in srgb, var(--marca) 10%, transparent);
+}
+
+.celula-calendario-clicavel:focus-visible {
+  outline: 2px solid var(--marca);
+  outline-offset: 1px;
+}
+
+.texto-centralizado {
+  text-align: center;
+}
+
+.celula-calendario .selo-situacao {
+  padding: 1px 5px;
+  font-size: 9px;
+}
+
+.aviso-helper {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--perigo) 70%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent);
+  background: color-mix(in srgb, var(--perigo) 10%, transparent);
 }
 
 .modal[open] {
@@ -2203,23 +2576,38 @@ button.selo-situacao:focus-visible {
 
 /* -------------------------------- rodapé -------------------------------- */
 
-/*
- * Discreto de propósito: só existe para dizer qual versão está rodando e para
- * onde levar um problema.
- */
-.rodape {
+/* Aba Sobre das configurações: um bloco por assunto (Versão, Powered by, Ajuda). */
+.bloco-sobre {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
-  padding: 18px 16px 22px;
-  color: var(--text-faint);
-  font-size: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
 }
 
-.rodape-separador {
-  opacity: 0.6;
+.bloco-sobre-titulo {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.bloco-sobre-corpo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.bloco-sobre-destaque {
+  color: var(--text);
+  font-weight: 600;
 }
 
 /*
