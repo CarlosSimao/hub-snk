@@ -10,7 +10,7 @@ import { garantirToken } from './tokenStore';
 import { logEvento } from './log';
 import * as cofre from './cofreCredenciais';
 import * as navegador from './navegador';
-import type { AgendaFetcher } from './agenda';
+import type { AgendaFetcher, ResultadoFetch } from './agenda';
 import type { TabManager } from './tabs';
 
 function lerCorpo(req: IncomingMessage): Promise<string> {
@@ -224,6 +224,23 @@ async function tratarNavegador(
 }
 
 /**
+ * Consulta feita de dentro da aba ERP: falha dela (sessão expirada, tela fechada) é 409,
+ * com a mensagem que a tela do hub mostra ao usuário.
+ */
+function responderConsultaNaGuia(
+  res: ServerResponse,
+  resultado: ResultadoFetch,
+  consulta: string,
+): void {
+  if (!resultado.ok) {
+    logEvento('bridge-consulta-na-guia-falhou', { consulta, erro: resultado.erro });
+    responderJson(res, 409, { erro: resultado.erro ?? 'falha desconhecida' });
+    return;
+  }
+  responderJson(res, 200, { conteudo: resultado.conteudo });
+}
+
+/**
  * @param tabs Lido a cada requisicao (funcao, nao valor): o servidor sobe junto com a
  *   janela, e guardar a referencia no boot deixaria o bridge preso a um TabManager que
  *   pode ser recriado (`activate` no macOS, janela fechada e reaberta).
@@ -263,13 +280,22 @@ export function criarBridgeServer(agenda: AgendaFetcher, tabs: () => TabManager 
             responderJson(res, 400, { erro: 'informe { de, ate } em DD/MM/YYYY' });
             return;
           }
-          const resultado = await agenda.buscar(corpo.de, corpo.ate);
-          if (!resultado.ok) {
-            logEvento('bridge-agenda-fetch-falhou', { erro: resultado.erro });
-            responderJson(res, 409, { erro: resultado.erro ?? 'falha desconhecida' });
+          responderConsultaNaGuia(res, await agenda.buscar(corpo.de, corpo.ate), 'agenda');
+        } catch (err) {
+          responderJson(res, 500, { erro: String(err) });
+        }
+        return;
+      }
+
+      if (req.method === 'POST' && req.url === '/agenda/negociacoes') {
+        try {
+          const corpo = JSON.parse((await lerCorpo(req)) || '{}') as { codParceiro?: unknown };
+          const codParceiro = String(corpo.codParceiro ?? '');
+          if (!/^\d+$/.test(codParceiro)) {
+            responderJson(res, 400, { erro: 'informe { codParceiro } numérico' });
             return;
           }
-          responderJson(res, 200, { conteudo: resultado.conteudo });
+          responderConsultaNaGuia(res, await agenda.buscarNegociacoes(codParceiro), 'negociacoes');
         } catch (err) {
           responderJson(res, 500, { erro: String(err) });
         }

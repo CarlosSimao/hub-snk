@@ -1,6 +1,6 @@
 /**
  * Preenche usuário/senha na tela de login de uma base de cliente, quando já guardados
- * no cartão (`cliente_bases`, ver src/sankhya/cartao.ts). Só preenche — nunca aperta o
+ * no cadastro do HUB SNK (`clientes.json`). Só preenche — nunca aperta o
  * botão de login: um seletor errado numa base com HTML diferente não pode disparar uma
  * tentativa de login sozinho.
  *
@@ -19,11 +19,18 @@ import type { WebContentsView } from 'electron';
 import { HUB_URL } from './config';
 import { logEvento } from './log';
 import type { InfoBaseCliente } from './tabs';
+import { garantirToken } from './tokenStore';
 
-async function revelarSenhaBase(clienteId: number, baseId: number): Promise<string | null> {
+/**
+ * A senha vem de uma rota própria, protegida pelo token do shell, e só na hora de
+ * preencher: o `TabManager` guarda apenas se a base tem senha, nunca o valor.
+ */
+async function revelarSenhaBase(clienteId: string, baseId: string): Promise<string | null> {
+  const caminho = `/api/clientes/${encodeURIComponent(clienteId)}/bases/${encodeURIComponent(baseId)}/senha`;
   try {
-    const resposta = await fetch(`${HUB_URL}/api/clientes/${clienteId}/bases/${baseId}/revelar`, {
+    const resposta = await fetch(`${HUB_URL}${caminho}`, {
       method: 'POST',
+      headers: { 'x-hub-token': garantirToken() },
       signal: AbortSignal.timeout(10_000),
     });
     if (!resposta.ok) return null;

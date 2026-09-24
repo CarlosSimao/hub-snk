@@ -48,6 +48,10 @@ function criarJanela(): void {
   });
   janelaPrincipal.loadFile(join(__dirname, '..', 'index.html'));
   janelaPrincipal.on('resize', () => tabs?.reposicionar());
+  // Fechar a janela principal encerra o aplicativo mesmo com uma janela filha aberta
+  // (log de uma base, pop-up de SSO): sem isto o `window-all-closed` não dispara, e o
+  // app e o backend continuam de pé sem a janela que os controla.
+  janelaPrincipal.on('closed', () => app.quit());
 
   tabs = new TabManager(janelaPrincipal);
   // `?desktop=1` só na aba Hub: sinal para o painel de que ele roda dentro do shell,

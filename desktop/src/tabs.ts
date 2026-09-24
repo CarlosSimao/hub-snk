@@ -11,21 +11,29 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { BrowserWindow, WebContentsView, app, session } from 'electron';
-import { DOMINIOS_POPUP_PERMITIDOS, HUB_URL } from './config';
+import { BrowserWindow, WebContentsView, app, session, shell } from 'electron';
+import { DOMINIOS_POPUP_PERMITIDOS, HUB_URL, ICONE } from './config';
 import { logEvento, origemSemQuery } from './log';
 import { tentarAutofill } from './autofill';
 
 export type TabId = 'hub' | 'erp' | 'experience';
 
-/** Uma base de cliente cadastrada no cartão — o que o shell precisa pra abrir/nomear/autofillar a aba. */
+/** Uma base de cliente cadastrada — o que o shell precisa pra abrir/nomear/autofillar a aba. */
 export interface InfoBaseCliente {
-  clienteId: number;
-  baseId: number;
+  clienteId: string;
+  baseId: string;
   clienteNome: string;
+  /** `tipo` da base no cadastro: `producao`, `teste` ou `outro`. */
   ambiente: string;
   usuario: string;
   temSenha: boolean;
+}
+
+/** O pedaço de `GET /api/clientes` que o shell usa. A senha é descartada na leitura. */
+interface ClienteDoCadastro {
+  id: string;
+  nome: string;
+  bases?: Array<{ id: string; url: string; tipo: string; usuario: string; senha?: string }>;
 }
 
 export interface AbaClienteInfo {
@@ -44,6 +52,24 @@ function origemPermitida(url: string, lista: string[]): boolean {
   try {
     const host = new URL(url).hostname;
     return lista.some((d) => host === d || host.endsWith(`.${d}`));
+  } catch {
+    return false;
+  }
+}
+
+/** Protocolo + host + porta; vazio para URL inválida. */
+function origemDe(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return '';
+  }
+}
+
+function ehEnderecoWeb(url: string): boolean {
+  try {
+    const { protocol } = new URL(url);
+    return protocol === 'http:' || protocol === 'https:';
   } catch {
     return false;
   }
@@ -132,7 +158,7 @@ export class TabManager {
   /** origin (protocolo+host+porta) -> base cadastrada. Precisa ser exato: duas bases do
    * mesmo cliente podem compartilhar host e diferir só na porta (caso real: prod/teste
    * do mesmo cliente em portas distintas), com usuário/senha diferentes. */
-  readonly #basesPorOrigin = new Map<string, InfoBaseCliente>();
+  #basesPorOrigin = new Map<string, InfoBaseCliente>();
   #abaAtiva = 'hub';
   #alturaTopo = 96;
   /**
@@ -252,8 +278,8 @@ export class TabManager {
           origin,
           alvo,
           {
-            clienteId: 0,
-            baseId: 0,
+            clienteId: '',
+            baseId: '',
             clienteNome: `Local · ${new URL(origin).host}`,
             ambiente: 'outro',
             usuario: '',
@@ -263,37 +289,112 @@ export class TabManager {
         );
         return { action: 'deny' };
       }
+      if (id === 'hub' && origin === new URL(HUB_URL).origin) {
+        // Janela do próprio painel, como o log ao vivo de uma base local (`log.html`):
+        // mesma origem, então mesma partição e nenhum preload.
+        return this.#permitirJanelaFilha(id, alvo, particao);
+      }
+      if (id === 'hub') {
+        // Qualquer outro link do painel (link de cliente, repositório no GitHub, página
+        // de release) é conteúdo de fora: vai para o navegador do sistema. Antes de
+        // decidir, relê o cadastro — a base pode ter sido cadastrada depois do boot.
+        void this.#abrirLinkExternoDoPainel(origin, alvo);
+        return { action: 'deny' };
+      }
       const permitido = origemPermitida(alvo, DOMINIOS_POPUP_PERMITIDOS);
       logEvento('popup-solicitado', { id, alvo: origemSemQuery(alvo), permitido });
       if (!permitido) return { action: 'deny' };
-      return {
-        action: 'allow',
-        createWindow: (options) => {
-          const filha = new BrowserWindow({
-            ...options,
-            webPreferences: {
-              ...options.webPreferences,
-              partition: particao,
-              contextIsolation: true,
-              sandbox: true,
-              nodeIntegration: false,
-              webSecurity: true,
-              preload: undefined,
-            },
-          });
-          // Sem isto a BrowserWindow fica sem referência forte e o Electron pode
-          // coletá-la (GC) antes da navegação/download terminar — aviso oficial da
-          // documentação do Electron, reproduzido de verdade na PoC (download real).
-          this.#janelasFilhas.add(filha);
-          filha.on('closed', () => this.#janelasFilhas.delete(filha));
-          logEvento('popup-aberto-janela-filha', { id, alvo: origemSemQuery(alvo) });
-          return filha.webContents;
-        },
-      };
+      return this.#permitirJanelaFilha(id, alvo, particao);
     });
+    if (id === 'hub') {
+      // Link sem `target` navegaria a própria guia do painel para fora dele, sem caminho
+      // de volta: o destino abre no navegador do sistema e o painel fica onde está.
+      view.webContents.on('will-navigate', (evento, destino) => {
+        const origemDoDestino = origemDe(destino);
+        if (origemDoDestino === new URL(HUB_URL).origin) return;
+        evento.preventDefault();
+        void this.#abrirLinkExternoDoPainel(origemDoDestino, destino);
+      });
+    }
     view.webContents.loadURL(url);
     this.#janela.contentView.addChildView(view);
     this.#abas.set(id, view);
+  }
+
+  /**
+   * Pop-up autorizado vira janela filha na mesma partição da guia que o abriu, sem
+   * preload. A referência forte evita que o Electron colete a janela (GC) antes de a
+   * navegação ou o download terminar — aviso da documentação do Electron, reproduzido
+   * na PoC com um download real.
+   */
+  #permitirJanelaFilha(
+    id: string,
+    alvo: string,
+    particao: string,
+  ): Electron.WindowOpenHandlerResponse {
+    return {
+      action: 'allow',
+      createWindow: (options) => {
+        const filha = new BrowserWindow({
+          ...options,
+          icon: ICONE,
+          webPreferences: {
+            ...options.webPreferences,
+            partition: particao,
+            contextIsolation: true,
+            sandbox: true,
+            nodeIntegration: false,
+            webSecurity: true,
+            preload: undefined,
+          },
+        });
+        this.#janelasFilhas.add(filha);
+        filha.on('closed', () => this.#janelasFilhas.delete(filha));
+        // A janela filha herda a política de quem a abriu: sem isto, o `window.open`
+        // dela cairia no padrão do Electron e abriria qualquer endereço numa janela
+        // nova, sem restrição nenhuma.
+        filha.webContents.setWindowOpenHandler(({ url: destino }) =>
+          this.#popupDeJanelaFilha(id, destino, particao),
+        );
+        logEvento('popup-aberto-janela-filha', { id, alvo: origemSemQuery(alvo) });
+        return filha.webContents;
+      },
+    };
+  }
+
+  #popupDeJanelaFilha(
+    id: string,
+    destino: string,
+    particao: string,
+  ): Electron.WindowOpenHandlerResponse {
+    if (id === 'hub') {
+      void this.#abrirLinkExternoDoPainel(origemDe(destino), destino);
+      return { action: 'deny' };
+    }
+    const permitido = origemPermitida(destino, DOMINIOS_POPUP_PERMITIDOS);
+    logEvento('popup-de-janela-filha', { id, alvo: origemSemQuery(destino), permitido });
+    return permitido ? this.#permitirJanelaFilha(id, destino, particao) : { action: 'deny' };
+  }
+
+  /**
+   * Link do painel que não é de uma base conhecida: relê o cadastro (a base pode ter
+   * sido cadastrada depois do boot) e, se ainda não for base, abre no navegador do
+   * sistema. Só http/https: `file:` ou esquema de aplicativo vindo de um link cadastrado
+   * não pode virar execução na máquina.
+   */
+  async #abrirLinkExternoDoPainel(origin: string, alvo: string): Promise<void> {
+    await this.carregarBasesCadastradas();
+    const infoBase = this.#basesPorOrigin.get(origin);
+    if (infoBase) {
+      this.abrirAbaCliente(origin, alvo, infoBase);
+      return;
+    }
+    if (!ehEnderecoWeb(alvo)) {
+      logEvento('link-externo-recusado', { alvo: origemSemQuery(alvo) });
+      return;
+    }
+    logEvento('link-externo-aberto', { alvo: origemSemQuery(alvo) });
+    await shell.openExternal(alvo);
   }
 
   mostrar(id: string): boolean {
@@ -532,64 +633,48 @@ export class TabManager {
     return true;
   }
 
-  /** Bases vindas do cadastro real (`GET /api/clientes` + `/cartao`) — nenhuma inventada. */
+  /**
+   * Bases vindas do cadastro real (`GET /api/clientes`) — nenhuma inventada. Monta um
+   * mapa novo a cada leitura, para base removida do cadastro deixar de abrir aba.
+   */
   async carregarBasesCadastradas(): Promise<void> {
     try {
       const resposta = await fetch(`${HUB_URL}/api/clientes`, {
         signal: AbortSignal.timeout(5000),
       });
-      const corpo = (await resposta.json()) as { clientes?: Array<{ id: number; nome: string }> };
-      const clientes = corpo.clientes ?? [];
+      if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+      const clientes = (await resposta.json()) as ClienteDoCadastro[];
 
-      await Promise.all(
-        clientes.map(async (cliente) => {
-          try {
-            const respostaCartao = await fetch(`${HUB_URL}/api/clientes/${cliente.id}/cartao`, {
-              signal: AbortSignal.timeout(5000),
-            });
-            const cartao = (await respostaCartao.json()) as {
-              bases?: Array<{
-                id: number;
-                url: string;
-                ambiente: string;
-                usuario: string;
-                temSenha: boolean;
-              }>;
-            };
-            for (const base of cartao.bases ?? []) {
-              if (!base.url) continue;
-              try {
-                const origin = new URL(base.url).origin;
-                const existente = this.#basesPorOrigin.get(origin);
-                // Cadastros duplicados acontecem na prática (ex.: import de favoritos
-                // criando uma segunda entrada pro mesmo cliente) — quando duas bases
-                // caem no mesmo origin, a que tem usuário/senha vence sobre a vazia,
-                // em vez de whatever veio por último em `GET /api/clientes`.
-                if (
-                  existente &&
-                  (existente.usuario || existente.temSenha) &&
-                  !(base.usuario || base.temSenha)
-                ) {
-                  continue;
-                }
-                this.#basesPorOrigin.set(origin, {
-                  clienteId: cliente.id,
-                  baseId: base.id,
-                  clienteNome: cliente.nome,
-                  ambiente: base.ambiente,
-                  usuario: base.usuario,
-                  temSenha: base.temSenha,
-                });
-              } catch {
-                /* URL de base inválida — ignora, não é motivo pra travar o shell */
-              }
-            }
-          } catch {
-            /* cartão de um cliente falhou — não impede os demais */
+      const basesPorOrigin = new Map<string, InfoBaseCliente>();
+      for (const cliente of clientes) {
+        for (const base of cliente.bases ?? []) {
+          const origin = origemDe(base.url);
+          if (!origin) continue;
+          const info: InfoBaseCliente = {
+            clienteId: cliente.id,
+            baseId: base.id,
+            clienteNome: cliente.nome,
+            ambiente: base.tipo,
+            usuario: base.usuario,
+            temSenha: Boolean(base.senha),
+          };
+          const existente = basesPorOrigin.get(origin);
+          // Cadastros duplicados acontecem na prática (ex.: import de favoritos criando
+          // uma segunda entrada pro mesmo cliente) — quando duas bases caem no mesmo
+          // origin, a que tem usuário/senha vence sobre a vazia.
+          if (
+            existente &&
+            (existente.usuario || existente.temSenha) &&
+            !(info.usuario || info.temSenha)
+          ) {
+            continue;
           }
-        }),
-      );
-      logEvento('bases-clientes-carregadas', { total: this.#basesPorOrigin.size });
+          basesPorOrigin.set(origin, info);
+        }
+      }
+
+      this.#basesPorOrigin = basesPorOrigin;
+      logEvento('bases-clientes-carregadas', { total: basesPorOrigin.size });
     } catch (err) {
       logEvento('bases-clientes-falhou-carregar', { erro: String(err) });
     }

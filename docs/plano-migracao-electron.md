@@ -156,17 +156,28 @@ A meta é provar que o backend da `dev` roda do jeito que o shell vai executá-l
 
 ## Fase 4 — Adaptar o contrato shell ↔ backend
 
-- [ ] `tabs.ts` (carga das abas por base): ler o array de `GET /api/clientes` e as bases de cada cliente (`id`, `url`, `tipo`, `usuario`), no lugar de `{clientes}` + `/cartao`.
-- [ ] `autofill.ts`: obter a senha via `GET /api/clientes/:id` (a base já traz `senha`), ou criar uma rota dedicada que devolva só a senha de uma base. **Decidir** — a rota dedicada evita que o shell trafegue o cadastro inteiro.
-- [ ] Recarregar as abas de base quando o cadastro muda (o shell do Flaviano carrega só no boot? confirmar e, se for o caso, acionar pelo `observadorDaPastaDeDados`/SSE ou por IPC).
-- [ ] `backendClient.ts`: apontar para as rotas de sessão portadas na Fase 2.
-- [ ] Bridge (D3):
-  - [ ] Implementar `/browser/agenda` no bridge, reaproveitando `AgendaFetcher` (`agenda.ts`).
-  - [ ] Implementar `/browser/agenda-negociacoes` no bridge, portando `Get-NegociacoesDoParceiro` do `hub-helper.ps1` para `fetch` dentro da aba ERP.
-  - [ ] Conferir que `/credentials/*`, `/browser/status|abrir|capturar|fechar` respondem no formato que `src/sankhya/credenciais.ts` da `dev` espera (erros `{mensagem}` × `{error}`).
-  - [ ] `migracaoCofre.ts`: manter, para importar as credenciais que já estão no helper DPAPI.
-- [ ] Remover do backend o caminho do helper: `src/sankhya/helper.ts`, o fallback em `credenciais.ts`, `HUB_HELPER_URL`/`HUB_HELPER_TOKEN_FILE` em `configuracao.ts` e a resposta `helperIndisponivel` (D3).
-- [ ] Política de pop-up (`tabs.ts:202-261`): liberar o `log.html` e as demais janelas abertas pelo próprio painel, ou abri-las como aba interna.
+- [x] `tabs.ts` (carga das abas por base): lê o array de `GET /api/clientes` com as bases de cada cliente (`id`, `url`, `tipo`, `usuario`; da senha guarda só se existe) e monta um mapa novo a cada leitura, para uma base removida deixar de abrir aba. Os IDs passaram a ser `string` (UUID).
+- [x] Autofill (decidido em 2026-09-24: rota dedicada): `POST /api/clientes/:id/bases/:idBase/senha`, exige o token do shell e devolve só `{ senha }`. O `autofill.ts` a chama só na hora de preencher. Testes em `rotasClientes.test.ts` (200 com token, 401 sem token e sem vazar a senha, 404 para base inexistente).
+  - Observação: o `GET /api/clientes` continua devolvendo as senhas para a tela, como hoje. A rota dedicada evita que o shell as mantenha em memória, mas não fecha esse caminho. Cifrar as senhas do cadastro segue fora do escopo (ver Riscos).
+- [x] Recarregar as bases quando o cadastro muda: o shell do Flaviano só lia no boot. Agora, um link do painel para uma origem desconhecida relê o cadastro antes de decidir, e uma base cadastrada depois do boot abre como aba (validado).
+- [x] `backendClient.ts` já aponta para `POST`/`DELETE /api/sankhya/desktop/sessao/sankhya-experience` (Fase 2); só o comentário foi corrigido.
+- [x] Bridge (D3):
+  - [x] Agenda: o backend chama o `/agenda/fetch`, que já existia no bridge, em vez de `/browser/agenda`, e os tipos passaram a `{ conteudo }`.
+  - [x] Negociações: nova rota `POST /agenda/negociacoes` (`{ codParceiro }` numérico). `AgendaFetcher.buscarNegociacoes` porta o `Get-NegociacoesDoParceiro` do `hub-helper.ps1` (o `ServiceProxy` do iframe `AgendaRecursos.xhtml5`, com `mgeos@AgendaRecursosSP.getNegociacoes`), na mesma fila serial da agenda.
+  - [x] Contrato de `/credentials/*` e `/browser/status|abrir|capturar|fechar` conferido com o `credenciais.ts` da `dev`: os campos batem e os erros vêm em `{ erro }`, que é o que a `PonteDoDesktop` lê.
+  - [x] `migracaoCofre.ts` mantido.
+- [x] Caminho do helper removido do backend: `src/sankhya/helper.ts`, o fallback em `credenciais.ts`, `HUB_HELPER_URL`/`HUB_HELPER_TOKEN_FILE` e `normalizarLista` (que existia só por causa do PowerShell). O tratamento de erro duplicado em `rotasSankhya.ts`/`rotasAgenda.ts` virou `src/rotas/respostasDoShell.ts`. **O campo `helperIndisponivel` da resposta 503 foi mantido**, porque a tela ainda o lê (`app.js:587,3067`); troca na Fase 5.
+- [x] Padrão do `DESKTOP_BRIDGE_TOKEN_FILE` no backend corrigido para Linux (`~/.config`, igual ao `app.getPath('appData')` do shell). Antes virava um caminho relativo sem `%APPDATA%`.
+- [x] Política de pop-up e navegação da guia do painel (`tabs.ts`):
+  - [x] Mesma origem do hub (`log.html`): janela filha na mesma partição, sem preload (validado).
+  - [x] Base cadastrada: aba própria com autofill (já existia).
+  - [x] `localhost` que não é o hub: aba local (já existia).
+  - [x] Qualquer outro `http(s)` (links de cliente e de projeto, GitHub, release): abre no navegador do sistema (`shell.openExternal`). Antes era negado em silêncio. Outros esquemas (`mailto:`, `file:`…) são recusados e registrados no log (validado).
+  - [x] `will-navigate` na guia do painel: um link sem `target` para fora do hub não tira mais o painel da guia; abre no navegador do sistema.
+- [x] **Correção de segurança herdada do shell do Flaviano:** uma janela filha (ex.: `log.html`, pop-up de SSO) não tinha política própria, e o `window.open` dela abria qualquer endereço numa janela nova sem restrição (reproduzido via CDP). Agora a filha herda a política de quem a abriu: filha do painel segue a política do painel; filha de ERP/Experience só abre domínio da lista de SSO.
+- [x] **Correção herdada:** fechar a janela principal com uma janela filha aberta não encerrava o app (o `window-all-closed` não dispara), e app e backend ficavam de pé. Agora `closed` da principal chama `app.quit()` (validado: backend saiu com código 0 depois do 202 do encerrar).
+- [x] Validação real no app (porta 4199, dados no scratchpad): `/api/agenda/consultar` e `/api/agenda/situacao-do-dia` chegaram à aba ERP pelo bridge. Com a aba deslogada, o Sankhya respondeu status 3 e depois "tela da Agenda de Recursos não está aberta". Rota da senha: 200 com token e 401 sem. Typecheck, 125 testes e prettier verdes.
+- [ ] **Não validado com sessão real:** agenda e negociações com login de verdade no ERP e a tela da Agenda de Recursos aberta; autofill numa base real. Entram na Fase 8.
 
 ## Fase 5 — Frontend `public/` dentro do shell
 

@@ -1,7 +1,7 @@
 /**
  * Cliente do shell para o backend: empurra a sessão da Experience capturada na aba
- * (ver sessions.ts) para `Credenciais`/`SessaoDesktopStore` do lado do backend, e limpa
- * no logout real — ver src/routesSankhya.ts (`POST`/`DELETE /api/sankhya/desktop/sessao/:sistema`).
+ * (ver sessions.ts) para `Credenciais`/`SessaoDoDesktop` do lado do backend, e limpa
+ * no logout real — ver src/rotas/rotasSankhya.ts (`POST`/`DELETE /api/sankhya/desktop/sessao/:sistema`).
  * Usa o mesmo token do bridge (mesma direção de confiança, ver bridgeServer.ts).
  */
 import { HUB_URL } from './config';
