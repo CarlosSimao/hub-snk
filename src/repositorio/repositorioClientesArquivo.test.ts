@@ -384,7 +384,7 @@ describe('RepositorioClientesArquivo com arquivo no formato antigo', () => {
     assert.equal(cliente?.anotacoes, '');
     assert.deepEqual(cliente?.bases, []);
     assert.deepEqual(cliente?.links, []);
-    /* Repositório gravado antes do campo `nome` recebe o fim da URL como rótulo. */
-    assert.equal(cliente?.repositorios[0]?.nome, 'projeto-antigo');
+    /* `nome` existiu no passado e some do repositório na primeira leitura. */
+    assert.equal('nome' in (cliente?.repositorios[0] ?? {}), false);
   });
 });

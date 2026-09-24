@@ -80,7 +80,6 @@ export interface Base {
  */
 export interface RepositorioGit {
   id: string;
-  nome: string;
   url: string;
   /** Pasta do clone na máquina. Ausente quando o repositório não foi clonado. */
   caminhoLocal?: string;
@@ -138,6 +137,20 @@ export interface SituacaoGit {
 }
 
 /**
+ * Um projeto do cliente: agrupa anotações e links próprios, separados dos
+ * gerais do cliente — por exemplo, um addon específico em desenvolvimento.
+ */
+export interface Projeto {
+  id: string;
+  nome: string;
+  /** Texto livre sobre o projeto. */
+  anotacoes: string;
+  links: LinkDoCliente[];
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+/**
  * Cliente cadastrado no HUB SNK.
  *
  * As datas são strings ISO 8601 porque o estado é serializado em JSON e
@@ -151,6 +164,13 @@ export interface Cliente {
   bases: Base[];
   repositorios: RepositorioGit[];
   links: LinkDoCliente[];
+  projetos: Projeto[];
+  /**
+   * Parceiros do ERP amarrados a este cliente, para cruzar com a Agenda de
+   * Recursos — um cliente do hub pode corresponder a mais de um `codparc` no
+   * Sankhya (matrizes/filiais, cadastros duplicados etc.).
+   */
+  agendaCodparcs: number[];
   criadoEm: string;
   atualizadoEm: string;
 }
@@ -182,4 +202,161 @@ export interface BancoLocal {
   senha: string;
   criadoEm: string;
   atualizadoEm: string;
+}
+
+export const SISTEMAS_SANKHYA = ['sankhya-erp', 'sankhya-experience'] as const;
+export type SistemaSankhya = (typeof SISTEMAS_SANKHYA)[number];
+
+/**
+ * Estado de uma credencial do Sankhya guardada pelo `hub-helper.ps1` — diz se há
+ * valor guardado e para qual usuário, nunca a senha. A senha é cifrada com
+ * DPAPI fora do processo Node; só o helper a decripta.
+ */
+export interface StatusCredencial {
+  sistema: SistemaSankhya;
+  usuario: string;
+  definido: boolean;
+  /** ISO-8601 do `exp` do JWT capturado, quando há um. Vazio sem sessão. */
+  sessaoExpiraEm: string;
+  sessaoCapturada: boolean;
+}
+
+/** Uma guia aberta na janela do hub que o helper controla. */
+export interface AbaNavegador {
+  id: string;
+  url: string;
+  titulo: string;
+  sistema: SistemaSankhya | '';
+  logado: boolean;
+}
+
+/** O navegador que o helper controla, separado do navegador pessoal do usuário. */
+export interface StatusNavegador {
+  navegador: boolean;
+  disponiveis: string[];
+  aberto: boolean;
+  abas: AbaNavegador[];
+}
+
+/* ------------------- Agenda de Recursos (Sankhya ERP) -------------------- */
+
+/** Um consultor na Agenda de Recursos. */
+export interface RecursoAgenda {
+  codusu: number | null;
+  nomeusu: string;
+  codcargo: number | null;
+  descrcargo: string;
+  /** `#RRGGBB` — o Sankhya manda `0xRRGGBB`. */
+  corHex: string;
+  corConflitoHex: string;
+  problemaConexao: string;
+}
+
+/**
+ * Um evento da agenda.
+ *
+ * `inicio` e `fim` vêm como `YYYY-MM-DD HH:mm:ss`, e não como data: nesse
+ * formato a comparação de texto já é a cronológica, então o filtro por
+ * período dispensa conversão.
+ */
+export interface EventoAgenda {
+  nuevento: number | null;
+  codusu: number | null;
+  nomeusu: string;
+  nomeparc: string;
+  codparc: number | null;
+  allday: string;
+  inicio: string;
+  fim: string;
+  descrabrev: string;
+  descrlonga: string;
+  tipo: string;
+  confirmado: string;
+  sincronizar: string;
+  usulancador: string;
+  dhlcto: string;
+  numetapa: number | null;
+  nufap: number | null;
+  nueventopai: number | null;
+  financiallate: string;
+  diastraso: number | null;
+}
+
+export interface RecursoComTotal extends RecursoAgenda {
+  id: number;
+  totalEventos: number;
+}
+
+/** Evento já com o cargo e a cor do recurso dele, para a tela não cruzar de novo. */
+export interface EventoComRecurso extends EventoAgenda {
+  id: number;
+  descrcargo: string;
+  corHex: string;
+}
+
+export interface EstadoAgendaRecursos {
+  recursos: number;
+  eventos: number;
+  /** Epoch ms da última importação; `null` quando nunca houve uma. */
+  importadoEm: number | null;
+}
+
+/** Um parceiro que aparece nos eventos da agenda — é o que identifica o cliente lá. */
+export interface ParceiroAgenda {
+  codparc: number | null;
+  nomeparc: string;
+  eventos: number;
+  /** `YYYY-MM-DD` do primeiro e do último evento; ajuda a reconhecer o parceiro certo. */
+  primeiroDia: string;
+  ultimoDia: string;
+}
+
+/* --------------------------- Sankhya Experience --------------------------- */
+
+/**
+ * Uma tarefa da tela de Tarefas. A resposta da API traz bem mais campos que
+ * estes — aqui ficam os que a agenda usa, e o objeto cru é preservado em
+ * `bruto` porque a geração de OS (fora de escopo aqui) exige a tarefa
+ * inteira, do jeito que veio.
+ */
+export interface TarefaExperience {
+  id: number;
+  /** `DD/MM/YYYY` como a API devolve. */
+  taskDate: string;
+  /** `YYYY-MM-DD` — o mesmo dia, na forma que ordena e agrupa. */
+  dia: string;
+  procedimento: string;
+  etapa: string;
+  processo: string;
+  /** `Hoje`, `Futura`, `Atrasada` — a tela tem mais valores, estes são os confirmados. */
+  taskStatus: string;
+  horaInicio: string;
+  horaFim: string;
+  pedido: string;
+  observacoes: string;
+  bruto: Record<string, unknown>;
+}
+
+/** Uma ordem de serviço já lançada. */
+export interface OrdemExperience {
+  id: number;
+  /** `YYYY-MM-DD` da conclusão. */
+  dia: string;
+  descricao: string;
+  tipo: string;
+  numeroSankhya: string;
+  /** `Gerado`, vazio quando ainda não há aceite. */
+  statusAceite: string;
+  horasFeitas: string;
+  etapa: string;
+  processos: string;
+  pessoa: string;
+  empresa: string;
+  statusNumeroSankhya: string;
+  horasExcedidas: boolean;
+  erro: string;
+  pedido: string;
+  coordenador: string;
+  totalProjetoPrevisto: string;
+  totalProjetoFeito: string;
 }

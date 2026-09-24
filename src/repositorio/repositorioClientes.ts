@@ -3,6 +3,7 @@ import type {
   Base,
   Cliente,
   LinkDoCliente,
+  Projeto,
   RepositorioGit,
   TipoDeBase,
 } from '../tipos.ts';
@@ -21,7 +22,6 @@ export interface DadosDeBase {
 export type DadosDeBancoDeDados = BancoDeDados;
 
 export interface DadosDeRepositorio {
-  nome: string;
   url: string;
   caminhoLocal?: string;
 }
@@ -29,6 +29,10 @@ export interface DadosDeRepositorio {
 export interface DadosDeLink {
   nome: string;
   url: string;
+}
+
+export interface DadosDeProjeto {
+  nome: string;
 }
 
 /**
@@ -122,6 +126,15 @@ export interface RepositorioClientes {
    */
   definirAnotacoes(id: string, anotacoes: string): Promise<Cliente>;
 
+  /**
+   * Grava o vínculo do cliente com a Agenda de Recursos: qual usuário do
+   * consultor e qual `codparc` do ERP correspondem a ele.
+   *
+   * Fica fora de `atualizar` pela mesma razão de `definirAnotacoes`: não é
+   * o nome do cliente, e não deve depender da checagem de nome duplicado.
+   */
+  definirAgenda(id: string, dados: { agendaCodparcs: number[] }): Promise<Cliente>;
+
   remover(id: string): Promise<void>;
 
   adicionarBase(idDoCliente: string, dados: DadosDeBase): Promise<Base>;
@@ -182,6 +195,34 @@ export interface RepositorioClientes {
   adicionarLink(idDoCliente: string, dados: DadosDeLink): Promise<LinkDoCliente>;
   atualizarLink(idDoCliente: string, idDoLink: string, dados: DadosDeLink): Promise<LinkDoCliente>;
   removerLink(idDoCliente: string, idDoLink: string): Promise<void>;
+
+  adicionarProjeto(idDoCliente: string, dados: DadosDeProjeto): Promise<Projeto>;
+  atualizarProjeto(
+    idDoCliente: string,
+    idDoProjeto: string,
+    dados: DadosDeProjeto,
+  ): Promise<Projeto>;
+  removerProjeto(idDoCliente: string, idDoProjeto: string): Promise<void>;
+
+  /** Mesmo motivo de `definirAnotacoes`: texto livre, sem checagem de nome. */
+  definirAnotacoesDoProjeto(
+    idDoCliente: string,
+    idDoProjeto: string,
+    anotacoes: string,
+  ): Promise<Projeto>;
+
+  adicionarLinkDoProjeto(
+    idDoCliente: string,
+    idDoProjeto: string,
+    dados: DadosDeLink,
+  ): Promise<LinkDoCliente>;
+  atualizarLinkDoProjeto(
+    idDoCliente: string,
+    idDoProjeto: string,
+    idDoLink: string,
+    dados: DadosDeLink,
+  ): Promise<LinkDoCliente>;
+  removerLinkDoProjeto(idDoCliente: string, idDoProjeto: string, idDoLink: string): Promise<void>;
 }
 
 export class ClienteNaoEncontradoError extends Error {
@@ -278,5 +319,19 @@ export class UrlDeLinkDuplicadaError extends Error {
   constructor(url: string) {
     super(`Este cliente já tem o link "${url}".`);
     this.name = 'UrlDeLinkDuplicadaError';
+  }
+}
+
+export class ProjetoNaoEncontradoError extends Error {
+  constructor(id: string) {
+    super(`Projeto não encontrado: ${id}`);
+    this.name = 'ProjetoNaoEncontradoError';
+  }
+}
+
+export class NomeDeProjetoDuplicadoError extends Error {
+  constructor(nome: string) {
+    super(`Este cliente já tem um projeto com o nome "${nome}".`);
+    this.name = 'NomeDeProjetoDuplicadoError';
   }
 }

@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
-import type { BancoDeDados, Base, Cliente, LinkDoCliente, RepositorioGit } from '../tipos.ts';
+import type {
+  BancoDeDados,
+  Base,
+  Cliente,
+  LinkDoCliente,
+  Projeto,
+  RepositorioGit,
+} from '../tipos.ts';
 import {
   ArquivoDeDadosInvalidoError,
   gravarArquivoDeDados,
@@ -16,6 +23,8 @@ import {
   FavoritoDuplicadoNaImportacaoError,
   LinkNaoEncontradoError,
   NomeDeClienteDuplicadoError,
+  NomeDeProjetoDuplicadoError,
+  ProjetoNaoEncontradoError,
   RepositorioDuplicadoNaImportacaoError,
   RepositorioNaoEncontradoError,
   UrlDeLinkDuplicadaError,
@@ -28,6 +37,7 @@ import {
   type DadosDeImportacaoDeCadastro,
   type DadosDeImportacaoDeRepositorio,
   type DadosDeLink,
+  type DadosDeProjeto,
   type DadosDeRepositorio,
   type RepositorioClientes,
   type ResultadoDaImportacao,
@@ -57,16 +67,6 @@ function chaveAchatadaDeNome(valor: string): string {
     .replace(DIACRITICOS, '')
     .toLocaleLowerCase('pt-BR')
     .replace(FORA_DE_LETRA_OU_DIGITO, '');
-}
-
-/** Nome de exibição para repositórios gravados antes do campo `nome` existir. */
-function nomeDerivadoDaUrl(url: string): string {
-  try {
-    const caminho = new URL(url).pathname.replace(/\.git$/, '');
-    return caminho.split('/').filter(Boolean).pop() ?? url;
-  } catch {
-    return url;
-  }
 }
 
 /**
@@ -116,6 +116,8 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
         bases: [],
         repositorios: [],
         links: [],
+        projetos: [],
+        agendaCodparcs: [],
         criadoEm: agora,
         atualizadoEm: agora,
       };
@@ -141,6 +143,18 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
       const cliente = this.#obterCliente(clientes, id);
 
       return this.#substituirCliente(clientes, { ...cliente, anotacoes });
+    });
+  }
+
+  async definirAgenda(id: string, dados: { agendaCodparcs: number[] }): Promise<Cliente> {
+    return this.#enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, id);
+
+      return this.#substituirCliente(clientes, {
+        ...cliente,
+        agendaCodparcs: dados.agendaCodparcs,
+      });
     });
   }
 
@@ -486,6 +500,214 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     });
   }
 
+  async adicionarProjeto(idDoCliente: string, dados: DadosDeProjeto): Promise<Projeto> {
+    return this.#enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, idDoCliente);
+      this.#garantirNomeDeProjetoDisponivel(cliente, dados.nome);
+
+      const agora = new Date().toISOString();
+      const novoProjeto: Projeto = {
+        id: randomUUID(),
+        nome: dados.nome.trim(),
+        anotacoes: '',
+        links: [],
+        criadoEm: agora,
+        atualizadoEm: agora,
+      };
+
+      await this.#substituirCliente(clientes, {
+        ...cliente,
+        projetos: [...cliente.projetos, novoProjeto],
+      });
+      return novoProjeto;
+    });
+  }
+
+  async atualizarProjeto(
+    idDoCliente: string,
+    idDoProjeto: string,
+    dados: DadosDeProjeto,
+  ): Promise<Projeto> {
+    return this.#enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, idDoCliente);
+      const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
+      this.#garantirNomeDeProjetoDisponivel(cliente, dados.nome, idDoProjeto);
+
+      const projetoAtualizado: Projeto = {
+        ...(cliente.projetos[posicao] as Projeto),
+        nome: dados.nome.trim(),
+        atualizadoEm: new Date().toISOString(),
+      };
+      const projetos = [...cliente.projetos];
+      projetos[posicao] = projetoAtualizado;
+
+      await this.#substituirCliente(clientes, { ...cliente, projetos });
+      return projetoAtualizado;
+    });
+  }
+
+  async removerProjeto(idDoCliente: string, idDoProjeto: string): Promise<void> {
+    await this.#enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, idDoCliente);
+
+      const restantes = cliente.projetos.filter((projeto) => projeto.id !== idDoProjeto);
+      if (restantes.length === cliente.projetos.length) {
+        throw new ProjetoNaoEncontradoError(idDoProjeto);
+      }
+
+      await this.#substituirCliente(clientes, { ...cliente, projetos: restantes });
+    });
+  }
+
+  async definirAnotacoesDoProjeto(
+    idDoCliente: string,
+    idDoProjeto: string,
+    anotacoes: string,
+  ): Promise<Projeto> {
+    return this.#enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, idDoCliente);
+      const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
+
+      const projetoAtualizado: Projeto = {
+        ...(cliente.projetos[posicao] as Projeto),
+        anotacoes,
+        atualizadoEm: new Date().toISOString(),
+      };
+      const projetos = [...cliente.projetos];
+      projetos[posicao] = projetoAtualizado;
+
+      await this.#substituirCliente(clientes, { ...cliente, projetos });
+      return projetoAtualizado;
+    });
+  }
+
+  async adicionarLinkDoProjeto(
+    idDoCliente: string,
+    idDoProjeto: string,
+    dados: DadosDeLink,
+  ): Promise<LinkDoCliente> {
+    return this.#enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, idDoCliente);
+      const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
+      const projeto = cliente.projetos[posicao] as Projeto;
+      this.#garantirLinkDeProjetoDisponivel(projeto, dados.url);
+
+      const novoLink: LinkDoCliente = { id: randomUUID(), ...this.#normalizarDadosDeLink(dados) };
+      const projetoAtualizado: Projeto = {
+        ...projeto,
+        links: [...projeto.links, novoLink],
+        atualizadoEm: new Date().toISOString(),
+      };
+      const projetos = [...cliente.projetos];
+      projetos[posicao] = projetoAtualizado;
+
+      await this.#substituirCliente(clientes, { ...cliente, projetos });
+      return novoLink;
+    });
+  }
+
+  async atualizarLinkDoProjeto(
+    idDoCliente: string,
+    idDoProjeto: string,
+    idDoLink: string,
+    dados: DadosDeLink,
+  ): Promise<LinkDoCliente> {
+    return this.#enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, idDoCliente);
+      const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
+      const projeto = cliente.projetos[posicao] as Projeto;
+
+      const posicaoDoLink = projeto.links.findIndex((link) => link.id === idDoLink);
+      if (posicaoDoLink === -1) {
+        throw new LinkNaoEncontradoError(idDoLink);
+      }
+
+      this.#garantirLinkDeProjetoDisponivel(projeto, dados.url, idDoLink);
+
+      const linkAtualizado: LinkDoCliente = {
+        id: idDoLink,
+        ...this.#normalizarDadosDeLink(dados),
+      };
+      const links = [...projeto.links];
+      links[posicaoDoLink] = linkAtualizado;
+
+      const projetoAtualizado: Projeto = {
+        ...projeto,
+        links,
+        atualizadoEm: new Date().toISOString(),
+      };
+      const projetos = [...cliente.projetos];
+      projetos[posicao] = projetoAtualizado;
+
+      await this.#substituirCliente(clientes, { ...cliente, projetos });
+      return linkAtualizado;
+    });
+  }
+
+  async removerLinkDoProjeto(
+    idDoCliente: string,
+    idDoProjeto: string,
+    idDoLink: string,
+  ): Promise<void> {
+    await this.#enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, idDoCliente);
+      const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
+      const projeto = cliente.projetos[posicao] as Projeto;
+
+      const restantes = projeto.links.filter((link) => link.id !== idDoLink);
+      if (restantes.length === projeto.links.length) {
+        throw new LinkNaoEncontradoError(idDoLink);
+      }
+
+      const projetoAtualizado: Projeto = {
+        ...projeto,
+        links: restantes,
+        atualizadoEm: new Date().toISOString(),
+      };
+      const projetos = [...cliente.projetos];
+      projetos[posicao] = projetoAtualizado;
+
+      await this.#substituirCliente(clientes, { ...cliente, projetos });
+    });
+  }
+
+  #obterPosicaoDoProjeto(cliente: Cliente, idDoProjeto: string): number {
+    const posicao = cliente.projetos.findIndex((projeto) => projeto.id === idDoProjeto);
+    if (posicao === -1) {
+      throw new ProjetoNaoEncontradoError(idDoProjeto);
+    }
+    return posicao;
+  }
+
+  #garantirNomeDeProjetoDisponivel(cliente: Cliente, nome: string, idIgnorado?: string): void {
+    const alvo = normalizarParaComparacao(nome);
+    const conflito = cliente.projetos.some(
+      (projeto) => projeto.id !== idIgnorado && normalizarParaComparacao(projeto.nome) === alvo,
+    );
+
+    if (conflito) {
+      throw new NomeDeProjetoDuplicadoError(nome.trim());
+    }
+  }
+
+  #garantirLinkDeProjetoDisponivel(projeto: Projeto, url: string, idIgnorado?: string): void {
+    const alvo = normalizarParaComparacao(url);
+    const conflito = projeto.links.some(
+      (link) => link.id !== idIgnorado && normalizarParaComparacao(link.url) === alvo,
+    );
+
+    if (conflito) {
+      throw new UrlDeLinkDuplicadaError(url.trim());
+    }
+  }
+
   #obterPosicaoDaBase(cliente: Cliente, idDaBase: string): number {
     const posicao = cliente.bases.findIndex((base) => base.id === idDaBase);
     if (posicao === -1) {
@@ -507,7 +729,6 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     const caminhoLocal = dados.caminhoLocal?.trim();
 
     return {
-      nome: dados.nome.trim(),
       url: dados.url.trim(),
       ...(caminhoLocal ? { caminhoLocal } : {}),
     };
@@ -679,6 +900,8 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
       bases: [],
       repositorios: [],
       links: [],
+      projetos: [],
+      agendaCodparcs: [],
       criadoEm: agora,
       atualizadoEm: agora,
     };
@@ -787,16 +1010,36 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     }
 
     // Clientes gravados antes de anotações, bases, repositórios e links existirem não têm os campos.
-    this.#clientes = (conteudo.corpo as Cliente[]).map((cliente) => ({
-      ...cliente,
-      anotacoes: cliente.anotacoes ?? '',
-      bases: cliente.bases ?? [],
-      repositorios: (cliente.repositorios ?? []).map((repositorio) => ({
-        ...repositorio,
-        nome: repositorio.nome ?? nomeDerivadoDaUrl(repositorio.url),
-      })),
-      links: cliente.links ?? [],
-    }));
+    this.#clientes = (
+      conteudo.corpo as (Cliente & {
+        agendaCodparc?: number | null;
+        agendaRecursoUsuario?: string;
+      })[]
+    ).map(
+      ({
+        agendaCodparc: _agendaCodparcRemovido,
+        agendaRecursoUsuario: _agendaRecursoUsuarioRemovido,
+        ...cliente
+      }) => ({
+        ...cliente,
+        anotacoes: cliente.anotacoes ?? '',
+        bases: cliente.bases ?? [],
+        // `nome` existiu no passado: descartado na leitura para sair do arquivo na próxima gravação.
+        repositorios: (cliente.repositorios ?? []).map(
+          ({ nome: _nomeRemovido, ...repositorio }: RepositorioGit & { nome?: string }) =>
+            repositorio,
+        ),
+        links: cliente.links ?? [],
+        projetos: cliente.projetos ?? [],
+        // `agendaCodparc` (singular) existiu no passado: um cliente com só um
+        // parceiro virava a lista de um item; sem parceiro nenhum vira `[]`.
+        agendaCodparcs: Array.isArray(cliente.agendaCodparcs)
+          ? cliente.agendaCodparcs
+          : _agendaCodparcRemovido != null
+            ? [_agendaCodparcRemovido]
+            : [],
+      }),
+    );
 
     if (precisaMigrar(conteudo)) {
       await migrarArquivoDeDados({

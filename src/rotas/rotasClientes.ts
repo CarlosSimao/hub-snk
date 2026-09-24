@@ -24,6 +24,8 @@ import {
   FavoritoDuplicadoNaImportacaoError,
   LinkNaoEncontradoError,
   NomeDeClienteDuplicadoError,
+  NomeDeProjetoDuplicadoError,
+  ProjetoNaoEncontradoError,
   RepositorioDuplicadoNaImportacaoError,
   RepositorioNaoEncontradoError,
   UrlDeLinkDuplicadaError,
@@ -87,6 +89,18 @@ const esquemaDeAnotacoes = z.object({
     .transform((valor) => valor.trim()),
 });
 
+/** `agendaCodparcs` vem `[]` quando o cliente ainda não tem parceiro nenhum amarrado. */
+const esquemaDeAgenda = z.object({
+  agendaCodparcs: z
+    .array(z.number().int('Cada código de parceiro deve ser um número inteiro.').nonnegative())
+    // Um cliente com o mesmo `codparc` cadastrado duas vezes não faz sentido, e quebraria o
+    // "já vinculado" (verde) do botão da agenda, que testa por igualdade num array.
+    .refine(
+      (valores) => new Set(valores).size === valores.length,
+      'Código de parceiro repetido na lista.',
+    ),
+});
+
 const esquemaDeDadosDeBase = z.object({
   url: z
     .string({ error: 'Informe a URL da base.' })
@@ -137,51 +151,32 @@ const esquemaDeImportacaoDeFavoritos = z.object({
 });
 
 const esquemaDeDadosDeRepositorio = z.object({
-  nome: z
-    .string({ error: 'Informe o nome do repositório.' })
-    .trim()
-    .min(1, 'Informe o nome do repositório.')
-    .max(TAMANHO_MAXIMO_DO_NOME, `O nome deve ter no máximo ${TAMANHO_MAXIMO_DO_NOME} caracteres.`),
   url: z
     .string({ error: 'Informe a URL do repositório.' })
     .trim()
     .min(1, 'Informe a URL do repositório.')
     .max(TAMANHO_MAXIMO_DA_URL, `A URL deve ter no máximo ${TAMANHO_MAXIMO_DA_URL} caracteres.`)
     .refine(ehUrlHttpValida, 'Informe uma URL http ou https válida.'),
-  // Opcional: só quem clonou o repositório tem pasta local.
   caminhoLocal: z
-    .string()
+    .string({ error: 'Informe o caminho local do repositório.' })
     .trim()
+    .min(1, 'Informe o caminho local do repositório.')
     .max(
       TAMANHO_MAXIMO_DO_CAMINHO,
       `O caminho deve ter no máximo ${TAMANHO_MAXIMO_DO_CAMINHO} caracteres.`,
     )
-    .refine(
-      (valor) => valor === '' || isAbsolute(valor),
-      'Informe o caminho completo da pasta, não um caminho relativo.',
-    )
-    .optional(),
+    .refine(isAbsolute, 'Informe o caminho completo da pasta, não um caminho relativo.'),
 });
 
 /*
  * Cada repositório da varredura vira um cadastro já com o nome do cliente
- * escolhido na tela. O caminho local é obrigatório aqui — é o que distingue
- * esta importação do cadastro manual, que aceita repositório nunca clonado.
+ * escolhido na tela.
  */
 const esquemaDeImportacaoDeRepositorios = z.object({
   repositorios: z
     .array(
       esquemaDeDadosDeRepositorio.extend({
         nomeDoCliente: esquemaDeDadosDeCliente.shape.nome,
-        caminhoLocal: z
-          .string({ error: 'Informe a pasta do repositório.' })
-          .trim()
-          .min(1, 'Informe a pasta do repositório.')
-          .max(
-            TAMANHO_MAXIMO_DO_CAMINHO,
-            `O caminho deve ter no máximo ${TAMANHO_MAXIMO_DO_CAMINHO} caracteres.`,
-          )
-          .refine(isAbsolute, 'Informe o caminho completo da pasta, não um caminho relativo.'),
       }),
     )
     .min(1, 'Selecione ao menos um repositório para importar.')
@@ -203,6 +198,14 @@ const esquemaDeDadosDeLink = z.object({
     .min(1, 'Informe a URL do link.')
     .max(TAMANHO_MAXIMO_DA_URL, `A URL deve ter no máximo ${TAMANHO_MAXIMO_DA_URL} caracteres.`)
     .refine(ehUrlHttpValida, 'Informe uma URL http ou https válida.'),
+});
+
+const esquemaDeDadosDeProjeto = z.object({
+  nome: z
+    .string({ error: 'Informe o nome do projeto.' })
+    .trim()
+    .min(1, 'Informe o nome do projeto.')
+    .max(TAMANHO_MAXIMO_DO_NOME, `O nome deve ter no máximo ${TAMANHO_MAXIMO_DO_NOME} caracteres.`),
 });
 
 const esquemaDeDadosDeBancoDeDados = z.object({
@@ -293,6 +296,14 @@ const esquemaDeParametrosDeLink = esquemaDeParametrosDeCliente.extend({
   idLink: z.string().uuid('Identificador de link inválido.'),
 });
 
+const esquemaDeParametrosDeProjeto = esquemaDeParametrosDeCliente.extend({
+  idProjeto: z.string().uuid('Identificador de projeto inválido.'),
+});
+
+const esquemaDeParametrosDeLinkDeProjeto = esquemaDeParametrosDeProjeto.extend({
+  idLink: z.string().uuid('Identificador de link inválido.'),
+});
+
 function responderErroDeValidacao(resposta: FastifyReply, erro: z.ZodError): FastifyReply {
   const primeiraMensagem = erro.issues[0]?.message ?? 'Dados inválidos.';
   return resposta.status(400).send({ mensagem: primeiraMensagem });
@@ -315,6 +326,10 @@ function responderErroDeDominio(resposta: FastifyReply, erro: unknown): FastifyR
     return resposta.status(404).send({ mensagem: 'Link não encontrado.' });
   }
 
+  if (erro instanceof ProjetoNaoEncontradoError) {
+    return resposta.status(404).send({ mensagem: 'Projeto não encontrado.' });
+  }
+
   if (
     erro instanceof NomeDeClienteDuplicadoError ||
     erro instanceof AcessoDeBaseDuplicadoError ||
@@ -322,7 +337,8 @@ function responderErroDeDominio(resposta: FastifyReply, erro: unknown): FastifyR
     erro instanceof FavoritoDuplicadoNaImportacaoError ||
     erro instanceof UrlDeRepositorioDuplicadaError ||
     erro instanceof RepositorioDuplicadoNaImportacaoError ||
-    erro instanceof UrlDeLinkDuplicadaError
+    erro instanceof UrlDeLinkDuplicadaError ||
+    erro instanceof NomeDeProjetoDuplicadoError
   ) {
     return resposta.status(409).send({ mensagem: erro.message });
   }
@@ -502,6 +518,24 @@ export function registrarRotasDeClientes(
 
     try {
       return await repositorio.definirAnotacoes(parametros.data.id, dados.data.anotacoes);
+    } catch (erro) {
+      return responderErroDeDominio(resposta, erro);
+    }
+  });
+
+  servidor.put('/api/clientes/:id/agenda', async (requisicao, resposta) => {
+    const parametros = esquemaDeParametrosDeCliente.safeParse(requisicao.params);
+    if (!parametros.success) {
+      return responderErroDeValidacao(resposta, parametros.error);
+    }
+
+    const dados = esquemaDeAgenda.safeParse(requisicao.body);
+    if (!dados.success) {
+      return responderErroDeValidacao(resposta, dados.error);
+    }
+
+    try {
+      return await repositorio.definirAgenda(parametros.data.id, dados.data);
     } catch (erro) {
       return responderErroDeDominio(resposta, erro);
     }
@@ -759,6 +793,154 @@ export function registrarRotasDeClientes(
       return responderErroDeDominio(resposta, erro);
     }
   });
+
+  /* Projetos do cliente: agrupam anotações e links próprios. */
+  servidor.post('/api/clientes/:id/projetos', async (requisicao, resposta) => {
+    const parametros = esquemaDeParametrosDeCliente.safeParse(requisicao.params);
+    if (!parametros.success) {
+      return responderErroDeValidacao(resposta, parametros.error);
+    }
+
+    const dados = esquemaDeDadosDeProjeto.safeParse(requisicao.body);
+    if (!dados.success) {
+      return responderErroDeValidacao(resposta, dados.error);
+    }
+
+    try {
+      const projeto = await repositorio.adicionarProjeto(parametros.data.id, dados.data);
+      return resposta.status(201).send(projeto);
+    } catch (erro) {
+      return responderErroDeDominio(resposta, erro);
+    }
+  });
+
+  servidor.put('/api/clientes/:id/projetos/:idProjeto', async (requisicao, resposta) => {
+    const parametros = esquemaDeParametrosDeProjeto.safeParse(requisicao.params);
+    if (!parametros.success) {
+      return responderErroDeValidacao(resposta, parametros.error);
+    }
+
+    const dados = esquemaDeDadosDeProjeto.safeParse(requisicao.body);
+    if (!dados.success) {
+      return responderErroDeValidacao(resposta, dados.error);
+    }
+
+    try {
+      return await repositorio.atualizarProjeto(
+        parametros.data.id,
+        parametros.data.idProjeto,
+        dados.data,
+      );
+    } catch (erro) {
+      return responderErroDeDominio(resposta, erro);
+    }
+  });
+
+  servidor.delete('/api/clientes/:id/projetos/:idProjeto', async (requisicao, resposta) => {
+    const parametros = esquemaDeParametrosDeProjeto.safeParse(requisicao.params);
+    if (!parametros.success) {
+      return responderErroDeValidacao(resposta, parametros.error);
+    }
+
+    try {
+      await repositorio.removerProjeto(parametros.data.id, parametros.data.idProjeto);
+      return resposta.status(204).send();
+    } catch (erro) {
+      return responderErroDeDominio(resposta, erro);
+    }
+  });
+
+  servidor.put('/api/clientes/:id/projetos/:idProjeto/anotacoes', async (requisicao, resposta) => {
+    const parametros = esquemaDeParametrosDeProjeto.safeParse(requisicao.params);
+    if (!parametros.success) {
+      return responderErroDeValidacao(resposta, parametros.error);
+    }
+
+    const dados = esquemaDeAnotacoes.safeParse(requisicao.body);
+    if (!dados.success) {
+      return responderErroDeValidacao(resposta, dados.error);
+    }
+
+    try {
+      return await repositorio.definirAnotacoesDoProjeto(
+        parametros.data.id,
+        parametros.data.idProjeto,
+        dados.data.anotacoes,
+      );
+    } catch (erro) {
+      return responderErroDeDominio(resposta, erro);
+    }
+  });
+
+  servidor.post('/api/clientes/:id/projetos/:idProjeto/links', async (requisicao, resposta) => {
+    const parametros = esquemaDeParametrosDeProjeto.safeParse(requisicao.params);
+    if (!parametros.success) {
+      return responderErroDeValidacao(resposta, parametros.error);
+    }
+
+    const dados = esquemaDeDadosDeLink.safeParse(requisicao.body);
+    if (!dados.success) {
+      return responderErroDeValidacao(resposta, dados.error);
+    }
+
+    try {
+      const link = await repositorio.adicionarLinkDoProjeto(
+        parametros.data.id,
+        parametros.data.idProjeto,
+        dados.data,
+      );
+      return resposta.status(201).send(link);
+    } catch (erro) {
+      return responderErroDeDominio(resposta, erro);
+    }
+  });
+
+  servidor.put(
+    '/api/clientes/:id/projetos/:idProjeto/links/:idLink',
+    async (requisicao, resposta) => {
+      const parametros = esquemaDeParametrosDeLinkDeProjeto.safeParse(requisicao.params);
+      if (!parametros.success) {
+        return responderErroDeValidacao(resposta, parametros.error);
+      }
+
+      const dados = esquemaDeDadosDeLink.safeParse(requisicao.body);
+      if (!dados.success) {
+        return responderErroDeValidacao(resposta, dados.error);
+      }
+
+      try {
+        return await repositorio.atualizarLinkDoProjeto(
+          parametros.data.id,
+          parametros.data.idProjeto,
+          parametros.data.idLink,
+          dados.data,
+        );
+      } catch (erro) {
+        return responderErroDeDominio(resposta, erro);
+      }
+    },
+  );
+
+  servidor.delete(
+    '/api/clientes/:id/projetos/:idProjeto/links/:idLink',
+    async (requisicao, resposta) => {
+      const parametros = esquemaDeParametrosDeLinkDeProjeto.safeParse(requisicao.params);
+      if (!parametros.success) {
+        return responderErroDeValidacao(resposta, parametros.error);
+      }
+
+      try {
+        await repositorio.removerLinkDoProjeto(
+          parametros.data.id,
+          parametros.data.idProjeto,
+          parametros.data.idLink,
+        );
+        return resposta.status(204).send();
+      } catch (erro) {
+        return responderErroDeDominio(resposta, erro);
+      }
+    },
+  );
 
   /*
    * O caminho a abrir vem do registro gravado, nunca do corpo da requisição: a
