@@ -1,10 +1,15 @@
 name: Distribuição
 
-# Monta os pacotes do Windows, do Linux e do macOS a cada tag de versão, e anexa
-# tudo à release correspondente.
+# Monta os instaladores do Development Switch (shell Electron em desktop/) para
+# Windows, Linux e macOS a cada tag de versão, e anexa tudo à release.
 #
-# Um workflow só, com um job de publicação no fim: dois workflows disparados
-# pela mesma tag disputariam a criação da release.
+# Um SO por runner: o electron-builder não gera `.dmg` fora do macOS e o `.deb`
+# precisa do fpm do Linux. Um workflow só, com a publicação no fim: dois workflows
+# disparados pela mesma tag disputariam a criação da release.
+#
+# O Git AutoSync fica de fora (`empacotar:sem-autosync`): ele mora em outro
+# repositório e o PyInstaller não faz cross-compile. O instalador com o AutoSync
+# embutido é montado na máquina de quem tem o repositório dele.
 on:
   push:
     tags:
@@ -15,90 +20,65 @@ permissions:
   contents: write
 
 jobs:
-  windows:
-    runs-on: windows-latest
+  empacotar:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - so: windows-latest
+            nome: windows
+            artefatos: |
+              release/*.exe
+          - so: ubuntu-latest
+            nome: linux
+            artefatos: |
+              release/*.AppImage
+              release/*.deb
+          - so: macos-latest
+            nome: macos
+            artefatos: |
+              release/*.dmg
+              release/*.zip
+
+    runs-on: ${{ matrix.so }}
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '22.18'
+          # Node 24: o backend usa `node:sqlite` e o `preparar-hub.mjs` roda o build dele.
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
 
       - name: Instalar dependências
-        run: npm ci
+        run: |
+          npm ci
+          npm --prefix desktop ci
 
       - name: Conferir tipos e testes
         run: |
           npm run typecheck
           npm test
 
-      - name: Gerar os ícones
-        run: npm run gerar-icones
-
-      - name: Empacotar a distribuição
-        run: npm run empacotar-windows
-
-      # O script de instalação é o que o usuário roda depois de descompactar:
-      # um erro de sintaxe nele só apareceria na máquina de quem baixou.
-      - name: Conferir a sintaxe dos scripts de instalação
-        shell: pwsh
-        run: |
-          foreach ($script in @('instalar-hub-snk.ps1', 'desinstalar-hub-snk.ps1')) {
-            $erros = $null
-            [System.Management.Automation.Language.Parser]::ParseFile(
-              (Resolve-Path "instalador\$script"), [ref]$null, [ref]$erros) | Out-Null
-            if ($erros.Count -gt 0) {
-              $erros | ForEach-Object { Write-Host $_ }
-              throw "$script tem erro de sintaxe."
-            }
-          }
+      - name: Empacotar
+        env:
+          # Sem certificado: impede o electron-builder de procurar um no keychain do runner.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm --prefix desktop run empacotar:sem-autosync -- --publish never
 
       - uses: actions/upload-artifact@v7
         with:
-          name: pacote-windows
-          path: dist/hub-snk-*-windows-x64.zip
-          if-no-files-found: error
-
-  unix:
-    # No Linux para o `tar` preservar o bit de execução dos scripts — empacotar
-    # no Windows entregaria um pacote cujo hub-snk.sh não roda do outro lado.
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22.18'
-
-      - name: Instalar dependências
-        run: npm ci
-
-      - name: Empacotar Linux e macOS
-        run: npm run empacotar-unix
-
-      - name: Conferir se os scripts saíram executáveis
-        run: |
-          for pacote in dist/hub-snk-*.tar.gz; do
-            for script in hub-snk.sh instalar-hub-snk.sh desinstalar-hub-snk.sh; do
-              permissoes=$(tar -tzvf "$pacote" | grep -E "/$script$" | awk '{print $1}')
-              echo "$pacote -> $script -> ${permissoes:-AUSENTE}"
-              case "$permissoes" in
-                -rwx*) ;;
-                *) echo "O $script saiu do pacote sem permissão de execução." >&2; exit 1 ;;
-              esac
-            done
-          done
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: pacotes-unix
-          path: dist/hub-snk-*.tar.gz
+          name: instalador-${{ matrix.nome }}
+          path: ${{ matrix.artefatos }}
           if-no-files-found: error
 
   publicar:
-    needs: [windows, unix]
+    needs: [empacotar]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
@@ -108,7 +88,7 @@ jobs:
           path: artefatos
           merge-multiple: true
 
-      - name: Anexar os artefatos à release
+      - name: Anexar os instaladores à release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
