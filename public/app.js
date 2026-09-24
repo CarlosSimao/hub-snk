@@ -385,6 +385,9 @@ const elementos = {
     'campo-intervalo-execucao-automatica',
   ),
   campoTempoLimite: document.getElementById('campo-tempo-limite'),
+  campoAberturaBases: document.getElementById('campo-abertura-bases'),
+  campoAberturaLinksGerais: document.getElementById('campo-abertura-links-gerais'),
+  campoAberturaLinksDeProjeto: document.getElementById('campo-abertura-links-de-projeto'),
   campoCaminhoSchemaMcp: document.getElementById('campo-caminho-schema-mcp'),
   campoConfigMcpHost: document.getElementById('campo-config-mcp-host'),
   campoConfigMcpPorta: document.getElementById('campo-config-mcp-port'),
@@ -4671,6 +4674,7 @@ async function abrirModalDeConfiguracao() {
   elementos.campoScriptPadrao.value = '';
   elementos.campoIntervaloDeExecucaoAutomatica.value = INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S;
   elementos.campoTempoLimite.value = TEMPO_LIMITE_PADRAO_S;
+  preencherAberturaDeLinks(ABERTURA_DE_LINKS_PADRAO);
   preencherAtalhosDaConfiguracao([]);
 
   try {
@@ -4681,6 +4685,7 @@ async function abrirModalDeConfiguracao() {
       INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S;
     elementos.campoTempoLimite.value = configuracao.tempoLimiteSegundos ?? TEMPO_LIMITE_PADRAO_S;
     elementos.campoCaminhoSchemaMcp.value = configuracao.caminhoDoSchemaMcp ?? '';
+    preencherAberturaDeLinks(configuracao.aberturaDeLinks ?? ABERTURA_DE_LINKS_PADRAO);
     preencherAtalhosDaConfiguracao(configuracao.atalhos ?? []);
   } catch (erro) {
     exibirAviso(`Não foi possível carregar as configurações: ${erro.message}`, 'erro');
@@ -4700,6 +4705,30 @@ async function abrirModalDeConfiguracao() {
 
   elementos.modalConfiguracao.showModal();
   elementos.campoScriptPadrao.focus();
+}
+
+/*
+ * O mesmo padrão do servidor: é o que o HUB SNK já fazia antes de a escolha
+ * existir. Quem aplica a escolha é o aplicativo desktop, na hora do clique.
+ */
+const ABERTURA_DE_LINKS_PADRAO = {
+  bases: 'hub',
+  linksGerais: 'navegador-padrao',
+  linksDeProjeto: 'navegador-padrao',
+};
+
+function preencherAberturaDeLinks(aberturaDeLinks) {
+  elementos.campoAberturaBases.value = aberturaDeLinks.bases;
+  elementos.campoAberturaLinksGerais.value = aberturaDeLinks.linksGerais;
+  elementos.campoAberturaLinksDeProjeto.value = aberturaDeLinks.linksDeProjeto;
+}
+
+function lerAberturaDeLinks() {
+  return {
+    bases: elementos.campoAberturaBases.value,
+    linksGerais: elementos.campoAberturaLinksGerais.value,
+    linksDeProjeto: elementos.campoAberturaLinksDeProjeto.value,
+  };
 }
 
 async function salvarConfiguracao(evento) {
@@ -4739,6 +4768,7 @@ async function salvarConfiguracao(evento) {
       ),
       tempoLimiteSegundos: Number(elementos.campoTempoLimite.value),
       atalhos,
+      aberturaDeLinks: lerAberturaDeLinks(),
     });
     elementos.modalConfiguracao.close();
     exibirAviso('Configurações salvas.');

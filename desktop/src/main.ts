@@ -65,7 +65,7 @@ function criarJanela(): void {
   tabs.mostrar('hub');
   // Depois de criar as tres: aplica o que estava escondido na sessao anterior.
   tabs.restaurarGuiasEscondidas();
-  void tabs.carregarBasesCadastradas();
+  void tabs.carregarCadastro();
 
   // Captura/recaptura periódica: a Experience é SPA e o token pode surgir depois do
   // carregamento inicial (login) ou sumir (logout real) sem que o shell seja avisado

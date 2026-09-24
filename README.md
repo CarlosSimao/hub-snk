@@ -79,9 +79,14 @@ A janela tem guias no topo:
 | **Experience**      | A Experience. O HUB SNK lê a sessão desta guia sozinho, sem precisar capturar nada           |
 | Uma por base aberta | Cada base de cliente abre na sua própria guia, isolada das outras, com o login já preenchido |
 
-Links que não são de uma base cadastrada (Jira, GitHub, documentação) abrem no
-navegador do sistema. O menu _Guias_ esconde e mostra cada guia, e _Ajuda_ ›
-_Abrir o painel no navegador_ abre o painel fora do aplicativo.
+Onde cada tipo de link abre — bases, links gerais e links de projeto — é escolha
+sua, na aba **Geral** das configurações: numa guia do HUB SNK ou no navegador
+padrão do sistema. O padrão é a base no HUB SNK, com o login preenchido, e os
+links no navegador padrão. Detalhes em
+[Onde os links abrem](docs/funcionalidades.md#onde-os-links-abrem).
+
+O menu _Guias_ esconde e mostra cada guia, e _Ajuda_ › _Abrir o painel no
+navegador_ abre o painel fora do aplicativo.
 
 ---
 

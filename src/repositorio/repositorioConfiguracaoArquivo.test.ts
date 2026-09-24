@@ -22,6 +22,12 @@ function caminhoDoArquivo(): string {
   return join(diretorio, 'configuracao.json');
 }
 
+const ABERTURA_PADRAO = {
+  bases: 'hub',
+  linksGerais: 'navegador-padrao',
+  linksDeProjeto: 'navegador-padrao',
+} as const;
+
 describe('RepositorioConfiguracaoArquivo', () => {
   it('devolve os padrões quando o arquivo ainda não existe', async () => {
     const configuracao = await repositorio.ler();
@@ -30,6 +36,7 @@ describe('RepositorioConfiguracaoArquivo', () => {
     assert.equal(configuracao.intervaloDeExecucaoAutomaticaSegundos, 30);
     assert.equal(configuracao.tempoLimiteSegundos, 5);
     assert.deepEqual(configuracao.atalhos, []);
+    assert.deepEqual(configuracao.aberturaDeLinks, ABERTURA_PADRAO);
   });
 
   it('grava dentro do envelope e relê o que gravou', async () => {
@@ -39,6 +46,7 @@ describe('RepositorioConfiguracaoArquivo', () => {
       tempoLimiteSegundos: 10,
       caminhoDoSchemaMcp: '  C:\\Workspace\\mcp  ',
       atalhos: [{ nome: '  DataGrip  ', caminhoDoExecutavel: '  C:\\datagrip.exe  ' }],
+      aberturaDeLinks: { bases: 'navegador-padrao', linksGerais: 'hub', linksDeProjeto: 'hub' },
     });
 
     const gravado = JSON.parse(await readFile(caminhoDoArquivo(), 'utf8'));
@@ -50,6 +58,11 @@ describe('RepositorioConfiguracaoArquivo', () => {
     assert.equal(configuracao.scriptPadrao, 'git fetch --all');
     assert.equal(configuracao.caminhoDoSchemaMcp, 'C:\\Workspace\\mcp');
     assert.equal(configuracao.atalhos[0]?.nome, 'DataGrip');
+    assert.deepEqual(configuracao.aberturaDeLinks, {
+      bases: 'navegador-padrao',
+      linksGerais: 'hub',
+      linksDeProjeto: 'hub',
+    });
   });
 
   it('dá um id ao atalho cadastrado sem id', async () => {
@@ -59,6 +72,7 @@ describe('RepositorioConfiguracaoArquivo', () => {
       tempoLimiteSegundos: 5,
       caminhoDoSchemaMcp: '',
       atalhos: [{ nome: 'DataGrip', caminhoDoExecutavel: 'C:\\datagrip.exe' }],
+      aberturaDeLinks: ABERTURA_PADRAO,
     });
 
     assert.match(configuracao.atalhos[0]?.id ?? '', /^[0-9a-f-]{36}$/);
@@ -83,6 +97,29 @@ describe('RepositorioConfiguracaoArquivo com arquivo no formato antigo', () => {
     assert.equal(configuracao.tempoLimiteSegundos, 8);
     /* Campo que ainda não existia nasce desligado, sem quebrar a leitura. */
     assert.equal(configuracao.caminhoDoSchemaMcp, '');
+    assert.deepEqual(configuracao.aberturaDeLinks, ABERTURA_PADRAO);
+  });
+
+  it('volta ao padrão só o tipo de link com valor desconhecido', async () => {
+    await writeFile(
+      caminhoDoArquivo(),
+      JSON.stringify({
+        versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+        configuracao: {
+          scriptPadrao: '',
+          aberturaDeLinks: { bases: 'navegador-padrao', linksGerais: 'firefox' },
+        },
+      }),
+      'utf8',
+    );
+
+    const configuracao = await repositorio.ler();
+
+    assert.deepEqual(configuracao.aberturaDeLinks, {
+      bases: 'navegador-padrao',
+      linksGerais: 'navegador-padrao',
+      linksDeProjeto: 'navegador-padrao',
+    });
   });
 
   it('migra o arquivo e guarda o original', async () => {

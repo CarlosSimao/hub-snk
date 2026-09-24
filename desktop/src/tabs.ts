@@ -29,11 +29,83 @@ export interface InfoBaseCliente {
   temSenha: boolean;
 }
 
+interface LinkDoCadastro {
+  nome: string;
+  url: string;
+}
+
 /** O pedaço de `GET /api/clientes` que o shell usa. A senha é descartada na leitura. */
 interface ClienteDoCadastro {
   id: string;
   nome: string;
   bases?: Array<{ id: string; url: string; tipo: string; usuario: string; senha?: string }>;
+  links?: LinkDoCadastro[];
+  projetos?: Array<{ nome: string; links?: LinkDoCadastro[] }>;
+}
+
+type DestinoDeLink = 'hub' | 'navegador-padrao';
+
+/** Espelha `AberturaDeLinks` de `src/tipos.ts`: a escolha fica na configuração global. */
+interface AberturaDeLinks {
+  bases: DestinoDeLink;
+  linksGerais: DestinoDeLink;
+  linksDeProjeto: DestinoDeLink;
+}
+
+/**
+ * O que vale se a configuração não puder ser lida — o mesmo padrão do backend, que é o
+ * que o HUB SNK já fazia antes de a escolha existir.
+ */
+const ABERTURA_DE_LINKS_PADRAO: AberturaDeLinks = {
+  bases: 'hub',
+  linksGerais: 'navegador-padrao',
+  linksDeProjeto: 'navegador-padrao',
+};
+
+/** Um link cadastrado, reconhecido pela URL exata quando o painel o abre. */
+interface LinkCadastrado {
+  tipo: 'linksGerais' | 'linksDeProjeto';
+  /** Título da guia, quando o link abre no HUB SNK. */
+  titulo: string;
+}
+
+async function lerAberturaDeLinks(): Promise<AberturaDeLinks> {
+  try {
+    const resposta = await fetch(`${HUB_URL}/api/configuracao`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+    const { aberturaDeLinks } = (await resposta.json()) as { aberturaDeLinks?: AberturaDeLinks };
+    return { ...ABERTURA_DE_LINKS_PADRAO, ...aberturaDeLinks };
+  } catch (err) {
+    logEvento('abertura-de-links-falhou-ler', { erro: String(err) });
+    return ABERTURA_DE_LINKS_PADRAO;
+  }
+}
+
+/** A mesma URL escrita de jeitos diferentes (barra final, maiúsculas no host) casa. */
+function urlNormalizada(url: string): string {
+  try {
+    return new URL(url).href;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * O botão "Monitor de log" abre a URL do JSP com o marcador `#__hubmonitor` no hash —
+ * invisível para o servidor e para o usuário, mas suficiente para o shell saber que é o
+ * monitor: a aba da base navega para o JSP e o autofill de login não dispara.
+ */
+function separarMarcadorDoMonitor(alvo: string): { alvo: string; ehMonitor: boolean } {
+  try {
+    const url = new URL(alvo);
+    if (!url.hash.includes('__hubmonitor')) return { alvo, ehMonitor: false };
+    url.hash = '';
+    return { alvo: url.href, ehMonitor: true };
+  } catch {
+    return { alvo, ehMonitor: false };
+  }
 }
 
 export interface AbaClienteInfo {
@@ -159,6 +231,8 @@ export class TabManager {
    * mesmo cliente podem compartilhar host e diferir só na porta (caso real: prod/teste
    * do mesmo cliente em portas distintas), com usuário/senha diferentes. */
   #basesPorOrigin = new Map<string, InfoBaseCliente>();
+  /** URL normalizada -> link geral ou de projeto cadastrado. */
+  #linksPorUrl = new Map<string, LinkCadastrado>();
   #abaAtiva = 'hub';
   #alturaTopo = 96;
   /**
@@ -236,38 +310,6 @@ export class TabManager {
       } catch {
         /* URL inválida cai no fluxo de negação padrão abaixo */
       }
-      // Links de base de cliente (ERP de cada cliente, não o interno da Sankhya) não
-      // são SSO — ganham aba própria isolada em vez da lista branca de pop-up.
-      const infoBase = id === 'hub' ? this.#basesPorOrigin.get(origin) : undefined;
-      if (infoBase) {
-        // O botão "Monitor de log" abre a URL do JSP com o marcador `#__hubmonitor` no
-        // hash — invisível para o servidor (o próprio JSP descarta o hash) e para o
-        // usuário, mas suficiente para o shell saber que é o monitor: navega a aba da
-        // base para o JSP e não dispara o autofill de login.
-        let ehMonitor = false;
-        let alvoLimpo = alvo;
-        try {
-          const u = new URL(alvo);
-          if (u.hash.includes('__hubmonitor')) {
-            ehMonitor = true;
-            u.hash = '';
-            alvoLimpo = u.href;
-          }
-        } catch {
-          /* URL inválida — trata como link normal de base */
-        }
-        logEvento('link-cliente-solicitado', {
-          alvo: origemSemQuery(alvoLimpo),
-          monitor: ehMonitor,
-        });
-        this.abrirAbaCliente(
-          origin,
-          alvoLimpo,
-          infoBase,
-          ehMonitor ? { autofill: false, forcarUrl: true } : {},
-        );
-        return { action: 'deny' };
-      }
       // Endereço da própria máquina (o Sankhya local em localhost:8080/mge, o console do
       // WildFly na 9990) vira aba do app, isolada como uma base de cliente. Antes caía
       // na lista de pop-ups, que não tem `localhost`, e o clique morria em silêncio. O
@@ -295,10 +337,10 @@ export class TabManager {
         return this.#permitirJanelaFilha(id, alvo, particao);
       }
       if (id === 'hub') {
-        // Qualquer outro link do painel (link de cliente, repositório no GitHub, página
-        // de release) é conteúdo de fora: vai para o navegador do sistema. Antes de
-        // decidir, relê o cadastro — a base pode ter sido cadastrada depois do boot.
-        void this.#abrirLinkExternoDoPainel(origin, alvo);
+        // Base, link geral, link de projeto ou link qualquer (repositório no GitHub,
+        // página de release): quem decide é o cadastro e a configuração de abertura de
+        // links, que são lidos na hora — por isso fora deste handler, que é síncrono.
+        void this.#abrirLinkDoPainel(alvo);
         return { action: 'deny' };
       }
       const permitido = origemPermitida(alvo, DOMINIOS_POPUP_PERMITIDOS);
@@ -313,7 +355,7 @@ export class TabManager {
         const origemDoDestino = origemDe(destino);
         if (origemDoDestino === new URL(HUB_URL).origin) return;
         evento.preventDefault();
-        void this.#abrirLinkExternoDoPainel(origemDoDestino, destino);
+        void this.#abrirLinkDoPainel(destino);
       });
     }
     view.webContents.loadURL(url);
@@ -368,7 +410,7 @@ export class TabManager {
     particao: string,
   ): Electron.WindowOpenHandlerResponse {
     if (id === 'hub') {
-      void this.#abrirLinkExternoDoPainel(origemDe(destino), destino);
+      void this.#abrirLinkDoPainel(destino);
       return { action: 'deny' };
     }
     const permitido = origemPermitida(destino, DOMINIOS_POPUP_PERMITIDOS);
@@ -377,18 +419,86 @@ export class TabManager {
   }
 
   /**
-   * Link do painel que não é de uma base conhecida: relê o cadastro (a base pode ter
-   * sido cadastrada depois do boot) e, se ainda não for base, abre no navegador do
-   * sistema. Só http/https: `file:` ou esquema de aplicativo vindo de um link cadastrado
-   * não pode virar execução na máquina.
+   * Link aberto a partir do painel. Relê o cadastro (a base ou o link pode ter sido
+   * cadastrado depois do boot) e a escolha de abertura de links, e decide:
+   *
+   *  - link geral ou de projeto, pela URL exata: guia do HUB SNK ou navegador padrão,
+   *    conforme a escolha daquele tipo. A URL exata vale mais que a origem de uma base,
+   *    para um link que aponta para uma tela da base seguir a escolha dos links;
+   *  - base, pela origem: guia com o login preenchido ou navegador padrão;
+   *  - qualquer outro endereço: navegador padrão.
    */
-  async #abrirLinkExternoDoPainel(origin: string, alvo: string): Promise<void> {
-    await this.carregarBasesCadastradas();
-    const infoBase = this.#basesPorOrigin.get(origin);
-    if (infoBase) {
-      this.abrirAbaCliente(origin, alvo, infoBase);
+  async #abrirLinkDoPainel(alvo: string): Promise<void> {
+    const [aberturaDeLinks] = await Promise.all([lerAberturaDeLinks(), this.carregarCadastro()]);
+    const origin = origemDe(alvo);
+
+    const link = this.#linksPorUrl.get(urlNormalizada(alvo));
+    if (link) {
+      logEvento('link-cadastrado-solicitado', {
+        tipo: link.tipo,
+        destino: aberturaDeLinks[link.tipo],
+        alvo: origemSemQuery(alvo),
+      });
+      if (aberturaDeLinks[link.tipo] === 'hub') {
+        this.#abrirLinkNoHub(origin, alvo, link.titulo);
+        return;
+      }
+      await this.#abrirNoNavegadorPadrao(alvo);
       return;
     }
+
+    const infoBase = this.#basesPorOrigin.get(origin);
+    if (infoBase) {
+      const monitor = separarMarcadorDoMonitor(alvo);
+      logEvento('link-cliente-solicitado', {
+        destino: aberturaDeLinks.bases,
+        alvo: origemSemQuery(monitor.alvo),
+        monitor: monitor.ehMonitor,
+      });
+      // O monitor de log é da base, mas não é login: abre sempre na guia dela.
+      if (aberturaDeLinks.bases === 'hub' || monitor.ehMonitor) {
+        this.abrirAbaCliente(
+          origin,
+          monitor.alvo,
+          infoBase,
+          monitor.ehMonitor ? { autofill: false, forcarUrl: true } : {},
+        );
+        return;
+      }
+      await this.#abrirNoNavegadorPadrao(alvo);
+      return;
+    }
+
+    await this.#abrirNoNavegadorPadrao(alvo);
+  }
+
+  /**
+   * Link geral ou de projeto numa guia do HUB SNK, isolada por origem e sem autofill.
+   * Mesma origem de uma guia já aberta (a da base, por exemplo) navega aquela guia
+   * até o endereço do link, em vez de só trazê-la para a frente.
+   */
+  #abrirLinkNoHub(origin: string, alvo: string, titulo: string): void {
+    if (!origin) return;
+    this.abrirAbaCliente(
+      origin,
+      alvo,
+      {
+        clienteId: '',
+        baseId: '',
+        clienteNome: titulo,
+        ambiente: 'outro',
+        usuario: '',
+        temSenha: false,
+      },
+      { autofill: false, forcarUrl: true },
+    );
+  }
+
+  /**
+   * Só http/https: `file:` ou esquema de aplicativo vindo de um link cadastrado não
+   * pode virar execução na máquina.
+   */
+  async #abrirNoNavegadorPadrao(alvo: string): Promise<void> {
     if (!ehEnderecoWeb(alvo)) {
       logEvento('link-externo-recusado', { alvo: origemSemQuery(alvo) });
       return;
@@ -634,10 +744,11 @@ export class TabManager {
   }
 
   /**
-   * Bases vindas do cadastro real (`GET /api/clientes`) — nenhuma inventada. Monta um
-   * mapa novo a cada leitura, para base removida do cadastro deixar de abrir aba.
+   * Bases, links gerais e links de projeto vindos do cadastro real (`GET /api/clientes`)
+   * — nenhum inventado. Monta mapas novos a cada leitura, para o que foi removido do
+   * cadastro deixar de valer.
    */
-  async carregarBasesCadastradas(): Promise<void> {
+  async carregarCadastro(): Promise<void> {
     try {
       const resposta = await fetch(`${HUB_URL}/api/clientes`, {
         signal: AbortSignal.timeout(5000),
@@ -646,6 +757,7 @@ export class TabManager {
       const clientes = (await resposta.json()) as ClienteDoCadastro[];
 
       const basesPorOrigin = new Map<string, InfoBaseCliente>();
+      const linksPorUrl = new Map<string, LinkCadastrado>();
       for (const cliente of clientes) {
         for (const base of cliente.bases ?? []) {
           const origin = origemDe(base.url);
@@ -671,12 +783,31 @@ export class TabManager {
           }
           basesPorOrigin.set(origin, info);
         }
+
+        for (const link of cliente.links ?? []) {
+          const url = urlNormalizada(link.url);
+          if (url)
+            linksPorUrl.set(url, { tipo: 'linksGerais', titulo: `${cliente.nome} · ${link.nome}` });
+        }
+        for (const projeto of cliente.projetos ?? []) {
+          for (const link of projeto.links ?? []) {
+            const url = urlNormalizada(link.url);
+            if (url) {
+              linksPorUrl.set(url, {
+                tipo: 'linksDeProjeto',
+                titulo: `${cliente.nome} · ${projeto.nome} · ${link.nome}`,
+              });
+            }
+          }
+        }
       }
 
+      this.#linksPorUrl = linksPorUrl;
       this.#basesPorOrigin = basesPorOrigin;
-      logEvento('bases-clientes-carregadas', { total: basesPorOrigin.size });
+      this.#basesPorOrigin = basesPorOrigin;
+      logEvento('cadastro-carregado', { bases: basesPorOrigin.size, links: linksPorUrl.size });
     } catch (err) {
-      logEvento('bases-clientes-falhou-carregar', { erro: String(err) });
+      logEvento('cadastro-falhou-carregar', { erro: String(err) });
     }
   }
 }

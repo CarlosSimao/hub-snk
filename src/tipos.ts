@@ -28,6 +28,23 @@ export interface ConfiguracaoGlobal {
   tempoLimiteSegundos: number;
   caminhoDoSchemaMcp: string;
   atalhos: Atalho[];
+  aberturaDeLinks: AberturaDeLinks;
+}
+
+/**
+ * `hub`: guia do aplicativo desktop. `navegador-padrao`: o navegador do sistema.
+ * Quem aplica é o shell (`desktop/src/tabs.ts`); com o painel aberto num
+ * navegador comum, os links abrem nele de qualquer jeito.
+ */
+export const DESTINOS_DE_LINK = ['hub', 'navegador-padrao'] as const;
+
+export type DestinoDeLink = (typeof DESTINOS_DE_LINK)[number];
+
+/** Onde cada tipo de link do cadastro abre quando é clicado no painel. */
+export interface AberturaDeLinks {
+  bases: DestinoDeLink;
+  linksGerais: DestinoDeLink;
+  linksDeProjeto: DestinoDeLink;
 }
 
 /**

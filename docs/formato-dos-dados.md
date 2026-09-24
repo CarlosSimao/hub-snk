@@ -41,10 +41,21 @@ cadastro.
         "nome": "DataGrip",
         "caminhoDoExecutavel": "C:\\Program Files\\JetBrains\\DataGrip\\bin\\datagrip64.exe"
       }
-    ]
+    ],
+    "aberturaDeLinks": {
+      "bases": "hub",
+      "linksGerais": "navegador-padrao",
+      "linksDeProjeto": "navegador-padrao"
+    }
   }
 }
 ```
+
+`aberturaDeLinks` diz onde cada tipo de link abre quando é clicado no aplicativo
+desktop: `hub` (guia do aplicativo) ou `navegador-padrao` (o navegador do
+sistema). Arquivo de antes deste campo, ou com um valor desconhecido num dos
+tipos, vale o padrão acima naquele tipo — é o que o HUB SNK fazia antes de a
+escolha existir.
 
 ## Cadastro de clientes
 

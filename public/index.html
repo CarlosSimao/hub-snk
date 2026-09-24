@@ -614,6 +614,55 @@
               </label>
               <input id="campo-tempo-limite" type="number" min="1" max="60" />
             </div>
+
+            <div class="campo campo-estreito">
+              <label for="campo-abertura-bases">
+                Abrir as bases em
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Navegador do HUB SNK: cada base abre numa guia do aplicativo, isolada das
+                    outras, com usuário e senha já preenchidos. Navegador padrão: abre no navegador
+                    do sistema, sem o preenchimento.</span
+                  ></span
+                >
+              </label>
+              <select id="campo-abertura-bases">
+                <option value="hub">Navegador do HUB SNK</option>
+                <option value="navegador-padrao">Navegador padrão</option>
+              </select>
+            </div>
+
+            <div class="campo campo-estreito">
+              <label for="campo-abertura-links-gerais">
+                Abrir os links gerais em
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Os links cadastrados em Links gerais de cada cliente. No HUB SNK, abrem numa
+                    guia do aplicativo; no navegador padrão, abrem com a sessão e o login único
+                    (SSO) que você já usa nele.</span
+                  ></span
+                >
+              </label>
+              <select id="campo-abertura-links-gerais">
+                <option value="hub">Navegador do HUB SNK</option>
+                <option value="navegador-padrao">Navegador padrão</option>
+              </select>
+            </div>
+
+            <div class="campo campo-estreito">
+              <label for="campo-abertura-links-de-projeto">
+                Abrir os links de projeto em
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Os links cadastrados em Links do projeto. Mesmas opções dos links gerais.</span
+                  ></span
+                >
+              </label>
+              <select id="campo-abertura-links-de-projeto">
+                <option value="hub">Navegador do HUB SNK</option>
+                <option value="navegador-padrao">Navegador padrão</option>
+              </select>
+            </div>
           </div>
 
           <div

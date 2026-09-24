@@ -7,6 +7,7 @@ import {
   NOME_DO_ARQUIVO_ENV,
 } from '../sistema/arquivoMcp.ts';
 import { PastaNaoEncontradaError } from '../sistema/pasta.ts';
+import { DESTINOS_DE_LINK } from '../tipos.ts';
 import { esquemaDeConfiguracaoMcp } from './esquemaDeConfiguracaoMcp.ts';
 
 const TAMANHO_MAXIMO_DO_SCRIPT = 500;
@@ -41,6 +42,10 @@ const esquemaDeAtalho = z.object({
       TAMANHO_MAXIMO_DO_CAMINHO,
       `O caminho deve ter no máximo ${TAMANHO_MAXIMO_DO_CAMINHO} caracteres.`,
     ),
+});
+
+const esquemaDeDestinoDeLink = z.enum(DESTINOS_DE_LINK, {
+  error: 'Escolha onde o link abre: no HUB SNK ou no navegador padrão.',
 });
 
 const esquemaDeConfiguracao = z.object({
@@ -87,6 +92,14 @@ const esquemaDeConfiguracao = z.object({
     .default(''),
   /* Ausente vale como lista vazia, pelo mesmo motivo do caminho do MCP. */
   atalhos: z.array(esquemaDeAtalho).default([]),
+  /* Ausente, ou sem um dos tipos, vale o que o HUB SNK já fazia antes da escolha. */
+  aberturaDeLinks: z
+    .object({
+      bases: esquemaDeDestinoDeLink.default('hub'),
+      linksGerais: esquemaDeDestinoDeLink.default('navegador-padrao'),
+      linksDeProjeto: esquemaDeDestinoDeLink.default('navegador-padrao'),
+    })
+    .prefault({}),
 });
 
 /**

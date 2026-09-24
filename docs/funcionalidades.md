@@ -19,6 +19,34 @@ pontas.
 Cada base tem no máximo um banco de dados. A senha não é aparada: espaço nas
 pontas pode fazer parte dela.
 
+## Onde os links abrem
+
+Na aba **Geral** das configurações, três escolhas dizem onde cada tipo de link do
+cadastro abre quando é clicado no aplicativo desktop:
+
+| Tipo de link                             | Navegador do HUB SNK                                                    | Navegador padrão                                |
+| ---------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------- |
+| **Bases** (padrão: HUB SNK)              | Guia do aplicativo, isolada das outras, com usuário e senha preenchidos | Navegador do sistema, sem preenchimento         |
+| **Links gerais** (padrão: navegador)     | Guia do aplicativo, isolada, sem preenchimento                          | Navegador do sistema, com a sessão e o SSO dele |
+| **Links de projeto** (padrão: navegador) | Idem aos links gerais                                                   | Idem aos links gerais                           |
+
+Quem aplica a escolha é o aplicativo, na hora do clique, relendo o cadastro e a
+configuração — mudar a opção vale no próximo clique, sem reiniciar. As regras:
+
+- **A URL exata de um link vale mais que a origem de uma base.** Um link geral que
+  aponta para uma tela da base segue a escolha dos links gerais, não a das bases.
+- Link aberto no HUB SNK com a mesma origem de uma guia já aberta (a da base, por
+  exemplo) navega aquela guia até o endereço do link.
+- O monitor de log de uma base abre sempre na guia dela.
+- Endereço da própria máquina (`localhost`), o link do repositório e qualquer link
+  que não esteja no cadastro seguem como antes: o local numa guia do aplicativo, o
+  resto no navegador do sistema.
+- Só `http` e `https` abrem no navegador do sistema; outro esquema (`file:`,
+  `mailto:`) é recusado e fica registrado no log.
+
+Com o painel aberto num navegador comum (_Ajuda_ › _Abrir o painel no navegador_),
+a escolha não se aplica: os links abrem nesse navegador.
+
 ## Anotações do cliente
 
 O último bloco do detalhe do cliente é uma caixa de texto livre — contatos,

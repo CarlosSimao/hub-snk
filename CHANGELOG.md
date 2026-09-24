@@ -27,8 +27,11 @@ versão antiga e mantém o cadastro onde está.
   Experience é lida da guia sozinha, a cada 15 segundos.
 - **Projetos no cadastro do cliente** e **agenda no cadastro do cliente**, com o
   vínculo do cliente aos parceiros da Agenda de Recursos.
-- Links do painel que não são de uma base cadastrada (Jira, GitHub,
-  documentação) abrem no navegador do sistema.
+- **Onde os links abrem**, na aba Geral das configurações: para bases, links
+  gerais e links de projeto, a escolha entre uma guia do HUB SNK e o navegador
+  padrão do sistema. Padrão: bases no HUB SNK, links no navegador padrão.
+- Links do painel que não estão no cadastro (GitHub, página de release) abrem no
+  navegador do sistema.
 
 ### Alterado
 
