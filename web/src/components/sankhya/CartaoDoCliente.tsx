@@ -13,6 +13,7 @@ import type {
 import type { Avisar } from '../../hooks/useToasts.ts';
 import { useCartaoCliente } from '../../hooks/useCartaoCliente.ts';
 import { useGitAutosync } from '../../hooks/useGitAutosync.ts';
+import { montarUrlTelaSankhya } from '../../lib/telaSankhya.ts';
 import { mesmoCaminho, StatusRepoCompacto } from '../git/DetalheRepo.tsx';
 import { SeletorPasta } from './SeletorPasta.tsx';
 import { AbrirRepoEm } from './AbrirRepoEm.tsx';
@@ -262,6 +263,7 @@ export function CartaoDoCliente({ cliente, toast, onAbrirSkill, onEditar, onRemo
               ambiente: base.ambiente,
               url: base.url,
               usuario: base.usuario,
+              loginApi: base.loginApi,
               monitorar,
               ordem: base.ordem,
             })}
@@ -435,6 +437,7 @@ function BaseLinha({
       <div className="cartao-base-dados">
         <LinhaUrl url={base.url} />
         <ServerLogDaBase url={base.url} demandaFim={demandaFim} />
+        <AbrirTelaDaBase url={base.url} />
         <div className="credencial-base">
           <span><small>Usuário</small><strong>{base.usuario || 'não informado'}</strong></span>
           <span>
@@ -529,6 +532,64 @@ function LinhaUrl({ url }: { url: string }) {
   );
 }
 
+function chaveTelaDaBase(url: string): string {
+  return `sankhya-hub-tela:${new URL(url).origin}`;
+}
+
+function lembrarTela(url: string): { resourceID: string; registro: string } {
+  try {
+    const valor = JSON.parse(localStorage.getItem(chaveTelaDaBase(url)) ?? '{}') as Record<string, unknown>;
+    return {
+      resourceID: typeof valor['resourceID'] === 'string' ? valor['resourceID'] : '',
+      registro: typeof valor['registro'] === 'string' ? valor['registro'] : '',
+    };
+  } catch {
+    return { resourceID: '', registro: '' };
+  }
+}
+
+function AbrirTelaDaBase({ url }: { url: string }) {
+  const [lembrado] = useState(() => lembrarTela(url));
+  const [resourceID, setResourceID] = useState(lembrado.resourceID);
+  const [registro, setRegistro] = useState(lembrado.registro);
+  let destino = '';
+  try {
+    if (resourceID) destino = montarUrlTelaSankhya(url, resourceID, registro);
+  } catch {
+    destino = '';
+  }
+
+  const abrir = () => {
+    if (!destino) return;
+    localStorage.setItem(chaveTelaDaBase(url), JSON.stringify({ resourceID: resourceID.trim(), registro: registro.trim() }));
+    window.open(destino, '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <div className="abrir-tela-base">
+      <label>
+        <span>ID da tela</span>
+        <input
+          value={resourceID}
+          onChange={(event) => setResourceID(event.target.value)}
+          placeholder="br.com.sankhya.core.cad.parceiros"
+          aria-label="ID da tela"
+        />
+      </label>
+      <label>
+        <span>Registro</span>
+        <input
+          value={registro}
+          onChange={(event) => setRegistro(event.target.value)}
+          placeholder="CODPARC=1"
+          aria-label="Registro da tela"
+        />
+      </label>
+      <button className="btn tiny ghost" type="button" disabled={!destino} onClick={abrir}>Abrir tela</button>
+    </div>
+  );
+}
+
 function AcoesItem({ onEditar, onRemover }: { onEditar: () => void; onRemover: () => void }) {
   return (
     <div className="cartao-item-acoes">
@@ -594,6 +655,8 @@ function EditorBase({ base, onFechar, onSalvar }: {
   // senha vazio é ambíguo entre "não mexi" e "quero apagar".
   const [senha, setSenha] = useState<string | null>(null);
   const [senhaBanco, setSenhaBanco] = useState<string | null>(null);
+  const [usuario, setUsuario] = useState(base?.usuario ?? '');
+  const [loginApi, setLoginApi] = useState(base?.loginApi ?? false);
 
   // Só serve para sugerir a porta do SGBD escolhido; o valor gravado é o do campo.
   const [sgbd, setSgbd] = useState<Sgbd | ''>(base?.banco.sgbd ?? '');
@@ -605,6 +668,7 @@ function EditorBase({ base, onFechar, onSalvar }: {
       ambiente: String(dados.get('ambiente')) as AmbienteBase,
       url: String(dados.get('url') ?? '').trim(),
       usuario: String(dados.get('usuario') ?? '').trim(),
+      loginApi: temCredenciais && loginApi,
       monitorar: dados.get('monitorar') === 'on',
       ordem: base?.ordem ?? 0,
       ...(senha === null ? {} : { senha }),
@@ -626,15 +690,29 @@ function EditorBase({ base, onFechar, onSalvar }: {
     setSalvando(false);
     if (salvo) onFechar();
   };
+  const temCredenciais = Boolean(usuario.trim() && (senha === null ? base?.temSenha : senha));
   return (
     <DialogEditor titulo={base ? 'Editar base' : 'Nova base'} onFechar={onFechar} onSubmit={(event) => void submeter(event)}>
       <div className="modal-body">
         <label className="campo"><span className="campo-nome">Ambiente</span><select name="ambiente" defaultValue={base?.ambiente ?? 'producao'}>{Object.entries(AMBIENTE).map(([valor, rotulo]) => <option value={valor} key={valor}>{rotulo}</option>)}</select></label>
         <CampoEditor nome="url" rotulo="URL" valor={base?.url} tipo="url" obrigatorio />
-        <CampoEditor nome="usuario" rotulo="Usuário" valor={base?.usuario} />
+        <CampoEditor nome="usuario" rotulo="Usuário" valor={base?.usuario} aoMudar={setUsuario} />
         <CampoEditor nome="senha" rotulo="Senha" tipo="password" aoMudar={setSenha}>
           <small className="campo-dica">{base?.temSenha ? 'Deixe em branco para manter a que está guardada. Digite e apague para remover.' : 'A senha será cifrada pelo helper do Windows.'}</small>
         </CampoEditor>
+        <label className="campo-inline">
+          <input
+            name="loginApi"
+            type="checkbox"
+            checked={temCredenciais && loginApi}
+            disabled={!temCredenciais}
+            onChange={(event) => setLoginApi(event.target.checked)}
+          />
+          <span className="login-api-texto">
+            Login pela API (sem tela de login)
+            <small className="campo-dica">Só funciona com usuário local do Sankhya; base com SSO continua pelo preenchimento automático.</small>
+          </span>
+        </label>
         <label className="campo-inline"><input name="monitorar" type="checkbox" defaultChecked={base?.monitorar ?? true} /> Monitorar esta base</label>
 
         <fieldset className="grupo-campos">

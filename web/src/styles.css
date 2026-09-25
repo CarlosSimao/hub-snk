@@ -2597,6 +2597,31 @@ Processos: ...").
   overflow-wrap: anywhere;
 }
 
+.abrir-tela-base {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.abrir-tela-base label {
+  display: grid;
+  gap: 3px;
+  flex: 1 1 210px;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+
+.abrir-tela-base label:nth-child(2) { flex-basis: 120px; }
+
+.abrir-tela-base input {
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.login-api-texto { display: grid; }
+
 /* --- monitor de log da base ------------------------------------------------ */
 
 /* Log é leitura larga: stacktrace de Java passa fácil dos 200 caracteres, e num modal
