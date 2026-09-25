@@ -8,6 +8,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { deflateRawSync } from 'node:zlib';
+import { DatabaseSync } from 'node:sqlite';
 import Fastify from 'fastify';
 import { textoDoDocx, textoDoXmlWord, DocxInvalidoError } from '../src/sankhya/docxTexto.ts';
 import { extrairResultado, resumoComDuvidas, AnaliseEscopoError } from '../src/sankhya/escopoIa.ts';
@@ -469,6 +470,58 @@ describe('rotas de escopo', () => {
       compartilhamento.fechar();
       escopo.close();
       clientes.close();
+      dir.remove();
+    }
+  });
+});
+
+describe('Escopo: histórico de colunas do kanban', () => {
+  test('grava criação e troca de coluna; reordenar na mesma coluna não conta', () => {
+    const dir = dirTemporario();
+    const escopo = new Escopo(dir.path);
+    try {
+      const t = escopo.criarTarefa(1, { titulo: 'Tela de apontamento' });
+      escopo.mover(t.id, 'backlog', 0);
+      escopo.mover(t.id, 'em_andamento', 0);
+      escopo.mover(t.id, 'concluido', 0);
+      const h = escopo.transicoes({ clienteId: 1 });
+      assert.deepEqual(
+        h.map((x) => [x.de, x.para, x.origem]),
+        [
+          ['', 'backlog', 'criada'],
+          ['backlog', 'em_andamento', 'movida'],
+          ['em_andamento', 'concluido', 'movida'],
+        ],
+      );
+      assert.ok(h.every((x) => x.tarefaId === t.id && x.em));
+    } finally {
+      escopo.close();
+      dir.remove();
+    }
+  });
+
+  test('remoção fica registrada; tarefa antiga ganha carga-inicial uma vez só', () => {
+    const dir = dirTemporario();
+    let escopo = new Escopo(dir.path);
+    try {
+      const a = escopo.criarTarefa(2, { titulo: 'A' }, 'em_revisao');
+      const b = escopo.criarTarefa(2, { titulo: 'B' });
+      escopo.removerTarefa(b.id);
+      assert.deepEqual(escopo.transicoes({ clienteId: 2 }).at(-1)?.para, 'removida');
+      escopo.close();
+
+      // Simula uma base de antes da tabela existir: sem histórico para a tarefa A.
+      const db = new DatabaseSync(join(dir.path, 'sankhya.db'));
+      db.prepare('DELETE FROM escopo_transicoes WHERE tarefa_id = ?').run(a.id);
+      db.close();
+
+      escopo = new Escopo(dir.path);
+      escopo.close();
+      escopo = new Escopo(dir.path);
+      const deA = escopo.transicoes({ clienteId: 2 }).filter((x) => x.tarefaId === a.id);
+      assert.deepEqual(deA.map((x) => [x.de, x.para, x.origem]), [['', 'em_revisao', 'carga-inicial']]);
+    } finally {
+      escopo.close();
       dir.remove();
     }
   });

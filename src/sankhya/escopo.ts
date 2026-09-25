@@ -22,7 +22,19 @@ import {
   type StatusDocumentoEscopo,
   type TarefaEscopo,
   type TipoTarefa,
+  type TransicaoTarefa,
 } from '../types.ts';
+
+interface LinhaTransicao {
+  id: number;
+  tarefa_id: number;
+  cliente_id: number;
+  documento_id: number | null;
+  de: string;
+  para: string;
+  em: string;
+  origem: string;
+}
 
 export class EscopoUsoError extends Error {}
 
@@ -186,6 +198,18 @@ export class Escopo {
         atualizada_em    TEXT    NOT NULL DEFAULT ''
       );
       CREATE INDEX IF NOT EXISTS idx_escopo_tarefa_coluna ON escopo_tarefas (cliente_id, estado, ordem);
+
+      CREATE TABLE IF NOT EXISTS escopo_transicoes (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        tarefa_id    INTEGER NOT NULL,
+        cliente_id   INTEGER NOT NULL,
+        documento_id INTEGER,
+        de           TEXT    NOT NULL DEFAULT '',
+        para         TEXT    NOT NULL,
+        em           TEXT    NOT NULL,
+        origem       TEXT    NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_escopo_transicao_cliente ON escopo_transicoes (cliente_id, em);
     `);
     this.#garantirColunas('escopo_documentos', [
       ['demanda', "TEXT NOT NULL DEFAULT ''"],
@@ -193,6 +217,18 @@ export class Escopo {
       ['compartilhar_nome', "TEXT NOT NULL DEFAULT ''"],
     ]);
     this.#garantirColunas('escopo_tarefas', [['notas', "TEXT NOT NULL DEFAULT ''"]]);
+    // O quadro só guardava a coluna ATUAL: o histórico começa quando esta tabela nasce.
+    // Tarefa sem nenhuma transição (anterior a ela) ganha uma `carga-inicial` com o estado
+    // em que foi encontrada — marcada como tal, para ninguém ler como data de entrada real.
+    this.#db
+      .prepare(
+        `INSERT INTO escopo_transicoes (tarefa_id, cliente_id, documento_id, de, para, em, origem)
+         SELECT t.id, t.cliente_id, t.documento_id, '', t.estado,
+                COALESCE(NULLIF(t.atualizada_em, ''), NULLIF(t.criada_em, ''), ?), 'carga-inicial'
+           FROM escopo_tarefas t
+          WHERE NOT EXISTS (SELECT 1 FROM escopo_transicoes x WHERE x.tarefa_id = t.id)`,
+      )
+      .run(new Date().toISOString());
     // Análise que estava rodando quando o hub caiu nunca vai terminar: sem isto o
     // documento ficaria "analisando" para sempre e o botão de reanalisar, travado.
     this.#db
@@ -313,6 +349,11 @@ export class Escopo {
     const agora = new Date().toISOString();
     this.#db.exec('BEGIN');
     try {
+      for (const velha of this.#db
+        .prepare(`SELECT id FROM escopo_tarefas WHERE documento_id = ? AND estado = 'backlog'`)
+        .all(id) as { id: number }[]) {
+        this.#transicao(velha.id, doc.clienteId, id, 'backlog', 'removida', agora, 'removida');
+      }
       this.#db
         .prepare(`DELETE FROM escopo_tarefas WHERE documento_id = ? AND estado = 'backlog'`)
         .run(id);
@@ -331,7 +372,7 @@ export class Escopo {
       for (const t of tarefas) {
         const titulo = (t.titulo ?? '').trim();
         if (!titulo) continue;
-        inserir.run(
+        const nova = inserir.run(
           doc.clienteId,
           id,
           titulo.slice(0, 200),
@@ -345,6 +386,7 @@ export class Escopo {
           agora,
           agora,
         );
+        this.#transicao(Number(nova.lastInsertRowid), doc.clienteId, id, '', 'backlog', agora, 'criada');
         ordem += 1;
         criadas += 1;
       }
@@ -435,6 +477,7 @@ export class Escopo {
         agora,
         agora,
       );
+    this.#transicao(Number(r.lastInsertRowid), clienteId, documentoId, '', estado, agora, 'criada');
     this.#avisar(clienteId);
     return this.tarefa(Number(r.lastInsertRowid))!;
   }
@@ -487,9 +530,14 @@ export class Escopo {
       const posicao = Math.max(0, Math.min(Number.isFinite(indice) ? Math.floor(indice) : destino.length, destino.length));
       destino.splice(posicao, 0, id);
 
+      const agora = new Date().toISOString();
       this.#db
         .prepare('UPDATE escopo_tarefas SET estado = ?, atualizada_em = ? WHERE id = ?')
-        .run(estado, new Date().toISOString(), id);
+        .run(estado, agora, id);
+      // Reordenar dentro da mesma coluna não é transição.
+      if (atual.estado !== estado) {
+        this.#transicao(id, atual.clienteId, atual.documentoId, atual.estado, estado, agora, 'movida');
+      }
       const ordenar = this.#db.prepare('UPDATE escopo_tarefas SET ordem = ? WHERE id = ?');
       destino.forEach((tid, i) => ordenar.run(i, tid));
 
@@ -508,9 +556,51 @@ export class Escopo {
     const atual = this.tarefa(id);
     if (!atual) return false;
     this.#db.prepare('DELETE FROM escopo_tarefas WHERE id = ?').run(id);
+    this.#transicao(id, atual.clienteId, atual.documentoId, atual.estado, 'removida', new Date().toISOString(), 'removida');
     this.#renumerar(atual.clienteId, atual.estado);
     this.#avisar(atual.clienteId);
     return true;
+  }
+
+  /**
+   * O histórico de colunas das tarefas, em ordem cronológica — o que os gráficos de fluxo
+   * (throughput, lead time, burndown) precisam e o quadro sozinho não guarda.
+   */
+  transicoes(filtro: { clienteId?: number; desde?: string } = {}): TransicaoTarefa[] {
+    const linhas = this.#db
+      .prepare(
+        `SELECT * FROM escopo_transicoes
+          WHERE (? IS NULL OR cliente_id = ?) AND em >= ?
+          ORDER BY em, id`,
+      )
+      .all(filtro.clienteId ?? null, filtro.clienteId ?? null, filtro.desde ?? '') as unknown as LinhaTransicao[];
+    return linhas.map((l) => ({
+      id: l.id,
+      tarefaId: l.tarefa_id,
+      clienteId: l.cliente_id,
+      documentoId: l.documento_id,
+      de: l.de,
+      para: l.para,
+      em: l.em,
+      origem: l.origem as TransicaoTarefa['origem'],
+    }));
+  }
+
+  #transicao(
+    tarefaId: number,
+    clienteId: number,
+    documentoId: number | null,
+    de: string,
+    para: string,
+    em: string,
+    origem: TransicaoTarefa['origem'],
+  ): void {
+    this.#db
+      .prepare(
+        `INSERT INTO escopo_transicoes (tarefa_id, cliente_id, documento_id, de, para, em, origem)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(tarefaId, clienteId, documentoId, de, para, em, origem);
   }
 
   #proximaOrdem(clienteId: number, estado: string): number {

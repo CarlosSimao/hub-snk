@@ -102,6 +102,20 @@ export function registerRoutesEscopo(app: FastifyInstance, deps: RouteEscopoDeps
     };
   });
 
+  /**
+   * Histórico de colunas do kanban — de um cliente (`?clienteId=`) ou de todos, a partir
+   * de `?desde=` (ISO). É a fonte do `tarefa.transicao` da Integração API.
+   */
+  app.get<{ Querystring: { clienteId?: string; desde?: string } }>('/api/escopo/transicoes', async (request) => {
+    const clienteId = numero(request.query.clienteId ?? '');
+    return {
+      transicoes: escopo.transicoes({
+        ...(clienteId ? { clienteId } : {}),
+        ...(request.query.desde ? { desde: request.query.desde } : {}),
+      }),
+    };
+  });
+
   app.get<{ Params: { docId: string }; Querystring: { baixar?: string } }>(
     '/api/escopo/documentos/:docId/arquivo',
     async (request, reply) => {

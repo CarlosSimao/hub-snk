@@ -1061,6 +1061,25 @@ export interface TarefaEscopo {
   atualizadaEm: string;
 }
 
+/**
+ * Uma troca de coluna de uma tarefa do kanban.
+ *
+ * `carga-inicial` é o estado em que a tarefa foi encontrada quando o histórico começou a
+ * ser gravado (2026-09-25) — não é a data real de entrada naquela coluna.
+ */
+export interface TransicaoTarefa {
+  id: number;
+  tarefaId: number;
+  clienteId: number;
+  documentoId: number | null;
+  /** Coluna de origem; vazio quando a tarefa nasceu ou na carga inicial. */
+  de: string;
+  /** Coluna de destino, ou `removida`. */
+  para: string;
+  em: string;
+  origem: 'criada' | 'movida' | 'removida' | 'carga-inicial';
+}
+
 export interface EscopoDoCliente {
   documentos: DocumentoEscopo[];
   tarefas: TarefaEscopo[];
