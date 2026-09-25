@@ -20,6 +20,65 @@ const STATUS_TAREFA = ['Hoje', 'Futura', 'Atrasada'];
 const MAX_PAGINAS = 20;
 const POR_PAGINA = 100;
 
+/**
+ * Fila de vagas: até `vagas` tarefas rodam ao mesmo tempo, o resto espera a vez.
+ *
+ * `minhasOrdens` faz uma chamada de detalhe por OS, e a aba OS geral e a do cliente
+ * podem carregar perto uma da outra (ou um clique duplo em "Atualizar"). Sem um
+ * limite ÚNICO por cima de todas as chamadas — não só dentro de uma consulta —,
+ * essas rajadas empilham dezenas de conexões HTTPS pro mesmo host da AWS ao mesmo
+ * tempo, e as mais novas caem em timeout de conexão (visto em produção: requisição
+ * boa levando mais de 40s, as de trás `ConnectTimeoutError`).
+ */
+class FilaDeVagas {
+  #vagasLivres: number;
+  #esperando: (() => void)[] = [];
+
+  constructor(vagas: number) {
+    this.#vagasLivres = vagas;
+  }
+
+  async #adquirir(): Promise<void> {
+    if (this.#vagasLivres > 0) {
+      this.#vagasLivres -= 1;
+      return;
+    }
+    await new Promise<void>((resolve) => this.#esperando.push(resolve));
+  }
+
+  /** Passa a vaga direto para quem está esperando, em vez de liberar e deixar correr solto. */
+  #liberar(): void {
+    const proximo = this.#esperando.shift();
+    if (proximo) {
+      proximo();
+    } else {
+      this.#vagasLivres += 1;
+    }
+  }
+
+  async executar<T>(tarefa: () => Promise<T>): Promise<T> {
+    await this.#adquirir();
+    try {
+      return await tarefa();
+    } finally {
+      this.#liberar();
+    }
+  }
+}
+
+const MAX_CHAMADAS_SIMULTANEAS_NA_EXPERIENCE = 4;
+const filaDeChamadasNaExperience = new FilaDeVagas(MAX_CHAMADAS_SIMULTANEAS_NA_EXPERIENCE);
+
+/** Separa etapa/processos (já em campos próprios) do texto livre em "Tarefas Realizadas". */
+const MARCADOR_DE_OBSERVACOES = '--- Informações Adicionais ---';
+
+/** Só o texto digitado à mão, depois do marcador. Sem marcador, não há texto livre. */
+function extrairObservacoes(informacaoAdicional: string): string {
+  const indice = informacaoAdicional.indexOf(MARCADOR_DE_OBSERVACOES);
+  if (indice === -1) return '';
+  return informacaoAdicional.slice(indice + MARCADOR_DE_OBSERVACOES.length).trim();
+}
+
 export class SessaoExpiradaError extends Error {}
 
 export type SituacaoDoDia =
@@ -135,18 +194,20 @@ export class Experience {
     const itens: T[] = [];
 
     for (let pagina = 1; pagina <= MAX_PAGINAS; pagina += 1) {
-      const resposta = await fetch(`${API}${caminho}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          columns: [],
-          page: pagina,
-          length: POR_PAGINA,
-          order: {},
-          filters: filtros,
+      const resposta = await filaDeChamadasNaExperience.executar(() =>
+        fetch(`${API}${caminho}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            columns: [],
+            page: pagina,
+            length: POR_PAGINA,
+            order: {},
+            filters: filtros,
+          }),
+          signal: AbortSignal.timeout(30_000),
         }),
-        signal: AbortSignal.timeout(30_000),
-      });
+      );
 
       if (resposta.status === 401 || resposta.status === 403) {
         throw new SessaoExpiradaError(
@@ -194,15 +255,17 @@ export class Experience {
   /** Uma chamada avulsa, fora do padrão paginado. */
   async #chamar<T>(caminho: string, init: RequestInit = {}): Promise<T> {
     const token = await this.#token();
-    const resposta = await fetch(`${API}${caminho}`, {
-      ...init,
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${token}`,
-        ...init.headers,
-      },
-      signal: AbortSignal.timeout(30_000),
-    });
+    const resposta = await filaDeChamadasNaExperience.executar(() =>
+      fetch(`${API}${caminho}`, {
+        ...init,
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${token}`,
+          ...init.headers,
+        },
+        signal: AbortSignal.timeout(30_000),
+      }),
+    );
 
     if (resposta.status === 401 || resposta.status === 403) {
       throw new SessaoExpiradaError(
@@ -224,13 +287,14 @@ export class Experience {
   }
 
   /**
-   * Acha o `implantation_id` (o que a Experience entende como "projeto") a
-   * partir do número de FAP do ERP — são coisas diferentes: FAP é o
-   * `numNegociacao` da negociação, `implantation_id` é o `id` interno da
-   * implantação que tem aquele FAP (`impl.fap_number`). Sem essa tradução,
-   * toda chamada de tarefas/pessoas busca um projeto que não existe.
+   * Todas as implantações (o que a Experience entende como "projeto") com o `id`
+   * interno e o número de FAP do ERP (`impl.fap_number`) — são coisas diferentes:
+   * FAP é o `numNegociacao` da negociação, `implantation_id` é o `id` da
+   * implantação que tem aquele FAP. Base para achar o `implantation_id` de um FAP
+   * (um cliente pode ter mais de um).
    */
-  async #implantationIdPorFap(fapNumero: number): Promise<number | null> {
+  async #implantacoesComFap(): Promise<{ id: number; fap: number }[]> {
+    const implantacoes: { id: number; fap: number }[] = [];
     const colunas = [
       { name: 'impl.id', alias: 'id' },
       { name: 'impl.fap_number', alias: 'fap' },
@@ -253,13 +317,25 @@ export class Experience {
       const linhas = corpo.data?.result ?? [];
       if (!linhas.length) break;
 
-      const achada = linhas.find((l) => Number(l['fap']) === fapNumero);
-      if (achada) return Number(achada['id']);
+      implantacoes.push(...linhas.map((l) => ({ id: Number(l['id']), fap: Number(l['fap']) })));
 
       const total = Number(linhas[0]?.['full_count'] ?? 0);
       if (!total || pagina * POR_PAGINA >= total) break;
     }
-    return null;
+
+    return implantacoes;
+  }
+
+  async #implantationIdPorFap(fapNumero: number): Promise<number | null> {
+    const implantacoes = await this.#implantacoesComFap();
+    return implantacoes.find((i) => i.fap === fapNumero)?.id ?? null;
+  }
+
+  /** Os `implantation_id` de todos os FAPs de um cliente — um cliente pode ter mais de um. */
+  async #implantationIdsPorFaps(fapNumeros: number[]): Promise<number[]> {
+    const implantacoes = await this.#implantacoesComFap();
+    const fapsProcurados = new Set(fapNumeros);
+    return [...new Set(implantacoes.filter((i) => fapsProcurados.has(i.fap)).map((i) => i.id))];
   }
 
   /**
@@ -271,6 +347,7 @@ export class Experience {
    */
   async #detalheDaOrdem(orderId: number): Promise<{
     tarefasRealizadas: string;
+    observacoes: string;
     horaInicio: string;
     horaFim: string;
     intervalo: string;
@@ -285,6 +362,10 @@ export class Experience {
     return {
       tarefasRealizadas: linhas
         .map((l) => texto(l['additional_information']))
+        .filter(Boolean)
+        .join('\n\n'),
+      observacoes: linhas
+        .map((l) => extrairObservacoes(texto(l['additional_information'])))
         .filter(Boolean)
         .join('\n\n'),
       horaInicio: texto(primeira['hour_to_start']),
@@ -335,6 +416,35 @@ export class Experience {
     return { tipo: 'sem-tarefa' };
   }
 
+  /** Converte uma linha crua de `/orders/filtering` — mesmo formato em `ordens()` e `minhasOrdens()`. */
+  #converterOrdem(linha: Record<string, unknown>): OrdemExperience {
+    return {
+      id: Number(linha['order_id'] ?? linha['id']),
+      dia: paraIso(texto(linha['order_done_date'])),
+      descricao: texto(linha['description']),
+      tipo: texto(linha['order_type']),
+      numeroSankhya: texto(linha['numos_sankhya']),
+      statusAceite: texto(linha['accepted_os_status']),
+      horasFeitas: texto(linha['diff_time']),
+      etapa: texto(linha['stage_name']),
+      processos: texto(linha['process_all']),
+      pessoa: texto(linha['person_name']),
+      empresa: texto(linha['company_name']),
+      statusNumeroSankhya: texto(linha['numos_sankhya_status']),
+      horasExcedidas: linha['volume_hours_exceeded'] === true,
+      erro: texto(linha['error_description']),
+      pedido: texto(linha['application_code']),
+      coordenador: texto(linha['fap_coordinator']),
+      totalProjetoPrevisto: texto(linha['total_expected']),
+      totalProjetoFeito: texto(linha['total_done']),
+      // `/orders/filtering` não traz isso — só `#detalheDaOrdem`, uma chamada por OS.
+      horaInicio: '',
+      horaFim: '',
+      intervalo: '',
+      observacoes: '',
+    };
+  }
+
   /**
    * As OS de um projeto no período.
    *
@@ -354,25 +464,109 @@ export class Experience {
         // é um filtro que não casa com ninguém.
         ...(personId === null ? {} : { users: [personId] }),
       },
-      (linha) => ({
-        id: Number(linha['order_id'] ?? linha['id']),
-        dia: paraIso(texto(linha['order_done_date'])),
-        descricao: texto(linha['description']),
-        tipo: texto(linha['order_type']),
-        numeroSankhya: texto(linha['numos_sankhya']),
-        statusAceite: texto(linha['accepted_os_status']),
-        horasFeitas: texto(linha['diff_time']),
-        etapa: texto(linha['stage_name']),
-        processos: texto(linha['process_all']),
-        pessoa: texto(linha['person_name']),
-        empresa: texto(linha['company_name']),
-        statusNumeroSankhya: texto(linha['numos_sankhya_status']),
-        horasExcedidas: linha['volume_hours_exceeded'] === true,
-        erro: texto(linha['error_description']),
-        pedido: texto(linha['application_code']),
-        coordenador: texto(linha['fap_coordinator']),
-        totalProjetoPrevisto: texto(linha['total_expected']),
-        totalProjetoFeito: texto(linha['total_done']),
+      (linha) => this.#converterOrdem(linha),
+    );
+  }
+
+  /**
+   * Todos os `implantation_id` existentes na Experience — `/orders/filtering` exige a
+   * lista de projetos no filtro (sem ela devolve HTTP 500, testado). Não filtra por
+   * usuário: quem restringe pra "minhas ordens" é o `users: [personId]` de quem chama.
+   */
+  async #todosOsImplantationIds(): Promise<number[]> {
+    const ids: number[] = [];
+
+    for (let pagina = 1; pagina <= MAX_PAGINAS; pagina += 1) {
+      const corpo = await this.#chamar<{ data?: { result?: Record<string, unknown>[] } }>(
+        '/implantations/filters',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            columns: [{ name: 'impl.id', alias: 'id' }],
+            page: pagina,
+            length: POR_PAGINA,
+            order: {},
+            filters: {},
+          }),
+        },
+      );
+      const linhas = corpo.data?.result ?? [];
+      if (!linhas.length) break;
+
+      ids.push(...linhas.map((linha) => Number(linha['id'])));
+
+      const total = Number(linhas[0]?.['full_count'] ?? 0);
+      if (!total || pagina * POR_PAGINA >= total) break;
+    }
+
+    return ids;
+  }
+
+  /**
+   * As OS do usuário logado no período, em TODOS os projetos que ele tem acesso — sem
+   * o usuário precisar achar o ID de cada projeto. É o que alimenta a aba OS geral.
+   */
+  async minhasOrdens(personId: number, de: string, ate: string): Promise<OrdemExperience[]> {
+    const implantationIds = await this.#todosOsImplantationIds();
+    return this.#buscarEEnriquecer(implantationIds, personId, de, ate);
+  }
+
+  /**
+   * As OS do usuário logado, só nos projetos dos FAPs informados — o que alimenta a aba
+   * OS do cadastro do cliente. Ao contrário de `minhasOrdens`, filtra pelo `implantation_id`
+   * de verdade (via FAP do parceiro do ERP), não por comparação de nome da empresa.
+   */
+  async ordensDoCliente(
+    personId: number,
+    fapNumeros: number[],
+    de: string,
+    ate: string,
+  ): Promise<OrdemExperience[]> {
+    const implantationIds = await this.#implantationIdsPorFaps(fapNumeros);
+    return this.#buscarEEnriquecer(implantationIds, personId, de, ate);
+  }
+
+  async #buscarEEnriquecer(
+    implantationIds: number[],
+    personId: number,
+    de: string,
+    ate: string,
+  ): Promise<OrdemExperience[]> {
+    if (implantationIds.length === 0) {
+      return [];
+    }
+
+    const ordens = await this.#paginar(
+      `/orders/filtering?implantation_ids=${implantationIds.join(',')}`,
+      { period: [`${de} 00:00:00`, `${ate} 23:59:59`], users: [personId] },
+      (linha) => this.#converterOrdem(linha),
+    );
+
+    return this.#comHorariosEObservacoes(ordens);
+  }
+
+  /**
+   * Preenche `horaInicio`/`horaFim`/`intervalo`/`observacoes`, uma chamada por OS.
+   *
+   * Dispara todas de uma vez: quem limita quantas rodam ao mesmo tempo de verdade é
+   * `filaDeChamadasNaExperience`, compartilhada com toda chamada à Experience — não
+   * precisa duplicar esse controle aqui em lotes.
+   */
+  async #comHorariosEObservacoes(ordens: OrdemExperience[]): Promise<OrdemExperience[]> {
+    return Promise.all(
+      ordens.map(async (ordem) => {
+        const detalhe = await this.#detalheDaOrdem(ordem.id).catch((erro: unknown) => {
+          // Sessão expirada vale para a lista inteira: propaga em vez de esconder atrás de campos vazios.
+          if (erro instanceof SessaoExpiradaError) throw erro;
+          return { observacoes: '', horaInicio: '', horaFim: '', intervalo: '' };
+        });
+        return {
+          ...ordem,
+          horaInicio: detalhe.horaInicio,
+          horaFim: detalhe.horaFim,
+          intervalo: detalhe.intervalo,
+          observacoes: detalhe.observacoes,
+        };
       }),
     );
   }

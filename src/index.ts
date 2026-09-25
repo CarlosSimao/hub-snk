@@ -14,6 +14,7 @@ import { registrarRotasDeConfiguracao } from './rotas/rotasConfiguracao.ts';
 import { registrarRotasDeGit } from './rotas/rotasGit.ts';
 import { registrarRotasDeAgenda } from './rotas/rotasAgenda.ts';
 import { registrarRotasDeLocal } from './rotas/rotasLocal.ts';
+import { registrarRotasDeOs } from './rotas/rotasOs.ts';
 import { registrarRotasDeSankhya } from './rotas/rotasSankhya.ts';
 import { registrarRotasDeSistema } from './rotas/rotasSistema.ts';
 import { AgendaRecursos } from './sankhya/agenda.ts';
@@ -89,6 +90,8 @@ async function iniciarServidor(): Promise<void> {
     credenciaisSankhya,
     sessaoDoDesktop,
     configuracao.ponteDoDesktopTokenFile,
+    experience,
+    repositorioDeConfiguracao,
   );
   registrarRotasDeAgenda(
     servidor,
@@ -96,6 +99,13 @@ async function iniciarServidor(): Promise<void> {
     repositorioDeClientes,
     credenciaisSankhya,
     experience,
+  );
+  registrarRotasDeOs(
+    servidor,
+    experience,
+    repositorioDeClientes,
+    repositorioDeConfiguracao,
+    credenciaisSankhya,
   );
 
   /*

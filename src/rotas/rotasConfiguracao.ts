@@ -103,6 +103,16 @@ const esquemaDeConfiguracao = z.object({
     .default(''),
   /* Vale para todo link clicável do cadastro: bases, repositório, links gerais e de projeto. */
   destinoDosLinks: esquemaDeDestinoDeLink.default('hub'),
+  /*
+   * Sem forma automática de descobrir a partir da sessão capturada (ver
+   * `ConfiguracaoGlobal.sankhyaOmCodUsu`), então, ao contrário do `experiencePersonId`,
+   * este campo tem tela própria e vem no corpo do PUT.
+   */
+  sankhyaOmCodUsu: z
+    .string()
+    .trim()
+    .regex(/^\d*$/, 'O código de usuário do Sankhya OM deve ter só números.')
+    .default(''),
 });
 
 /**

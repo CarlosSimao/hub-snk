@@ -1,6 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
 import { ehSistemaValido, type Credenciais } from '../sankhya/credenciais.ts';
+import type { Experience } from '../sankhya/experience.ts';
 import type { SessaoDoDesktop } from '../sankhya/sessaoDoDesktop.ts';
 import { SISTEMAS_SANKHYA } from '../tipos.ts';
 import { requisicaoVeioDoShell } from './autenticacaoDoShell.ts';
@@ -25,6 +27,8 @@ function registrarRotasDeSessaoDoDesktop(
   servidor: FastifyInstance,
   sessaoDoDesktop: SessaoDoDesktop,
   arquivoTokenDoDesktop: string,
+  experience: Experience,
+  repositorioDeConfiguracao: RepositorioConfiguracao,
 ): void {
   const caminho = '/api/sankhya/desktop/sessao/:sistema';
 
@@ -43,7 +47,17 @@ function registrarRotasDeSessaoDoDesktop(
       return resposta.status(400).send({ mensagem: 'Envie { usuario, token, expira? }.' });
     }
 
+    /*
+     * O shell empurra a cada 15s mesmo sem mudança nenhuma (ver `desktop/src/main.ts`):
+     * só redescobre o `person_id` quando o token muda de verdade (login, renovação,
+     * ou backend reiniciado sem sessão em memória), senão vira uma chamada à Experience
+     * a cada tick, para sempre.
+     */
+    const tokenAnterior = sessaoDoDesktop.obter()?.token;
     sessaoDoDesktop.definir(sessao.data);
+    if (sessao.data.token !== tokenAnterior) {
+      await atualizarExperiencePersonId(experience, repositorioDeConfiguracao);
+    }
     return { ok: true };
   });
 
@@ -62,13 +76,39 @@ function registrarRotasDeSessaoDoDesktop(
   });
 }
 
+/**
+ * Best-effort: se a Experience estiver fora do ar ou o token ainda não valer,
+ * a captura da sessão continua ok — só o `person_id` fica para a próxima.
+ */
+async function atualizarExperiencePersonId(
+  experience: Experience,
+  repositorioDeConfiguracao: RepositorioConfiguracao,
+): Promise<void> {
+  try {
+    const pessoa = await experience.descobrirPersonId();
+    if (pessoa) {
+      await repositorioDeConfiguracao.definirExperiencePersonId(String(pessoa.personId));
+    }
+  } catch {
+    // Sem sessão, sem rede: a aba OS só reflete o valor antigo até a próxima captura.
+  }
+}
+
 export function registrarRotasDeSankhya(
   servidor: FastifyInstance,
   credenciais: Credenciais,
   sessaoDoDesktop: SessaoDoDesktop,
   arquivoTokenDoDesktop: string,
+  experience: Experience,
+  repositorioDeConfiguracao: RepositorioConfiguracao,
 ): void {
-  registrarRotasDeSessaoDoDesktop(servidor, sessaoDoDesktop, arquivoTokenDoDesktop);
+  registrarRotasDeSessaoDoDesktop(
+    servidor,
+    sessaoDoDesktop,
+    arquivoTokenDoDesktop,
+    experience,
+    repositorioDeConfiguracao,
+  );
 
   servidor.get('/api/sankhya/shell', async () => ({ disponivel: await credenciais.disponivel() }));
 
@@ -145,6 +185,9 @@ export function registrarRotasDeSankhya(
             return resposta
               .status(409)
               .send({ mensagem: resultado.erro ?? 'Nenhum cookie capturado.' });
+          }
+          if (sistema === 'sankhya-experience') {
+            await atualizarExperiencePersonId(experience, repositorioDeConfiguracao);
           }
           return resultado;
         } catch (erro) {

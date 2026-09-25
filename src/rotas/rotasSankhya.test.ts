@@ -4,10 +4,27 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import Fastify, { type FastifyInstance } from 'fastify';
+import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
 import { Credenciais } from '../sankhya/credenciais.ts';
+import { Experience } from '../sankhya/experience.ts';
 import { PonteDoDesktop } from '../sankhya/ponteDoDesktop.ts';
 import { SessaoDoDesktop } from '../sankhya/sessaoDoDesktop.ts';
+import type { ConfiguracaoGlobal } from '../tipos.ts';
 import { registrarRotasDeSankhya } from './rotasSankhya.ts';
+
+/** Dublê mínimo: estas rotas só chamam `definirExperiencePersonId` ao capturar sessão. */
+function criarRepositorioDeConfiguracaoFalso(): RepositorioConfiguracao {
+  let experiencePersonId = '';
+  return {
+    descartarCache: () => {},
+    ler: async () => ({ experiencePersonId }) as ConfiguracaoGlobal,
+    salvar: async () => ({ experiencePersonId }) as ConfiguracaoGlobal,
+    definirExperiencePersonId: async (personId: string) => {
+      experiencePersonId = personId;
+      return { experiencePersonId } as ConfiguracaoGlobal;
+    },
+  };
+}
 
 /* Porta 1 é reservada e nunca escuta: conexão recusada na hora. */
 const URL_SEM_NINGUEM_ESCUTANDO = 'http://127.0.0.1:1';
@@ -30,7 +47,14 @@ function criarServidor(arquivoTokenDoDesktop = arquivoDeToken): {
     sessaoDoDesktop,
   );
   const servidor = Fastify();
-  registrarRotasDeSankhya(servidor, credenciais, sessaoDoDesktop, arquivoTokenDoDesktop);
+  registrarRotasDeSankhya(
+    servidor,
+    credenciais,
+    sessaoDoDesktop,
+    arquivoTokenDoDesktop,
+    new Experience(credenciais),
+    criarRepositorioDeConfiguracaoFalso(),
+  );
   return { servidor, sessaoDoDesktop };
 }
 
