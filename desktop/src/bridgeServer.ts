@@ -15,6 +15,7 @@ import * as navegacaoSkill from './navegacaoSkill';
 import type { AgendaFetcher } from './agenda';
 import type { ServerLogFetcher } from './serverLog';
 import { estadoSessao } from './keepalive';
+import { diagnosticar } from './diagnosticoBase';
 import type { TabManager } from './tabs';
 
 function lerCorpo(req: IncomingMessage): Promise<string> {
@@ -407,6 +408,32 @@ export function criarBridgeServer(
             novoOffset: resultado.novoOffset ?? 0,
             actionId: resultado.actionId ?? '',
           });
+        } catch (err) {
+          responderJson(res, 500, { erro: String(err) });
+        }
+        return;
+      }
+
+      // Diagnóstico de uma base de cliente, lido de dentro da aba logada dela (ver
+      // desktop/src/diagnosticoBase.ts). Só leitura; parâmetros só os pedidos pela chave.
+      if (req.method === 'POST' && req.url === '/diagnostico/base') {
+        try {
+          const corpo = JSON.parse((await lerCorpo(req)) || '{}') as { origin?: string; parametros?: string };
+          if (!corpo.origin) {
+            responderJson(res, 400, { erro: 'informe { origin } da base' });
+            return;
+          }
+          const view = tabs()?.abaCliente(corpo.origin);
+          if (!view) {
+            responderJson(res, 409, { erro: 'a aba dessa base não está aberta no hub — abra a base e faça login' });
+            return;
+          }
+          const resultado = await diagnosticar(view.webContents, String(corpo.parametros ?? ''));
+          if (!resultado.ok) {
+            responderJson(res, 409, { erro: resultado.erro ?? 'falha ao ler a base', expirou: Boolean(resultado.expirou) });
+            return;
+          }
+          responderJson(res, 200, resultado);
         } catch (err) {
           responderJson(res, 500, { erro: String(err) });
         }
