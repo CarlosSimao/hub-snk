@@ -481,6 +481,12 @@ export class TabManager {
     view.webContents.on('did-finish-load', () => {
       logEvento('aba-cliente-carregada', { clienteId: info.clienteId, url: origemSemQuery(view.webContents.getURL()) });
     });
+    // Mesmo diagnóstico das abas principais: sem ele, uma tela de cliente que trava (o
+    // workspace que não termina de montar) não deixa rastro nenhum.
+    view.webContents.on('console-message', (_e, nivel, mensagem, linha, origem) => {
+      if (nivel < 3) return;
+      logEvento('aba-cliente-erro-console', { clienteId: info.clienteId, mensagem, linha, origem: origemSemQuery(origem) });
+    });
     // Antes isto negava TODO `window.open`, e como o download do Sankhya costuma abrir
     // uma guia nova para servir o arquivo, o download morria aqui. Agora a janela é
     // permitida como filha na MESMA partição isolada do cliente (nada vaza para outra

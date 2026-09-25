@@ -47,6 +47,8 @@ export async function logar(
   senha: string,
 ): Promise<{ ok: boolean; erro?: string }> {
   try {
+    // Sessão velha de um login anterior não pode passar por cookie novo do servidor.
+    await session.fromPartition(particao).cookies.remove(`${origin}/mge`, 'JSESSIONID');
     const j = await postar(particao, origin, 'MobileLoginSP.login', {
       NOMUSU: { $: usuario },
       INTERNO: { $: senha },
@@ -58,18 +60,30 @@ export async function logar(
       logEvento('login-api-recusado', { origem: origemSemQuery(origin), erro });
       return { ok: false, erro };
     }
-    // Gravado explicitamente em vez de confiar no Set-Cookie da resposta: é o valor que o
-    // Sankhya declara como sessão, e o caminho `/mge` é o do contexto que a tela usa.
-    const u = new URL(origin);
-    await session.fromPartition(particao).cookies.set({
-      url: `${origin}/mge`,
-      name: 'JSESSIONID',
-      value: jsessionid,
-      path: '/mge',
-      secure: u.protocol === 'https:',
-      httpOnly: true,
+    // O Set-Cookie do servidor vale mais que o `jsessionid` do corpo: em cluster ele traz o
+    // sufixo do nó (`abc.node2`) e vem junto do cookie de afinidade, e sobrescrevê-lo com
+    // o valor cru mandava as chamadas do workspace para o nó errado — a tela carregava e
+    // travava. Só grava à mão quando o servidor não gravou nada.
+    const ses = session.fromPartition(particao);
+    const jaTem = await ses.cookies.get({ url: `${origin}/mge`, name: 'JSESSIONID' });
+    if (!jaTem.length) {
+      await ses.cookies.set({
+        url: `${origin}/mge`,
+        name: 'JSESSIONID',
+        value: jsessionid,
+        path: '/mge',
+        secure: new URL(origin).protocol === 'https:',
+        httpOnly: true,
+      });
+    }
+    // Diagnóstico sem valores: quais cookies a partição tem e se o do servidor tinha sufixo.
+    const nomes = (await ses.cookies.get({ url: `${origin}/mge` })).map((c) => c.name);
+    logEvento('login-api-ok', {
+      origem: origemSemQuery(origin),
+      cookieDoServidor: jaTem.length > 0,
+      comSufixoDeNo: jaTem[0]?.value.includes('.') ?? false,
+      cookies: nomes.join(','),
     });
-    logEvento('login-api-ok', { origem: origemSemQuery(origin) });
     return { ok: true };
   } catch (err) {
     // Rede, timeout ou resposta que não é JSON (tela de login de SSO, proxy): autofill.
