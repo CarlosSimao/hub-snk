@@ -35,5 +35,6 @@ describe('montarUrlTelaSankhya — valor entre aspas', () => {
       JSON.parse(Buffer.from(montarUrlTelaSankhya('https://x.com/mge', 'br.com.sankhya.core.cad.parceiros', registro).split('/').at(-1)!, 'base64').toString());
     assert.deepEqual(pk('CODPARC="1"'), { CODPARC: '1' });
     assert.deepEqual(pk('CODPARC=1'), { CODPARC: 1 });
+    assert.deepEqual(pk('CODPARC=1,'), { CODPARC: 1 });
   });
 });

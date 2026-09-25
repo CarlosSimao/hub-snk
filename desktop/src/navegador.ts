@@ -165,8 +165,9 @@ const RESOURCE_ID = /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)+$/;
 export function parsearRegistro(texto: string): Record<string, string | number> | null {
   const m = /^\s*([A-Z0-9_]+)\s*=\s*(.+?)\s*$/.exec(texto);
   if (!m) return null;
-  const valor = m[2]!;
-  // Entre aspas = texto (há versão do Sankhya que não converte o número do link).
+  // Vírgula/ponto e vírgula solto no fim é digitação (`CODPARC=1,` dava CORE_E03412).
+  const valor = m[2]!.replace(/[\s,;]+$/, '');
+  // Entre aspas = texto; sem aspas, só dígitos vira número.
   const entreAspas = /^"(.*)"$/.exec(valor);
   return { [m[1]!]: entreAspas ? entreAspas[1]! : /^\d+$/.test(valor) ? Number(valor) : valor };
 }

@@ -22,10 +22,10 @@ export function montarUrlTelaSankhya(baseUrl: string, resourceID: string, regist
   const partes = REGISTRO.exec(registroLimpo);
   if (!partes) throw new Error('Registro inválido; use CAMPO=valor');
   const campo = partes[1]!;
-  const texto = partes[2]!;
-  // Entre aspas vai como texto (`CODPARC="1"`): há versões do Sankhya que não convertem o
-  // número do link (erro CORE_E03412, "conversão para número: 1,"). Sem aspas, só dígitos
-  // vira número, o formato que funcionou no corporativo.
+  // Vírgula ou ponto e vírgula solto no fim é erro de digitação: `CODPARC=1,` chegava ao
+  // Sankhya como "1," e dava CORE_E03412 (erro de conversão para número).
+  const texto = partes[2]!.replace(/[\s,;]+$/, '');
+  // Entre aspas vai como texto (`CODPARC="ABC"`); sem aspas, só dígitos vira número.
   const entreAspas = /^"(.*)"$/.exec(texto);
   const valor = entreAspas ? entreAspas[1]! : /^\d+$/.test(texto) ? Number(texto) : texto;
   return `${destino}/${base64Utf8(JSON.stringify({ [campo]: valor }))}`;
