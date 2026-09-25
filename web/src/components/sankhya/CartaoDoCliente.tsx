@@ -263,7 +263,7 @@ export function CartaoDoCliente({ cliente, toast, onAbrirSkill, onEditar, onRemo
               ambiente: base.ambiente,
               url: base.url,
               usuario: base.usuario,
-              loginApi: base.loginApi,
+              entrarAutomatico: base.entrarAutomatico,
               monitorar,
               ordem: base.ordem,
             })}
@@ -656,7 +656,7 @@ function EditorBase({ base, onFechar, onSalvar }: {
   const [senha, setSenha] = useState<string | null>(null);
   const [senhaBanco, setSenhaBanco] = useState<string | null>(null);
   const [usuario, setUsuario] = useState(base?.usuario ?? '');
-  const [loginApi, setLoginApi] = useState(base?.loginApi ?? false);
+  const [entrarAutomatico, setEntrarAutomatico] = useState(base?.entrarAutomatico ?? false);
 
   // Só serve para sugerir a porta do SGBD escolhido; o valor gravado é o do campo.
   const [sgbd, setSgbd] = useState<Sgbd | ''>(base?.banco.sgbd ?? '');
@@ -668,7 +668,7 @@ function EditorBase({ base, onFechar, onSalvar }: {
       ambiente: String(dados.get('ambiente')) as AmbienteBase,
       url: String(dados.get('url') ?? '').trim(),
       usuario: String(dados.get('usuario') ?? '').trim(),
-      loginApi: temCredenciais && loginApi,
+      entrarAutomatico: temCredenciais && entrarAutomatico,
       monitorar: dados.get('monitorar') === 'on',
       ordem: base?.ordem ?? 0,
       ...(senha === null ? {} : { senha }),
@@ -702,15 +702,15 @@ function EditorBase({ base, onFechar, onSalvar }: {
         </CampoEditor>
         <label className="campo-inline">
           <input
-            name="loginApi"
+            name="entrarAutomatico"
             type="checkbox"
-            checked={temCredenciais && loginApi}
+            checked={temCredenciais && entrarAutomatico}
             disabled={!temCredenciais}
-            onChange={(event) => setLoginApi(event.target.checked)}
+            onChange={(event) => setEntrarAutomatico(event.target.checked)}
           />
-          <span className="login-api-texto">
-            Login pela API (sem tela de login)
-            <small className="campo-dica">Só funciona com usuário local do Sankhya; base com SSO continua pelo preenchimento automático.</small>
+          <span className="entrar-automatico-texto">
+            Entrar automaticamente
+            <small className="campo-dica">Além de preencher usuário e senha, o app clica em Prosseguir/Entrar sozinho, uma tentativa por abertura.</small>
           </span>
         </label>
         <label className="campo-inline"><input name="monitorar" type="checkbox" defaultChecked={base?.monitorar ?? true} /> Monitorar esta base</label>

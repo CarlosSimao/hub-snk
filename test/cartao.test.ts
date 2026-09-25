@@ -115,7 +115,7 @@ describe('CartaoClientes — migração dos campos únicos', () => {
 });
 
 describe('CartaoClientes — login pela API', () => {
-  test('migra banco existente com loginApi desligado', () => {
+  test('migra banco existente com entrarAutomatico desligado', () => {
     const dir = dirTemporario();
     const db = new DatabaseSync(`${dir.path}/sankhya.db`);
     db.exec(`
@@ -147,7 +147,7 @@ describe('CartaoClientes — login pela API', () => {
     const clientes = new Clientes(dir.path);
     const cartao = new CartaoClientes(dir.path, helperFalso);
     try {
-      assert.equal(cartao.base(1)?.loginApi, false);
+      assert.equal(cartao.base(1)?.entrarAutomatico, false);
     } finally {
       cartao.close();
       clientes.close();
@@ -156,7 +156,7 @@ describe('CartaoClientes — login pela API', () => {
   });
 
   test(
-    'rota grava e devolve loginApi no cartão',
+    'rota grava e devolve entrarAutomatico no cartão',
     comCartao(async (cartao, clientes) => {
       const cliente = clientes.criar(CLIENTE);
       const app = Fastify();
@@ -175,7 +175,7 @@ describe('CartaoClientes — login pela API', () => {
             url: 'https://cliente.example/mge/',
             usuario: 'SUP',
             senha: 'segredo',
-            loginApi: true,
+            entrarAutomatico: true,
             monitorar: false,
             ordem: 0,
           },
@@ -187,7 +187,7 @@ describe('CartaoClientes — login pela API', () => {
           url: `/api/clientes/${cliente.id}/cartao`,
         });
         assert.equal(resposta.statusCode, 200);
-        assert.equal(resposta.json().bases[0].loginApi, true);
+        assert.equal(resposta.json().bases[0].entrarAutomatico, true);
 
         const invalido = await app.inject({
           method: 'POST',
@@ -195,7 +195,7 @@ describe('CartaoClientes — login pela API', () => {
           payload: {
             ambiente: 'producao',
             url: 'https://cliente.example/mge/',
-            loginApi: 'sim',
+            entrarAutomatico: 'sim',
           },
         });
         assert.equal(invalido.statusCode, 400);

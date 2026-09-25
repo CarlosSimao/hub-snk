@@ -14,8 +14,8 @@ import { join } from 'node:path';
 import { BrowserWindow, WebContentsView, app, session } from 'electron';
 import { DOMINIOS_POPUP_PERMITIDOS, HUB_URL } from './config';
 import { logEvento, origemSemQuery } from './log';
-import { revelarSenhaBase, tentarAutofill } from './autofill';
-import { deslogar, logar } from './loginApi';
+import { tentarAutofill } from './autofill';
+import { deslogar } from './sessaoBase';
 import { PRELOAD_RUFFLE, prepararRuffle } from './ruffle';
 
 export type TabId = 'hub' | 'erp' | 'experience';
@@ -28,8 +28,11 @@ export interface InfoBaseCliente {
   ambiente: string;
   usuario: string;
   temSenha: boolean;
-  /** Login por `MobileLoginSP.login` antes de abrir a aba (marcado no cadastro da base). */
-  loginApi: boolean;
+  /**
+   * "Entrar automaticamente" (cadastro da base): o autofill também clica Prosseguir/Entrar.
+   * O login continua sendo o da página — o por API não monta o contexto web do workspace.
+   */
+  entrarAutomatico: boolean;
 }
 
 export interface AbaClienteInfo {
@@ -135,7 +138,7 @@ export class TabManager {
    * mesmo cliente podem compartilhar host e diferir só na porta (caso real: prod/teste
    * do mesmo cliente em portas distintas), com usuário/senha diferentes. */
   readonly #basesPorOrigin = new Map<string, InfoBaseCliente>();
-  /** A base de cada aba de cliente aberta — o logout ao fechar precisa saber se foi por API. */
+  /** A base de cada aba de cliente aberta — o logout ao fechar vale para as de entrada automática. */
   readonly #infoDaAba = new Map<string, InfoBaseCliente>();
   /** Link direto pedido antes do login: a tela de login do Sankhya descarta o `#app/...`. */
   readonly #pendentes = new Map<string, { url: string; ate: number }>();
@@ -268,7 +271,7 @@ export class TabManager {
             ambiente: 'outro',
             usuario: '',
             temSenha: false,
-            loginApi: false,
+            entrarAutomatico: false,
           },
           { autofill: false },
         );
@@ -538,36 +541,27 @@ export class TabManager {
     // O monitor de log NÃO recebe autofill: a página dele tem um campo de senha PRÓPRIO
     // (a senha do JSP, não a do Sankhya), e o preenchedor colocaria a credencial da base
     // no lugar errado.
-    void this.#carregarBase(view, particao, origin, url, info, opcoes.autofill !== false);
+    void this.#carregarBase(view, origin, url, info, opcoes.autofill !== false);
   }
 
   /**
-   * Com `loginApi` marcado, loga pela API na partição da aba ANTES de carregar: a aba
-   * nasce logada e vai direto à tela pedida. Sem a marcação, ou se o login pela API for
-   * recusado (SSO, usuário sem senha local), é o caminho de sempre: página + autofill.
+   * Carrega a página da base e liga o autofill. Com "Entrar automaticamente" marcado, o
+   * autofill também envia o formulário, e o link direto pendente (`#retomarPendente`) leva
+   * à tela pedida depois do login.
    */
   async #carregarBase(
     view: WebContentsView,
-    particao: string,
     origin: string,
     url: string,
     info: InfoBaseCliente,
     autofill: boolean,
   ): Promise<void> {
-    // O cadastro é lido uma vez na abertura do app: sem reler aqui, marcar Login pela API
-    // no cartão só valeria depois de reiniciar o shell.
+    // O cadastro é lido uma vez na abertura do app: sem reler aqui, marcar a opção no
+    // cartão só valeria depois de reiniciar o shell.
     info = await this.#infoAtual(info);
     this.#infoDaAba.set(origin, info);
-    if (info.loginApi && info.usuario && info.temSenha) {
-      const senha = await revelarSenhaBase(info.clienteId, info.baseId);
-      const r = senha ? await logar(particao, origin, info.usuario, senha) : { ok: false };
-      if (r.ok) {
-        void view.webContents.loadURL(url);
-        return;
-      }
-    }
     void view.webContents.loadURL(url);
-    if (autofill) void tentarAutofill(view, info);
+    if (autofill) void tentarAutofill(view, info, info.entrarAutomatico);
   }
 
   /** A base como está no cadastro agora; falha de rede mantém o que já se sabia. */
@@ -576,10 +570,12 @@ export class TabManager {
     try {
       const r = await fetch(`${HUB_URL}/api/clientes/${info.clienteId}/cartao`, { signal: AbortSignal.timeout(5000) });
       const cartao = (await r.json()) as {
-        bases?: Array<{ id: number; usuario: string; temSenha: boolean; loginApi?: boolean }>;
+        bases?: Array<{ id: number; usuario: string; temSenha: boolean; entrarAutomatico?: boolean }>;
       };
       const base = cartao.bases?.find((b) => b.id === info.baseId);
-      return base ? { ...info, usuario: base.usuario, temSenha: base.temSenha, loginApi: base.loginApi === true } : info;
+      return base
+        ? { ...info, usuario: base.usuario, temSenha: base.temSenha, entrarAutomatico: base.entrarAutomatico === true }
+        : info;
     } catch {
       return info;
     }
@@ -616,7 +612,7 @@ export class TabManager {
     if (!view || !this.#abasClientes.has(origin)) return false;
     this.#janela.contentView.removeChildView(view);
     const info = this.#infoDaAba.get(origin);
-    if (info?.loginApi) void deslogar(`link:${origin}`, origin);
+    if (info?.entrarAutomatico) void deslogar(`link:${origin}`, origin);
     this.#infoDaAba.delete(origin);
     this.#pendentes.delete(origin);
     this.#abas.delete(origin);
@@ -641,7 +637,7 @@ export class TabManager {
               signal: AbortSignal.timeout(5000),
             });
             const cartao = (await respostaCartao.json()) as {
-              bases?: Array<{ id: number; url: string; ambiente: string; usuario: string; temSenha: boolean; loginApi?: boolean }>;
+              bases?: Array<{ id: number; url: string; ambiente: string; usuario: string; temSenha: boolean; entrarAutomatico?: boolean }>;
             };
             for (const base of cartao.bases ?? []) {
               if (!base.url) continue;
@@ -662,7 +658,7 @@ export class TabManager {
                   ambiente: base.ambiente,
                   usuario: base.usuario,
                   temSenha: base.temSenha,
-                  loginApi: base.loginApi === true,
+                  entrarAutomatico: base.entrarAutomatico === true,
                 });
               } catch {
                 /* URL de base inválida — ignora, não é motivo pra travar o shell */

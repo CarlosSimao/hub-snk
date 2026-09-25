@@ -20,7 +20,7 @@ import { HUB_URL } from './config';
 import { logEvento } from './log';
 import type { InfoBaseCliente } from './tabs';
 
-export async function revelarSenhaBase(clienteId: number, baseId: number): Promise<string | null> {
+async function revelarSenhaBase(clienteId: number, baseId: number): Promise<string | null> {
   try {
     const resposta = await fetch(`${HUB_URL}/api/clientes/${clienteId}/bases/${baseId}/revelar`, {
       method: 'POST',
@@ -47,7 +47,7 @@ export async function revelarSenhaBase(clienteId: number, baseId: number): Promi
  * digitou). Dispara `input`/`change` sintéticos porque formulários com JS por trás
  * (React/Vue) só reagem a evento, não a atribuição direta de `.value`.
  */
-function scriptAutofillTick(usuario: string, senha: string, jaPreencheuUsuario: boolean): string {
+function scriptAutofillTick(usuario: string, senha: string, jaPreencheuUsuario: boolean, enviar: boolean): string {
   const usuarioJson = JSON.stringify(usuario);
   const senhaJson = JSON.stringify(senha);
   return `(() => {
@@ -75,6 +75,24 @@ function scriptAutofillTick(usuario: string, senha: string, jaPreencheuUsuario: 
         visitar(document);
         return achados;
       };
+      // Envio automático (base marcada "Entrar automaticamente"): clica o botão da etapa,
+      // mas só quando há UM candidato inequívoco pelo texto — numa página de login
+      // diferente, clicar no botão errado dispararia uma tentativa que o usuário não pediu.
+      const enviarEtapa = () => {
+        if (!${enviar ? 'true' : 'false'}) return false;
+        const botoes = [];
+        const visitar = (raiz) => {
+          for (const el of raiz.querySelectorAll('button, input[type=submit]')) botoes.push(el);
+          for (const el of raiz.querySelectorAll('*')) if (el.shadowRoot) visitar(el.shadowRoot);
+        };
+        visitar(document);
+        const alvo = /^(prosseguir|entrar|acessar|login|continuar)$/i;
+        const candidatos = botoes.filter((b) => visivel(b) && !b.disabled && alvo.test((b.innerText || b.value || '').trim()));
+        if (candidatos.length !== 1) return false;
+        // O formulário é AngularJS: dá um instante para o modelo registrar o valor.
+        setTimeout(() => candidatos[0].click(), 300);
+        return true;
+      };
       const ehTexto = (el) => el.tagName === 'INPUT' && (!el.type || el.type === 'text' || el.type === 'email');
       const textos = () => todosInputs().filter(ehTexto).filter(visivel);
 
@@ -85,7 +103,7 @@ function scriptAutofillTick(usuario: string, senha: string, jaPreencheuUsuario: 
         const usuarioEl = antes[antes.length - 1];
         if (usuarioEl && !usuarioEl.value) setar(usuarioEl, ${usuarioJson});
         setar(senhaEl, ${senhaJson});
-        return { ok: true, etapa: 'senha' };
+        return { ok: true, etapa: 'senha', enviou: enviarEtapa() };
       }
 
       // Etapa 1 (só usuário) só é tentada UMA vez por aba: depois de preenchida, a
@@ -104,7 +122,7 @@ function scriptAutofillTick(usuario: string, senha: string, jaPreencheuUsuario: 
       const vazios = camposDeTexto.filter((el) => !el.value);
       if (vazios.length === 1) {
         setar(vazios[0], ${usuarioJson});
-        return { ok: true, etapa: 'usuario' };
+        return { ok: true, etapa: 'usuario', enviou: enviarEtapa() };
       }
       return { ok: false, motivo: vazios.length > 1 ? 'ambiguo' : 'sem-campo-reconhecido' };
     } catch (e) {
@@ -118,7 +136,12 @@ function scriptAutofillTick(usuario: string, senha: string, jaPreencheuUsuario: 
 const JANELA_OBSERVACAO_MS = 90_000;
 const INTERVALO_MS = 1_000;
 
-export async function tentarAutofill(view: WebContentsView, info: InfoBaseCliente): Promise<void> {
+/**
+ * `enviar` = base marcada "Entrar automaticamente": além de preencher, clica o botão de
+ * cada etapa. Uma vez por etapa e uma tentativa por abertura: a etapa da senha encerra o
+ * observador, e a do usuário só é tentada uma vez — senha errada não vira repetição.
+ */
+export async function tentarAutofill(view: WebContentsView, info: InfoBaseCliente, enviar = false): Promise<void> {
   if (!info.usuario || !info.temSenha) {
     logEvento('autofill-sem-cadastro', { clienteId: info.clienteId, baseId: info.baseId });
     return;
@@ -146,14 +169,19 @@ export async function tentarAutofill(view: WebContentsView, info: InfoBaseClient
         return;
       }
       try {
-        const script = scriptAutofillTick(info.usuario, senha, preencheuUsuario);
-        const resultado = (await view.webContents.executeJavaScript(script, true)) as { ok: boolean; etapa?: string; motivo?: string };
+        const script = scriptAutofillTick(info.usuario, senha, preencheuUsuario, enviar);
+        const resultado = (await view.webContents.executeJavaScript(script, true)) as {
+          ok: boolean;
+          etapa?: string;
+          motivo?: string;
+          enviou?: boolean;
+        };
         if (resultado.ok && resultado.etapa === 'senha') {
           clearInterval(intervalo);
-          logEvento('autofill-preencheu-senha', { clienteId: info.clienteId, baseId: info.baseId });
+          logEvento('autofill-preencheu-senha', { clienteId: info.clienteId, baseId: info.baseId, enviou: Boolean(resultado.enviou) });
         } else if (resultado.ok && resultado.etapa === 'usuario' && !preencheuUsuario) {
           preencheuUsuario = true;
-          logEvento('autofill-preencheu-usuario', { clienteId: info.clienteId, baseId: info.baseId });
+          logEvento('autofill-preencheu-usuario', { clienteId: info.clienteId, baseId: info.baseId, enviou: Boolean(resultado.enviou) });
         } else if (resultado.motivo) {
           ultimoMotivo = resultado.motivo;
         }
