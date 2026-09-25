@@ -548,6 +548,10 @@ export class TabManager {
     info: InfoBaseCliente,
     autofill: boolean,
   ): Promise<void> {
+    // O cadastro é lido uma vez na abertura do app: sem reler aqui, marcar Login pela API
+    // no cartão só valeria depois de reiniciar o shell.
+    info = await this.#infoAtual(info);
+    this.#infoDaAba.set(origin, info);
     if (info.loginApi && info.usuario && info.temSenha) {
       const senha = await revelarSenhaBase(info.clienteId, info.baseId);
       const r = senha ? await logar(particao, origin, info.usuario, senha) : { ok: false };
@@ -558,6 +562,21 @@ export class TabManager {
     }
     void view.webContents.loadURL(url);
     if (autofill) void tentarAutofill(view, info);
+  }
+
+  /** A base como está no cadastro agora; falha de rede mantém o que já se sabia. */
+  async #infoAtual(info: InfoBaseCliente): Promise<InfoBaseCliente> {
+    if (!info.clienteId || !info.baseId) return info;
+    try {
+      const r = await fetch(`${HUB_URL}/api/clientes/${info.clienteId}/cartao`, { signal: AbortSignal.timeout(5000) });
+      const cartao = (await r.json()) as {
+        bases?: Array<{ id: number; usuario: string; temSenha: boolean; loginApi?: boolean }>;
+      };
+      const base = cartao.bases?.find((b) => b.id === info.baseId);
+      return base ? { ...info, usuario: base.usuario, temSenha: base.temSenha, loginApi: base.loginApi === true } : info;
+    } catch {
+      return info;
+    }
   }
 
   #lembrarPendente(origin: string, url: string): void {
