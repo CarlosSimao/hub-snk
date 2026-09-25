@@ -14,6 +14,7 @@ import * as navegador from './navegador';
 import * as navegacaoSkill from './navegacaoSkill';
 import type { AgendaFetcher } from './agenda';
 import type { ServerLogFetcher } from './serverLog';
+import { estadoSessao } from './keepalive';
 import type { TabManager } from './tabs';
 
 function lerCorpo(req: IncomingMessage): Promise<string> {
@@ -61,7 +62,14 @@ function tratarCredenciais(req: IncomingMessage, res: ServerResponse, corpo: str
   }
 
   if (req.method === 'GET' && !acao) {
-    responderJson(res, 200, { ok: true, ...cofre.status(sistema) });
+    // O cofre só sabe que cookies foram capturados, não se a sessão segue viva. Para o ERP
+    // o keepalive sabe: o último ping da aba vai junto.
+    const sessao = sistema === 'sankhya-erp' ? estadoSessao('erp') : undefined;
+    responderJson(res, 200, {
+      ok: true,
+      ...cofre.status(sistema),
+      ...(sessao ? { sessaoViva: sessao.viva, sessaoVerificadaEm: sessao.verificadoEm } : {}),
+    });
     return;
   }
 

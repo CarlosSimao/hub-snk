@@ -182,3 +182,22 @@ describe('Credenciais — shell desktop na frente do hub-helper.ps1', () => {
     assert.deepEqual(doHelper, ['/credentials/sankhya-erp']);
   });
 });
+
+describe('Credenciais — estado da sessao ERP vindo do keepalive', () => {
+  test('repassa sessaoViva e a hora da conferencia quando o shell informa', async () => {
+    const { helper } = helperFalso({
+      usuario: 'u', definido: true, sessaoCapturada: true, sessaoExpiraEm: '',
+      sessaoViva: false, sessaoVerificadaEm: '2026-09-25T15:00:00.000Z',
+    });
+    const status = await new Credenciais(helper, new SessaoDesktopStore()).status('sankhya-erp');
+    assert.equal(status.sessaoCapturada, true);
+    assert.equal(status.sessaoViva, false);
+    assert.equal(status.sessaoVerificadaEm, '2026-09-25T15:00:00.000Z');
+  });
+
+  test('sem ping do keepalive, os campos nao aparecem', async () => {
+    const { helper } = helperFalso({ usuario: 'u', definido: true, sessaoCapturada: true, sessaoExpiraEm: '' });
+    const status = await new Credenciais(helper, new SessaoDesktopStore()).status('sankhya-erp');
+    assert.equal('sessaoViva' in status, false);
+  });
+});

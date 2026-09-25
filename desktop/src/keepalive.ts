@@ -26,6 +26,13 @@ export interface AbaSankhya {
 
 const MINUTOS_PADRAO = 10;
 
+/** Último resultado do ping por aba (`erp` ou origin da base) — a tela de Credenciais lê. */
+const ultimoEstado = new Map<string, { viva: boolean; verificadoEm: string }>();
+
+export function estadoSessao(chave: string): { viva: boolean; verificadoEm: string } | undefined {
+  return ultimoEstado.get(chave);
+}
+
 function intervaloMs(): number {
   const min = Number(process.env['SANKHYA_KEEPALIVE_MIN'] ?? MINUTOS_PADRAO);
   return (Number.isFinite(min) && min >= 1 ? min : MINUTOS_PADRAO) * 60_000;
@@ -77,6 +84,7 @@ export function iniciarKeepalive(obterAbas: () => AbaSankhya[]): () => void {
       const abertas = new Set(abas.map((a) => a.chave));
       for (const chave of caidas) if (!abertas.has(chave)) caidas.delete(chave);
       for (const chave of jaVivas) if (!abertas.has(chave)) jaVivas.delete(chave);
+      for (const chave of ultimoEstado.keys()) if (!abertas.has(chave)) ultimoEstado.delete(chave);
 
       for (const aba of abas) {
         const wc = aba.view.webContents;
@@ -98,6 +106,7 @@ export function iniciarKeepalive(obterAbas: () => AbaSankhya[]): () => void {
           continue;
         }
         logEvento('keepalive-ping', { chave: chaveLog, viva });
+        ultimoEstado.set(aba.chave, { viva, verificadoEm: new Date().toISOString() });
         if (viva) {
           jaVivas.add(aba.chave);
           if (caidas.delete(aba.chave)) logEvento('keepalive-sessao-voltou', { chave: chaveLog });

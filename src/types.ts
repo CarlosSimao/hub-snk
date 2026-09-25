@@ -204,6 +204,12 @@ export interface StatusCredencial {
   sessaoCapturada: boolean;
   /** ISO-8601 do `exp` do JWT, quando ha um. Vazio para sessao so de cookie. */
   sessaoExpiraEm: string;
+  /**
+   * Resultado do ultimo ping do keepalive do shell desktop (so ERP). Ausente quando nao
+   * houve ping ainda — ai vale so `sessaoCapturada`, que nao diz se a sessao segue viva.
+   */
+  sessaoViva?: boolean;
+  sessaoVerificadaEm?: string;
 }
 
 /** Uma guia aberta na janela do hub. O usuario pode ter quantas quiser. */

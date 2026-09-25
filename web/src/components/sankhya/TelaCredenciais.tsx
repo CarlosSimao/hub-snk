@@ -13,6 +13,12 @@ const TITULOS: Record<SistemaSankhya, { nome: string; onde: string }> = {
 };
 
 /** "expira em 2 dias" diz mais que a data crua, que exige contar na cabeça. */
+
+/** `HH:MM` local de um ISO-8601. */
+function horaCurta(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
 function validade(iso: string): { texto: string; vencida: boolean } | null {
   if (!iso) return null;
 
@@ -152,7 +158,10 @@ function CartaoCredencial({
         <div className="card-title">
           <h2>
             {titulo.nome}
-            {credencial.sessaoCapturada && !prazo?.vencida ? (
+            {/* Com ping do keepalive, vale o que ele viu; sem, só se sabe que houve captura. */}
+            {credencial.sessaoViva === false ? (
+              <span className="selo falta">sessão caiu</span>
+            ) : (credencial.sessaoViva || credencial.sessaoCapturada) && !prazo?.vencida ? (
               <span className="selo ok">sessão ativa</span>
             ) : (
               <span className="selo falta">{prazo?.vencida ? 'sessão expirada' : 'sem sessão'}</span>
@@ -161,6 +170,13 @@ function CartaoCredencial({
           </h2>
           <p>{titulo.onde}</p>
           {prazo && <p className="card-summary">{prazo.texto}</p>}
+          {credencial.sessaoVerificadaEm && (
+            <p className="card-summary">
+              {credencial.sessaoViva
+                ? `Sessão conferida na aba às ${horaCurta(credencial.sessaoVerificadaEm)}.`
+                : `Na conferência das ${horaCurta(credencial.sessaoVerificadaEm)} a sessão tinha caído — faça login de novo na aba.`}
+            </p>
+          )}
         </div>
       </div>
 

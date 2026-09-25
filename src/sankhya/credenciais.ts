@@ -55,6 +55,9 @@ function montar(sistema: SistemaSankhya, corpo: RespostaCredencial): StatusCrede
     definido: Boolean(corpo.definido),
     sessaoCapturada: Boolean(corpo.sessaoCapturada),
     sessaoExpiraEm: corpo.sessaoExpiraEm ?? '',
+    ...(typeof corpo.sessaoViva === 'boolean'
+      ? { sessaoViva: corpo.sessaoViva, sessaoVerificadaEm: corpo.sessaoVerificadaEm ?? '' }
+      : {}),
   };
 }
 
