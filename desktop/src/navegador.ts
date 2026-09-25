@@ -166,7 +166,9 @@ export function parsearRegistro(texto: string): Record<string, string | number> 
   const m = /^\s*([A-Z0-9_]+)\s*=\s*(.+?)\s*$/.exec(texto);
   if (!m) return null;
   const valor = m[2]!;
-  return { [m[1]!]: /^\d+$/.test(valor) ? Number(valor) : valor };
+  // Entre aspas = texto (há versão do Sankhya que não converte o número do link).
+  const entreAspas = /^"(.*)"$/.exec(valor);
+  return { [m[1]!]: entreAspas ? entreAspas[1]! : /^\d+$/.test(valor) ? Number(valor) : valor };
 }
 
 export function resolverUrl(sistema: Sistema, tela: string, registro = ''): string {
