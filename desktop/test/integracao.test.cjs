@@ -136,3 +136,43 @@ test('HTTP 401 nao entra em retry automatico; so envio forcado repete', async ()
     assert.equal(fila.estado().pendentes, 1);
   } finally { limpar(); }
 });
+
+const { montarEventos, minutos } = require('../src/integracaoEventos.ts');
+const ordem = (id, horas, extra = {}) => ({ id, dia: '2026-09-10', descricao: `OS ${id}`, horasFeitas: horas,
+  totalProjetoPrevisto: '40:00', totalProjetoFeito: '10:00', coordenador: 'Maria', ...extra });
+const consultor = { email: 'Ana.Souza+x@Sankhya.com.br', nome: 'Ana Souza' };
+
+test('adaptadores: eventos validos no contrato, em ordem de dependencia', () => {
+  const eventos = montarEventos(consultor, [{ projetoId: 10269, nome: 'Cliente X', ordens: [ordem(1, '08:00'), ordem(2, '00:00')] }], new Date('2026-09-25T12:00:00Z'));
+  for (const e of eventos) validarEvento(e);
+  assert.deepEqual(eventos.map(e => e.type), ['usuario.upsert', 'os.upsert', 'os.progresso', 'horas.apontar']);
+  const [u, os, prog, horas] = eventos;
+  assert.equal(u.data.externalId, 'exp-usuario:ana.souza_x@sankhya.com.br');
+  assert.equal(os.data.progress, 25);
+  assert.equal(os.data.status, 'EM_ANDAMENTO');
+  assert.equal(prog.id, 'prog:10269:600');
+  assert.equal(horas.data.minutes, 480);
+  assert.equal(horas.data.externalId, 'exp-os-1');
+  assert.equal(horas.data.startedAt, '2026-09-10T00:00:00.000Z');
+});
+
+test('adaptadores: mesmo dado gera mesmos ids; mudanca real gera id novo', () => {
+  const p = (feito, desc) => [{ projetoId: 7, nome: 'C', ordens: [ordem(9, '02:30', { totalProjetoFeito: feito, descricao: desc })] }];
+  const ids = (x) => montarEventos(consultor, x, new Date()).map(e => e.id);
+  assert.deepEqual(ids(p('10:00', 'a')), ids(p('10:00', 'a')));
+  const mudou = ids(p('12:30', 'b'));
+  const antes = ids(p('10:00', 'a'));
+  assert.equal(mudou[0], antes[0]);
+  assert.notEqual(mudou[2], antes[2]);
+  assert.notEqual(mudou[3], antes[3]);
+});
+
+test('adaptadores: sem email ou sem OS nao sintetiza nada; previsto atingido conclui', () => {
+  assert.equal(montarEventos({ email: '', nome: '' }, [], new Date()).length, 0);
+  assert.equal(montarEventos(consultor, [{ projetoId: 1, nome: 'C', ordens: [] }], new Date()).length, 1);
+  const [, os] = montarEventos(consultor, [{ projetoId: 1, nome: 'C', ordens: [ordem(3, '01:00', { totalProjetoFeito: '45:00' })] }], new Date());
+  assert.equal(os.data.progress, 100);
+  assert.equal(os.data.status, 'CONCLUIDO');
+  assert.equal(minutos('125:05'), 7505);
+  assert.equal(minutos('x'), 0);
+});

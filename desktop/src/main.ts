@@ -14,6 +14,7 @@ import { ServerLogFetcher } from './serverLog';
 import { iniciarKeepalive, type AbaSankhya } from './keepalive';
 import { criarBridgeServer } from './bridgeServer';
 import { instalarNoHub, iniciarRemetente } from './integracaoCanal';
+import { iniciarAdaptadores } from './integracaoCiclo';
 import { pushSessaoExperience, limparSessaoExperience } from './backendClient';
 import { capturarTokenExperience, diagnosticoCookiesErp } from './sessions';
 import { backendDisponivel } from './services';
@@ -43,6 +44,8 @@ let experienceCapturada = false;
 /** `expIso` do que já foi confirmado empurrado — dispara push de novo se mudar (relogin
  * sem passar por "ausente" no meio, ex.: trocar de conta sem sair primeiro). */
 let ultimoExpEmpurrado = '';
+/** E-mail da sessão Experience capturada — identifica o consultor na Integração API. */
+let emailExperience = '';
 
 function criarJanela(): void {
   janelaPrincipal = new BrowserWindow({
@@ -96,11 +99,13 @@ function criarJanela(): void {
         }
         if (ok) {
           experienceCapturada = true;
+          emailExperience = sessao.usuario;
           ultimoExpEmpurrado = sessao.expIso;
         }
       } else if (experienceCapturada) {
         experienceCapturada = false;
         ultimoExpEmpurrado = '';
+        emailExperience = '';
         await limparSessaoExperience();
         logEvento('experience-sessao-limpa');
       }
@@ -160,6 +165,7 @@ app.whenReady().then(async () => {
   const serverLog = new ServerLogFetcher((origin) => tabs?.abaCliente(origin));
   criarBridgeServer(agenda, () => tabs, serverLog);
   iniciarRemetente();
+  iniciarAdaptadores(() => emailExperience);
 
   // Antes da janela: o painel é a primeira aba a carregar e apontaria para uma porta
   // fechada. Esperar aqui custa o tempo de boot do Fastify uma vez, e evita que a
