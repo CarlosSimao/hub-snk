@@ -28,7 +28,7 @@ import type {
  * parceiro vem do ERP em caixa alta com sufixo ("FLAPS PRODUTOS
  * AUTOMOTIVOS"). Comparar cru nunca casa.
  */
-function chaveNome(nome: string): string {
+export function chaveNome(nome: string): string {
   return nome
     .normalize('NFD')
     .toUpperCase()

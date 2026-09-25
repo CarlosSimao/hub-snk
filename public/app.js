@@ -331,13 +331,19 @@ const elementos = {
   botaoVisualizacaoClientes: document.getElementById('btn-visualizacao-clientes'),
   botaoVisualizacaoLocal: document.getElementById('btn-visualizacao-local'),
   botaoVisualizacaoAgenda: document.getElementById('btn-visualizacao-agenda'),
+  botaoVisualizacaoOs: document.getElementById('btn-visualizacao-os'),
   visualizacaoClientes: document.getElementById('visualizacao-clientes'),
   visualizacaoLocal: document.getElementById('visualizacao-local'),
   visualizacaoAgenda: document.getElementById('visualizacao-agenda'),
+  visualizacaoOs: document.getElementById('visualizacao-os'),
   avisoShellAgenda: document.getElementById('aviso-shell-agenda'),
   botaoAtualizarAgenda: document.getElementById('btn-atualizar-agenda'),
   ultimaAtualizacaoAgenda: document.getElementById('ultima-atualizacao-agenda'),
   mountAgendaGeral: document.getElementById('mount-agenda-geral'),
+  avisoShellOs: document.getElementById('aviso-shell-os'),
+  botaoAtualizarOs: document.getElementById('btn-atualizar-os'),
+  ultimaAtualizacaoOs: document.getElementById('ultima-atualizacao-os'),
+  mountOsGeral: document.getElementById('mount-os-geral'),
   secaoBasesLocais: document.getElementById('secao-bases-locais'),
   secaoBancosLocais: document.getElementById('secao-bancos-locais'),
 
@@ -389,6 +395,7 @@ const elementos = {
   ),
   campoTempoLimite: document.getElementById('campo-tempo-limite'),
   campoDestinoDosLinks: document.getElementById('campo-destino-dos-links'),
+  campoConfigSankhyaOmCodUsu: document.getElementById('campo-sankhya-om-codusu'),
   campoCaminhoExecutavelDaIde: document.getElementById('campo-caminho-executavel-ide'),
   botaoSelecionarExecutavelDaIde: document.getElementById('btn-selecionar-executavel-ide'),
   campoCaminhoSchemaMcp: document.getElementById('campo-caminho-schema-mcp'),
@@ -411,6 +418,7 @@ const elementos = {
   modalTitulo: document.getElementById('modal-titulo'),
   modalSubtitulo: document.getElementById('modal-subtitulo'),
   campoNome: document.getElementById('campo-nome'),
+  campoCodparcs: document.getElementById('campo-codparcs'),
   erroCliente: document.getElementById('erro-formulario'),
   botaoSalvarCliente: document.getElementById('btn-salvar'),
   botaoCancelarCliente: document.getElementById('btn-cancelar'),
@@ -612,7 +620,6 @@ const api = {
   estadoAgenda: () => requisitar('/api/agenda/estado'),
   salvarAgenda: (id, dados) =>
     requisitar(`${CAMINHO_DA_API}/${id}/agenda`, { metodo: 'PUT', corpo: dados }),
-  sugestaoDeAgenda: (nome) => requisitar(`/api/agenda/sugestao?nome=${encodeURIComponent(nome)}`),
   consultarAgenda: (de, ate) =>
     requisitar('/api/agenda/consultar', { metodo: 'POST', corpo: { de, ate } }),
   eventosDaAgenda: (de, ate) =>
@@ -625,6 +632,10 @@ const api = {
     requisitar(
       `/api/agenda/situacao-do-dia?codparc=${encodeURIComponent(codparc)}&dia=${encodeURIComponent(dia)}`,
     ),
+  consultarOsGeral: (de, ate) =>
+    requisitar('/api/os/consultar', { metodo: 'POST', corpo: { de, ate } }),
+  consultarOsDoCliente: (id, de, ate) =>
+    requisitar(`${CAMINHO_DA_API}/${id}/os-consultar`, { metodo: 'POST', corpo: { de, ate } }),
 
   listar: () => requisitar(CAMINHO_DA_API),
   buscar: (id) => requisitar(`${CAMINHO_DA_API}/${id}`),
@@ -1786,148 +1797,36 @@ function criarGradeDoCalendario(grade, criarCelula) {
  * situação de cada evento no Experience (sem tarefa/tarefa aberta/OS
  * lançada) sai sozinha do `codparc`, sem campo nenhum pra preencher à mão.
  */
+/**
+ * Aba Agenda do cadastro do cliente: eventos recortados pelo(s) `codparc` vinculado(s) —
+ * o vínculo em si é editado no cadastro/edição do cliente (modal), não aqui.
+ */
 function criarSecaoDeAgenda(cliente) {
-  const erro = criarElemento('p', 'erro-formulario');
-  erro.hidden = true;
-
-  const areaSugestao = criarElemento('div');
-  const listaDeCodparcs = criarElemento('div', 'lista-codparcs');
-
-  /**
-   * Grava a lista inteira de `codparcs` (substitui, não soma) — é o mesmo
-   * ponto usado por adicionar, remover e pela sugestão, pra manter só um
-   * caminho de gravação.
-   */
-  const salvarVinculo = async (agendaCodparcs) => {
-    limparErro(erro);
-    try {
-      await api.salvarAgenda(cliente.id, { agendaCodparcs });
-      // Atualiza em memória pra sugestão, lista e calendário refletirem sem
-      // precisar reabrir o detalhe do cliente.
-      cliente.agendaCodparcs = agendaCodparcs;
-      renderizarListaDeCodparcs();
-      void carregarSugestao();
-      void widgetDeAgendaDoCliente.carregar();
-    } catch (erroDeGravacao) {
-      exibirErro(erro, erroDeGravacao.message);
-    }
-  };
-
-  const campoNovoCodparc = criarElemento('input');
-  campoNovoCodparc.type = 'number';
-  campoNovoCodparc.min = '0';
-  campoNovoCodparc.placeholder = 'Código de parceiro';
-
-  const areaAdicionarCodparc = criarElemento('div', 'linha-codparc-nova');
-
-  /** Volta a área de adição ao estado padrão: só o botão "+". */
-  function mostrarBotaoAdicionarCodparc() {
-    areaAdicionarCodparc.replaceChildren(
-      criarBotaoDeIcone(
-        'btn tiny ghost',
-        ICONES.mais,
-        'Adicionar código de parceiro',
-        mostrarCampoNovoCodparc,
-      ),
-    );
-  }
-
-  /** Troca o botão "+" pelo campo de digitar o código, com foco imediato. */
-  function mostrarCampoNovoCodparc() {
-    campoNovoCodparc.value = '';
-    areaAdicionarCodparc.replaceChildren(campoNovoCodparc);
-    campoNovoCodparc.focus();
-  }
-
-  const adicionarCodparc = () => {
-    const bruto = campoNovoCodparc.value.trim();
-    mostrarBotaoAdicionarCodparc();
-    if (bruto === '') return;
-    const codparc = Number(bruto);
-    if (cliente.agendaCodparcs.includes(codparc)) return;
-    void salvarVinculo([...cliente.agendaCodparcs, codparc]);
-  };
-  campoNovoCodparc.addEventListener('keydown', (evento) => {
-    if (evento.key === 'Enter') {
-      evento.preventDefault();
-      adicionarCodparc();
-    }
-    if (evento.key === 'Escape') {
-      mostrarBotaoAdicionarCodparc();
-    }
-  });
-  campoNovoCodparc.addEventListener('blur', adicionarCodparc);
-
-  /** Um cliente do hub pode ter mais de um `codparc` no Sankhya — lista com botão de remover cada um, e o "+" de adicionar ao lado. */
-  function renderizarListaDeCodparcs() {
-    listaDeCodparcs.replaceChildren();
-    for (const codparc of cliente.agendaCodparcs) {
-      const linha = criarElemento('div', 'linha-codparc');
-      linha.append(criarElemento('span', null, String(codparc)));
-      linha.append(
-        criarBotaoDeIcone('btn tiny ghost', ICONES.lixeira, `Remover o parceiro ${codparc}`, () =>
-          salvarVinculo(cliente.agendaCodparcs.filter((valor) => valor !== codparc)),
-        ),
-      );
-      listaDeCodparcs.append(linha);
-    }
-    if (!cliente.agendaCodparcs.length) {
-      listaDeCodparcs.append(
-        criarElemento('p', 'texto-auxiliar', 'Nenhum parceiro amarrado ainda.'),
-      );
-    }
-    mostrarBotaoAdicionarCodparc();
-    listaDeCodparcs.append(areaAdicionarCodparc);
-  }
-  renderizarListaDeCodparcs();
-
-  /**
-   * Sugestão de parceiro pelo nome do cliente, casando contra o snapshot já
-   * importado da Agenda de Recursos (`AgendaRecursos.casarParceiro` no
-   * backend) — só aparece quando o candidato ainda não está na lista.
-   * Silenciosa se falhar: é um extra, não uma etapa obrigatória.
-   */
-  const carregarSugestao = async () => {
-    areaSugestao.replaceChildren();
-
-    let resultado;
-    try {
-      resultado = await api.sugestaoDeAgenda(cliente.nome);
-    } catch {
-      return;
-    }
-    if (!resultado.parceiro || cliente.agendaCodparcs.includes(resultado.parceiro.codparc)) return;
-
-    const linha = criarElemento(
-      'p',
-      'texto-auxiliar',
-      `Sugestão: ${resultado.parceiro.codparc} - ${resultado.parceiro.nomeparc} ` +
-        `(${resultado.parceiro.eventos} evento(s) no snapshot). `,
-    );
-    linha.append(
-      criarBotao('btn tiny ghost', 'Usar esta sugestão', () =>
-        salvarVinculo([...cliente.agendaCodparcs, resultado.parceiro.codparc]),
-      ),
-    );
-    areaSugestao.append(linha);
-  };
-  void carregarSugestao();
-
-  const linhaCodparc = criarElemento('div', 'campo');
-  linhaCodparc.append(
-    criarElemento('label', null, 'Códigos de parceiro (codparc)'),
-    listaDeCodparcs,
-    areaSugestao,
-  );
-
   const widgetDeAgendaDoCliente = criarWidgetDeAgenda({
     buscarEventos: (de, ate) =>
       api.eventosDoClienteNaAgenda(cliente.id, de, ate).then((resposta) => resposta.eventos),
   });
 
   const secao = criarElemento('div', 'secao-recursos');
-  secao.replaceChildren(linhaCodparc, erro, widgetDeAgendaDoCliente.elemento);
+  secao.append(widgetDeAgendaDoCliente.elemento);
   void widgetDeAgendaDoCliente.carregar();
+  return secao;
+}
+
+/**
+ * Aba OS do cadastro do cliente: mesmas OS "minhas" da aba OS do topo, recortadas pelo
+ * backend comparando o nome da empresa (Experience) com o nome deste cliente — sem nada
+ * pra configurar aqui, só o "Meu código Sankhya/Experience" em Configurações › Geral.
+ */
+function criarSecaoDeOs(cliente) {
+  const widgetDeOsDoCliente = criarWidgetDeOs({
+    buscarOs: (de, ate) =>
+      api.consultarOsDoCliente(cliente.id, de, ate).then((resposta) => resposta.itens),
+  });
+
+  const secao = criarElemento('div', 'secao-recursos');
+  secao.append(widgetDeOsDoCliente.elemento);
+  void widgetDeOsDoCliente.carregar();
   return secao;
 }
 
@@ -3097,6 +2996,144 @@ async function atualizarAgendaGeral() {
   }
 }
 
+/* ---------------------------------- OS ------------------------------------ */
+
+/** `YYYY-MM-DD` -> `DD/MM/YYYY`. Vazio (OS sem data de conclusão) vira travessão. */
+function formatarDiaDeOs(dia) {
+  if (!dia) return '—';
+  const [ano, mes, diaDoMes] = dia.split('-');
+  return `${diaDoMes}/${mes}/${ano}`;
+}
+
+/** Uma OS na lista: número + tipo, empresa/descrição, e uma linha de detalhes. */
+function criarLinhaDeOs(item) {
+  const linha = criarElemento('div', 'linha-recurso');
+  const informacoes = criarElemento('div', 'recurso-info');
+
+  const linhaTitulo = criarElemento('div', 'linha-horario-situacao');
+  linhaTitulo.append(
+    criarElemento('p', 'recurso-nome', `OS ${item.numeroSankhya || '(sem número)'} · ${item.tipo}`),
+  );
+  if (item.statusAceite) {
+    linhaTitulo.append(criarElemento('span', 'selo-situacao ok', item.statusAceite));
+  }
+  informacoes.append(linhaTitulo);
+
+  if (item.empresa) {
+    informacoes.append(criarElemento('p', 'texto-auxiliar', item.empresa));
+  }
+  if (item.erro) {
+    informacoes.append(criarElemento('p', 'erro-formulario', item.erro));
+  }
+  if (item.observacoes) {
+    informacoes.append(criarElemento('p', 'texto-auxiliar', `Tarefas realizadas: ${item.observacoes}`));
+  }
+
+  const detalhes = [
+    `Concluída em: ${formatarDiaDeOs(item.dia)}`,
+    item.horaInicio && item.horaFim && `Horário: ${item.horaInicio}–${item.horaFim}`,
+    item.intervalo && `Intervalo: ${item.intervalo}`,
+    item.horasFeitas && `Horas: ${item.horasFeitas}`,
+    item.horasExcedidas && 'Horas excedidas',
+    item.etapa && `Etapa: ${item.etapa}`,
+    item.processos && `Processos: ${item.processos}`,
+    item.pedido && `Pedido: ${item.pedido}`,
+    item.coordenador && `Coordenador: ${item.coordenador}`,
+    item.statusNumeroSankhya && `Status Sankhya: ${item.statusNumeroSankhya}`,
+  ].filter(Boolean);
+  informacoes.append(criarElemento('p', 'texto-auxiliar', detalhes.join(' • ')));
+
+  linha.append(informacoes);
+  return linha;
+}
+
+/**
+ * Widget da aba OS: navegação de mês (sem calendário — só a lista) e busca ao vivo no
+ * Sankhya Experience a cada mês trocado ou "atualizar". Reusado na aba OS do topo (todas
+ * as OS do usuário) e na aba OS do cadastro do cliente (recortadas pro cliente) — a
+ * diferença é de onde vêm os itens (`buscarOs`).
+ */
+function criarWidgetDeOs({ buscarOs, aoErro, mesInicial = mesAtualIso() }) {
+  const estadoWidget = { mes: mesInicial };
+
+  const rotuloMes = criarElemento('span', 'rotulo-mes-calendario');
+  const navegacao = criarElemento('div', 'navegacao-calendario');
+  navegacao.append(
+    criarBotao('btn tiny ghost', '‹', () => mudarMes(-1)),
+    rotuloMes,
+    criarBotao('btn tiny ghost', '›', () => mudarMes(1)),
+  );
+
+  const status = criarElemento('p', 'texto-auxiliar texto-centralizado');
+  const erro = criarElemento('p', 'erro-formulario');
+  erro.hidden = true;
+  const lista = criarElemento('div', 'lista-os');
+
+  const elemento = criarElemento('div', 'secao-agenda-geral');
+  elemento.append(erro, navegacao, status, lista);
+
+  async function carregar() {
+    limparErro(erro);
+    rotuloMes.textContent = nomeDoMes(estadoWidget.mes);
+    lista.replaceChildren(criarElemento('p', 'texto-auxiliar', 'Carregando…'));
+
+    const { de, ate } = limitesDoMesCliente(estadoWidget.mes);
+    try {
+      const itens = await buscarOs(de, ate);
+      status.textContent = itens.length ? `${itens.length} OS neste mês.` : 'Nenhuma OS neste mês.';
+      lista.replaceChildren(...itens.map(criarLinhaDeOs));
+    } catch (erroDeCarga) {
+      lista.replaceChildren();
+      status.textContent = '';
+      exibirErro(erro, erroDeCarga.message);
+      aoErro?.(erroDeCarga);
+    }
+  }
+
+  async function mudarMes(passo) {
+    estadoWidget.mes = deslocarMes(estadoWidget.mes, passo);
+    await carregar();
+  }
+
+  return {
+    elemento,
+    carregar,
+    elementoErro: erro,
+    elementoStatus: status,
+    get mes() {
+      return estadoWidget.mes;
+    },
+  };
+}
+
+function renderizarUltimaAtualizacaoDeOs(buscadoEm) {
+  elementos.ultimaAtualizacaoOs.textContent = buscadoEm
+    ? `Atualizado em ${new Date(buscadoEm).toLocaleString('pt-BR')}`
+    : '';
+}
+
+/** O widget da aba OS do topo: todas as OS do usuário, somando os clientes com parceiro vinculado. */
+const widgetOsGeral = criarWidgetDeOs({
+  buscarOs: async (de, ate) => {
+    const { itens, buscadoEm } = await api.consultarOsGeral(de, ate);
+    renderizarUltimaAtualizacaoDeOs(buscadoEm);
+    return itens;
+  },
+  aoErro: (erro) => {
+    elementos.avisoShellOs.hidden = !erro.shellIndisponivel;
+  },
+});
+
+async function atualizarOsGeral() {
+  elementos.avisoShellOs.hidden = true;
+  elementos.botaoAtualizarOs.disabled = true;
+  try {
+    await widgetOsGeral.carregar();
+  } finally {
+    elementos.botaoAtualizarOs.disabled = false;
+  }
+}
+
 function alternarVisualizacao(visualizacao) {
   estado.visualizacao = visualizacao;
 
@@ -3112,6 +3149,7 @@ function alternarVisualizacao(visualizacao) {
       botao: elementos.botaoVisualizacaoAgenda,
       area: elementos.visualizacaoAgenda,
     },
+    { chave: 'os', botao: elementos.botaoVisualizacaoOs, area: elementos.visualizacaoOs },
   ];
 
   for (const { chave, botao, area } of opcoes) {
@@ -3126,6 +3164,9 @@ function alternarVisualizacao(visualizacao) {
   }
   if (visualizacao === 'agenda') {
     void widgetAgendaGeral.carregar();
+  }
+  if (visualizacao === 'os') {
+    void widgetOsGeral.carregar();
   }
 }
 
@@ -3284,6 +3325,7 @@ function renderizarDetalhe() {
         conteudo: criarSecaoDeRepositorios(cliente),
       },
       { chave: 'agenda', rotulo: 'Agenda', conteudo: criarSecaoDeAgenda(cliente) },
+      { chave: 'os', rotulo: 'OS', conteudo: criarSecaoDeOs(cliente) },
     ]),
   );
   elementos.detalhe.replaceChildren(card);
@@ -3313,6 +3355,7 @@ function abrirModalDeCadastro() {
   elementos.modalTitulo.textContent = 'Cadastrar cliente';
   elementos.modalSubtitulo.textContent = 'Informe o nome do cliente.';
   elementos.campoNome.value = '';
+  elementos.campoCodparcs.value = '';
   limparErro(elementos.erroCliente);
   elementos.modalCliente.showModal();
   elementos.campoNome.focus();
@@ -3323,9 +3366,20 @@ function abrirModalDeEdicao(cliente) {
   elementos.modalTitulo.textContent = 'Editar cliente';
   elementos.modalSubtitulo.textContent = 'Altere o nome do cliente.';
   elementos.campoNome.value = cliente.nome;
+  elementos.campoCodparcs.value = cliente.agendaCodparcs.join(', ');
   limparErro(elementos.erroCliente);
   elementos.modalCliente.showModal();
   elementos.campoNome.select();
+}
+
+/** `"647, 12345"` -> `[647, 12345]`, sem repetidos e sem pedaço vazio (vírgula sobrando). */
+function lerCodparcsDoFormulario() {
+  const numeros = elementos.campoCodparcs.value
+    .split(',')
+    .map((pedaco) => pedaco.trim())
+    .filter(Boolean)
+    .map(Number);
+  return [...new Set(numeros)];
 }
 
 async function salvarCliente(evento) {
@@ -3337,12 +3391,23 @@ async function salvarCliente(evento) {
     return;
   }
 
+  const agendaCodparcs = lerCodparcsDoFormulario();
+  if (agendaCodparcs.some((valor) => !Number.isInteger(valor) || valor < 0)) {
+    exibirErro(
+      elementos.erroCliente,
+      'Código de parceiro inválido — use só números separados por vírgula.',
+    );
+    return;
+  }
+
   limparErro(elementos.erroCliente);
   elementos.botaoSalvarCliente.disabled = true;
 
   try {
     const emEdicao = estado.clienteEmEdicao;
-    const cliente = emEdicao ? await api.atualizar(emEdicao.id, nome) : await api.criar(nome);
+    let cliente = emEdicao ? await api.atualizar(emEdicao.id, nome) : await api.criar(nome);
+
+    cliente = await api.salvarAgenda(cliente.id, { agendaCodparcs });
 
     estado.idSelecionado = cliente.id;
     await recarregarClientes();
@@ -4701,6 +4766,7 @@ async function abrirModalDeConfiguracao() {
   elementos.campoDestinoDosLinks.value = DESTINO_DOS_LINKS_PADRAO;
   preencherAtalhosDaConfiguracao([]);
   elementos.campoCaminhoExecutavelDaIde.value = '';
+  elementos.campoConfigSankhyaOmCodUsu.value = '';
 
   try {
     const configuracao = await api.lerConfiguracao();
@@ -4713,6 +4779,7 @@ async function abrirModalDeConfiguracao() {
     elementos.campoDestinoDosLinks.value = configuracao.destinoDosLinks ?? DESTINO_DOS_LINKS_PADRAO;
     preencherAtalhosDaConfiguracao(configuracao.atalhos ?? []);
     elementos.campoCaminhoExecutavelDaIde.value = configuracao.caminhoDoExecutavelDaIde ?? '';
+    elementos.campoConfigSankhyaOmCodUsu.value = configuracao.sankhyaOmCodUsu ?? '';
   } catch (erro) {
     exibirAviso(`Não foi possível carregar as configurações: ${erro.message}`, 'erro');
     return;
@@ -4779,6 +4846,7 @@ async function salvarConfiguracao(evento) {
       atalhos,
       destinoDosLinks: elementos.campoDestinoDosLinks.value,
       caminhoDoExecutavelDaIde: elementos.campoCaminhoExecutavelDaIde.value.trim(),
+      sankhyaOmCodUsu: elementos.campoConfigSankhyaOmCodUsu.value.trim(),
     });
     elementos.modalConfiguracao.close();
     exibirAviso('Configurações salvas.');
@@ -6979,9 +7047,13 @@ function registrarEventos() {
   );
   elementos.botaoVisualizacaoLocal.addEventListener('click', () => alternarVisualizacao('local'));
   elementos.botaoVisualizacaoAgenda.addEventListener('click', () => alternarVisualizacao('agenda'));
+  elementos.botaoVisualizacaoOs.addEventListener('click', () => alternarVisualizacao('os'));
   elementos.botaoAtualizarAgenda.append(criarIcone(ICONES.recarregar));
   elementos.botaoAtualizarAgenda.addEventListener('click', atualizarAgendaGeral);
   elementos.mountAgendaGeral.append(widgetAgendaGeral.elemento);
+  elementos.botaoAtualizarOs.append(criarIcone(ICONES.recarregar));
+  elementos.botaoAtualizarOs.addEventListener('click', atualizarOsGeral);
+  elementos.mountOsGeral.append(widgetOsGeral.elemento);
 
   elementos.botaoAtalhos.append(criarIcone(ICONES.raio));
   elementos.botaoAtalhos.addEventListener('click', alternarListaDeAtalhos);

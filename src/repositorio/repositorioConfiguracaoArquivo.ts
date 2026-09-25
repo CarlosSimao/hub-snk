@@ -34,6 +34,8 @@ const CONFIGURACAO_INICIAL: ConfiguracaoGlobal = {
   atalhos: [],
   destinoDosLinks: DESTINO_DOS_LINKS_PADRAO,
   caminhoDoExecutavelDaIde: '',
+  experiencePersonId: '',
+  sankhyaOmCodUsu: '',
 };
 
 /**
@@ -118,6 +120,10 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       destinoDosLinks: lerDestinoDosLinks(dados.destinoDosLinks),
       // Idem: arquivo de antes desta versão não tem IDE escolhida.
       caminhoDoExecutavelDaIde: dados.caminhoDoExecutavelDaIde ?? '',
+      // Idem: arquivo de antes desta versão não tem o vínculo com a Experience.
+      experiencePersonId: dados.experiencePersonId ?? '',
+      // Idem: arquivo de antes desta versão não tem o CODUSU do Sankhya OM.
+      sankhyaOmCodUsu: dados.sankhyaOmCodUsu ?? '',
     };
 
     if (precisaMigrar(conteudo)) {
@@ -133,6 +139,9 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
   }
 
   async salvar(configuracao: ConfiguracaoParaSalvar): Promise<ConfiguracaoGlobal> {
+    // Sem campo na tela: preserva o que já estava gravado, em vez de apagar com ''.
+    const { experiencePersonId } = await this.ler();
+
     const normalizada: ConfiguracaoGlobal = {
       scriptPadrao: configuracao.scriptPadrao.trim(),
       intervaloDeExecucaoAutomaticaSegundos: configuracao.intervaloDeExecucaoAutomaticaSegundos,
@@ -141,7 +150,19 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       atalhos: configuracao.atalhos.map(normalizarAtalho),
       destinoDosLinks: configuracao.destinoDosLinks,
       caminhoDoExecutavelDaIde: configuracao.caminhoDoExecutavelDaIde.trim(),
+      experiencePersonId,
+      sankhyaOmCodUsu: configuracao.sankhyaOmCodUsu.trim(),
     };
+
+    await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);
+
+    this.#configuracao = normalizada;
+    return normalizada;
+  }
+
+  async definirExperiencePersonId(personId: string): Promise<ConfiguracaoGlobal> {
+    const atual = await this.ler();
+    const normalizada: ConfiguracaoGlobal = { ...atual, experiencePersonId: personId.trim() };
 
     await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);
 

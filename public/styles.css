@@ -864,6 +864,16 @@ main {
   min-width: 0;
 }
 
+/* Lista de OS: pode chegar a dezenas de registros no mês — rola por dentro em vez de esticar a página. */
+.lista-os {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 /*
  * Bloco de situação do banco local (selo + gráfico de uptime): filho direto da
  * linha, não encolhe. Largura fixa — não varia entre "Verificando…",
@@ -1172,35 +1182,6 @@ button.selo-situacao:focus-visible {
 .texto-tarefas-realizadas {
   white-space: pre-line;
   line-height: 1.5;
-}
-
-.lista-codparcs {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-}
-
-.linha-codparc {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 9px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 12px;
-  width: fit-content;
-}
-
-/* Botão "+" de adicionar código de parceiro, ou o campo que o substitui ao clicar. */
-.linha-codparc-nova {
-  width: fit-content;
-}
-
-.linha-codparc-nova input {
-  width: 140px;
 }
 
 /* Horário do evento + selo de situação do Experience, lado a lado. */

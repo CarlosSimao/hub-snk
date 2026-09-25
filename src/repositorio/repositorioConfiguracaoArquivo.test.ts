@@ -32,6 +32,8 @@ describe('RepositorioConfiguracaoArquivo', () => {
     assert.deepEqual(configuracao.atalhos, []);
     assert.equal(configuracao.destinoDosLinks, 'hub');
     assert.equal(configuracao.caminhoDoExecutavelDaIde, '');
+    assert.equal(configuracao.experiencePersonId, '');
+    assert.equal(configuracao.sankhyaOmCodUsu, '');
   });
 
   it('grava dentro do envelope e relê o que gravou', async () => {
@@ -43,6 +45,7 @@ describe('RepositorioConfiguracaoArquivo', () => {
       atalhos: [{ nome: '  DataGrip  ', caminhoDoExecutavel: '  C:\\datagrip.exe  ' }],
       destinoDosLinks: 'navegador-padrao',
       caminhoDoExecutavelDaIde: '  C:\\idea64.exe  ',
+      sankhyaOmCodUsu: '  6720  ',
     });
 
     const gravado = JSON.parse(await readFile(caminhoDoArquivo(), 'utf8'));
@@ -56,6 +59,7 @@ describe('RepositorioConfiguracaoArquivo', () => {
     assert.equal(configuracao.atalhos[0]?.nome, 'DataGrip');
     assert.equal(configuracao.destinoDosLinks, 'navegador-padrao');
     assert.equal(configuracao.caminhoDoExecutavelDaIde, 'C:\\idea64.exe');
+    assert.equal(configuracao.sankhyaOmCodUsu, '6720');
   });
 
   it('dá um id ao atalho cadastrado sem id', async () => {
@@ -67,9 +71,29 @@ describe('RepositorioConfiguracaoArquivo', () => {
       atalhos: [{ nome: 'DataGrip', caminhoDoExecutavel: 'C:\\datagrip.exe' }],
       destinoDosLinks: 'hub',
       caminhoDoExecutavelDaIde: '',
+      sankhyaOmCodUsu: '',
     });
 
     assert.match(configuracao.atalhos[0]?.id ?? '', /^[0-9a-f-]{36}$/);
+  });
+
+  it('preserva o experiencePersonId entre chamadas de salvar (sem campo na tela)', async () => {
+    await repositorio.definirExperiencePersonId('2208');
+
+    await repositorio.salvar({
+      scriptPadrao: '',
+      intervaloDeExecucaoAutomaticaSegundos: 30,
+      tempoLimiteSegundos: 5,
+      caminhoDoSchemaMcp: '',
+      atalhos: [],
+      destinoDosLinks: 'hub',
+      caminhoDoExecutavelDaIde: '',
+      sankhyaOmCodUsu: '',
+    });
+
+    repositorio.descartarCache();
+    const configuracao = await repositorio.ler();
+    assert.equal(configuracao.experiencePersonId, '2208');
   });
 });
 

@@ -49,6 +49,15 @@
           >
             Agenda
           </button>
+          <button
+            class="aba"
+            id="btn-visualizacao-os"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            OS
+          </button>
         </div>
         <!-- O ícone de cadeado é montado pelo app.js. -->
         <button
@@ -180,6 +189,39 @@
           <div id="mount-agenda-geral"></div>
         </div>
       </div>
+
+      <div class="card" id="visualizacao-os" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Minhas OS</h2>
+            <p class="texto-auxiliar">
+              Ordens de Serviço do Sankhya Experience, em todos os projetos do seu usuário.
+            </p>
+          </div>
+          <div class="detalhe-acoes">
+            <span class="texto-auxiliar" id="ultima-atualizacao-os"></span>
+            <!-- O ícone de recarregar é montado pelo app.js. -->
+            <button
+              class="btn ghost botao-icone"
+              type="button"
+              id="btn-atualizar-os"
+              title="Atualizar da Sankhya"
+              aria-label="Atualizar da Sankhya"
+            ></button>
+          </div>
+        </div>
+
+        <div class="secao-recursos">
+          <p class="aviso-shell" id="aviso-shell-os" hidden>
+            A consulta ao Sankhya precisa do aplicativo HUB SNK aberto, com a sessão do Sankhya
+            Experience capturada (Credenciais Sankhya).
+          </p>
+          <!-- Navegação de mês e lista de OS são montados pelo app.js (`criarWidgetDeOs`) —
+               o mesmo widget usado na aba OS do cadastro do cliente, só que sem recorte de
+               cliente. -->
+          <div id="mount-os-geral"></div>
+        </div>
+      </div>
     </main>
 
     <dialog class="modal" id="modal-cliente">
@@ -202,6 +244,29 @@
               required
             />
           </div>
+
+          <div class="campo">
+            <label for="campo-codparcs">
+              Código(s) de parceiro (codparc)
+              <span class="opcional">opcional</span>
+              <span class="dica" tabindex="0"
+                >?<span class="dica-texto" role="tooltip"
+                  >Código(s) do parceiro no Sankhya ERP — cruza com a Agenda de Recursos. Um cliente
+                  pode ter mais de um (matrizes/filiais), separados por vírgula.</span
+                ></span
+              >
+            </label>
+            <input
+              id="campo-codparcs"
+              type="text"
+              inputmode="numeric"
+              maxlength="200"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Ex.: 647, 12345"
+            />
+          </div>
+
           <p class="erro-formulario" id="erro-formulario" hidden></p>
         </div>
 
@@ -664,6 +729,28 @@
                 <option value="hub">Navegador do HUB SNK</option>
                 <option value="navegador-padrao">Navegador padrão</option>
               </select>
+            </div>
+
+            <div class="campo campo-estreito">
+              <label for="campo-sankhya-om-codusu">
+                Meu código de usuário Sankhya OM
+                <span class="opcional">opcional</span>
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Seu `CODUSU` no Sankhya OM (ERP) — diferente do usuário da Experience, que é
+                    capturado sozinho junto com a sessão em Credenciais Sankhya.</span
+                  ></span
+                >
+              </label>
+              <input
+                id="campo-sankhya-om-codusu"
+                type="text"
+                inputmode="numeric"
+                maxlength="10"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: 6720"
+              />
             </div>
           </div>
 

@@ -29,6 +29,18 @@
  * `destinoDosLinks` vale para todo link clicável do cadastro — bases,
  * repositório, links gerais e de projeto —, uma escolha só em vez de uma por
  * tipo de link.
+ *
+ * `experiencePersonId` é o `person_id` do usuário logado no Sankhya Experience —
+ * uma conta global dele, a mesma em qualquer projeto. Alimenta a aba OS (geral e do
+ * cadastro do cliente, esta última recortando pelo nome da empresa). Vazio desliga
+ * a aba OS por inteiro: sem ele não há como identificar de quem são as OS. Campo
+ * interno, sem tela própria: é preenchido sozinho ao capturar a sessão do Sankhya
+ * Experience (`descobrirPersonId`), nunca digitado pelo usuário.
+ *
+ * `sankhyaOmCodUsu` é o `CODUSU` do usuário logado no Sankhya OM (ERP) — diferente
+ * do `person_id` da Experience, e sem forma automática de descobrir a partir da
+ * sessão capturada (só cookies e nenhum deles carrega o valor). Por isso, ao
+ * contrário de `experiencePersonId`, é digitado à mão em Configurações › Geral.
  */
 export interface ConfiguracaoGlobal {
   scriptPadrao: string;
@@ -38,6 +50,8 @@ export interface ConfiguracaoGlobal {
   atalhos: Atalho[];
   destinoDosLinks: DestinoDeLink;
   caminhoDoExecutavelDaIde: string;
+  experiencePersonId: string;
+  sankhyaOmCodUsu: string;
 }
 
 /**
@@ -361,4 +375,14 @@ export interface OrdemExperience {
   coordenador: string;
   totalProjetoPrevisto: string;
   totalProjetoFeito: string;
+  /** Horário da PRIMEIRA tarefa da OS — o caso comum é uma tarefa por dia. */
+  horaInicio: string;
+  horaFim: string;
+  intervalo: string;
+  /**
+   * Texto livre digitado em "Tarefas Realizadas" — só a parte depois do marcador
+   * "--- Informações Adicionais ---", sem repetir etapa/processos (que já vêm em
+   * campos próprios). Junta mais de uma linha quando a OS consolida vários dias.
+   */
+  observacoes: string;
 }

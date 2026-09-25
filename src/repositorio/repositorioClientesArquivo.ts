@@ -1014,11 +1014,15 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
       conteudo.corpo as (Cliente & {
         agendaCodparc?: number | null;
         agendaRecursoUsuario?: string;
+        experienceProjetoId?: number | null;
       })[]
     ).map(
       ({
         agendaCodparc: _agendaCodparcRemovido,
         agendaRecursoUsuario: _agendaRecursoUsuarioRemovido,
+        // Campo removido: o vínculo com a Experience passou a ser só o `person_id` da
+        // configuração geral, sem `implantation_id` por cliente.
+        experienceProjetoId: _experienceProjetoIdRemovido,
         ...cliente
       }) => ({
         ...cliente,
