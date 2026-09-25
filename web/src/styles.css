@@ -2622,6 +2622,71 @@ Processos: ...").
 
 .entrar-automatico-texto { display: grid; }
 
+.diagnostico-base { display: grid; justify-items: start; gap: 7px; }
+
+.diagnostico-base-painel {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-solid);
+}
+
+.diagnostico-base-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.diagnostico-base-form label {
+  flex: 1;
+  display: grid;
+  gap: 3px;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+
+.diagnostico-base-form input { font-family: var(--mono); }
+
+.diagnostico-base-erro {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--down) 45%, var(--border));
+  border-radius: var(--radius-sm);
+  color: var(--down);
+  font-size: 11px;
+}
+
+.diagnostico-base-vazio,
+.diagnostico-base-secao p {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.diagnostico-base-resultados { display: grid; gap: 12px; min-width: 0; }
+.diagnostico-base-secao { display: grid; gap: 6px; min-width: 0; }
+.diagnostico-base-secao h4 { margin: 0; font-size: 11px; }
+.diagnostico-base-tabela { max-width: 100%; overflow-x: auto; }
+.diagnostico-base-tabela table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+.diagnostico-base-tabela th,
+.diagnostico-base-tabela td { padding: 5px 7px; border-bottom: 1px solid var(--border); text-align: left; }
+.diagnostico-base-tabela th { color: var(--text-faint); font-weight: 600; }
+.diagnostico-base-tabela td { vertical-align: top; }
+.diagnostico-base-tabela td small { display: block; color: var(--warn); margin-top: 2px; }
+
+.diagnostico-base-ausentes { display: flex; gap: 6px; flex-wrap: wrap; }
+.diagnostico-base-ausentes code {
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--warn);
+}
+
 /* --- monitor de log da base ------------------------------------------------ */
 
 /* Log é leitura larga: stacktrace de Java passa fácil dos 200 caracteres, e num modal

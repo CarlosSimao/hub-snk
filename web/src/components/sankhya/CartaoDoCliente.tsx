@@ -18,6 +18,7 @@ import { mesmoCaminho, StatusRepoCompacto } from '../git/DetalheRepo.tsx';
 import { SeletorPasta } from './SeletorPasta.tsx';
 import { AbrirRepoEm } from './AbrirRepoEm.tsx';
 import { ServerLogDaBase } from './ServerLogDaBase.tsx';
+import { DiagnosticoDaBase } from './DiagnosticoDaBase.tsx';
 
 type Editor =
   | { tipo: 'base'; item: BaseCliente | null }
@@ -438,6 +439,7 @@ function BaseLinha({
         <LinhaUrl url={base.url} />
         <ServerLogDaBase url={base.url} demandaFim={demandaFim} />
         <AbrirTelaDaBase url={base.url} />
+        <DiagnosticoDaBase base={base} />
         <div className="credencial-base">
           <span><small>Usuário</small><strong>{base.usuario || 'não informado'}</strong></span>
           <span>
