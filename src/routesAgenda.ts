@@ -1,9 +1,11 @@
 /**
  * Agenda de Recursos do Sankhya ERP.
  *
- * A carga é por colagem manual do JSON capturado no DevTools. Não é preguiça: a ACL do
- * `service.sbr` nega a chamada direta para este usuário (ver `Sankhya-agenda.md` seção
- * 1.4), então não há como o hub buscar sozinho enquanto o admin não liberar o serviço.
+ * Dois caminhos de carga. O normal é `/api/agenda/buscar`: o `fetch` roda DENTRO da aba ERP
+ * logada (shell desktop, ou hub-helper.ps1 como retaguarda), e a ACL do `service.sbr`
+ * aceita a sessão da página — de fora da aba ela nega, até com login por API (medido em
+ * 2026-09-24). A colagem manual do JSON capturado no DevTools ficou só como reserva, para
+ * quando não há aba ERP logada.
  */
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { PayloadInvalidoError, parsearAgenda } from './sankhya/agendaParser.ts';
