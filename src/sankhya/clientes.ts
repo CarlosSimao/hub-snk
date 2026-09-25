@@ -98,6 +98,7 @@ export class Clientes {
         url           TEXT    NOT NULL DEFAULT '',
         usuario       TEXT    NOT NULL DEFAULT '',
         senha_cifrada TEXT    NOT NULL DEFAULT '',
+        login_api     INTEGER NOT NULL DEFAULT 0,
         versao        TEXT    NOT NULL DEFAULT '',
         monitorar     INTEGER NOT NULL DEFAULT 0,
         ordem         INTEGER NOT NULL DEFAULT 0
@@ -181,6 +182,7 @@ export class Clientes {
       ),
     );
     for (const [coluna, tipo] of [
+      ['login_api', 'INTEGER NOT NULL DEFAULT 0'],
       ['banco_sgbd', "TEXT NOT NULL DEFAULT ''"],
       ['banco_host', "TEXT NOT NULL DEFAULT ''"],
       // 0 = nao informado. A coluna e INTEGER NOT NULL para nao ter que distinguir NULL

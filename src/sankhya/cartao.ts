@@ -86,6 +86,7 @@ export class CartaoClientes {
       usuario: String(l['usuario']),
       // Nunca o valor: so se existe. Quem quer ler pede pela rota de revelar.
       temSenha: String(l['senha_cifrada']) !== '',
+      loginApi: Number(l['login_api'] ?? 0) === 1,
       versao: String(l['versao']),
       monitorar: Number(l['monitorar']) === 1,
       banco: {
@@ -132,10 +133,10 @@ export class CartaoClientes {
       const resultado = this.#db
         .prepare(
           `INSERT INTO cliente_bases
-             (cliente_id, ambiente, url, usuario, senha_cifrada, monitorar, ordem,
+             (cliente_id, ambiente, url, usuario, senha_cifrada, login_api, monitorar, ordem,
               banco_sgbd, banco_host, banco_porta, banco_servico, banco_esquema,
               banco_usuario, banco_senha_cifrada)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           clienteId,
@@ -143,6 +144,7 @@ export class CartaoClientes {
           entrada.url,
           entrada.usuario,
           cifrada ?? '',
+          entrada.loginApi ? 1 : 0,
           entrada.monitorar ? 1 : 0,
           proximaOrdem(this.#db, 'cliente_bases', clienteId),
           banco.sgbd,
@@ -168,11 +170,13 @@ export class CartaoClientes {
       entrada.banco === undefined
         ? []
         : [banco.sgbd, banco.host, banco.porta ?? 0, banco.servico, banco.esquema, banco.usuario];
+    const colunaLoginApi = entrada.loginApi === undefined ? '' : ', login_api = ?';
 
     const resultado = this.#db
       .prepare(
         `UPDATE cliente_bases
             SET ambiente = ?, url = ?, usuario = ?, monitorar = ?, ordem = ?
+                ${colunaLoginApi}
                 ${colunasBanco}
                 ${cifrada === undefined ? '' : ', senha_cifrada = ?'}
                 ${cifradaBanco === undefined ? '' : ', banco_senha_cifrada = ?'}
@@ -184,6 +188,7 @@ export class CartaoClientes {
         entrada.usuario,
         entrada.monitorar ? 1 : 0,
         entrada.ordem,
+        ...(entrada.loginApi === undefined ? [] : [entrada.loginApi ? 1 : 0]),
         ...valoresBanco,
         ...(cifrada === undefined ? [] : [cifrada]),
         ...(cifradaBanco === undefined ? [] : [cifradaBanco]),

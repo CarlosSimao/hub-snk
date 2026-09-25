@@ -7,9 +7,13 @@
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { DatabaseSync } from 'node:sqlite';
+import Fastify from 'fastify';
 import { Clientes } from '../src/sankhya/clientes.ts';
 import { CartaoClientes } from '../src/sankhya/cartao.ts';
+import { registerRoutesCartao } from '../src/routesCartao.ts';
 import type { HubHelper } from '../src/sankhya/helper.ts';
+import type { MonitorBases } from '../src/sankhya/monitorBases.ts';
 import type { ClienteEntrada } from '../src/types.ts';
 import { dirTemporario } from './helpers.ts';
 
@@ -106,6 +110,98 @@ describe('CartaoClientes — migração dos campos únicos', () => {
 
       assert.equal(cartao.repos(1).length, 0);
       assert.equal(cartao.bases(1).length, 0);
+    }),
+  );
+});
+
+describe('CartaoClientes — login pela API', () => {
+  test('migra banco existente com loginApi desligado', () => {
+    const dir = dirTemporario();
+    const db = new DatabaseSync(`${dir.path}/sankhya.db`);
+    db.exec(`
+      CREATE TABLE clientes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        experience_projeto_id INTEGER,
+        experience_person_id INTEGER,
+        agenda_recurso_usuario TEXT NOT NULL DEFAULT '',
+        repositorio_local TEXT NOT NULL DEFAULT '',
+        repositorio_remoto TEXT NOT NULL DEFAULT ''
+      );
+      INSERT INTO clientes (nome) VALUES ('Legado');
+      CREATE TABLE cliente_bases (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cliente_id INTEGER NOT NULL,
+        ambiente TEXT NOT NULL DEFAULT 'producao',
+        url TEXT NOT NULL DEFAULT '',
+        usuario TEXT NOT NULL DEFAULT '',
+        senha_cifrada TEXT NOT NULL DEFAULT '',
+        versao TEXT NOT NULL DEFAULT '',
+        monitorar INTEGER NOT NULL DEFAULT 0,
+        ordem INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO cliente_bases (cliente_id, url) VALUES (1, 'https://legado.example/mge/');
+    `);
+    db.close();
+
+    const clientes = new Clientes(dir.path);
+    const cartao = new CartaoClientes(dir.path, helperFalso);
+    try {
+      assert.equal(cartao.base(1)?.loginApi, false);
+    } finally {
+      cartao.close();
+      clientes.close();
+      dir.remove();
+    }
+  });
+
+  test(
+    'rota grava e devolve loginApi no cartão',
+    comCartao(async (cartao, clientes) => {
+      const cliente = clientes.criar(CLIENTE);
+      const app = Fastify();
+      registerRoutesCartao(app, {
+        cartao,
+        clientes,
+        monitor: {} as MonitorBases,
+      });
+
+      try {
+        const criado = await app.inject({
+          method: 'POST',
+          url: `/api/clientes/${cliente.id}/bases`,
+          payload: {
+            ambiente: 'producao',
+            url: 'https://cliente.example/mge/',
+            usuario: 'SUP',
+            senha: 'segredo',
+            loginApi: true,
+            monitorar: false,
+            ordem: 0,
+          },
+        });
+        assert.equal(criado.statusCode, 201);
+
+        const resposta = await app.inject({
+          method: 'GET',
+          url: `/api/clientes/${cliente.id}/cartao`,
+        });
+        assert.equal(resposta.statusCode, 200);
+        assert.equal(resposta.json().bases[0].loginApi, true);
+
+        const invalido = await app.inject({
+          method: 'POST',
+          url: `/api/clientes/${cliente.id}/bases`,
+          payload: {
+            ambiente: 'producao',
+            url: 'https://cliente.example/mge/',
+            loginApi: 'sim',
+          },
+        });
+        assert.equal(invalido.statusCode, 400);
+      } finally {
+        await app.close();
+      }
     }),
   );
 });

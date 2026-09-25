@@ -423,6 +423,11 @@ export interface BaseCliente {
    * explicito de quem esta na tela.
    */
   temSenha: boolean;
+  /**
+   * Ligado, o shell desktop autentica por `MobileLoginSP.login` antes de abrir a aba.
+   * Desligado preserva o preenchimento automatico da tela de login.
+   */
+  loginApi: boolean;
   /** Versao lida da propria base na ultima medicao, ex.: `4.36b126`. */
   versao: string;
   /** Entra na medicao periodica de status. Base de teste costuma nao valer o ruido. */
@@ -438,8 +443,8 @@ export interface BaseCliente {
  */
 export type BaseClienteEntrada = Omit<
   BaseCliente,
-  'id' | 'clienteId' | 'temSenha' | 'versao' | 'banco'
-> & { banco?: BancoDaBaseEntrada };
+  'id' | 'clienteId' | 'temSenha' | 'versao' | 'banco' | 'loginApi'
+> & { banco?: BancoDaBaseEntrada; loginApi?: boolean };
 
 /** O que a medicao de uma base devolve. */
 export interface StatusBase {

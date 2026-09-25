@@ -26,6 +26,7 @@ function base(url: string, extra: Partial<BaseCliente> = {}): BaseCliente {
     url,
     usuario: '',
     temSenha: false,
+    loginApi: false,
     versao: '',
     monitorar: true,
     banco: { sgbd: '', host: '', porta: null, servico: '', esquema: '', usuario: '', temSenha: false },

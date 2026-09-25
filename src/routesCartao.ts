@@ -281,6 +281,10 @@ function validarBase(corpo: Record<string, unknown>): string | null {
     return `ambiente inválido — use um de: ${AMBIENTES_BASE.join(', ')}`;
   }
 
+  if (corpo['loginApi'] !== undefined && typeof corpo['loginApi'] !== 'boolean') {
+    return 'loginApi precisa ser booleano';
+  }
+
   const banco = objeto(corpo, 'banco');
   const sgbd = texto(banco, 'sgbd');
   if (sgbd && !(SGBDS as readonly string[]).includes(sgbd)) {
@@ -310,6 +314,7 @@ function lerBase(corpo: Record<string, unknown>) {
     ambiente: (texto(corpo, 'ambiente') || 'producao') as AmbienteBase,
     url: texto(corpo, 'url'),
     usuario: texto(corpo, 'usuario'),
+    loginApi: corpo['loginApi'] === true,
     monitorar: corpo['monitorar'] === true,
     ordem: Number(corpo['ordem']) || 0,
     ...(corpo['banco'] === undefined
