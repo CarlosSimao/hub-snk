@@ -14,6 +14,7 @@ import { CartaoClientes } from '../src/sankhya/cartao.ts';
 import { registerRoutesCartao } from '../src/routesCartao.ts';
 import type { HubHelper } from '../src/sankhya/helper.ts';
 import type { MonitorBases } from '../src/sankhya/monitorBases.ts';
+import { DesktopBridgeError, type DesktopBridge } from '../src/sankhya/desktopBridge.ts';
 import type { ClienteEntrada } from '../src/types.ts';
 import { dirTemporario } from './helpers.ts';
 
@@ -199,6 +200,112 @@ describe('CartaoClientes — login pela API', () => {
           },
         });
         assert.equal(invalido.statusCode, 400);
+      } finally {
+        await app.close();
+      }
+    }),
+  );
+});
+
+describe('rotas do diagnóstico da base', () => {
+  const DIAGNOSTICO = {
+    ok: true as const,
+    modulos: [],
+    botoes: [],
+    parametros: [],
+    parametrosAusentes: [],
+  };
+
+  test(
+    'resolve o origin pela base cadastrada e repassa os parâmetros',
+    comCartao(async (cartao, clientes) => {
+      const cliente = clientes.criar(CLIENTE);
+      const base = await cartao.gravarBase(cliente.id, {
+        ambiente: 'producao',
+        url: 'https://cliente.example/mge/',
+        usuario: '',
+        monitorar: false,
+        ordem: 0,
+      });
+      let recebido: { origin: string; parametros: string } | undefined;
+      const desktopBridge = {
+        diagnosticarBase: async (origin: string, parametros: string) => {
+          recebido = { origin, parametros };
+          return DIAGNOSTICO;
+        },
+      } as unknown as DesktopBridge;
+      const app = Fastify();
+      registerRoutesCartao(app, { cartao, clientes, monitor: {} as MonitorBases, desktopBridge });
+
+      try {
+        const resposta = await app.inject({
+          method: 'GET',
+          url: `/api/clientes/${cliente.id}/bases/${base!.id}/diagnostico?parametros=UTILIZAWMS%2C%20CODEMPPADRAO`,
+        });
+        assert.equal(resposta.statusCode, 200);
+        assert.deepEqual(recebido, {
+          origin: 'https://cliente.example',
+          parametros: 'UTILIZAWMS, CODEMPPADRAO',
+        });
+      } finally {
+        await app.close();
+      }
+    }),
+  );
+
+  test(
+    'responde 503 quando o bridge não está configurado',
+    comCartao(async (cartao, clientes) => {
+      const cliente = clientes.criar(CLIENTE);
+      const base = await cartao.gravarBase(cliente.id, {
+        ambiente: 'producao',
+        url: 'https://cliente.example/mge/',
+        usuario: '',
+        monitorar: false,
+        ordem: 0,
+      });
+      const app = Fastify();
+      registerRoutesCartao(app, { cartao, clientes, monitor: {} as MonitorBases });
+
+      try {
+        const resposta = await app.inject({
+          method: 'GET',
+          url: `/api/clientes/${cliente.id}/bases/${base!.id}/diagnostico`,
+        });
+        assert.equal(resposta.statusCode, 503);
+        assert.match(resposta.json().error, /Desktop não está configurado/);
+      } finally {
+        await app.close();
+      }
+    }),
+  );
+
+  test(
+    'repassa status, mensagem e expiração do erro 409',
+    comCartao(async (cartao, clientes) => {
+      const cliente = clientes.criar(CLIENTE);
+      const base = await cartao.gravarBase(cliente.id, {
+        ambiente: 'producao',
+        url: 'https://cliente.example/mge/',
+        usuario: '',
+        monitorar: false,
+        ordem: 0,
+      });
+      const desktopBridge = {
+        diagnosticarBase: async () => {
+          throw new DesktopBridgeError('sessão da base expirou', 409, true);
+        },
+      } as unknown as DesktopBridge;
+      const app = Fastify();
+      registerRoutesCartao(app, { cartao, clientes, monitor: {} as MonitorBases, desktopBridge });
+
+      try {
+        const resposta = await app.inject({
+          method: 'GET',
+          url: `/api/clientes/${cliente.id}/bases/${base!.id}/diagnostico`,
+        });
+        assert.equal(resposta.statusCode, 409);
+        assert.deepEqual(resposta.json(), { error: 'sessão da base expirou', expirou: true });
       } finally {
         await app.close();
       }

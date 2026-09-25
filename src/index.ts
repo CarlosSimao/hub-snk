@@ -216,7 +216,7 @@ async function main(): Promise<void> {
   // Criado depois de `Clientes`: as tabelas do cartao e a migracao dos campos unicos
   // moram no construtor dele, e o mesmo arquivo SQLite e aberto pelos dois.
   const cartao = new CartaoClientes(DATA_DIR, helper, cifra);
-  registerRoutesCartao(app, { cartao, clientes, monitor: new MonitorBases(cartao) });
+  registerRoutesCartao(app, { cartao, clientes, monitor: new MonitorBases(cartao), desktopBridge });
 
   // Depois do cartão: o aviso de remoção do módulo serverlog diz o NOME da base e usa o
   // FIM DA DEMANDA do cliente como prazo — os dois saem do cadastro, casando pelo origin.

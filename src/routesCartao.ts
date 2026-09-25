@@ -10,12 +10,18 @@ import { HelperError, HelperIndisponivelError } from './sankhya/helper.ts';
 import type { CartaoClientes } from './sankhya/cartao.ts';
 import type { Clientes } from './sankhya/clientes.ts';
 import type { MonitorBases } from './sankhya/monitorBases.ts';
+import {
+  DesktopBridgeError,
+  DesktopBridgeIndisponivelError,
+  type DesktopBridge,
+} from './sankhya/desktopBridge.ts';
 import { AMBIENTES_BASE, SGBDS, type AmbienteBase, type BancoDaBaseEntrada } from './types.ts';
 
 export interface RouteCartaoDeps {
   cartao: CartaoClientes;
   clientes: Clientes;
   monitor: MonitorBases;
+  desktopBridge?: DesktopBridge;
 }
 
 function responderErroHelper(reply: FastifyReply, err: unknown): FastifyReply {
@@ -46,7 +52,7 @@ function urlValida(valor: string): boolean {
 }
 
 export function registerRoutesCartao(app: FastifyInstance, deps: RouteCartaoDeps): void {
-  const { cartao, clientes, monitor } = deps;
+  const { cartao, clientes, monitor, desktopBridge } = deps;
 
   /** O cartão inteiro numa ida só — a tela do cliente precisa das três listas juntas. */
   app.get<{ Params: { id: string } }>('/api/clientes/:id/cartao', async (request, reply) => {
@@ -140,6 +146,42 @@ export function registerRoutesCartao(app: FastifyInstance, deps: RouteCartaoDeps
       }
     },
   );
+
+  app.get<{
+    Params: { id: string; baseId: string };
+    Querystring: { parametros?: string };
+  }>('/api/clientes/:id/bases/:baseId/diagnostico', async (request, reply) => {
+    const clienteId = Number(request.params.id);
+    const baseId = Number(request.params.baseId);
+    if (cartao.donoDe('bases', baseId) !== clienteId) {
+      return reply.code(404).send({ error: 'base não encontrada neste cliente' });
+    }
+    if (!desktopBridge) {
+      return reply.code(503).send({
+        error: 'diagnóstico indisponível: o Sankhya Hub Desktop não está configurado',
+      });
+    }
+
+    const base = cartao.base(baseId)!;
+    let origin: string;
+    try {
+      origin = new URL(base.url).origin;
+    } catch {
+      return reply.code(400).send({ error: 'a URL cadastrada para esta base é inválida' });
+    }
+
+    try {
+      return await desktopBridge.diagnosticarBase(origin, request.query.parametros ?? '');
+    } catch (err) {
+      if (err instanceof DesktopBridgeIndisponivelError) {
+        return reply.code(503).send({ error: err.message });
+      }
+      if (err instanceof DesktopBridgeError) {
+        return reply.code(err.status).send({ error: err.message, expirou: err.expirou });
+      }
+      throw err;
+    }
+  });
 
   /**
    * A senha do BANCO de uma base, em texto claro.

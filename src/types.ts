@@ -458,6 +458,37 @@ export interface StatusBase {
   medidoEm: number;
 }
 
+export interface ModuloDiagnosticoBase {
+  cod: string;
+  resourceId: string;
+  descricao: string;
+}
+
+export interface BotaoDiagnosticoBase {
+  id: string;
+  descricao: string;
+  tipo: string;
+  instancia: string;
+  codModulo: string;
+  classe: string;
+}
+
+export interface ParametroDiagnosticoBase {
+  chave: string;
+  descricao: string;
+  tipo: string;
+  valor: string;
+  mascarado: boolean;
+}
+
+export interface DiagnosticoBase {
+  ok: true;
+  modulos: ModuloDiagnosticoBase[];
+  botoes: BotaoDiagnosticoBase[];
+  parametros: ParametroDiagnosticoBase[];
+  parametrosAusentes: string[];
+}
+
 export interface RepoCliente {
   id: number;
   clienteId: number;

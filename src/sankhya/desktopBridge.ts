@@ -10,16 +10,18 @@
  * sem exigir mudanca de volume no docker-compose.
  */
 import { lerTokenArquivo } from './helper.ts';
-import type { StatusServerLog } from '../types.ts';
+import type { DiagnosticoBase, StatusServerLog } from '../types.ts';
 
 export class DesktopBridgeIndisponivelError extends Error {}
 
 export class DesktopBridgeError extends Error {
   readonly status: number;
+  readonly expirou: boolean;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, expirou = false) {
     super(message);
     this.status = status;
+    this.expirou = expirou;
   }
 }
 
@@ -62,9 +64,13 @@ export class DesktopBridge {
       );
     }
 
-    const corpo = (await resposta.json().catch(() => ({}))) as { erro?: string } & T;
+    const corpo = (await resposta.json().catch(() => ({}))) as { erro?: string; expirou?: boolean } & T;
     if (!resposta.ok) {
-      throw new DesktopBridgeError(corpo.erro ?? `shell desktop respondeu HTTP ${resposta.status}`, resposta.status);
+      throw new DesktopBridgeError(
+        corpo.erro ?? `shell desktop respondeu HTTP ${resposta.status}`,
+        resposta.status,
+        corpo.expirou === true,
+      );
     }
     return corpo;
   }
@@ -116,6 +122,19 @@ export class DesktopBridge {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ origin }),
+      },
+      TIMEOUT_AGENDA_MS,
+    );
+  }
+
+  /** Inventário lido dentro da aba autenticada da base de cliente. */
+  diagnosticarBase(origin: string, parametros: string): Promise<DiagnosticoBase> {
+    return this.#requisitar<DiagnosticoBase>(
+      '/diagnostico/base',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ origin, parametros }),
       },
       TIMEOUT_AGENDA_MS,
     );
