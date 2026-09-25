@@ -9,9 +9,11 @@ import { useEffect, useState } from 'react';
 import { useEmailConfig } from '../hooks/useEmailConfig.ts';
 import type { Avisar } from '../hooks/useToasts.ts';
 import { CampoTexto } from './CampoTexto.tsx';
+import { IntegracaoApi } from './IntegracaoApi.tsx';
 
 export function PainelConfiguracoes({ toast }: { toast: Avisar }) {
   const config = useEmailConfig(toast);
+  const [subaba, setSubaba] = useState<'email' | 'api'>('email');
 
   return (
     <div className="painel-config">
@@ -19,7 +21,11 @@ export function PainelConfiguracoes({ toast }: { toast: Avisar }) {
         <h2>Configurações</h2>
         <p>Valem para o hub inteiro — não são por cliente.</p>
       </header>
-      {config.carregando ? <p className="detail-empty">Carregando configuração…</p> : <Formulario config={config} />}
+      <div className="form-acoes" role="tablist" aria-label="Configurações gerais">
+        <button className="btn tiny ghost" role="tab" aria-selected={subaba === 'email'} onClick={() => setSubaba('email')}>E-mail</button>
+        <button className="btn tiny ghost" role="tab" aria-selected={subaba === 'api'} onClick={() => setSubaba('api')}>Integração API</button>
+      </div>
+      {subaba === 'api' ? <IntegracaoApi /> : config.carregando ? <p className="detail-empty">Carregando configuração…</p> : <Formulario config={config} />}
     </div>
   );
 }

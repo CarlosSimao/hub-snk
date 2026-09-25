@@ -13,6 +13,7 @@ import { AgendaFetcher } from './agenda';
 import { ServerLogFetcher } from './serverLog';
 import { iniciarKeepalive, type AbaSankhya } from './keepalive';
 import { criarBridgeServer } from './bridgeServer';
+import { instalarNoHub, iniciarRemetente } from './integracaoCanal';
 import { pushSessaoExperience, limparSessaoExperience } from './backendClient';
 import { capturarTokenExperience, diagnosticoCookiesErp } from './sessions';
 import { backendDisponivel } from './services';
@@ -66,6 +67,8 @@ function criarJanela(): void {
   // navegador, sem relação com as abas deste shell.
   const hubUrlComFlag = `${HUB_URL}${HUB_URL.includes('?') ? '&' : '?'}desktop=1`;
   tabs.criarAbaPrincipal('hub', hubUrlComFlag, PARTICAO);
+  const abaHub = tabs.aba('hub');
+  if (abaHub) instalarNoHub(abaHub.webContents);
   tabs.criarAbaPrincipal('erp', ERP_URL, PARTICAO);
   tabs.criarAbaPrincipal('experience', EXPERIENCE_URL, PARTICAO);
   tabs.reposicionar();
@@ -156,6 +159,7 @@ app.whenReady().then(async () => {
   // O log de base de cliente sai da aba DAQUELA base (isolada por origin), não da aba ERP.
   const serverLog = new ServerLogFetcher((origin) => tabs?.abaCliente(origin));
   criarBridgeServer(agenda, () => tabs, serverLog);
+  iniciarRemetente();
 
   // Antes da janela: o painel é a primeira aba a carregar e apontaria para uma porta
   // fechada. Esperar aqui custa o tempo de boot do Fastify uma vez, e evita que a

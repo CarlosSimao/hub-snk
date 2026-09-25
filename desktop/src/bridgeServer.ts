@@ -7,6 +7,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { BRIDGE_HOST, BRIDGE_PORT } from './config';
 import { garantirToken } from './tokenStore';
+import { tratarIntegracao } from './integracaoCanal';
 import { logEvento } from './log';
 import * as cofre from './cofreCredenciais';
 import * as navegador from './navegador';
@@ -315,6 +316,10 @@ export function criarBridgeServer(
 ): Server {
   const servidor = createServer((req, res) => {
     void (async () => {
+      if (req.url?.startsWith('/integracao-api/')) {
+        await tratarIntegracao(req, res);
+        return;
+      }
       if (req.headers['x-hub-token'] !== garantirToken()) {
         responderJson(res, 401, { erro: 'token inválido' });
         return;
