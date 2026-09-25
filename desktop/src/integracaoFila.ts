@@ -78,7 +78,14 @@ export class FilaIntegracao {
       } catch {
         this.reagendar(lote, 'Falha de rede ou timeout'); return;
       }
-      if (!resposta.ok) { this.reagendar(lote, `HTTP ${resposta.status}`); return; }
+      // Só o que pode passar sozinho volta ao retry (timeout, limite, servidor fora). Erro
+      // de pedido ou de credencial (4xx) repetiria a cada 60 s para sempre: pede ação.
+      if (!resposta.ok) {
+        const transitorio = resposta.status === 408 || resposta.status === 429 || resposta.status >= 500;
+        if (transitorio) this.reagendar(lote, `HTTP ${resposta.status}`);
+        else this.bloquearLote(lote, `HTTP ${resposta.status}: revise URL, instalacao ou chave`);
+        return;
+      }
       let envelope: unknown;
       try { envelope = await resposta.json(); } catch { this.bloquearLote(lote, 'Resposta JSON invalida'); return; }
       if (!envelope || typeof envelope !== 'object' || (envelope as { status?: unknown }).status !== 'COMPLETED') {

@@ -94,6 +94,9 @@ export async function tratarIntegracao(req: IncomingMessage, res: ServerResponse
 
 export function iniciarRemetente(): void {
   const timer = setInterval(() => {
+    // Fila vazia não lê o arquivo nem decifra a chave: sem isto, eram as duas coisas por
+    // segundo, o app inteiro aberto.
+    if (fila.estado().pendentes === 0) return;
     const cfg = cofre.estado();
     if (cfg.habilitada) void fila.enviar(cfg.apiUrl, cfg.installationId, cofre.chave());
   }, 1000);

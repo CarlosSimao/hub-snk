@@ -119,3 +119,20 @@ test('limita lote a 200 e impede envios simultaneos', async () => {
     assert.equal(fila.estado().pendentes, 1);
   } finally { limpar(); }
 });
+
+test('HTTP 401 nao entra em retry automatico; so envio forcado repete', async () => {
+  let chamadas = 0;
+  const { fila, limpar } = novo(async () => { chamadas++; return { ok: false, status: 401 }; });
+  try {
+    fila.enfileirar(usuario(), url, instalacao);
+    await fila.enviar(url, instalacao, 'dsk_segredo');
+    assert.equal(fila.estado().eventos[0].tentativas, 0);
+    assert.equal(fila.estado().proximaTentativa, '');
+    assert.match(fila.estado().eventos[0].erro, /HTTP 401/);
+    await fila.enviar(url, instalacao, 'dsk_segredo');
+    assert.equal(chamadas, 1);
+    await fila.enviar(url, instalacao, 'dsk_segredo', true);
+    assert.equal(chamadas, 2);
+    assert.equal(fila.estado().pendentes, 1);
+  } finally { limpar(); }
+});
