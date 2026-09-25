@@ -11,6 +11,7 @@ import { logEvento } from './log';
 import { TabManager } from './tabs';
 import { AgendaFetcher } from './agenda';
 import { ServerLogFetcher } from './serverLog';
+import { iniciarKeepalive, type AbaSankhya } from './keepalive';
 import { criarBridgeServer } from './bridgeServer';
 import { pushSessaoExperience, limparSessaoExperience } from './backendClient';
 import { capturarTokenExperience, diagnosticoCookiesErp } from './sessions';
@@ -172,6 +173,19 @@ app.whenReady().then(async () => {
   // abertura do aplicativo se o backend demorar a responder.
   void avisarAnotacoes();
   void avisarServerLog();
+
+  // Aba ERP e as bases de cliente abertas: é nelas que o hub chama `service.sbr`.
+  iniciarKeepalive(() => {
+    if (!tabs) return [];
+    const abas: AbaSankhya[] = [];
+    const erp = tabs.aba('erp');
+    if (erp) abas.push({ chave: 'erp', titulo: 'ERP Sankhya', view: erp });
+    for (const info of tabs.abasClientesAbertas()) {
+      const view = tabs.abaCliente(info.origin);
+      if (view) abas.push({ chave: info.origin, titulo: info.titulo, view });
+    }
+    return abas;
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) criarJanela();
