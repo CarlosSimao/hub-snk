@@ -206,7 +206,7 @@ async function tratarNavegador(
 
   if (req.method === 'POST' && acao === 'abrir') {
     try {
-      responderJson(res, 200, { ok: true, url: navegador.abrir(tabs, sistema, texto('tela')) });
+      responderJson(res, 200, { ok: true, url: navegador.abrir(tabs, sistema, texto('tela'), texto('registro')) });
     } catch (err) {
       responderJson(res, 400, { ok: false, erro: (err as Error).message });
     }

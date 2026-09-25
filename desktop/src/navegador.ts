@@ -155,13 +155,29 @@ export function favoritos(navegador: string, perfil: string): FavoritoNavegador[
   }
 }
 
-export function resolverUrl(sistema: Sistema, tela: string): string {
+/** resourceID do Sankhya: segmentos separados por ponto (ex.: br.com.sankhya.core.cad.parceiros). */
+const RESOURCE_ID = /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)+$/;
+
+/**
+ * `CAMPO=valor` -> `{ CAMPO: valor }`, com valor só de dígitos virando número. É o
+ * registro que o link direto tenta abrir já posicionado; vazio ou inválido = sem registro.
+ */
+export function parsearRegistro(texto: string): Record<string, string | number> | null {
+  const m = /^\s*([A-Z0-9_]+)\s*=\s*(.+?)\s*$/.exec(texto);
+  if (!m) return null;
+  const valor = m[2]!;
+  return { [m[1]!]: /^\d+$/.test(valor) ? Number(valor) : valor };
+}
+
+export function resolverUrl(sistema: Sistema, tela: string, registro = ''): string {
   if (!tela) return URL_LOGIN[sistema];
 
-  const info = TELAS[tela];
-  if (!info) return '';
-  const base64 = Buffer.from(info.resource, 'utf8').toString('base64');
-  return `https://skw.sankhya.com.br/mge/system.jsp#app/${base64}`;
+  // Uma chave da lista conhecida ou, no ERP, qualquer resourceID — abrir tela não grava nada.
+  const resource = TELAS[tela]?.resource ?? (sistema === 'sankhya-erp' && RESOURCE_ID.test(tela) ? tela : '');
+  if (!resource) return '';
+  const b64 = (s: string) => Buffer.from(s, 'utf8').toString('base64');
+  const pk = parsearRegistro(registro);
+  return `https://skw.sankhya.com.br/mge/system.jsp#app/${b64(resource)}${pk ? `/${b64(JSON.stringify(pk))}` : ''}`;
 }
 
 export function telasConhecidas(): string[] {
@@ -174,8 +190,8 @@ export function telasConhecidas(): string[] {
  * Antes isto disparava um processo do Chrome; aqui e' navegar a aba que ja' existe e
  * traze-la para a frente.
  */
-export function abrir(tabs: TabManager | null, sistema: Sistema, tela: string): string {
-  const url = resolverUrl(sistema, tela);
+export function abrir(tabs: TabManager | null, sistema: Sistema, tela: string, registro = ''): string {
+  const url = resolverUrl(sistema, tela, registro);
   if (!url) throw new Error(`tela desconhecida: ${tela}`);
 
   const id = sistema === 'sankhya-erp' ? 'erp' : 'experience';
@@ -184,7 +200,7 @@ export function abrir(tabs: TabManager | null, sistema: Sistema, tela: string): 
 
   void view.webContents.loadURL(url);
   tabs?.mostrar(id);
-  logEvento('navegador-abrir', { sistema, tela });
+  logEvento('navegador-abrir', { sistema, tela, comRegistro: Boolean(registro) });
   return url;
 }
 
