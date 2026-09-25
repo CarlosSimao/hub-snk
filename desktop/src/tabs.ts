@@ -14,7 +14,8 @@ import { join } from 'node:path';
 import { BrowserWindow, WebContentsView, app, session } from 'electron';
 import { DOMINIOS_POPUP_PERMITIDOS, HUB_URL } from './config';
 import { logEvento, origemSemQuery } from './log';
-import { tentarAutofill } from './autofill';
+import { revelarSenhaBase, tentarAutofill } from './autofill';
+import { deslogar, logar } from './loginApi';
 import { PRELOAD_RUFFLE, prepararRuffle } from './ruffle';
 
 export type TabId = 'hub' | 'erp' | 'experience';
@@ -27,6 +28,8 @@ export interface InfoBaseCliente {
   ambiente: string;
   usuario: string;
   temSenha: boolean;
+  /** Login por `MobileLoginSP.login` antes de abrir a aba (marcado no cadastro da base). */
+  loginApi: boolean;
 }
 
 export interface AbaClienteInfo {
@@ -132,6 +135,10 @@ export class TabManager {
    * mesmo cliente podem compartilhar host e diferir só na porta (caso real: prod/teste
    * do mesmo cliente em portas distintas), com usuário/senha diferentes. */
   readonly #basesPorOrigin = new Map<string, InfoBaseCliente>();
+  /** A base de cada aba de cliente aberta — o logout ao fechar precisa saber se foi por API. */
+  readonly #infoDaAba = new Map<string, InfoBaseCliente>();
+  /** Link direto pedido antes do login: a tela de login do Sankhya descarta o `#app/...`. */
+  readonly #pendentes = new Map<string, { url: string; ate: number }>();
   #abaAtiva = 'hub';
   #alturaTopo = 96;
   /**
@@ -234,11 +241,14 @@ export class TabManager {
           /* URL inválida — trata como link normal de base */
         }
         logEvento('link-cliente-solicitado', { alvo: origemSemQuery(alvoLimpo), monitor: ehMonitor });
+        // Link direto para uma tela (`system.jsp#app/<base64>`) também precisa navegar a
+        // aba que já existe — sem isso o clique só focava a aba onde ela estivesse.
+        const ehTela = /#app\//.test(alvoLimpo);
         this.abrirAbaCliente(
           origin,
           alvoLimpo,
           infoBase,
-          ehMonitor ? { autofill: false, forcarUrl: true } : {},
+          ehMonitor ? { autofill: false, forcarUrl: true } : ehTela ? { forcarUrl: true } : {},
         );
         return { action: 'deny' };
       }
@@ -258,6 +268,7 @@ export class TabManager {
             ambiente: 'outro',
             usuario: '',
             temSenha: false,
+            loginApi: false,
           },
           { autofill: false },
         );
@@ -443,7 +454,10 @@ export class TabManager {
       // O monitor de log compartilha o origin da base, então cai na mesma aba. Quando é
       // ele que está sendo aberto (`forcarUrl`), navega a aba para o JSP em vez de só
       // focá-la — senão o clique não sairia da tela do Sankhya que já estava aberta.
-      if (opcoes.forcarUrl) void existente.webContents.loadURL(url);
+      if (opcoes.forcarUrl) {
+        this.#lembrarPendente(origin, url);
+        void existente.webContents.loadURL(url);
+      }
       this.mostrar(origin);
       return;
     }
@@ -501,7 +515,9 @@ export class TabManager {
     // Base de cliente é Sankhya: tela Flex abre aqui também, e cada base tem a sua
     // partição — o `prepararRuffle` registra o protocolo nela.
     prepararRuffle(view.webContents);
-    view.webContents.loadURL(url);
+    this.#infoDaAba.set(origin, info);
+    this.#lembrarPendente(origin, url);
+    view.webContents.on('did-navigate', (_e, destino) => this.#retomarPendente(origin, view, destino));
     this.#janela.contentView.addChildView(view);
     this.#abas.set(origin, view);
     this.#abasClientes.set(origin, { origin, titulo: tituloBase(info), visivel: true });
@@ -516,13 +532,68 @@ export class TabManager {
     // O monitor de log NÃO recebe autofill: a página dele tem um campo de senha PRÓPRIO
     // (a senha do JSP, não a do Sankhya), e o preenchedor colocaria a credencial da base
     // no lugar errado.
-    if (opcoes.autofill !== false) void tentarAutofill(view, info);
+    void this.#carregarBase(view, particao, origin, url, info, opcoes.autofill !== false);
+  }
+
+  /**
+   * Com `loginApi` marcado, loga pela API na partição da aba ANTES de carregar: a aba
+   * nasce logada e vai direto à tela pedida. Sem a marcação, ou se o login pela API for
+   * recusado (SSO, usuário sem senha local), é o caminho de sempre: página + autofill.
+   */
+  async #carregarBase(
+    view: WebContentsView,
+    particao: string,
+    origin: string,
+    url: string,
+    info: InfoBaseCliente,
+    autofill: boolean,
+  ): Promise<void> {
+    if (info.loginApi && info.usuario && info.temSenha) {
+      const senha = await revelarSenhaBase(info.clienteId, info.baseId);
+      const r = senha ? await logar(particao, origin, info.usuario, senha) : { ok: false };
+      if (r.ok) {
+        void view.webContents.loadURL(url);
+        return;
+      }
+    }
+    void view.webContents.loadURL(url);
+    if (autofill) void tentarAutofill(view, info);
+  }
+
+  #lembrarPendente(origin: string, url: string): void {
+    if (/#app\//.test(url)) this.#pendentes.set(origin, { url, ate: Date.now() + 5 * 60_000 });
+  }
+
+  /**
+   * Depois do login pela tela, o Sankhya cai no `system.jsp` sem o `#app/...` do link
+   * direto. Aqui a aba volta uma vez para a tela pedida (vale por 5 minutos).
+   */
+  #retomarPendente(origin: string, view: WebContentsView, destino: string): void {
+    const pendente = this.#pendentes.get(origin);
+    if (!pendente) return;
+    if (Date.now() > pendente.ate) {
+      this.#pendentes.delete(origin);
+      return;
+    }
+    let u: URL;
+    try {
+      u = new URL(destino);
+    } catch {
+      return;
+    }
+    if (!/\/system\.jsp$/i.test(u.pathname)) return;
+    this.#pendentes.delete(origin);
+    if (!/#app\//.test(destino)) void view.webContents.loadURL(pendente.url);
   }
 
   fecharAbaCliente(origin: string): boolean {
     const view = this.#abas.get(origin);
     if (!view || !this.#abasClientes.has(origin)) return false;
     this.#janela.contentView.removeChildView(view);
+    const info = this.#infoDaAba.get(origin);
+    if (info?.loginApi) void deslogar(`link:${origin}`, origin);
+    this.#infoDaAba.delete(origin);
+    this.#pendentes.delete(origin);
     this.#abas.delete(origin);
     this.#abasClientes.delete(origin);
     this.#escondidas.delete(origin);
@@ -545,7 +616,7 @@ export class TabManager {
               signal: AbortSignal.timeout(5000),
             });
             const cartao = (await respostaCartao.json()) as {
-              bases?: Array<{ id: number; url: string; ambiente: string; usuario: string; temSenha: boolean }>;
+              bases?: Array<{ id: number; url: string; ambiente: string; usuario: string; temSenha: boolean; loginApi?: boolean }>;
             };
             for (const base of cartao.bases ?? []) {
               if (!base.url) continue;
@@ -566,6 +637,7 @@ export class TabManager {
                   ambiente: base.ambiente,
                   usuario: base.usuario,
                   temSenha: base.temSenha,
+                  loginApi: base.loginApi === true,
                 });
               } catch {
                 /* URL de base inválida — ignora, não é motivo pra travar o shell */

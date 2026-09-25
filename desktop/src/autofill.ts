@@ -20,7 +20,7 @@ import { HUB_URL } from './config';
 import { logEvento } from './log';
 import type { InfoBaseCliente } from './tabs';
 
-async function revelarSenhaBase(clienteId: number, baseId: number): Promise<string | null> {
+export async function revelarSenhaBase(clienteId: number, baseId: number): Promise<string | null> {
   try {
     const resposta = await fetch(`${HUB_URL}/api/clientes/${clienteId}/bases/${baseId}/revelar`, {
       method: 'POST',
