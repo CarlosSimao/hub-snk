@@ -16,6 +16,7 @@
     "start": "npm run build:hub && npm run build && electron .",
     "start:shell": "npm run build && electron .",
     "dev": "tsc -p tsconfig.json --watch",
+    "test": "node --test test/*.test.cjs",
     "preparar-hub": "node scripts/preparar-hub.mjs",
     "preparar-autosync": "node scripts/preparar-autosync.mjs",
     "empacotar": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs && electron-builder --config electron-builder.yml",
