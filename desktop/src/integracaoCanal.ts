@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { HUB_URL, BRIDGE_PORT } from './config';
 import * as cofre from './integracaoCofre';
-import { FilaIntegracao } from './integracaoFila';
+import { atrasoAleatorioInstalacao, FilaIntegracao } from './integracaoFila';
 import { validarConfig, type EventoApi } from './integracaoValidacao';
 
 const token = randomBytes(32).toString('hex');
@@ -93,12 +93,23 @@ export async function tratarIntegracao(req: IncomingMessage, res: ServerResponse
 }
 
 export function iniciarRemetente(): void {
+  let instalacaoDoJitter = '';
+  let jitterDaInstalacao = 0;
   const timer = setInterval(() => {
     // Fila vazia não lê o arquivo nem decifra a chave: sem isto, eram as duas coisas por
     // segundo, o app inteiro aberto.
-    if (fila.estado().pendentes === 0) return;
+    const estado = fila.estado();
+    if (estado.pendentes === 0) return;
     const cfg = cofre.estado();
-    if (cfg.habilitada) void fila.enviar(cfg.apiUrl, cfg.installationId, cofre.chave());
+    if (!cfg.habilitada) return;
+    if (instalacaoDoJitter !== cfg.installationId) {
+      instalacaoDoJitter = cfg.installationId;
+      jitterDaInstalacao = atrasoAleatorioInstalacao();
+    }
+    const primeira = Date.parse(estado.primeiraPendencia);
+    const atingiuAlvo = estado.pendentes >= 100;
+    const janelaVenceu = Number.isFinite(primeira) && Date.now() >= primeira + 60_000 + jitterDaInstalacao;
+    if (atingiuAlvo || janelaVenceu) void fila.enviar(cfg.apiUrl, cfg.installationId, cofre.chave());
   }, 1000);
   timer.unref();
 }

@@ -3,14 +3,28 @@ import { validarEvento, type EventoApi, type TipoEvento } from './integracaoVali
 
 export interface Pendente { evento: EventoApi; criadoEm: string; estado: 'pendente' | 'falhou'; tentativas: number; proximaTentativa: string; ultimoErro: string; bloqueioManual?: boolean }
 interface ArquivoFila { apiUrl: string; installationId: string; eventos: Pendente[]; confirmados: string[]; ultimoEnvio: string; ultimoErro: string }
-const prioridade: Record<TipoEvento, number> = { 'usuario.upsert': 0, 'os.upsert': 1, 'os.progresso': 2, 'horas.apontar': 3 };
+const prioridade: Record<TipoEvento, number> = {
+  'usuario.upsert': 0,
+  'cliente.upsert': 1,
+  'os.upsert': 2,
+  'os.progresso': 3,
+  'demanda.upsert': 4,
+  'tarefa.upsert': 5,
+  'tarefa.transicao': 6,
+  'planejamento.upsert': 7,
+  'agenda.evento.upsert': 8,
+  'horas.apontar': 9,
+};
 const esperas = [5000, 15000, 30000, 60000];
+export const atrasoAleatorioInstalacao = (aleatorio: () => number = Math.random): number =>
+  Math.round(Math.min(1, Math.max(0, aleatorio())) * 120_000);
 const seguro = (texto: unknown) => typeof texto === 'string' ? texto.replace(/dsk_[A-Za-z0-9._:-]+/g, '[segredo]').replace(/(?:key|token|authorization)\s*[:=]\s*\S+/gi, '[segredo]').replace(/https?:\/\/\S+/g, '[url]').slice(0, 240) : '';
 
 export class FilaIntegracao {
   private dados: ArquivoFila;
   private enviando = false;
-  constructor(private readonly arquivo: string, private readonly fetcher: typeof fetch = fetch) {
+  constructor(private readonly arquivo: string, private readonly fetcher: typeof fetch = fetch,
+    private readonly aleatorio: () => number = Math.random) {
     this.dados = lerJson(arquivo, { apiUrl: '', installationId: '', eventos: [], confirmados: [], ultimoEnvio: '', ultimoErro: '' });
   }
   identidade() { return { apiUrl: this.dados.apiUrl, installationId: this.dados.installationId }; }
@@ -45,6 +59,7 @@ export class FilaIntegracao {
     return { pendentes: this.dados.eventos.filter(p => p.estado === 'pendente').length,
       rejeitados: this.dados.eventos.filter(p => p.estado === 'falhou').length,
       eventos: this.dados.eventos.map(p => ({ id: p.evento.id, tipo: p.evento.type, estado: p.estado, tentativas: p.tentativas, erro: p.ultimoErro })),
+      primeiraPendencia: this.dados.eventos.filter(p => p.estado === 'pendente').map(p => p.criadoEm).sort()[0] ?? '',
       proximaTentativa: this.dados.eventos.map(p => p.proximaTentativa).filter(Boolean).sort()[0] ?? '',
       ultimoEnvio: this.dados.ultimoEnvio, ultimoErro: this.dados.ultimoErro, enviando: this.enviando };
   }
@@ -54,20 +69,30 @@ export class FilaIntegracao {
     return this.dados.eventos.some(outro => {
       if (outro.estado !== 'falhou') return false;
       const od = outro.evento.data;
-      const usuario = outro.evento.type === 'usuario.upsert' && od.externalId === d.userExternalId;
-      const os = outro.evento.type === 'os.upsert' && od.externalId === d.osExternalId;
       const mesmaEntidade = outro.evento.type === p.evento.type && od.externalId && od.externalId === d.externalId && outro.criadoEm <= p.criadoEm;
-      return usuario || os || Boolean(mesmaEntidade);
+      if (mesmaEntidade) return true;
+      const referencia = (tipo: TipoEvento, campo: string) =>
+        outro.evento.type === tipo && d[campo] !== undefined && String(od.externalId) === String(d[campo]);
+      const usuario = referencia('usuario.upsert', 'userExternalId');
+      const os = referencia('os.upsert', 'osExternalId');
+      const cliente = referencia('cliente.upsert', 'clientExternalId');
+      const demanda = referencia('demanda.upsert', 'demandExternalId');
+      const tarefa = referencia('tarefa.upsert', 'taskExternalId');
+      const clienteAgenda = p.evento.type === 'agenda.evento.upsert'
+        && outro.evento.type === 'cliente.upsert'
+        && d.clientCode !== undefined
+        && String(od.erpPartnerCode) === String(d.clientCode);
+      return usuario || os || cliente || demanda || tarefa || clienteAgenda;
     });
   }
   async enviar(apiUrl: string, installationId: string, key: string, forcar = false): Promise<void> {
     if (this.enviando) return;
     if (!key || this.dados.apiUrl !== apiUrl || this.dados.installationId !== installationId) return;
     const agora = Date.now();
-    const lote = this.dados.eventos.filter(p => p.estado === 'pendente' && (forcar || !p.bloqueioManual) && !this.bloqueado(p)
+    const candidatos = this.dados.eventos.filter(p => p.estado === 'pendente' && (forcar || !p.bloqueioManual) && !this.bloqueado(p)
       && (forcar || !p.proximaTentativa || Date.parse(p.proximaTentativa) <= agora))
-      .sort((a, b) => prioridade[a.evento.type] - prioridade[b.evento.type] || a.criadoEm.localeCompare(b.criadoEm))
-      .slice(0, 200);
+      .sort((a, b) => prioridade[a.evento.type] - prioridade[b.evento.type] || a.criadoEm.localeCompare(b.criadoEm));
+    const lote = candidatos.slice(0, candidatos.length > 100 ? 200 : 100);
     if (!lote.length) return;
     this.enviando = true;
     try {
@@ -115,7 +140,12 @@ export class FilaIntegracao {
     } finally { this.enviando = false; }
   }
   private reagendar(lote: Pendente[], erro: string) {
-    for (const p of lote) { p.tentativas++; p.ultimoErro = erro; p.bloqueioManual = false; p.proximaTentativa = new Date(Date.now() + esperas[Math.min(p.tentativas - 1, 3)]).toISOString(); }
+    for (const p of lote) {
+      p.tentativas++; p.ultimoErro = erro; p.bloqueioManual = false;
+      const base = esperas[Math.min(p.tentativas - 1, 3)]!;
+      const espera = Math.round(base * (0.8 + this.aleatorio() * 0.4));
+      p.proximaTentativa = new Date(Date.now() + espera).toISOString();
+    }
     this.dados.ultimoErro = erro; this.salvar();
   }
   private bloquearLote(lote: Pendente[], erro: string) {
