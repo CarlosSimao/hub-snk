@@ -1,26 +1,49 @@
 /**
- * Ciclo dos adaptadores: lê do backend o que a Experience já tem e enfileira os eventos.
+ * Ciclo dos adaptadores: lê do backend local o que o hub já tem e enfileira os eventos
+ * dos 10 tipos do contrato (`contrato_api_desktop.md`).
  *
- * Fonte: `/api/experience/resumo`, a mesma da visão mensal. Ela já traz, por cliente
- * cadastrado com ID de projeto e `person_id`, só as OS do PRÓPRIO consultor e os totais
- * do projeto — o recorte que uma instalação deve enviar. O mês anterior entra na
- * primeira semana, para uma OS lançada com atraso no fim do mês não ficar de fora.
+ * Fontes, todas do próprio backend (nada é consultado de fora):
+ *  - `/api/clientes` -> `cliente.upsert`;
+ *  - `/api/experience/resumo` -> projetos/OS/horas (só as OS do PRÓPRIO consultor, pelo
+ *    `person_id` do cadastro), planejamento (tarefas da Experience) e agenda do ERP já
+ *    recortada pelo recurso do consultor no cadastro do cliente — a agenda de terceiros
+ *    não sai (contrato 3.9). O mês anterior entra na primeira semana, para OS lançada com
+ *    atraso no fim do mês não ficar de fora;
+ *  - `/api/clientes/:id/escopo` -> demandas e tarefas do kanban;
+ *  - `/api/escopo/transicoes` -> mudanças de coluna do kanban.
  *
- * Só roda com a integração configurada (URL, instalação e chave). Sem isso não há
- * identidade para a fila, e enfileirar agora misturaria eventos de instalações.
+ * Só roda com a integração configurada (URL, instalação e chave): sem identidade não há
+ * fila, e enfileirar antes misturaria eventos de instalações. O envio segue as regras da
+ * fila/remetente (`integracaoFila.ts`, `integracaoCanal.ts`).
  */
 import { HUB_URL } from './config';
 import * as cofre from './integracaoCofre';
 import { enfileirarEventos } from './integracaoCanal';
-import { montarEventos, type OrdemFonte, type ProjetoFonte } from './integracaoEventos';
+import {
+  eventosAgenda,
+  eventosClientes,
+  eventosEscopo,
+  eventosPlanejamento,
+  externalIdUsuario,
+  montarEventos,
+  type ClienteFonte,
+  type EscopoFonte,
+  type EventoAgendaFonte,
+  type OrdemFonte,
+  type PlanejamentoFonte,
+  type ProjetoFonte,
+  type TransicaoFonte,
+} from './integracaoEventos';
+import { validarEvento } from './integracaoValidacao';
 import { logEvento } from './log';
 
 const INTERVALO_MS = 15 * 60_000;
 const PRIMEIRO_CICLO_MS = 60_000;
 
 interface ClienteResumo {
-  cliente: { nome: string; experienceProjetoId: number | null };
-  agenda?: { ordens: OrdemFonte[] };
+  cliente: ClienteFonte;
+  eventos?: EventoAgendaFonte[];
+  agenda?: { ordens: OrdemFonte[]; tarefas: PlanejamentoFonte[] };
   erro?: string;
 }
 
@@ -40,19 +63,48 @@ function meses(agora: Date): string[] {
   return lista;
 }
 
-async function coletarProjetos(agora: Date): Promise<ProjetoFonte[]> {
-  const porProjeto = new Map<number, ProjetoFonte>();
+interface Coleta {
+  projetos: ProjetoFonte[];
+  planejamentos: { projetoId: number; tarefas: PlanejamentoFonte[] }[];
+  agenda: { cliente: ClienteFonte; eventos: EventoAgendaFonte[] }[];
+}
+
+/** Junta os meses do resumo por projeto/cliente, sem repetir OS, tarefa ou evento. */
+async function coletarResumo(agora: Date): Promise<Coleta> {
+  const projetos = new Map<number, ProjetoFonte>();
+  const planejamentos = new Map<number, Map<number, PlanejamentoFonte>>();
+  const agenda = new Map<number, { cliente: ClienteFonte; eventos: Map<number, EventoAgendaFonte> }>();
   for (const mes of meses(agora)) {
     const resumo = await getJson<{ clientes?: ClienteResumo[] }>(`/api/experience/resumo?mes=${mes}`);
     for (const c of resumo?.clientes ?? []) {
       const projetoId = c.cliente.experienceProjetoId;
-      if (projetoId === null || !c.agenda) continue;
-      const atual = porProjeto.get(projetoId) ?? { projetoId, nome: c.cliente.nome, ordens: [] };
-      atual.ordens.push(...c.agenda.ordens);
-      porProjeto.set(projetoId, atual);
+      if (projetoId !== null && c.agenda) {
+        const atual = projetos.get(projetoId) ?? { projetoId, nome: c.cliente.nome, ordens: [] };
+        for (const o of c.agenda.ordens) if (!atual.ordens.some((x) => x.id === o.id)) atual.ordens.push(o);
+        projetos.set(projetoId, atual);
+        const plan = planejamentos.get(projetoId) ?? new Map<number, PlanejamentoFonte>();
+        for (const t of c.agenda.tarefas ?? []) plan.set(t.id, t);
+        planejamentos.set(projetoId, plan);
+      }
+      const ag = agenda.get(c.cliente.id) ?? { cliente: c.cliente, eventos: new Map<number, EventoAgendaFonte>() };
+      for (const e of c.eventos ?? []) if (e.nuevento) ag.eventos.set(e.nuevento, e);
+      agenda.set(c.cliente.id, ag);
     }
   }
-  return [...porProjeto.values()];
+  return {
+    projetos: [...projetos.values()],
+    planejamentos: [...planejamentos].map(([projetoId, m]) => ({ projetoId, tarefas: [...m.values()] })),
+    agenda: [...agenda.values()].map((a) => ({ cliente: a.cliente, eventos: [...a.eventos.values()] })),
+  };
+}
+
+async function coletarEscopos(clientes: ClienteFonte[]): Promise<EscopoFonte[]> {
+  const escopos: EscopoFonte[] = [];
+  for (const c of clientes) {
+    const e = await getJson<Omit<EscopoFonte, 'clienteId'>>(`/api/clientes/${c.id}/escopo`);
+    if (e) escopos.push({ clienteId: c.id, documentos: e.documentos ?? [], tarefas: e.tarefas ?? [] });
+  }
+  return escopos;
 }
 
 async function ciclo(obterEmail: () => string): Promise<void> {
@@ -62,15 +114,40 @@ async function ciclo(obterEmail: () => string): Promise<void> {
   if (!email) return;
 
   const agora = new Date();
-  const projetos = await coletarProjetos(agora);
-  if (!projetos.length) return;
+  const clientes = (await getJson<{ clientes?: ClienteFonte[] }>('/api/clientes'))?.clientes ?? [];
+  const { projetos, planejamentos, agenda } = await coletarResumo(agora);
+  const escopos = await coletarEscopos(clientes);
+  const transicoes = (await getJson<{ transicoes?: TransicaoFonte[] }>('/api/escopo/transicoes'))?.transicoes ?? [];
 
   // Nome do consultor: o mesmo `person_name` que o cadastro usa, pelo primeiro projeto.
-  const eu = await getJson<{ nome?: string }>(`/api/experience/person-id?projetoId=${projetos[0]!.projetoId}`);
-  const eventos = montarEventos({ email, nome: eu?.nome ?? '' }, projetos, agora);
+  const primeiro = projetos[0]?.projetoId;
+  const eu = primeiro ? await getJson<{ nome?: string }>(`/api/experience/person-id?projetoId=${primeiro}`) : null;
+  const usuarioId = externalIdUsuario(email);
+
+  // `montarEventos` já abre com o `usuario.upsert`; a fila reordena pela dependência.
+  const eventos = [
+    ...montarEventos({ email, nome: eu?.nome ?? '' }, projetos, agora),
+    ...eventosClientes(clientes, agora),
+    ...eventosEscopo(usuarioId, escopos, transicoes, agora),
+    ...eventosPlanejamento(usuarioId, planejamentos, agora),
+    ...eventosAgenda(usuarioId, agenda, agora),
+  ];
+  // Um registro ruim (campo fora do contrato) não pode travar os outros: o lote inteiro
+  // seria recusado na validação. Descarta só o inválido e registra por tipo, sem conteúdo.
+  const validos = [];
+  const descartados: Record<string, number> = {};
+  for (const e of eventos) {
+    try {
+      validarEvento(e);
+      validos.push(e);
+    } catch {
+      descartados[e.type] = (descartados[e.type] ?? 0) + 1;
+    }
+  }
+  if (Object.keys(descartados).length) logEvento('integracao-eventos-descartados', descartados);
   try {
-    const novos = enfileirarEventos(eventos);
-    if (novos) logEvento('integracao-eventos-enfileirados', { novos, projetos: projetos.length });
+    const novos = enfileirarEventos(validos);
+    if (novos) logEvento('integracao-eventos-enfileirados', { novos, total: validos.length });
   } catch (err) {
     logEvento('integracao-enfileirar-falhou', { erro: String((err as Error).message ?? err).slice(0, 200) });
   }
