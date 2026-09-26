@@ -42,7 +42,8 @@ export function instalarNoHub(webContents: WebContents): void {
       };
       Object.defineProperty(window, 'integracaoDesktop', { configurable: false, value: Object.freeze({
         estado: () => chamar('estado'), salvar: d => chamar('salvar', d), trocarChave: chave => chamar('trocar-chave', { chave }),
-        removerChave: () => chamar('remover-chave'), validar: () => chamar('validar'), enviarPendencias: () => chamar('enviar-pendencias')
+        removerChave: () => chamar('remover-chave'), validar: () => chamar('validar'), enviarPendencias: () => chamar('enviar-pendencias'),
+        envioAutomatico: ligado => chamar('envio-automatico', { ligado: ligado === true })
       }) });
       window.dispatchEvent(new Event('integracao-desktop-pronta'));
     })();`;
@@ -75,8 +76,16 @@ export async function tratarIntegracao(req: IncomingMessage, res: ServerResponse
       const apiUrl = String(dados.apiUrl ?? '').trim(); const installationId = String(dados.installationId ?? '').trim();
       validarConfig(apiUrl, installationId);
       if (!fila.podeAlterarIdentidade(apiUrl, installationId)) throw new Error('Fila pendente pertence a URL e instalacao anteriores');
-      cofre.salvarConfig(apiUrl, installationId, false); // envio automatico aguarda adaptadores e homologacao
+      // Trocar URL ou instalação desliga o envio automático: a nova identidade precisa ser
+      // conferida antes. Salvar a mesma identidade mantém o que estava.
+      const atual = cofre.estado();
+      const mesmaIdentidade = atual.apiUrl === apiUrl && atual.installationId === installationId;
+      cofre.salvarConfig(apiUrl, installationId, mesmaIdentidade && atual.habilitada);
       fila.definirIdentidade(apiUrl, installationId);
+    } else if (acao === 'envio-automatico') {
+      // Ligar exige URL, instalação e chave válidas (salvarConfig valida e recusa sem chave).
+      const atual = cofre.estado();
+      cofre.salvarConfig(atual.apiUrl, atual.installationId, dados.ligado === true);
     } else if (acao === 'trocar-chave') cofre.trocarChave(String(dados.chave ?? ''));
     else if (acao === 'remover-chave') cofre.removerChave();
     else if (acao === 'validar') cofre.validar();

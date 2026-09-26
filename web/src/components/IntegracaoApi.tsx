@@ -14,6 +14,7 @@ interface Canal {
   removerChave(): Promise<Estado>;
   validar(): Promise<Estado>;
   enviarPendencias(): Promise<Estado>;
+  envioAutomatico(ligado: boolean): Promise<Estado>;
 }
 const canal = () => (window as Window & { integracaoDesktop?: Canal }).integracaoDesktop;
 const data = (valor: string) => valor ? new Date(valor).toLocaleString('pt-BR') : '—';
@@ -69,7 +70,17 @@ export function IntegracaoApi() {
         <button className="btn tiny ghost" disabled={ocupado || !estado.temChave || !estado.pendentes} onClick={() => void executar(c => c.enviarPendencias(), 'Tentativa de envio concluída; consulte a fila.')}>Enviar pendências</button>
       </div>
       {mensagem && <p role="status">{mensagem}</p>}
-      <p><strong>Envio automático:</strong> ainda não disponível; aguarda adaptadores e homologação.</p>
+      <label className="campo-inline">
+        <input
+          type="checkbox"
+          checked={estado.habilitada}
+          disabled={ocupado || !estado.temChave || !estado.apiUrl || !estado.installationId}
+          onChange={e => { const ligado = e.target.checked; void executar(c => c.envioAutomatico(ligado), ligado ? 'Envio automático ligado.' : 'Envio automático desligado; a fila é preservada.'); }}
+        />
+        <span><strong>Envio automático</strong>
+          <small className="campo-dica">A cada 15 minutos o app lê clientes, OS, horas, kanban, planejamento e agenda e enfileira só o que mudou. A fila sai em até 1 minuto após a primeira mudança, mais um atraso fixo de até 2 minutos desta instalação, ou na hora ao juntar 100 eventos. Desligar suspende o envio sem apagar a fila.</small>
+        </span>
+      </label>
       <p>Estado: {estado.enviando ? 'Enviando' : estado.temChave && estado.apiUrl && estado.installationId ? 'Configurada' : 'Pendente'} · Última validação local: {data(estado.ultimaValidacao)} · Último envio: {data(estado.ultimoEnvio)}</p>
       <p>Fila: {estado.pendentes} pendentes · {estado.rejeitados} rejeitados · Próxima tentativa: {data(estado.proximaTentativa)}</p>
       {estado.ultimoErro && <p role="alert">Último erro: {estado.ultimoErro}</p>}
