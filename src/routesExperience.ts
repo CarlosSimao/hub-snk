@@ -12,7 +12,11 @@ import { SessaoExpiradaError, type Experience } from './sankhya/experience.ts';
 import type { Clientes } from './sankhya/clientes.ts';
 import type { AgendaRecursos } from './sankhya/agenda.ts';
 import type { Solicitacoes } from './sankhya/solicitacoes.ts';
-import { idsDemandaNoTexto, listarIdsDemanda } from './demandas.ts';
+import type { VinculosDemanda } from './sankhya/vinculosDemanda.ts';
+import type { Cliente, OrdemExperience, TarefaExperience } from './types.ts';
+import { listarIdsDemanda } from './demandas.ts';
+import { conferirDia, demandaDoTexto } from './conferenciaDemanda.ts';
+import { categoriaDoEvento, minutosPrevistos, osDoEvento } from './agendaPainel.ts';
 
 export interface RouteExperienceDeps {
   experience: Experience;
@@ -20,6 +24,8 @@ export interface RouteExperienceDeps {
   agenda: AgendaRecursos;
   /** Ausente só nos testes antigos: sem ele o resumo sai sem as demandas. */
   solicitacoes?: Solicitacoes;
+  /** Ausente só nos testes antigos: sem ele as OS saem sem demanda. */
+  vinculos?: VinculosDemanda;
 }
 
 function responderErro(reply: FastifyReply, err: unknown): FastifyReply {
@@ -53,7 +59,164 @@ function ehDia(valor: string | undefined): valor is string {
 
 
 export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperienceDeps): void {
-  const { experience, clientes, agenda, solicitacoes } = deps;
+  const { experience, clientes, agenda, solicitacoes, vinculos } = deps;
+
+  /**
+   * Marca em cada OS a demanda dela. As tarefas entram antes, para o vínculo pedido ->
+   * demanda que elas ensinam valer já nesta resposta.
+   */
+  const comDemanda = (
+    projetoId: number,
+    ordens: OrdemExperience[],
+    tarefas: TarefaExperience[],
+    demandasDoCliente: string[],
+  ): OrdemExperience[] => {
+    if (!vinculos) return ordens;
+    vinculos.aprender(projetoId, tarefas);
+    const resolvidos = vinculos.resolver(projetoId, ordens, demandasDoCliente);
+    return ordens.map((o) => {
+      const v = resolvidos.get(o.id);
+      return { ...o, demanda: v?.demanda ?? '', demandaOrigem: v?.origem ?? '' };
+    });
+  };
+  /**
+   * O `person_id` do consultor no projeto, como a própria Experience informa pelo e-mail
+   * da sessão — e não o do cadastro. Medido em 2026-09-28: o cadastro da Flaps guardava
+   * 21985, e a busca de OS filtrada por essa pessoa voltava vazia (as 13 OS de agosto
+   * eram do 21986). Leitura só: gerar OS continua exigindo o do cadastro, com a
+   * conferência de identidade de antes. Guardado por 12 h; Experience fora cai no cadastro.
+   */
+  const personIds = new Map<number, { personId: number; em: number }>();
+  const personIdDoProjeto = async (projetoId: number, cadastrado: number): Promise<number> => {
+    const guardado = personIds.get(projetoId);
+    if (guardado && Date.now() - guardado.em < 12 * 60 * 60 * 1000) return guardado.personId;
+    try {
+      const eu = await experience.descobrirPersonId(projetoId);
+      if (eu?.personId) {
+        personIds.set(projetoId, { personId: eu.personId, em: Date.now() });
+        return eu.personId;
+      }
+    } catch {
+      /* sessão caída ou Experience fora: vale o cadastro */
+    }
+    return cadastrado;
+  };
+
+  const clienteDoProjeto = (projetoId: number): Cliente | undefined =>
+    clientes.listar().find((c) => c.experienceProjetoId === projetoId);
+
+  /**
+   * Tudo o que o hub sabe de um cliente num periodo: agendamentos com a demanda e o
+   * confronto do dia, tarefas e OS com a demanda. O resumo mensal e a integracao com o
+   * painel (`/api/integracao/painel`) usam a mesma montagem.
+   */
+  const periodoDoCliente = async (cliente: Cliente, de: string, ate: string) => {
+    // A agenda do ERP é snapshot local: responde mesmo quando a Experience está
+    // fora, e sem parceiro no cadastro não há o que recortar — a lane inteira
+    // encheria o dia deste cliente com evento de todos os outros.
+    //
+    // Cadastro sem parceiro tenta o casamento pelo nome, o mesmo do botão "Procurar
+    // na Agenda": só um candidato inequívoco vale, senão o cliente fica sem evento.
+    const codparc =
+      cliente.agendaCodparc ??
+      agenda.casarParceiro(cliente.nome, cliente.agendaRecursoUsuario)?.codparc ??
+      null;
+    const eventos =
+      codparc === null
+        ? []
+        : agenda.eventos(
+            `${de} 00:00:00`,
+            `${ate} 23:59:59`,
+            cliente.agendaRecursoUsuario,
+            codparc,
+          );
+
+    // Demanda de cada agendamento: vínculo manual ou ID do DESCRLONGA.
+    const manuaisEv = vinculos?.manuaisEventos(eventos.map((e) => Number(e.nuevento))) ?? new Map();
+    const eventosLidos = eventos.map((e) => {
+      const lida = demandaDoTexto(e.descrlonga, manuaisEv.get(Number(e.nuevento)));
+      return { ...e, demanda: lida.demanda, demandaOrigem: lida.origem };
+    });
+
+    // As demandas do cliente: as do cadastro primeiro, depois as dos agendamentos do
+    // mês — uma demanda nova lançada na agenda entra sem editar nada.
+    const demandas = [
+      ...new Set([
+        ...listarIdsDemanda(cliente.agendaDemandaId),
+        ...eventosLidos.map((e) => e.demanda).filter(Boolean),
+      ]),
+    ];
+    const extras = {
+      demandas,
+      solicitacoes: solicitacoes?.obter(demandas.map(Number)) ?? [],
+    };
+
+    /** O status de cada agendamento frente às tarefas e OS do mesmo dia. */
+    const conferir = (tarefas: TarefaExperience[], ordens: OrdemExperience[], experienceOk: boolean) =>
+      eventosLidos.map((e) => {
+        const dia = e.inicio.slice(0, 10);
+        return {
+          ...e,
+          conferencia: conferirDia(
+            e.demanda,
+            tarefas
+              .filter((t) => t.dia === dia)
+              .map((t) => ({ id: t.id, demanda: t.demanda ?? '', origem: t.demandaOrigem ?? '' })),
+            ordens.filter((o) => o.dia === dia).map((o) => ({ id: o.id, demanda: o.demanda ?? '' })),
+            experienceOk,
+          ),
+        };
+      });
+
+    if (cliente.experienceProjetoId === null || cliente.experiencePersonId === null) {
+      return {
+        cliente,
+        eventos: conferir([], [], false),
+        ...extras,
+        erro: 'cadastro sem ID do projeto ou person_id',
+        codparc,
+        experienceOk: false,
+      };
+    }
+
+    try {
+      const personId = await personIdDoProjeto(cliente.experienceProjetoId, cliente.experiencePersonId);
+      const [brutas, ordens] = await Promise.all([
+        experience.tarefas(cliente.experienceProjetoId, personId),
+        experience.ordens(cliente.experienceProjetoId, personId, de, ate),
+      ]);
+      // Demanda de cada tarefa: vínculo manual ou ID do additional_information.
+      const manuaisT = vinculos?.manuaisTarefas(brutas.map((t) => t.id)) ?? new Map();
+      const tarefas = brutas.map((t) => {
+        const lida = demandaDoTexto(t.observacoes, manuaisT.get(t.id));
+        return { ...t, demanda: lida.demanda, demandaOrigem: lida.origem };
+      });
+      const marcadas = comDemanda(
+        cliente.experienceProjetoId,
+        ordens,
+        tarefas,
+        listarIdsDemanda(cliente.agendaDemandaId),
+      );
+      return {
+        cliente,
+        eventos: conferir(tarefas, marcadas, true),
+        ...extras,
+        agenda: { tarefas, ordens: marcadas },
+        codparc,
+        experienceOk: true,
+      };
+    } catch (err) {
+      // Um cliente que falha não pode apagar os outros da tela.
+      return {
+        cliente,
+        eventos: conferir([], [], false),
+        ...extras,
+        erro: (err as Error).message,
+        codparc,
+        experienceOk: false,
+      };
+    }
+  };
 
   /**
    * Todos os clientes de uma vez, para a visão consolidada do mês.
@@ -77,60 +240,7 @@ export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperi
       }
 
       const resultados = await Promise.all(
-        clientes.listar().map(async (cliente) => {
-          // A agenda do ERP é snapshot local: responde mesmo quando a Experience está
-          // fora, e sem parceiro no cadastro não há o que recortar — a lane inteira
-          // encheria o dia deste cliente com evento de todos os outros.
-          //
-          // Cadastro sem parceiro tenta o casamento pelo nome, o mesmo do botão "Procurar
-          // na Agenda": só um candidato inequívoco vale, senão o cliente fica sem evento.
-          const codparc =
-            cliente.agendaCodparc ??
-            agenda.casarParceiro(cliente.nome, cliente.agendaRecursoUsuario)?.codparc ??
-            null;
-          const eventos =
-            codparc === null
-              ? []
-              : agenda.eventos(
-                  `${limites.de} 00:00:00`,
-                  `${limites.ate} 23:59:59`,
-                  cliente.agendaRecursoUsuario,
-                  codparc,
-                );
-
-          // As demandas do cliente: as do cadastro primeiro, depois as que aparecem nos
-          // eventos do mês — uma demanda nova lançada na agenda entra sem editar nada.
-          const demandas = [
-            ...new Set([
-              ...listarIdsDemanda(cliente.agendaDemandaId),
-              ...eventos.flatMap((e) => idsDemandaNoTexto(e.descrlonga)),
-            ]),
-          ];
-          const extras = {
-            demandas,
-            solicitacoes: solicitacoes?.obter(demandas.map(Number)) ?? [],
-          };
-
-          if (cliente.experienceProjetoId === null || cliente.experiencePersonId === null) {
-            return { cliente, eventos, ...extras, erro: 'cadastro sem ID do projeto ou person_id' };
-          }
-
-          try {
-            const [tarefas, ordens] = await Promise.all([
-              experience.tarefas(cliente.experienceProjetoId, cliente.experiencePersonId),
-              experience.ordens(
-                cliente.experienceProjetoId,
-                cliente.experiencePersonId,
-                limites.de,
-                limites.ate,
-              ),
-            ]);
-            return { cliente, eventos, ...extras, agenda: { tarefas, ordens } };
-          } catch (err) {
-            // Um cliente que falha não pode apagar os outros da tela.
-            return { cliente, eventos, ...extras, erro: (err as Error).message };
-          }
-        }),
+        clientes.listar().map((cliente) => periodoDoCliente(cliente, limites.de, limites.ate)),
       );
 
       return { clientes: resultados };
@@ -175,9 +285,116 @@ export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperi
           personId = eu.personId;
         }
 
-        return { ordens: await experience.ordens(projetoId, personId, de, ate) };
+        const ordens = await experience.ordens(projetoId, personId, de, ate);
+        const cliente = clienteDoProjeto(projetoId);
+        // As tarefas ensinam o vínculo pelo pedido; falhar em lê-las não derruba a lista.
+        const tarefas =
+          vinculos && cliente?.experiencePersonId
+            ? await experience.tarefas(projetoId, cliente.experiencePersonId).catch(() => [])
+            : [];
+        const cadastradas = listarIdsDemanda(cliente?.agendaDemandaId ?? '');
+        const marcadas = comDemanda(projetoId, ordens, tarefas, cadastradas);
+        return {
+          ordens: marcadas,
+          // Opções do seletor: as do cadastro e as que já aparecem vinculadas.
+          demandas: [...new Set([...cadastradas, ...marcadas.map((o) => o.demanda ?? '').filter(Boolean)])],
+        };
       } catch (err) {
         return responderErro(reply, err);
+      }
+    },
+  );
+
+  /**
+   * A agenda inteira do consultor num período, pronta para o painel de lideranças
+   * (contrato de dashboards v1.1): todo agendamento dele — de cliente cadastrado, de
+   * parceiro que não está no cadastro, ausência e compromisso interno — com categoria,
+   * minutos previstos, OS do dia e o confronto de demanda. Quem consome é o ciclo da
+   * integração no shell desktop.
+   */
+  app.get<{ Querystring: { de?: string; ate?: string } }>('/api/integracao/painel', async (request, reply) => {
+    const { de, ate } = request.query;
+    if (!ehDia(de) || !ehDia(ate) || ate < de) {
+      return reply.code(400).send({ error: 'informe ?de= e ?ate= no formato YYYY-MM-DD' });
+    }
+
+    const todos = clientes.listar();
+    const usuario = todos.map((c) => c.agendaRecursoUsuario.trim()).find(Boolean) ?? '';
+    const cargo = agenda.recursos().find((r) => r.nomeusu === usuario)?.descrcargo ?? '';
+
+    const periodos = await Promise.all(todos.map((c) => periodoDoCliente(c, de, ate)));
+    const vistos = new Set<number>();
+    const eventos = periodos.flatMap((p) =>
+      p.eventos.map((e) => {
+        vistos.add(Number(e.nuevento));
+        const categoria = categoriaDoEvento(e);
+        const os = p.experienceOk && 'agenda' in p ? osDoEvento(e, p.agenda.ordens) : null;
+        return {
+          ...e,
+          clienteId: p.cliente.id,
+          categoria,
+          minutosPrevistos: minutosPrevistos(e, categoria),
+          // Sem Experience não se afirma "zero OS": o campo fica de fora.
+          ...(os ? { qtdOs: os.qtd, minutosOs: os.minutos } : {}),
+        };
+      }),
+    );
+
+    // O resto da agenda do consultor: parceiro fora do cadastro, ausência, interno.
+    const resto = usuario ? agenda.eventos(`${de} 00:00:00`, `${ate} 23:59:59`, usuario) : [];
+    const manuais = vinculos?.manuaisEventos(resto.map((e) => Number(e.nuevento))) ?? new Map<number, string>();
+    for (const e of resto) {
+      if (!e.nuevento || vistos.has(Number(e.nuevento))) continue;
+      const categoria = categoriaDoEvento(e);
+      const lida = demandaDoTexto(e.descrlonga, manuais.get(Number(e.nuevento)));
+      eventos.push({
+        ...e,
+        clienteId: null as unknown as number,
+        categoria,
+        minutosPrevistos: minutosPrevistos(e, categoria),
+        demanda: lida.demanda,
+        demandaOrigem: lida.origem,
+        conferencia: conferirDia(lida.demanda, [], [], false),
+      });
+    }
+
+    return {
+      usuario,
+      cargo,
+      clientes: periodos.map((p) => ({ id: p.cliente.id, codparc: p.codparc })),
+      eventos,
+    };
+  });
+
+  /**
+   * Vínculo manual com a demanda. `nuevento`: um agendamento da Agenda de Recursos;
+   * `tarefaId`: uma tarefa da Experience; `orderId`: só aquela OS (exceção); só
+   * `projetoId` + `pedido`: o pedido inteiro. `demanda: null` desfaz e volta ao automático.
+   */
+  app.put<{ Body: { projetoId?: unknown; pedido?: unknown; orderId?: unknown; demanda?: unknown } }>(
+    '/api/experience/vinculos-demanda',
+    async (request, reply) => {
+      if (!vinculos) return reply.code(503).send({ error: 'vínculos indisponíveis' });
+      const corpo = request.body ?? {};
+      const demanda = corpo.demanda === null || corpo.demanda === '' ? null : String(corpo.demanda ?? '').trim();
+      try {
+        const c = corpo as Record<string, unknown>;
+        if (c['nuevento'] !== undefined && c['nuevento'] !== null) {
+          vinculos.definirEvento(Number(c['nuevento']), demanda);
+        } else if (c['tarefaId'] !== undefined && c['tarefaId'] !== null) {
+          vinculos.definirTarefa(Number(c['tarefaId']), demanda);
+        } else if (corpo.orderId !== undefined && corpo.orderId !== null) {
+          vinculos.definirOs(Number(corpo.orderId), demanda);
+        } else {
+          const projetoId = Number(corpo.projetoId);
+          if (!Number.isInteger(projetoId) || projetoId <= 0) {
+            return reply.code(400).send({ error: 'informe projetoId e pedido, ou orderId' });
+          }
+          vinculos.definirPedido(projetoId, String(corpo.pedido ?? ''), demanda);
+        }
+        return { ok: true };
+      } catch (err) {
+        return reply.code(400).send({ error: (err as Error).message });
       }
     },
   );

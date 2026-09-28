@@ -4133,6 +4133,14 @@ Processos: ...").
   margin: 0;
 }
 
+.escopo-form-titulo {
+  font-size: 12px;
+}
+
+.escopo-form-titulo:not(:first-child) {
+  margin-top: 6px;
+}
+
 .escopo-caminho {
   font-size: 12px;
   overflow-wrap: anywhere;
@@ -4575,3 +4583,111 @@ Processos: ...").
   padding: 2px 8px;
   font-size: 11.5px;
 }
+
+/* ------------------------ demanda das OS (aba OS do cliente) ----------------------- */
+
+.demanda-pedidos {
+  margin: 8px 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.demanda-pedidos h4 {
+  margin: 0 0 4px;
+  font-size: 10.5px;
+  font-weight: 650;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.seletor-demanda {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.seletor-demanda select {
+  padding: 1px 4px;
+  font-size: 11.5px;
+}
+
+.seletor-demanda .manual { color: var(--accent); }
+
+/* ------------- confronto agenda x Experience por demanda (Agenda Mensal) ------------- */
+
+/* Dia reservado sem ID de demanda: cor própria e borda tracejada, para saltar no mês. */
+.chip-cliente.dem-sem-id {
+  border-left: 2px dashed #a855f7;
+  background: color-mix(in srgb, #a855f7 18%, transparent);
+}
+
+.chip-cliente.dem-sem-id .chip-demanda { color: #a855f7; }
+
+.chip-cliente:has(.chip-status) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.chip-status {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+.st-sem-demanda { --st: #a855f7; }
+.st-divergente { --st: var(--down); }
+.st-os-sem-demanda { --st: var(--degraded); }
+.st-demanda-sem-os { --st: var(--accent); }
+.st-sem-experience { --st: var(--text-faint); }
+.st-confere { --st: var(--up); }
+
+.chip-status[class*='st-'] { background: var(--st); }
+.pill[class*='st-'] { border-color: var(--st); }
+
+.selo-status {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 1px 8px;
+  border: 1px solid var(--st, var(--border-strong));
+  border-radius: 999px;
+  color: var(--st, inherit);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.confronto-dia {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border-left: 2px solid var(--border-strong);
+  font-size: 12px;
+}
+
+.confronto-dia ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.confronto-dia li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.confronto-rotulo { min-width: 170px; }
+
+.seletor-id { padding: 1px 4px; font-size: 11.5px; }
+
+.seletor-id-novo {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.seletor-id-novo input { width: 80px; padding: 1px 6px; font-size: 11.5px; }

@@ -44,6 +44,7 @@ import { Pendencias } from './pendencias.ts';
 import { Experience } from './sankhya/experience.ts';
 import { AgendaRecursos } from './sankhya/agenda.ts';
 import { Solicitacoes } from './sankhya/solicitacoes.ts';
+import { VinculosDemanda } from './sankhya/vinculosDemanda.ts';
 import { SincronizacaoAgenda } from './sankhya/sincronizacaoAgenda.ts';
 import { HubHelper } from './sankhya/helper.ts';
 import { Credenciais } from './sankhya/credenciais.ts';
@@ -215,7 +216,8 @@ async function main(): Promise<void> {
   registerRoutesGitAutosync(app, { gitAutosync: new GitAutosync(transporteAutosync) });
   const experience = new Experience(credenciais);
   const solicitacoes = new Solicitacoes(DATA_DIR);
-  registerRoutesExperience(app, { experience, clientes, agenda, solicitacoes });
+  const vinculos = new VinculosDemanda(DATA_DIR);
+  registerRoutesExperience(app, { experience, clientes, agenda, solicitacoes, vinculos });
   registerRoutesAgenda(app, { agenda, helper, desktopBridge });
 
   // Agenda e Solicitações DS se atualizam sozinhas ao abrir o DS e a cada 4 horas no
@@ -307,6 +309,7 @@ async function main(): Promise<void> {
     clientes.close();
     agenda.close();
     solicitacoes.close();
+    vinculos.close();
     emailInterno.close();
     process.exit(0);
   };

@@ -669,6 +669,9 @@ export interface TarefaExperience {
   pedido: string;
   observacoes: string;
   bruto: Record<string, unknown>;
+  /** Demanda da tarefa (ID das observações ou vínculo manual) — só no resumo mensal. */
+  demanda?: string;
+  demandaOrigem?: OrigemDemandaAgenda;
 }
 
 /** Uma ordem de servico ja lancada. */
@@ -716,7 +719,20 @@ export interface OrdemExperience {
    */
   totalProjetoPrevisto: string;
   totalProjetoFeito: string;
+  /**
+   * ID da demanda (Solicitação de Serviços DS) desta OS, resolvido pelo hub — ver
+   * `src/sankhya/vinculosDemanda.ts`. Vazio quando não deu para saber.
+   */
+  demanda?: string;
+  demandaOrigem?: OrigemDemandaOs;
 }
+
+/**
+ * De onde veio a demanda da OS: `os` e `pedido` são vínculos feitos à mão; `tarefa`, o
+ * pedido aprendido das observações das tarefas; `texto`, o ID escrito na OS; `unica`, o
+ * cliente só tem uma demanda. Vazio: sem demanda.
+ */
+export type OrigemDemandaOs = 'os' | 'pedido' | 'tarefa' | 'texto' | 'unica' | '';
 
 export interface AgendaExperience {
   tarefas: TarefaExperience[];
@@ -825,6 +841,42 @@ export interface EventoComRecurso extends EventoAgenda {
   id: number;
   descrcargo: string;
   corHex: string;
+  /**
+   * Preenchidos só no resumo mensal (`/api/experience/resumo`): a demanda do agendamento
+   * (ID do DESCRLONGA ou vínculo manual) e o confronto do dia com a Experience — ver
+   * `src/conferenciaDemanda.ts`.
+   */
+  demanda?: string;
+  demandaOrigem?: OrigemDemandaAgenda;
+  conferencia?: ConferenciaDia;
+}
+
+/** `manual`: vinculada na tela; `texto`: ID lido do DESCRLONGA / additional_information. */
+export type OrigemDemandaAgenda = 'manual' | 'texto' | '';
+
+/**
+ * Status de um dia reservado na agenda, confrontado com a Experience:
+ *  - `sem-demanda`: o agendamento não diz de qual demanda é;
+ *  - `demanda-sem-os`: diz a demanda, mas não há OS no dia;
+ *  - `os-sem-demanda`: há OS no dia, mas sem demanda descoberta;
+ *  - `divergente`: agenda, tarefa ou OS apontam para demandas diferentes;
+ *  - `confere`: agenda, tarefa (quando há) e OS apontam para a mesma demanda;
+ *  - `sem-experience`: a Experience não respondeu para este cliente.
+ */
+export type StatusDemandaDia =
+  | 'sem-demanda'
+  | 'demanda-sem-os'
+  | 'os-sem-demanda'
+  | 'divergente'
+  | 'confere'
+  | 'sem-experience';
+
+export interface ConferenciaDia {
+  status: StatusDemandaDia;
+  /** Demandas das tarefas da Experience do cliente naquele dia (vazio = tarefa sem ID). */
+  tarefas: { id: number; demanda: string; origem: OrigemDemandaAgenda }[];
+  /** Demandas das OS do dia. */
+  ordens: { id: number; demanda: string }[];
 }
 
 export interface EstadoAgendaRecursos {

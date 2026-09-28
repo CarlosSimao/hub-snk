@@ -14,8 +14,10 @@ import {
 } from '../../lib/calendario.ts';
 import { Semaphore } from '../Semaphore.tsx';
 import { PreVisualizador, type ArquivoPrevia } from './PreVisualizador.tsx';
+import { ROTULO_STATUS_DEMANDA } from '../../lib/conferenciaDemanda.ts';
+import { requisitar } from '../../lib/api.ts';
 import { TabBar, type Aba } from '../TabBar.tsx';
-import type { EstadoSincronizacao, SolicitacaoServico, Status } from '../../types.ts';
+import type { ConferenciaDia, EstadoSincronizacao, SolicitacaoServico, Status, StatusDemandaDia } from '../../types.ts';
 
 type Visao = 'calendario' | 'clientes';
 
@@ -36,7 +38,38 @@ export function AgendaMensal({ onAbrirCliente }: { onAbrirCliente: (clienteId: n
   const [visao, setVisao] = useState<Visao>('calendario');
   const [diaAberto, setDiaAberto] = useState<string | null>(null);
   const [previa, setPrevia] = useState<ArquivoPrevia | null>(null);
-  const { linhas, carregando, erro, sessaoExpirada, sincronizacao, atualizarDoErp } = useResumoMes(mes);
+  const { linhas, carregando, erro, sessaoExpirada, sincronizacao, atualizarDoErp, recarregar } = useResumoMes(mes);
+  const [falhaVinculo, setFalhaVinculo] = useState<string | null>(null);
+
+  // Opções dos seletores de demanda: as demandas de cada cliente (cadastro + agenda).
+  const demandasPorCliente = useMemo(
+    () => new Map(linhas.map((l) => [l.cliente.id, l.demandas ?? []])),
+    [linhas],
+  );
+
+  // Os dias reservados do mês por status do confronto agenda x Experience.
+  const contagemStatus = useMemo(() => {
+    const cont = new Map<StatusDemandaDia, number>();
+    for (const l of linhas) {
+      for (const e of l.eventos ?? []) {
+        const st = e.conferencia?.status;
+        if (!st || e.inicio.slice(0, 7) !== mes) continue;
+        cont.set(st, (cont.get(st) ?? 0) + 1);
+      }
+    }
+    return cont;
+  }, [linhas, mes]);
+
+  /** Vínculo manual com a demanda; vazio desfaz. Recarrega o mês sem piscar. */
+  const vincular = async (alvo: AlvoVinculo, demanda: string) => {
+    const { ok, body } = await requisitar('/api/experience/vinculos-demanda', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ...alvo, demanda: demanda || null }),
+    });
+    setFalhaVinculo(ok ? null : (body.error ?? 'não consegui gravar o vínculo'));
+    if (ok) await recarregar(true);
+  };
 
   // Solicitações de todos os clientes num lugar só: o detalhe do dia procura pela demanda.
   const solicitacoes = useMemo(() => {
@@ -76,6 +109,15 @@ export function AgendaMensal({ onAbrirCliente }: { onAbrirCliente: (clienteId: n
           <p className="painel-nota" title={sincronizacao?.erro || undefined}>
             {rotuloSincronizacao(sincronizacao)}
           </p>
+          {contagemStatus.size > 0 && (
+            <div className="pills mensal-pills" title="Dias reservados na Agenda de Recursos, confrontados com a Experience">
+              {ORDEM_STATUS.filter((st) => contagemStatus.get(st)).map((st) => (
+                <span className={`pill st-${st}`} key={st}>
+                  {ROTULO_STATUS_DEMANDA[st]} <b>{contagemStatus.get(st)}</b>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="detail-actions">
           <button
@@ -97,6 +139,13 @@ export function AgendaMensal({ onAbrirCliente }: { onAbrirCliente: (clienteId: n
           </button>
         </div>
       </div>
+
+      {falhaVinculo && (
+        <div className="warning">
+          <span>⚠</span>
+          <span>{falhaVinculo}</span>
+        </div>
+      )}
 
       {erro && (
         <div className="warning">
@@ -147,6 +196,8 @@ export function AgendaMensal({ onAbrirCliente }: { onAbrirCliente: (clienteId: n
               solicitacoes={solicitacoes}
               onAbrirCliente={onAbrirCliente}
               onPrevisualizar={setPrevia}
+              demandasPorCliente={demandasPorCliente}
+              onVincular={(alvo, d) => void vincular(alvo, d)}
             />
           )}
 
@@ -199,11 +250,22 @@ function CelulaGeral({
         {dia.clientes.map((c) => (
           <i
             key={`${c.clienteId}-${c.demanda}`}
-            className={`chip-cliente cruz-${c.cruzamento}`}
-            title={`${c.nome}${c.demanda ? ` · demanda ${c.demanda}` : ''} — ${ROTULO_CRUZAMENTO[c.cruzamento]}`}
+            className={`chip-cliente cruz-${c.cruzamento}${c.semDemanda ? ' dem-sem-id' : ''}`}
+            title={[
+              `${c.nome}${c.demanda ? ` · demanda ${c.demanda}` : ''}`,
+              ROTULO_CRUZAMENTO[c.cruzamento],
+              c.status ? ROTULO_STATUS_DEMANDA[c.status] : '',
+            ]
+              .filter(Boolean)
+              .join(' — ')}
           >
             <span className="chip-nome">{c.nome}</span>
-            {c.demanda && <b className="chip-demanda">{c.demanda}</b>}
+            {c.semDemanda ? (
+              <b className="chip-demanda">sem ID</b>
+            ) : (
+              c.demanda && <b className="chip-demanda">{c.demanda}</b>
+            )}
+            {c.status && !c.semDemanda && <span className={`chip-status st-${c.status}`} aria-hidden />}
           </i>
         ))}
       </span>
@@ -216,11 +278,15 @@ function DetalheGeral({
   solicitacoes,
   onAbrirCliente,
   onPrevisualizar,
+  demandasPorCliente,
+  onVincular,
 }: {
   dia: DiaConsolidado;
   solicitacoes: Map<string, SolicitacaoServico>;
   onAbrirCliente: (clienteId: number) => void;
   onPrevisualizar: (arquivo: ArquivoPrevia) => void;
+  demandasPorCliente: Map<number, string[]>;
+  onVincular: (alvo: AlvoVinculo, demanda: string) => void;
 }) {
   return (
     <div className="dia-detalhe">
@@ -250,6 +316,13 @@ function DetalheGeral({
             Abrir
           </button>
         </div>
+        {c.agendamentos.length > 0 && (
+          <ConfrontoDoDia
+            fatia={c}
+            demandas={demandasPorCliente.get(c.clienteId) ?? []}
+            onVincular={onVincular}
+          />
+        )}
         {c.demanda && (
           <DetalheSolicitacao
             codigo={c.demanda}
@@ -268,6 +341,126 @@ function DetalheGeral({
         </div>
       ))}
     </div>
+  );
+}
+
+type AlvoVinculo = { nuevento: number } | { tarefaId: number } | { orderId: number };
+
+/** Ordem em que os status aparecem no cabeçalho: do que pede ação ao que já confere. */
+const ORDEM_STATUS: StatusDemandaDia[] = [
+  'sem-demanda',
+  'divergente',
+  'os-sem-demanda',
+  'demanda-sem-os',
+  'sem-experience',
+  'confere',
+];
+
+const ORIGEM: Record<string, string> = { manual: 'vinculada à mão', texto: 'lida do texto', '': '' };
+
+/**
+ * O confronto agenda x Experience de uma fatia do dia: a demanda de cada agendamento
+ * (DESCRLONGA), das tarefas (additional_information) e das OS, com seletor para vincular
+ * à mão o que não tem ID ou não bate.
+ */
+function ConfrontoDoDia({
+  fatia,
+  demandas,
+  onVincular,
+}: {
+  fatia: DiaConsolidado['clientes'][number];
+  demandas: string[];
+  onVincular: (alvo: AlvoVinculo, demanda: string) => void;
+}) {
+  const tarefas = new Map<number, ConferenciaDia['tarefas'][number]>();
+  const ordens = new Map<number, ConferenciaDia['ordens'][number]>();
+  for (const a of fatia.agendamentos) {
+    for (const t of a.conferencia?.tarefas ?? []) tarefas.set(t.id, t);
+    for (const o of a.conferencia?.ordens ?? []) ordens.set(o.id, o);
+  }
+
+  return (
+    <div className="confronto-dia">
+      {fatia.status && (
+        <span className={`selo-status st-${fatia.status}`}>{ROTULO_STATUS_DEMANDA[fatia.status]}</span>
+      )}
+      <ul>
+        {fatia.agendamentos.map((a) => (
+          <li key={a.nuevento}>
+            <span className="confronto-rotulo">Agenda {a.nuevento}</span>
+            <SeletorId valor={a.demanda} demandas={demandas} onEscolher={(d) => onVincular({ nuevento: a.nuevento }, d)} />
+            <span className="linha-meta">{ORIGEM[a.origem] ?? ''}</span>
+          </li>
+        ))}
+        {[...tarefas.values()].map((t) => (
+          <li key={`t${t.id}`}>
+            <span className="confronto-rotulo">Tarefa Experience {t.id}</span>
+            <SeletorId valor={t.demanda} demandas={demandas} onEscolher={(d) => onVincular({ tarefaId: t.id }, d)} />
+            <span className="linha-meta">{ORIGEM[t.origem] ?? ''}</span>
+          </li>
+        ))}
+        {[...ordens.values()].map((o) => (
+          <li key={`o${o.id}`}>
+            <span className="confronto-rotulo">OS {o.id}</span>
+            <SeletorId valor={o.demanda} demandas={demandas} onEscolher={(d) => onVincular({ orderId: o.id }, d)} />
+          </li>
+        ))}
+        {tarefas.size === 0 && (
+          <li className="linha-meta">Nenhuma tarefa da Experience neste dia (a Experience só lista as em aberto).</li>
+        )}
+        {ordens.size === 0 && <li className="linha-meta">Nenhuma OS lançada neste dia.</li>}
+      </ul>
+    </div>
+  );
+}
+
+/** Seletor de ID de demanda; "outro ID…" abre um campo para digitar um que não está na lista. */
+function SeletorId({
+  valor,
+  demandas,
+  onEscolher,
+}: {
+  valor: string;
+  demandas: string[];
+  onEscolher: (demanda: string) => void;
+}) {
+  const [digitando, setDigitando] = useState(false);
+  const [novo, setNovo] = useState('');
+  const opcoes = [...new Set([...demandas, ...(valor ? [valor] : [])])];
+
+  if (digitando) {
+    return (
+      <form
+        className="seletor-id-novo"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const id = novo.replace(/\D/g, '');
+          if (id) onEscolher(id);
+          setDigitando(false);
+          setNovo('');
+        }}
+      >
+        <input autoFocus value={novo} onChange={(e) => setNovo(e.target.value)} placeholder="ID" inputMode="numeric" />
+        <button className="btn tiny ghost" type="submit">
+          ok
+        </button>
+      </form>
+    );
+  }
+  return (
+    <select
+      className="seletor-id"
+      value={valor}
+      onChange={(e) => (e.target.value === '__novo' ? setDigitando(true) : onEscolher(e.target.value))}
+    >
+      <option value="">sem ID</option>
+      {opcoes.map((id) => (
+        <option key={id} value={id}>
+          ID {id}
+        </option>
+      ))}
+      <option value="__novo">outro ID…</option>
+    </select>
   );
 }
 

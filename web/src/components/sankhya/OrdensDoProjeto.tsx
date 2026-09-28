@@ -36,6 +36,7 @@ export function OrdensDoProjeto({ cliente, toast }: { cliente: Cliente; toast: A
   // Padrão é só as próprias — ver as OS de todo mundo continua um clique de distância.
   const [soMinhas, setSoMinhas] = useState(true);
   const [ordens, setOrdens] = useState<OrdemExperience[]>([]);
+  const [demandas, setDemandas] = useState<string[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -52,10 +53,11 @@ export function OrdensDoProjeto({ cliente, toast }: { cliente: Cliente; toast: A
       ...(soMinhas ? { soMinhas: '1' } : {}),
     });
 
-    const { ok, body } = await requisitar<{ ordens: OrdemExperience[] }>(
+    const { ok, body } = await requisitar<{ ordens: OrdemExperience[]; demandas: string[] }>(
       `/api/experience/ordens?${busca}`,
     );
     setOrdens(ok ? (body.ordens ?? []) : []);
+    setDemandas(ok ? (body.demandas ?? []) : []);
     setErro(ok ? null : (body.error ?? 'não consegui carregar as OS'));
     setCarregando(false);
   }, [projetoId, mes, soMinhas]);
@@ -74,6 +76,34 @@ export function OrdensDoProjeto({ cliente, toast }: { cliente: Cliente; toast: A
       mapa.set(o.pessoa, atual);
     }
     return [...mapa.entries()].sort((a, b) => b[1].ordens - a[1].ordens);
+  }, [ordens]);
+
+  /** Vincula (ou desfaz, com vazio) — o pedido inteiro, ou só uma OS como exceção. */
+  const vincular = useCallback(
+    async (alvo: { pedido: string } | { orderId: number }, demanda: string) => {
+      const { ok, body } = await requisitar('/api/experience/vinculos-demanda', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ projetoId, ...alvo, demanda: demanda || null }),
+      });
+      if (!ok) {
+        toast('Não consegui gravar o vínculo com a demanda', 'err', body.error);
+        return;
+      }
+      await buscar();
+    },
+    [projetoId, buscar, toast],
+  );
+
+  // Um resumo por pedido: é por ele que o vínculo vale para várias OS de uma vez.
+  const porPedido = useMemo(() => {
+    const mapa = new Map<string, OrdemExperience[]>();
+    for (const o of ordens) {
+      const chave = o.pedido.trim();
+      if (!chave) continue;
+      mapa.set(chave, [...(mapa.get(chave) ?? []), o]);
+    }
+    return [...mapa.entries()];
   }, [ordens]);
 
   const horasDoMes = useMemo(
@@ -148,12 +178,88 @@ export function OrdensDoProjeto({ cliente, toast }: { cliente: Cliente; toast: A
         </div>
       )}
 
+      {porPedido.length > 0 && (
+        <div className="demanda-pedidos">
+          <h4>Demanda por pedido</h4>
+          {porPedido.map(([pedido, doPedido]) => {
+            // O pedido segue a regra da primeira OS que não é exceção.
+            const base = doPedido.find((o) => o.demandaOrigem !== 'os') ?? doPedido[0]!;
+            return (
+              <div className="linha-agenda" key={pedido}>
+                <span className="linha-titulo">
+                  Pedido {pedido} <span className="linha-meta">· {doPedido.length} OS no mês</span>
+                </span>
+                <SeletorDemanda
+                  valor={base.demanda ?? ''}
+                  origem={base.demandaOrigem ?? ''}
+                  demandas={demandas}
+                  titulo="Vale para todas as OS deste pedido"
+                  onEscolher={(d) => void vincular({ pedido }, d)}
+                />
+              </div>
+            );
+          })}
+          <p className="painel-nota">
+            O DS aprende o pedido pelas tarefas da Experience que citam o ID nas observações. Onde
+            ele não sabe, escolha aqui; para uma OS fora da regra, troque só nela, na lista abaixo.
+          </p>
+        </div>
+      )}
+
       <div className="lista-os">
         {ordens.map((o) => (
-          <LinhaOs key={o.id} ordem={o} mostrarPessoa={!soMinhas} onAviso={toast} />
+          <LinhaOs
+            key={o.id}
+            ordem={o}
+            mostrarPessoa={!soMinhas}
+            onAviso={toast}
+            demandas={demandas}
+            onVincular={(d) => void vincular({ orderId: o.id }, d)}
+          />
         ))}
       </div>
     </article>
+  );
+}
+
+const ROTULO_ORIGEM: Record<string, string> = {
+  os: 'escolhida só para esta OS',
+  pedido: 'escolhida para o pedido',
+  tarefa: 'aprendida das tarefas da Experience',
+  texto: 'ID escrito na OS',
+  unica: 'única demanda do cliente',
+  '': 'sem demanda',
+};
+
+/** Seletor de demanda com a origem do valor atual; vazio = sem vínculo (volta ao automático). */
+function SeletorDemanda({
+  valor,
+  origem,
+  demandas,
+  titulo,
+  onEscolher,
+}: {
+  valor: string;
+  origem: string;
+  demandas: string[];
+  titulo: string;
+  onEscolher: (demanda: string) => void;
+}) {
+  const opcoes = [...new Set([...demandas, ...(valor ? [valor] : [])])];
+  return (
+    <span className="seletor-demanda" title={`${titulo} — ${ROTULO_ORIGEM[origem] ?? ''}`}>
+      <select value={valor} onChange={(e) => onEscolher(e.target.value)} aria-label={titulo}>
+        <option value="">sem demanda</option>
+        {opcoes.map((id) => (
+          <option key={id} value={id}>
+            ID {id}
+          </option>
+        ))}
+      </select>
+      <span className={`linha-meta${origem === 'os' || origem === 'pedido' ? ' manual' : ''}`}>
+        {ROTULO_ORIGEM[origem] ?? ''}
+      </span>
+    </span>
   );
 }
 
@@ -161,10 +267,14 @@ function LinhaOs({
   ordem,
   mostrarPessoa,
   onAviso,
+  demandas,
+  onVincular,
 }: {
   ordem: OrdemExperience;
   mostrarPessoa: boolean;
   onAviso: Avisar;
+  demandas: string[];
+  onVincular: (demanda: string) => void;
 }) {
   // Só a ausência de aceite é pendência de verdade; `Gerado` e `Concluído` são desfecho.
   const semAceite = ordem.statusAceite.trim() === '';
@@ -206,6 +316,14 @@ function LinhaOs({
         <span className={semAceite ? 'selo falta' : 'selo ok'}>
           {ordem.statusAceite || 'sem aceite'}
         </span>
+        {ordem.pedido && <span>pedido {ordem.pedido}</span>}
+        <SeletorDemanda
+          valor={ordem.demanda ?? ''}
+          origem={ordem.demandaOrigem ?? ''}
+          demandas={demandas}
+          titulo="Só esta OS (exceção ao pedido)"
+          onEscolher={onVincular}
+        />
       </div>
 
       {/* Erro da integração com o ERP: é o que explica uma OS sem número do outro lado. */}

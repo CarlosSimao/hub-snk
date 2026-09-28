@@ -1,6 +1,8 @@
 import type {
   AgendaExperience,
+  ConferenciaDia,
   EventoComRecurso,
+  StatusDemandaDia,
   OrdemExperience,
   TarefaExperience,
 } from './types.ts';
@@ -242,7 +244,23 @@ export interface FatiaDoDia {
   /** Títulos/observações dos eventos do ERP desta fatia, para o detalhe do dia. */
   textosEventos: string[];
   cruzamento: Exclude<Cruzamento, 'vazio'>;
+  /** Há agendamento nesta fatia sem ID de demanda (nem no DESCRLONGA, nem vinculado). */
+  semDemanda: boolean;
+  /** O pior status do confronto agenda x Experience entre os agendamentos da fatia. */
+  status?: StatusDemandaDia;
+  /** Os agendamentos da fatia, com o confronto de cada um — a tela vincula por eles. */
+  agendamentos: { nuevento: number; demanda: string; origem: string; conferencia?: ConferenciaDia }[];
 }
+
+/** Do mais grave ao que confere: a fatia mostra o pior. */
+const GRAVIDADE: StatusDemandaDia[] = [
+  'sem-demanda',
+  'divergente',
+  'os-sem-demanda',
+  'demanda-sem-os',
+  'sem-experience',
+  'confere',
+];
 
 export interface DiaConsolidado {
   dia: string;
@@ -291,6 +309,14 @@ export function montarGradeConsolidada(
           clienteId: linha.cliente.id,
           nome: linha.cliente.nome,
           demanda: grupo.demanda,
+          semDemanda: grupo.eventos.some((e) => e.demanda === ''),
+          status: GRAVIDADE.find((g) => grupo.eventos.some((e) => e.conferencia?.status === g)),
+          agendamentos: grupo.eventos.map((e) => ({
+            nuevento: Number(e.nuevento),
+            demanda: e.demanda ?? '',
+            origem: e.demandaOrigem ?? '',
+            ...(e.conferencia ? { conferencia: e.conferencia } : {}),
+          })),
           // A Experience é por projeto, não por demanda: tarefa e OS do dia entram uma
           // vez só, na primeira fatia, para o detalhe não contar o mesmo item duas vezes.
           tarefas: n === 0 ? doCliente.tarefas.length : 0,
@@ -323,6 +349,13 @@ export function fatiarPorDemanda(
 
   const grupos = new Map<string, EventoComRecurso[]>();
   for (const e of eventos) {
+    // Com a demanda já resolvida pelo backend (DESCRLONGA ou vínculo manual), ela manda:
+    // agendamento sem ID fica sem demanda, para aparecer como "reservado sem demanda" em
+    // vez de ser atribuído em silêncio à demanda única do cliente.
+    if (e.demanda !== undefined) {
+      grupos.set(e.demanda, [...(grupos.get(e.demanda) ?? []), e]);
+      continue;
+    }
     const citadas = idsDemandaNoTexto(e.descrlonga);
     const demanda = citadas.find((id) => demandas.includes(id)) ?? citadas[0] ?? unica;
     grupos.set(demanda, [...(grupos.get(demanda) ?? []), e]);
