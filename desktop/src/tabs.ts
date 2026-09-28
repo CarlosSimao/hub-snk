@@ -175,6 +175,32 @@ function registrarDownload(sessaoRotulo: string, janelasFilhas: Set<BrowserWindo
   };
 }
 
+/**
+ * Base cadastrada em `https` cujo servidor rebaixa para `http` no redirect (caso real:
+ * `https://x.sankhyacloud.com.br/mge` -> 302 -> `http://x.../mge/`). A página ficava em
+ * `http`, mas o próprio Sankhya responde `upgrade-insecure-requests`, então as chamadas de
+ * login saíam em `https` — outra origem, e o login ficava carregando para sempre. O Chrome
+ * não mostra o problema porque sobe para `https` sozinho; o Electron não, por isso a
+ * partição da base faz o mesmo aqui. Só pedido sem porta explícita (a 80 padrão) é
+ * promovido: `http` numa porta própria é outro serviço, não um rebaixamento.
+ */
+function manterHttpsDaBase(particao: string, origin: string): void {
+  const base = new URL(origin);
+  if (base.protocol !== 'https:') return;
+  session
+    .fromPartition(particao)
+    .webRequest.onBeforeRequest({ urls: [`http://${base.hostname}/*`] }, (detalhes, responder) => {
+      const pedido = new URL(detalhes.url);
+      if (pedido.port) {
+        responder({});
+        return;
+      }
+      const destino = `${origin}${pedido.pathname}${pedido.search}${pedido.hash}`;
+      logEvento('aba-cliente-https-mantido', { de: origemSemQuery(detalhes.url) });
+      responder({ redirectURL: destino });
+    });
+}
+
 function tituloBase(info: InfoBaseCliente): string {
   if (info.ambiente && info.ambiente !== 'producao' && info.ambiente !== 'outro') {
     const rotulo = info.ambiente === 'homologacao' ? 'homologação' : info.ambiente;
@@ -626,6 +652,22 @@ export class TabManager {
     return true;
   }
 
+  /**
+   * DevTools da guia ativa (base de cliente, ERP, Experience ou Painel) — não da barra
+   * superior. Destacado em janela própria: acoplado, ele divide a área da
+   * `WebContentsView` com a página do Sankhya, que já é apertada.
+   */
+  alternarFerramentasDesenvolvedor(): boolean {
+    const view = this.#abas.get(this.#abaAtiva);
+    if (!view) return false;
+    if (view.webContents.isDevToolsOpened()) {
+      view.webContents.closeDevTools();
+      return true;
+    }
+    view.webContents.openDevTools({ mode: 'detach' });
+    return true;
+  }
+
   definirAlturaTopo(altura: number): void {
     this.#alturaTopo = Math.max(40, Math.round(altura || this.#alturaTopo));
     this.reposicionar();
@@ -685,6 +727,7 @@ export class TabManager {
     session
       .fromPartition(particao)
       .on('will-download', registrarDownload(particao, this.#janelasFilhas));
+    manterHttpsDaBase(particao, origin);
     view.webContents.on('did-finish-load', () => {
       logEvento('aba-cliente-carregada', {
         clienteId: info.clienteId,
@@ -819,7 +862,6 @@ export class TabManager {
       }
 
       this.#linksPorUrl = linksPorUrl;
-      this.#basesPorOrigin = basesPorOrigin;
       this.#basesPorOrigin = basesPorOrigin;
       logEvento('cadastro-carregado', { bases: basesPorOrigin.size, links: linksPorUrl.size });
     } catch (err) {

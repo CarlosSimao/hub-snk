@@ -1,6 +1,6 @@
 /**
  * Preenche usuário/senha na tela de login de uma base de cliente, quando já guardados
- * no cadastro do HUB SNK (`clientes.json`).
+ * no cadastro do HUB SNK (`clientes.json`), e clica em entrar.
  *
  * O login do Sankhya Om é em DUAS etapas (usuário, "Prosseguir", só então aparece o
  * campo de senha) — confirmado testando de verdade com uma base real. Por isso, depois
@@ -140,6 +140,29 @@ export function scriptAutofillTick(
   })()`;
 }
 
+/** Clica no botão de entrar depois que usuário/senha já foram preenchidos. */
+export function scriptSubmeterLogin(): string {
+  return `(() => {
+    const visivel = (el) => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+    const todos = (seletor) => {
+      const achados = [];
+      const visitar = (raiz) => {
+        for (const el of raiz.querySelectorAll(seletor)) achados.push(el);
+        for (const el of raiz.querySelectorAll('*')) if (el.shadowRoot) visitar(el.shadowRoot);
+      };
+      visitar(document);
+      return achados;
+    };
+    const botoes = todos('button, input[type="submit"], [role="button"]').filter(visivel);
+    const porTexto = botoes.find((el) =>
+      /entrar|acessar|login|conectar|continuar|prosseguir/i.test((el.innerText || el.value || '').trim()),
+    );
+    const alvo = porTexto || (botoes.length === 1 ? botoes[0] : null);
+    if (alvo) { alvo.click(); return true; }
+    return false;
+  })()`;
+}
+
 /**
  * Observa por até esse tanto de tempo. O clique em "Prosseguir" é automático, mas a
  * página pode demorar a carregar ou, num layout sem botão reconhecível, esperar o
@@ -191,7 +214,17 @@ export async function tentarAutofill(view: WebContentsView, info: InfoBaseClient
         };
         if (resultado.ok && resultado.etapa === 'senha') {
           clearInterval(intervalo);
-          logEvento('autofill-preencheu-senha', { clienteId: info.clienteId, baseId: info.baseId });
+          // Senha cadastrada = login completo sem clique. Só uma submissão por aba: com
+          // a senha errada, a tela mostra o erro do Sankhya em vez de repetir a tentativa.
+          const submeteu = (await view.webContents.executeJavaScript(
+            scriptSubmeterLogin(),
+            true,
+          )) as boolean;
+          logEvento('autofill-preencheu-senha', {
+            clienteId: info.clienteId,
+            baseId: info.baseId,
+            submeteu,
+          });
         } else if (resultado.ok && resultado.etapa === 'usuario' && !preencheuUsuario) {
           preencheuUsuario = true;
           logEvento('autofill-preencheu-usuario', {

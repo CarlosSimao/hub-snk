@@ -10,15 +10,12 @@
  * preenchimento pode disparar SSO, MFA ou um redirect que só resolve alguns segundos
  * depois de o formulário submeter.
  */
-import type { WebContentsView } from 'electron';
 import * as cofre from './cofreCredenciais';
 import { logEvento } from './log';
 import { capturar, resolverUrl, type ResultadoCaptura } from './navegador';
-import { scriptAutofillTick } from './autofill';
+import { preencherESubmeterLogin } from './loginOcultoSankhya';
 import type { TabManager } from './tabs';
 
-const JANELA_PREENCHIMENTO_MS = 90_000;
-const INTERVALO_MS = 1_000;
 /** Tempo para o POST de login terminar e a página redirecionar antes de ler cookie/token. */
 const PAUSA_APOS_SENHA_MS = 2_000;
 const TENTATIVAS_DE_CAPTURA = 5;
@@ -34,52 +31,12 @@ export function podeTentar(sistema: cofre.Sistema): boolean {
   return !anterior || Date.now() - anterior > COOLDOWN_MS;
 }
 
-function esperarSenhaPreenchida(
-  view: WebContentsView,
-  usuario: string,
-  senha: string,
-): Promise<boolean> {
-  return new Promise((resolve) => {
-    const inicio = Date.now();
-    let preencheuUsuario = false;
-    const intervalo = setInterval(() => {
-      void (async () => {
-        if (view.webContents.isDestroyed() || Date.now() - inicio > JANELA_PREENCHIMENTO_MS) {
-          clearInterval(intervalo);
-          resolve(false);
-          return;
-        }
-        try {
-          const script = scriptAutofillTick(usuario, senha, preencheuUsuario);
-          const resultado = (await view.webContents.executeJavaScript(script, true)) as {
-            ok: boolean;
-            etapa?: string;
-          };
-          if (resultado.ok && resultado.etapa === 'senha') {
-            clearInterval(intervalo);
-            resolve(true);
-          } else if (resultado.ok && resultado.etapa === 'usuario' && !preencheuUsuario) {
-            preencheuUsuario = true;
-          }
-        } catch {
-          clearInterval(intervalo);
-          resolve(false);
-        }
-      })();
-    }, INTERVALO_MS);
-    view.webContents.once('destroyed', () => {
-      clearInterval(intervalo);
-      resolve(false);
-    });
-  });
-}
-
 function pausa(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
- * Preenche e submete o login na aba já aberta do sistema, e só then captura a sessão.
+ * Preenche e submete o login na aba já aberta do sistema, e só então captura a sessão.
  * Nunca troca a guia visível: opera na `WebContentsView` em segundo plano, então o
  * usuário só percebe se estiver com aquela guia em foco no momento.
  */
@@ -107,7 +64,11 @@ export async function autoLoginSankhya(
   logEvento('autologin-sankhya-iniciado', { sistema });
   try {
     view.webContents.loadURL(resolverUrl(sistema, ''));
-    const preencheu = await esperarSenhaPreenchida(view, segredo.usuario, segredo.senha);
+    const preencheu = await preencherESubmeterLogin(
+      view.webContents,
+      segredo.usuario,
+      segredo.senha,
+    );
     if (!preencheu) {
       logEvento('autologin-sankhya-sem-tela-reconhecida', { sistema });
       return {

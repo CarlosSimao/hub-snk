@@ -8,7 +8,7 @@
  * senha só existe em claro entre estas funções e a página de destino — nunca é logada.
  */
 import { BrowserWindow, type WebContents } from 'electron';
-import { scriptAutofillTick } from './autofill';
+import { scriptAutofillTick, scriptSubmeterLogin } from './autofill';
 
 const JANELA_PREENCHIMENTO_MS = 90_000;
 const INTERVALO_MS = 1_000;
@@ -26,29 +26,6 @@ export function criarJanelaOculta(particao: string): BrowserWindow {
       backgroundThrottling: false,
     },
   });
-}
-
-/** Clica no botão de entrar depois que usuário/senha já foram preenchidos. */
-function scriptSubmeterLogin(): string {
-  return `(() => {
-    const visivel = (el) => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
-    const todos = (seletor) => {
-      const achados = [];
-      const visitar = (raiz) => {
-        for (const el of raiz.querySelectorAll(seletor)) achados.push(el);
-        for (const el of raiz.querySelectorAll('*')) if (el.shadowRoot) visitar(el.shadowRoot);
-      };
-      visitar(document);
-      return achados;
-    };
-    const botoes = todos('button, input[type="submit"], [role="button"]').filter(visivel);
-    const porTexto = botoes.find((el) =>
-      /entrar|acessar|login|conectar|continuar|prosseguir/i.test((el.innerText || el.value || '').trim()),
-    );
-    const alvo = porTexto || (botoes.length === 1 ? botoes[0] : null);
-    if (alvo) { alvo.click(); return true; }
-    return false;
-  })()`;
 }
 
 /** Roda o autofill em ticks até a senha ser preenchida (login em duas etapas: usuário, depois senha). */

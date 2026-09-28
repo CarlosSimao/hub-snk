@@ -71,7 +71,12 @@ export function montarMenu(
         { label: 'Tela cheia', role: 'togglefullscreen' },
         { type: 'separator' },
         {
-          label: 'Ferramentas de desenvolvedor',
+          label: 'Ferramentas de desenvolvedor da guia atual',
+          accelerator: 'F12',
+          click: () => tabs()?.alternarFerramentasDesenvolvedor(),
+        },
+        {
+          label: 'Ferramentas de desenvolvedor da barra superior',
           accelerator: 'CmdOrCtrl+Shift+I',
           click: () => janela()?.webContents.toggleDevTools(),
         },
