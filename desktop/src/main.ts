@@ -14,6 +14,7 @@ import { ServerLogFetcher } from './serverLog';
 import { iniciarKeepalive, type AbaSankhya } from './keepalive';
 import { criarBridgeServer } from './bridgeServer';
 import { SolicitacoesFetcher } from './solicitacoes';
+import { instalarLoginErp } from './loginErp';
 import { instalarNoHub, iniciarRemetente } from './integracaoCanal';
 import { iniciarAdaptadores } from './integracaoCiclo';
 import { pushSessaoExperience, limparSessaoExperience } from './backendClient';
@@ -74,6 +75,8 @@ function criarJanela(): void {
   const abaHub = tabs.aba('hub');
   if (abaHub) instalarNoHub(abaHub.webContents);
   tabs.criarAbaPrincipal('erp', ERP_URL, PARTICAO);
+  const abaErp = tabs.aba('erp');
+  if (abaErp) instalarLoginErp(abaErp);
   tabs.criarAbaPrincipal('experience', EXPERIENCE_URL, PARTICAO);
   tabs.reposicionar();
   tabs.mostrar('hub');

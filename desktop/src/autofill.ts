@@ -137,60 +137,82 @@ const JANELA_OBSERVACAO_MS = 90_000;
 const INTERVALO_MS = 1_000;
 
 /**
- * `enviar` = base marcada "Entrar automaticamente": além de preencher, clica o botão de
- * cada etapa. Uma vez por etapa e uma tentativa por abertura: a etapa da senha encerra o
+ * Observa a página e preenche o login em duas etapas; com `enviar`, clica o botão de
+ * cada etapa. Uma vez por etapa e uma tentativa por chamada: a etapa da senha encerra o
  * observador, e a do usuário só é tentada uma vez — senha errada não vira repetição.
+ *
+ * `log` identifica a aba nos eventos (IDs, nunca o usuário nem a senha). Devolve quando
+ * o observador termina: `true` se chegou a preencher a senha.
  */
+export function observarLogin(
+  view: WebContentsView,
+  usuario: string,
+  senha: string,
+  enviar: boolean,
+  log: Record<string, unknown>,
+): Promise<boolean> {
+  return new Promise((resolver) => {
+    const inicio = Date.now();
+    let preencheuUsuario = false;
+    let ultimoMotivo = '';
+    let encerrado = false;
+
+    const encerrar = (preencheuSenha: boolean) => {
+      if (encerrado) return;
+      encerrado = true;
+      clearInterval(intervalo);
+      resolver(preencheuSenha);
+    };
+
+    const intervalo = setInterval(() => {
+      void (async () => {
+        if (view.webContents.isDestroyed()) return encerrar(false);
+        if (Date.now() - inicio > JANELA_OBSERVACAO_MS) {
+          logEvento('autofill-desistiu', { ...log, preencheuUsuario, ultimoMotivo });
+          return encerrar(false);
+        }
+        try {
+          const script = scriptAutofillTick(usuario, senha, preencheuUsuario, enviar);
+          const resultado = (await view.webContents.executeJavaScript(script, true)) as {
+            ok: boolean;
+            etapa?: string;
+            motivo?: string;
+            enviou?: boolean;
+          };
+          if (resultado.ok && resultado.etapa === 'senha') {
+            logEvento('autofill-preencheu-senha', { ...log, enviou: Boolean(resultado.enviou) });
+            encerrar(true);
+          } else if (resultado.ok && resultado.etapa === 'usuario' && !preencheuUsuario) {
+            preencheuUsuario = true;
+            logEvento('autofill-preencheu-usuario', { ...log, enviou: Boolean(resultado.enviou) });
+          } else if (resultado.motivo) {
+            ultimoMotivo = resultado.motivo;
+          }
+        } catch (err) {
+          // Navegação no meio do script (o próprio clique em Entrar) derruba a chamada;
+          // o observador continua até a próxima página ou o prazo.
+          ultimoMotivo = String(err);
+        }
+      })();
+    }, INTERVALO_MS);
+
+    view.webContents.once('destroyed', () => encerrar(false));
+  });
+}
+
+/** `enviar` = base marcada "Entrar automaticamente". */
 export async function tentarAutofill(view: WebContentsView, info: InfoBaseCliente, enviar = false): Promise<void> {
+  const log = { clienteId: info.clienteId, baseId: info.baseId };
   if (!info.usuario || !info.temSenha) {
-    logEvento('autofill-sem-cadastro', { clienteId: info.clienteId, baseId: info.baseId });
+    logEvento('autofill-sem-cadastro', log);
     return;
   }
 
   const senha = await revelarSenhaBase(info.clienteId, info.baseId);
   if (!senha) {
-    logEvento('autofill-sem-senha', { clienteId: info.clienteId, baseId: info.baseId });
+    logEvento('autofill-sem-senha', log);
     return;
   }
 
-  const inicio = Date.now();
-  let preencheuUsuario = false;
-  let ultimoMotivo = '';
-
-  const intervalo = setInterval(() => {
-    void (async () => {
-      if (view.webContents.isDestroyed()) {
-        clearInterval(intervalo);
-        return;
-      }
-      if (Date.now() - inicio > JANELA_OBSERVACAO_MS) {
-        clearInterval(intervalo);
-        logEvento('autofill-desistiu', { clienteId: info.clienteId, baseId: info.baseId, preencheuUsuario, ultimoMotivo });
-        return;
-      }
-      try {
-        const script = scriptAutofillTick(info.usuario, senha, preencheuUsuario, enviar);
-        const resultado = (await view.webContents.executeJavaScript(script, true)) as {
-          ok: boolean;
-          etapa?: string;
-          motivo?: string;
-          enviou?: boolean;
-        };
-        if (resultado.ok && resultado.etapa === 'senha') {
-          clearInterval(intervalo);
-          logEvento('autofill-preencheu-senha', { clienteId: info.clienteId, baseId: info.baseId, enviou: Boolean(resultado.enviou) });
-        } else if (resultado.ok && resultado.etapa === 'usuario' && !preencheuUsuario) {
-          preencheuUsuario = true;
-          logEvento('autofill-preencheu-usuario', { clienteId: info.clienteId, baseId: info.baseId, enviou: Boolean(resultado.enviou) });
-        } else if (resultado.motivo) {
-          ultimoMotivo = resultado.motivo;
-        }
-      } catch (err) {
-        clearInterval(intervalo);
-        logEvento('autofill-falhou', { clienteId: info.clienteId, baseId: info.baseId, erro: String(err) });
-      }
-    })();
-  }, INTERVALO_MS);
-
-  view.webContents.once('destroyed', () => clearInterval(intervalo));
+  await observarLogin(view, info.usuario, senha, enviar, log);
 }
