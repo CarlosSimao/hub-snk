@@ -202,7 +202,11 @@ function paginaBase(urlTexto: string): string {
  * Agenda"). Só chega na página base com `loadURL`; a partir daí o hash é atribuição de
  * JS, o mesmo efeito de um clique de menu de verdade, sem recarregar nada.
  */
-export async function abrir(tabs: TabManager | null, sistema: Sistema, tela: string): Promise<string> {
+export async function abrir(
+  tabs: TabManager | null,
+  sistema: Sistema,
+  tela: string,
+): Promise<string> {
   const url = resolverUrl(sistema, tela);
   if (!url) throw new Error(`tela desconhecida: ${tela}`);
 

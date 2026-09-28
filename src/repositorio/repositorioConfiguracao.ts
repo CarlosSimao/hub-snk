@@ -9,8 +9,10 @@ export type DadosDeAtalho = Omit<Atalho, 'id'> & { id?: string };
  * objeto inteiro — apagaria o que `definirExperiencePersonId` guardou a cada vez
  * que o usuário só mudasse outro campo da tela.
  */
-export interface ConfiguracaoParaSalvar
-  extends Omit<ConfiguracaoGlobal, 'atalhos' | 'experiencePersonId'> {
+export interface ConfiguracaoParaSalvar extends Omit<
+  ConfiguracaoGlobal,
+  'atalhos' | 'experiencePersonId'
+> {
   atalhos: DadosDeAtalho[];
 }
 
