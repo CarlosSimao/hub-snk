@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import type { AtuacaoCliente, Cliente, ClienteEntrada, ParceiroAgenda } from '../../types.ts';
 import { plural } from '../../lib/format.ts';
 import { requisitar } from '../../lib/api.ts';
+import { listarIdsDemanda } from '../../lib/demandas.ts';
 import { useClientes } from '../../hooks/useClientes.ts';
 import type { Avisar } from '../../hooks/useToasts.ts';
 import { TabBar, type Aba } from '../TabBar.tsx';
@@ -409,9 +410,14 @@ function FormularioCliente({ cliente, toast, onSalvar, onRemover, onCancelar }: 
               {atuacao.dias[0]?.dia} a {atuacao.dias[atuacao.dias.length - 1]?.dia}.
             </p>
           )}
-          <Campo nome="agendaDemandaId" rotulo="ID da demanda (Agenda)"
+          <Campo nome="agendaDemandaId" rotulo="IDs das demandas (Agenda)"
             valor={demandaId} aoMudar={setDemandaId}
-            dica="Codigo da demanda deste cliente na Agenda de Recursos — texto livre, preenchido a mao" />
+            dica="Código da Solicitação de Serviços DS de cada demanda deste cliente, separados por vírgula (ex.: 2996, 3100). Mesmo repositório, demandas diferentes na agenda. Demandas citadas nos eventos da agenda entram sozinhas na Agenda Mensal." />
+          {listarIdsDemanda(demandaId).length > 1 && (
+            <p className="campo-dica">
+              {listarIdsDemanda(demandaId).length} demandas: {listarIdsDemanda(demandaId).join(' · ')}
+            </p>
+          )}
         </div>
 
         <div className="modal-foot form-acoes">

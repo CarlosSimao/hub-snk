@@ -3250,6 +3250,66 @@ Processos: ...").
 .chip-cliente.cruz-so-erp { border-left-color: var(--accent); }
 .chip-cliente.cruz-so-experience { border-left-color: var(--text-faint); }
 
+/* Nome encolhe com reticências; o ID da demanda fica sempre à vista no fim do chip. */
+/* Grid com minmax(0, ...): em flex, o nome longo impunha largura mínima e a grade do
+   calendário estourava a tela. */
+.chip-cliente:has(.chip-demanda) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px;
+}
+
+.chip-nome {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip-demanda {
+  flex-shrink: 0;
+  font-weight: 650;
+}
+
+/* Detalhe do dia: a demanda com o que a Solicitação de Serviços DS diz dela. */
+.linha-demanda + .linha-demanda { margin-top: 4px; }
+.linha-demanda .linha-agenda .linha-meta { font-weight: 400; }
+
+.detalhe-solicitacao {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border-left: 2px solid var(--border-strong);
+  font-size: 12px;
+}
+
+.detalhe-solicitacao .pills { margin-bottom: 6px; }
+
+.solicitacao-descricao {
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+}
+
+.solicitacao-anexos {
+  margin: 0 0 4px;
+  padding-left: 0;
+  list-style: none;
+}
+
+.solicitacao-anexos li { padding: 2px 0; }
+
+.detalhe-eventos {
+  margin: 0 0 8px 10px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+.detalhe-eventos summary { cursor: pointer; }
+
+.detalhe-eventos pre {
+  margin: 4px 0;
+  font-family: inherit;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 760px) {
   .calendario-geral .cal-dia { min-height: 74px; }
   .chip-cliente { font-size: 9px; }
@@ -4420,4 +4480,54 @@ Processos: ...").
   cursor: pointer;
   font-size: 13px;
   color: var(--text);
+}
+
+/* ------------------- pré-visualização de anexos (Agenda Mensal) ------------------- */
+
+.link-arquivo {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.link-arquivo:hover { text-decoration: underline; }
+.solicitacao-anexos .btn.tiny { margin-left: 6px; padding: 0 6px; }
+
+.modal-previa {
+  width: min(1100px, 96vw);
+  max-width: none;
+}
+
+.previa-corpo {
+  height: min(78vh, 900px);
+  overflow: auto;
+}
+
+.previa-quadro {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.previa-imagem {
+  display: block;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.previa-texto {
+  margin: 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+/* O docx-preview desenha páginas brancas; o fundo cinza separa uma da outra. */
+.previa-docx-alvo .previa-docx-wrapper {
+  padding: 16px;
+  background: #d9d9d9;
 }
