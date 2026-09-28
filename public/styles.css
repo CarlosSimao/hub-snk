@@ -1662,9 +1662,33 @@ button.selo-situacao:focus-visible {
   gap: 12px;
 }
 
+/* Grupo que exibe/esconde os campos; o `<details>` nativo cuida do teclado. */
+.grupo-recolhivel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.grupo-recolhivel > summary {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+
+.grupo-recolhivel-corpo {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+
+/* Importar .env e Sobre dividem a mesma linha para não gastar altura no painel. */
 .linha-do-link-sobre {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
   margin: 0 0 10px;
-  text-align: right;
 }
 
 .link-sobre {
@@ -2593,6 +2617,19 @@ button.selo-situacao:focus-visible {
   padding: 0 4px;
   font-size: 11px;
   color: var(--text-dim);
+}
+
+/*
+ * O "?" da legenda também precisa de âncora: sem ela o balão, mesmo invisível,
+ * se ancora no `<dialog>` e abre abaixo do rodapé, criando barra de rolagem.
+ * O balão desce logo abaixo da legenda, e não abaixo do grupo inteiro.
+ */
+.grupo-de-acessos {
+  position: relative;
+}
+
+.grupo-de-acessos > legend .dica-texto {
+  top: 16px;
 }
 
 .lista-atalhos-config,

@@ -478,6 +478,8 @@ const elementos = {
   campoConfigMcpUsuario: document.getElementById('campo-config-mcp-user'),
   campoConfigMcpSenha: document.getElementById('campo-config-mcp-password'),
   botaoVerSenhaConfigMcp: document.getElementById('btn-ver-senha-config-mcp'),
+  botaoImportarEnvMcp: document.getElementById('btn-importar-env-mcp'),
+  grupoSankhyaSchema: document.getElementById('grupo-sankhya-schema'),
   erroConfiguracao: document.getElementById('erro-configuracao'),
   botaoSalvarConfiguracao: document.getElementById('btn-salvar-configuracao'),
   botaoCancelarConfiguracao: document.getElementById('btn-cancelar-configuracao'),
@@ -866,6 +868,8 @@ const api = {
   salvarConfiguracao: (configuracao) =>
     requisitar(CAMINHO_DA_CONFIGURACAO, { metodo: 'PUT', corpo: configuracao }),
   lerConfiguracaoMcpGlobal: () => requisitar(`${CAMINHO_DA_CONFIGURACAO}/mcp`),
+  importarEnvDoMcpGlobal: () =>
+    requisitar(`${CAMINHO_DA_CONFIGURACAO}/mcp/importar`, { metodo: 'POST' }),
   lerPresetsDosPerfis: () => requisitar(`${CAMINHO_DA_CONFIGURACAO}/perfis`),
 
   abrirAtalho: (id) => requisitar(`${CAMINHO_DOS_ATALHOS}/${id}/abrir`, { metodo: 'POST' }),
@@ -5020,6 +5024,30 @@ function preencherCamposDoMcpGlobal(configuracao) {
   elementos.campoConfigMcpSenha.value = configuracao?.SANKHYA_DB_PASSWORD ?? '';
 }
 
+/**
+ * Preenche o caminho com a pasta do `.env` escolhido e as variáveis com o que ele
+ * contém. A gravação continua no "Salvar" da janela.
+ */
+async function importarEnvDoMcpGlobal() {
+  elementos.botaoImportarEnvMcp.disabled = true;
+
+  try {
+    const importado = await api.importarEnvDoMcpGlobal();
+    // Sem resposta o usuário cancelou: o que já estava nos campos continua valendo.
+    if (!importado) {
+      return;
+    }
+
+    limparErro(elementos.erroConfiguracao);
+    elementos.campoCaminhoSchemaMcp.value = importado.caminhoDoSchemaMcp;
+    preencherCamposDoMcpGlobal(importado.configuracao);
+  } catch (erro) {
+    exibirErro(elementos.erroConfiguracao, erro.message);
+  } finally {
+    elementos.botaoImportarEnvMcp.disabled = false;
+  }
+}
+
 function lerCamposDoMcpGlobal() {
   return {
     SANKHYA_DB_HOST: elementos.campoConfigMcpHost.value.trim(),
@@ -5322,6 +5350,8 @@ async function abrirModalDeConfiguracao() {
     exibirAviso(`Não foi possível ler o .env do sankhya-schema-mcp: ${erro.message}`, 'erro');
   }
 
+  // Recolhido a cada abertura: o que ficou expandido da última vez não conta.
+  elementos.grupoSankhyaSchema.open = false;
   elementos.modalConfiguracao.showModal();
   elementos.campoScriptPadrao.focus();
 }
@@ -5340,10 +5370,22 @@ async function salvarConfiguracao(evento) {
   const caminhoDoSchemaMcp = elementos.campoCaminhoSchemaMcp.value.trim();
   const mcp = caminhoDoSchemaMcp === '' ? undefined : lerCamposDoMcpGlobal();
 
+  // Sem esta cobrança as variáveis digitadas seriam descartadas com "Configurações salvas.".
+  if (!mcp && Object.values(lerCamposDoMcpGlobal()).some((valor) => valor !== '')) {
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoMcp);
+    elementos.grupoSankhyaSchema.open = true;
+    exibirErro(
+      elementos.erroConfiguracao,
+      'Informe o caminho do sankhya-schema-mcp ou importe o .env para gravar as variáveis.',
+    );
+    return;
+  }
+
   if (mcp) {
     const mensagemDeErro = validarFormularioDoMcp(mcp);
     if (mensagemDeErro) {
       selecionarAbaDaConfiguracao(elementos.abaConfiguracaoMcp);
+      elementos.grupoSankhyaSchema.open = true;
       exibirErro(elementos.erroConfiguracao, mensagemDeErro);
       return;
     }
@@ -8399,6 +8441,7 @@ function registrarEventos() {
   elementos.botaoCancelarConfiguracao.addEventListener('click', () =>
     elementos.modalConfiguracao.close(),
   );
+  elementos.botaoImportarEnvMcp.addEventListener('click', importarEnvDoMcpGlobal);
   elementos.botaoVerSenhaConfigMcp.addEventListener('click', () =>
     definirVisibilidadeDoCampo(
       elementos.campoConfigMcpSenha,

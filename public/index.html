@@ -785,26 +785,6 @@
           </button>
           <button
             class="aba"
-            id="aba-configuracao-mcp"
-            type="button"
-            role="tab"
-            aria-selected="false"
-            aria-controls="painel-configuracao-mcp"
-          >
-            MCP
-          </button>
-          <button
-            class="aba"
-            id="aba-configuracao-atalhos"
-            type="button"
-            role="tab"
-            aria-selected="false"
-            aria-controls="painel-configuracao-atalhos"
-          >
-            Atalhos
-          </button>
-          <button
-            class="aba"
             id="aba-configuracao-smtp"
             type="button"
             role="tab"
@@ -822,6 +802,26 @@
             aria-controls="painel-configuracao-avisos"
           >
             Avisos
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-mcp"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-mcp"
+          >
+            MCP
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-atalhos"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-atalhos"
+          >
+            Atalhos
           </button>
           <button
             class="aba"
@@ -894,37 +894,39 @@
               />
             </div>
 
-            <div class="campo campo-estreito">
-              <label for="campo-intervalo-execucao-automatica">
-                Intervalo de execução automática (segundos)
-                <span class="dica" tabindex="0"
-                  >?<span class="dica-texto" role="tooltip"
-                    >De quanto em quanto tempo a tela refaz sozinha, com a aba em primeiro plano: o
-                    diagnóstico Git dos repositórios (remoto ausente, alterações pendentes); a
-                    situação de cada banco local (container no Docker e login com as credenciais
-                    cadastradas); a situação de cada base local (serviço do WildFly e HTTP 200 em
-                    <code>localhost</code>); e a situação das bases do cliente selecionado (URL
-                    cadastrada). Cada tique também alimenta o gráfico de uptime.</span
-                  ></span
-                >
-              </label>
-              <input id="campo-intervalo-execucao-automatica" type="number" min="5" max="3600" />
-            </div>
+            <div class="grade-de-campos">
+              <div class="campo">
+                <label for="campo-intervalo-execucao-automatica">
+                  Intervalo de execução automática (segundos)
+                  <span class="dica" tabindex="0"
+                    >?<span class="dica-texto" role="tooltip"
+                      >De quanto em quanto tempo a tela refaz sozinha, com a aba em primeiro plano:
+                      o diagnóstico Git dos repositórios (remoto ausente, alterações pendentes); a
+                      situação de cada banco local (container no Docker e login com as credenciais
+                      cadastradas); a situação de cada base local (serviço do WildFly e HTTP 200 em
+                      <code>localhost</code>); e a situação das bases do cliente selecionado (URL
+                      cadastrada). Cada tique também alimenta o gráfico de uptime.</span
+                    ></span
+                  >
+                </label>
+                <input id="campo-intervalo-execucao-automatica" type="number" min="5" max="3600" />
+              </div>
 
-            <div class="campo campo-estreito">
-              <label for="campo-tempo-limite">
-                Tempo limite para timeout (segundos)
-                <span class="dica" tabindex="0"
-                  >?<span class="dica-texto" role="tooltip"
-                    >Quanto tempo cada checagem de situação espera por resposta antes de desistir e
-                    marcar o alvo como fora do ar: URL da base do cliente, portas e página do
-                    WildFly local e os comandos <code>docker</code> do banco local. Vale aumentar se
-                    a rede até as bases de cliente for lenta. Não vale para os comandos
-                    <code>git</code>, que têm limites próprios.</span
-                  ></span
-                >
-              </label>
-              <input id="campo-tempo-limite" type="number" min="1" max="60" />
+              <div class="campo">
+                <label for="campo-tempo-limite">
+                  Tempo limite para timeout (segundos)
+                  <span class="dica" tabindex="0"
+                    >?<span class="dica-texto" role="tooltip"
+                      >Quanto tempo cada checagem de situação espera por resposta antes de desistir
+                      e marcar o alvo como fora do ar: URL da base do cliente, portas e página do
+                      WildFly local e os comandos <code>docker</code> do banco local. Vale aumentar
+                      se a rede até as bases de cliente for lenta. Não vale para os comandos
+                      <code>git</code>, que têm limites próprios.</span
+                    ></span
+                  >
+                </label>
+                <input id="campo-tempo-limite" type="number" min="1" max="60" />
+              </div>
             </div>
 
             <div class="campo">
@@ -986,89 +988,101 @@
             aria-labelledby="aba-configuracao-mcp"
             hidden
           >
-            <p class="linha-do-link-sobre">
-              <a
-                class="link-sobre"
-                href="https://github.com/frshaka/sankhya-schema-mcp"
-                target="_blank"
-                rel="noopener noreferrer"
-                >Sobre</a
-              >
-            </p>
+            <details class="grupo-recolhivel" id="grupo-sankhya-schema">
+              <summary>sankhya-schema</summary>
+              <div class="grupo-recolhivel-corpo">
+                <p class="linha-do-link-sobre">
+                  <button class="btn tiny" type="button" id="btn-importar-env-mcp">
+                    Importar .env
+                  </button>
+                  <a
+                    class="link-sobre"
+                    href="https://github.com/frshaka/sankhya-schema-mcp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >Sobre</a
+                  >
+                </p>
 
-            <div class="campo">
-              <label for="campo-caminho-schema-mcp">Caminho sankhya-schema-mcp</label>
-              <input
-                id="campo-caminho-schema-mcp"
-                type="text"
-                maxlength="400"
-                autocomplete="off"
-                spellcheck="false"
-                placeholder="Ex.: C:\Workspace\sankhya-schema-mcp"
-              />
-            </div>
+                <div class="campo">
+                  <label for="campo-caminho-schema-mcp">Caminho sankhya-schema-mcp</label>
+                  <input
+                    id="campo-caminho-schema-mcp"
+                    type="text"
+                    maxlength="400"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="Ex.: C:\Workspace\sankhya-schema-mcp"
+                  />
+                </div>
 
-            <div class="campo">
-              <label for="campo-config-mcp-host">SANKHYA_DB_HOST</label>
-              <input
-                id="campo-config-mcp-host"
-                type="text"
-                maxlength="200"
-                autocomplete="off"
-                spellcheck="false"
-              />
-            </div>
+                <div class="grade-de-campos">
+                  <div class="campo">
+                    <label for="campo-config-mcp-host">SANKHYA_DB_HOST</label>
+                    <input
+                      id="campo-config-mcp-host"
+                      type="text"
+                      maxlength="200"
+                      autocomplete="off"
+                      spellcheck="false"
+                    />
+                  </div>
 
-            <div class="campo campo-estreito">
-              <label for="campo-config-mcp-port">SANKHYA_DB_PORT</label>
-              <input
-                id="campo-config-mcp-port"
-                type="number"
-                min="1"
-                max="65535"
-                autocomplete="off"
-              />
-            </div>
+                  <div class="campo">
+                    <label for="campo-config-mcp-port">SANKHYA_DB_PORT</label>
+                    <input
+                      id="campo-config-mcp-port"
+                      type="number"
+                      min="1"
+                      max="65535"
+                      autocomplete="off"
+                    />
+                  </div>
+                </div>
 
-            <div class="campo">
-              <label for="campo-config-mcp-service">SANKHYA_DB_SERVICE_NAME</label>
-              <input
-                id="campo-config-mcp-service"
-                type="text"
-                maxlength="200"
-                autocomplete="off"
-                spellcheck="false"
-              />
-            </div>
+                <div class="campo">
+                  <label for="campo-config-mcp-service">SANKHYA_DB_SERVICE_NAME</label>
+                  <input
+                    id="campo-config-mcp-service"
+                    type="text"
+                    maxlength="200"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                </div>
 
-            <div class="campo">
-              <label for="campo-config-mcp-user">SANKHYA_DB_USER</label>
-              <input
-                id="campo-config-mcp-user"
-                type="text"
-                maxlength="120"
-                autocomplete="off"
-                spellcheck="false"
-              />
-            </div>
+                <div class="grade-de-campos">
+                  <div class="campo">
+                    <label for="campo-config-mcp-user">SANKHYA_DB_USER</label>
+                    <input
+                      id="campo-config-mcp-user"
+                      type="text"
+                      maxlength="120"
+                      autocomplete="off"
+                      spellcheck="false"
+                    />
+                  </div>
 
-            <div class="campo">
-              <label for="campo-config-mcp-password">SANKHYA_DB_PASSWORD</label>
-              <div class="campo-com-acao">
-                <input
-                  id="campo-config-mcp-password"
-                  type="password"
-                  maxlength="200"
-                  autocomplete="new-password"
-                />
-                <button
-                  class="btn tiny botao-icone"
-                  type="button"
-                  id="btn-ver-senha-config-mcp"
-                  aria-pressed="false"
-                ></button>
+                  <div class="campo">
+                    <label for="campo-config-mcp-password">SANKHYA_DB_PASSWORD</label>
+                    <div class="campo-com-acao">
+                      <input
+                        id="campo-config-mcp-password"
+                        type="password"
+                        maxlength="200"
+                        autocomplete="new-password"
+                      />
+                      <button
+                        class="btn tiny botao-icone"
+                        type="button"
+                        id="btn-ver-senha-config-mcp"
+                        aria-pressed="false"
+                      ></button>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            </details>
           </div>
 
           <div
@@ -1356,7 +1370,7 @@
             </section>
 
             <section class="bloco-sobre">
-              <h3 class="bloco-sobre-titulo">Ajuda</h3>
+              <h3 class="bloco-sobre-titulo">Ajuda e Sugestões</h3>
               <div class="bloco-sobre-corpo">
                 <a
                   class="rodape-link"

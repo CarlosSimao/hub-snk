@@ -1,3 +1,4 @@
+import { basename, dirname } from 'node:path';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
@@ -7,6 +8,11 @@ import {
   NOME_DO_ARQUIVO_ENV,
 } from '../sistema/arquivoMcp.ts';
 import { PastaNaoEncontradaError } from '../sistema/pasta.ts';
+import {
+  selecionarArquivoNoSistema,
+  SeletorDeArquivoIndisponivelError,
+  TIPO_ENV,
+} from '../sistema/selecionarArquivo.ts';
 import { FUNCIONALIDADES_OCULTAS_POR_PERFIL } from '../acessos.ts';
 import { DESTINOS_DE_LINK, FUNCIONALIDADES, PERFIS_PROFISSIONAIS } from '../tipos.ts';
 import { esquemaDeConfiguracaoMcp } from './esquemaDeConfiguracaoMcp.ts';
@@ -171,6 +177,39 @@ export function registrarRotasDeConfiguracao(
       }
       throw erro;
     }
+  });
+
+  /*
+   * O `.env` é escolhido no seletor do sistema porque o navegador não entrega o
+   * caminho absoluto do arquivo, e é a pasta dele que passa a ser o caminho do
+   * MCP. Nada é gravado aqui: a pasta e as variáveis voltam para a tela e só
+   * persistem no "Salvar". Cancelar responde 204.
+   */
+  servidor.post('/api/configuracao/mcp/importar', async (_requisicao, resposta) => {
+    let caminhoDoArquivo: string | null;
+    try {
+      caminhoDoArquivo = await selecionarArquivoNoSistema(TIPO_ENV);
+    } catch (erro) {
+      if (erro instanceof SeletorDeArquivoIndisponivelError) {
+        return resposta.status(503).send({ mensagem: erro.message });
+      }
+      throw erro;
+    }
+
+    if (caminhoDoArquivo === null) {
+      return resposta.status(204).send();
+    }
+
+    // O sankhya-schema-mcp só lê o `.env` da própria pasta; outro nome não seria regravado.
+    if (basename(caminhoDoArquivo) !== NOME_DO_ARQUIVO_ENV) {
+      return resposta.status(400).send({
+        mensagem: `Selecione o arquivo ${NOME_DO_ARQUIVO_ENV} da pasta do sankhya-schema-mcp.`,
+      });
+    }
+
+    const caminhoDoSchemaMcp = dirname(caminhoDoArquivo);
+    const { configuracao } = await lerConfiguracaoMcp(caminhoDoSchemaMcp, NOME_DO_ARQUIVO_ENV);
+    return { caminhoDoSchemaMcp, configuracao };
   });
 
   servidor.put('/api/configuracao/sankhya-om-codusu', async (requisicao, resposta) => {

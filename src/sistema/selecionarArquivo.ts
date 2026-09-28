@@ -5,9 +5,42 @@ import { spawn } from 'node:child_process';
  *
  * O navegador não entrega o caminho real do arquivo escolhido — `input[type=file]`
  * só devolve o nome —, e o HUB SNK precisa do caminho absoluto para executar o
- * programa depois. Como servidor e usuário são a mesma máquina, o diálogo é
- * aberto aqui e só o caminho volta para a tela.
+ * programa ou regravar o arquivo depois. Como servidor e usuário são a mesma
+ * máquina, o diálogo é aberto aqui e só o caminho volta para a tela.
  */
+
+/** O que cada sistema precisa para restringir o diálogo a um tipo de arquivo. */
+export interface TipoDeArquivo {
+  titulo: string;
+  /** Formato do `OpenFileDialog.Filter`: pares `Descrição|padrões` separados por `|`. */
+  filtroDoWindows: string;
+  /** Complemento do `choose file` do AppleScript. */
+  complementoDoMacos: string;
+  /** Padrão do `--file-filter` do zenity e do filtro do kdialog. */
+  filtroDoLinux: string;
+}
+
+/*
+ * O `of type` não é filtro de conveniência aqui: sem ele o diálogo do macOS trata
+ * o pacote `.app` como pasta navegável e não deixa escolher o aplicativo em si.
+ * Os demais tipos cobrem binário Unix, script de shell e `.command`.
+ */
+export const TIPO_EXECUTAVEL: TipoDeArquivo = {
+  titulo: 'Selecione o executável',
+  filtroDoWindows:
+    'Programas (*.exe;*.bat;*.cmd;*.lnk)|*.exe;*.bat;*.cmd;*.lnk|Todos os arquivos (*.*)|*.*',
+  complementoDoMacos:
+    'of type {"com.apple.application-bundle", "public.unix-executable", "public.shell-script"}',
+  filtroDoLinux: '*',
+};
+
+/* No macOS o `.env` começa com ponto e fica invisível no diálogo sem `invisibles true`. */
+export const TIPO_ENV: TipoDeArquivo = {
+  titulo: 'Selecione o arquivo .env',
+  filtroDoWindows: 'Arquivo .env (*.env)|*.env|Todos os arquivos (*.*)|*.*',
+  complementoDoMacos: 'invisibles true',
+  filtroDoLinux: '*.env',
+};
 
 export class SeletorDeArquivoIndisponivelError extends Error {
   constructor() {
@@ -28,44 +61,44 @@ interface Lancamento {
  * criada só para levar `TopMost`: sem ela o diálogo nasce atrás da janela do
  * HUB SNK e parece que nada aconteceu.
  */
-const SCRIPT_DO_WINDOWS = `
+function montarScriptDoWindows({ titulo, filtroDoWindows }: TipoDeArquivo): string {
+  return `
 Add-Type -AssemblyName System.Windows.Forms
 $dialogo = New-Object System.Windows.Forms.OpenFileDialog
-$dialogo.Title = 'Selecione o executável'
-$dialogo.Filter = 'Programas (*.exe;*.bat;*.cmd;*.lnk)|*.exe;*.bat;*.cmd;*.lnk|Todos os arquivos (*.*)|*.*'
+$dialogo.Title = '${titulo}'
+$dialogo.Filter = '${filtroDoWindows}'
 $janelaDeTopo = New-Object System.Windows.Forms.Form -Property @{ TopMost = $true }
 if ($dialogo.ShowDialog($janelaDeTopo) -eq [System.Windows.Forms.DialogResult]::OK) {
   [Console]::Out.Write($dialogo.FileName)
 }
 `;
+}
 
-/*
- * O `of type` não é filtro de conveniência aqui: sem ele o diálogo trata o
- * pacote `.app` como pasta navegável e não deixa escolher o aplicativo em si.
- * Os demais tipos cobrem binário Unix, script de shell e `.command`.
- */
-const TIPOS_DE_EXECUTAVEL_DO_MACOS =
-  '{"com.apple.application-bundle", "public.unix-executable", "public.shell-script"}';
-
-const SCRIPT_DO_MACOS = `try\nPOSIX path of (choose file with prompt "Selecione o executável" of type ${TIPOS_DE_EXECUTAVEL_DO_MACOS})\nend try`;
-
-function montarLancamentos(): Lancamento[] {
+function montarLancamentos(tipo: TipoDeArquivo): Lancamento[] {
   if (process.platform === 'win32') {
     return [
       {
         comando: 'powershell.exe',
-        argumentos: ['-NoProfile', '-STA', '-Command', SCRIPT_DO_WINDOWS],
+        argumentos: ['-NoProfile', '-STA', '-Command', montarScriptDoWindows(tipo)],
       },
     ];
   }
 
   if (process.platform === 'darwin') {
-    return [{ comando: 'osascript', argumentos: ['-e', SCRIPT_DO_MACOS] }];
+    const script = `try\nPOSIX path of (choose file with prompt "${tipo.titulo}" ${tipo.complementoDoMacos})\nend try`;
+    return [{ comando: 'osascript', argumentos: ['-e', script] }];
   }
 
   return [
-    { comando: 'zenity', argumentos: ['--file-selection', '--title=Selecione o executável'] },
-    { comando: 'kdialog', argumentos: ['--getopenfilename', '.'] },
+    {
+      comando: 'zenity',
+      argumentos: [
+        '--file-selection',
+        `--title=${tipo.titulo}`,
+        `--file-filter=${tipo.filtroDoLinux}`,
+      ],
+    },
+    { comando: 'kdialog', argumentos: ['--getopenfilename', '.', tipo.filtroDoLinux] },
   ];
 }
 
@@ -101,8 +134,10 @@ function executarSeletor({ comando, argumentos }: Lancamento): Promise<string | 
  * Abre o seletor e devolve o caminho escolhido, ou `null` quando o usuário
  * cancela.
  */
-export async function selecionarArquivoNoSistema(): Promise<string | null> {
-  for (const lancamento of montarLancamentos()) {
+export async function selecionarArquivoNoSistema(
+  tipo: TipoDeArquivo = TIPO_EXECUTAVEL,
+): Promise<string | null> {
+  for (const lancamento of montarLancamentos(tipo)) {
     const caminho = await executarSeletor(lancamento);
     if (caminho !== null) {
       return caminho === '' ? null : caminho;
