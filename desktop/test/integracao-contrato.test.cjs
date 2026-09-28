@@ -88,7 +88,7 @@ test('ordena os dez tipos conforme a secao 4', async () => {
     fila.enfileirarLote(Object.values(eventos).reverse(), apiUrl, installationId);
     await fila.enviar(apiUrl, installationId, 'dsk_teste');
     assert.deepEqual(enviados, [
-      'usuario.upsert', 'cliente.upsert', 'os.upsert', 'os.progresso', 'demanda.upsert',
+      'usuario.upsert', 'cliente.upsert', 'demanda.upsert', 'os.upsert', 'os.progresso',
       'tarefa.upsert', 'tarefa.transicao', 'planejamento.upsert', 'agenda.evento.upsert',
       'horas.apontar',
     ]);

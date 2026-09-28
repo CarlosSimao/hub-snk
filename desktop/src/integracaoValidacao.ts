@@ -12,7 +12,7 @@ export type TipoEvento =
   | 'horas.apontar';
 export interface EventoApi { id: string; type: TipoEvento; occurredAt: string; data: Record<string, unknown> }
 
-type Regra = number | 'id' | 'date' | 'boolean' | 'progress' | 'minutes' | 'integer' | 'string' | 'stringNumber'
+type Regra = number | 'id' | 'date' | 'boolean' | 'progress' | 'minutes' | 'integer' | 'bigMinutes' | 'string' | 'stringNumber'
   | 'plannedDate' | 'time' | readonly string[];
 interface Formato { obrigatorios: Record<string, Regra>; opcionais: Record<string, Regra>; nulos?: readonly string[] }
 
@@ -24,11 +24,14 @@ const PRIORIDADES_TAREFA = ['ALTA', 'MEDIA', 'BAIXA'] as const;
 const STATUS_TAREFA = ['BACKLOG', 'A_FAZER', 'EM_ANDAMENTO', 'EM_REVISAO', 'CONCLUIDO'] as const;
 const STATUS_PLANEJAMENTO = ['HOJE', 'FUTURA', 'ATRASADA'] as const;
 const ACEITES = ['GERADO', 'CONCLUIDO', 'PENDENTE'] as const;
+// Contrato de dashboards v1.1: categoria do agendamento.
+const CATEGORIAS_AGENDA = ['CLIENTE', 'AUSENCIA', 'INTERNO'] as const;
+const STATUS_DEMANDA_AGENDA = ['SEM_DEMANDA', 'DEMANDA_SEM_OS', 'OS_SEM_DEMANDA', 'DIVERGENTE', 'CONFERE', 'SEM_EXPERIENCE'] as const;
 
 const formatos: Record<TipoEvento, Formato> = {
   'usuario.upsert': {
     obrigatorios: { externalId: 'id', name: 180 },
-    opcionais: { email: 254, active: 'boolean' },
+    opcionais: { email: 254, active: 'boolean', role: 120, team: 120 },
   },
   'cliente.upsert': {
     obrigatorios: { externalId: 'id', name: 180 },
@@ -36,7 +39,7 @@ const formatos: Record<TipoEvento, Formato> = {
   },
   'os.upsert': {
     obrigatorios: { externalId: 'id', userExternalId: 'id', code: 120, title: 240, status: 80, progress: 'progress' },
-    opcionais: { description: 5000, priority: 40, dueAt: 'date', active: 'boolean' },
+    opcionais: { description: 5000, priority: 40, dueAt: 'date', active: 'boolean', demandExternalId: 'id' },
   },
   'os.progresso': {
     obrigatorios: { osExternalId: 'id', progress: 'progress', status: 80 },
@@ -44,7 +47,11 @@ const formatos: Record<TipoEvento, Formato> = {
   },
   'demanda.upsert': {
     obrigatorios: { externalId: 'id', clientExternalId: 'id', name: 240, status: STATUS_DEMANDA, createdAt: 'date' },
-    opcionais: { analyzedAt: 'date', active: 'boolean' },
+    opcionais: {
+      analyzedAt: 'date', active: 'boolean',
+      // Dashboards v1.1: horas estimadas, tipo e status original da solicitacao do ERP.
+      estimatedMinutes: 'bigMinutes', requestType: 80, erpStatusLabel: 80,
+    },
     nulos: ['analyzedAt'],
   },
   'tarefa.upsert': {
@@ -68,10 +75,17 @@ const formatos: Record<TipoEvento, Formato> = {
   },
   'agenda.evento.upsert': {
     obrigatorios: {
-      externalId: 'id', userExternalId: 'id', clientCode: 'stringNumber', clientName: 180,
+      externalId: 'id', userExternalId: 'id', clientName: 180,
       start: 'date', end: 'date', allDay: 'boolean', title: 240, kind: 80, confirmed: 'boolean',
     },
-    opcionais: { fapCode: 'stringNumber', active: 'boolean' },
+    opcionais: {
+      fapCode: 'stringNumber', active: 'boolean',
+      // Campos novos (2026-09-28): demanda do agendamento e o confronto com a Experience.
+      demandExternalId: 'id', demandCode: 'stringNumber', demandStatus: STATUS_DEMANDA_AGENDA,
+      // Dashboards v1.1. clientCode continua obrigatorio para atendimento (ver validarEvento).
+      clientCode: 'stringNumber', category: CATEGORIAS_AGENDA,
+      plannedMinutes: 'integer', osCount: 'integer', osMinutes: 'integer',
+    },
   },
   'horas.apontar': {
     obrigatorios: { externalId: 'id', osExternalId: 'id', userExternalId: 'id', minutes: 'minutes' },
@@ -79,6 +93,10 @@ const formatos: Record<TipoEvento, Formato> = {
       description: 500, startedAt: 'date', endedAt: 'date', activityType: 120, stage: 160,
       process: 240, acceptance: ACEITES, erpNumber: 'stringNumber', erpStatus: 'string',
       exceeded: 'boolean', requestCode: 'stringNumber',
+      // Campos novos (2026-09-28): a demanda da OS. Só saem com o interruptor ligado.
+      demandExternalId: 'id', demandCode: 'stringNumber',
+      // Dashboards v1.1: dia da OS, sem depender de fuso.
+      workDate: 'plannedDate',
     },
   },
 };
@@ -119,6 +137,7 @@ function regraValida(valor: unknown, regra: Regra, campo: string): boolean {
   if (regra === 'progress') return typeof valor === 'number' && Number.isFinite(valor) && valor >= 0 && valor <= 100;
   if (regra === 'minutes') return typeof valor === 'number' && Number.isInteger(valor) && valor >= 1 && valor <= 10080;
   if (regra === 'string') return typeof valor === 'string' && valor.length > 0;
+  if (regra === 'bigMinutes') return typeof valor === 'number' && Number.isInteger(valor) && valor >= 1 && valor <= 600_000;
   if (regra === 'integer') {
     if (typeof valor !== 'number' || !Number.isInteger(valor)) return false;
     return campo === 'estimatedMinutes' ? valor >= 1 && valor <= 960 : valor >= 0 && valor <= 1_000_000;
@@ -155,6 +174,11 @@ export function validarEvento(valor: unknown): asserts valor is EventoApi {
     if ((inicio === undefined) !== (fim === undefined) || (typeof inicio === 'string' && typeof fim === 'string' && segundos(inicio) >= segundos(fim))) {
       throw new Error('Intervalo planejado invalido');
     }
+  }
+  // Ausencia e compromisso interno nao tem parceiro no ERP; atendimento precisa dele.
+  if (e.type === 'agenda.evento.upsert' && data.clientCode === undefined
+    && data.category !== 'AUSENCIA' && data.category !== 'INTERNO') {
+    throw new Error('clientCode obrigatorio');
   }
   if (e.type === 'agenda.evento.upsert' && Date.parse(String(data.end)) <= Date.parse(String(data.start))) {
     throw new Error('Intervalo de agenda invalido');

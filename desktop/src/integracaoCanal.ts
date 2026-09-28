@@ -43,7 +43,10 @@ export function instalarNoHub(webContents: WebContents): void {
       Object.defineProperty(window, 'integracaoDesktop', { configurable: false, value: Object.freeze({
         estado: () => chamar('estado'), salvar: d => chamar('salvar', d), trocarChave: chave => chamar('trocar-chave', { chave }),
         removerChave: () => chamar('remover-chave'), validar: () => chamar('validar'), enviarPendencias: () => chamar('enviar-pendencias'),
-        envioAutomatico: ligado => chamar('envio-automatico', { ligado: ligado === true })
+        envioAutomatico: ligado => chamar('envio-automatico', { ligado: ligado === true }),
+        demandasNasHoras: ligado => chamar('demandas-nas-horas', { ligado: ligado === true }),
+        painelV11: ligado => chamar('painel-v11', { ligado: ligado === true }),
+        equipe: valor => chamar('equipe', { equipe: String(valor || '') })
       }) });
       window.dispatchEvent(new Event('integracao-desktop-pronta'));
     })();`;
@@ -86,7 +89,10 @@ export async function tratarIntegracao(req: IncomingMessage, res: ServerResponse
       // Ligar exige URL, instalação e chave válidas (salvarConfig valida e recusa sem chave).
       const atual = cofre.estado();
       cofre.salvarConfig(atual.apiUrl, atual.installationId, dados.ligado === true);
-    } else if (acao === 'trocar-chave') cofre.trocarChave(String(dados.chave ?? ''));
+    } else if (acao === 'demandas-nas-horas') cofre.definirDemandasNasHoras(dados.ligado === true);
+    else if (acao === 'painel-v11') cofre.definirPainelV11(dados.ligado === true);
+    else if (acao === 'equipe') cofre.definirEquipe(String(dados.equipe ?? ''));
+    else if (acao === 'trocar-chave') cofre.trocarChave(String(dados.chave ?? ''));
     else if (acao === 'remover-chave') cofre.removerChave();
     else if (acao === 'validar') cofre.validar();
     else if (acao === 'enviar-pendencias') {

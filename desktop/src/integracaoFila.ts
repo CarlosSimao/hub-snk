@@ -6,9 +6,10 @@ interface ArquivoFila { apiUrl: string; installationId: string; eventos: Pendent
 const prioridade: Record<TipoEvento, number> = {
   'usuario.upsert': 0,
   'cliente.upsert': 1,
-  'os.upsert': 2,
-  'os.progresso': 3,
-  'demanda.upsert': 4,
+  // Contrato de 2026-09-28: demanda antes da OS, que pode referenciá-la.
+  'demanda.upsert': 2,
+  'os.upsert': 3,
+  'os.progresso': 4,
   'tarefa.upsert': 5,
   'tarefa.transicao': 6,
   'planejamento.upsert': 7,

@@ -3,6 +3,9 @@ import { useModoDesktop } from '../hooks/useModoDesktop.ts';
 
 interface Estado {
   habilitada: boolean; apiUrl: string; installationId: string; apiVersion: 1; temChave: boolean;
+  demandasNasHoras?: boolean;
+  painelV11?: boolean;
+  equipe?: string;
   ultimaValidacao: string; ultimoEnvio: string; ultimoErro: string; proximaTentativa: string;
   pendentes: number; rejeitados: number; enviando: boolean;
   eventos: { id: string; tipo: string; estado: string; tentativas: number; erro: string }[];
@@ -15,6 +18,9 @@ interface Canal {
   validar(): Promise<Estado>;
   enviarPendencias(): Promise<Estado>;
   envioAutomatico(ligado: boolean): Promise<Estado>;
+  demandasNasHoras?(ligado: boolean): Promise<Estado>;
+  painelV11?(ligado: boolean): Promise<Estado>;
+  equipe?(valor: string): Promise<Estado>;
 }
 const canal = () => (window as Window & { integracaoDesktop?: Canal }).integracaoDesktop;
 const data = (valor: string) => valor ? new Date(valor).toLocaleString('pt-BR') : '—';
@@ -80,6 +86,32 @@ export function IntegracaoApi() {
         <span><strong>Envio automático</strong>
           <small className="campo-dica">A cada 15 minutos o app lê clientes, OS, horas, kanban, planejamento e agenda e enfileira só o que mudou. A fila sai em até 1 minuto após a primeira mudança, mais um atraso fixo de até 2 minutos desta instalação, ou na hora ao juntar 100 eventos. Desligar suspende o envio sem apagar a fila.</small>
         </span>
+      </label>
+      <label className="campo-inline">
+        <input
+          type="checkbox"
+          checked={estado.demandasNasHoras === true}
+          disabled={ocupado || !canal()?.demandasNasHoras}
+          onChange={e => { const ligado = e.target.checked; void executar(c => c.demandasNasHoras!(ligado), ligado ? 'Demanda das OS ligada: sai no próximo ciclo.' : 'Demanda das OS desligada.'); }}
+        />
+        <span><strong>Enviar as demandas (OS e agenda)</strong>
+          <small className="campo-dica">Campos novos no contrato: cada apontamento de horas e cada agendamento levam demandExternalId e demandCode (o ID da Solicitação de Serviços); o agendamento leva também demandStatus, o confronto do dia com a Experience (SEM_DEMANDA, DEMANDA_SEM_OS, OS_SEM_DEMANDA, DIVERGENTE, CONFERE). As demandas do ERP vão como demanda.upsert. Ligue só depois de o receptor confirmar que aceita esses campos — senão os eventos podem ser recusados.</small>
+        </span>
+      </label>
+      <label className="campo-inline">
+        <input
+          type="checkbox"
+          checked={estado.painelV11 === true}
+          disabled={ocupado || !canal()?.painelV11}
+          onChange={e => { const ligado = e.target.checked; void executar(c => c.painelV11!(ligado), ligado ? 'Campos do painel v1.1 ligados: saem no próximo ciclo.' : 'Campos do painel v1.1 desligados.'); }}
+        />
+        <span><strong>Campos do painel v1.1</strong>
+          <small className="campo-dica">Contrato de dashboards (contrato_api_desktop_dashboards.md): a agenda passa a ir do mês anterior ao segundo mês seguinte, com ausências e compromissos internos, categoria, minutos previstos e OS do dia; agendamento apagado no ERP vai como inativo; parceiro da agenda fora do cadastro vira cliente automático; a OS leva o dia (workDate); a demanda leva horas estimadas e tipo; o consultor leva cargo e equipe. Ligue só depois de o receptor confirmar que aceita a v1.1.</small>
+        </span>
+      </label>
+      <label className="campo"><span className="campo-nome">Equipe (vai no cadastro do consultor)</span>
+        <input defaultValue={estado.equipe ?? ''} placeholder="ex.: Customização Sul" disabled={ocupado || !canal()?.equipe}
+          onBlur={e => { const v = e.target.value.trim(); if (v !== (estado.equipe ?? '')) void executar(c => c.equipe!(v), 'Equipe salva.'); }} />
       </label>
       <p>Estado: {estado.enviando ? 'Enviando' : estado.temChave && estado.apiUrl && estado.installationId ? 'Configurada' : 'Pendente'} · Última validação local: {data(estado.ultimaValidacao)} · Último envio: {data(estado.ultimoEnvio)}</p>
       <p>Fila: {estado.pendentes} pendentes · {estado.rejeitados} rejeitados · Próxima tentativa: {data(estado.proximaTentativa)}</p>

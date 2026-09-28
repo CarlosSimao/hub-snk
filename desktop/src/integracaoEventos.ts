@@ -37,6 +37,8 @@ export interface OrdemFonte {
   statusNumeroSankhya?: string;
   horasExcedidas?: boolean;
   pedido?: string;
+  /** ID da demanda (Solicitação de Serviços DS) resolvido pelo hub; vazio = sem vínculo. */
+  demanda?: string;
 }
 
 export interface ProjetoFonte {
@@ -49,6 +51,9 @@ export interface ProjetoFonte {
 export interface ConsultorFonte {
   email: string;
   nome: string;
+  /** Dashboards v1.1: cargo no ERP e equipe informada na instalacao. */
+  cargo?: string;
+  equipe?: string;
 }
 
 const hash8 = (...partes: unknown[]) =>
@@ -84,19 +89,36 @@ function progressoDoProjeto(ordens: OrdemFonte[]): { feito: number; progress: nu
  * Monta os eventos de um ciclo. `agora` é o `occurredAt` de todos: a Experience não
  * informa quando a mudança aconteceu, só como está.
  */
-export function montarEventos(consultor: ConsultorFonte, projetos: ProjetoFonte[], agora: Date): EventoApi[] {
+/**
+ * `demandasEnviadas`: IDs cujo `demanda.upsert` sai neste mesmo ciclo. Só a OS de uma
+ * delas leva o vínculo — referenciar demanda que o receptor não tem recusa o apontamento.
+ * Ausente = interruptor desligado, as horas saem como sempre saíram.
+ */
+export function montarEventos(
+  consultor: ConsultorFonte,
+  projetos: ProjetoFonte[],
+  agora: Date,
+  demandasEnviadas?: Set<string>,
+  /** Dashboards v1.1 ligado: horas levam `workDate`. */
+  painelV11 = false,
+): EventoApi[] {
   if (!consultor.email) return [];
   const occurredAt = agora.toISOString();
   const usuarioId = externalIdUsuario(consultor.email);
   const nome = corte(consultor.nome || consultor.email, 180);
   const email = consultor.email.trim().toLowerCase();
 
+  // Cargo e equipe entram no hash so quando existem: desligado, o evento e o de sempre.
+  const perfil: Record<string, unknown> = {};
+  if (painelV11 && consultor.cargo?.trim()) perfil['role'] = corte(consultor.cargo, 120);
+  if (painelV11 && consultor.equipe?.trim()) perfil['team'] = corte(consultor.equipe, 120);
+  const hashUsuario = Object.keys(perfil).length ? hash8(nome, email, true, JSON.stringify(perfil)) : hash8(nome, email, true);
   const eventos: EventoApi[] = [
     {
-      id: `usuario:${usuarioId}:${hash8(nome, email, true)}`.slice(0, 120),
+      id: `usuario:${usuarioId}:${hashUsuario}`.slice(0, 120),
       type: 'usuario.upsert',
       occurredAt,
-      data: { externalId: usuarioId, name: nome, ...(email.length <= 254 ? { email } : {}), active: true },
+      data: { externalId: usuarioId, name: nome, ...(email.length <= 254 ? { email } : {}), active: true, ...perfil },
     },
   ];
 
@@ -139,6 +161,14 @@ export function montarEventos(consultor: ConsultorFonte, projetos: ProjetoFonte[
       const descricao = corte(ordem.descricao, 500);
       const dia = /^\d{4}-\d\d-\d\d$/.test(ordem.dia) ? ordem.dia : '';
       const extras = extrasDaOrdem(ordem);
+      const demanda = (ordem.demanda ?? '').trim();
+      if (demandasEnviadas && demanda && demandasEnviadas.has(demanda)) {
+        extras['demandExternalId'] = externalIdDemandaErp(demanda);
+        extras['demandCode'] = demanda;
+      }
+      // O dia da OS em campo proprio: `startedAt` a meia-noite UTC cai no dia anterior
+      // para quem converte para Brasilia.
+      if (painelV11 && dia) extras['workDate'] = dia;
       eventos.push({
         id: `horas:${ordem.id}:${hash8(min, descricao, dia, JSON.stringify(extras))}`,
         type: 'horas.apontar',
@@ -188,6 +218,99 @@ function canonico(t: string, max = 80): string {
 
 export const externalIdCliente = (id: number) => `hub-cliente-${id}`;
 
+/** Demanda do ERP (Solicitação de Serviços DS) — prefixo próprio, não colide com as do kanban. */
+export const externalIdDemandaErp = (codigo: string | number) => `erp-demanda-${codigo}`;
+
+/** O pedaço da Solicitação de Serviços que o hub já guarda (ver `SolicitacaoServico`). */
+export interface SolicitacaoFonte {
+  codigo: number;
+  descricao: string;
+  /** Rótulo do status do orçamento, ex.: "Orçamento Aprovado". */
+  statusOrcamento: string;
+  /** `DD/MM/YYYY HH:mm:ss`, horário de Brasília, como o ERP devolve. */
+  dtAbertura: string;
+  dtAprovacao: string;
+  /** Dashboards v1.1. */
+  horasEstimadas?: number | null;
+  /** Rotulo do tipo da solicitacao, ex.: "Personalização e Customização". */
+  tipo?: string;
+}
+
+/**
+ * O contrato só aceita ENVIADO, ANALISANDO, ANALISADO ou FALHOU. O status do orçamento
+ * do ERP cai neles assim: aprovado encerrou a análise; em orçamento, aguardando aprovação,
+ * em negociação e pendente de correção ainda estão sendo analisados; reprovado, cancelado
+ * e prazo excedido não seguiram; o resto (não iniciado, pendente atendimento) só foi enviado.
+ */
+export function statusDemandaErp(rotulo: string): 'ENVIADO' | 'ANALISANDO' | 'ANALISADO' | 'FALHOU' {
+  const r = semAcento(rotulo).toUpperCase();
+  if (r.includes('APROVADO')) return 'ANALISADO';
+  if (r.includes('REPROVADO') || r.includes('CANCELADO') || r.includes('EXCEDIDO')) return 'FALHOU';
+  if (r.includes('ORCAMENTO') || r.includes('AGUARDANDO') || r.includes('NEGOCIACAO') || r.includes('CORRECAO')) {
+    return 'ANALISANDO';
+  }
+  return 'ENVIADO';
+}
+
+/** `DD/MM/YYYY HH:mm[:ss]` de Brasília -> ISO em UTC; vazio se não casar. */
+export function dataErpParaIso(valor: string): string {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec((valor ?? '').trim());
+  if (!m) return '';
+  const d = new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4] ?? '00'}:${m[5] ?? '00'}:${m[6] ?? '00'}.000-03:00`);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+}
+
+/** `demanda.upsert` de cada demanda do ERP de um cliente (sem data de abertura não sai). */
+export function eventosDemandasErp(
+  demandas: { clienteId: number; solicitacoes: SolicitacaoFonte[] }[],
+  agora: Date,
+  /** Dashboards v1.1 ligado: horas estimadas, tipo e status original do ERP. */
+  painelV11 = false,
+): EventoApi[] {
+  const occurredAt = agora.toISOString();
+  const eventos: EventoApi[] = [];
+  const vistas = new Set<number>();
+  for (const { clienteId, solicitacoes } of demandas) {
+    for (const s of solicitacoes) {
+      if (!Number.isInteger(s.codigo) || s.codigo <= 0 || vistas.has(s.codigo)) continue;
+      const createdAt = dataErpParaIso(s.dtAbertura);
+      if (!createdAt) continue;
+      vistas.add(s.codigo);
+      const primeiraLinha = (s.descricao ?? '').split(/\r?\n/).map((l) => l.trim()).find(Boolean) ?? '';
+      const name = corte(`ID ${s.codigo}${primeiraLinha ? ` - ${primeiraLinha}` : ''}`, 240);
+      const status = statusDemandaErp(s.statusOrcamento);
+      const analyzedAt = dataErpParaIso(s.dtAprovacao);
+      const data: Record<string, unknown> = {
+        externalId: externalIdDemandaErp(s.codigo),
+        clientExternalId: externalIdCliente(clienteId),
+        name,
+        status,
+        createdAt,
+        ...(analyzedAt ? { analyzedAt } : {}),
+        active: true,
+      };
+      const extras: Record<string, unknown> = {};
+      if (painelV11) {
+        const minutosEstimados = Math.round((s.horasEstimadas ?? 0) * 60);
+        if (minutosEstimados >= 1 && minutosEstimados <= 600_000) extras['estimatedMinutes'] = minutosEstimados;
+        const tipo = canonico(s.tipo ?? '');
+        if (tipo) extras['requestType'] = tipo;
+        const rotulo = corte(s.statusOrcamento ?? '', 80);
+        if (rotulo) extras['erpStatusLabel'] = rotulo;
+      }
+      Object.assign(data, extras);
+      const extrasHash = Object.keys(extras).length ? JSON.stringify(extras) : '';
+      eventos.push({
+        id: `demanda-erp:${s.codigo}:${extrasHash ? hash8(name, status, createdAt, analyzedAt, clienteId, extrasHash) : hash8(name, status, createdAt, analyzedAt, clienteId)}`,
+        type: 'demanda.upsert',
+        occurredAt,
+        data,
+      });
+    }
+  }
+  return eventos;
+}
+
 /* ------------------------------ cliente.upsert ------------------------------ */
 
 export interface ClienteFonte {
@@ -199,7 +322,15 @@ export interface ClienteFonte {
   demandaFim: string;
 }
 
-export function eventosClientes(clientes: ClienteFonte[], agora: Date): EventoApi[] {
+/**
+ * `codparcResolvido`: parceiro achado pelo nome para cadastro sem parceiro (o hub casa
+ * pelo nome, so candidato unico). Sem ele a agenda desse cliente nao chegaria ao receptor.
+ */
+export function eventosClientes(
+  clientes: ClienteFonte[],
+  agora: Date,
+  codparcResolvido: Map<number, number> = new Map(),
+): EventoApi[] {
   const occurredAt = agora.toISOString();
   return clientes
     .filter((c) => c.id > 0 && c.nome.trim())
@@ -207,7 +338,8 @@ export function eventosClientes(clientes: ClienteFonte[], agora: Date): EventoAp
       const data: Record<string, unknown> = { externalId: externalIdCliente(c.id), name: corte(c.nome, 180), active: true };
       if (c.experienceProjetoId) data['projectExternalId'] = `exp-projeto-${c.experienceProjetoId}`;
       // A agenda do ERP localiza o cliente por este código (contrato 3.2 / 3.9).
-      if (c.agendaCodparc) data['erpPartnerCode'] = c.agendaCodparc;
+      const codparc = c.agendaCodparc ?? codparcResolvido.get(c.id) ?? null;
+      if (codparc) data['erpPartnerCode'] = codparc;
       if (/^\d{4}-\d\d-\d\d$/.test(c.demandaFim)) data['dueAt'] = `${c.demandaFim}T23:59:59.000Z`;
       return { id: `cliente:${c.id}:${hash8(JSON.stringify(data))}`, type: 'cliente.upsert' as const, occurredAt, data };
     });
@@ -393,7 +525,15 @@ export interface EventoAgendaFonte {
   tipo: string;
   confirmado: string;
   nufap: number | null;
+  /** Demanda do agendamento (DESCRLONGA ou vínculo manual) e o confronto do dia. */
+  demanda?: string;
+  conferencia?: { status: string };
 }
+
+/** Status do confronto agenda x Experience no formato do contrato (maiúsculas e _). */
+export const STATUS_DEMANDA_AGENDA = [
+  'SEM_DEMANDA', 'DEMANDA_SEM_OS', 'OS_SEM_DEMANDA', 'DIVERGENTE', 'CONFERE', 'SEM_EXPERIENCE',
+] as const;
 
 /** Hora local do ERP (`YYYY-MM-DD HH:mm:ss`) em ISO UTC. */
 function localParaIso(t: string): string {
@@ -407,10 +547,16 @@ function localParaIso(t: string): string {
  * Só a agenda do PRÓPRIO consultor (contrato 3.9): quem chama passa os eventos já
  * recortados pelo recurso do consultor no cadastro do cliente.
  */
+/**
+ * `demandasEnviadas`: como em `montarEventos` — presente = interruptor ligado. Aí o evento
+ * leva `demandCode` e `demandStatus` (o confronto do dia), e `demandExternalId` só quando o
+ * `demanda.upsert` da demanda sai no mesmo ciclo.
+ */
 export function eventosAgenda(
   usuarioId: string,
   clientes: { cliente: ClienteFonte; eventos: EventoAgendaFonte[] }[],
   agora: Date,
+  demandasEnviadas?: Set<string>,
 ): EventoApi[] {
   const occurredAt = agora.toISOString();
   const eventos: EventoApi[] = [];
@@ -435,8 +581,119 @@ export function eventosAgenda(
         ...(e.nufap ? { fapCode: e.nufap } : {}),
         active: true,
       };
+      if (demandasEnviadas) {
+        const demanda = (e.demanda ?? '').trim();
+        const status = canonico(e.conferencia?.status ?? '');
+        if (demanda) data['demandCode'] = demanda;
+        if (demanda && demandasEnviadas.has(demanda)) data['demandExternalId'] = externalIdDemandaErp(demanda);
+        if ((STATUS_DEMANDA_AGENDA as readonly string[]).includes(status)) data['demandStatus'] = status;
+      }
       eventos.push({ id: `agenda:${e.nuevento}:${hash8(JSON.stringify(data))}`, type: 'agenda.evento.upsert', occurredAt, data });
     }
   }
   return eventos;
+}
+
+/* ------------------------ dashboards v1.1: agenda completa ------------------------ */
+
+/** Um agendamento como `/api/integracao/painel` devolve (ver src/routesExperience.ts). */
+export interface AgendaPainelFonte extends EventoAgendaFonte {
+  codparc: number | null;
+  descrlonga?: string;
+  clienteId: number | null;
+  categoria: 'CLIENTE' | 'AUSENCIA' | 'INTERNO';
+  minutosPrevistos: number;
+  qtdOs?: number;
+  minutosOs?: number;
+}
+
+export const externalIdParceiroErp = (codparc: number) => `erp-parceiro-${codparc}`;
+
+/** `cliente.upsert` para parceiro que aparece na agenda do consultor e nao esta cadastrado. */
+export function eventosClientesAutomaticos(
+  eventos: AgendaPainelFonte[],
+  codparcsCadastrados: Set<number>,
+  agora: Date,
+): EventoApi[] {
+  const occurredAt = agora.toISOString();
+  const vistos = new Map<number, string>();
+  for (const e of eventos) {
+    if (e.categoria !== 'CLIENTE' || !e.codparc || e.clienteId !== null || codparcsCadastrados.has(e.codparc)) continue;
+    if (!vistos.has(e.codparc)) vistos.set(e.codparc, corte(e.nomeparc || `Parceiro ${e.codparc}`, 180));
+  }
+  return [...vistos].map(([codparc, nome]) => {
+    const data = { externalId: externalIdParceiroErp(codparc), name: nome, erpPartnerCode: codparc, active: true };
+    return { id: `cliente-erp:${codparc}:${hash8(JSON.stringify(data))}`, type: 'cliente.upsert' as const, occurredAt, data };
+  });
+}
+
+/**
+ * `agenda.evento.upsert` de toda a agenda do consultor, com os campos da v1.1. Ausencia e
+ * compromisso interno saem sem `clientCode`; atendimento sai com o parceiro do evento.
+ */
+export function eventosAgendaPainel(
+  usuarioId: string,
+  eventos: AgendaPainelFonte[],
+  agora: Date,
+  demandasEnviadas?: Set<string>,
+): EventoApi[] {
+  const occurredAt = agora.toISOString();
+  const saida: EventoApi[] = [];
+  for (const e of eventos) {
+    if (!e.nuevento) continue;
+    const start = localParaIso(e.inicio);
+    const end = localParaIso(e.fim);
+    if (!start || !end || end <= start) continue;
+    const cliente = e.categoria === 'CLIENTE';
+    if (cliente && !e.codparc) continue;
+    const data: Record<string, unknown> = {
+      externalId: `erp-evento-${e.nuevento}`,
+      userExternalId: usuarioId,
+      ...(cliente ? { clientCode: e.codparc } : {}),
+      clientName: corte(e.nomeparc || e.descrabrev || 'Compromisso', 180) || 'Compromisso',
+      start,
+      end,
+      allDay: e.allday === 'S' || e.allday === 'true',
+      title: corte(e.descrabrev ?? '', 240) || `Evento ${e.nuevento}`,
+      kind: canonico(e.tipo ?? '') || 'OUTRO',
+      confirmed: e.confirmado === 'S',
+      ...(e.nufap ? { fapCode: e.nufap } : {}),
+      category: e.categoria,
+      plannedMinutes: Math.max(0, Math.round(e.minutosPrevistos || 0)),
+      ...(e.qtdOs !== undefined ? { osCount: e.qtdOs, osMinutes: Math.max(0, Math.round(e.minutosOs ?? 0)) } : {}),
+      active: true,
+    };
+    if (demandasEnviadas) {
+      const demanda = (e.demanda ?? '').trim();
+      const status = canonico(e.conferencia?.status ?? '');
+      if (demanda) data['demandCode'] = demanda;
+      if (demanda && demandasEnviadas.has(demanda)) data['demandExternalId'] = externalIdDemandaErp(demanda);
+      if (cliente && (STATUS_DEMANDA_AGENDA as readonly string[]).includes(status)) data['demandStatus'] = status;
+    }
+    saida.push({ id: `agenda:${e.nuevento}:${hash8(JSON.stringify(data))}`, type: 'agenda.evento.upsert', occurredAt, data });
+  }
+  return saida;
+}
+
+/**
+ * Agendamentos que ja foram enviados, cairiam na janela atual e sumiram do ERP: saem de
+ * novo com `active: false`, sobre o ultimo conteudo enviado. `anteriores` e o que o DS
+ * guardou do ultimo envio (externalId -> data).
+ */
+export function agendaInativada(
+  anteriores: Record<string, Record<string, unknown>>,
+  atuais: Set<string>,
+  janela: { de: string; ate: string },
+  agora: Date,
+): EventoApi[] {
+  const occurredAt = agora.toISOString();
+  const saida: EventoApi[] = [];
+  for (const [externalId, data] of Object.entries(anteriores)) {
+    if (atuais.has(externalId) || data['active'] === false) continue;
+    const dia = String(data['start'] ?? '').slice(0, 10);
+    if (!dia || dia < janela.de || dia > janela.ate) continue;
+    const inativo = { ...data, active: false };
+    saida.push({ id: `agenda:${externalId.replace(/^erp-evento-/, '')}:inativo`, type: 'agenda.evento.upsert', occurredAt, data: inativo });
+  }
+  return saida;
 }
