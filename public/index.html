@@ -58,7 +58,28 @@
           >
             OS
           </button>
+          <button
+            class="aba"
+            id="btn-visualizacao-lembretes"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Lembretes
+          </button>
         </div>
+        <!-- O ícone de sino é montado pelo app.js; o contador só aparece com não lidas. -->
+        <button
+          class="btn ghost botao-icone botao-notificacoes"
+          id="btn-notificacoes"
+          type="button"
+          title="Notificações"
+          aria-label="Notificações"
+          aria-expanded="false"
+          aria-controls="painel-notificacoes"
+        >
+          <span class="contador-notificacoes" id="contador-notificacoes" hidden></span>
+        </button>
         <!-- O ícone de cadeado é montado pelo app.js. -->
         <button
           class="btn ghost botao-icone"
@@ -222,7 +243,46 @@
           <div id="mount-os-geral"></div>
         </div>
       </div>
+
+      <div class="card" id="visualizacao-lembretes" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Lembretes</h2>
+            <p class="texto-auxiliar">
+              Avisos no painel de notificações, com som e, se quiser, por e-mail.
+            </p>
+          </div>
+        </div>
+        <!-- A lista é montada pelo app.js. -->
+        <div id="mount-lembretes"></div>
+      </div>
     </main>
+
+    <aside class="painel-notificacoes" id="painel-notificacoes" aria-label="Notificações" hidden>
+      <div class="painel-notificacoes-cabecalho">
+        <h2>Notificações</h2>
+        <div class="painel-notificacoes-acoes">
+          <button class="btn tiny ghost" id="btn-marcar-notificacoes-lidas" type="button">
+            Marcar todas como lidas
+          </button>
+          <button class="btn tiny ghost" id="btn-limpar-notificacoes" type="button">Limpar</button>
+          <button
+            class="btn tiny ghost"
+            id="btn-fechar-notificacoes"
+            type="button"
+            aria-label="Fechar notificações"
+            title="Fechar"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+      <!-- Os itens são montados pelo app.js. -->
+      <div class="lista-notificacoes" id="lista-notificacoes"></div>
+    </aside>
+
+    <!-- Cartões das notificações que acabaram de chegar; somem sozinhos. -->
+    <div class="pilha-notificacoes" id="pilha-notificacoes" aria-live="polite"></div>
 
     <dialog class="modal" id="modal-cliente">
       <form method="dialog" id="formulario-cliente" novalidate>
@@ -599,6 +659,112 @@
       </form>
     </dialog>
 
+    <dialog class="modal" id="modal-lembrete">
+      <form method="dialog" id="formulario-lembrete" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-lembrete-titulo">Novo lembrete</h2>
+          <p>Um aviso numa data e hora, ou recorrente.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-texto-lembrete">Lembrete</label>
+            <textarea
+              id="campo-texto-lembrete"
+              class="campo-anotacoes"
+              rows="3"
+              maxlength="1000"
+              placeholder="Ex.: Enviar o relatório de horas ao coordenador"
+            ></textarea>
+          </div>
+
+          <fieldset class="grupo-de-acessos">
+            <legend>Quando</legend>
+            <label class="campo-checkbox">
+              <input type="radio" name="tipo-lembrete" value="unico" checked /> Uma vez
+            </label>
+            <label class="campo-checkbox">
+              <input type="radio" name="tipo-lembrete" value="recorrente" /> Recorrente
+            </label>
+          </fieldset>
+
+          <div class="campo campo-estreito" id="grupo-data-hora-lembrete">
+            <label for="campo-data-hora-lembrete">Data e hora</label>
+            <input id="campo-data-hora-lembrete" type="datetime-local" />
+          </div>
+
+          <div id="grupo-recorrencia-lembrete" hidden>
+            <div class="campo">
+              <label for="campo-modelo-recorrencia">Modelo</label>
+              <select id="campo-modelo-recorrencia">
+                <option value="">Escolha um modelo ou digite a expressão abaixo</option>
+                <option value="0 9 * * *">Todo dia às 09:00</option>
+                <option value="0 9 * * 1-5">Dias úteis às 09:00</option>
+                <option value="0 9 * * 1">Toda segunda às 09:00</option>
+                <option value="0 17 * * 5">Toda sexta às 17:00</option>
+                <option value="0 9 1 * *">Todo dia 1º do mês às 09:00</option>
+                <option value="*/30 8-18 * * 1-5">
+                  A cada 30 minutos, das 8h às 18h, em dias úteis
+                </option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="campo-expressao-cron">
+                Expressão cron
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Cinco campos separados por espaço: minuto, hora, dia do mês, mês e dia da
+                    semana (0 = domingo). Aceita <code>*</code>, listas (<code>1,15</code>), faixas
+                    (<code>1-5</code>) e passos (<code>*/15</code>). Exemplo:
+                    <code>0 9 * * 1-5</code> é às 09:00 de segunda a sexta.</span
+                  ></span
+                >
+              </label>
+              <input
+                id="campo-expressao-cron"
+                type="text"
+                maxlength="120"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: 0 9 * * 1-5"
+              />
+              <p class="texto-auxiliar" id="previa-cron" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="campo-cliente-lembrete">
+              Cliente <span class="opcional">opcional</span>
+            </label>
+            <!-- As opções são montadas pelo app.js. -->
+            <select id="campo-cliente-lembrete"></select>
+          </div>
+
+          <div class="campo">
+            <label for="campo-projeto-lembrete">
+              Projeto <span class="opcional">opcional</span>
+            </label>
+            <!-- As opções dependem do cliente escolhido e são montadas pelo app.js. -->
+            <select id="campo-projeto-lembrete" disabled></select>
+          </div>
+
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-email-lembrete" /> Enviar também por e-mail
+          </label>
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-ativo-lembrete" checked /> Ativo
+          </label>
+
+          <p class="erro-formulario" id="erro-lembrete" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-lembrete">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-lembrete">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog class="modal" id="modal-configuracao">
       <form method="dialog" id="formulario-configuracao" novalidate>
         <div class="modal-cabecalho">
@@ -636,6 +802,26 @@
             aria-controls="painel-configuracao-atalhos"
           >
             Atalhos
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-smtp"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-smtp"
+          >
+            SMTP
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-avisos"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-avisos"
+          >
+            Avisos
           </button>
           <button
             class="aba"
@@ -791,28 +977,6 @@
                 <option value="navegador-padrao">Navegador padrão</option>
               </select>
             </div>
-
-            <div class="campo campo-estreito">
-              <label for="campo-sankhya-om-codusu">
-                Meu código de usuário Sankhya OM
-                <span class="opcional">opcional</span>
-                <span class="dica" tabindex="0"
-                  >?<span class="dica-texto" role="tooltip"
-                    >Seu `CODUSU` no Sankhya OM (ERP) — diferente do usuário da Experience, que é
-                    capturado sozinho junto com a sessão em Credenciais Sankhya.</span
-                  ></span
-                >
-              </label>
-              <input
-                id="campo-sankhya-om-codusu"
-                type="text"
-                inputmode="numeric"
-                maxlength="10"
-                autocomplete="off"
-                spellcheck="false"
-                placeholder="Ex.: 4817"
-              />
-            </div>
           </div>
 
           <div
@@ -931,6 +1095,155 @@
 
           <div
             class="painel-aba"
+            id="painel-configuracao-smtp"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-smtp"
+            hidden
+          >
+            <fieldset class="grupo-de-acessos">
+              <legend>
+                Servidor de e-mail
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Usado por tudo o que o HUB SNK envia por e-mail, como as notificações. Sem
+                    host, nada é enviado. A senha fica gravada em texto puro no
+                    <code>configuracao.json</code>, como as senhas das bases.</span
+                  ></span
+                >
+              </legend>
+
+              <div class="grade-duas-colunas">
+                <div class="campo">
+                  <label for="campo-smtp-host">Host</label>
+                  <input
+                    id="campo-smtp-host"
+                    type="text"
+                    maxlength="200"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="Ex.: smtp.office365.com"
+                  />
+                </div>
+
+                <div class="campo">
+                  <label for="campo-smtp-porta">Porta</label>
+                  <input id="campo-smtp-porta" type="number" min="1" max="65535" />
+                </div>
+
+                <div class="campo">
+                  <label for="campo-smtp-seguranca">
+                    Segurança
+                    <span class="dica" tabindex="0"
+                      >?<span class="dica-texto" role="tooltip"
+                        >STARTTLS é o comum na porta 587 (Office 365, Gmail); SSL/TLS, na 465. Sem
+                        TLS só serve para servidor da rede local.</span
+                      ></span
+                    >
+                  </label>
+                  <select id="campo-smtp-seguranca">
+                    <option value="starttls">STARTTLS</option>
+                    <option value="ssl">SSL/TLS</option>
+                    <option value="nenhuma">Sem TLS</option>
+                  </select>
+                </div>
+
+                <div class="campo">
+                  <label for="campo-smtp-usuario">
+                    Usuário <span class="opcional">opcional</span>
+                  </label>
+                  <input id="campo-smtp-usuario" type="text" maxlength="200" autocomplete="off" />
+                </div>
+
+                <div class="campo">
+                  <label for="campo-smtp-senha">Senha</label>
+                  <div class="campo-com-botao">
+                    <input
+                      id="campo-smtp-senha"
+                      type="password"
+                      maxlength="200"
+                      autocomplete="new-password"
+                    />
+                    <!-- O ícone de olho é montado pelo app.js. -->
+                    <button
+                      class="btn ghost botao-icone"
+                      id="btn-ver-senha-smtp"
+                      type="button"
+                      title="Mostrar senha"
+                      aria-label="Mostrar senha"
+                    ></button>
+                  </div>
+                </div>
+
+                <div class="campo">
+                  <label for="campo-smtp-remetente">Remetente</label>
+                  <input
+                    id="campo-smtp-remetente"
+                    type="email"
+                    maxlength="320"
+                    autocomplete="off"
+                    placeholder="voce@empresa.com.br"
+                  />
+                </div>
+
+                <div class="campo">
+                  <label for="campo-smtp-destinatario">Destinatário</label>
+                  <input
+                    id="campo-smtp-destinatario"
+                    type="email"
+                    maxlength="320"
+                    autocomplete="off"
+                    placeholder="voce@empresa.com.br"
+                  />
+                </div>
+
+                <button class="btn ghost botao-testar-smtp" type="button" id="btn-testar-smtp">
+                  Enviar e-mail de teste
+                </button>
+              </div>
+              <!-- Resultado do e-mail de teste aqui dentro: o aviso de rodapé fica atrás do modal. -->
+              <p class="resultado-teste-smtp" id="resultado-teste-smtp" role="status" hidden></p>
+            </fieldset>
+          </div>
+
+          <div
+            class="painel-aba"
+            id="painel-configuracao-avisos"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-avisos"
+            hidden
+          >
+            <fieldset class="grupo-de-acessos">
+              <legend>
+                Agenda do dia sem OS lançada
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >A cada 15 minutos, confere os eventos de hoje da sua Agenda de Recursos. Evento
+                    de cliente que já terminou e não tem OS lançada na Experience gera uma
+                    notificação, uma vez por evento. Precisa do código de usuário do Sankhya OM e do
+                    login feito, os dois em Credenciais Sankhya. O e-mail usa o SMTP da aba
+                    SMTP.</span
+                  ></span
+                >
+              </legend>
+              <div class="grade-duas-colunas">
+                <div class="campo">
+                  <label for="campo-alerta-agenda-tolerancia">Minutos após o fim do evento</label>
+                  <input id="campo-alerta-agenda-tolerancia" type="number" min="0" max="720" />
+                </div>
+                <div class="opcoes-do-alerta">
+                  <label class="campo-checkbox">
+                    <input type="checkbox" id="campo-alerta-agenda-ativo" /> Ligado
+                  </label>
+                  <label class="campo-checkbox">
+                    <input type="checkbox" id="campo-alerta-agenda-email" /> Enviar por e-mail
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+
+          <div
+            class="painel-aba"
             id="painel-configuracao-acessos"
             role="tabpanel"
             aria-labelledby="aba-configuracao-acessos"
@@ -970,6 +1283,9 @@
               </label>
               <label class="campo-checkbox">
                 <input type="checkbox" data-funcionalidade="os" /> OS
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="lembretes" /> Lembretes
               </label>
             </fieldset>
 
@@ -1077,6 +1393,34 @@
       </div>
 
       <div class="modal-corpo">
+        <section class="cartao-credencial">
+          <div class="campo campo-em-linha">
+            <label for="campo-sankhya-om-codusu">
+              Meu código de usuário Sankhya OM
+              <span class="dica" tabindex="0"
+                >?<span class="dica-texto" role="tooltip"
+                  >Seu <code>CODUSU</code> no Sankhya OM (ERP) — diferente do usuário da Experience,
+                  que é capturado sozinho junto com a sessão. Recorta a Agenda de Recursos só para
+                  você.</span
+                ></span
+              >
+            </label>
+            <div class="campo-com-acao">
+              <input
+                id="campo-sankhya-om-codusu"
+                type="text"
+                inputmode="numeric"
+                maxlength="10"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: 4817"
+              />
+              <button class="btn ghost" type="button" id="btn-salvar-codusu">Salvar</button>
+            </div>
+          </div>
+          <p class="erro-formulario" id="erro-codusu" hidden></p>
+        </section>
+
         <p class="aviso-shell" id="aviso-shell-sankhya" hidden>
           O aplicativo HUB SNK não está respondendo. As credenciais e as guias do Sankhya só
           funcionam com o painel aberto por ele.

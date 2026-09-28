@@ -40,9 +40,22 @@ versão antiga e mantém o cadastro onde está.
   cada repositório passa a chamar o executável cadastrado ali, com a pasta como
   argumento — funciona com qualquer IDE (IntelliJ IDEA, VS Code, WebStorm, Rider
   e outras), em vez de só tentar descobrir o IntelliJ sozinho.
+- **Painel de notificações**, no sino do topo: cada notificação nova aparece num
+  cartão no canto direito, com som, e fica no painel até ser lida ou limpa.
+- **SMTP**, em **Configurações › SMTP**, com botão de e-mail de teste: as
+  notificações também podem sair por e-mail.
+- **Alerta da agenda do dia sem OS lançada**, em **Configurações › Avisos**: a
+  cada 15 minutos o HUB SNK confere os eventos de cliente de hoje na sua Agenda de
+  Recursos e avisa, uma vez por evento, o que já terminou sem OS na Experience.
+- **Lembretes**, no menu principal: texto livre numa data e hora ou recorrente por
+  expressão cron (com modelos prontos e prévia das próximas ocorrências),
+  opcionalmente ligados a um cliente e a um projeto dele, e com e-mail opcional.
 
 ### Alterado
 
+- A janela de **Configurações** ficou duas vezes mais larga.
+- **Meu código de usuário Sankhya OM** saiu da aba Geral das configurações e foi
+  para o topo de **Credenciais Sankhya**, com botão de salvar próprio.
 - As credenciais do Sankhya ERP e da Experience ficam no cofre do aplicativo
   (`safeStorage`, o cofre do sistema operacional). As que estavam no
   `hub-helper.ps1` são trazidas uma vez, na primeira abertura.

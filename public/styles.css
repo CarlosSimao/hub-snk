@@ -1481,6 +1481,11 @@ button.selo-situacao:focus-visible {
   width: min(680px, 94vw);
 }
 
+/* O dobro do modal comum: as configurações têm abas demais para 440px. */
+#modal-configuracao {
+  width: min(880px, 94vw);
+}
+
 /* -------------------------- credenciais do sankhya ------------------------ */
 
 .cartao-credencial {
@@ -2904,9 +2909,235 @@ button.selo-situacao:focus-visible {
   .detalhe,
   #visualizacao-local,
   #visualizacao-agenda,
-  #visualizacao-os {
+  #visualizacao-os,
+  #visualizacao-lembretes {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
   }
+}
+
+/* ------------------------------ notificações ------------------------------ */
+
+/* Abaixo da barra do topo, que é `sticky` e fica sempre por cima. */
+.painel-notificacoes,
+.pilha-notificacoes {
+  --distancia-do-topo: 64px;
+}
+
+.botao-notificacoes {
+  position: relative;
+}
+
+.contador-notificacoes {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--perigo);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+
+.contador-notificacoes[hidden] {
+  display: none;
+}
+
+.painel-notificacoes {
+  position: fixed;
+  top: var(--distancia-do-topo);
+  right: 16px;
+  bottom: 16px;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  width: min(380px, calc(100vw - 32px));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow);
+  animation: surgir 0.16s ease-out;
+}
+
+.painel-notificacoes[hidden] {
+  display: none;
+}
+
+.painel-notificacoes-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.painel-notificacoes-cabecalho h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.painel-notificacoes-acoes {
+  display: flex;
+  gap: 4px;
+}
+
+.lista-notificacoes {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.item-notificacao {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+
+.item-notificacao.nao-lida {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  cursor: pointer;
+}
+
+.notificacao-conteudo {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.notificacao-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.notificacao-origem {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.notificacao-origem.origem-agenda {
+  color: var(--aviso);
+}
+
+.notificacao-origem.origem-lembrete {
+  color: var(--accent);
+}
+
+.notificacao-titulo {
+  font-size: 13px;
+}
+
+/* A mensagem do lembrete é texto livre, com quebra de linha digitada. */
+.notificacao-mensagem {
+  margin: 0;
+  font-size: 12.5px;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.notificacao-erro-email {
+  margin: 0;
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--perigo) 80%, var(--text));
+}
+
+.pilha-notificacoes {
+  position: fixed;
+  top: var(--distancia-do-topo);
+  right: 16px;
+  z-index: 45;
+  display: grid;
+  gap: 8px;
+  width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.cartao-notificacao {
+  position: relative;
+  padding: 12px 36px 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: var(--radius-sm);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  pointer-events: auto;
+  animation: surgir 0.16s ease-out;
+}
+
+.cartao-notificacao-fechar {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+/* -------------------------------- lembretes ------------------------------- */
+
+.lembrete-texto {
+  white-space: pre-line;
+}
+
+.linha-recurso.lembrete-desligado {
+  opacity: 0.6;
+}
+
+#previa-cron {
+  margin: 6px 0 0;
+}
+
+/* Abas SMTP e Avisos das configurações: campos curtos lado a lado. */
+.grade-duas-colunas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  align-items: end;
+}
+
+.opcoes-do-alerta {
+  display: grid;
+  gap: 4px;
+}
+
+.resultado-teste-smtp {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.resultado-teste-smtp[hidden] {
+  display: none;
+}
+
+.resultado-teste-smtp.sucesso {
+  border-color: color-mix(in srgb, var(--marca) 45%, transparent);
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
+  color: var(--text);
+}
+
+.resultado-teste-smtp.erro {
+  border-color: color-mix(in srgb, var(--perigo) 45%, transparent);
+  background: color-mix(in srgb, var(--perigo) 12%, transparent);
+  color: var(--text);
 }

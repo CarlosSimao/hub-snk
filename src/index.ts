@@ -6,18 +6,27 @@ import { configuracao } from './configuracao.ts';
 import { ArquivoDeDadosInvalidoError, EsquemaMaisNovoError } from './repositorio/arquivoDeDados.ts';
 import { RepositorioClientesArquivo } from './repositorio/repositorioClientesArquivo.ts';
 import { RepositorioConfiguracaoArquivo } from './repositorio/repositorioConfiguracaoArquivo.ts';
+import { RepositorioLembretesArquivo } from './repositorio/repositorioLembretesArquivo.ts';
 import { RepositorioLocalArquivo } from './repositorio/repositorioLocalArquivo.ts';
+import { RepositorioNotificacoesArquivo } from './repositorio/repositorioNotificacoesArquivo.ts';
+import { AgendadorDeLembretes } from './notificacoes/agendadorDeLembretes.ts';
+import { CentralDeNotificacoes } from './notificacoes/centralDeNotificacoes.ts';
+import { EnviadorDeEmail } from './notificacoes/enviadorDeEmail.ts';
+import { VerificadorDaAgendaDoDia } from './notificacoes/verificadorDaAgendaDoDia.ts';
 import { registrarProtecaoDeOrigem } from './rotas/protecaoDeOrigem.ts';
 import { registrarRotasDeAtalhos } from './rotas/rotasAtalhos.ts';
 import { registrarRotasDeClientes } from './rotas/rotasClientes.ts';
 import { registrarRotasDeConfiguracao } from './rotas/rotasConfiguracao.ts';
 import { registrarRotasDeGit } from './rotas/rotasGit.ts';
 import { registrarRotasDeAgenda } from './rotas/rotasAgenda.ts';
+import { registrarRotasDeLembretes } from './rotas/rotasLembretes.ts';
 import { registrarRotasDeLocal } from './rotas/rotasLocal.ts';
+import { registrarRotasDeNotificacoes } from './rotas/rotasNotificacoes.ts';
 import { registrarRotasDeOs } from './rotas/rotasOs.ts';
 import { registrarRotasDeSankhya } from './rotas/rotasSankhya.ts';
 import { registrarRotasDeSistema } from './rotas/rotasSistema.ts';
 import { AgendaRecursos } from './sankhya/agenda.ts';
+import { importarAgendaDoPeriodo, situacaoDoDiaDoParceiro } from './sankhya/consultasDaAgenda.ts';
 import { Credenciais } from './sankhya/credenciais.ts';
 import { Experience } from './sankhya/experience.ts';
 import { PonteDoDesktop } from './sankhya/ponteDoDesktop.ts';
@@ -62,6 +71,49 @@ async function iniciarServidor(): Promise<void> {
   const credenciaisSankhya = new Credenciais(ponteDoDesktop, sessaoDoDesktop);
   const agendaDeRecursos = new AgendaRecursos(configuracao.diretorioDeDados);
   const experience = new Experience(credenciaisSankhya);
+  const repositorioDeLembretes = new RepositorioLembretesArquivo(configuracao.diretorioDeDados);
+  const enviadorDeEmail = new EnviadorDeEmail(repositorioDeConfiguracao);
+  const registradorDasNotificacoes = {
+    info: (mensagem: string) => servidor.log.info(mensagem),
+    warn: (mensagem: string) => servidor.log.warn(mensagem),
+  };
+  const centralDeNotificacoes = new CentralDeNotificacoes(
+    new RepositorioNotificacoesArquivo(configuracao.diretorioDeDados),
+    enviadorDeEmail,
+    registradorDasNotificacoes,
+  );
+  const agendadorDeLembretes = new AgendadorDeLembretes({
+    lembretes: repositorioDeLembretes,
+    clientes: repositorioDeClientes,
+    emitir: (dados) => centralDeNotificacoes.emitir(dados),
+    agora: () => new Date(),
+    registrador: registradorDasNotificacoes,
+  });
+  const verificadorDaAgenda = new VerificadorDaAgendaDoDia({
+    configuracao: repositorioDeConfiguracao,
+    emitir: (dados) => centralDeNotificacoes.emitir(dados),
+    jaEmitida: (chave) => centralDeNotificacoes.jaEmitida(chave),
+    atualizarAgendaDoDia: async (dia, codusuAlvo) => {
+      await importarAgendaDoPeriodo({
+        agenda: agendaDeRecursos,
+        credenciais: credenciaisSankhya,
+        periodo: { de: dia, ate: dia },
+        codusuAlvo,
+      });
+    },
+    eventosDoDia: (dia) => agendaDeRecursos.eventos(`${dia} 00:00:00`, `${dia} 23:59:59`),
+    situacaoDoDia: async (codparc, dia) => {
+      const { situacao } = await situacaoDoDiaDoParceiro({
+        credenciais: credenciaisSankhya,
+        experience,
+        codparc,
+        dia,
+      });
+      return situacao;
+    },
+    agora: () => new Date(),
+    registrador: registradorDasNotificacoes,
+  });
 
   registrarRotasDeClientes(
     servidor,
@@ -75,6 +127,8 @@ async function iniciarServidor(): Promise<void> {
   registrarRotasDeAtalhos(servidor, repositorioDeConfiguracao);
   let observadorDosDados: FSWatcher | null = null;
   const encerrarOHub = criarEncerramento(async () => {
+    agendadorDeLembretes.parar();
+    verificadorDaAgenda.parar();
     observadorDosDados?.close();
     await servidor.close();
     agendaDeRecursos.close();
@@ -103,9 +157,11 @@ async function iniciarServidor(): Promise<void> {
     experience,
   );
   registrarRotasDeOs(servidor, experience, repositorioDeClientes, repositorioDeConfiguracao);
+  registrarRotasDeNotificacoes(servidor, centralDeNotificacoes, enviadorDeEmail);
+  registrarRotasDeLembretes(servidor, repositorioDeLembretes, repositorioDeClientes);
 
   /*
-   * Leitura antecipada dos três arquivos: arquivo em esquema desconhecido e
+   * Leitura antecipada dos arquivos: arquivo em esquema desconhecido e
    * migração pendente aparecem no terminal, na largada, em vez de virarem erro
    * na primeira tela que o usuário abrir.
    */
@@ -113,10 +169,15 @@ async function iniciarServidor(): Promise<void> {
     repositorioDeClientes.listar(),
     repositorioDeConfiguracao.ler(),
     repositorioLocal.listarBases(),
+    repositorioDeLembretes.listar(),
+    centralDeNotificacoes.listar(),
   ]);
 
   await servidor.listen({ port: configuracao.porta, host: configuracao.host });
   servidor.log.info(`Dados em ${configuracao.diretorioDeDados}`);
+
+  agendadorDeLembretes.iniciar();
+  verificadorDaAgenda.iniciar();
 
   /*
    * A pasta precisa existir para ser vigiada, e numa instalação nova ela só
@@ -130,6 +191,7 @@ async function iniciarServidor(): Promise<void> {
       ['clientes.json', repositorioDeClientes],
       ['configuracao.json', repositorioDeConfiguracao],
       ['local.json', repositorioLocal],
+      ['lembretes.json', repositorioDeLembretes],
     ]),
     registrador: {
       info: (mensagem) => servidor.log.info(mensagem),

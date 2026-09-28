@@ -18,6 +18,8 @@ const CAMINHO_DOS_ATALHOS = '/api/atalhos';
 const CAMINHO_DO_SISTEMA = '/api/sistema';
 const CAMINHO_DAS_BASES_LOCAIS = '/api/local/bases';
 const CAMINHO_DOS_BANCOS_LOCAIS = '/api/local/bancos';
+const CAMINHO_DAS_NOTIFICACOES = '/api/notificacoes';
+const CAMINHO_DOS_LEMBRETES = '/api/lembretes';
 const CAMINHO_DA_IMPORTACAO = `${CAMINHO_DA_API}/importacao`;
 const CAMINHO_DA_IMPORTACAO_DE_REPOSITORIOS = `${CAMINHO_DA_API}/importacao-de-repositorios`;
 const CAMINHO_DA_IMPORTACAO_DE_CADASTROS = `${CAMINHO_DA_API}/importacao-de-cadastros`;
@@ -199,6 +201,8 @@ const ICONES = {
   exportar: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 8l5-5 5 5 M12 3v12',
   /* Elos de corrente: o botão que vincula o parceiro do evento a um cliente do HUB. */
   link: 'M15 7h3a5 5 0 0 1 0 10h-3 M9 17H6a5 5 0 0 1 0-10h3 M8 12h8',
+  /* Sino: o botão que abre o painel de notificações. */
+  sino: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0',
 };
 
 const estado = {
@@ -261,6 +265,11 @@ const estado = {
   situacoesDeBasesDeClientes: {},
   /* Atalhos da barra da direita, relidos a cada gravação da configuração. */
   atalhos: [],
+  /* Painel de notificações: a lista vem do servidor e cresce pelo fluxo SSE. */
+  notificacoes: [],
+  lembretes: [],
+  /* Lembrete aberto no modal; `null` quando é um novo. */
+  lembreteEmEdicao: null,
   /*
    * Assistente de importação de favoritos. `pastas` é a árvore lida do arquivo,
    * `selecionados` guarda as chaves marcadas na etapa da árvore e `linhas` são
@@ -344,6 +353,37 @@ const elementos = {
   visualizacaoLocal: document.getElementById('visualizacao-local'),
   visualizacaoAgenda: document.getElementById('visualizacao-agenda'),
   visualizacaoOs: document.getElementById('visualizacao-os'),
+  botaoVisualizacaoLembretes: document.getElementById('btn-visualizacao-lembretes'),
+  visualizacaoLembretes: document.getElementById('visualizacao-lembretes'),
+  mountLembretes: document.getElementById('mount-lembretes'),
+
+  botaoNotificacoes: document.getElementById('btn-notificacoes'),
+  contadorNotificacoes: document.getElementById('contador-notificacoes'),
+  painelNotificacoes: document.getElementById('painel-notificacoes'),
+  listaNotificacoes: document.getElementById('lista-notificacoes'),
+  pilhaNotificacoes: document.getElementById('pilha-notificacoes'),
+  botaoMarcarNotificacoesLidas: document.getElementById('btn-marcar-notificacoes-lidas'),
+  botaoLimparNotificacoes: document.getElementById('btn-limpar-notificacoes'),
+  botaoFecharNotificacoes: document.getElementById('btn-fechar-notificacoes'),
+
+  modalLembrete: document.getElementById('modal-lembrete'),
+  formularioLembrete: document.getElementById('formulario-lembrete'),
+  tituloModalLembrete: document.getElementById('modal-lembrete-titulo'),
+  campoTextoLembrete: document.getElementById('campo-texto-lembrete'),
+  opcoesTipoLembrete: document.querySelectorAll('input[name="tipo-lembrete"]'),
+  grupoDataHoraLembrete: document.getElementById('grupo-data-hora-lembrete'),
+  campoDataHoraLembrete: document.getElementById('campo-data-hora-lembrete'),
+  grupoRecorrenciaLembrete: document.getElementById('grupo-recorrencia-lembrete'),
+  campoModeloRecorrencia: document.getElementById('campo-modelo-recorrencia'),
+  campoExpressaoCron: document.getElementById('campo-expressao-cron'),
+  previaCron: document.getElementById('previa-cron'),
+  campoClienteLembrete: document.getElementById('campo-cliente-lembrete'),
+  campoProjetoLembrete: document.getElementById('campo-projeto-lembrete'),
+  campoEmailLembrete: document.getElementById('campo-email-lembrete'),
+  campoAtivoLembrete: document.getElementById('campo-ativo-lembrete'),
+  erroLembrete: document.getElementById('erro-lembrete'),
+  botaoSalvarLembrete: document.getElementById('btn-salvar-lembrete'),
+  botaoCancelarLembrete: document.getElementById('btn-cancelar-lembrete'),
   avisoShellAgenda: document.getElementById('aviso-shell-agenda'),
   botaoAtualizarAgenda: document.getElementById('btn-atualizar-agenda'),
   ultimaAtualizacaoAgenda: document.getElementById('ultima-atualizacao-agenda'),
@@ -390,12 +430,29 @@ const elementos = {
   abaConfiguracaoGeral: document.getElementById('aba-configuracao-geral'),
   abaConfiguracaoMcp: document.getElementById('aba-configuracao-mcp'),
   abaConfiguracaoAtalhos: document.getElementById('aba-configuracao-atalhos'),
+  abaConfiguracaoSmtp: document.getElementById('aba-configuracao-smtp'),
+  abaConfiguracaoAvisos: document.getElementById('aba-configuracao-avisos'),
   abaConfiguracaoAcessos: document.getElementById('aba-configuracao-acessos'),
   abaConfiguracaoSobre: document.getElementById('aba-configuracao-sobre'),
   painelConfiguracaoGeral: document.getElementById('painel-configuracao-geral'),
   painelConfiguracaoMcp: document.getElementById('painel-configuracao-mcp'),
   painelConfiguracaoAtalhos: document.getElementById('painel-configuracao-atalhos'),
+  painelConfiguracaoSmtp: document.getElementById('painel-configuracao-smtp'),
+  painelConfiguracaoAvisos: document.getElementById('painel-configuracao-avisos'),
   painelConfiguracaoAcessos: document.getElementById('painel-configuracao-acessos'),
+  campoSmtpHost: document.getElementById('campo-smtp-host'),
+  campoSmtpPorta: document.getElementById('campo-smtp-porta'),
+  campoSmtpSeguranca: document.getElementById('campo-smtp-seguranca'),
+  campoSmtpUsuario: document.getElementById('campo-smtp-usuario'),
+  campoSmtpSenha: document.getElementById('campo-smtp-senha'),
+  botaoVerSenhaSmtp: document.getElementById('btn-ver-senha-smtp'),
+  campoSmtpRemetente: document.getElementById('campo-smtp-remetente'),
+  campoSmtpDestinatario: document.getElementById('campo-smtp-destinatario'),
+  botaoTestarSmtp: document.getElementById('btn-testar-smtp'),
+  resultadoTesteSmtp: document.getElementById('resultado-teste-smtp'),
+  campoAlertaAgendaAtivo: document.getElementById('campo-alerta-agenda-ativo'),
+  campoAlertaAgendaTolerancia: document.getElementById('campo-alerta-agenda-tolerancia'),
+  campoAlertaAgendaEmail: document.getElementById('campo-alerta-agenda-email'),
   painelConfiguracaoSobre: document.getElementById('painel-configuracao-sobre'),
   campoPerfil: document.getElementById('campo-perfil'),
   caixasDeFuncionalidade: document.querySelectorAll(
@@ -410,6 +467,8 @@ const elementos = {
   campoTempoLimite: document.getElementById('campo-tempo-limite'),
   campoDestinoDosLinks: document.getElementById('campo-destino-dos-links'),
   campoConfigSankhyaOmCodUsu: document.getElementById('campo-sankhya-om-codusu'),
+  botaoSalvarCodusu: document.getElementById('btn-salvar-codusu'),
+  erroCodusu: document.getElementById('erro-codusu'),
   campoCaminhoExecutavelDaIde: document.getElementById('campo-caminho-executavel-ide'),
   botaoSelecionarExecutavelDaIde: document.getElementById('btn-selecionar-executavel-ide'),
   campoCaminhoSchemaMcp: document.getElementById('campo-caminho-schema-mcp'),
@@ -661,6 +720,27 @@ const api = {
     requisitar('/api/os/consultar', { metodo: 'POST', corpo: { de, ate } }),
   consultarOsDoCliente: (id, de, ate) =>
     requisitar(`${CAMINHO_DA_API}/${id}/os-consultar`, { metodo: 'POST', corpo: { de, ate } }),
+
+  salvarSankhyaOmCodUsu: (sankhyaOmCodUsu) =>
+    requisitar(`${CAMINHO_DA_CONFIGURACAO}/sankhya-om-codusu`, {
+      metodo: 'PUT',
+      corpo: { sankhyaOmCodUsu },
+    }),
+  listarNotificacoes: () => requisitar(CAMINHO_DAS_NOTIFICACOES),
+  marcarNotificacoesComoLidas: (ids) =>
+    requisitar(`${CAMINHO_DAS_NOTIFICACOES}/lidas`, { metodo: 'POST', corpo: { ids } }),
+  limparNotificacoes: () => requisitar(CAMINHO_DAS_NOTIFICACOES, { metodo: 'DELETE' }),
+  enviarEmailDeTeste: (smtp) =>
+    requisitar(`${CAMINHO_DAS_NOTIFICACOES}/email-de-teste`, { metodo: 'POST', corpo: { smtp } }),
+
+  listarLembretes: () => requisitar(CAMINHO_DOS_LEMBRETES),
+  criarLembrete: (lembrete) =>
+    requisitar(CAMINHO_DOS_LEMBRETES, { metodo: 'POST', corpo: lembrete }),
+  atualizarLembrete: (id, lembrete) =>
+    requisitar(`${CAMINHO_DOS_LEMBRETES}/${id}`, { metodo: 'PUT', corpo: lembrete }),
+  removerLembrete: (id) => requisitar(`${CAMINHO_DOS_LEMBRETES}/${id}`, { metodo: 'DELETE' }),
+  previaDoCron: (expressao) =>
+    requisitar(`${CAMINHO_DOS_LEMBRETES}/previa?expressao=${encodeURIComponent(expressao)}`),
 
   listar: () => requisitar(CAMINHO_DA_API),
   buscar: (id) => requisitar(`${CAMINHO_DA_API}/${id}`),
@@ -1866,7 +1946,7 @@ async function refrescarAgendaDoClienteEmSegundoPlano(widget) {
 /**
  * Aba OS do cadastro do cliente: mesmas OS "minhas" da aba OS do topo, recortadas pelo
  * backend comparando o nome da empresa (Experience) com o nome deste cliente — sem nada
- * pra configurar aqui, só o "Meu código Sankhya/Experience" em Configurações › Geral.
+ * pra configurar aqui, só a sessão da Experience capturada em Credenciais Sankhya.
  */
 function criarSecaoDeOs(cliente) {
   const widgetDeOsDoCliente = criarWidgetDeOs({
@@ -3439,6 +3519,11 @@ function alternarVisualizacao(visualizacao) {
       area: elementos.visualizacaoAgenda,
     },
     { chave: 'os', botao: elementos.botaoVisualizacaoOs, area: elementos.visualizacaoOs },
+    {
+      chave: 'lembretes',
+      botao: elementos.botaoVisualizacaoLembretes,
+      area: elementos.visualizacaoLembretes,
+    },
   ];
 
   for (const { chave, botao, area } of opcoes) {
@@ -3457,6 +3542,9 @@ function alternarVisualizacao(visualizacao) {
   }
   if (visualizacao === 'os') {
     void widgetOsGeral.carregar();
+  }
+  if (visualizacao === 'lembretes') {
+    void recarregarLembretes();
   }
 }
 
@@ -4696,10 +4784,11 @@ function elementosDoCartaoDeCredencial(cartao) {
   };
 }
 
+/* Só os cartões de login têm `data-sistema`; o do CODUSU usa o mesmo visual e fica de fora. */
 function cartoesDeCredenciaisSankhya() {
-  return [...elementos.modalCredenciaisSankhya.querySelectorAll('.cartao-credencial')].map(
-    elementosDoCartaoDeCredencial,
-  );
+  return [
+    ...elementos.modalCredenciaisSankhya.querySelectorAll('.cartao-credencial[data-sistema]'),
+  ].map(elementosDoCartaoDeCredencial);
 }
 
 /** Pinta o selo do cartão a partir do status devolvido pelo cofre do app desktop. */
@@ -4760,6 +4849,32 @@ async function atualizarCredenciaisSankhya() {
 function abrirModalDeCredenciaisSankhya() {
   elementos.modalCredenciaisSankhya.showModal();
   void atualizarCredenciaisSankhya();
+  void carregarCodusuSankhyaOm();
+}
+
+async function carregarCodusuSankhyaOm() {
+  limparErro(elementos.erroCodusu);
+  elementos.campoConfigSankhyaOmCodUsu.value = '';
+  try {
+    const configuracao = await api.lerConfiguracao();
+    elementos.campoConfigSankhyaOmCodUsu.value = configuracao.sankhyaOmCodUsu ?? '';
+  } catch (erro) {
+    exibirErro(elementos.erroCodusu, `Não foi possível ler o código de usuário: ${erro.message}`);
+  }
+}
+
+/* Gravado sozinho, sem o formulário das configurações: é o único campo global daqui. */
+async function salvarCodusuSankhyaOm() {
+  limparErro(elementos.erroCodusu);
+  elementos.botaoSalvarCodusu.disabled = true;
+  try {
+    await api.salvarSankhyaOmCodUsu(elementos.campoConfigSankhyaOmCodUsu.value.trim());
+    exibirAviso('Código de usuário do Sankhya OM salvo.');
+  } catch (erro) {
+    exibirErro(elementos.erroCodusu, erro.message);
+  } finally {
+    elementos.botaoSalvarCodusu.disabled = false;
+  }
 }
 
 async function salvarCredencialDoCartao(cartaoElementos) {
@@ -4883,6 +4998,8 @@ function selecionarAbaDaConfiguracao(abaEscolhida) {
     { aba: elementos.abaConfiguracaoGeral, painel: elementos.painelConfiguracaoGeral },
     { aba: elementos.abaConfiguracaoMcp, painel: elementos.painelConfiguracaoMcp },
     { aba: elementos.abaConfiguracaoAtalhos, painel: elementos.painelConfiguracaoAtalhos },
+    { aba: elementos.abaConfiguracaoSmtp, painel: elementos.painelConfiguracaoSmtp },
+    { aba: elementos.abaConfiguracaoAvisos, painel: elementos.painelConfiguracaoAvisos },
     { aba: elementos.abaConfiguracaoAcessos, painel: elementos.painelConfiguracaoAcessos },
     { aba: elementos.abaConfiguracaoSobre, painel: elementos.painelConfiguracaoSobre },
   ];
@@ -5165,8 +5282,10 @@ async function abrirModalDeConfiguracao() {
   elementos.campoDestinoDosLinks.value = DESTINO_DOS_LINKS_PADRAO;
   preencherAtalhosDaConfiguracao([]);
   elementos.campoCaminhoExecutavelDaIde.value = '';
-  elementos.campoConfigSankhyaOmCodUsu.value = '';
   preencherAcessosDaConfiguracao(PERFIL_PADRAO, []);
+  preencherNotificacoesDaConfiguracao(SMTP_PADRAO, ALERTA_DA_AGENDA_PADRAO);
+  exibirResultadoDoTesteDoSmtp(null);
+  definirVisibilidadeDoCampo(elementos.campoSmtpSenha, elementos.botaoVerSenhaSmtp, false);
 
   try {
     const configuracao = await api.lerConfiguracao();
@@ -5179,10 +5298,13 @@ async function abrirModalDeConfiguracao() {
     elementos.campoDestinoDosLinks.value = configuracao.destinoDosLinks ?? DESTINO_DOS_LINKS_PADRAO;
     preencherAtalhosDaConfiguracao(configuracao.atalhos ?? []);
     elementos.campoCaminhoExecutavelDaIde.value = configuracao.caminhoDoExecutavelDaIde ?? '';
-    elementos.campoConfigSankhyaOmCodUsu.value = configuracao.sankhyaOmCodUsu ?? '';
     preencherAcessosDaConfiguracao(
       configuracao.perfil ?? PERFIL_PADRAO,
       configuracao.funcionalidadesOcultas ?? [],
+    );
+    preencherNotificacoesDaConfiguracao(
+      configuracao.smtp ?? SMTP_PADRAO,
+      configuracao.alertaDaAgenda ?? ALERTA_DA_AGENDA_PADRAO,
     );
   } catch (erro) {
     exibirAviso(`Não foi possível carregar as configurações: ${erro.message}`, 'erro');
@@ -5250,9 +5372,10 @@ async function salvarConfiguracao(evento) {
       atalhos,
       destinoDosLinks: elementos.campoDestinoDosLinks.value,
       caminhoDoExecutavelDaIde: elementos.campoCaminhoExecutavelDaIde.value.trim(),
-      sankhyaOmCodUsu: elementos.campoConfigSankhyaOmCodUsu.value.trim(),
       perfil: elementos.campoPerfil.value,
       funcionalidadesOcultas: lerFuncionalidadesOcultasDaConfiguracao(),
+      smtp: lerSmtpDaConfiguracao(),
+      alertaDaAgenda: lerAlertaDaAgendaDaConfiguracao(),
     });
     elementos.modalConfiguracao.close();
     if (acessosMudaram(salva)) {
@@ -5327,6 +5450,7 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [] }) {
   elementos.botaoVisualizacaoLocal.hidden = !funcionalidadeVisivel('local');
   elementos.botaoVisualizacaoAgenda.hidden = !funcionalidadeVisivel('agenda');
   elementos.botaoVisualizacaoOs.hidden = !funcionalidadeVisivel('os');
+  elementos.botaoVisualizacaoLembretes.hidden = !funcionalidadeVisivel('lembretes');
 
   const repositoriosVisiveis = funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS);
   elementos.botaoFiltros.hidden = !repositoriosVisiveis;
@@ -7370,6 +7494,628 @@ async function confirmarExclusao() {
   }
 }
 
+/* ------------------------------ notificações ------------------------------ */
+
+/* O mesmo padrão do servidor: é o que a tela mostra enquanto a configuração não chega. */
+const SMTP_PADRAO = {
+  host: '',
+  porta: 587,
+  seguranca: 'starttls',
+  usuario: '',
+  senha: '',
+  remetente: '',
+  destinatario: '',
+};
+const ALERTA_DA_AGENDA_PADRAO = { ativo: false, toleranciaMinutos: 30, enviarEmail: true };
+
+const DURACAO_DO_CARTAO_DE_NOTIFICACAO_MS = 15_000;
+const LIMITE_DO_CONTADOR_DE_NOTIFICACOES = 99;
+
+/* Duas notas ascendentes e curtas: chama atenção sem ser alarme. */
+const NOTAS_DO_SOM_HZ = [880, 1318.5];
+const DURACAO_DE_CADA_NOTA_S = 0.22;
+const INTERVALO_ENTRE_NOTAS_S = 0.16;
+const VOLUME_DO_SOM = 0.18;
+const VOLUME_SILENCIOSO = 0.0001;
+const SUBIDA_DO_VOLUME_S = 0.02;
+
+const ROTULOS_DE_ORIGEM_DA_NOTIFICACAO = {
+  agenda: 'Agenda',
+  lembrete: 'Lembrete',
+  sistema: 'HUB SNK',
+};
+
+const FORMATO_DE_DATA_E_HORA = { dateStyle: 'short', timeStyle: 'short' };
+
+function formatarDataEHora(iso) {
+  return new Date(iso).toLocaleString('pt-BR', FORMATO_DE_DATA_E_HORA);
+}
+
+/* Criado no primeiro som: o navegador pode recusar um contexto de áudio antes disso. */
+let contextoDeAudio = null;
+
+/** Sintetizado na hora com Web Audio: sem arquivo de som para empacotar. */
+function tocarSomDeNotificacao() {
+  try {
+    contextoDeAudio ??= new AudioContext();
+    void contextoDeAudio.resume();
+    const inicio = contextoDeAudio.currentTime;
+
+    NOTAS_DO_SOM_HZ.forEach((frequencia, indice) => {
+      const comeco = inicio + indice * INTERVALO_ENTRE_NOTAS_S;
+      const oscilador = contextoDeAudio.createOscillator();
+      const volume = contextoDeAudio.createGain();
+
+      oscilador.type = 'sine';
+      oscilador.frequency.value = frequencia;
+      volume.gain.setValueAtTime(VOLUME_SILENCIOSO, comeco);
+      volume.gain.exponentialRampToValueAtTime(VOLUME_DO_SOM, comeco + SUBIDA_DO_VOLUME_S);
+      volume.gain.exponentialRampToValueAtTime(VOLUME_SILENCIOSO, comeco + DURACAO_DE_CADA_NOTA_S);
+      oscilador.connect(volume).connect(contextoDeAudio.destination);
+      oscilador.start(comeco);
+      oscilador.stop(comeco + DURACAO_DE_CADA_NOTA_S);
+    });
+  } catch (erro) {
+    // Sem áudio (política do navegador, sem saída de som): a notificação aparece mesmo assim.
+    console.warn('Som da notificação indisponível:', erro);
+  }
+}
+
+function quantidadeDeNaoLidas() {
+  return estado.notificacoes.filter((notificacao) => !notificacao.lida).length;
+}
+
+function renderizarContadorDeNotificacoes() {
+  const naoLidas = quantidadeDeNaoLidas();
+  elementos.contadorNotificacoes.hidden = naoLidas === 0;
+  elementos.contadorNotificacoes.textContent =
+    naoLidas > LIMITE_DO_CONTADOR_DE_NOTIFICACOES
+      ? `${LIMITE_DO_CONTADOR_DE_NOTIFICACOES}+`
+      : String(naoLidas);
+  const rotulo = naoLidas === 0 ? 'Notificações' : `Notificações (${naoLidas} não lidas)`;
+  elementos.botaoNotificacoes.title = rotulo;
+  elementos.botaoNotificacoes.setAttribute('aria-label', rotulo);
+}
+
+function criarConteudoDaNotificacao(notificacao) {
+  const conteudo = criarElemento('div', 'notificacao-conteudo');
+  const cabecalho = criarElemento('div', 'notificacao-cabecalho');
+  cabecalho.append(
+    criarElemento(
+      'span',
+      `notificacao-origem origem-${notificacao.origem}`,
+      ROTULOS_DE_ORIGEM_DA_NOTIFICACAO[notificacao.origem] ?? notificacao.origem,
+    ),
+    criarElemento('time', 'notificacao-quando', formatarDataEHora(notificacao.criadaEm)),
+  );
+  conteudo.append(
+    cabecalho,
+    criarElemento('strong', 'notificacao-titulo', notificacao.titulo),
+    criarElemento('p', 'notificacao-mensagem', notificacao.mensagem),
+  );
+  if (notificacao.erroDoEmail) {
+    conteudo.append(
+      criarElemento(
+        'p',
+        'notificacao-erro-email',
+        `O e-mail não foi enviado: ${notificacao.erroDoEmail}`,
+      ),
+    );
+  }
+  return conteudo;
+}
+
+async function marcarNotificacaoComoLida(notificacao) {
+  if (notificacao.lida) {
+    return;
+  }
+
+  try {
+    const resposta = await api.marcarNotificacoesComoLidas([notificacao.id]);
+    estado.notificacoes = resposta.notificacoes;
+    renderizarNotificacoes();
+  } catch (erro) {
+    exibirAviso(`Não foi possível marcar a notificação: ${erro.message}`, 'erro');
+  }
+}
+
+function criarItemDeNotificacao(notificacao) {
+  const item = criarElemento('button', `item-notificacao${notificacao.lida ? '' : ' nao-lida'}`);
+  item.type = 'button';
+  item.title = notificacao.lida ? '' : 'Marcar como lida';
+  item.append(criarConteudoDaNotificacao(notificacao));
+  item.addEventListener('click', () => marcarNotificacaoComoLida(notificacao));
+  return item;
+}
+
+function renderizarNotificacoes() {
+  renderizarContadorDeNotificacoes();
+
+  if (estado.notificacoes.length === 0) {
+    elementos.listaNotificacoes.replaceChildren(
+      criarElemento('p', 'secao-vazia', 'Nenhuma notificação.'),
+    );
+    return;
+  }
+  elementos.listaNotificacoes.replaceChildren(...estado.notificacoes.map(criarItemDeNotificacao));
+}
+
+async function carregarNotificacoes() {
+  try {
+    const resposta = await api.listarNotificacoes();
+    estado.notificacoes = resposta.notificacoes;
+    renderizarNotificacoes();
+  } catch (erro) {
+    console.warn('Não foi possível carregar as notificações:', erro);
+  }
+}
+
+function painelDeNotificacoesAberto() {
+  return !elementos.painelNotificacoes.hidden;
+}
+
+/* Com o painel aberto, o cartão só repetiria o que está nele, e por cima do cabeçalho. */
+function definirPainelDeNotificacoes(aberto) {
+  elementos.painelNotificacoes.hidden = !aberto;
+  elementos.botaoNotificacoes.setAttribute('aria-expanded', String(aberto));
+  if (aberto) {
+    elementos.pilhaNotificacoes.replaceChildren();
+  }
+}
+
+/** Cartão no canto da tela para a notificação que acabou de chegar; clicar abre o painel. */
+function exibirCartaoDeNotificacao(notificacao) {
+  const cartao = criarElemento('div', 'cartao-notificacao');
+  cartao.setAttribute('role', 'status');
+  const fechar = criarBotao('btn tiny ghost cartao-notificacao-fechar', '✕', (evento) => {
+    evento.stopPropagation();
+    cartao.remove();
+  });
+  fechar.setAttribute('aria-label', 'Fechar');
+  cartao.append(criarConteudoDaNotificacao(notificacao), fechar);
+  cartao.addEventListener('click', () => {
+    cartao.remove();
+    definirPainelDeNotificacoes(true);
+  });
+
+  elementos.pilhaNotificacoes.prepend(cartao);
+  setTimeout(() => cartao.remove(), DURACAO_DO_CARTAO_DE_NOTIFICACAO_MS);
+}
+
+function receberNotificacao(notificacao) {
+  if (estado.notificacoes.some((existente) => existente.id === notificacao.id)) {
+    return;
+  }
+
+  estado.notificacoes = [notificacao, ...estado.notificacoes];
+  renderizarNotificacoes();
+  if (!painelDeNotificacoesAberto()) {
+    exibirCartaoDeNotificacao(notificacao);
+  }
+  tocarSomDeNotificacao();
+
+  // O disparo muda o "próximo" do lembrete: a lista aberta não pode ficar desatualizada.
+  if (notificacao.origem === 'lembrete' && estado.visualizacao === 'lembretes') {
+    void recarregarLembretes();
+  }
+}
+
+/**
+ * O servidor empurra cada notificação nova pelo SSE. O `EventSource` reconecta sozinho
+ * quando o backend reinicia; a cada conexão a lista é relida, porque o que chegou com a
+ * conexão caída não passou por aqui.
+ */
+function conectarFluxoDeNotificacoes() {
+  const fluxo = new EventSource(`${CAMINHO_DAS_NOTIFICACOES}/fluxo`);
+  fluxo.addEventListener('open', () => void carregarNotificacoes());
+  fluxo.addEventListener('notificacao', (evento) => {
+    receberNotificacao(JSON.parse(evento.data));
+  });
+}
+
+async function marcarTodasAsNotificacoesComoLidas() {
+  try {
+    const resposta = await api.marcarNotificacoesComoLidas();
+    estado.notificacoes = resposta.notificacoes;
+    renderizarNotificacoes();
+  } catch (erro) {
+    exibirAviso(`Não foi possível marcar as notificações: ${erro.message}`, 'erro');
+  }
+}
+
+async function limparNotificacoes() {
+  try {
+    await api.limparNotificacoes();
+    estado.notificacoes = [];
+    renderizarNotificacoes();
+  } catch (erro) {
+    exibirAviso(`Não foi possível limpar as notificações: ${erro.message}`, 'erro');
+  }
+}
+
+function registrarEventosDasNotificacoes() {
+  elementos.botaoNotificacoes.prepend(criarIcone(ICONES.sino));
+  elementos.botaoNotificacoes.addEventListener('click', () =>
+    definirPainelDeNotificacoes(!painelDeNotificacoesAberto()),
+  );
+  elementos.botaoFecharNotificacoes.addEventListener('click', () =>
+    definirPainelDeNotificacoes(false),
+  );
+  elementos.botaoMarcarNotificacoesLidas.addEventListener(
+    'click',
+    marcarTodasAsNotificacoesComoLidas,
+  );
+  elementos.botaoLimparNotificacoes.addEventListener('click', limparNotificacoes);
+
+  /* Como a lista de atalhos: fecha com clique fora dele ou `Esc`. */
+  document.addEventListener('click', (evento) => {
+    const dentro =
+      elementos.painelNotificacoes.contains(evento.target) ||
+      elementos.botaoNotificacoes.contains(evento.target) ||
+      elementos.pilhaNotificacoes.contains(evento.target);
+    if (painelDeNotificacoesAberto() && !dentro) {
+      definirPainelDeNotificacoes(false);
+    }
+  });
+  document.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Escape' && painelDeNotificacoesAberto()) {
+      definirPainelDeNotificacoes(false);
+    }
+  });
+}
+
+function preencherNotificacoesDaConfiguracao(smtp, alertaDaAgenda) {
+  elementos.campoSmtpHost.value = smtp.host;
+  elementos.campoSmtpPorta.value = smtp.porta;
+  elementos.campoSmtpSeguranca.value = smtp.seguranca;
+  elementos.campoSmtpUsuario.value = smtp.usuario;
+  elementos.campoSmtpSenha.value = smtp.senha;
+  elementos.campoSmtpRemetente.value = smtp.remetente;
+  elementos.campoSmtpDestinatario.value = smtp.destinatario;
+  elementos.campoAlertaAgendaAtivo.checked = alertaDaAgenda.ativo;
+  elementos.campoAlertaAgendaTolerancia.value = alertaDaAgenda.toleranciaMinutos;
+  elementos.campoAlertaAgendaEmail.checked = alertaDaAgenda.enviarEmail;
+}
+
+function lerSmtpDaConfiguracao() {
+  return {
+    host: elementos.campoSmtpHost.value.trim(),
+    porta: Number(elementos.campoSmtpPorta.value),
+    seguranca: elementos.campoSmtpSeguranca.value,
+    usuario: elementos.campoSmtpUsuario.value.trim(),
+    senha: elementos.campoSmtpSenha.value,
+    remetente: elementos.campoSmtpRemetente.value.trim(),
+    destinatario: elementos.campoSmtpDestinatario.value.trim(),
+  };
+}
+
+function lerAlertaDaAgendaDaConfiguracao() {
+  return {
+    ativo: elementos.campoAlertaAgendaAtivo.checked,
+    toleranciaMinutos: Number(elementos.campoAlertaAgendaTolerancia.value),
+    enviarEmail: elementos.campoAlertaAgendaEmail.checked,
+  };
+}
+
+/** `null` esconde; senão mostra a mensagem na própria aba, verde ou vermelha. */
+function exibirResultadoDoTesteDoSmtp(resultado) {
+  const elemento = elementos.resultadoTesteSmtp;
+  elemento.hidden = resultado === null;
+  elemento.textContent = resultado?.mensagem ?? '';
+  elemento.classList.toggle('sucesso', resultado?.sucesso === true);
+  elemento.classList.toggle('erro', resultado?.sucesso === false);
+}
+
+/*
+ * Testa o que está no formulário, antes de salvar. O resultado fica na aba: o aviso do
+ * rodapé da página seria desenhado atrás do modal aberto.
+ */
+async function testarSmtp() {
+  exibirResultadoDoTesteDoSmtp({ sucesso: null, mensagem: 'Enviando o e-mail de teste…' });
+  elementos.botaoTestarSmtp.disabled = true;
+  try {
+    const resposta = await api.enviarEmailDeTeste(lerSmtpDaConfiguracao());
+    exibirResultadoDoTesteDoSmtp({ sucesso: true, mensagem: resposta.mensagem });
+  } catch (erro) {
+    exibirResultadoDoTesteDoSmtp({ sucesso: false, mensagem: erro.message });
+  } finally {
+    elementos.botaoTestarSmtp.disabled = false;
+  }
+}
+
+/* -------------------------------- lembretes ------------------------------- */
+
+const ESPERA_DA_PREVIA_DO_CRON_MS = 300;
+const MILISSEGUNDOS_POR_MINUTO = 60_000;
+const TAMANHO_DE_DATA_E_HORA_LOCAL = 16;
+const SEM_CLIENTE = '';
+
+/* Última prévia pedida: a resposta de uma digitação antiga não sobrescreve a atual. */
+let temporizadorDaPreviaDoCron = null;
+let ultimaExpressaoPrevista = '';
+
+/** ISO 8601 -> `YYYY-MM-DDTHH:mm` local, o formato do `datetime-local`. */
+function paraDataHoraLocal(iso) {
+  const data = new Date(iso);
+  const local = new Date(data.getTime() - data.getTimezoneOffset() * MILISSEGUNDOS_POR_MINUTO);
+  return local.toISOString().slice(0, TAMANHO_DE_DATA_E_HORA_LOCAL);
+}
+
+/* Sugestão para o lembrete novo: a próxima hora cheia. */
+function proximaHoraCheia() {
+  const data = new Date();
+  data.setHours(data.getHours() + 1, 0, 0, 0);
+  return data.toISOString();
+}
+
+function tipoDoLembreteEscolhido() {
+  return [...elementos.opcoesTipoLembrete].find((opcao) => opcao.checked)?.value ?? 'unico';
+}
+
+function clienteDoLembrete(lembrete) {
+  return estado.clientes.find((cliente) => cliente.id === lembrete.clienteId) ?? null;
+}
+
+function descreverVinculoDoLembrete(lembrete) {
+  const cliente = clienteDoLembrete(lembrete);
+  if (!cliente) {
+    return '';
+  }
+  const projeto = cliente.projetos.find((item) => item.id === lembrete.projetoId);
+  return projeto ? `${cliente.nome} › ${projeto.nome}` : cliente.nome;
+}
+
+function descreverQuandoDoLembrete(lembrete) {
+  if (lembrete.tipo === 'unico') {
+    return `Uma vez, em ${formatarDataEHora(lembrete.dataHora)}`;
+  }
+  return `Recorrente: ${lembrete.expressaoCron}`;
+}
+
+function descreverSituacaoDoLembrete(lembrete) {
+  if (!lembrete.ativo) {
+    return 'Desligado';
+  }
+  if (lembrete.proximoDisparo) {
+    return `Próximo: ${formatarDataEHora(lembrete.proximoDisparo)}`;
+  }
+  if (lembrete.ultimoDisparoEm) {
+    return `Disparado em ${formatarDataEHora(lembrete.ultimoDisparoEm)}`;
+  }
+  return 'Sem próxima ocorrência';
+}
+
+/* Os que vão disparar primeiro no topo; desligados e concluídos no fim. */
+function lembretesOrdenados(lembretes) {
+  const momento = (lembrete) =>
+    lembrete.proximoDisparo ? Date.parse(lembrete.proximoDisparo) : Number.POSITIVE_INFINITY;
+  return [...lembretes].sort((a, b) => momento(a) - momento(b));
+}
+
+function criarLinhaDeLembrete(lembrete) {
+  const linha = criarElemento('div', `linha-recurso${lembrete.ativo ? '' : ' lembrete-desligado'}`);
+  const info = criarElemento('div', 'recurso-info');
+  info.append(
+    criarElemento('span', 'recurso-nome lembrete-texto', lembrete.texto),
+    criarElemento('span', 'recurso-url secundaria', descreverQuandoDoLembrete(lembrete)),
+    criarElemento('span', 'recurso-url', descreverSituacaoDoLembrete(lembrete)),
+  );
+
+  const vinculo = descreverVinculoDoLembrete(lembrete);
+  if (vinculo) {
+    info.append(criarElemento('span', 'recurso-url secundaria', vinculo));
+  }
+  if (lembrete.enviarEmail) {
+    info.append(criarElemento('span', 'selo-tipo outro', 'E-mail'));
+  }
+
+  linha.append(
+    info,
+    criarAcoesDeRecurso({
+      rotuloDeEdicao: 'Editar lembrete',
+      aoEditar: () => abrirModalDeLembrete(lembrete),
+      rotuloDeExclusao: 'Excluir lembrete',
+      aoExcluir: () => pedirExclusaoDeLembrete(lembrete),
+    }),
+  );
+  return linha;
+}
+
+function renderizarLembretes() {
+  elementos.mountLembretes.replaceChildren(
+    criarSecaoDeRecursos({
+      titulo: 'Cadastrados',
+      rotuloDoBotao: 'Novo lembrete',
+      aoAdicionar: () => abrirModalDeLembrete(null),
+      linhas: lembretesOrdenados(estado.lembretes).map(criarLinhaDeLembrete),
+      mensagemVazia: 'Nenhum lembrete cadastrado.',
+    }),
+  );
+}
+
+async function recarregarLembretes() {
+  try {
+    const resposta = await api.listarLembretes();
+    estado.lembretes = resposta.lembretes;
+    renderizarLembretes();
+  } catch (erro) {
+    exibirAviso(`Não foi possível carregar os lembretes: ${erro.message}`, 'erro');
+  }
+}
+
+function criarOpcao(valor, texto) {
+  const opcao = criarElemento('option', null, texto);
+  opcao.value = valor;
+  return opcao;
+}
+
+function preencherClientesDoLembrete(clienteId) {
+  const clientes = [...estado.clientes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  elementos.campoClienteLembrete.replaceChildren(
+    criarOpcao(SEM_CLIENTE, 'Nenhum'),
+    ...clientes.map((cliente) => criarOpcao(cliente.id, cliente.nome)),
+  );
+  elementos.campoClienteLembrete.value = clienteId ?? SEM_CLIENTE;
+}
+
+/* O projeto depende do cliente: sem cliente, ou cliente sem projeto, o campo fica travado. */
+function preencherProjetosDoLembrete(projetoId) {
+  const cliente = estado.clientes.find((item) => item.id === elementos.campoClienteLembrete.value);
+  const projetos = cliente?.projetos ?? [];
+  elementos.campoProjetoLembrete.replaceChildren(
+    criarOpcao(SEM_CLIENTE, 'Nenhum'),
+    ...projetos.map((projeto) => criarOpcao(projeto.id, projeto.nome)),
+  );
+  elementos.campoProjetoLembrete.disabled = projetos.length === 0;
+  elementos.campoProjetoLembrete.value = projetos.some((projeto) => projeto.id === projetoId)
+    ? projetoId
+    : SEM_CLIENTE;
+}
+
+function aplicarTipoDoLembrete() {
+  const recorrente = tipoDoLembreteEscolhido() === 'recorrente';
+  elementos.grupoDataHoraLembrete.hidden = recorrente;
+  elementos.grupoRecorrenciaLembrete.hidden = !recorrente;
+  if (recorrente) {
+    agendarPreviaDoCron();
+  }
+}
+
+async function atualizarPreviaDoCron() {
+  const expressao = elementos.campoExpressaoCron.value.trim();
+  ultimaExpressaoPrevista = expressao;
+  elementos.previaCron.classList.remove('erro-formulario');
+  if (!expressao) {
+    elementos.previaCron.textContent = '';
+    return;
+  }
+
+  try {
+    const { ocorrencias } = await api.previaDoCron(expressao);
+    if (expressao !== ultimaExpressaoPrevista) return;
+    elementos.previaCron.textContent = `Próximas: ${ocorrencias.map(formatarDataEHora).join(' · ')}`;
+  } catch (erro) {
+    if (expressao !== ultimaExpressaoPrevista) return;
+    elementos.previaCron.classList.add('erro-formulario');
+    elementos.previaCron.textContent = erro.message;
+  }
+}
+
+function agendarPreviaDoCron() {
+  clearTimeout(temporizadorDaPreviaDoCron);
+  temporizadorDaPreviaDoCron = setTimeout(atualizarPreviaDoCron, ESPERA_DA_PREVIA_DO_CRON_MS);
+}
+
+function abrirModalDeLembrete(lembrete) {
+  estado.lembreteEmEdicao = lembrete;
+  limparErro(elementos.erroLembrete);
+  elementos.tituloModalLembrete.textContent = lembrete ? 'Editar lembrete' : 'Novo lembrete';
+
+  const tipo = lembrete?.tipo ?? 'unico';
+  for (const opcao of elementos.opcoesTipoLembrete) {
+    opcao.checked = opcao.value === tipo;
+  }
+  elementos.campoTextoLembrete.value = lembrete?.texto ?? '';
+  elementos.campoDataHoraLembrete.value = paraDataHoraLocal(
+    lembrete?.dataHora || proximaHoraCheia(),
+  );
+  elementos.campoModeloRecorrencia.value = '';
+  elementos.campoExpressaoCron.value = lembrete?.expressaoCron ?? '';
+  elementos.previaCron.textContent = '';
+  elementos.campoEmailLembrete.checked = lembrete?.enviarEmail ?? false;
+  elementos.campoAtivoLembrete.checked = lembrete?.ativo ?? true;
+  preencherClientesDoLembrete(lembrete?.clienteId ?? null);
+  preencherProjetosDoLembrete(lembrete?.projetoId ?? null);
+  aplicarTipoDoLembrete();
+
+  elementos.modalLembrete.showModal();
+  elementos.campoTextoLembrete.focus();
+}
+
+function lerFormularioDeLembrete() {
+  const tipo = tipoDoLembreteEscolhido();
+  const dataHoraLocal = elementos.campoDataHoraLembrete.value;
+  const clienteId = elementos.campoClienteLembrete.value || null;
+  return {
+    texto: elementos.campoTextoLembrete.value.trim(),
+    tipo,
+    dataHora: tipo === 'unico' && dataHoraLocal ? new Date(dataHoraLocal).toISOString() : '',
+    expressaoCron: tipo === 'recorrente' ? elementos.campoExpressaoCron.value.trim() : '',
+    clienteId,
+    projetoId: clienteId ? elementos.campoProjetoLembrete.value || null : null,
+    enviarEmail: elementos.campoEmailLembrete.checked,
+    ativo: elementos.campoAtivoLembrete.checked,
+  };
+}
+
+function validarFormularioDeLembrete(dados) {
+  if (!dados.texto) return 'Informe o texto do lembrete.';
+  if (dados.tipo === 'unico' && !dados.dataHora) return 'Informe a data e a hora do lembrete.';
+  if (dados.tipo === 'recorrente' && !dados.expressaoCron) {
+    return 'Informe a expressão da recorrência ou escolha um modelo.';
+  }
+  return null;
+}
+
+async function salvarLembrete(evento) {
+  evento.preventDefault();
+
+  const dados = lerFormularioDeLembrete();
+  const mensagemDeErro = validarFormularioDeLembrete(dados);
+  if (mensagemDeErro) {
+    exibirErro(elementos.erroLembrete, mensagemDeErro);
+    return;
+  }
+
+  limparErro(elementos.erroLembrete);
+  elementos.botaoSalvarLembrete.disabled = true;
+  try {
+    const emEdicao = estado.lembreteEmEdicao;
+    if (emEdicao) {
+      await api.atualizarLembrete(emEdicao.id, dados);
+    } else {
+      await api.criarLembrete(dados);
+    }
+    elementos.modalLembrete.close();
+    exibirAviso(emEdicao ? 'Lembrete atualizado.' : 'Lembrete cadastrado.');
+    await recarregarLembretes();
+  } catch (erro) {
+    exibirErro(elementos.erroLembrete, erro.message);
+  } finally {
+    elementos.botaoSalvarLembrete.disabled = false;
+  }
+}
+
+function pedirExclusaoDeLembrete(lembrete) {
+  pedirExclusao(
+    'Excluir lembrete',
+    `Excluir o lembrete "${lembrete.texto}"? Esta ação não pode ser desfeita.`,
+    () => api.removerLembrete(lembrete.id),
+    'Lembrete excluído.',
+    recarregarLembretes,
+  );
+}
+
+function registrarEventosDoLembrete() {
+  elementos.formularioLembrete.addEventListener('submit', salvarLembrete);
+  elementos.botaoCancelarLembrete.addEventListener('click', () => elementos.modalLembrete.close());
+  for (const opcao of elementos.opcoesTipoLembrete) {
+    opcao.addEventListener('change', aplicarTipoDoLembrete);
+  }
+  elementos.campoModeloRecorrencia.addEventListener('change', () => {
+    if (!elementos.campoModeloRecorrencia.value) return;
+    elementos.campoExpressaoCron.value = elementos.campoModeloRecorrencia.value;
+    agendarPreviaDoCron();
+  });
+  elementos.campoExpressaoCron.addEventListener('input', () => {
+    elementos.campoModeloRecorrencia.value = '';
+    agendarPreviaDoCron();
+  });
+  elementos.campoClienteLembrete.addEventListener('change', () =>
+    preencherProjetosDoLembrete(null),
+  );
+}
+
 /* ----------------------------------- tema --------------------------------- */
 
 function aplicarTema(tema) {
@@ -7560,6 +8306,11 @@ function registrarEventos() {
   elementos.botaoVisualizacaoLocal.addEventListener('click', () => alternarVisualizacao('local'));
   elementos.botaoVisualizacaoAgenda.addEventListener('click', () => alternarVisualizacao('agenda'));
   elementos.botaoVisualizacaoOs.addEventListener('click', () => alternarVisualizacao('os'));
+  elementos.botaoVisualizacaoLembretes.addEventListener('click', () =>
+    alternarVisualizacao('lembretes'),
+  );
+  registrarEventosDasNotificacoes();
+  registrarEventosDoLembrete();
   elementos.botaoAtualizarAgenda.append(criarIcone(ICONES.recarregar));
   elementos.botaoAtualizarAgenda.addEventListener('click', atualizarAgendaGeral);
   elementos.mountAgendaGeral.append(widgetAgendaGeral.elemento);
@@ -7589,6 +8340,7 @@ function registrarEventos() {
 
   elementos.botaoCredenciaisSankhya.append(criarIcone(ICONES.cadeado));
   elementos.botaoCredenciaisSankhya.addEventListener('click', abrirModalDeCredenciaisSankhya);
+  elementos.botaoSalvarCodusu.addEventListener('click', salvarCodusuSankhyaOm);
   elementos.botaoFecharCredenciaisSankhya.addEventListener('click', () =>
     elementos.modalCredenciaisSankhya.close(),
   );
@@ -7608,9 +8360,23 @@ function registrarEventos() {
   elementos.abaConfiguracaoAtalhos.addEventListener('click', () =>
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoAtalhos),
   );
+  elementos.abaConfiguracaoSmtp.addEventListener('click', () =>
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoSmtp),
+  );
+  elementos.abaConfiguracaoAvisos.addEventListener('click', () =>
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoAvisos),
+  );
   elementos.abaConfiguracaoAcessos.addEventListener('click', () =>
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoAcessos),
   );
+  elementos.botaoVerSenhaSmtp.addEventListener('click', () =>
+    definirVisibilidadeDoCampo(
+      elementos.campoSmtpSenha,
+      elementos.botaoVerSenhaSmtp,
+      elementos.campoSmtpSenha.type === 'password',
+    ),
+  );
+  elementos.botaoTestarSmtp.addEventListener('click', testarSmtp);
   elementos.campoPerfil.addEventListener('change', aplicarPresetDoPerfil);
   elementos.abaConfiguracaoSobre.addEventListener('click', () =>
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoSobre),
@@ -7911,6 +8677,8 @@ async function iniciar() {
   }
 
   renderizarListaDeAtalhos();
+  void carregarNotificacoes();
+  conectarFluxoDeNotificacoes();
 }
 
 iniciar();

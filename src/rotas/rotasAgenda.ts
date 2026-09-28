@@ -1,16 +1,18 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
 import { AgendaRecursos } from '../sankhya/agenda.ts';
-import { parsearAgenda, PayloadInvalidoError } from '../sankhya/agendaParser.ts';
+import { PayloadInvalidoError } from '../sankhya/agendaParser.ts';
+import {
+  importarAgendaDoPeriodo,
+  lerCodusuConfigurado,
+  RespostaDoSankhyaInvalidaError,
+  situacaoDoDiaDoParceiro,
+} from '../sankhya/consultasDaAgenda.ts';
 import type { Credenciais } from '../sankhya/credenciais.ts';
 import { SessaoExpiradaError, type Experience } from '../sankhya/experience.ts';
-import {
-  fapsDoParceiro,
-  parsearNegociacoes,
-  PayloadDeNegociacoesInvalidoError,
-} from '../sankhya/negociacoes.ts';
+import { PayloadDeNegociacoesInvalidoError } from '../sankhya/negociacoes.ts';
 import { responderErroDoShell } from './respostasDoShell.ts';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -19,21 +21,18 @@ const esquemaDeConsulta = z.object({
   ate: z.string().regex(ISO, 'Informe "ate" no formato YYYY-MM-DD.'),
 });
 
-/** `YYYY-MM-DD` -> `DD/MM/YYYY`, formato que o Sankhya ERP espera. */
-function paraFormatoBrasileiro(iso: string): string {
-  const [ano, mes, dia] = iso.split('-');
-  return `${dia}/${mes}/${ano}`;
-}
-
-/**
- * `CODUSU` da configuração global, ou `null` quando não configurado. Sem ele não há
- * como recortar "só a minha agenda", então a consulta é recusada com mensagem clara.
- */
-function lerCodusuConfigurado(configuracao: { sankhyaOmCodUsu: string }): number | null {
-  const bruto = configuracao.sankhyaOmCodUsu.trim();
-  if (!bruto) return null;
-  const codusu = Number(bruto);
-  return Number.isInteger(codusu) && codusu > 0 ? codusu : null;
+/** Erros das consultas ao Sankhya que viram resposta HTTP; o resto segue para o Fastify. */
+function responderErroDaConsulta(resposta: FastifyReply, erro: unknown): FastifyReply {
+  if (erro instanceof RespostaDoSankhyaInvalidaError) {
+    return resposta.status(502).send({ mensagem: erro.message });
+  }
+  if (erro instanceof PayloadInvalidoError || erro instanceof PayloadDeNegociacoesInvalidoError) {
+    return resposta.status(400).send({ mensagem: erro.message });
+  }
+  if (erro instanceof SessaoExpiradaError) {
+    return resposta.status(409).send({ mensagem: erro.message, sessaoExpirada: true });
+  }
+  return responderErroDoShell(resposta, erro);
 }
 
 /**
@@ -83,40 +82,22 @@ export function registrarRotasDeAgenda(
     if (codusuAlvo === null) {
       return resposta.status(400).send({
         mensagem:
-          'Configure o "Meu código de usuário Sankhya OM" em Configurações › Geral para consultar a agenda.',
+          'Informe o "Meu código de usuário Sankhya OM" em Credenciais Sankhya para consultar a agenda.',
         cadastroIncompleto: true,
       });
     }
 
-    const de = paraFormatoBrasileiro(dados.data.de);
-    const ate = paraFormatoBrasileiro(dados.data.ate);
-    const periodo = { de: `${dados.data.de} 00:00:00`, ate: `${dados.data.ate} 23:59:59` };
-
     // A janela oculta reloga sozinha quando a sessão cai, então aqui não há mais o
     // relogin por texto de erro que existia no fluxo da aba visível.
-    let resultado: { conteudo: string };
     try {
-      resultado = await credenciais.consultarAgendaDeRecursos(de, ate);
+      return await importarAgendaDoPeriodo({
+        agenda,
+        credenciais,
+        periodo: dados.data,
+        codusuAlvo,
+      });
     } catch (erro) {
-      return responderErroDoShell(resposta, erro);
-    }
-
-    let bruto: unknown;
-    try {
-      bruto = JSON.parse(resultado.conteudo);
-    } catch {
-      return resposta
-        .status(502)
-        .send({ mensagem: 'O Sankhya respondeu algo que não é JSON válido.' });
-    }
-
-    try {
-      return agenda.importar(parsearAgenda(bruto), { periodo, codusuAlvo });
-    } catch (erro) {
-      if (erro instanceof PayloadInvalidoError) {
-        return resposta.status(400).send({ mensagem: erro.message });
-      }
-      throw erro;
+      return responderErroDaConsulta(resposta, erro);
     }
   });
 
@@ -138,36 +119,10 @@ export function registrarRotasDeAgenda(
         return resposta.status(400).send({ mensagem: 'Informe ?dia= no formato YYYY-MM-DD.' });
       }
 
-      let negociacoesResultado: { conteudo: string };
       try {
-        negociacoesResultado = await credenciais.consultarNegociacoesDoParceiro(codparc);
+        return await situacaoDoDiaDoParceiro({ credenciais, experience, codparc, dia });
       } catch (erro) {
-        return responderErroDoShell(resposta, erro);
-      }
-
-      let faps: number[];
-      try {
-        faps = fapsDoParceiro(parsearNegociacoes(JSON.parse(negociacoesResultado.conteudo)));
-      } catch (erro) {
-        if (erro instanceof PayloadDeNegociacoesInvalidoError) {
-          return resposta.status(400).send({ mensagem: erro.message });
-        }
-        return resposta
-          .status(502)
-          .send({ mensagem: 'O Sankhya respondeu algo que não é JSON válido.' });
-      }
-
-      if (!faps.length) {
-        return { situacao: { tipo: 'sem-tarefa' }, faps: [] };
-      }
-
-      try {
-        return { situacao: await experience.situacaoDoDia(faps, dia), faps };
-      } catch (erro) {
-        if (erro instanceof SessaoExpiradaError) {
-          return resposta.status(409).send({ mensagem: erro.message, sessaoExpirada: true });
-        }
-        return responderErroDoShell(resposta, erro);
+        return responderErroDaConsulta(resposta, erro);
       }
     },
   );

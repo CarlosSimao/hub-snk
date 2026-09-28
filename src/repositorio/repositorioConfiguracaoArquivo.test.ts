@@ -45,7 +45,6 @@ describe('RepositorioConfiguracaoArquivo', () => {
       atalhos: [{ nome: '  DataGrip  ', caminhoDoExecutavel: '  C:\\datagrip.exe  ' }],
       destinoDosLinks: 'navegador-padrao',
       caminhoDoExecutavelDaIde: '  C:\\idea64.exe  ',
-      sankhyaOmCodUsu: '  4817  ',
     });
 
     const gravado = JSON.parse(await readFile(caminhoDoArquivo(), 'utf8'));
@@ -59,7 +58,6 @@ describe('RepositorioConfiguracaoArquivo', () => {
     assert.equal(configuracao.atalhos[0]?.nome, 'DataGrip');
     assert.equal(configuracao.destinoDosLinks, 'navegador-padrao');
     assert.equal(configuracao.caminhoDoExecutavelDaIde, 'C:\\idea64.exe');
-    assert.equal(configuracao.sankhyaOmCodUsu, '4817');
   });
 
   it('dá um id ao atalho cadastrado sem id', async () => {
@@ -71,7 +69,6 @@ describe('RepositorioConfiguracaoArquivo', () => {
       atalhos: [{ nome: 'DataGrip', caminhoDoExecutavel: 'C:\\datagrip.exe' }],
       destinoDosLinks: 'hub',
       caminhoDoExecutavelDaIde: '',
-      sankhyaOmCodUsu: '',
     });
 
     assert.match(configuracao.atalhos[0]?.id ?? '', /^[0-9a-f-]{36}$/);
@@ -88,12 +85,29 @@ describe('RepositorioConfiguracaoArquivo', () => {
       atalhos: [],
       destinoDosLinks: 'hub',
       caminhoDoExecutavelDaIde: '',
-      sankhyaOmCodUsu: '',
     });
 
     repositorio.descartarCache();
     const configuracao = await repositorio.ler();
     assert.equal(configuracao.experiencePersonId, '99999');
+  });
+
+  it('grava o CODUSU à parte e o preserva ao salvar o formulário', async () => {
+    await repositorio.definirSankhyaOmCodUsu('  4817  ');
+
+    await repositorio.salvar({
+      scriptPadrao: '',
+      intervaloDeExecucaoAutomaticaSegundos: 30,
+      tempoLimiteSegundos: 5,
+      caminhoDoSchemaMcp: '',
+      atalhos: [],
+      destinoDosLinks: 'hub',
+      caminhoDoExecutavelDaIde: '',
+    });
+
+    repositorio.descartarCache();
+    const configuracao = await repositorio.ler();
+    assert.equal(configuracao.sankhyaOmCodUsu, '4817');
   });
 });
 
@@ -160,7 +174,6 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     atalhos: [],
     destinoDosLinks: 'hub' as const,
     caminhoDoExecutavelDaIde: '',
-    sankhyaOmCodUsu: '',
   };
 
   it('sem perfil do instalador, nasce desenvolvedor com tudo visível', async () => {
@@ -224,5 +237,66 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
 
     assert.equal(configuracao.perfil, 'analista');
     assert.deepEqual(configuracao.funcionalidadesOcultas, ['agenda']);
+  });
+
+  it('nasce com o SMTP vazio e o alerta da agenda desligado', async () => {
+    const configuracao = await repositorio.ler();
+
+    assert.equal(configuracao.smtp.host, '');
+    assert.equal(configuracao.smtp.porta, 587);
+    assert.equal(configuracao.smtp.seguranca, 'starttls');
+    assert.equal(configuracao.alertaDaAgenda.ativo, false);
+    assert.equal(configuracao.alertaDaAgenda.toleranciaMinutos, 30);
+  });
+
+  it('preserva o SMTP gravado quando a tela não o manda', async () => {
+    const base = {
+      scriptPadrao: '',
+      intervaloDeExecucaoAutomaticaSegundos: 30,
+      tempoLimiteSegundos: 5,
+      caminhoDoSchemaMcp: '',
+      atalhos: [],
+      destinoDosLinks: 'hub' as const,
+      caminhoDoExecutavelDaIde: '',
+    };
+    await repositorio.salvar({
+      ...base,
+      smtp: {
+        host: '  smtp.empresa.com.br  ',
+        porta: 465,
+        seguranca: 'ssl',
+        usuario: 'eu@empresa.com.br',
+        senha: ' segredo ',
+        remetente: 'eu@empresa.com.br',
+        destinatario: 'eu@empresa.com.br',
+      },
+      alertaDaAgenda: { ativo: true, toleranciaMinutos: 10, enviarEmail: false },
+    });
+
+    await repositorio.salvar(base);
+    repositorio.descartarCache();
+    const configuracao = await repositorio.ler();
+
+    assert.equal(configuracao.smtp.host, 'smtp.empresa.com.br');
+    assert.equal(configuracao.smtp.senha, ' segredo ');
+    assert.equal(configuracao.alertaDaAgenda.ativo, true);
+    assert.equal(configuracao.alertaDaAgenda.toleranciaMinutos, 10);
+  });
+
+  it('descarta a segurança do SMTP editada à mão com valor desconhecido', async () => {
+    await writeFile(
+      caminhoDoArquivo(),
+      JSON.stringify({
+        versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+        configuracao: { smtp: { host: 'smtp.x', seguranca: 'tls13', porta: 'errada' } },
+      }),
+      'utf8',
+    );
+
+    const { smtp } = await repositorio.ler();
+
+    assert.equal(smtp.host, 'smtp.x');
+    assert.equal(smtp.seguranca, 'starttls');
+    assert.equal(smtp.porta, 587);
   });
 });

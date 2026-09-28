@@ -3,19 +3,22 @@
 Como o HUB SNK grava o que você cadastra. Para o uso do dia a dia, veja o
 [README](../README.md) — nada aqui é necessário para usar o programa.
 
-Os três arquivos ficam na pasta de dados (`dados-hub-snk/` por padrão, ou o que
+Os arquivos ficam na pasta de dados (`dados-hub-snk/` por padrão, ou o que
 estiver em `HUB_DADOS_DIR`):
 
 | Arquivo             | Guarda                                                          |
 | ------------------- | --------------------------------------------------------------- |
 | `clientes.json`     | O cadastro de clientes, com bases, bancos, repositórios e links |
-| `configuracao.json` | A configuração global e os atalhos                              |
+| `configuracao.json` | A configuração global, os atalhos e o SMTP                      |
 | `local.json`        | As bases e os bancos da própria máquina                         |
+| `lembretes.json`    | Os lembretes cadastrados                                        |
+| `notificacoes.json` | O painel de notificações e as chaves já notificadas             |
 
 ## Envelope
 
-Os três seguem a mesma forma: um campo `versaoDoEsquema` e o conteúdo sob uma
-chave própria — `clientes`, `configuracao` e `local`.
+Todos seguem a mesma forma: um campo `versaoDoEsquema` e o conteúdo sob uma
+chave própria — `clientes`, `configuracao`, `local`, `lembretes` e
+`notificacoes`.
 
 ```json
 { "versaoDoEsquema": 1, "clientes": [ ... ] }
@@ -45,7 +48,17 @@ cadastro.
     "destinoDosLinks": "hub",
     "caminhoDoExecutavelDaIde": "C:\\Program Files\\JetBrains\\IntelliJ IDEA\\bin\\idea64.exe",
     "perfil": "consultor",
-    "funcionalidadesOcultas": ["cliente.repositorios"]
+    "funcionalidadesOcultas": ["cliente.repositorios"],
+    "smtp": {
+      "host": "smtp.office365.com",
+      "porta": 587,
+      "seguranca": "starttls",
+      "usuario": "voce@empresa.com.br",
+      "senha": "...",
+      "remetente": "voce@empresa.com.br",
+      "destinatario": "voce@empresa.com.br"
+    },
+    "alertaDaAgenda": { "ativo": true, "toleranciaMinutos": 30, "enviarEmail": true }
   }
 }
 ```
@@ -61,11 +74,51 @@ cada repositório, com a pasta como argumento. Vazio desliga o botão.
 `perfil` (`desenvolvedor`, `consultor`, `analista` ou `gerente-de-projeto`) e
 `funcionalidadesOcultas` são os acessos de **Configurações › Acessos**. A lista
 guarda o que está **oculto**: uma funcionalidade criada numa versão futura já
-nasce visível. Os valores aceitos são `local`, `agenda` e `os` (menu principal) e
+nasce visível. Os valores aceitos são `local`, `agenda`, `os` e `lembretes` (menu principal) e
 `cliente.bases`, `cliente.repositorios`, `cliente.projetos`, `cliente.agenda` e
 `cliente.os` (cadastro do cliente). Arquivo sem `perfil` recebe o perfil escolhido
 no instalador, com o preset dele; sem instalador, `desenvolvedor`, com nada
 oculto. Valor desconhecido na lista é descartado na leitura.
+
+`smtp` é o servidor dos e-mails das notificações, com a senha em texto puro;
+`seguranca` é `ssl`, `starttls` ou `nenhuma`, e host vazio desliga o e-mail.
+`alertaDaAgenda` liga o aviso de evento da agenda de hoje sem OS lançada. Arquivo
+de antes destes campos nasce com o SMTP vazio (porta 587, STARTTLS) e o alerta
+desligado.
+
+## Lembretes
+
+O conteúdo de `lembretes`:
+
+```json
+[
+  {
+    "id": "7c1e4f0a-3b8d-4e2a-9f61-2d5c8a7b9e10",
+    "texto": "Enviar o relatório de horas",
+    "tipo": "recorrente",
+    "dataHora": "",
+    "expressaoCron": "0 17 * * 5",
+    "clienteId": "4fb3993a-f8b3-4e9a-be7d-c79556fa78e5",
+    "projetoId": null,
+    "enviarEmail": true,
+    "ativo": true,
+    "ultimoDisparoEm": "2026-09-25T20:00:04.112Z",
+    "criadoEm": "2026-09-01T12:00:00.000Z",
+    "atualizadoEm": "2026-09-01T12:00:00.000Z"
+  }
+]
+```
+
+`dataHora` só vale para o `unico` e `expressaoCron` só para o `recorrente`.
+`ultimoDisparoEm` vazio é lembrete que nunca disparou; o recorrente conta a
+próxima ocorrência a partir dele, ou de `atualizadoEm` quando vazio.
+
+## Notificações
+
+O conteúdo de `notificacoes` tem a `lista` (as 200 mais recentes) e as
+`chavesEmitidas`, que impedem notificar duas vezes o mesmo fato — o evento da
+agenda num dia, a ocorrência de um lembrete. Limpar o painel esvazia só a lista;
+as chaves ficam por sete dias.
 
 ## Cadastro de clientes
 
@@ -143,7 +196,7 @@ e antes de reescrever qualquer coisa o arquivo original é copiado para
 `esquema0` é o formato anterior ao envelope. A cópia é feita uma vez por versão
 de origem e nunca é sobrescrita: ela guarda o estado original, não o último.
 
-Os três arquivos são lidos na inicialização, antes de o servidor abrir a porta.
+Os arquivos são lidos na inicialização, antes de o servidor abrir a porta.
 Erro de esquema aparece no terminal na largada, e não na primeira tela aberta.
 
 Ao publicar uma versão que muda o formato dos dados, suba a

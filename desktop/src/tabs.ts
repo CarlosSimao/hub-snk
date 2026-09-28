@@ -318,6 +318,10 @@ export class TabManager {
         sandbox: true,
         nodeIntegration: false,
         webSecurity: true,
+        // O som das notificações toca sem clique nenhum antes; sem isto, o Chromium cala o
+        // áudio até o primeiro gesto do usuário na guia. Só no Painel: o ERP e a Experience
+        // seguem com a política padrão.
+        autoplayPolicy: id === 'hub' ? 'no-user-gesture-required' : undefined,
         // Nenhum preload nas abas remotas: zero bridge para conteúdo de fora.
       },
     });

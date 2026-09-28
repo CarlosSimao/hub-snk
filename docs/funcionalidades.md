@@ -322,11 +322,77 @@ soma das **Horas** de cada uma, no formato `HHH:MM` (`20 OS neste mês · 134:00
 horas lançadas.`). OS sem horas, ou com um valor fora do formato `HH:MM`, fica
 fora da soma. As quantidades dos agrupadores contam sempre o mês inteiro.
 
+## Notificações
+
+O sino no topo do painel abre o **painel de notificações**, à direita, com a
+contagem das não lidas. Cada notificação nova chega na hora (o servidor a empurra
+pela conexão aberta com a tela), aparece num cartão no canto direito por 15
+segundos e toca um som curto. Clicar numa notificação a marca como lida; os botões
+do painel marcam todas ou limpam a lista.
+
+Com o painel no navegador comum, e não no aplicativo, o som pode ficar mudo até o
+primeiro clique na página: é a política de autoplay do navegador. A guia Painel do
+aplicativo já nasce liberada para tocar.
+
+### E-mail
+
+Em **Configurações › SMTP** ficam o servidor de e-mail (host, porta, segurança,
+usuário, senha, remetente e destinatário) e o botão **Enviar e-mail de teste**, que
+usa o que está no formulário, antes de salvar. A aba só tem o SMTP porque ele serve
+a tudo o que o HUB SNK enviar por e-mail, e não só às notificações. Sem host, as
+notificações ficam só no painel. O e-mail que falha não impede a notificação: ela aparece no painel com
+o motivo.
+
+> A senha do SMTP fica em texto puro no `configuracao.json`, como as senhas das
+> bases no `clientes.json`. Com a pasta de dados na nuvem, ela vai junto.
+
+### Agenda do dia sem OS lançada
+
+Ligado em **Configurações › Avisos**, o HUB SNK confere a cada 15 minutos (a
+primeira vez dois minutos depois de abrir) os eventos de hoje da sua Agenda de
+Recursos:
+
+1. traz o dia de novo do Sankhya Om, pela guia já logada — sem conseguir, vale o
+   que já estava no snapshot;
+2. pega só os eventos do seu `CODUSU` que têm parceiro (folga e evento interno
+   ficam de fora);
+3. para cada evento que terminou há mais que a tolerância configurada (padrão, 30
+   minutos), confere na Experience se o parceiro tem **OS lançada** no dia. Tarefa
+   aberta sem OS conta como não lançada.
+
+Sem OS, sai uma notificação — e o e-mail, se marcado — **uma vez por evento por
+dia**. Evento de dia inteiro, ou que continua amanhã, usa as 18h como fim.
+
+Precisa do código de usuário do Sankhya OM (no topo de **Credenciais Sankhya**) e das sessões do Sankhya
+Om e da Experience ativas no aplicativo. Sessão caída vira uma notificação do
+próprio HUB SNK, uma vez por dia; com o backend rodando sem o aplicativo
+(`npm run dev`), a verificação só registra no log.
+
+## Lembretes
+
+A aba **Lembretes** do menu principal cadastra avisos com texto livre,
+opcionalmente ligados a um cliente e a um projeto dele. Cada um pode mandar
+também e-mail e pode ser desligado sem ser apagado.
+
+- **Uma vez**: data e hora. Dispara uma vez só; depois a lista mostra quando
+  disparou.
+- **Recorrente**: expressão cron de cinco campos — minuto, hora, dia do mês, mês
+  e dia da semana (0 é domingo). O formulário tem modelos prontos (todo dia, dias
+  úteis, toda segunda, dia 1º do mês…) e mostra as três próximas ocorrências
+  enquanto a expressão é digitada.
+
+Com o HUB SNK fechado na hora marcada, o lembrete dispara ao abrir, marcado como
+atrasado. Do recorrente que perdeu várias ocorrências, só uma volta. Mudar a data,
+a expressão ou o tipo rearma o lembrete; corrigir só o texto, não.
+
+> Com a mesma pasta de dados aberta em duas máquinas ao mesmo tempo, as duas
+> disparam o lembrete — e mandam o e-mail — cada uma por si.
+
 ## Acessos por perfil
 
 O HUB SNK atende perfis diferentes, e cada um vê só o que usa. Em
 **Configurações › Acessos** ficam o **Perfil** e uma caixa por funcionalidade:
-as abas **Local**, **Agenda** e **OS** do menu principal e as abas **Bases**,
+as abas **Local**, **Agenda**, **OS** e **Lembretes** do menu principal e as abas **Bases**,
 **Repositórios**, **Projetos**, **Agenda** e **OS** do cadastro do cliente.
 **Clientes** e a aba **Geral** do cliente não entram na lista: sem elas a tela
 abriria vazia.

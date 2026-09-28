@@ -8,8 +8,11 @@ import {
 import {
   DESTINOS_DE_LINK,
   FUNCIONALIDADES,
+  SEGURANCAS_SMTP,
+  type AlertaDaAgenda,
   type Atalho,
   type ConfiguracaoGlobal,
+  type ConfiguracaoSmtp,
   type DestinoDeLink,
   type Funcionalidade,
   type PerfilProfissional,
@@ -34,6 +37,26 @@ const MILISSEGUNDOS_POR_SEGUNDO = 1000;
 
 const DESTINO_DOS_LINKS_PADRAO: DestinoDeLink = 'hub';
 
+const PORTA_SMTP_PADRAO = 587;
+const TOLERANCIA_DO_ALERTA_DA_AGENDA_PADRAO_MIN = 30;
+
+const SMTP_INICIAL: ConfiguracaoSmtp = {
+  host: '',
+  porta: PORTA_SMTP_PADRAO,
+  seguranca: 'starttls',
+  usuario: '',
+  senha: '',
+  remetente: '',
+  destinatario: '',
+};
+
+/* Nasce desligado: sem SMTP e sem saber se o usuário lança OS, ligar sozinho só faria barulho. */
+const ALERTA_DA_AGENDA_INICIAL: AlertaDaAgenda = {
+  ativo: false,
+  toleranciaMinutos: TOLERANCIA_DO_ALERTA_DA_AGENDA_PADRAO_MIN,
+  enviarEmail: true,
+};
+
 const CONFIGURACAO_INICIAL: Omit<ConfiguracaoGlobal, 'perfil' | 'funcionalidadesOcultas'> = {
   scriptPadrao: '',
   intervaloDeExecucaoAutomaticaSegundos: INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S,
@@ -44,6 +67,8 @@ const CONFIGURACAO_INICIAL: Omit<ConfiguracaoGlobal, 'perfil' | 'funcionalidades
   caminhoDoExecutavelDaIde: '',
   experiencePersonId: '',
   sankhyaOmCodUsu: '',
+  smtp: SMTP_INICIAL,
+  alertaDaAgenda: ALERTA_DA_AGENDA_INICIAL,
 };
 
 /**
@@ -100,6 +125,71 @@ function lerAcessos(
     : FUNCIONALIDADES_OCULTAS_POR_PERFIL[perfil];
 
   return { perfil, funcionalidadesOcultas: normalizarFuncionalidadesOcultas(ocultas) };
+}
+
+function ehObjeto(valor: unknown): valor is Record<string, unknown> {
+  return typeof valor === 'object' && valor !== null && !Array.isArray(valor);
+}
+
+function textoOuPadrao(valor: unknown, padrao: string): string {
+  return typeof valor === 'string' ? valor : padrao;
+}
+
+function numeroOuPadrao(valor: unknown, padrao: number): number {
+  return typeof valor === 'number' && Number.isFinite(valor) ? valor : padrao;
+}
+
+function booleanoOuPadrao(valor: unknown, padrao: boolean): boolean {
+  return typeof valor === 'boolean' ? valor : padrao;
+}
+
+/** Arquivo de antes do SMTP não tem a chave; campo editado à mão com tipo errado volta ao padrão. */
+function lerSmtp(valor: unknown): ConfiguracaoSmtp {
+  if (!ehObjeto(valor)) {
+    return { ...SMTP_INICIAL };
+  }
+
+  const seguranca = (SEGURANCAS_SMTP as readonly unknown[]).includes(valor.seguranca)
+    ? (valor.seguranca as ConfiguracaoSmtp['seguranca'])
+    : SMTP_INICIAL.seguranca;
+
+  return {
+    host: textoOuPadrao(valor.host, SMTP_INICIAL.host),
+    porta: numeroOuPadrao(valor.porta, SMTP_INICIAL.porta),
+    seguranca,
+    usuario: textoOuPadrao(valor.usuario, SMTP_INICIAL.usuario),
+    senha: textoOuPadrao(valor.senha, SMTP_INICIAL.senha),
+    remetente: textoOuPadrao(valor.remetente, SMTP_INICIAL.remetente),
+    destinatario: textoOuPadrao(valor.destinatario, SMTP_INICIAL.destinatario),
+  };
+}
+
+/** Mesmo motivo do `lerSmtp`: arquivo de antes do alerta nasce com ele desligado. */
+function lerAlertaDaAgenda(valor: unknown): AlertaDaAgenda {
+  if (!ehObjeto(valor)) {
+    return { ...ALERTA_DA_AGENDA_INICIAL };
+  }
+
+  return {
+    ativo: booleanoOuPadrao(valor.ativo, ALERTA_DA_AGENDA_INICIAL.ativo),
+    toleranciaMinutos: numeroOuPadrao(
+      valor.toleranciaMinutos,
+      ALERTA_DA_AGENDA_INICIAL.toleranciaMinutos,
+    ),
+    enviarEmail: booleanoOuPadrao(valor.enviarEmail, ALERTA_DA_AGENDA_INICIAL.enviarEmail),
+  };
+}
+
+function normalizarSmtp(smtp: ConfiguracaoSmtp): ConfiguracaoSmtp {
+  return {
+    host: smtp.host.trim(),
+    porta: smtp.porta,
+    seguranca: smtp.seguranca,
+    usuario: smtp.usuario.trim(),
+    senha: smtp.senha,
+    remetente: smtp.remetente.trim(),
+    destinatario: smtp.destinatario.trim(),
+  };
 }
 
 /** Atalho recém-cadastrado chega sem id: é aqui que ele ganha um. */
@@ -161,6 +251,8 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       experiencePersonId: dados.experiencePersonId ?? '',
       // Idem: arquivo de antes desta versão não tem o CODUSU do Sankhya OM.
       sankhyaOmCodUsu: dados.sankhyaOmCodUsu ?? '',
+      smtp: lerSmtp(dados.smtp),
+      alertaDaAgenda: lerAlertaDaAgenda(dados.alertaDaAgenda),
       ...lerAcessos(dados, this.#perfilInicial),
     };
 
@@ -189,11 +281,13 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       destinoDosLinks: configuracao.destinoDosLinks,
       caminhoDoExecutavelDaIde: configuracao.caminhoDoExecutavelDaIde.trim(),
       experiencePersonId: atual.experiencePersonId,
-      sankhyaOmCodUsu: configuracao.sankhyaOmCodUsu.trim(),
+      sankhyaOmCodUsu: atual.sankhyaOmCodUsu,
       perfil: configuracao.perfil ?? atual.perfil,
       funcionalidadesOcultas: normalizarFuncionalidadesOcultas(
         configuracao.funcionalidadesOcultas ?? atual.funcionalidadesOcultas,
       ),
+      smtp: configuracao.smtp ? normalizarSmtp(configuracao.smtp) : atual.smtp,
+      alertaDaAgenda: configuracao.alertaDaAgenda ?? atual.alertaDaAgenda,
     };
 
     await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);
@@ -203,8 +297,16 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
   }
 
   async definirExperiencePersonId(personId: string): Promise<ConfiguracaoGlobal> {
+    return this.#gravarCampo({ experiencePersonId: personId.trim() });
+  }
+
+  async definirSankhyaOmCodUsu(codusu: string): Promise<ConfiguracaoGlobal> {
+    return this.#gravarCampo({ sankhyaOmCodUsu: codusu.trim() });
+  }
+
+  async #gravarCampo(campo: Partial<ConfiguracaoGlobal>): Promise<ConfiguracaoGlobal> {
     const atual = await this.ler();
-    const normalizada: ConfiguracaoGlobal = { ...atual, experiencePersonId: personId.trim() };
+    const normalizada: ConfiguracaoGlobal = { ...atual, ...campo };
 
     await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);
 

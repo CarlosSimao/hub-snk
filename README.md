@@ -136,7 +136,8 @@ operacional, cifradas pelo aplicativo — nunca em texto puro.
 
 Tudo o que você cadastra fica em `%LOCALAPPDATA%\HubSnk\dados` — ou onde o
 `HUB_DADOS_DIR` apontar. São o cadastro de clientes, a configuração global, as
-bases e bancos da própria máquina e o `sankhya.db` com a Agenda de Recursos.
+bases e bancos da própria máquina, os lembretes, as notificações e o `sankhya.db`
+com a Agenda de Recursos.
 
 Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 `backend.log`). O formato dos arquivos de dados está em
@@ -151,6 +152,7 @@ Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 | **Cadastro de clientes**    | Bases do ERP com usuário, senha e banco vinculado, repositórios Git, links avulsos, projetos e anotações livres                  |
 | **Guias do Sankhya**        | Sankhya Om e Experience dentro do aplicativo; cada base de cliente numa guia isolada, com usuário e senha preenchidos            |
 | **Agenda de Recursos**      | Consultada de dentro da guia do Sankhya Om já logada, cruzada com a Experience no calendário de cada cliente                     |
+| **Notificações**            | Painel no sino do topo, com som e e-mail opcional: agenda de hoje sem OS lançada e lembretes na data ou recorrentes (cron)       |
 | **Importação de favoritos** | Transforma favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, deduzindo Produção ou Teste do nome                     |
 | **Botões do repositório**   | Abrem a pasta, o terminal (rodando o script padrão) e a IDE configurada; e editam o `.sankhya-mcp.env` do MCP Claude             |
 | **Atalhos**                 | Lista de programas da sua máquina, iniciados com um clique pelo botão de raio, com busca a partir de seis cadastrados            |

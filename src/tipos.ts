@@ -40,13 +40,17 @@
  * `sankhyaOmCodUsu` é o `CODUSU` do usuário logado no Sankhya OM (ERP) — diferente
  * do `person_id` da Experience, e sem forma automática de descobrir a partir da
  * sessão capturada (só cookies e nenhum deles carrega o valor). Por isso, ao
- * contrário de `experiencePersonId`, é digitado à mão em Configurações › Geral.
+ * contrário de `experiencePersonId`, é digitado à mão no topo de Credenciais Sankhya.
  *
  * `perfil` e `funcionalidadesOcultas` são os acessos de Configurações › Acessos. A
  * lista guarda o que está oculto, e não o que está visível, para que uma
  * funcionalidade criada numa versão futura já nasça visível para todo mundo. Ocultar
  * só tira a funcionalidade da tela: não é controle de permissão, e a API segue
  * respondendo.
+ *
+ * `smtp` é o servidor que envia os e-mails das notificações, e `alertaDaAgenda` liga o
+ * aviso de agenda do dia sem OS lançada. A senha do SMTP fica em texto puro neste
+ * arquivo, como as senhas das bases no `clientes.json`.
  */
 export interface ConfiguracaoGlobal {
   scriptPadrao: string;
@@ -60,6 +64,38 @@ export interface ConfiguracaoGlobal {
   sankhyaOmCodUsu: string;
   perfil: PerfilProfissional;
   funcionalidadesOcultas: Funcionalidade[];
+  smtp: ConfiguracaoSmtp;
+  alertaDaAgenda: AlertaDaAgenda;
+}
+
+/**
+ * `ssl`: TLS desde a conexão (porta 465, em geral). `starttls`: conexão aberta que
+ * exige subir para TLS (porta 587). `nenhuma`: sem TLS, só para servidor da rede local.
+ */
+export const SEGURANCAS_SMTP = ['ssl', 'starttls', 'nenhuma'] as const;
+
+export type SegurancaSmtp = (typeof SEGURANCAS_SMTP)[number];
+
+/** Servidor de envio dos e-mails das notificações. Host vazio desliga o e-mail. */
+export interface ConfiguracaoSmtp {
+  host: string;
+  porta: number;
+  seguranca: SegurancaSmtp;
+  /** Vazio envia sem autenticação. */
+  usuario: string;
+  senha: string;
+  remetente: string;
+  destinatario: string;
+}
+
+/**
+ * Aviso de evento da agenda de hoje sem OS lançada na Experience. Dispara quando o
+ * evento terminou há `toleranciaMinutos` e ainda não há OS no dia para o parceiro.
+ */
+export interface AlertaDaAgenda {
+  ativo: boolean;
+  toleranciaMinutos: number;
+  enviarEmail: boolean;
 }
 
 /**
@@ -90,6 +126,7 @@ export const FUNCIONALIDADES = [
   'local',
   'agenda',
   'os',
+  'lembretes',
   'cliente.bases',
   'cliente.repositorios',
   'cliente.projetos',
@@ -440,4 +477,60 @@ export interface OrdemExperience {
    * campos próprios). Junta mais de uma linha quando a OS consolida vários dias.
    */
   observacoes: string;
+}
+
+/* ------------------------------ Notificações ------------------------------ */
+
+/** De onde veio a notificação: a agenda do dia, um lembrete cadastrado ou o próprio HUB SNK. */
+export const ORIGENS_DE_NOTIFICACAO = ['agenda', 'lembrete', 'sistema'] as const;
+
+export type OrigemDeNotificacao = (typeof ORIGENS_DE_NOTIFICACAO)[number];
+
+/**
+ * Uma notificação do painel lateral.
+ *
+ * `chave` identifica o fato que a gerou (o evento da agenda num dia, a ocorrência de um
+ * lembrete): emitir de novo a mesma chave não cria outra notificação nem outro e-mail.
+ */
+export interface Notificacao {
+  id: string;
+  origem: OrigemDeNotificacao;
+  chave: string;
+  titulo: string;
+  mensagem: string;
+  criadaEm: string;
+  lida: boolean;
+  /** Motivo da falha do e-mail; vazio quando foi enviado ou nem era para enviar. */
+  erroDoEmail: string;
+}
+
+/* -------------------------------- Lembretes ------------------------------- */
+
+/** `unico`: uma data e hora. `recorrente`: uma expressão cron de cinco campos. */
+export const TIPOS_DE_LEMBRETE = ['unico', 'recorrente'] as const;
+
+export type TipoDeLembrete = (typeof TIPOS_DE_LEMBRETE)[number];
+
+/**
+ * Lembrete cadastrado pelo usuário, opcionalmente ligado a um cliente e a um projeto
+ * dele.
+ *
+ * `dataHora` (ISO 8601) só vale para o `unico`, e `expressaoCron` só para o
+ * `recorrente`; o campo do outro tipo fica vazio. `ultimoDisparoEm` vazio é lembrete
+ * que nunca disparou. Mudar a data, a expressão ou o tipo o zera: o novo quando começa
+ * a contar do zero.
+ */
+export interface Lembrete {
+  id: string;
+  texto: string;
+  tipo: TipoDeLembrete;
+  dataHora: string;
+  expressaoCron: string;
+  clienteId: string | null;
+  projetoId: string | null;
+  enviarEmail: boolean;
+  ativo: boolean;
+  ultimoDisparoEm: string;
+  criadoEm: string;
+  atualizadoEm: string;
 }

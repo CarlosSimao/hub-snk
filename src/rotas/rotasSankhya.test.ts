@@ -23,6 +23,7 @@ function criarRepositorioDeConfiguracaoFalso(): RepositorioConfiguracao {
       experiencePersonId = personId;
       return { experiencePersonId } as ConfiguracaoGlobal;
     },
+    definirSankhyaOmCodUsu: async () => ({ experiencePersonId }) as ConfiguracaoGlobal,
   };
 }
 

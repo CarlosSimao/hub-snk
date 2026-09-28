@@ -114,3 +114,43 @@ describe('GET /api/configuracao/perfis', () => {
     });
   });
 });
+
+describe('PUT /api/configuracao/sankhya-om-codusu', () => {
+  it('grava o CODUSU sem mexer no resto', async () => {
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao/sankhya-om-codusu',
+      payload: { sankhyaOmCodUsu: ' 4817 ' },
+    });
+
+    assert.equal(resposta.statusCode, 200);
+    assert.equal(resposta.json().sankhyaOmCodUsu, '4817');
+    assert.equal(resposta.json().destinoDosLinks, 'hub');
+  });
+
+  it('recusa CODUSU com letras', async () => {
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao/sankhya-om-codusu',
+      payload: { sankhyaOmCodUsu: '67a' },
+    });
+
+    assert.equal(resposta.statusCode, 400);
+  });
+
+  it('o PUT das configurações não apaga o CODUSU gravado', async () => {
+    await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao/sankhya-om-codusu',
+      payload: { sankhyaOmCodUsu: '4817' },
+    });
+
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao',
+      payload: CONFIGURACAO_SEM_DESTINO_DOS_LINKS,
+    });
+
+    assert.equal(resposta.json().sankhyaOmCodUsu, '4817');
+  });
+});
