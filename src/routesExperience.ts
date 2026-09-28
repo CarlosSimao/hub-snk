@@ -191,12 +191,11 @@ export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperi
         const lida = demandaDoTexto(t.observacoes, manuaisT.get(t.id));
         return { ...t, demanda: lida.demanda, demandaOrigem: lida.origem };
       });
-      const marcadas = comDemanda(
-        cliente.experienceProjetoId,
-        ordens,
-        tarefas,
-        listarIdsDemanda(cliente.agendaDemandaId),
-      );
+      // As demandas do cliente contam também as citadas na agenda do período: com mais de
+      // uma, a OS sem outro vínculo fica sem demanda em vez de receber a "única" do
+      // cadastro. Medido em 2026-09-28: a Flaps tinha só 3025 no cadastro, a agenda citava
+      // 3026 e 3027 também, e as 13 OS de agosto ganhavam 3025 por chute.
+      const marcadas = comDemanda(cliente.experienceProjetoId, ordens, tarefas, demandas);
       return {
         cliente,
         eventos: conferir(tarefas, marcadas, true),
