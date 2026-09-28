@@ -27,6 +27,7 @@ import { registerRoutesSolicitacoes } from './routesSolicitacoes.ts';
 import { registerRoutesServerLog } from './routesServerLog.ts';
 import { ServerLogInstalacoes } from './sankhya/serverLogInstalacoes.ts';
 import { registerRoutesEscopo } from './routesEscopo.ts';
+import { registerRoutesMcp } from './routesMcp.ts';
 import { Escopo } from './sankhya/escopo.ts';
 import { analisarEscopo } from './sankhya/escopoIa.ts';
 import { CompartilhamentoTarefas } from './sankhya/escopoCompartilhado.ts';
@@ -260,6 +261,9 @@ async function main(): Promise<void> {
   const escopo = new Escopo(DATA_DIR);
   const compartilhamento = new CompartilhamentoTarefas(escopo, (id) => clientes.obter(id)?.nome ?? '');
   registerRoutesEscopo(app, { escopo, clientes, compartilhamento, analisar: analisarEscopo, log: app.log });
+  // Agentes de outras aplicações (Claude Code, Codex, Cursor...) pelo servidor MCP em
+  // src/mcp/servidor.ts: só as demandas liberadas na tela, pelas mesmas regras do quadro.
+  registerRoutesMcp(app, { escopo, clientes, urlHub: `http://127.0.0.1:${PORT}`, nativo: NATIVO });
 
   // Mesmo motivo do cartao: as tabelas de contatos/config de e-mail moram no construtor
   // de `Clientes`, e `EmailInterno` so abre o mesmo `sankhya.db`.

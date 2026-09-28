@@ -69,6 +69,7 @@ interface LinhaDocumento {
   demanda: string;
   compartilhar_em: string;
   compartilhar_nome: string;
+  compartilhar_mcp: number;
 }
 
 interface LinhaTarefa {
@@ -126,6 +127,7 @@ function documento(l: LinhaDocumento): DocumentoEscopo {
     demanda: l.demanda || l.nome.replace(/\.[^.]+$/, ''),
     compartilharEm: l.compartilhar_em,
     compartilharNome: l.compartilhar_nome,
+    compartilharMcp: l.compartilhar_mcp === 1,
   };
 }
 
@@ -215,6 +217,7 @@ export class Escopo {
       ['demanda', "TEXT NOT NULL DEFAULT ''"],
       ['compartilhar_em', "TEXT NOT NULL DEFAULT ''"],
       ['compartilhar_nome', "TEXT NOT NULL DEFAULT ''"],
+      ['compartilhar_mcp', 'INTEGER NOT NULL DEFAULT 0'],
     ]);
     this.#garantirColunas('escopo_tarefas', [['notas', "TEXT NOT NULL DEFAULT ''"]]);
     // O quadro só guardava a coluna ATUAL: o histórico começa quando esta tabela nasce.
@@ -323,6 +326,19 @@ export class Escopo {
   documentosCompartilhados(): DocumentoEscopo[] {
     const linhas = this.#db
       .prepare(`SELECT * FROM escopo_documentos WHERE compartilhar_em <> '' ORDER BY id`)
+      .all() as unknown as LinhaDocumento[];
+    return linhas.map(documento);
+  }
+
+  /** Libera (ou tira) a demanda do servidor MCP — independente do arquivo compartilhado. */
+  definirMcp(id: number, ligado: boolean): DocumentoEscopo | undefined {
+    const r = this.#db.prepare('UPDATE escopo_documentos SET compartilhar_mcp = ? WHERE id = ?').run(ligado ? 1 : 0, id);
+    return r.changes ? this.documento(id) : undefined;
+  }
+
+  documentosMcp(): DocumentoEscopo[] {
+    const linhas = this.#db
+      .prepare('SELECT * FROM escopo_documentos WHERE compartilhar_mcp = 1 ORDER BY cliente_id, id')
       .all() as unknown as LinhaDocumento[];
     return linhas.map(documento);
   }

@@ -1067,6 +1067,11 @@ export interface DocumentoEscopo {
   compartilharEm: string;
   /** Nome do JSON dentro de `compartilharEm`, escolhido por quem compartilhou. */
   compartilharNome: string;
+  /**
+   * Demanda liberada para o servidor MCP (`src/mcp/servidor.ts`): agentes de outras
+   * aplicações leem, movem, anotam e criam tarefas nela. Independe do arquivo JSON.
+   */
+  compartilharMcp: boolean;
   /** Presente só quando `compartilharEm` está ligado. */
   compartilhamento?: CompartilhamentoEscopo;
 }

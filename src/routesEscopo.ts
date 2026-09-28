@@ -219,6 +219,18 @@ export function registerRoutesEscopo(app: FastifyInstance, deps: RouteEscopoDeps
     },
   );
 
+  /** Libera a demanda para o servidor MCP (`src/routesMcp.ts`). Independe do arquivo JSON acima. */
+  app.put<{ Params: { docId: string }; Body: { ligado?: unknown } }>(
+    '/api/escopo/documentos/:docId/mcp',
+    async (request, reply) => {
+      const docId = numero(request.params.docId);
+      if (typeof request.body?.ligado !== 'boolean') return reply.code(400).send({ error: 'informe { ligado: true|false }' });
+      const doc = docId ? escopo.definirMcp(docId, request.body.ligado) : undefined;
+      if (!doc) return reply.code(404).send({ error: 'documento não encontrado' });
+      return { documento: comSituacao(doc) };
+    },
+  );
+
   app.post<{ Params: { id: string }; Body: { nome?: unknown; conteudoBase64?: unknown } }>(
     '/api/clientes/:id/escopo/documentos',
     { bodyLimit: LIMITE_CORPO_BYTES },

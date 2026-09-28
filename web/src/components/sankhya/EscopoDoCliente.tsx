@@ -105,6 +105,25 @@ function juntar(pasta: string, nome: string): string {
   return `${pasta.replace(/[\\/]+$/, '')}${sep}${nome}`;
 }
 
+/** O bloco `mcpServers` que Claude Code (.mcp.json), Cursor e Claude Desktop aceitam como está. */
+async function copiarConfigMcp(toast: Avisar): Promise<void> {
+  const { ok, body } = await requisitar<{
+    disponivel: boolean;
+    aviso?: string;
+    nome: string;
+    command: string;
+    args: string[];
+    env: Record<string, string>;
+  }>('/api/mcp/config');
+  if (!ok) {
+    toast('Não consegui montar a configuração MCP', 'err', body.error);
+    return;
+  }
+  if (!body.disponivel) toast('Atenção', 'err', body.aviso);
+  const config = { mcpServers: { [String(body.nome)]: { command: body.command, args: body.args, env: body.env } } };
+  await copiar(JSON.stringify(config, null, 2), toast, 'Configuração MCP');
+}
+
 function instrucaoParaIa(arquivo: string): string {
   return (
     `As tarefas desta demanda estão em ${arquivo}. Leia o arquivo e siga o que está em "comoAtualizar". ` +
@@ -302,6 +321,7 @@ export function EscopoDoCliente({ cliente, toast }: { cliente: Cliente; toast: A
             onCompartilhar={(pasta, nome, criarPastaTarefas, ignorarNoGit) =>
               escopo.compartilhar(doc.id, pasta, nome, criarPastaTarefas, ignorarNoGit)
             }
+            onMcp={(ligado) => escopo.definirMcp(doc.id, ligado)}
           />
         ))}
       </section>
@@ -660,6 +680,7 @@ function CartaoDemanda({
   onRemover,
   onRenomear,
   onCompartilhar,
+  onMcp,
 }: {
   doc: DocumentoEscopo;
   ativa: boolean;
@@ -673,6 +694,7 @@ function CartaoDemanda({
   onRemover: () => void;
   onRenomear: (nome: string) => Promise<boolean>;
   onCompartilhar: (pasta: string, nome?: string, criarPastaTarefas?: boolean, ignorarNoGit?: boolean) => Promise<boolean>;
+  onMcp: (ligado: boolean) => Promise<boolean>;
 }) {
   const [nome, setNome] = useState<string | null>(null);
   const [pasta, setPasta] = useState<string | null>(null);
@@ -715,6 +737,15 @@ function CartaoDemanda({
     setSalvando(true);
     try {
       if (await onCompartilhar(pasta.trim(), nomeArquivo.trim(), criarPastaTarefas, ignorarNoGit)) setPasta(null);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function alternarMcp(ligado: boolean): Promise<void> {
+    setSalvando(true);
+    try {
+      await onMcp(ligado);
     } finally {
       setSalvando(false);
     }
@@ -764,6 +795,7 @@ function CartaoDemanda({
         </span>
         <span className={`escopo-status ${doc.status}`}>{STATUS_DOC[doc.status]}</span>
         {doc.compartilharEm && <span className="escopo-status compartilhado">compartilhada com IA</span>}
+        {doc.compartilharMcp && <span className="escopo-status compartilhado">liberada por MCP</span>}
         <span className="escopo-sep" />
         <button className="btn tiny ghost" type="button" onClick={onVer}>
           Ver documento
@@ -775,9 +807,9 @@ function CartaoDemanda({
           className="btn tiny ghost"
           type="button"
           onClick={abrirFormulario}
-          title="Mantém um arquivo JSON com as tarefas que outras IAs leem e atualizam"
+          title="Libera a demanda para agentes de IA por MCP e/ou por um arquivo JSON"
         >
-          {doc.compartilharEm ? 'Compartilhamento' : 'Compartilhar com IA'}
+          {doc.compartilharEm || doc.compartilharMcp ? 'Compartilhamento' : 'Compartilhar com IA'}
         </button>
         <button
           className="btn tiny ghost danger"
@@ -831,6 +863,33 @@ function CartaoDemanda({
 
       {pasta !== null && (
         <div className="escopo-compartilhar-form">
+          <strong className="escopo-form-titulo">Por MCP</strong>
+          <label className="escopo-check" title="Vale na hora — não depende do arquivo abaixo">
+            <input
+              type="checkbox"
+              checked={doc.compartilharMcp}
+              disabled={salvando}
+              onChange={(e) => void alternarMcp(e.target.checked)}
+            />
+            Liberar esta demanda para agentes de outras aplicações (servidor MCP <code>DS-hub</code>)
+          </label>
+          <p className="painel-nota">
+            Agentes com o MCP configurado (Claude Code, Codex, Cursor…) leem as tarefas, movem de coluna, anotam o
+            andamento e criam tarefas novas no Backlog — só nas demandas liberadas aqui. As mudanças entram no quadro e
+            seguem para a Integração API como as feitas na tela.
+          </p>
+          <div className="escopo-doc-linha">
+            <button
+              className="btn tiny ghost"
+              type="button"
+              title="JSON de mcpServers para o .mcp.json do projeto ou a configuração do agente"
+              onClick={() => void copiarConfigMcp(toast)}
+            >
+              Copiar configuração MCP
+            </button>
+          </div>
+
+          <strong className="escopo-form-titulo">Por arquivo JSON</strong>
           <p className="painel-nota">
             O hub mantém um JSON com as tarefas desta demanda e o reescreve a cada mudança no quadro (tarefa criada,
             editada, movida ou excluída). Qualquer IA que edite arquivos (Claude Code, Codex, Copilot…) lê ali o que

@@ -5,7 +5,7 @@ import type { Avisar } from './useToasts.ts';
 
 /** Enquanto houver documento em análise, a tela pergunta de novo neste intervalo. */
 const INTERVALO_ACOMPANHAMENTO_MS = 4_000;
-/** Com arquivo compartilhado, uma IA de fora pode mover cartões a qualquer momento. */
+/** Com arquivo compartilhado ou MCP, uma IA de fora pode mover cartões a qualquer momento. */
 const INTERVALO_COMPARTILHADO_MS = 5_000;
 
 export type EntradaTarefa = Partial<
@@ -66,7 +66,7 @@ export function useEscopo(clienteId: number, toast: Avisar) {
 
   // Acompanha a análise (roda em segundo plano e leva minutos) e o arquivo compartilhado.
   const analisando = documentos.some((d) => d.status === 'analisando');
-  const compartilhando = documentos.some((d) => d.compartilharEm);
+  const compartilhando = documentos.some((d) => d.compartilharEm || d.compartilharMcp);
   const intervalo = analisando ? INTERVALO_ACOMPANHAMENTO_MS : compartilhando ? INTERVALO_COMPARTILHADO_MS : 0;
   useEffect(() => {
     if (!intervalo) return;
@@ -112,6 +112,24 @@ export function useEscopo(clienteId: number, toast: Avisar) {
       if (g?.erro) toast('Compartilhado, mas o .gitignore não foi atualizado', 'err', g.erro);
       else if (g?.adicionada) toast(`${g.entrada} adicionado ao .gitignore`, 'ok');
       else if (g && !g.gitignore) toast('A pasta não está num repositório git — nada a ignorar', 'ok');
+      await recarregar();
+      return true;
+    },
+    [recarregar, toast],
+  );
+
+  /** Libera ou tira a demanda do servidor MCP — não mexe no arquivo compartilhado. */
+  const definirMcp = useCallback(
+    async (docId: number, ligado: boolean) => {
+      const { ok, body } = await requisitar<{ documento: DocumentoEscopo }>(`/api/escopo/documentos/${docId}/mcp`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ligado }),
+      });
+      if (!ok) {
+        toast(ligado ? 'Não consegui liberar a demanda para MCP' : 'Não consegui tirar a demanda do MCP', 'err', body.error);
+        return false;
+      }
       await recarregar();
       return true;
     },
@@ -254,6 +272,7 @@ export function useEscopo(clienteId: number, toast: Avisar) {
     removerDocumento,
     renomearDemanda,
     compartilhar,
+    definirMcp,
     criarTarefa,
     atualizarTarefa,
     mover,
