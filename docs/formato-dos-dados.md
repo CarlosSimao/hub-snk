@@ -74,6 +74,8 @@ O conteúdo de `clientes`:
         "usuario": "admin",
         "senha": "...",
         "bancoDeDados": {
+          "sgbd": "oracle",
+          "identificadorOracle": "service-name",
           "host": "192.168.0.10",
           "porta": 1521,
           "nomeDoServico": "ORCL",
@@ -104,7 +106,9 @@ O conteúdo de `clientes`:
 
 Clientes gravados antes de anotações, bases, repositórios e links existirem são
 carregados com essas listas vazias, e repositórios sem `nome` recebem como
-rótulo o último trecho da URL. Não há migração manual a rodar.
+rótulo o último trecho da URL. Banco de dados gravado antes de `sgbd` e
+`identificadorOracle` existirem é lido como `oracle` e `service-name`. Não há
+migração manual a rodar.
 
 ## Versão do esquema
 

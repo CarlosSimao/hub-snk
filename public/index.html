@@ -352,44 +352,90 @@
         <div class="modal-corpo">
           <div class="campo-duplo">
             <div class="campo">
+              <label for="campo-sgbd">SGBD</label>
+              <select id="campo-sgbd">
+                <option value="oracle">Oracle</option>
+                <option value="sqlserver">SQL Server</option>
+              </select>
+            </div>
+
+            <div class="campo" id="grupo-identificador-oracle">
+              <label for="campo-identificador-oracle">Identificação</label>
+              <select id="campo-identificador-oracle">
+                <option value="service-name">Service Name</option>
+                <option value="sid">SID</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="campo-duplo">
+            <div class="campo">
               <label for="campo-host">Host</label>
+              <div class="campo-com-acao">
+                <input
+                  id="campo-host"
+                  type="text"
+                  maxlength="200"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="Ex.: 192.168.0.10"
+                />
+                <button
+                  class="btn tiny botao-icone"
+                  type="button"
+                  data-copiar-campo="campo-host"
+                ></button>
+              </div>
+            </div>
+
+            <div class="campo campo-estreito campo-estreito-com-acao">
+              <label for="campo-porta">Port</label>
+              <div class="campo-com-acao">
+                <input id="campo-porta" type="number" min="1" max="65535" autocomplete="off" />
+                <button
+                  class="btn tiny botao-icone"
+                  type="button"
+                  data-copiar-campo="campo-porta"
+                ></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="campo-servico" id="rotulo-campo-servico">Service Name</label>
+            <div class="campo-com-acao">
               <input
-                id="campo-host"
+                id="campo-servico"
                 type="text"
                 maxlength="200"
                 autocomplete="off"
                 spellcheck="false"
-                placeholder="Ex.: 192.168.0.10"
+                placeholder="Ex.: ORCL"
               />
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                data-copiar-campo="campo-servico"
+              ></button>
             </div>
-
-            <div class="campo campo-estreito">
-              <label for="campo-porta">Port</label>
-              <input id="campo-porta" type="number" min="1" max="65535" autocomplete="off" />
-            </div>
-          </div>
-
-          <div class="campo">
-            <label for="campo-servico">Service Name</label>
-            <input
-              id="campo-servico"
-              type="text"
-              maxlength="200"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="Ex.: ORCL"
-            />
           </div>
 
           <div class="campo">
             <label for="campo-usuario-banco">User</label>
-            <input
-              id="campo-usuario-banco"
-              type="text"
-              maxlength="120"
-              autocomplete="off"
-              spellcheck="false"
-            />
+            <div class="campo-com-acao">
+              <input
+                id="campo-usuario-banco"
+                type="text"
+                maxlength="120"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                data-copiar-campo="campo-usuario-banco"
+              ></button>
+            </div>
           </div>
 
           <div class="campo">
@@ -406,6 +452,11 @@
                 type="button"
                 id="btn-ver-senha-banco"
                 aria-pressed="false"
+              ></button>
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                data-copiar-campo="campo-senha-banco"
               ></button>
             </div>
           </div>

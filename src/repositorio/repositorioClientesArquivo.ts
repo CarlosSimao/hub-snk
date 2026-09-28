@@ -753,6 +753,8 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   /** A senha não é aparada: espaço nas pontas pode fazer parte dela. */
   #normalizarDadosDeBancoDeDados(dados: DadosDeBancoDeDados): BancoDeDados {
     return {
+      sgbd: dados.sgbd,
+      identificadorOracle: dados.identificadorOracle,
       host: dados.host.trim(),
       porta: dados.porta,
       nomeDoServico: dados.nomeDoServico.trim(),
@@ -1032,7 +1034,19 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
       }) => ({
         ...cliente,
         anotacoes: cliente.anotacoes ?? '',
-        bases: cliente.bases ?? [],
+        // Banco gravado antes do SGBD ser escolhível só podia ser Oracle por service name.
+        bases: (cliente.bases ?? []).map((base) =>
+          base.bancoDeDados
+            ? {
+                ...base,
+                bancoDeDados: {
+                  ...base.bancoDeDados,
+                  sgbd: base.bancoDeDados.sgbd ?? 'oracle',
+                  identificadorOracle: base.bancoDeDados.identificadorOracle ?? 'service-name',
+                },
+              }
+            : base,
+        ),
         // `nome` existiu no passado: descartado na leitura para sair do arquivo na próxima gravação.
         repositorios: (cliente.repositorios ?? []).map(
           ({ nome: _nomeRemovido, ...repositorio }: RepositorioGit & { nome?: string }) =>

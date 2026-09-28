@@ -1663,6 +1663,11 @@ button.selo-situacao:focus-visible {
   gap: 5px;
 }
 
+/* `.campo` e `[hidden]` têm a mesma especificidade: sem isto o atributo perde. */
+.campo[hidden] {
+  display: none;
+}
+
 /* Campo cujo controle é um botão de ícone: rótulo à esquerda, botão à direita. */
 .campo-em-linha {
   grid-template-columns: 1fr auto;
@@ -1864,6 +1869,11 @@ button.selo-situacao:focus-visible {
 .campo-duplo .campo-estreito {
   flex: none;
   width: 96px;
+}
+
+/* A porta ganha a largura do botão de copiar para o número continuar legível. */
+.campo-duplo .campo-estreito-com-acao {
+  width: 130px;
 }
 
 /* Empurra Cancelar e Salvar para a direita, deixando Desvincular à esquerda. */

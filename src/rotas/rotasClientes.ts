@@ -37,7 +37,7 @@ import {
   UrlDeRepositorioDuplicadaError,
   type RepositorioClientes,
 } from '../repositorio/repositorioClientes.ts';
-import { TIPOS_DE_BASE } from '../tipos.ts';
+import { IDENTIFICADORES_ORACLE, SGBDS, TIPOS_DE_BASE } from '../tipos.ts';
 import { consultarBaseDoCliente } from '../sistema/baseDoCliente.ts';
 import {
   limparHistoricoDaBaseDoCliente,
@@ -218,6 +218,11 @@ const esquemaDeDadosDeProjeto = z.object({
 });
 
 const esquemaDeDadosDeBancoDeDados = z.object({
+  // Padrão Oracle/service name: é o que todo cadastro anterior a estes campos era.
+  sgbd: z.enum(SGBDS, { error: 'Selecione o SGBD do banco.' }).default('oracle'),
+  identificadorOracle: z
+    .enum(IDENTIFICADORES_ORACLE, { error: 'Selecione service name ou SID.' })
+    .default('service-name'),
   host: z
     .string({ error: 'Informe o host do banco.' })
     .trim()
@@ -230,12 +235,12 @@ const esquemaDeDadosDeBancoDeDados = z.object({
     .min(PORTA_MINIMA, `A porta deve estar entre ${PORTA_MINIMA} e ${PORTA_MAXIMA}.`)
     .max(PORTA_MAXIMA, `A porta deve estar entre ${PORTA_MINIMA} e ${PORTA_MAXIMA}.`),
   nomeDoServico: z
-    .string({ error: 'Informe o service name.' })
+    .string({ error: 'Informe o service name, SID ou database.' })
     .trim()
-    .min(1, 'Informe o service name.')
+    .min(1, 'Informe o service name, SID ou database.')
     .max(
       TAMANHO_MAXIMO_DO_SERVICO,
-      `O service name deve ter no máximo ${TAMANHO_MAXIMO_DO_SERVICO} caracteres.`,
+      `O service name, SID ou database deve ter no máximo ${TAMANHO_MAXIMO_DO_SERVICO} caracteres.`,
     ),
   usuario: z
     .string({ error: 'Informe o usuário do banco.' })

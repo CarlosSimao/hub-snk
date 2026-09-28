@@ -87,8 +87,25 @@ export type TipoDeBase = (typeof TIPOS_DE_BASE)[number];
  * o arquivo cifrado. Por isso `dados-hub-snk/` está no `.gitignore`; sincronizar
  * a pasta com a nuvem é escolha do usuário, ciente de que a senha sobe legível.
  */
-/** Banco de dados vinculado a uma base. No máximo um por base. */
+export const SGBDS = ['oracle', 'sqlserver'] as const;
+
+export type Sgbd = (typeof SGBDS)[number];
+
+export const IDENTIFICADORES_ORACLE = ['service-name', 'sid'] as const;
+
+export type IdentificadorOracle = (typeof IDENTIFICADORES_ORACLE)[number];
+
+/**
+ * Banco de dados vinculado a uma base. No máximo um por base.
+ *
+ * `nomeDoServico` guarda o service name ou o SID no Oracle (conforme
+ * `identificadorOracle`) e o nome do database no SQL Server — o campo nasceu
+ * quando só havia Oracle e manteve o nome para não migrar os dados gravados.
+ * `identificadorOracle` não tem efeito no SQL Server.
+ */
 export interface BancoDeDados {
+  sgbd: Sgbd;
+  identificadorOracle: IdentificadorOracle;
   host: string;
   porta: number;
   nomeDoServico: string;

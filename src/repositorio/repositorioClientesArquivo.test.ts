@@ -101,6 +101,8 @@ describe('RepositorioClientesArquivo', () => {
     const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
     const base = await repositorio.adicionarBase(cliente.id, BASE_DE_EXEMPLO);
     await repositorio.definirBancoDeDados(cliente.id, base.id, {
+      sgbd: 'oracle',
+      identificadorOracle: 'service-name',
       host: '192.168.0.10',
       porta: 1521,
       nomeDoServico: 'ORCL',
@@ -114,6 +116,61 @@ describe('RepositorioClientesArquivo', () => {
     });
 
     assert.equal(atualizada.bancoDeDados?.nomeDoServico, 'ORCL');
+  });
+
+  it('grava o SGBD e o identificador Oracle do banco', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    const base = await repositorio.adicionarBase(cliente.id, BASE_DE_EXEMPLO);
+
+    const banco = await repositorio.definirBancoDeDados(cliente.id, base.id, {
+      sgbd: 'sqlserver',
+      identificadorOracle: 'sid',
+      host: '192.168.0.20',
+      porta: 1433,
+      nomeDoServico: 'SANKHYA',
+      usuario: 'sa',
+      senha: 'segredo',
+    });
+
+    repositorio.descartarCache();
+    const [relido] = await repositorio.listar();
+
+    assert.equal(banco.sgbd, 'sqlserver');
+    assert.deepEqual(relido?.bases[0]?.bancoDeDados, banco);
+  });
+
+  it('lê como Oracle por service name o banco gravado antes do SGBD existir', async () => {
+    await writeFile(
+      caminhoDoArquivo(),
+      JSON.stringify({
+        versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+        clientes: [
+          {
+            id: 'a',
+            nome: 'Indústria Alfa',
+            bases: [
+              {
+                id: 'b',
+                ...BASE_DE_EXEMPLO,
+                bancoDeDados: {
+                  host: '192.168.0.10',
+                  porta: 1521,
+                  nomeDoServico: 'ORCL',
+                  usuario: 'system',
+                  senha: 'segredo',
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      'utf8',
+    );
+
+    const [cliente] = await repositorio.listar();
+
+    assert.equal(cliente?.bases[0]?.bancoDeDados?.sgbd, 'oracle');
+    assert.equal(cliente?.bases[0]?.bancoDeDados?.identificadorOracle, 'service-name');
   });
 
   it('reaproveita o cliente existente na importação, mesmo escrito de outro jeito', async () => {
@@ -179,6 +236,8 @@ describe('RepositorioClientesArquivo', () => {
 
 describe('RepositorioClientesArquivo.importarCadastros', () => {
   const BANCO_DE_EXEMPLO = {
+    sgbd: 'oracle' as const,
+    identificadorOracle: 'service-name' as const,
     host: '192.168.0.10',
     porta: 1521,
     nomeDoServico: 'ORCL',

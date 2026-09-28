@@ -34,6 +34,10 @@ const SENHA_MASCARADA = '••••••••';
 const SEM_VALOR = '—';
 const NOME_DO_ARQUIVO_MCP = '.sankhya-mcp.env';
 const PORTA_PADRAO_DO_BANCO = 1521;
+const PORTAS_PADRAO_POR_SGBD = { oracle: 1521, sqlserver: 1433 };
+const ROTULOS_DE_SGBD = { oracle: 'Oracle', sqlserver: 'SQL Server' };
+const ROTULOS_DE_IDENTIFICADOR_ORACLE = { 'service-name': 'Service Name', sid: 'SID' };
+const ROTULO_DO_DATABASE = 'Database';
 /* O id fixo é o que permite reencontrar o campo depois de o detalhe ser redesenhado. */
 const ID_DO_CAMPO_DE_ANOTACOES = 'campo-anotacoes';
 const LINHAS_DO_CAMPO_DE_ANOTACOES = 5;
@@ -441,12 +445,17 @@ const elementos = {
   formularioBanco: document.getElementById('formulario-banco'),
   modalBancoTitulo: document.getElementById('modal-banco-titulo'),
   modalBancoSubtitulo: document.getElementById('modal-banco-subtitulo'),
+  campoSgbd: document.getElementById('campo-sgbd'),
+  grupoIdentificadorOracle: document.getElementById('grupo-identificador-oracle'),
+  campoIdentificadorOracle: document.getElementById('campo-identificador-oracle'),
   campoHost: document.getElementById('campo-host'),
   campoPorta: document.getElementById('campo-porta'),
+  rotuloCampoServico: document.getElementById('rotulo-campo-servico'),
   campoServico: document.getElementById('campo-servico'),
   campoUsuarioBanco: document.getElementById('campo-usuario-banco'),
   campoSenhaBanco: document.getElementById('campo-senha-banco'),
   botaoVerSenhaBanco: document.getElementById('btn-ver-senha-banco'),
+  botoesDeCopiarDoBanco: document.querySelectorAll('#formulario-banco [data-copiar-campo]'),
   erroBanco: document.getElementById('erro-banco'),
   botaoSalvarBanco: document.getElementById('btn-salvar-banco'),
   botaoCancelarBanco: document.getElementById('btn-cancelar-banco'),
@@ -3441,13 +3450,13 @@ function renderizarDetalhe() {
     cabecalho,
     criarAbasDeDetalhe([
       { chave: 'geral', rotulo: 'Geral', conteudo: secaoGeral },
-      { chave: 'projetos', rotulo: 'Projetos', conteudo: criarSecaoDeProjetos(cliente) },
       { chave: 'bases', rotulo: 'Bases', conteudo: criarSecaoDeBases(cliente) },
       {
         chave: 'repositorios',
         rotulo: 'Repositórios',
         conteudo: criarSecaoDeRepositorios(cliente),
       },
+      { chave: 'projetos', rotulo: 'Projetos', conteudo: criarSecaoDeProjetos(cliente) },
       { chave: 'agenda', rotulo: 'Agenda', conteudo: criarSecaoDeAgenda(cliente) },
       { chave: 'os', rotulo: 'OS', conteudo: criarSecaoDeOs(cliente) },
     ]),
@@ -3751,6 +3760,8 @@ function abrirModalDeBanco(cliente, base) {
     ? 'Editar banco de dados'
     : 'Vincular banco de dados';
   elementos.modalBancoSubtitulo.textContent = `Base: ${base.url}`;
+  elementos.campoSgbd.value = banco?.sgbd ?? 'oracle';
+  elementos.campoIdentificadorOracle.value = banco?.identificadorOracle ?? 'service-name';
   elementos.campoHost.value = banco?.host ?? '';
   elementos.campoPorta.value = banco?.porta ?? PORTA_PADRAO_DO_BANCO;
   elementos.campoServico.value = banco?.nomeDoServico ?? '';
@@ -3758,6 +3769,7 @@ function abrirModalDeBanco(cliente, base) {
   elementos.campoSenhaBanco.value = banco?.senha ?? '';
   elementos.botaoDesvincularBanco.hidden = !banco;
 
+  atualizarCamposDoSgbd();
   definirVisibilidadeDaSenhaDoBanco(false);
   limparErro(elementos.erroBanco);
   elementos.modalBanco.showModal();
@@ -3766,6 +3778,8 @@ function abrirModalDeBanco(cliente, base) {
 
 function lerFormularioDeBanco() {
   return {
+    sgbd: elementos.campoSgbd.value,
+    identificadorOracle: elementos.campoIdentificadorOracle.value,
     host: elementos.campoHost.value.trim(),
     porta: elementos.campoPorta.value.trim(),
     nomeDoServico: elementos.campoServico.value.trim(),
@@ -3785,7 +3799,7 @@ function validarFormularioDeBanco(dados) {
   }
 
   if (!dados.nomeDoServico) {
-    return 'Informe o service name.';
+    return `Informe o ${rotuloDoCampoDeServico(dados)}.`;
   }
 
   if (!dados.usuario) {
@@ -3797,6 +3811,54 @@ function validarFormularioDeBanco(dados) {
   }
 
   return null;
+}
+
+/* O mesmo campo guarda service name ou SID no Oracle e o database no SQL Server. */
+function rotuloDoCampoDeServico({ sgbd, identificadorOracle }) {
+  return sgbd === 'oracle'
+    ? ROTULOS_DE_IDENTIFICADOR_ORACLE[identificadorOracle]
+    : ROTULO_DO_DATABASE;
+}
+
+function atualizarCamposDoSgbd() {
+  const dados = lerFormularioDeBanco();
+
+  elementos.grupoIdentificadorOracle.hidden = dados.sgbd !== 'oracle';
+  elementos.rotuloCampoServico.textContent = rotuloDoCampoDeServico(dados);
+  elementos.botoesDeCopiarDoBanco.forEach(rotularBotaoDeCopiarDoBanco);
+}
+
+/* O rótulo vem do `<label>` do campo porque o do serviço muda com o SGBD. */
+function rotuloDoCampoCopiado(botao) {
+  return document.querySelector(`label[for="${botao.dataset.copiarCampo}"]`).textContent;
+}
+
+function rotularBotaoDeCopiarDoBanco(botao) {
+  const rotulo = `Copiar ${rotuloDoCampoCopiado(botao)}`;
+  botao.title = rotulo;
+  botao.setAttribute('aria-label', rotulo);
+}
+
+function copiarCampoDoBanco(botao) {
+  const valor = document.getElementById(botao.dataset.copiarCampo).value;
+  const rotulo = rotuloDoCampoCopiado(botao);
+
+  if (valor === '') {
+    exibirAviso(`${rotulo} está vazio: nada para copiar.`, 'erro');
+    return;
+  }
+
+  copiarParaAreaDeTransferencia(valor, `${rotulo} copiado.`);
+}
+
+/* Só troca a porta padrão do outro SGBD: porta digitada pelo usuário é preservada. */
+function aplicarPortaPadraoDoSgbd() {
+  const portaAtual = Number(elementos.campoPorta.value);
+  const ehPortaPadrao = Object.values(PORTAS_PADRAO_POR_SGBD).includes(portaAtual);
+
+  if (elementos.campoPorta.value === '' || ehPortaPadrao) {
+    elementos.campoPorta.value = PORTAS_PADRAO_POR_SGBD[elementos.campoSgbd.value];
+  }
 }
 
 async function salvarBanco(evento) {
@@ -6601,6 +6663,10 @@ function trechoDoBancoDeDados(banco) {
   return [
     'Banco de dados',
     ...linhasDeCamposExportados([
+      ['SGBD', ROTULOS_DE_SGBD[banco.sgbd]],
+      ...(banco.sgbd === 'oracle'
+        ? [['Identificação', ROTULOS_DE_IDENTIFICADOR_ORACLE[banco.identificadorOracle]]]
+        : []),
       ['Host', banco.host],
       ['Porta', String(banco.porta)],
       ['Serviço', banco.nomeDoServico],
@@ -7159,6 +7225,12 @@ async function recarregarCliente(id) {
   estado.clientes[posicao] = cliente;
 }
 
+/** Geral vazia (sem anotações nem links gerais) não tem o que mostrar: abre em Bases. */
+function abaInicialDoCliente(cliente) {
+  const geralVazia = !cliente?.anotacoes?.trim() && !cliente?.links?.length;
+  return geralVazia ? 'bases' : 'geral';
+}
+
 /**
  * Seleciona e relê o cliente.
  *
@@ -7169,7 +7241,9 @@ async function recarregarCliente(id) {
  */
 async function selecionarCliente(id) {
   if (estado.idSelecionado !== id) {
-    estado.abaDetalheAtiva = 'geral';
+    estado.abaDetalheAtiva = abaInicialDoCliente(
+      estado.clientes.find((cliente) => cliente.id === id),
+    );
   }
   estado.idSelecionado = id;
   renderizar();
@@ -7311,6 +7385,12 @@ function registrarEventos() {
   elementos.botaoVerSenhaBanco.addEventListener('click', () => {
     definirVisibilidadeDaSenhaDoBanco(elementos.campoSenhaBanco.type === 'password');
   });
+  elementos.botoesDeCopiarDoBanco.forEach((botao) => {
+    botao.append(criarIcone(ICONES.copiar));
+    botao.addEventListener('click', () => copiarCampoDoBanco(botao));
+  });
+  elementos.campoSgbd.addEventListener('change', aplicarPortaPadraoDoSgbd);
+  elementos.formularioBanco.addEventListener('input', atualizarCamposDoSgbd);
 
   elementos.formularioMcp.addEventListener('submit', salvarConfiguracaoMcp);
   elementos.botaoCancelarMcp.addEventListener('click', () => elementos.modalMcp.close());

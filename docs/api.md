@@ -150,6 +150,8 @@ Banco de dados:
 
 ```json
 {
+  "sgbd": "oracle",
+  "identificadorOracle": "service-name",
   "host": "192.168.0.10",
   "porta": 1521,
   "nomeDoServico": "ORCL",
@@ -157,6 +159,11 @@ Banco de dados:
   "senha": "..."
 }
 ```
+
+`sgbd` aceita `oracle` ou `sqlserver`; `identificadorOracle` aceita
+`service-name` ou `sid` e só tem efeito no Oracle. Os dois são opcionais e,
+ausentes, valem `oracle` e `service-name`. `nomeDoServico` guarda o service name
+ou o SID no Oracle e o nome do database no SQL Server.
 
 Cada base tem no máximo um banco, por isso o `PUT` faz as duas coisas: vincula
 quando não existe e substitui quando existe. `porta` aceita número ou texto
@@ -195,6 +202,8 @@ Importação de cadastros:
           "usuario": "admin",
           "senha": "...",
           "bancoDeDados": {
+            "sgbd": "oracle",
+            "identificadorOracle": "service-name",
             "host": "192.168.0.10",
             "porta": 1521,
             "nomeDoServico": "ORCL",
