@@ -3148,8 +3148,89 @@ function formatarDiaDeOs(dia) {
   return `${diaDoMes}/${mes}/${ano}`;
 }
 
+const MINUTOS_POR_HORA = 60;
+
+/* `diff_time` da Experience: `HH:MM`, com as horas podendo passar de 24 e segundos opcionais. */
+const FORMATO_DE_HORAS_DA_OS = /^(\d+):(\d{2})(?::\d{2})?$/;
+
+/** `'08:30'` -> 510. Vazio ou fora do formato vale 0: a OS fica fora da soma, sem inventar horas. */
+function minutosDasHoras(horas) {
+  const partes = FORMATO_DE_HORAS_DA_OS.exec(horas?.trim() ?? '');
+  if (!partes) return 0;
+  return Number(partes[1]) * MINUTOS_POR_HORA + Number(partes[2]);
+}
+
+/** 8400 -> `'140:00'`: total do mês, sem virar dias. */
+function formatarMinutosComoHoras(minutos) {
+  const horas = Math.floor(minutos / MINUTOS_POR_HORA);
+  const resto = String(minutos % MINUTOS_POR_HORA).padStart(2, '0');
+  return `${String(horas).padStart(2, '0')}:${resto}`;
+}
+
+/* OS sem status na Experience: agrupada à parte, com um nome legível no agrupador. */
+const STATUS_DE_OS_VAZIO = 'Sem status';
+
+/* Posição na paleta `.cor-status-N` do styles.css. Os status conhecidos têm cor fixa. */
+const CORES_FIXAS_DOS_STATUS_DE_OS = new Map([
+  ['Concluído', 0],
+  ['Gerado', 1],
+]);
+const QUANTIDADE_DE_CORES_DE_STATUS = 7;
+
+function statusDaOs(item) {
+  return item.statusAceite || STATUS_DE_OS_VAZIO;
+}
+
+/** Mais recente primeiro: dia de conclusão e, no mesmo dia, horário de início. Sem data vai para o fim. */
+function ordenarOsDaMaisRecente(itens) {
+  const chaveDeOrdem = (item) => `${item.dia || '0000-00-00'} ${item.horaInicio}`;
+  return [...itens].sort((a, b) => chaveDeOrdem(b).localeCompare(chaveDeOrdem(a)));
+}
+
+/** Quantidade de OS de cada status, com os status em ordem alfabética. */
+function contarOsPorStatus(itens) {
+  const contagens = new Map();
+  for (const item of itens) {
+    const status = statusDaOs(item);
+    contagens.set(status, (contagens.get(status) ?? 0) + 1);
+  }
+  return new Map([...contagens].sort(([a], [b]) => a.localeCompare(b, 'pt-BR')));
+}
+
+/**
+ * Classe de cor de cada status. Os conhecidos têm cor fixa; os demais pegam as cores
+ * livres na ordem recebida, para dois status do mesmo mês não saírem com a mesma cor.
+ */
+function atribuirCoresAosStatus(statuses) {
+  const fixas = new Set(CORES_FIXAS_DOS_STATUS_DE_OS.values());
+  const livres = [...Array(QUANTIDADE_DE_CORES_DE_STATUS).keys()].filter((i) => !fixas.has(i));
+  let proximaLivre = 0;
+
+  const cores = new Map();
+  for (const status of statuses) {
+    const indice =
+      CORES_FIXAS_DOS_STATUS_DE_OS.get(status) ?? livres[proximaLivre++ % livres.length];
+    cores.set(status, `cor-status-${indice}`);
+  }
+  return cores;
+}
+
+/** Botão de um status: marcado, filtra a lista por ele; vários podem estar marcados. */
+function criarAgrupadorDeStatus({ status, quantidade, classeDeCor, marcado, aoAlternar }) {
+  const classes = `agrupador-status ${classeDeCor}${marcado ? ' ativo' : ''}`;
+  const botao = criarBotao(classes, undefined, aoAlternar);
+  botao.setAttribute('aria-pressed', String(marcado));
+  botao.title = marcado ? `Parar de filtrar por ${status}` : `Mostrar as OS ${status}`;
+  botao.append(
+    criarElemento('span', 'ponto-status'),
+    criarElemento('span', null, status),
+    criarElemento('span', 'opcao-contagem', String(quantidade)),
+  );
+  return botao;
+}
+
 /** Uma OS na lista: número + tipo, empresa/descrição, e uma linha de detalhes. */
-function criarLinhaDeOs(item) {
+function criarLinhaDeOs(item, classeDeCor) {
   const linha = criarElemento('div', 'linha-recurso');
   const informacoes = criarElemento('div', 'recurso-info');
 
@@ -3158,7 +3239,9 @@ function criarLinhaDeOs(item) {
     criarElemento('p', 'recurso-nome', `OS ${item.numeroSankhya || '(sem número)'} · ${item.tipo}`),
   );
   if (item.statusAceite) {
-    linhaTitulo.append(criarElemento('span', 'selo-situacao ok', item.statusAceite));
+    linhaTitulo.append(
+      criarElemento('span', `selo-situacao selo-status-os ${classeDeCor}`, item.statusAceite),
+    );
   }
   informacoes.append(linhaTitulo);
 
@@ -3199,7 +3282,8 @@ function criarLinhaDeOs(item) {
  * diferença é de onde vêm os itens (`buscarOs`).
  */
 function criarWidgetDeOs({ buscarOs, aoErro, mesInicial = mesAtualIso() }) {
-  const estadoWidget = { mes: mesInicial };
+  /* `statusFiltrados` vazio mostra tudo; a seleção sobrevive à troca de mês. */
+  const estadoWidget = { mes: mesInicial, itens: [], statusFiltrados: new Set() };
 
   const rotuloMes = criarElemento('span', 'rotulo-mes-calendario');
   const navegacao = criarElemento('div', 'navegacao-calendario');
@@ -3209,13 +3293,69 @@ function criarWidgetDeOs({ buscarOs, aoErro, mesInicial = mesAtualIso() }) {
     criarBotao('btn tiny ghost', '›', () => mudarMes(1)),
   );
 
-  const status = criarElemento('p', 'texto-auxiliar texto-centralizado');
+  const agrupadores = criarElemento('div', 'agrupadores-status');
+  agrupadores.setAttribute('role', 'group');
+  agrupadores.setAttribute('aria-label', 'Filtrar as OS pelo status');
+  const status = criarElemento('p', 'texto-auxiliar totais-os');
+  const barra = criarElemento('div', 'barra-os');
+  barra.append(agrupadores, status);
+
   const erro = criarElemento('p', 'erro-formulario');
   erro.hidden = true;
   const lista = criarElemento('div', 'lista-os');
 
   const elemento = criarElemento('div', 'secao-agenda-geral');
-  elemento.append(erro, navegacao, status, lista);
+  elemento.append(erro, navegacao, barra, lista);
+
+  function alternarStatus(statusDoAgrupador) {
+    const filtrados = estadoWidget.statusFiltrados;
+    if (!filtrados.delete(statusDoAgrupador)) {
+      filtrados.add(statusDoAgrupador);
+    }
+    renderizarItens();
+  }
+
+  /* Contador e horas somam só as OS visíveis; os agrupadores contam o mês inteiro. */
+  function renderizarItens() {
+    const { itens, statusFiltrados } = estadoWidget;
+    const contagens = contarOsPorStatus(itens);
+    const cores = atribuirCoresAosStatus(contagens.keys());
+    const visiveis = statusFiltrados.size
+      ? itens.filter((item) => statusFiltrados.has(statusDaOs(item)))
+      : itens;
+
+    agrupadores.replaceChildren(
+      ...[...contagens].map(([statusDoAgrupador, quantidade]) =>
+        criarAgrupadorDeStatus({
+          status: statusDoAgrupador,
+          quantidade,
+          classeDeCor: cores.get(statusDoAgrupador),
+          marcado: statusFiltrados.has(statusDoAgrupador),
+          aoAlternar: () => alternarStatus(statusDoAgrupador),
+        }),
+      ),
+    );
+    const minutosLancados = visiveis.reduce(
+      (total, item) => total + minutosDasHoras(item.horasFeitas),
+      0,
+    );
+    status.textContent = itens.length
+      ? `${visiveis.length} OS neste mês · ${formatarMinutosComoHoras(minutosLancados)} horas lançadas.`
+      : 'Nenhuma OS neste mês.';
+    lista.replaceChildren(
+      ...visiveis.map((item) => criarLinhaDeOs(item, cores.get(statusDaOs(item)))),
+    );
+  }
+
+  /* Status marcado que não existe no mês novo sai da seleção: senão a lista viria vazia. */
+  function descartarStatusAusentes() {
+    const presentes = new Set(estadoWidget.itens.map(statusDaOs));
+    for (const statusMarcado of estadoWidget.statusFiltrados) {
+      if (!presentes.has(statusMarcado)) {
+        estadoWidget.statusFiltrados.delete(statusMarcado);
+      }
+    }
+  }
 
   async function carregar() {
     limparErro(erro);
@@ -3224,10 +3364,12 @@ function criarWidgetDeOs({ buscarOs, aoErro, mesInicial = mesAtualIso() }) {
 
     const { de, ate } = limitesDoMesCliente(estadoWidget.mes);
     try {
-      const itens = await buscarOs(de, ate);
-      status.textContent = itens.length ? `${itens.length} OS neste mês.` : 'Nenhuma OS neste mês.';
-      lista.replaceChildren(...itens.map(criarLinhaDeOs));
+      estadoWidget.itens = ordenarOsDaMaisRecente(await buscarOs(de, ate));
+      descartarStatusAusentes();
+      renderizarItens();
     } catch (erroDeCarga) {
+      estadoWidget.itens = [];
+      agrupadores.replaceChildren();
       lista.replaceChildren();
       status.textContent = '';
       exibirErro(erro, erroDeCarga.message);

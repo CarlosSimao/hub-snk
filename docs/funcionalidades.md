@@ -303,6 +303,25 @@ por isso o arquivo executável é chamado direto. As duas exceções do macOS fi
 com o despachante porque só ele sabe iniciá-las: o `.app` é um pacote, e o
 `.command` existe para abrir no Terminal, janela que rodá-lo direto tiraria.
 
+## Lista de OS
+
+As abas **OS** do menu principal e do cadastro do cliente listam as OS do mês da
+mais recente para a mais antiga — pela data de conclusão e, no mesmo dia, pelo
+horário de início. OS sem data de conclusão vai para o fim.
+
+À esquerda, acima da lista, fica um agrupador por status da OS, com a
+quantidade de OS do mês em cada um e uma cor própria: **Concluído** em verde,
+**Gerado** em azul e os demais com as cores livres da paleta, em ordem
+alfabética. O selo de status de cada OS usa a mesma cor. Clicar num agrupador
+filtra a lista por ele; clicar de novo tira o filtro, e vários podem ficar
+marcados ao mesmo tempo. A seleção continua ao trocar de mês, perdendo só o
+status que não existir no mês novo.
+
+À direita ficam o contador e o total de horas lançadas das OS **visíveis**: a
+soma das **Horas** de cada uma, no formato `HHH:MM` (`20 OS neste mês · 134:00
+horas lançadas.`). OS sem horas, ou com um valor fora do formato `HH:MM`, fica
+fora da soma. As quantidades dos agrupadores contam sempre o mês inteiro.
+
 ## Acessos por perfil
 
 O HUB SNK atende perfis diferentes, e cada um vê só o que usa. Em

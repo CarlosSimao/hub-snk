@@ -897,6 +897,92 @@ main {
   gap: 10px;
 }
 
+/* Agrupadores de status à esquerda; contador e horas à direita, mesmo quebrando linha. */
+.barra-os {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.agrupadores-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* `.barra-os` na frente: `.texto-auxiliar`, mais abaixo no arquivo, zeraria a margem. */
+.barra-os .totais-os {
+  margin: 0 0 0 auto;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Paleta dos status de OS: a classe só define a cor; agrupador e selo decidem o uso. */
+.cor-status-0 {
+  --cor-do-status: var(--marca);
+}
+.cor-status-1 {
+  --cor-do-status: var(--accent);
+}
+.cor-status-2 {
+  --cor-do-status: var(--aviso);
+}
+.cor-status-3 {
+  --cor-do-status: var(--perigo);
+}
+.cor-status-4 {
+  --cor-do-status: #a78bfa;
+}
+.cor-status-5 {
+  --cor-do-status: #22d3ee;
+}
+.cor-status-6 {
+  --cor-do-status: #f472b6;
+}
+
+.agrupador-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--cor-do-status) 75%, var(--text));
+  background: color-mix(in srgb, var(--cor-do-status) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cor-do-status) 30%, transparent);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.agrupador-status:hover {
+  border-color: color-mix(in srgb, var(--cor-do-status) 60%, transparent);
+}
+
+.agrupador-status.ativo {
+  color: var(--text);
+  background: color-mix(in srgb, var(--cor-do-status) 24%, transparent);
+  border-color: var(--cor-do-status);
+}
+
+.agrupador-status:focus-visible {
+  outline: 2px solid var(--cor-do-status);
+  outline-offset: 2px;
+}
+
+.ponto-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cor-do-status);
+}
+
+.selo-situacao.selo-status-os {
+  color: color-mix(in srgb, var(--cor-do-status) 70%, var(--text));
+  border-color: color-mix(in srgb, var(--cor-do-status) 35%, transparent);
+  background: color-mix(in srgb, var(--cor-do-status) 8%, transparent);
+}
+
 /*
  * Bloco de situação do banco local (selo + gráfico de uptime): filho direto da
  * linha, não encolhe. Largura fixa — não varia entre "Verificando…",
