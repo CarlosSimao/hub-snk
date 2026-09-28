@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { listarIdsDemanda } from '../../lib/demandas.ts';
 import type {
   AgenteIA,
   AnexoEmail,
@@ -195,10 +196,22 @@ function ComporEnviar({
   repos: RepoCliente[];
   agenteIA: AgenteIA;
 }) {
-  // Sugestão editável — o padrão do TECH, não um campo travado.
+  // Sugestão editável — o padrão do TECH, não um campo travado. Com várias demandas no
+  // cliente, o e-mail é de UMA delas: o seletor troca o ID no assunto.
+  const demandas = listarIdsDemanda(cliente.agendaDemandaId);
+  const [demanda, setDemanda] = useState(demandas[0] ?? '');
   const [assunto, setAssunto] = useState(
-    `TECH | ID ${cliente.agendaDemandaId || '?'} - ${cliente.nome} - Evidência de Entrega`,
+    `TECH | ID ${demandas[0] ?? '?'} - ${cliente.nome} - Evidência de Entrega`,
   );
+  const trocarDemanda = (id: string) => {
+    setDemanda(id);
+    // Só o trecho "ID ..." muda: o resto do assunto pode já ter sido editado à mão.
+    setAssunto((atual) =>
+      /\bID\s+[\d?]+(?:\s*,\s*\d+)*/.test(atual)
+        ? atual.replace(/\bID\s+[\d?]+(?:\s*,\s*\d+)*/, `ID ${id}`)
+        : `TECH | ID ${id} - ${cliente.nome} - Evidência de Entrega`,
+    );
+  };
   const [corpo, setCorpo] = useState('');
   const [anexo, setAnexo] = useState<AnexoEmail | null>(null);
   const [anexando, setAnexando] = useState(false);
@@ -332,6 +345,19 @@ function ComporEnviar({
           </p>
         )}
 
+        {demandas.length > 1 && (
+          <div className="campo">
+            <label className="campo-nome" htmlFor="email-demanda">Demanda</label>
+            <select id="email-demanda" value={demanda} onChange={(e) => trocarDemanda(e.target.value)}>
+              {demandas.map((id) => (
+                <option key={id} value={id}>
+                  ID {id}
+                </option>
+              ))}
+            </select>
+            <small className="campo-dica">De qual demanda é esta evidência — o ID vai para o assunto.</small>
+          </div>
+        )}
         <div className="campo">
           <label className="campo-nome" htmlFor="email-assunto">Assunto</label>
           <input id="email-assunto" value={assunto} onChange={(e) => setAssunto(e.target.value)} />

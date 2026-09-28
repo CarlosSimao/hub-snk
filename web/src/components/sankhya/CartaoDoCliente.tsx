@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { DemandasDoCliente } from './DemandasDoCliente.tsx';
 import type {
   AmbienteBase,
   BancoDaBase,
@@ -179,6 +180,7 @@ export function CartaoDoCliente({ cliente, toast, onAbrirSkill, onEditar, onRemo
         <div>
           <span>Cliente</span>
           <h2>{cliente.nome}</h2>
+          <DemandasDoCliente cliente={cliente} toast={toast} onSalvarCliente={onSalvarCliente} />
         </div>
         <div className="cartao-head-acoes">
           <button className="btn tiny ghost" disabled={dados.carregando} onClick={() => void Promise.all([dados.recarregar(), git.recarregar()])}>Recarregar</button>

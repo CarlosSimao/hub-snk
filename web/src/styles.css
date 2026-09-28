@@ -4531,3 +4531,47 @@ Processos: ...").
   padding: 16px;
   background: #d9d9d9;
 }
+
+/* ---------------- IDs das demandas no cabeçalho do cartão do cliente --------------- */
+
+.demandas-cliente {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.chip-demanda-cliente {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 11.5px;
+}
+
+.chip-demanda-cliente button {
+  margin-left: 2px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-faint);
+  font: inherit;
+  cursor: pointer;
+}
+
+.chip-demanda-cliente button:hover { color: var(--down); }
+
+.demandas-cliente-novo {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.demandas-cliente-novo input {
+  width: 110px;
+  padding: 2px 8px;
+  font-size: 11.5px;
+}
