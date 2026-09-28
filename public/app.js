@@ -214,6 +214,8 @@ const estado = {
   situacoesFiltradas: new Set(),
   /* Funcionalidades desmarcadas em Configurações › Acessos: só somem da tela. */
   funcionalidadesOcultas: new Set(),
+  /* Perfil em vigor na tela; `null` enquanto a configuração não foi lida. */
+  perfil: null,
   clienteEmEdicao: null,
   clienteDaBaseEmEdicao: null,
   baseEmEdicao: null,
@@ -5253,13 +5255,17 @@ async function salvarConfiguracao(evento) {
       funcionalidadesOcultas: lerFuncionalidadesOcultasDaConfiguracao(),
     });
     elementos.modalConfiguracao.close();
+    if (acessosMudaram(salva)) {
+      recarregarPainelPorMudancaDeAcessos();
+      return;
+    }
+
     exibirAviso('Configurações salvas.');
     definirExecucaoAutomatica(Number(elementos.campoIntervaloDeExecucaoAutomatica.value));
 
     /* A resposta traz os ids gerados: é dela que a barra passa a viver. */
     estado.atalhos = salva.atalhos ?? [];
     renderizarListaDeAtalhos();
-    aplicarAcessos(salva.funcionalidadesOcultas ?? []);
   } catch (erro) {
     exibirErro(elementos.erroConfiguracao, erro.message);
   } finally {
@@ -5314,7 +5320,8 @@ async function aplicarPresetDoPerfil() {
 }
 
 /** Mostra ou esconde o menu principal e o que depende dos repositórios, e redesenha. */
-function aplicarAcessos(funcionalidadesOcultas) {
+function aplicarAcessos({ perfil, funcionalidadesOcultas = [] }) {
+  estado.perfil = perfil;
   estado.funcionalidadesOcultas = new Set(funcionalidadesOcultas);
 
   elementos.botaoVisualizacaoLocal.hidden = !funcionalidadeVisivel('local');
@@ -5334,6 +5341,25 @@ function aplicarAcessos(funcionalidadesOcultas) {
     alternarVisualizacao('clientes');
   }
   renderizar();
+}
+
+/* Compara com o que está em vigor na tela: só perfil ou caixas diferentes pedem recarga. */
+function acessosMudaram({ perfil, funcionalidadesOcultas = [] }) {
+  const emVigor = estado.funcionalidadesOcultas;
+  return (
+    perfil !== estado.perfil ||
+    funcionalidadesOcultas.length !== emVigor.size ||
+    funcionalidadesOcultas.some((chave) => !emVigor.has(chave))
+  );
+}
+
+/* Tempo para o aviso ser lido antes de a página sumir. */
+const ESPERA_ANTES_DE_RECARREGAR_MS = 1500;
+
+/** Recarregar monta o Painel do zero com os acessos novos, sem resto do estado anterior. */
+function recarregarPainelPorMudancaDeAcessos() {
+  exibirAviso('Acessos salvos. Recarregando o painel…');
+  setTimeout(() => window.location.reload(), ESPERA_ANTES_DE_RECARREGAR_MS);
 }
 
 /* ----------------- correspondência de nome de cliente --------------------- */
@@ -7878,7 +7904,7 @@ async function iniciar() {
         INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S,
     );
     estado.atalhos = configuracao.atalhos ?? [];
-    aplicarAcessos(configuracao.funcionalidadesOcultas ?? []);
+    aplicarAcessos(configuracao);
   } catch {
     // Sem a configuração, vale o padrão — não é motivo para outro aviso na tela.
     definirExecucaoAutomatica(INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S);

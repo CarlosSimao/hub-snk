@@ -340,7 +340,9 @@ abriria vazia.
 
 O perfil é perguntado na instalação, e o preset dele vale desde a primeira
 abertura. Trocar o perfil na aba Acessos marca as caixas do preset; depois disso
-elas seguem editáveis, uma a uma. Reinstalar ou atualizar não desfaz o ajuste: o
+elas seguem editáveis, uma a uma. Salvar com o perfil ou as caixas alterados
+recarrega o Painel, que volta montado do zero com os acessos novos; as guias do
+Sankhya e das bases continuam abertas. Reinstalar ou atualizar não desfaz o ajuste: o
 perfil do instalador só é aplicado enquanto a configuração ainda não tem acessos
 gravados — inclusive quando a pasta de dados vem sincronizada de outra máquina.
 
