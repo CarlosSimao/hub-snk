@@ -179,13 +179,30 @@ export function telasConhecidas(): string[] {
   return Object.keys(TELAS);
 }
 
+/** Origem + caminho, sem hash nem query — para comparar "já estou nessa página". */
+function paginaBase(urlTexto: string): string {
+  try {
+    const u = new URL(urlTexto);
+    return `${u.origin}${u.pathname}`;
+  } catch {
+    return '';
+  }
+}
+
 /**
  * Abre a tela na aba do sistema, dentro do proprio shell.
  *
  * Antes isto disparava um processo do Chrome; aqui e' navegar a aba que ja' existe e
  * traze-la para a frente.
+ *
+ * O hash (`#app/<base64>`) é trocado com JS, nunca com um segundo `loadURL`: um
+ * `loadURL` pra uma URL com hash é navegação cheia mesmo quando só o hash muda, e
+ * recarregar `system.jsp` derruba o Angular que acabou de logar — o Sankhya volta pra
+ * tela de login mesmo com cookie válido (bug real, batido depurando "abrir aba
+ * Agenda"). Só chega na página base com `loadURL`; a partir daí o hash é atribuição de
+ * JS, o mesmo efeito de um clique de menu de verdade, sem recarregar nada.
  */
-export function abrir(tabs: TabManager | null, sistema: Sistema, tela: string): string {
+export async function abrir(tabs: TabManager | null, sistema: Sistema, tela: string): Promise<string> {
   const url = resolverUrl(sistema, tela);
   if (!url) throw new Error(`tela desconhecida: ${tela}`);
 
@@ -193,7 +210,13 @@ export function abrir(tabs: TabManager | null, sistema: Sistema, tela: string): 
   const view = tabs?.aba(id);
   if (!view) throw new Error('as abas do Sankhya ainda não abriram');
 
-  void view.webContents.loadURL(url);
+  const alvo = new URL(url);
+  if (paginaBase(view.webContents.getURL()) !== `${alvo.origin}${alvo.pathname}`) {
+    await view.webContents.loadURL(`${alvo.origin}${alvo.pathname}`);
+  }
+  if (alvo.hash) {
+    await view.webContents.executeJavaScript(`location.hash = ${JSON.stringify(alvo.hash)}`, true);
+  }
   tabs?.mostrar(id);
   logEvento('navegador-abrir', { sistema, tela });
   return url;

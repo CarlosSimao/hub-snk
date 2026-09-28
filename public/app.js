@@ -193,7 +193,7 @@ const ICONES = {
   importar: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3',
   /* A mesma bandeja com a seta saindo: o botão que exporta os cadastros. */
   exportar: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 8l5-5 5 5 M12 3v12',
-  /* Elos de corrente: o botão que vincula um evento da Agenda a um cliente do hub. */
+  /* Elos de corrente: o botão que vincula o parceiro do evento a um cliente do HUB. */
   link: 'M15 7h3a5 5 0 0 1 0 10h-3 M9 17H6a5 5 0 0 1 0-10h3 M8 12h8',
 };
 
@@ -418,7 +418,8 @@ const elementos = {
   modalTitulo: document.getElementById('modal-titulo'),
   modalSubtitulo: document.getElementById('modal-subtitulo'),
   campoNome: document.getElementById('campo-nome'),
-  campoCodparcs: document.getElementById('campo-codparcs'),
+  listaNomesCompletosCliente: document.getElementById('lista-nomes-completos'),
+  botaoAdicionarNomeCompleto: document.getElementById('btn-adicionar-nome-completo'),
   erroCliente: document.getElementById('erro-formulario'),
   botaoSalvarCliente: document.getElementById('btn-salvar'),
   botaoCancelarCliente: document.getElementById('btn-cancelar'),
@@ -617,9 +618,14 @@ const api = {
     requisitar(`/api/sankhya/navegador/abrir/${sistema}`, { metodo: 'POST' }),
   capturarSessaoSankhya: (sistema) =>
     requisitar(`/api/sankhya/navegador/capturar/${sistema}`, { metodo: 'POST' }),
+  autoLoginSankhya: (sistema) =>
+    requisitar(`/api/sankhya/navegador/autologin/${sistema}`, { metodo: 'POST' }),
   estadoAgenda: () => requisitar('/api/agenda/estado'),
-  salvarAgenda: (id, dados) =>
-    requisitar(`${CAMINHO_DA_API}/${id}/agenda`, { metodo: 'PUT', corpo: dados }),
+  salvarNomesCompletos: (id, nomesCompletos) =>
+    requisitar(`${CAMINHO_DA_API}/${id}/nomes-completos`, {
+      metodo: 'PUT',
+      corpo: { nomesCompletos },
+    }),
   consultarAgenda: (de, ate) =>
     requisitar('/api/agenda/consultar', { metodo: 'POST', corpo: { de, ate } }),
   eventosDaAgenda: (de, ate) =>
@@ -1805,12 +1811,32 @@ function criarSecaoDeAgenda(cliente) {
   const widgetDeAgendaDoCliente = criarWidgetDeAgenda({
     buscarEventos: (de, ate) =>
       api.eventosDoClienteNaAgenda(cliente.id, de, ate).then((resposta) => resposta.eventos),
+    aoMudarMes: async () => {
+      await widgetDeAgendaDoCliente.carregar();
+      void refrescarAgendaDoClienteEmSegundoPlano(widgetDeAgendaDoCliente);
+    },
   });
 
   const secao = criarElemento('div', 'secao-recursos');
   secao.append(widgetDeAgendaDoCliente.elemento);
-  void widgetDeAgendaDoCliente.carregar();
+  // Mostra o snapshot local na hora e, em segundo plano, consulta o mês para preencher o
+  // que ainda não foi baixado — a mesma consulta da aba Agenda do topo, que traz a agenda
+  // inteira do usuário e da qual este cadastro só exibe a fatia do parceiro vinculado.
+  void widgetDeAgendaDoCliente
+    .carregar()
+    .then(() => refrescarAgendaDoClienteEmSegundoPlano(widgetDeAgendaDoCliente));
   return secao;
+}
+
+/** Consulta o mês do widget em segundo plano e recarrega; erro não apaga o cache exibido. */
+async function refrescarAgendaDoClienteEmSegundoPlano(widget) {
+  const { de, ate } = limitesDoMesCliente(widget.mes);
+  try {
+    await api.consultarAgenda(de, ate);
+    await widget.carregar();
+  } catch (erro) {
+    exibirErro(widget.elementoErro, erro.message);
+  }
 }
 
 /**
@@ -2641,51 +2667,102 @@ function anexarSituacaoDoEvento(linhaHorario, informacoes, codparc, dia, forcarN
   void carregar(forcarNaAbertura);
 }
 
-/** Cliente do hub que já tem esse `codparc` do Sankhya amarrado, se houver. */
-function clientePorCodparc(codparc) {
-  return estado.clientes.find((cliente) => cliente.agendaCodparcs.includes(codparc)) ?? null;
+/**
+ * Normaliza um nome para comparação frouxa (acento, caixa, sufixo societário) — espelha o
+ * `chaveNome` do backend, para o "já vinculado" bater com o mesmo critério do recorte.
+ */
+function normalizarNomeParaVinculo(nome) {
+  return (nome || '')
+    .normalize('NFD')
+    .toUpperCase()
+    .replace(/\b(LTDA|S\.?A|ME|EPP|EIRELI|COMERCIAL|IMPORTADORA|E OUTRO\(S\))\b/g, '')
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+/** Cliente do HUB cujo nome (ou algum Nome Completo) corresponde a este nome do Sankhya. */
+function clientePorNomeSankhya(nomeSankhya) {
+  const alvo = normalizarNomeParaVinculo(nomeSankhya);
+  if (!alvo) return null;
+  return (
+    estado.clientes.find((cliente) =>
+      [cliente.nome, ...cliente.nomesCompletos].some((nome) => {
+        const chave = normalizarNomeParaVinculo(nome);
+        return chave && (chave === alvo || chave.startsWith(alvo) || alvo.startsWith(chave));
+      }),
+    ) ?? null
+  );
+}
+
+/** Adiciona o nome do Sankhya aos Nomes Completos de um cliente existente (sem duplicar). */
+async function vincularNomeSankhyaAoCliente(nomeSankhya, clienteId) {
+  const cliente = estado.clientes.find((c) => c.id === clienteId);
+  if (!cliente) return;
+
+  const alvo = normalizarNomeParaVinculo(nomeSankhya);
+  const jaTem = cliente.nomesCompletos.some((nome) => normalizarNomeParaVinculo(nome) === alvo);
+  if (jaTem) return;
+
+  await api.salvarNomesCompletos(clienteId, [...cliente.nomesCompletos, nomeSankhya]);
+  await recarregarClientes();
+}
+
+/** Cria um cliente novo já com o nome do Sankhya vinculado nos Nomes Completos. */
+async function criarClienteComNomeSankhya(nomeDoCadastro, nomeSankhya) {
+  const cliente = await api.criar(nomeDoCadastro);
+  await api.salvarNomesCompletos(cliente.id, [nomeSankhya]);
+  await recarregarClientes();
 }
 
 /**
- * Vincula um `codparc` do Sankhya a um cliente do hub — tira de quem já
- * tinha (um `codparc` pertence a um cliente só) e adiciona no escolhido.
- * Atualiza `estado.clientes` em memória depois de gravar, pra sugestão,
- * lista e o próprio botão refletirem sem precisar recarregar a página.
+ * Painel para vincular o parceiro do evento a um cliente do HUB: busca entre os existentes
+ * ou cadastra um novo já vinculado (nome pré-preenchido com o do Sankhya).
  */
-async function vincularCodparcAoCliente(codparc, idDoClienteEscolhido) {
-  const donoAtual = clientePorCodparc(codparc);
-  const escolhido = estado.clientes.find((cliente) => cliente.id === idDoClienteEscolhido);
-  if (!escolhido || escolhido === donoAtual) return;
-
-  if (donoAtual) {
-    const semCodparc = donoAtual.agendaCodparcs.filter((valor) => valor !== codparc);
-    await api.salvarAgenda(donoAtual.id, { agendaCodparcs: semCodparc });
-    donoAtual.agendaCodparcs = semCodparc;
-  }
-
-  const comCodparc = [...escolhido.agendaCodparcs, codparc];
-  await api.salvarAgenda(escolhido.id, { agendaCodparcs: comCodparc });
-  escolhido.agendaCodparcs = comCodparc;
-}
-
-/** Painel com busca e lista de clientes pra escolher quem recebe o `codparc`. */
-function criarSeletorDeClienteParaVinculo(codparc, aoConcluir) {
+function criarSeletorDeVinculoDeCliente(nomeSankhya, aoConcluir) {
   const painel = criarElemento('div', 'painel-vinculo');
+
   const busca = criarElemento('input', 'painel-vinculo-busca');
   busca.type = 'search';
-  busca.placeholder = 'Buscar cliente…';
-  busca.setAttribute('aria-label', 'Buscar cliente');
-  const lista = criarElemento('ul', 'painel-vinculo-lista');
-  painel.append(busca, lista);
+  busca.placeholder = 'Buscar cliente do HUB…';
+  busca.setAttribute('aria-label', 'Buscar cliente do HUB');
 
-  const donoAtual = clientePorCodparc(codparc);
+  const lista = criarElemento('ul', 'painel-vinculo-lista');
+
+  const novo = criarElemento('div', 'painel-vinculo-novo');
+  const campoNovo = criarElemento('input', 'painel-vinculo-busca');
+  campoNovo.type = 'text';
+  campoNovo.value = nomeSankhya;
+  campoNovo.placeholder = 'Nome do novo cliente';
+  campoNovo.setAttribute('aria-label', 'Nome do novo cliente');
+  const botaoNovo = criarBotao('btn tiny', 'Cadastrar e vincular', () => void criarNovo());
+  novo.append(campoNovo, botaoNovo);
+
+  painel.append(busca, lista, novo);
+
+  const jaVinculado = clientePorNomeSankhya(nomeSankhya);
 
   async function escolher(cliente) {
     painel.classList.add('ocupado');
     try {
-      await vincularCodparcAoCliente(codparc, cliente.id);
+      await vincularNomeSankhyaAoCliente(nomeSankhya, cliente.id);
+      exibirAviso(`"${nomeSankhya}" vinculado a "${cliente.nome}".`);
     } catch (erro) {
       exibirAviso(`Não consegui vincular: ${erro.message}`, 'erro');
+    }
+    aoConcluir();
+  }
+
+  async function criarNovo() {
+    const nome = campoNovo.value.trim();
+    if (!nome) {
+      campoNovo.focus();
+      return;
+    }
+    painel.classList.add('ocupado');
+    try {
+      await criarClienteComNomeSankhya(nome, nomeSankhya);
+      exibirAviso(`Cliente "${nome}" criado e vinculado a "${nomeSankhya}".`);
+    } catch (erro) {
+      exibirAviso(`Não consegui cadastrar: ${erro.message}`, 'erro');
     }
     aoConcluir();
   }
@@ -2706,11 +2783,11 @@ function criarSeletorDeClienteParaVinculo(codparc, aoConcluir) {
       const item = criarElemento('li');
       const opcao = criarElemento('button', 'painel-vinculo-opcao', cliente.nome);
       opcao.type = 'button';
-      if (cliente === donoAtual) {
+      if (cliente === jaVinculado) {
         opcao.classList.add('atual');
         opcao.append(criarElemento('span', 'painel-vinculo-marca', 'vinculado'));
       }
-      opcao.addEventListener('click', () => escolher(cliente));
+      opcao.addEventListener('click', () => void escolher(cliente));
       item.append(opcao);
       lista.append(item);
     }
@@ -2720,6 +2797,15 @@ function criarSeletorDeClienteParaVinculo(codparc, aoConcluir) {
   busca.addEventListener('keydown', (evento) => {
     if (evento.key === 'Escape') aoConcluir();
   });
+  campoNovo.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Enter') {
+      evento.preventDefault();
+      void criarNovo();
+    } else if (evento.key === 'Escape') {
+      aoConcluir();
+    }
+  });
+
   renderizarLista();
   requestAnimationFrame(() => busca.focus());
 
@@ -2727,34 +2813,61 @@ function criarSeletorDeClienteParaVinculo(codparc, aoConcluir) {
 }
 
 /**
- * Botão que vincula o `codparc` do Sankhya deste evento a um cliente do hub
- * — fica "vinculado" (verde) quando já existe um cliente com esse código.
- * Clicar abre, ao lado, o seletor de cliente; clicar de novo fecha sem
- * escolher nada.
+ * Botão ao lado do nome do parceiro no card de evento: vincula esse nome do Sankhya a um
+ * cliente do HUB (existente ou novo). Fica "vinculado" (verde) quando já há um cliente com
+ * esse nome. Clicar abre o seletor ao lado; clicar de novo fecha.
  */
-function criarBotaoDeVinculo(linhaNome, evento) {
+function criarBotaoDeVinculoDeCliente(evento) {
   let seletor = null;
+  let fecharForaDoPainel = null;
+
+  function fechar() {
+    if (fecharForaDoPainel) {
+      document.removeEventListener('pointerdown', fecharForaDoPainel, true);
+      fecharForaDoPainel = null;
+    }
+    seletor?.remove();
+    seletor = null;
+    atualizarBotao();
+  }
+
+  /** Ancora o popover abaixo do botão; se não couber, joga pra cima. Preso à viewport. */
+  function posicionar() {
+    if (!seletor) return;
+    const alvo = botao.getBoundingClientRect();
+    const largura = seletor.offsetWidth;
+    const altura = seletor.offsetHeight;
+    const margem = 8;
+    const esquerda = Math.min(Math.max(alvo.left, margem), window.innerWidth - largura - margem);
+    const cabeAbaixo = alvo.bottom + altura + margem <= window.innerHeight;
+    const topo = cabeAbaixo ? alvo.bottom + 4 : Math.max(alvo.top - altura - 4, margem);
+    seletor.style.left = `${esquerda}px`;
+    seletor.style.top = `${topo}px`;
+  }
 
   const botao = criarBotaoDeIcone('btn tiny ghost', ICONES.link, '', () => {
     if (seletor) {
-      seletor.remove();
-      seletor = null;
+      fechar();
       return;
     }
-    seletor = criarSeletorDeClienteParaVinculo(evento.codparc, () => {
-      seletor?.remove();
-      seletor = null;
-      atualizarBotao();
-    });
-    linhaNome.append(seletor);
+    seletor = criarSeletorDeVinculoDeCliente(evento.nomeparc, fechar);
+    document.body.append(seletor);
+    posicionar();
+
+    fecharForaDoPainel = (evt) => {
+      if (!seletor?.contains(evt.target) && evt.target !== botao && !botao.contains(evt.target)) {
+        fechar();
+      }
+    };
+    document.addEventListener('pointerdown', fecharForaDoPainel, true);
   });
 
   function atualizarBotao() {
-    const dono = clientePorCodparc(evento.codparc);
+    const dono = clientePorNomeSankhya(evento.nomeparc);
     botao.classList.toggle('vinculado', Boolean(dono));
     const rotulo = dono
       ? `Vinculado a "${dono.nome}" — clique pra trocar`
-      : 'Vincular a um cliente do hub';
+      : 'Vincular a um cliente do HUB (ou cadastrar novo)';
     botao.title = rotulo;
     botao.setAttribute('aria-label', rotulo);
   }
@@ -2865,10 +2978,10 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
         : evento.descrlonga || evento.descrabrev || '(sem título)';
       const descricaoCompleta = evento.descrlonga || evento.descrabrev;
 
-      if (evento.codparc) {
+      if (evento.nomeparc) {
         const linhaNome = criarElemento('div', 'linha-horario-situacao');
         linhaNome.append(criarElemento('p', 'recurso-nome', tituloDoEvento));
-        linhaNome.append(criarBotaoDeVinculo(linhaNome, evento));
+        linhaNome.append(criarBotaoDeVinculoDeCliente(evento));
         informacoes.append(linhaNome);
       } else {
         informacoes.append(criarElemento('p', 'recurso-nome', tituloDoEvento));
@@ -2958,9 +3071,9 @@ function renderizarUltimaAtualizacaoDaAgenda(importadoEm) {
 }
 
 /**
- * O widget da aba Agenda do topo: todos os eventos do snapshot, sem recorte
- * de cliente. Trocar de mês dispara a consulta ao vivo (`atualizarAgendaGeral`)
- * — é o comportamento que já existia, preservado aqui.
+ * O widget da aba Agenda do topo: todos os eventos do snapshot, sem recorte de cliente.
+ * Ao trocar de mês a grade mostra na hora o que já está no snapshot local e a consulta ao
+ * vivo roda em segundo plano — sem tela de espera bloqueando a navegação entre meses.
  */
 const widgetAgendaGeral = criarWidgetDeAgenda({
   buscarEventos: async (de, ate) => {
@@ -2971,15 +3084,23 @@ const widgetAgendaGeral = criarWidgetDeAgenda({
     renderizarUltimaAtualizacaoDaAgenda(estadoDoSnapshot.importadoEm);
     return eventos;
   },
-  aoMudarMes: () => atualizarAgendaGeral(),
+  aoMudarMes: async () => {
+    await widgetAgendaGeral.carregar();
+    void atualizarAgendaGeral();
+  },
 });
 
-/** Consulta ao vivo o mês em exibição, direto da guia autenticada, e recarrega a grade. */
+/**
+ * Consulta ao vivo o mês em exibição e recarrega a grade. Não apaga o que já estava em
+ * cache: a grade continua visível enquanto atualiza, e um erro deixa o cache no lugar em
+ * vez de esvaziar a tela.
+ */
 async function atualizarAgendaGeral() {
   limparErro(widgetAgendaGeral.elementoErro);
   elementos.avisoShellAgenda.hidden = true;
   elementos.botaoAtualizarAgenda.disabled = true;
-  widgetAgendaGeral.elementoStatus.textContent = 'Consultando a Sankhya…';
+  const statusAntes = widgetAgendaGeral.elementoStatus.textContent;
+  widgetAgendaGeral.elementoStatus.textContent = 'Atualizando…';
 
   const { de, ate } = limitesDoMesCliente(widgetAgendaGeral.mes);
   try {
@@ -2990,7 +3111,7 @@ async function atualizarAgendaGeral() {
       elementos.avisoShellAgenda.hidden = false;
     }
     exibirErro(widgetAgendaGeral.elementoErro, erro.message);
-    widgetAgendaGeral.elementoStatus.textContent = '';
+    widgetAgendaGeral.elementoStatus.textContent = statusAntes ?? '';
   } finally {
     elementos.botaoAtualizarAgenda.disabled = false;
   }
@@ -3026,7 +3147,9 @@ function criarLinhaDeOs(item) {
     informacoes.append(criarElemento('p', 'erro-formulario', item.erro));
   }
   if (item.observacoes) {
-    informacoes.append(criarElemento('p', 'texto-auxiliar', `Tarefas realizadas: ${item.observacoes}`));
+    informacoes.append(
+      criarElemento('p', 'texto-auxiliar', `Tarefas realizadas: ${item.observacoes}`),
+    );
   }
 
   const detalhes = [
@@ -3163,7 +3286,8 @@ function alternarVisualizacao(visualizacao) {
     carregarLocal();
   }
   if (visualizacao === 'agenda') {
-    void widgetAgendaGeral.carregar();
+    // Mostra o snapshot local na hora e atualiza em segundo plano.
+    void widgetAgendaGeral.carregar().then(() => atualizarAgendaGeral());
   }
   if (visualizacao === 'os') {
     void widgetOsGeral.carregar();
@@ -3355,7 +3479,7 @@ function abrirModalDeCadastro() {
   elementos.modalTitulo.textContent = 'Cadastrar cliente';
   elementos.modalSubtitulo.textContent = 'Informe o nome do cliente.';
   elementos.campoNome.value = '';
-  elementos.campoCodparcs.value = '';
+  preencherNomesCompletos([]);
   limparErro(elementos.erroCliente);
   elementos.modalCliente.showModal();
   elementos.campoNome.focus();
@@ -3366,20 +3490,52 @@ function abrirModalDeEdicao(cliente) {
   elementos.modalTitulo.textContent = 'Editar cliente';
   elementos.modalSubtitulo.textContent = 'Altere o nome do cliente.';
   elementos.campoNome.value = cliente.nome;
-  elementos.campoCodparcs.value = cliente.agendaCodparcs.join(', ');
+  preencherNomesCompletos(cliente.nomesCompletos);
   limparErro(elementos.erroCliente);
   elementos.modalCliente.showModal();
   elementos.campoNome.select();
 }
 
-/** `"647, 12345"` -> `[647, 12345]`, sem repetidos e sem pedaço vazio (vírgula sobrando). */
-function lerCodparcsDoFormulario() {
-  const numeros = elementos.campoCodparcs.value
-    .split(',')
-    .map((pedaco) => pedaco.trim())
-    .filter(Boolean)
-    .map(Number);
-  return [...new Set(numeros)];
+/** Uma linha do cadastro de "Nomes completos": um campo de texto e um botão de remover. */
+function criarLinhaDeNomeCompleto(valor) {
+  const linha = criarElemento('div', 'linha-nome-completo');
+
+  const campo = criarElemento('input');
+  campo.type = 'text';
+  campo.value = valor;
+  campo.maxLength = 120;
+  campo.autocomplete = 'off';
+  campo.spellcheck = false;
+  campo.placeholder = 'Ex.: Indústria Alfa Ltda';
+  campo.setAttribute('aria-label', 'Nome completo');
+
+  const remover = criarBotaoDeIcone('btn tiny danger', ICONES.lixeira, 'Remover nome', () =>
+    linha.remove(),
+  );
+
+  linha.append(campo, remover);
+  return linha;
+}
+
+function adicionarLinhaDeNomeCompleto(valor) {
+  const linha = criarLinhaDeNomeCompleto(valor);
+  elementos.listaNomesCompletosCliente.append(linha);
+  return linha;
+}
+
+function preencherNomesCompletos(nomes) {
+  elementos.listaNomesCompletosCliente.replaceChildren();
+  for (const nome of nomes) {
+    adicionarLinhaDeNomeCompleto(nome);
+  }
+}
+
+/** Linha em branco é descartada: é o que sobra de um "Adicionar nome" desistido. */
+function lerNomesCompletosDoFormulario() {
+  const valores = [...elementos.listaNomesCompletosCliente.querySelectorAll('input')]
+    .map((campo) => campo.value.trim())
+    .filter(Boolean);
+  return [...new Set(valores)];
 }
 
 async function salvarCliente(evento) {
@@ -3391,14 +3547,7 @@ async function salvarCliente(evento) {
     return;
   }
 
-  const agendaCodparcs = lerCodparcsDoFormulario();
-  if (agendaCodparcs.some((valor) => !Number.isInteger(valor) || valor < 0)) {
-    exibirErro(
-      elementos.erroCliente,
-      'Código de parceiro inválido — use só números separados por vírgula.',
-    );
-    return;
-  }
+  const nomesCompletos = lerNomesCompletosDoFormulario();
 
   limparErro(elementos.erroCliente);
   elementos.botaoSalvarCliente.disabled = true;
@@ -3407,7 +3556,7 @@ async function salvarCliente(evento) {
     const emEdicao = estado.clienteEmEdicao;
     let cliente = emEdicao ? await api.atualizar(emEdicao.id, nome) : await api.criar(nome);
 
-    cliente = await api.salvarAgenda(cliente.id, { agendaCodparcs });
+    cliente = await api.salvarNomesCompletos(cliente.id, nomesCompletos);
 
     estado.idSelecionado = cliente.id;
     await recarregarClientes();
@@ -4401,11 +4550,33 @@ async function salvarCredencialDoCartao(cartaoElementos) {
     const status = await api.salvarCredencialSankhya(cartaoElementos.sistema, usuario, senha);
     cartaoElementos.campoSenha.value = '';
     renderizarStatusCredencial(cartaoElementos, status);
-    exibirAviso('Credencial salva.');
+    exibirAviso('Credencial salva. Logando automaticamente…');
   } catch (erro) {
     exibirErro(cartaoElementos.erro, erro.message);
+    return;
   } finally {
     cartaoElementos.botaoSalvar.disabled = false;
+  }
+
+  await autoLoginDoCartao(cartaoElementos);
+}
+
+/**
+ * Loga sozinho na guia do sistema (usuário/senha do cofre) e já captura a sessão —
+ * substitui o "abrir aba > logar na mão > capturar sessão" manual. Chamado depois de
+ * salvar a credencial; os botões manuais continuam à mão como reserva se isto falhar.
+ */
+async function autoLoginDoCartao(cartaoElementos) {
+  limparErro(cartaoElementos.erro);
+  try {
+    await api.autoLoginSankhya(cartaoElementos.sistema);
+    exibirAviso('Sessão capturada automaticamente.');
+    await atualizarCredenciaisSankhya();
+  } catch (erro) {
+    exibirErro(
+      cartaoElementos.erro,
+      `${erro.message} — use "Abrir aba" e "Capturar sessão" manualmente.`,
+    );
   }
 }
 
@@ -7101,6 +7272,10 @@ function registrarEventos() {
   );
   elementos.botaoAdicionarAtalho.addEventListener('click', () => {
     const linha = adicionarLinhaDeAtalho({ id: '', nome: '', caminhoDoExecutavel: '' });
+    linha.querySelector('input').focus();
+  });
+  elementos.botaoAdicionarNomeCompleto.addEventListener('click', () => {
+    const linha = adicionarLinhaDeNomeCompleto('');
     linha.querySelector('input').focus();
   });
   elementos.botaoSelecionarExecutavelDaIde.append(criarIcone(ICONES.pasta));

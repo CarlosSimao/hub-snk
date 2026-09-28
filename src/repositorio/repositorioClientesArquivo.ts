@@ -117,7 +117,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
         repositorios: [],
         links: [],
         projetos: [],
-        agendaCodparcs: [],
+        nomesCompletos: [],
         criadoEm: agora,
         atualizadoEm: agora,
       };
@@ -146,14 +146,14 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     });
   }
 
-  async definirAgenda(id: string, dados: { agendaCodparcs: number[] }): Promise<Cliente> {
+  async definirNomesCompletos(id: string, nomesCompletos: string[]): Promise<Cliente> {
     return this.#enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, id);
 
       return this.#substituirCliente(clientes, {
         ...cliente,
-        agendaCodparcs: dados.agendaCodparcs,
+        nomesCompletos: nomesCompletos.map((nome) => nome.trim()).filter(Boolean),
       });
     });
   }
@@ -901,7 +901,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
       repositorios: [],
       links: [],
       projetos: [],
-      agendaCodparcs: [],
+      nomesCompletos: [],
       criadoEm: agora,
       atualizadoEm: agora,
     };
@@ -1013,12 +1013,17 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     this.#clientes = (
       conteudo.corpo as (Cliente & {
         agendaCodparc?: number | null;
+        agendaCodparcs?: number[];
         agendaRecursoUsuario?: string;
         experienceProjetoId?: number | null;
       })[]
     ).map(
       ({
+        // Vínculo por CODPARC removido: a aba Agenda do cliente passou a casar o parceiro
+        // pelo NOME (os "Nomes Completos"), como a aba OS. Descartados na leitura para
+        // saírem do arquivo na próxima gravação.
         agendaCodparc: _agendaCodparcRemovido,
+        agendaCodparcs: _agendaCodparcsRemovido,
         agendaRecursoUsuario: _agendaRecursoUsuarioRemovido,
         // Campo removido: o vínculo com a Experience passou a ser só o `person_id` da
         // configuração geral, sem `implantation_id` por cliente.
@@ -1035,13 +1040,8 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
         ),
         links: cliente.links ?? [],
         projetos: cliente.projetos ?? [],
-        // `agendaCodparc` (singular) existiu no passado: um cliente com só um
-        // parceiro virava a lista de um item; sem parceiro nenhum vira `[]`.
-        agendaCodparcs: Array.isArray(cliente.agendaCodparcs)
-          ? cliente.agendaCodparcs
-          : _agendaCodparcRemovido != null
-            ? [_agendaCodparcRemovido]
-            : [],
+        // Campo novo: arquivo de antes desta versão não tem, nasce vazio (cai no `nome`).
+        nomesCompletos: Array.isArray(cliente.nomesCompletos) ? cliente.nomesCompletos : [],
       }),
     );
 

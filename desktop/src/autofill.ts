@@ -54,7 +54,11 @@ async function revelarSenhaBase(clienteId: string, baseId: string): Promise<stri
  * digitou). Dispara `input`/`change` sintéticos porque formulários com JS por trás
  * (React/Vue) só reagem a evento, não a atribuição direta de `.value`.
  */
-function scriptAutofillTick(usuario: string, senha: string, jaPreencheuUsuario: boolean): string {
+export function scriptAutofillTick(
+  usuario: string,
+  senha: string,
+  jaPreencheuUsuario: boolean,
+): string {
   const usuarioJson = JSON.stringify(usuario);
   const senhaJson = JSON.stringify(senha);
   return `(() => {

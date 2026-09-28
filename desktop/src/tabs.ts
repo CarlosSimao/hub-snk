@@ -15,6 +15,8 @@ import { BrowserWindow, WebContentsView, app, session, shell } from 'electron';
 import { DOMINIOS_POPUP_PERMITIDOS, HUB_URL, ICONE } from './config';
 import { logEvento, origemSemQuery } from './log';
 import { tentarAutofill } from './autofill';
+import { autoLoginSankhya, podeTentar } from './autoLoginSankhya';
+import * as cofre from './cofreCredenciais';
 
 export type TabId = 'hub' | 'erp' | 'experience';
 
@@ -250,6 +252,20 @@ export class TabManager {
   }
 
   /**
+   * Guia erp/experience caiu sozinha numa tela de login (sessão expirada, cookie
+   * limpo, primeiro boot) e há credencial salva: tenta logar sem pedir nada ao
+   * usuário. Mesma heurística de URL que `navegador.status()` já usa para "logado".
+   */
+  #tentarAutoLoginSankhya(id: TabId, view: WebContentsView): void {
+    if (id !== 'erp' && id !== 'experience') return;
+    const sistema: cofre.Sistema = id === 'erp' ? 'sankhya-erp' : 'sankhya-experience';
+    if (!/login|signin/i.test(view.webContents.getURL())) return;
+    if (!cofre.status(sistema).definido) return;
+    if (!podeTentar(sistema)) return;
+    void autoLoginSankhya(this, sistema);
+  }
+
+  /**
    * A aba de uma base de cliente, pelo origin.
    *
    * Só devolve se o origin for de uma aba de cliente ABERTA — nunca uma guia principal
@@ -295,6 +311,7 @@ export class TabManager {
     });
     view.webContents.on('did-finish-load', () => {
       logEvento('aba-carregada', { id, url: origemSemQuery(view.webContents.getURL()) });
+      this.#tentarAutoLoginSankhya(id, view);
     });
     view.webContents.setWindowOpenHandler(({ url: alvo }) => {
       let origin = '';

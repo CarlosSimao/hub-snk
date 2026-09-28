@@ -166,7 +166,7 @@ export function registrarRotasDeSankhya(
    * dela. Dois passos de propósito: entre um e outro, quem digita a senha é o
    * usuário — o hub nunca vê a senha, só o que sobra depois.
    */
-  for (const acao of ['abrir', 'capturar'] as const) {
+  for (const acao of ['abrir', 'capturar', 'autologin'] as const) {
     servidor.post<{ Params: { sistema: string } }>(
       `/api/sankhya/navegador/${acao}/:sistema`,
       async (requisicao, resposta) => {
@@ -180,7 +180,12 @@ export function registrarRotasDeSankhya(
             return await credenciais.abrirNavegador(sistema);
           }
 
-          const resultado = await credenciais.capturarSessao(sistema);
+          // `capturar` só lê o cookie da guia (usuário já logou na mão); `autologin`
+          // loga sozinho com a credencial do cofre e captura em seguida.
+          const resultado =
+            acao === 'autologin'
+              ? await credenciais.autoLoginSankhya(sistema)
+              : await credenciais.capturarSessao(sistema);
           if (!resultado.ok) {
             return resposta
               .status(409)

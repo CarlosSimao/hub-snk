@@ -246,25 +246,25 @@
           </div>
 
           <div class="campo">
-            <label for="campo-codparcs">
-              Código(s) de parceiro (codparc)
+            <label>
+              Nomes completos no Sankhya
               <span class="opcional">opcional</span>
               <span class="dica" tabindex="0"
                 >?<span class="dica-texto" role="tooltip"
-                  >Código(s) do parceiro no Sankhya ERP — cruza com a Agenda de Recursos. Um cliente
-                  pode ter mais de um (matrizes/filiais), separados por vírgula.</span
+                  >Razão social deste cliente no Sankhya OM/Experience — costuma ser diferente do
+                  nome digitado acima (abreviado, com sufixo societário, matriz/filial). Usado para
+                  achar as OS deste cliente na aba OS. Um cliente pode ter mais de uma. Nenhuma
+                  cadastrada usa o nome do cadastro.</span
                 ></span
               >
             </label>
-            <input
-              id="campo-codparcs"
-              type="text"
-              inputmode="numeric"
-              maxlength="200"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="Ex.: 647, 12345"
-            />
+
+            <!-- As linhas são montadas pelo app.js. -->
+            <div class="lista-nomes-completos" id="lista-nomes-completos"></div>
+
+            <button class="btn ghost" type="button" id="btn-adicionar-nome-completo">
+              Adicionar nome completo
+            </button>
           </div>
 
           <p class="erro-formulario" id="erro-formulario" hidden></p>

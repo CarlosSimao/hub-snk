@@ -9,13 +9,16 @@ import { existsSync } from 'node:fs';
 import { HUB_URL, ERP_URL, EXPERIENCE_URL, ICONE, PARTICAO, userAgentLimpo } from './config';
 import { logEvento } from './log';
 import { TabManager } from './tabs';
-import { AgendaFetcher } from './agenda';
+import { JanelaAgendaOculta } from './janelaAgendaOculta';
+import { JanelaExperienceOculta } from './janelaExperienceOculta';
 import { criarBridgeServer } from './bridgeServer';
 import { pushSessaoExperience, limparSessaoExperience } from './backendClient';
-import { capturarTokenExperience, diagnosticoCookiesErp } from './sessions';
+import { diagnosticoCookiesErp } from './sessions';
 import { backendDisponivel } from './services';
 import { backendGerenciado, iniciarBackend, pararBackend } from './backendProcess';
 import { migrarCofreDoHelper } from './migracaoCofre';
+import { autoLoginSankhya } from './autoLoginSankhya';
+import * as cofre from './cofreCredenciais';
 import { montarMenu } from './menu';
 
 if (!app.requestSingleInstanceLock()) {
@@ -28,6 +31,8 @@ if (!app.requestSingleInstanceLock()) {
 
 let janelaPrincipal: BrowserWindow | null = null;
 let tabs: TabManager | null = null;
+let agendaOculta: JanelaAgendaOculta | null = null;
+let experienceOculta: JanelaExperienceOculta | null = null;
 let experienceCapturada = false;
 /** `expIso` do que já foi confirmado empurrado — dispara push de novo se mudar (relogin
  * sem passar por "ausente" no meio, ex.: trocar de conta sem sair primeiro). */
@@ -67,36 +72,59 @@ function criarJanela(): void {
   tabs.restaurarGuiasEscondidas();
   void tabs.carregarCadastro();
 
-  // Captura/recaptura periódica: a Experience é SPA e o token pode surgir depois do
-  // carregamento inicial (login) ou sumir (logout real) sem que o shell seja avisado
-  // de outra forma — ver Seção 6.3 da especificação.
+  // Boot com credencial salva mas sem sessão capturada: loga sozinho, sem esperar a
+  // guia cair em tela de login por conta própria (ela pode nem navegar de novo se o
+  // cookie/token só expirar depois).
+  for (const sistema of cofre.SISTEMAS) {
+    const status = cofre.status(sistema);
+    if (status.definido && !status.sessaoCapturada) void autoLoginSankhya(tabs, sistema);
+  }
+
+  // Captura/recaptura periódica do token da Experience, agora pela JANELA OCULTA — que
+  // loga sozinha e renova, sem depender da aba visível estar logada (era o que quebrava a
+  // aba OS).
   //
   // Empurra em TODO tick em que a sessão está presente, não só quando muda: o backend
   // guarda em memória (`SessaoDoDesktop`), então um restart dele (deploy, crash) perde
   // o valor sem avisar o shell — reempurrar sempre é a única forma de o backend nunca
   // ficar mais de um tick (15s) desatualizado. `SessaoDoDesktop.definir` é
   // idempotente, então repetir o mesmo valor não tem custo além da chamada HTTP local.
+  //
+  // `sincronizandoExperience` evita que um tick comece o login enquanto o anterior ainda
+  // está logando (o primeiro tick pode levar dezenas de segundos).
+  let sincronizandoExperience = false;
   setInterval(() => {
+    if (sincronizandoExperience) return;
+    sincronizandoExperience = true;
     void (async () => {
-      const sessao = await capturarTokenExperience(tabs?.aba('experience'));
-      if (sessao.presente) {
-        const ok = await pushSessaoExperience({
-          usuario: sessao.usuario,
-          token: sessao.token,
-          expira: sessao.expIso,
-        });
-        if (ok && sessao.expIso !== ultimoExpEmpurrado) {
-          logEvento('experience-sessao-empurrada');
+      try {
+        const sessao = (await experienceOculta?.obterSessao()) ?? {
+          presente: false,
+          usuario: '',
+          token: '',
+          expIso: '',
+        };
+        if (sessao.presente) {
+          const ok = await pushSessaoExperience({
+            usuario: sessao.usuario,
+            token: sessao.token,
+            expira: sessao.expIso,
+          });
+          if (ok && sessao.expIso !== ultimoExpEmpurrado) {
+            logEvento('experience-sessao-empurrada');
+          }
+          if (ok) {
+            experienceCapturada = true;
+            ultimoExpEmpurrado = sessao.expIso;
+          }
+        } else if (experienceCapturada) {
+          experienceCapturada = false;
+          ultimoExpEmpurrado = '';
+          await limparSessaoExperience();
+          logEvento('experience-sessao-limpa');
         }
-        if (ok) {
-          experienceCapturada = true;
-          ultimoExpEmpurrado = sessao.expIso;
-        }
-      } else if (experienceCapturada) {
-        experienceCapturada = false;
-        ultimoExpEmpurrado = '';
-        await limparSessaoExperience();
-        logEvento('experience-sessao-limpa');
+      } finally {
+        sincronizandoExperience = false;
       }
     })();
   }, 15_000);
@@ -141,10 +169,15 @@ app.whenReady().then(async () => {
   // Também antes do backend: as primeiras consultas de credencial dele já precisam ter
   // com quem falar, senão caem para o helper sem necessidade.
   //
-  // O `AgendaFetcher` recebe uma função, não a aba: a janela ainda não existe aqui, e
-  // quando existir ele passa a enxergá-la.
-  const agenda = new AgendaFetcher(() => tabs?.aba('erp'));
-  criarBridgeServer(agenda, () => tabs);
+  // A Agenda de Recursos é consultada por uma janela invisível dedicada, que loga sozinha
+  // pela web (único jeito de ter o ACL do serviço) e não depende da aba ERP visível do
+  // usuário. Ela é criada preguiçosamente na primeira consulta — ver `janelaAgendaOculta.ts`.
+  agendaOculta = new JanelaAgendaOculta();
+  criarBridgeServer(agendaOculta, () => tabs);
+
+  // A sessão da Experience (JWT que alimenta a aba OS) também vem de uma janela oculta que
+  // loga sozinha, em vez da aba visível — o laço de 15s abaixo lê o token daqui.
+  experienceOculta = new JanelaExperienceOculta();
 
   // Antes da janela: o painel é a primeira aba a carregar e apontaria para uma porta
   // fechada. Esperar aqui custa o tempo de boot do Fastify uma vez, e evita que a
@@ -174,6 +207,8 @@ app.on('before-quit', (evento) => {
   if (encerrando) return;
   evento.preventDefault();
   encerrando = true;
+  agendaOculta?.destruir();
+  experienceOculta?.destruir();
   void pararBackend().finally(() => app.quit());
 });
 

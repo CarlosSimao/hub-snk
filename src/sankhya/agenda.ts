@@ -17,8 +17,21 @@ import type {
   EstadoAgendaRecursos,
   EventoComRecurso,
   ParceiroAgenda,
+  RecursoAgenda,
   RecursoComTotal,
 } from '../tipos.ts';
+
+/** Janela consultada, no mesmo formato TEXT das colunas (`YYYY-MM-DD HH:mm:ss`). */
+export interface PeriodoImportacao {
+  de: string;
+  ate: string;
+}
+
+export interface OpcoesImportacao {
+  periodo: PeriodoImportacao;
+  /** `CODUSU` do próprio usuário; `null` aceita todos os recursos do payload. */
+  codusuAlvo?: number | null;
+}
 
 /**
  * Reduz um nome a letras e dígitos maiúsculos, sem acento nem sufixo
@@ -90,23 +103,29 @@ export class AgendaRecursos {
   }
 
   /**
-   * Troca o snapshot inteiro pelo novo, numa transação.
+   * Substitui, numa transação, apenas os eventos do usuário alvo que caem no
+   * período consultado — os demais meses já guardados ficam intactos. É o que
+   * permite navegar mês a mês acumulando, em vez de perder o snapshot anterior
+   * a cada consulta (o `DELETE` geral de antes era a causa da aba Agenda do
+   * cliente vir vazia em qualquer mês não aberto na aba principal).
    *
-   * O ID real do recurso sai do `lastInsertRowid` de cada inserção, não de
-   * uma contagem: `AUTOINCREMENT` não reinicia depois de `DELETE`, e assumir
-   * que os recursos recém-inseridos serão 1..N faria todo evento apontar
-   * para recurso inexistente.
+   * `codusuAlvo` recorta o payload para a agenda do próprio usuário: mesmo que
+   * o Sankhya devolva mais de um recurso (a lista de executantes da tela pode
+   * ter outros), só a agenda dele é gravada. `null` desliga o recorte e aceita
+   * todos os recursos do payload — usado só enquanto o `CODUSU` não é passado.
    */
-  importar(dados: AgendaImportada): EstadoAgendaRecursos {
+  importar(dados: AgendaImportada, opcoes: OpcoesImportacao): EstadoAgendaRecursos {
+    const { periodo, codusuAlvo = null } = opcoes;
+    const recursosAlvo =
+      codusuAlvo === null
+        ? dados.recursos
+        : dados.recursos.filter((r) => r.recurso.codusu === codusuAlvo);
+
     this.#db.exec('BEGIN');
     try {
-      this.#db.exec('DELETE FROM ag_eventos');
-      this.#db.exec('DELETE FROM ag_recursos');
-
-      const inserirRecurso = this.#db.prepare(
-        `INSERT INTO ag_recursos
-           (codusu, nomeusu, codcargo, descrcargo, cor_hex, cor_conflito_hex, problema_conexao)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      const deletarEventosNoPeriodo = this.#db.prepare(
+        `DELETE FROM ag_eventos
+          WHERE recurso_id = ? AND fim >= ? AND inicio <= ?`,
       );
       const inserirEvento = this.#db.prepare(
         `INSERT INTO ag_eventos
@@ -116,17 +135,14 @@ export class AgendaRecursos {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       );
 
-      for (const { recurso, eventos } of dados.recursos) {
-        const resultado = inserirRecurso.run(
-          recurso.codusu,
-          recurso.nomeusu,
-          recurso.codcargo,
-          recurso.descrcargo,
-          recurso.corHex,
-          recurso.corConflitoHex,
-          recurso.problemaConexao,
-        );
-        const recursoId = Number(resultado.lastInsertRowid);
+      for (const { recurso, eventos } of recursosAlvo) {
+        const recursoId = this.#upsertRecurso(recurso);
+
+        // Apaga por SOBREPOSIÇÃO ao período, não só o que começa nele: um
+        // evento de vários dias reaparece em cada mês que ocupa, e apagar só
+        // pelo `inicio` deixaria uma cópia velha quando o mês vizinho o
+        // reinserisse.
+        deletarEventosNoPeriodo.run(recursoId, periodo.de, periodo.ate);
 
         for (const e of eventos) {
           inserirEvento.run(
@@ -164,13 +180,66 @@ export class AgendaRecursos {
 
       this.#db.exec('COMMIT');
     } catch (erro) {
-      // Sem isto, uma falha no meio deixaria o snapshot antigo apagado e o
-      // novo pela metade — pior que não ter importado.
+      // Sem isto, uma falha no meio deixaria o período pela metade — os eventos
+      // antigos apagados e os novos só em parte.
       this.#db.exec('ROLLBACK');
       throw erro;
     }
 
     return this.estado();
+  }
+
+  /**
+   * Garante uma linha de recurso e devolve o `id` dela, atualizando os dados
+   * (cor, cargo) se já existir. A chave é o `CODUSU`; sem ele (ambiente que não
+   * o informa), cai no `nomeusu`. Sem isto, cada consulta criaria um recurso
+   * novo e os eventos apontariam para recursos duplicados.
+   */
+  #upsertRecurso(recurso: RecursoAgenda): number {
+    const existente = (
+      recurso.codusu === null
+        ? this.#db
+            .prepare('SELECT id FROM ag_recursos WHERE codusu IS NULL AND nomeusu = ?')
+            .get(recurso.nomeusu)
+        : this.#db.prepare('SELECT id FROM ag_recursos WHERE codusu = ?').get(recurso.codusu)
+    ) as { id: number } | undefined;
+
+    if (existente) {
+      this.#db
+        .prepare(
+          `UPDATE ag_recursos
+              SET nomeusu = ?, codcargo = ?, descrcargo = ?, cor_hex = ?,
+                  cor_conflito_hex = ?, problema_conexao = ?
+            WHERE id = ?`,
+        )
+        .run(
+          recurso.nomeusu,
+          recurso.codcargo,
+          recurso.descrcargo,
+          recurso.corHex,
+          recurso.corConflitoHex,
+          recurso.problemaConexao,
+          existente.id,
+        );
+      return existente.id;
+    }
+
+    const resultado = this.#db
+      .prepare(
+        `INSERT INTO ag_recursos
+           (codusu, nomeusu, codcargo, descrcargo, cor_hex, cor_conflito_hex, problema_conexao)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        recurso.codusu,
+        recurso.nomeusu,
+        recurso.codcargo,
+        recurso.descrcargo,
+        recurso.corHex,
+        recurso.corConflitoHex,
+        recurso.problemaConexao,
+      );
+    return Number(resultado.lastInsertRowid);
   }
 
   estado(): EstadoAgendaRecursos {
@@ -299,20 +368,26 @@ export class AgendaRecursos {
   }
 
   /**
-   * Acha o parceiro cujo nome corresponde ao do cliente, para o cadastro não
-   * exigir que o usuário vá procurar o CODPARC. Devolve `null` quando não há
-   * candidato único.
+   * `CODPARC`s dos parceiros da agenda cujo nome corresponde a algum dos nomes do
+   * cliente (o do cadastro e os "Nomes Completos"). É o vínculo por NOME da aba
+   * Agenda do cliente — o mesmo critério que a aba OS usa, sem exigir amarrar
+   * CODPARC à mão. Um cliente pode corresponder a mais de um parceiro (matriz/filial,
+   * cadastros duplicados), por isso devolve lista.
    */
-  casarParceiro(nomeCliente: string): ParceiroAgenda | null {
-    const alvo = chaveNome(nomeCliente);
-    if (!alvo) return null;
+  codparcsPorNomes(nomesCliente: string[]): number[] {
+    const alvos = nomesCliente.map(chaveNome).filter(Boolean);
+    if (!alvos.length) return [];
 
-    const candidatos = this.parceiros().filter((p) => {
-      const chave = chaveNome(p.nomeparc);
-      return chave === alvo || chave.startsWith(alvo) || alvo.startsWith(chave);
-    });
-
-    return candidatos.length === 1 ? (candidatos[0] ?? null) : null;
+    const codparcs = new Set<number>();
+    for (const parceiro of this.parceiros()) {
+      if (parceiro.codparc === null) continue;
+      const chave = chaveNome(parceiro.nomeparc);
+      const casa = alvos.some(
+        (alvo) => chave === alvo || chave.startsWith(alvo) || alvo.startsWith(chave),
+      );
+      if (casa) codparcs.add(parceiro.codparc);
+    }
+    return [...codparcs];
   }
 
   close(): void {

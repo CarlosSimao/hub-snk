@@ -72,17 +72,17 @@ cofre das credenciais é ele, e o backend fala com ele pela ponte local
 (`npm run dev`, sem o aplicativo aberto), elas respondem
 `503 { "mensagem": "...", "shellIndisponivel": true }`.
 
-| Método   | Rota                                        | Resposta                                                                           |
-| -------- | ------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `GET`    | `/api/sankhya/shell`                        | `200` — `{ "disponivel": true }` quando o aplicativo desktop responde              |
-| `GET`    | `/api/sankhya/credenciais`                  | `200` — estado das credenciais do ERP e da Experience, sem senha                   |
-| `POST`   | `/api/sankhya/credenciais/:sistema`         | `200` — credencial gravada no cofre do aplicativo (`{ usuario, senha }`)           |
-| `DELETE` | `/api/sankhya/credenciais/:sistema`         | `200` — credencial removida                                                        |
-| `POST`   | `/api/sankhya/navegador/abrir/:sistema`     | `200` — a guia do sistema passa a ser a guia ativa do aplicativo                   |
-| `POST`   | `/api/sankhya/navegador/capturar/:sistema`  | `200` — sessão da guia guardada no cofre; `409` quando a guia não está logada      |
-| `GET`    | `/api/agenda/estado`                        | `200` — quantos recursos e eventos há no snapshot e quando foi importado           |
-| `POST`   | `/api/agenda/consultar`                     | `200` — consulta a Agenda de Recursos na guia Sankhya Om (`{ de, ate }`) e importa |
-| `GET`    | `/api/agenda/situacao-do-dia?codparc=&dia=` | `200` — sem tarefa, tarefa aberta ou OS lançada na Experience naquele dia          |
+| Método   | Rota                                        | Resposta                                                                                                             |
+| -------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/sankhya/shell`                        | `200` — `{ "disponivel": true }` quando o aplicativo desktop responde                                                |
+| `GET`    | `/api/sankhya/credenciais`                  | `200` — estado das credenciais do ERP e da Experience, sem senha                                                     |
+| `POST`   | `/api/sankhya/credenciais/:sistema`         | `200` — credencial gravada no cofre do aplicativo (`{ usuario, senha }`)                                             |
+| `DELETE` | `/api/sankhya/credenciais/:sistema`         | `200` — credencial removida                                                                                          |
+| `POST`   | `/api/sankhya/navegador/abrir/:sistema`     | `200` — a guia do sistema passa a ser a guia ativa do aplicativo                                                     |
+| `POST`   | `/api/sankhya/navegador/capturar/:sistema`  | `200` — sessão da guia guardada no cofre; `409` quando a guia não está logada                                        |
+| `GET`    | `/api/agenda/estado`                        | `200` — quantos recursos e eventos há no snapshot e quando foi importado                                             |
+| `POST`   | `/api/agenda/consultar`                     | `200` — consulta a Agenda de Recursos do usuário (`{ de, ate }`), mês a mês, e importa; `400` sem CODUSU configurado |
+| `GET`    | `/api/agenda/situacao-do-dia?codparc=&dia=` | `200` — sem tarefa, tarefa aberta ou OS lançada na Experience naquele dia                                            |
 
 `:sistema` é `sankhya-erp` ou `sankhya-experience`.
 

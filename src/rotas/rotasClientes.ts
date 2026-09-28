@@ -94,16 +94,20 @@ const esquemaDeAnotacoes = z.object({
     .transform((valor) => valor.trim()),
 });
 
-/** `agendaCodparcs` vem `[]` quando o cliente ainda não tem parceiro nenhum amarrado. */
-const esquemaDeAgenda = z.object({
-  agendaCodparcs: z
-    .array(z.number().int('Cada código de parceiro deve ser um número inteiro.').nonnegative())
-    // Um cliente com o mesmo `codparc` cadastrado duas vezes não faz sentido, e quebraria o
-    // "já vinculado" (verde) do botão da agenda, que testa por igualdade num array.
-    .refine(
-      (valores) => new Set(valores).size === valores.length,
-      'Código de parceiro repetido na lista.',
-    ),
+/** `nomesCompletos` vem `[]` quando o cliente ainda não tem razão social cadastrada. */
+const esquemaDeNomesCompletos = z.object({
+  nomesCompletos: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(1, 'Nome completo não pode ser vazio.')
+        .max(
+          TAMANHO_MAXIMO_DO_NOME,
+          `Cada nome deve ter no máximo ${TAMANHO_MAXIMO_DO_NOME} caracteres.`,
+        ),
+    )
+    .max(20, 'No máximo 20 nomes completos por cliente.'),
 });
 
 const esquemaDeDadosDeBase = z.object({
@@ -529,19 +533,19 @@ export function registrarRotasDeClientes(
     }
   });
 
-  servidor.put('/api/clientes/:id/agenda', async (requisicao, resposta) => {
+  servidor.put('/api/clientes/:id/nomes-completos', async (requisicao, resposta) => {
     const parametros = esquemaDeParametrosDeCliente.safeParse(requisicao.params);
     if (!parametros.success) {
       return responderErroDeValidacao(resposta, parametros.error);
     }
 
-    const dados = esquemaDeAgenda.safeParse(requisicao.body);
+    const dados = esquemaDeNomesCompletos.safeParse(requisicao.body);
     if (!dados.success) {
       return responderErroDeValidacao(resposta, dados.error);
     }
 
     try {
-      return await repositorio.definirAgenda(parametros.data.id, dados.data);
+      return await repositorio.definirNomesCompletos(parametros.data.id, dados.data.nomesCompletos);
     } catch (erro) {
       return responderErroDeDominio(resposta, erro);
     }

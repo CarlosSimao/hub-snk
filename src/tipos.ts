@@ -199,11 +199,13 @@ export interface Cliente {
   links: LinkDoCliente[];
   projetos: Projeto[];
   /**
-   * Parceiros do ERP amarrados a este cliente, para cruzar com a Agenda de
-   * Recursos — um cliente do hub pode corresponder a mais de um `codparc` no
-   * Sankhya (matrizes/filiais, cadastros duplicados etc.).
+   * Razões sociais deste cliente no Sankhya OM/Experience — o nome do cadastro
+   * do hub raramente bate com o nome de lá (abreviado, com sufixo societário,
+   * de matriz/filial diferente). É o ÚNICO vínculo com o Sankhya: casa a empresa
+   * da OS (`aba OS do cliente`) e o parceiro da Agenda (`aba Agenda do cliente`),
+   * os dois pelo nome. Vazio cai no `nome` do cadastro.
    */
-  agendaCodparcs: number[];
+  nomesCompletos: string[];
   criadoEm: string;
   atualizadoEm: string;
 }

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
+import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
 import { AgendaRecursos } from '../sankhya/agenda.ts';
 import { parsearAgenda, PayloadInvalidoError } from '../sankhya/agendaParser.ts';
 import type { Credenciais } from '../sankhya/credenciais.ts';
@@ -25,13 +26,25 @@ function paraFormatoBrasileiro(iso: string): string {
 }
 
 /**
+ * `CODUSU` da configuração global, ou `null` quando não configurado. Sem ele não há
+ * como recortar "só a minha agenda", então a consulta é recusada com mensagem clara.
+ */
+function lerCodusuConfigurado(configuracao: { sankhyaOmCodUsu: string }): number | null {
+  const bruto = configuracao.sankhyaOmCodUsu.trim();
+  if (!bruto) return null;
+  const codusu = Number(bruto);
+  return Number.isInteger(codusu) && codusu > 0 ? codusu : null;
+}
+
+/**
  * Rotas da Agenda de Recursos do Sankhya ERP: snapshot em SQLite, alimentado
- * pela consulta automática na aba ERP autenticada do shell desktop.
+ * pela consulta automática na janela oculta autenticada do shell desktop.
  */
 export function registrarRotasDeAgenda(
   servidor: FastifyInstance,
   agenda: AgendaRecursos,
   repositorio: RepositorioClientes,
+  configuracao: RepositorioConfiguracao,
   credenciais: Credenciais,
   experience: Experience,
 ): void {
@@ -54,12 +67,10 @@ export function registrarRotasDeAgenda(
   );
 
   /**
-   * Consulta automática: pede pro helper buscar a Agenda de Recursos de
-   * dentro da guia do Sankhya já autenticada (sem colar nada na mão) e
-   * importa o resultado no mesmo snapshot.
-   *
-   * É sempre a agenda do usuário logado na guia — não existe seleção de
-   * consultor aqui, de propósito.
+   * Consulta automática: a janela oculta do shell busca a Agenda de Recursos de dentro do
+   * Sankhya já autenticado (sem colar nada na mão) e o resultado é importado no snapshot,
+   * mês a mês. Sempre recortada pelo `CODUSU` configurado — só a agenda do próprio usuário
+   * entra, mesmo que o Sankhya devolva outros executantes.
    */
   servidor.post('/api/agenda/consultar', async (requisicao, resposta) => {
     const dados = esquemaDeConsulta.safeParse(requisicao.body);
@@ -68,12 +79,24 @@ export function registrarRotasDeAgenda(
       return resposta.status(400).send({ mensagem: primeiraMensagem });
     }
 
+    const codusuAlvo = lerCodusuConfigurado(await configuracao.ler());
+    if (codusuAlvo === null) {
+      return resposta.status(400).send({
+        mensagem:
+          'Configure o "Meu código de usuário Sankhya OM" em Configurações › Geral para consultar a agenda.',
+        cadastroIncompleto: true,
+      });
+    }
+
+    const de = paraFormatoBrasileiro(dados.data.de);
+    const ate = paraFormatoBrasileiro(dados.data.ate);
+    const periodo = { de: `${dados.data.de} 00:00:00`, ate: `${dados.data.ate} 23:59:59` };
+
+    // A janela oculta reloga sozinha quando a sessão cai, então aqui não há mais o
+    // relogin por texto de erro que existia no fluxo da aba visível.
     let resultado: { conteudo: string };
     try {
-      resultado = await credenciais.consultarAgendaDeRecursos(
-        paraFormatoBrasileiro(dados.data.de),
-        paraFormatoBrasileiro(dados.data.ate),
-      );
+      resultado = await credenciais.consultarAgendaDeRecursos(de, ate);
     } catch (erro) {
       return responderErroDoShell(resposta, erro);
     }
@@ -88,7 +111,7 @@ export function registrarRotasDeAgenda(
     }
 
     try {
-      return agenda.importar(parsearAgenda(bruto));
+      return agenda.importar(parsearAgenda(bruto), { periodo, codusuAlvo });
     } catch (erro) {
       if (erro instanceof PayloadInvalidoError) {
         return resposta.status(400).send({ mensagem: erro.message });
@@ -150,25 +173,10 @@ export function registrarRotasDeAgenda(
   );
 
   /**
-   * Sugestão de parceiro pelo nome do cliente, antes de gravar no cadastro —
-   * quem decide amarrar de fato é a tela, depois de conferir.
-   */
-  servidor.get<{ Querystring: { nome?: string } }>(
-    '/api/agenda/sugestao',
-    async (requisicao, resposta) => {
-      const nome = (requisicao.query.nome ?? '').trim();
-      if (!nome) {
-        return resposta.status(400).send({ mensagem: 'Informe ?nome=<nome do cliente>.' });
-      }
-
-      return { parceiro: agenda.casarParceiro(nome) };
-    },
-  );
-
-  /**
-   * Eventos do snapshot num período, já recortados pro `codparc` amarrado a
-   * este cliente — a mesma consulta de `/api/agenda/eventos`, só que
-   * filtrada. É o que alimenta a aba Agenda dentro do cadastro do cliente.
+   * Eventos do snapshot num período, recortados pelos parceiros deste cliente —
+   * casados pelo NOME (o do cadastro e os "Nomes Completos"), o mesmo critério da
+   * aba OS. É o que alimenta a aba Agenda dentro do cadastro do cliente; não há
+   * vínculo por CODPARC a amarrar à mão.
    */
   servidor.get<{ Params: { id: string }; Querystring: { de?: string; ate?: string } }>(
     '/api/clientes/:id/agenda-eventos',
@@ -178,13 +186,6 @@ export function registrarRotasDeAgenda(
         return resposta.status(404).send({ mensagem: 'Cliente não encontrado.' });
       }
 
-      if (cliente.agendaCodparcs.length === 0) {
-        return resposta.status(400).send({
-          mensagem: `"${cliente.nome}" ainda não tem parceiro nenhum da Agenda amarrado no cadastro.`,
-          cadastroIncompleto: true,
-        });
-      }
-
       const { de, ate } = requisicao.query;
       if (!de || !ate || !ISO.test(de) || !ISO.test(ate)) {
         return resposta
@@ -192,9 +193,12 @@ export function registrarRotasDeAgenda(
           .send({ mensagem: 'Informe ?de= e ?ate= no formato YYYY-MM-DD.' });
       }
 
-      return {
-        eventos: agenda.eventos(`${de} 00:00:00`, `${ate} 23:59:59`, cliente.agendaCodparcs),
-      };
+      const codparcs = agenda.codparcsPorNomes([cliente.nome, ...cliente.nomesCompletos]);
+      if (codparcs.length === 0) {
+        return { eventos: [], semParceiroCasado: true };
+      }
+
+      return { eventos: agenda.eventos(`${de} 00:00:00`, `${ate} 23:59:59`, codparcs) };
     },
   );
 }

@@ -331,13 +331,6 @@ export class Experience {
     return implantacoes.find((i) => i.fap === fapNumero)?.id ?? null;
   }
 
-  /** Os `implantation_id` de todos os FAPs de um cliente — um cliente pode ter mais de um. */
-  async #implantationIdsPorFaps(fapNumeros: number[]): Promise<number[]> {
-    const implantacoes = await this.#implantacoesComFap();
-    const fapsProcurados = new Set(fapNumeros);
-    return [...new Set(implantacoes.filter((i) => fapsProcurados.has(i.fap)).map((i) => i.id))];
-  }
-
   /**
    * Detalhe de uma OS já lançada: o texto de "Tarefas Realizadas" (etapa,
    * processos e observações — junta mais de uma linha quando a OS consolida
@@ -504,34 +497,11 @@ export class Experience {
 
   /**
    * As OS do usuário logado no período, em TODOS os projetos que ele tem acesso — sem
-   * o usuário precisar achar o ID de cada projeto. É o que alimenta a aba OS geral.
+   * o usuário precisar achar o ID de cada projeto. É o que alimenta a aba OS (geral e
+   * do cadastro do cliente, esta filtrando depois pelos "Nomes Completos" do cliente).
    */
   async minhasOrdens(personId: number, de: string, ate: string): Promise<OrdemExperience[]> {
     const implantationIds = await this.#todosOsImplantationIds();
-    return this.#buscarEEnriquecer(implantationIds, personId, de, ate);
-  }
-
-  /**
-   * As OS do usuário logado, só nos projetos dos FAPs informados — o que alimenta a aba
-   * OS do cadastro do cliente. Ao contrário de `minhasOrdens`, filtra pelo `implantation_id`
-   * de verdade (via FAP do parceiro do ERP), não por comparação de nome da empresa.
-   */
-  async ordensDoCliente(
-    personId: number,
-    fapNumeros: number[],
-    de: string,
-    ate: string,
-  ): Promise<OrdemExperience[]> {
-    const implantationIds = await this.#implantationIdsPorFaps(fapNumeros);
-    return this.#buscarEEnriquecer(implantationIds, personId, de, ate);
-  }
-
-  async #buscarEEnriquecer(
-    implantationIds: number[],
-    personId: number,
-    de: string,
-    ate: string,
-  ): Promise<OrdemExperience[]> {
     if (implantationIds.length === 0) {
       return [];
     }

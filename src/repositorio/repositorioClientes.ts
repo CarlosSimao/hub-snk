@@ -127,13 +127,11 @@ export interface RepositorioClientes {
   definirAnotacoes(id: string, anotacoes: string): Promise<Cliente>;
 
   /**
-   * Grava o vínculo do cliente com a Agenda de Recursos: qual usuário do
-   * consultor e qual `codparc` do ERP correspondem a ele.
-   *
-   * Fica fora de `atualizar` pela mesma razão de `definirAnotacoes`: não é
-   * o nome do cliente, e não deve depender da checagem de nome duplicado.
+   * Grava as razões sociais deste cliente no Sankhya OM/Experience. Mesmo motivo
+   * de `definirAnotacoes`: não é o nome do cadastro, e não deve depender da
+   * checagem de nome duplicado.
    */
-  definirAgenda(id: string, dados: { agendaCodparcs: number[] }): Promise<Cliente>;
+  definirNomesCompletos(id: string, nomesCompletos: string[]): Promise<Cliente>;
 
   remover(id: string): Promise<void>;
 

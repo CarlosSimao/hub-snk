@@ -466,33 +466,24 @@ describe('RepositorioClientesArquivo — projetos', () => {
   });
 });
 
-describe('RepositorioClientesArquivo — agenda', () => {
-  it('grava os codparcs do cliente', async () => {
-    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
-
-    const atualizado = await repositorio.definirAgenda(cliente.id, { agendaCodparcs: [10, 20] });
-
-    assert.deepEqual(atualizado.agendaCodparcs, [10, 20]);
-  });
-
-  it('converte o antigo agendaCodparc singular em lista na leitura', async () => {
+describe('RepositorioClientesArquivo — vínculo antigo de agenda por CODPARC', () => {
+  it('descarta agendaCodparcs/agendaCodparc/agendaRecursoUsuario na leitura', async () => {
     await writeFile(
       caminhoDoArquivo(),
       JSON.stringify({
         versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
         clientes: [
-          { id: 'a', nome: 'Com parceiro', agendaCodparc: 42, agendaRecursoUsuario: 'fulano' },
-          { id: 'b', nome: 'Sem parceiro', agendaCodparc: null },
+          { id: 'a', nome: 'Com lista', agendaCodparcs: [10, 20] },
+          { id: 'b', nome: 'Com singular', agendaCodparc: 42, agendaRecursoUsuario: 'fulano' },
         ],
       }),
       'utf8',
     );
 
-    const [comParceiro, semParceiro] = await repositorio.listar();
+    const [comLista, comSingular] = await repositorio.listar();
 
-    assert.deepEqual(comParceiro?.agendaCodparcs, [42]);
-    assert.deepEqual(semParceiro?.agendaCodparcs, []);
-    assert.equal('agendaCodparc' in (comParceiro ?? {}), false);
-    assert.equal('agendaRecursoUsuario' in (comParceiro ?? {}), false);
+    assert.equal('agendaCodparcs' in (comLista ?? {}), false);
+    assert.equal('agendaCodparc' in (comSingular ?? {}), false);
+    assert.equal('agendaRecursoUsuario' in (comSingular ?? {}), false);
   });
 });

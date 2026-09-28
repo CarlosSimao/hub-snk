@@ -10,7 +10,8 @@ import { garantirToken } from './tokenStore';
 import { logEvento } from './log';
 import * as cofre from './cofreCredenciais';
 import * as navegador from './navegador';
-import type { AgendaFetcher, ResultadoFetch } from './agenda';
+import { autoLoginSankhya } from './autoLoginSankhya';
+import type { ConsultorDeAgenda, ResultadoFetch } from './janelaAgendaOculta';
 import type { TabManager } from './tabs';
 
 function lerCorpo(req: IncomingMessage): Promise<string> {
@@ -176,9 +177,28 @@ async function tratarNavegador(
 
   if (req.method === 'POST' && acao === 'abrir') {
     try {
-      responderJson(res, 200, { ok: true, url: navegador.abrir(tabs, sistema, texto('tela')) });
+      responderJson(res, 200, {
+        ok: true,
+        url: await navegador.abrir(tabs, sistema, texto('tela')),
+      });
     } catch (err) {
       responderJson(res, 400, { ok: false, erro: (err as Error).message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && acao === 'autologin') {
+    if (!cofre.disponivel()) {
+      responderJson(res, 503, { ok: false, erro: cofre.motivoIndisponivel() });
+      return;
+    }
+    try {
+      responderJson(res, 200, await autoLoginSankhya(tabs, sistema));
+    } catch (err) {
+      responderJson(res, 502, {
+        ok: false,
+        erro: `falha no login automático: ${(err as Error).message}`,
+      });
     }
     return;
   }
@@ -224,7 +244,10 @@ function responderConsultaNaGuia(
  *   janela, e guardar a referencia no boot deixaria o bridge preso a um TabManager que
  *   pode ser recriado (`activate` no macOS, janela fechada e reaberta).
  */
-export function criarBridgeServer(agenda: AgendaFetcher, tabs: () => TabManager | null): Server {
+export function criarBridgeServer(
+  agenda: ConsultorDeAgenda,
+  tabs: () => TabManager | null,
+): Server {
   const servidor = createServer((req, res) => {
     void (async () => {
       if (req.headers['x-hub-token'] !== garantirToken()) {

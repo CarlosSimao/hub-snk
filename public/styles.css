@@ -309,18 +309,21 @@ a.btn {
   background: color-mix(in srgb, var(--marca) 12%, transparent);
 }
 
-/* Painel de escolha de cliente no vínculo de `codparc` da agenda. */
+/* Painel de vínculo do parceiro do evento a um cliente do HUB (agenda).
+   Flutua com `position: fixed` (posicionado por JS ao lado do botão) para escapar do
+   `overflow: hidden` do card do evento — inline ele empurrava e era cortado pelo card. */
 .painel-vinculo {
-  flex-basis: 100%;
-  max-width: 360px;
+  position: fixed;
+  z-index: 60;
+  width: min(340px, calc(100vw - 32px));
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px;
-  background: var(--surface-solid);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow);
+  gap: 8px;
 }
 
 .painel-vinculo.ocupado {
@@ -330,19 +333,13 @@ a.btn {
 
 .painel-vinculo-busca {
   width: 100%;
-  box-sizing: border-box;
-  height: 34px;
-  padding: 0 10px 0 32px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-soft)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E")
-    no-repeat 10px center;
-  color: var(--text);
+  padding: 6px 10px;
   font: inherit;
-  font-size: 13px;
-  appearance: none;
-  -webkit-appearance: none;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-sizing: border-box;
 }
 
 .painel-vinculo-busca::placeholder {
@@ -354,16 +351,17 @@ a.btn {
 }
 
 .painel-vinculo-busca:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-  border-color: transparent;
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
 .painel-vinculo-lista {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 220px;
+  /* Altura fixa que rola: a busca fica acima e o botão de cadastro logo abaixo, sempre à
+     vista. Valor fixo (não %) para o scroll funcionar sem depender da altura do pai. */
+  max-height: 240px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -372,19 +370,18 @@ a.btn {
 
 .painel-vinculo-opcao {
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 7px 10px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  font-size: 13px;
   text-align: left;
+  padding: 6px 10px;
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
 }
 
 .painel-vinculo-opcao:hover,
@@ -408,6 +405,29 @@ a.btn {
   padding: 8px 10px;
   font-size: 13px;
   color: var(--text-faint);
+}
+
+/* A busca do topo não encolhe — só a lista abaixo dela rola. */
+.painel-vinculo > .painel-vinculo-busca {
+  flex: none;
+}
+
+/* Linha de cadastro de cliente novo, já vinculado ao parceiro do evento. */
+.painel-vinculo-novo {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.painel-vinculo-novo .painel-vinculo-busca {
+  flex: 1;
+}
+
+.painel-vinculo-novo .btn {
+  white-space: nowrap;
 }
 
 /* Chave Clientes/Local: dois botões colados, só um "ativo" por vez. */
@@ -864,14 +884,12 @@ main {
   min-width: 0;
 }
 
-/* Lista de OS: pode chegar a dezenas de registros no mês — rola por dentro em vez de esticar a página. */
+/* Lista de OS: pode chegar a dezenas de registros no mês. Quem rola é a visualização
+   (ou o painel de detalhe do cliente) que a contém — uma rolagem só por aba, sem aninhar. */
 .lista-os {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 60vh;
-  overflow-y: auto;
-  padding-right: 4px;
 }
 
 /*
@@ -2474,6 +2492,20 @@ button.selo-situacao:focus-visible {
   align-items: center;
 }
 
+.lista-nomes-completos {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  margin-bottom: 10px;
+}
+
+.linha-nome-completo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
 /* Campo de texto com botão de escolher arquivo ao lado, como no caminho da IDE. */
 .campo-com-botao {
   display: flex;
@@ -2750,8 +2782,12 @@ button.selo-situacao:focus-visible {
     max-height: none;
   }
 
+  /* Cada visualização que é filha direta de `main` rola por dentro, ocupando a altura útil
+     — sem isso (Agenda e OS ficavam de fora) o conteúdo era cortado por `main:overflow`. */
   .detalhe,
-  #visualizacao-local {
+  #visualizacao-local,
+  #visualizacao-agenda,
+  #visualizacao-os {
     flex: 1;
     min-height: 0;
     overflow-y: auto;

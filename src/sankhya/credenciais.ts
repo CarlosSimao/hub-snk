@@ -186,4 +186,18 @@ export class Credenciais {
       { method: 'POST' },
     );
   }
+
+  /**
+   * Loga sozinho na guia do sistema com a credencial salva no cofre e já captura a
+   * sessão depois — sem passo manual de "abrir aba" nem "capturar sessão".
+   */
+  autoLoginSankhya(
+    sistema: SistemaSankhya,
+  ): Promise<{ ok: boolean; cookies: number; erro?: string }> {
+    return this.#requisitar<{ ok: boolean; cookies: number; erro?: string }>(
+      `/browser/autologin/${sistema}`,
+      { method: 'POST' },
+      { timeoutMs: TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS },
+    );
+  }
 }

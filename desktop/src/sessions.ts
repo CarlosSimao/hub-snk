@@ -5,7 +5,7 @@
  * desktop/src/agenda.ts e a Seção 6.2 da especificação). Porta de
  * `poc-desktop/src/main.js`.
  */
-import { session, type WebContentsView } from 'electron';
+import { session, type WebContents, type WebContentsView } from 'electron';
 import { DOMINIOS_ERP, ERP_URL, PARTICAO } from './config';
 import { logEvento } from './log';
 
@@ -25,7 +25,7 @@ function origemPermitida(url: string, lista: string[]): boolean {
   }
 }
 
-function decodificarJwt(token: string): { email: string; expIso: string } {
+export function decodificarJwt(token: string): { email: string; expIso: string } {
   try {
     const payload = token.split('.')[1] ?? '';
     const json = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
@@ -42,30 +42,34 @@ function decodificarJwt(token: string): { email: string; expIso: string } {
   }
 }
 
+const VAZIA: SessaoExperience = { presente: false, usuario: '', token: '', expIso: '' };
+
+/**
+ * Lê o `localStorage.token` de um `WebContents` já na origem da Experience — serve tanto
+ * para a aba visível quanto para a janela oculta. Não loga evento: quem chama decide.
+ */
+export async function capturarTokenDeWebContents(wc: WebContents): Promise<SessaoExperience> {
+  if (!origemPermitida(wc.getURL(), ['sankhya.com.br'])) return VAZIA;
+
+  const token = (await wc.executeJavaScript(
+    "(() => { try { return window.localStorage.getItem('token') || ''; } catch (e) { return ''; } })()",
+    true,
+  )) as string;
+  if (!token) return VAZIA;
+
+  const { email, expIso } = decodificarJwt(token);
+  return { presente: true, usuario: email, token, expIso };
+}
+
 /** Captura o `localStorage.token` da aba Experience — mesma chave que o app usa hoje. */
 export async function capturarTokenExperience(
   view: WebContentsView | undefined,
 ): Promise<SessaoExperience> {
-  if (!view) return { presente: false, usuario: '', token: '', expIso: '' };
+  if (!view) return VAZIA;
 
-  const url = view.webContents.getURL();
-  if (!origemPermitida(url, ['sankhya.com.br'])) {
-    return { presente: false, usuario: '', token: '', expIso: '' };
-  }
-
-  const token = (await view.webContents.executeJavaScript(
-    "(() => { try { return window.localStorage.getItem('token') || ''; } catch (e) { return ''; } })()",
-    true,
-  )) as string;
-
-  if (!token) {
-    logEvento('experience-token-capturado', { presente: false });
-    return { presente: false, usuario: '', token: '', expIso: '' };
-  }
-
-  const { email, expIso } = decodificarJwt(token);
-  logEvento('experience-token-capturado', { presente: true, expIso });
-  return { presente: true, usuario: email, token, expIso };
+  const sessao = await capturarTokenDeWebContents(view.webContents);
+  logEvento('experience-token-capturado', { presente: sessao.presente, expIso: sessao.expIso });
+  return sessao;
 }
 
 /** Diagnóstico local: nomes/contagem de cookies, nunca o valor. */

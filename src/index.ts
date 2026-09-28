@@ -97,16 +97,11 @@ async function iniciarServidor(): Promise<void> {
     servidor,
     agendaDeRecursos,
     repositorioDeClientes,
-    credenciaisSankhya,
-    experience,
-  );
-  registrarRotasDeOs(
-    servidor,
-    experience,
-    repositorioDeClientes,
     repositorioDeConfiguracao,
     credenciaisSankhya,
+    experience,
   );
+  registrarRotasDeOs(servidor, experience, repositorioDeClientes, repositorioDeConfiguracao);
 
   /*
    * Leitura antecipada dos três arquivos: arquivo em esquema desconhecido e

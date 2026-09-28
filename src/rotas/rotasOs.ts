@@ -2,13 +2,8 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
-import type { Credenciais } from '../sankhya/credenciais.ts';
+import { chaveNome } from '../sankhya/agenda.ts';
 import { SessaoExpiradaError, type Experience } from '../sankhya/experience.ts';
-import {
-  fapsDoParceiro,
-  parsearNegociacoes,
-  PayloadDeNegociacoesInvalidoError,
-} from '../sankhya/negociacoes.ts';
 import { responderErroDoShell } from './respostasDoShell.ts';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -24,53 +19,40 @@ function responderErroDeValidacao(resposta: FastifyReply, erro: z.ZodError): Fas
 
 /**
  * Rotas da aba OS: consulta ao vivo no Sankhya Experience, sem persistência — cada troca
- * de mês ou clique em "atualizar" busca de novo. O `personId` vem da configuração geral
- * (`experiencePersonId`), a mesma conta em qualquer projeto.
+ * de mês ou clique em "atualizar" busca de novo.
  *
- * A aba OS geral usa `Experience.minhasOrdens`, que traz as OS do usuário em TODOS os
- * projetos de uma vez. A aba OS do cadastro do cliente usa `Experience.ordensDoCliente`,
- * que filtra pelo `implantation_id` de verdade — descoberto a partir do(s) FAP(s) do
- * parceiro do ERP vinculado ao cliente (`consultarNegociacoesDoParceiro`, mesma fonte que
- * `/api/agenda/situacao-do-dia` usa). Por isso, ao contrário da geral, ela depende da aba
- * ERP aberta e logada, com a tela Agenda de Recursos carregada.
+ * Usa `Experience.minhasOrdens(personId, de, ate)`, que traz as OS do usuário em TODOS
+ * os projetos de uma vez — sem precisar de um `implantation_id` por cliente. O
+ * `personId` vem da configuração geral (`experiencePersonId`), a mesma conta em
+ * qualquer projeto. A aba OS do cadastro do cliente reaproveita a mesma consulta e
+ * recorta pelos "Nomes Completos" do cliente — a razão social pode ser diferente (e até
+ * mais de uma) do nome digitado no cadastro do hub, por isso a lista em vez de comparar
+ * direto com `cliente.nome`; sem nenhum nome cadastrado, cai em `cliente.nome`.
  */
 export function registrarRotasDeOs(
   servidor: FastifyInstance,
   experience: Experience,
   repositorioDeClientes: RepositorioClientes,
   repositorioDeConfiguracao: RepositorioConfiguracao,
-  credenciais: Credenciais,
 ): void {
-  async function experiencePersonIdOuErro(resposta: FastifyReply): Promise<number | null> {
+  async function consultarMinhasOrdens(resposta: FastifyReply, de: string, ate: string) {
     const { experiencePersonId } = await repositorioDeConfiguracao.ler();
     if (experiencePersonId === '') {
-      resposta.status(400).send({
+      return resposta.status(400).send({
         mensagem: 'Capture a sessão do Sankhya Experience em Credenciais Sankhya.',
         codigoDeUsuarioAusente: true,
       });
-      return null;
     }
-    return Number(experiencePersonId);
-  }
 
-  function responderErroDeOrdens(resposta: FastifyReply, erro: unknown): FastifyReply {
-    if (erro instanceof SessaoExpiradaError) {
-      return resposta.status(409).send({ mensagem: erro.message, sessaoExpirada: true });
-    }
-    return responderErroDoShell(resposta, erro);
-  }
-
-  /** Os FAPs de um parceiro (`consultarNegociacoesDoParceiro`, tipo 2) — pode ter mais de um codparc vinculado. */
-  async function fapsDoCliente(agendaCodparcs: number[]): Promise<number[]> {
-    const faps = new Set<number>();
-    for (const codparc of agendaCodparcs) {
-      const negociacoesResultado = await credenciais.consultarNegociacoesDoParceiro(codparc);
-      const negociacoes = parsearNegociacoes(JSON.parse(negociacoesResultado.conteudo));
-      for (const fap of fapsDoParceiro(negociacoes)) {
-        faps.add(fap);
+    try {
+      const itens = await experience.minhasOrdens(Number(experiencePersonId), de, ate);
+      return { itens, buscadoEm: new Date().toISOString() };
+    } catch (erro) {
+      if (erro instanceof SessaoExpiradaError) {
+        return resposta.status(409).send({ mensagem: erro.message, sessaoExpirada: true });
       }
+      return responderErroDoShell(resposta, erro);
     }
-    return [...faps];
   }
 
   /** Todas as OS do usuário logado no período, em todos os projetos. */
@@ -80,18 +62,10 @@ export function registrarRotasDeOs(
       return responderErroDeValidacao(resposta, dados.error);
     }
 
-    const personId = await experiencePersonIdOuErro(resposta);
-    if (personId === null) return resposta;
-
-    try {
-      const itens = await experience.minhasOrdens(personId, dados.data.de, dados.data.ate);
-      return { itens, buscadoEm: new Date().toISOString() };
-    } catch (erro) {
-      return responderErroDeOrdens(resposta, erro);
-    }
+    return consultarMinhasOrdens(resposta, dados.data.de, dados.data.ate);
   });
 
-  /** As OS do usuário logado, só nos projetos do(s) FAP(s) deste cliente. */
+  /** As mesmas OS, recortadas pelos "Nomes Completos" deste cliente (ou o nome do cadastro, sem nenhum cadastrado). */
   servidor.post<{ Params: { id: string } }>(
     '/api/clientes/:id/os-consultar',
     async (requisicao, resposta) => {
@@ -105,46 +79,17 @@ export function registrarRotasDeOs(
         return responderErroDeValidacao(resposta, dados.error);
       }
 
-      const personId = await experiencePersonIdOuErro(resposta);
-      if (personId === null) return resposta;
-
-      if (cliente.agendaCodparcs.length === 0) {
-        return resposta.status(400).send({
-          mensagem: 'Vincule um parceiro do ERP a este cliente, na Agenda, para consultar as OS dele.',
-          semParceiroVinculado: true,
-        });
+      const resultado = await consultarMinhasOrdens(resposta, dados.data.de, dados.data.ate);
+      if (!resultado || typeof resultado !== 'object' || !('itens' in resultado)) {
+        return resultado;
       }
 
-      let faps: number[];
-      try {
-        faps = await fapsDoCliente(cliente.agendaCodparcs);
-      } catch (erro) {
-        if (erro instanceof PayloadDeNegociacoesInvalidoError) {
-          return resposta.status(400).send({ mensagem: erro.message });
-        }
-        if (erro instanceof SyntaxError) {
-          return resposta
-            .status(502)
-            .send({ mensagem: 'O Sankhya respondeu algo que não é JSON válido.' });
-        }
-        return responderErroDoShell(resposta, erro);
-      }
-
-      if (faps.length === 0) {
-        return { itens: [], buscadoEm: new Date().toISOString() };
-      }
-
-      try {
-        const itens = await experience.ordensDoCliente(
-          personId,
-          faps,
-          dados.data.de,
-          dados.data.ate,
-        );
-        return { itens, buscadoEm: new Date().toISOString() };
-      } catch (erro) {
-        return responderErroDeOrdens(resposta, erro);
-      }
+      const nomes = cliente.nomesCompletos.length ? cliente.nomesCompletos : [cliente.nome];
+      const chavesDoCliente = new Set(nomes.map(chaveNome));
+      const itensFiltrados = resultado.itens.filter((item) =>
+        chavesDoCliente.has(chaveNome(item.empresa)),
+      );
+      return { ...resultado, itens: itensFiltrados };
     },
   );
 }
