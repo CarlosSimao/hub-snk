@@ -4,6 +4,7 @@ import type {
   OrdemExperience,
   TarefaExperience,
 } from './types.ts';
+import { idsDemandaNoTexto } from './demandas.ts';
 
 /**
  * O que os dois sistemas dizem, juntos, sobre um dia.
@@ -216,6 +217,8 @@ export interface AgendaDeCliente {
   cliente: { id: number; nome: string };
   agenda?: AgendaExperience;
   eventos?: EventoComRecurso[];
+  /** IDs das demandas do cliente (cadastro + as citadas nos eventos) — ver `demandas.ts`. */
+  demandas?: string[];
   erro?: string;
 }
 
@@ -228,9 +231,16 @@ export interface AgendaDeCliente {
 export interface FatiaDoDia {
   clienteId: number;
   nome: string;
+  /**
+   * A demanda desta fatia. Um cliente com várias demandas no dia vira uma fatia para
+   * cada; vazio quando o evento não cita demanda e o cliente tem mais de uma.
+   */
+  demanda: string;
   tarefas: number;
   ordens: number;
   eventos: number;
+  /** Títulos/observações dos eventos do ERP desta fatia, para o detalhe do dia. */
+  textosEventos: string[];
   cruzamento: Exclude<Cruzamento, 'vazio'>;
 }
 
@@ -273,21 +283,51 @@ export function montarGradeConsolidada(
     doMes: dia.doMes,
     hoje: dia.hoje,
     clientes: porCliente
-      .map(({ linha, grade }): FatiaDoDia | null => {
+      .flatMap(({ linha, grade }): FatiaDoDia[] => {
         const doCliente = grade[i];
-        if (!doCliente || doCliente.cruzamento === 'vazio') return null;
-        return {
+        if (!doCliente || doCliente.cruzamento === 'vazio') return [];
+        const cruzamento = doCliente.cruzamento;
+        return fatiarPorDemanda(doCliente.eventos, linha.demandas ?? []).map((grupo, n) => ({
           clienteId: linha.cliente.id,
           nome: linha.cliente.nome,
-          tarefas: doCliente.tarefas.length,
-          ordens: doCliente.ordens.length,
-          eventos: doCliente.eventos.length,
-          cruzamento: doCliente.cruzamento,
-        };
+          demanda: grupo.demanda,
+          // A Experience é por projeto, não por demanda: tarefa e OS do dia entram uma
+          // vez só, na primeira fatia, para o detalhe não contar o mesmo item duas vezes.
+          tarefas: n === 0 ? doCliente.tarefas.length : 0,
+          ordens: n === 0 ? doCliente.ordens.length : 0,
+          eventos: grupo.eventos.length,
+          textosEventos: grupo.eventos.map((e) => (e.descrlonga || e.descrabrev || '').trim()).filter(Boolean),
+          cruzamento,
+        }));
       })
-      .filter((c): c is FatiaDoDia => c !== null)
-      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
+      .sort(
+        (a, b) =>
+          a.nome.localeCompare(b.nome, 'pt-BR') || a.demanda.localeCompare(b.demanda, 'pt-BR', { numeric: true }),
+      ),
   }));
+}
+
+/**
+ * Separa os eventos de um cliente num dia pelas demandas dele.
+ *
+ * O evento diz a demanda no texto ("TECH | ID 2996 - ..."). Sem ID no texto, ele vai
+ * para a única demanda do cliente, quando há uma só; havendo várias, fica sem demanda
+ * em vez de ser chutado para a errada. Dia sem evento (só Experience) é uma fatia só.
+ */
+export function fatiarPorDemanda(
+  eventos: EventoComRecurso[],
+  demandas: string[],
+): { demanda: string; eventos: EventoComRecurso[] }[] {
+  const unica = demandas.length === 1 ? demandas[0]! : '';
+  if (!eventos.length) return [{ demanda: unica, eventos: [] }];
+
+  const grupos = new Map<string, EventoComRecurso[]>();
+  for (const e of eventos) {
+    const citadas = idsDemandaNoTexto(e.descrlonga);
+    const demanda = citadas.find((id) => demandas.includes(id)) ?? citadas[0] ?? unica;
+    grupos.set(demanda, [...(grupos.get(demanda) ?? []), e]);
+  }
+  return [...grupos].map(([demanda, doGrupo]) => ({ demanda, eventos: doGrupo }));
 }
 
 /**

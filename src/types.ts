@@ -353,11 +353,12 @@ export interface Cliente {
    */
   agendaCodparc: number | null;
   /**
-   * Codigo da demanda deste cliente na Agenda de Recursos.
+   * IDs das demandas deste cliente — o `CODIGO` da Solicitação de Serviços DS, o mesmo
+   * que o consultor escreve no evento da Agenda ("TECH | ID 2996 - ...").
    *
-   * Texto livre e preenchido a mao: o snapshot da agenda traz `nuevento`, `numetapa` e
-   * `nufap`, e nenhum deles e o numero que se usa no dia a dia para falar da demanda.
-   * Serve de referencia na tela, nao de chave para buscar nada.
+   * Um parceiro pode ter várias demandas no mesmo repositório; ficam separadas por
+   * vírgula ("2996, 3100"), ver `src/demandas.ts`. A Agenda Mensal busca a solicitação
+   * de cada uma e separa os eventos do cliente por elas.
    */
   agendaDemandaId: string;
   /** URL do Sankhya do cliente, para abrir direto do painel. */
@@ -1128,4 +1129,45 @@ export interface EscopoDoCliente {
   tarefas: TarefaEscopo[];
   /** Pasta que a tela sugere ao ligar o compartilhamento. */
   pastaSugerida: string;
+}
+
+/** Um anexo do botão "Anexo" (clipe) da Solicitação de Serviços DS — `AnexoSistema`. */
+export interface AnexoSolicitacao {
+  nuAttach: number;
+  nome: string;
+  descricao: string;
+  /** Preenchido quando o anexo é um link, e não um arquivo. */
+  link: string;
+  dhCad: string;
+}
+
+/** Solicitação de Serviços DS do corporativo, do snapshot local (`src/sankhya/solicitacoes.ts`). */
+export interface SolicitacaoServico {
+  codigo: number;
+  codparc: number | null;
+  descricao: string;
+  horasEstimadas: number | null;
+  /** Já com o rótulo (ex.: "Orçamento Aprovado"). */
+  statusOrcamento: string;
+  tipo: string;
+  dtAbertura: string;
+  dtAprovacao: string;
+  /** Arquivo do campo "Anexo" da tela. */
+  anexo: { nome: string; tamanho: number | null; tipo: string } | null;
+  anexos: AnexoSolicitacao[];
+  /** Quando foi lida do ERP (ms epoch). */
+  lidoEm: number;
+}
+
+/** Estado da atualização automática da agenda (`src/sankhya/sincronizacaoAgenda.ts`). */
+export interface EstadoSincronizacao {
+  /** Última atualização que deu certo (ms epoch), ou null. */
+  ultimaEm: number | null;
+  /** Última tentativa, com ou sem sucesso. */
+  tentativaEm: number | null;
+  /** Erro da última tentativa; vazio quando deu certo. */
+  erro: string;
+  rodando: boolean;
+  /** Próxima atualização prevista (ms epoch). */
+  proximaEm: number | null;
 }

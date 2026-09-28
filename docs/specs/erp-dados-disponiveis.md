@@ -29,7 +29,8 @@ Legenda: ✅ medido em sessão real · ⚠️ negado pela ACL · ❔ ainda não 
 | Financeiro | `loadRecords` | ⚠️ negado por tabela | — |
 | Parceiros | `loadRecords` `Parceiro` / tela `br.com.sankhya.core.cad.parceiros` | ✅ tela abre no registro (link direto) | Dados do cliente atendido |
 | Abrir qualquer tela no registro | `system.jsp#app/<b64 resourceID>/<b64 {"CAMPO":valor}>` | ✅ Parceiros `CODPARC=78764` | Atalhos dos painéis |
-| Solicitação de Serviços DS | tela `solicitacaoservicos.br.com.sankhya.servicosds.solicitacaoservicos` | ❔ entidade e ACL a medir | Painel "minhas solicitações" |
+| Solicitação de Serviços DS (descrição, horas estimadas, status, campo Anexo) | `DatasetSP.loadRecords` `SolicitacaoServicos` (TSDCAB, PK `CODIGO` = ID da demanda); arquivo do campo por `download.mge?fileName=sab://ANEXODOC` | ✅ Agenda Mensal (`desktop/src/solicitacoes.ts`) | Demanda no calendário |
+| Anexos da solicitação (clipe) | `loadRecords` `AnexoSistema` (`PKREGISTRO = <CODIGO>_SolicitacaoServicos`) + `AnexoSistemaSP.baixar` -> `visualizadorArquivos.mge` | ✅ Agenda Mensal | Baixar anexo pelo DS |
 | Planejamento da Agenda de Recursos | dashboard `nuDsb.1997.1` | ❔ | Painel de alocação |
 | SER Gestão de Serviços | dashboard `nuDsb.549.1` | ❔ | Painel de serviços |
 | Alocação de Pedidos/Demandas | view `AD_VWESCPED` | ❔ | Painel de demandas alocadas |

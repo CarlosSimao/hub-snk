@@ -21,6 +21,7 @@ import {
 import { Pastas, PastaInacessivelError } from './pastas.ts';
 import { ConfigWildflyInvalidaError, type Wildfly } from './wildfly.ts';
 import { normalizarLista } from './sankhya/credenciais.ts';
+import { normalizarIdsDemanda } from './demandas.ts';
 
 export interface RouteSankhyaDeps {
   /** Navegacao de pastas: nativa no Windows, pelo helper em container. */
@@ -94,7 +95,7 @@ function normalizarCliente(corpo: unknown): ClienteEntrada | string {
     experiencePersonId: personId,
     agendaRecursoUsuario: texto('agendaRecursoUsuario'),
     agendaCodparc: codparc,
-    agendaDemandaId: texto('agendaDemandaId'),
+    agendaDemandaId: normalizarIdsDemanda(texto('agendaDemandaId')),
     sankhyaUrl: url,
     repositorioLocal: texto('repositorioLocal'),
     repositorioRemoto: texto('repositorioRemoto'),

@@ -11,11 +11,15 @@ import { HelperError, HelperIndisponivelError } from './sankhya/helper.ts';
 import { SessaoExpiradaError, type Experience } from './sankhya/experience.ts';
 import type { Clientes } from './sankhya/clientes.ts';
 import type { AgendaRecursos } from './sankhya/agenda.ts';
+import type { Solicitacoes } from './sankhya/solicitacoes.ts';
+import { idsDemandaNoTexto, listarIdsDemanda } from './demandas.ts';
 
 export interface RouteExperienceDeps {
   experience: Experience;
   clientes: Clientes;
   agenda: AgendaRecursos;
+  /** Ausente só nos testes antigos: sem ele o resumo sai sem as demandas. */
+  solicitacoes?: Solicitacoes;
 }
 
 function responderErro(reply: FastifyReply, err: unknown): FastifyReply {
@@ -49,7 +53,7 @@ function ehDia(valor: string | undefined): valor is string {
 
 
 export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperienceDeps): void {
-  const { experience, clientes, agenda } = deps;
+  const { experience, clientes, agenda, solicitacoes } = deps;
 
   /**
    * Todos os clientes de uma vez, para a visão consolidada do mês.
@@ -77,18 +81,38 @@ export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperi
           // A agenda do ERP é snapshot local: responde mesmo quando a Experience está
           // fora, e sem parceiro no cadastro não há o que recortar — a lane inteira
           // encheria o dia deste cliente com evento de todos os outros.
+          //
+          // Cadastro sem parceiro tenta o casamento pelo nome, o mesmo do botão "Procurar
+          // na Agenda": só um candidato inequívoco vale, senão o cliente fica sem evento.
+          const codparc =
+            cliente.agendaCodparc ??
+            agenda.casarParceiro(cliente.nome, cliente.agendaRecursoUsuario)?.codparc ??
+            null;
           const eventos =
-            cliente.agendaCodparc === null
+            codparc === null
               ? []
               : agenda.eventos(
                   `${limites.de} 00:00:00`,
                   `${limites.ate} 23:59:59`,
                   cliente.agendaRecursoUsuario,
-                  cliente.agendaCodparc,
+                  codparc,
                 );
 
+          // As demandas do cliente: as do cadastro primeiro, depois as que aparecem nos
+          // eventos do mês — uma demanda nova lançada na agenda entra sem editar nada.
+          const demandas = [
+            ...new Set([
+              ...listarIdsDemanda(cliente.agendaDemandaId),
+              ...eventos.flatMap((e) => idsDemandaNoTexto(e.descrlonga)),
+            ]),
+          ];
+          const extras = {
+            demandas,
+            solicitacoes: solicitacoes?.obter(demandas.map(Number)) ?? [],
+          };
+
           if (cliente.experienceProjetoId === null || cliente.experiencePersonId === null) {
-            return { cliente, eventos, erro: 'cadastro sem ID do projeto ou person_id' };
+            return { cliente, eventos, ...extras, erro: 'cadastro sem ID do projeto ou person_id' };
           }
 
           try {
@@ -101,10 +125,10 @@ export function registerRoutesExperience(app: FastifyInstance, deps: RouteExperi
                 limites.ate,
               ),
             ]);
-            return { cliente, eventos, agenda: { tarefas, ordens } };
+            return { cliente, eventos, ...extras, agenda: { tarefas, ordens } };
           } catch (err) {
             // Um cliente que falha não pode apagar os outros da tela.
-            return { cliente, eventos, erro: (err as Error).message };
+            return { cliente, eventos, ...extras, erro: (err as Error).message };
           }
         }),
       );

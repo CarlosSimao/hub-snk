@@ -43,6 +43,35 @@ function responderErroHelper(reply: FastifyReply, err: unknown): FastifyReply {
 /** Limite do corpo colado. O snapshot de referência tem 244 KB; 8 MB é folga larga. */
 const MAX_BYTES = 8 * 1024 * 1024;
 
+/**
+ * JSON cru da Agenda do ERP para o período (`DD/MM/YYYY`).
+ *
+ * Com o shell desktop configurado, o fetch roda dentro da aba ERP do Electron (a ACL do
+ * service.sbr exige sessão de página, não cookie replicado — ver desktopBridge.ts); sem
+ * ele, mantém o caminho de sempre via hub-helper.ps1/CDP. A atualização automática
+ * (`sankhya/sincronizacaoAgenda.ts`) usa o mesmo caminho.
+ */
+export async function buscarConteudoAgenda(
+  deps: Pick<RouteAgendaDeps, 'helper' | 'desktopBridge'>,
+  de: string,
+  ate: string,
+): Promise<string> {
+  const resposta = deps.desktopBridge
+    ? await deps.desktopBridge.buscarAgenda(de, ate)
+    : await deps.helper.requisitar<{ conteudo: string }>(
+        '/browser/agenda',
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ de, ate }),
+        },
+        // Vai muito além do padrão: a chamada atravessa o helper, o navegador e o
+        // Sankhya, e um período de meses traz centenas de eventos.
+        { timeoutMs: 120_000 },
+      );
+  return resposta.conteudo;
+}
+
 export function registerRoutesAgenda(app: FastifyInstance, deps: RouteAgendaDeps): void {
   const { agenda, helper, desktopBridge } = deps;
 
@@ -64,23 +93,7 @@ export function registerRoutesAgenda(app: FastifyInstance, deps: RouteAgendaDeps
 
       let conteudo: string;
       try {
-        // Com o shell desktop configurado, o fetch roda dentro da aba ERP do Electron
-        // (mesma ACL do service.sbr exige sessão de página, não cookie replicado — ver
-        // desktopBridge.ts); sem ele, mantém o caminho de sempre via hub-helper.ps1/CDP.
-        const resposta = desktopBridge
-          ? await desktopBridge.buscarAgenda(de, ate)
-          : await helper.requisitar<{ conteudo: string }>(
-              '/browser/agenda',
-              {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ de, ate }),
-              },
-              // Vai muito além do padrão: a chamada atravessa o helper, o navegador e o
-              // Sankhya, e um período de meses traz centenas de eventos.
-              { timeoutMs: 120_000 },
-            );
-        conteudo = resposta.conteudo;
+        conteudo = await buscarConteudoAgenda({ helper, desktopBridge }, de, ate);
       } catch (err) {
         return responderErroHelper(reply, err);
       }

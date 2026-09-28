@@ -13,6 +13,7 @@ import { AgendaFetcher } from './agenda';
 import { ServerLogFetcher } from './serverLog';
 import { iniciarKeepalive, type AbaSankhya } from './keepalive';
 import { criarBridgeServer } from './bridgeServer';
+import { SolicitacoesFetcher } from './solicitacoes';
 import { instalarNoHub, iniciarRemetente } from './integracaoCanal';
 import { iniciarAdaptadores } from './integracaoCiclo';
 import { pushSessaoExperience, limparSessaoExperience } from './backendClient';
@@ -163,7 +164,8 @@ app.whenReady().then(async () => {
   const agenda = new AgendaFetcher(() => tabs?.aba('erp'));
   // O log de base de cliente sai da aba DAQUELA base (isolada por origin), não da aba ERP.
   const serverLog = new ServerLogFetcher((origin) => tabs?.abaCliente(origin));
-  criarBridgeServer(agenda, () => tabs, serverLog);
+  const solicitacoes = new SolicitacoesFetcher(() => tabs?.aba('erp'));
+  criarBridgeServer(agenda, () => tabs, serverLog, solicitacoes);
   iniciarRemetente();
   iniciarAdaptadores(() => emailExperience);
 

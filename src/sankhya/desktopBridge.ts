@@ -11,6 +11,7 @@
  */
 import { lerTokenArquivo } from './helper.ts';
 import type { DiagnosticoBase, StatusServerLog } from '../types.ts';
+import type { SolicitacoesDoErp } from './solicitacoes.ts';
 
 export class DesktopBridgeIndisponivelError extends Error {}
 
@@ -83,6 +84,32 @@ export class DesktopBridge {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ de, ate }),
+      },
+      TIMEOUT_AGENDA_MS,
+    );
+  }
+
+  /** Solicitações de Serviços DS (e anexos) destes códigos — ver `desktop/src/solicitacoes.ts`. */
+  buscarSolicitacoes(codigos: number[]): Promise<SolicitacoesDoErp> {
+    return this.#requisitar<SolicitacoesDoErp>(
+      '/solicitacoes/buscar',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ codigos }),
+      },
+      TIMEOUT_AGENDA_MS,
+    );
+  }
+
+  /** Um arquivo da solicitação: sem `nuAttach`, o do campo Anexo; com, um dos anexos. */
+  baixarArquivoSolicitacao(codigo: number, nuAttach?: number): Promise<{ nome: string; tipo: string; base64: string }> {
+    return this.#requisitar<{ nome: string; tipo: string; base64: string }>(
+      '/solicitacoes/arquivo',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ codigo, ...(nuAttach ? { nuAttach } : {}) }),
       },
       TIMEOUT_AGENDA_MS,
     );

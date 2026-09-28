@@ -14,6 +14,7 @@ import * as navegador from './navegador';
 import * as navegacaoSkill from './navegacaoSkill';
 import type { AgendaFetcher } from './agenda';
 import type { ServerLogFetcher } from './serverLog';
+import type { SolicitacoesFetcher } from './solicitacoes';
 import { estadoSessao } from './keepalive';
 import { diagnosticar } from './diagnosticoBase';
 import type { TabManager } from './tabs';
@@ -322,6 +323,7 @@ export function criarBridgeServer(
   agenda: AgendaFetcher,
   tabs: () => TabManager | null,
   serverLog: ServerLogFetcher,
+  solicitacoes: SolicitacoesFetcher,
 ): Server {
   const servidor = createServer((req, res) => {
     void (async () => {
@@ -434,6 +436,42 @@ export function criarBridgeServer(
             return;
           }
           responderJson(res, 200, resultado);
+        } catch (err) {
+          responderJson(res, 500, { erro: String(err) });
+        }
+        return;
+      }
+
+      // Solicitação de Serviços DS (e anexos) do corporativo, lida da aba ERP logada —
+      // ver desktop/src/solicitacoes.ts. Só leitura.
+      if (req.method === 'POST' && req.url === '/solicitacoes/buscar') {
+        try {
+          const corpo = JSON.parse((await lerCorpo(req)) || '{}') as { codigos?: unknown };
+          if (!Array.isArray(corpo.codigos)) {
+            responderJson(res, 400, { erro: 'informe { codigos: [números] }' });
+            return;
+          }
+          const resultado = await solicitacoes.buscar(corpo.codigos);
+          if (!resultado.ok) {
+            responderJson(res, 409, { erro: resultado.erro ?? 'falha ao ler as solicitações', expirou: Boolean(resultado.expirou) });
+            return;
+          }
+          responderJson(res, 200, { solicitacoes: resultado.solicitacoes ?? [], anexos: resultado.anexos ?? [] });
+        } catch (err) {
+          responderJson(res, 500, { erro: String(err) });
+        }
+        return;
+      }
+
+      if (req.method === 'POST' && req.url === '/solicitacoes/arquivo') {
+        try {
+          const corpo = JSON.parse((await lerCorpo(req)) || '{}') as { codigo?: unknown; nuAttach?: unknown };
+          const resultado = await solicitacoes.baixar(corpo.codigo, corpo.nuAttach);
+          if (!resultado.ok) {
+            responderJson(res, 409, { erro: resultado.erro ?? 'falha ao baixar o arquivo', expirou: Boolean(resultado.expirou) });
+            return;
+          }
+          responderJson(res, 200, { nome: resultado.nome, tipo: resultado.tipo, base64: resultado.base64 });
         } catch (err) {
           responderJson(res, 500, { erro: String(err) });
         }

@@ -22,7 +22,8 @@ import { Pastas } from './pastas.ts';
 import { registerRoutesSankhya } from './routesSankhya.ts';
 import { registerRoutesGitAutosync } from './routesGitAutosync.ts';
 import { registerRoutesExperience } from './routesExperience.ts';
-import { registerRoutesAgenda } from './routesAgenda.ts';
+import { buscarConteudoAgenda, registerRoutesAgenda } from './routesAgenda.ts';
+import { registerRoutesSolicitacoes } from './routesSolicitacoes.ts';
 import { registerRoutesServerLog } from './routesServerLog.ts';
 import { ServerLogInstalacoes } from './sankhya/serverLogInstalacoes.ts';
 import { registerRoutesEscopo } from './routesEscopo.ts';
@@ -41,6 +42,8 @@ import { ResumoAnotacoes } from './resumoAnotacoes.ts';
 import { Pendencias } from './pendencias.ts';
 import { Experience } from './sankhya/experience.ts';
 import { AgendaRecursos } from './sankhya/agenda.ts';
+import { Solicitacoes } from './sankhya/solicitacoes.ts';
+import { SincronizacaoAgenda } from './sankhya/sincronizacaoAgenda.ts';
 import { HubHelper } from './sankhya/helper.ts';
 import { Credenciais } from './sankhya/credenciais.ts';
 import { Cifra } from './sankhya/cifra.ts';
@@ -210,8 +213,22 @@ async function main(): Promise<void> {
   const transporteAutosync = NATIVO ? new GitAutosyncCli() : helper;
   registerRoutesGitAutosync(app, { gitAutosync: new GitAutosync(transporteAutosync) });
   const experience = new Experience(credenciais);
-  registerRoutesExperience(app, { experience, clientes, agenda });
+  const solicitacoes = new Solicitacoes(DATA_DIR);
+  registerRoutesExperience(app, { experience, clientes, agenda, solicitacoes });
   registerRoutesAgenda(app, { agenda, helper, desktopBridge });
+
+  // Agenda e Solicitações DS se atualizam sozinhas ao abrir o DS e a cada 4 horas no
+  // expediente. Só com o shell desktop: fora dele não há aba ERP logada para ler.
+  const sincronizacao = new SincronizacaoAgenda({
+    agenda,
+    clientes,
+    solicitacoes,
+    buscarAgenda: (de, ate) => buscarConteudoAgenda({ helper, desktopBridge }, de, ate),
+    ...(desktopBridge ? { buscarSolicitacoes: (codigos: number[]) => desktopBridge.buscarSolicitacoes(codigos) } : {}),
+    aoFalhar: (err) => app.log.warn({ err }, 'atualização automática da agenda falhou'),
+  });
+  if (desktopBridge) sincronizacao.iniciar();
+  registerRoutesSolicitacoes(app, { solicitacoes, sincronizacao, desktopBridge });
 
   // Criado depois de `Clientes`: as tabelas do cartao e a migracao dos campos unicos
   // moram no construtor dele, e o mesmo arquivo SQLite e aberto pelos dois.
@@ -280,10 +297,12 @@ async function main(): Promise<void> {
     app.log.info(`recebi ${signal}, encerrando`);
     engine.stop();
     resumo.parar();
+    sincronizacao.parar();
     await app.close().catch(() => {});
     store.close();
     clientes.close();
     agenda.close();
+    solicitacoes.close();
     emailInterno.close();
     process.exit(0);
   };
