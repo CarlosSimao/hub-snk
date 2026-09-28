@@ -212,6 +212,8 @@ const estado = {
    * "todas": é o mesmo resultado de marcar as cinco, com um clique só.
    */
   situacoesFiltradas: new Set(),
+  /* Funcionalidades desmarcadas em Configurações › Acessos: só somem da tela. */
+  funcionalidadesOcultas: new Set(),
   clienteEmEdicao: null,
   clienteDaBaseEmEdicao: null,
   baseEmEdicao: null,
@@ -386,11 +388,17 @@ const elementos = {
   abaConfiguracaoGeral: document.getElementById('aba-configuracao-geral'),
   abaConfiguracaoMcp: document.getElementById('aba-configuracao-mcp'),
   abaConfiguracaoAtalhos: document.getElementById('aba-configuracao-atalhos'),
+  abaConfiguracaoAcessos: document.getElementById('aba-configuracao-acessos'),
   abaConfiguracaoSobre: document.getElementById('aba-configuracao-sobre'),
   painelConfiguracaoGeral: document.getElementById('painel-configuracao-geral'),
   painelConfiguracaoMcp: document.getElementById('painel-configuracao-mcp'),
   painelConfiguracaoAtalhos: document.getElementById('painel-configuracao-atalhos'),
+  painelConfiguracaoAcessos: document.getElementById('painel-configuracao-acessos'),
   painelConfiguracaoSobre: document.getElementById('painel-configuracao-sobre'),
+  campoPerfil: document.getElementById('campo-perfil'),
+  caixasDeFuncionalidade: document.querySelectorAll(
+    '#painel-configuracao-acessos [data-funcionalidade]',
+  ),
   listaDeAtalhosDaConfiguracao: document.getElementById('lista-atalhos-config'),
   botaoAdicionarAtalho: document.getElementById('btn-adicionar-atalho'),
   campoScriptPadrao: document.getElementById('campo-script-padrao'),
@@ -776,6 +784,7 @@ const api = {
   salvarConfiguracao: (configuracao) =>
     requisitar(CAMINHO_DA_CONFIGURACAO, { metodo: 'PUT', corpo: configuracao }),
   lerConfiguracaoMcpGlobal: () => requisitar(`${CAMINHO_DA_CONFIGURACAO}/mcp`),
+  lerPresetsDosPerfis: () => requisitar(`${CAMINHO_DA_CONFIGURACAO}/perfis`),
 
   abrirAtalho: (id) => requisitar(`${CAMINHO_DOS_ATALHOS}/${id}/abrir`, { metodo: 'POST' }),
   selecionarExecutavel: () =>
@@ -1053,7 +1062,9 @@ function renderizarLista() {
 
     item.append(titulo);
 
-    const severidade = severidadeDoCliente(cliente);
+    const severidade = funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS)
+      ? severidadeDoCliente(cliente)
+      : null;
     if (severidade) {
       const ponto = criarPontoDeSituacao(severidade);
       ponto.title = ROTULOS_DE_SEVERIDADE[severidade];
@@ -1497,7 +1508,9 @@ function severidadeGlobalDoGit() {
 
 /** Bolinha do cabeçalho: pisca em vermelho ou amarelo e fica acesa em verde. */
 function renderizarIndicadorGitGlobal() {
-  const severidade = severidadeGlobalDoGit();
+  const severidade = funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS)
+    ? severidadeGlobalDoGit()
+    : null;
   const indicador = elementos.indicadorGitGlobal;
 
   indicador.hidden = severidade === null;
@@ -3379,8 +3392,12 @@ function restaurarCursorNasAnotacoes(posicao) {
  * Abas do detalhe do cliente. Trocar de aba só mostra/esconde o que já foi
  * montado — sem chamar `renderizarDetalhe()` de novo, que descartaria o
  * calendário aberto e qualquer outro estado local da aba.
+ *
+ * Aba oculta em Configurações › Acessos nem é montada: Agenda e OS consultam o
+ * servidor ao montar, e escondê-las só com `hidden` manteria essas consultas.
  */
-function criarAbasDeDetalhe(abas) {
+function criarAbasDeDetalhe(todasAsAbas) {
+  const abas = todasAsAbas.filter((aba) => funcionalidadeVisivel(`cliente.${aba.chave}`));
   const ativaInicial = abas.some((aba) => aba.chave === estado.abaDetalheAtiva)
     ? estado.abaDetalheAtiva
     : abas[0].chave;
@@ -3406,7 +3423,7 @@ function criarAbasDeDetalhe(abas) {
     const painel = criarElemento('div', 'painel-aba');
     painel.dataset.chave = aba.chave;
     painel.hidden = aba.chave !== ativaInicial;
-    painel.append(aba.conteudo);
+    painel.append(aba.criarConteudo());
     corpo.append(painel);
   }
 
@@ -3449,16 +3466,20 @@ function renderizarDetalhe() {
   card.append(
     cabecalho,
     criarAbasDeDetalhe([
-      { chave: 'geral', rotulo: 'Geral', conteudo: secaoGeral },
-      { chave: 'bases', rotulo: 'Bases', conteudo: criarSecaoDeBases(cliente) },
+      { chave: 'geral', rotulo: 'Geral', criarConteudo: () => secaoGeral },
+      { chave: 'bases', rotulo: 'Bases', criarConteudo: () => criarSecaoDeBases(cliente) },
       {
         chave: 'repositorios',
         rotulo: 'Repositórios',
-        conteudo: criarSecaoDeRepositorios(cliente),
+        criarConteudo: () => criarSecaoDeRepositorios(cliente),
       },
-      { chave: 'projetos', rotulo: 'Projetos', conteudo: criarSecaoDeProjetos(cliente) },
-      { chave: 'agenda', rotulo: 'Agenda', conteudo: criarSecaoDeAgenda(cliente) },
-      { chave: 'os', rotulo: 'OS', conteudo: criarSecaoDeOs(cliente) },
+      {
+        chave: 'projetos',
+        rotulo: 'Projetos',
+        criarConteudo: () => criarSecaoDeProjetos(cliente),
+      },
+      { chave: 'agenda', rotulo: 'Agenda', criarConteudo: () => criarSecaoDeAgenda(cliente) },
+      { chave: 'os', rotulo: 'OS', criarConteudo: () => criarSecaoDeOs(cliente) },
     ]),
   );
   elementos.detalhe.replaceChildren(card);
@@ -4718,6 +4739,7 @@ function selecionarAbaDaConfiguracao(abaEscolhida) {
     { aba: elementos.abaConfiguracaoGeral, painel: elementos.painelConfiguracaoGeral },
     { aba: elementos.abaConfiguracaoMcp, painel: elementos.painelConfiguracaoMcp },
     { aba: elementos.abaConfiguracaoAtalhos, painel: elementos.painelConfiguracaoAtalhos },
+    { aba: elementos.abaConfiguracaoAcessos, painel: elementos.painelConfiguracaoAcessos },
     { aba: elementos.abaConfiguracaoSobre, painel: elementos.painelConfiguracaoSobre },
   ];
 
@@ -5000,6 +5022,7 @@ async function abrirModalDeConfiguracao() {
   preencherAtalhosDaConfiguracao([]);
   elementos.campoCaminhoExecutavelDaIde.value = '';
   elementos.campoConfigSankhyaOmCodUsu.value = '';
+  preencherAcessosDaConfiguracao(PERFIL_PADRAO, []);
 
   try {
     const configuracao = await api.lerConfiguracao();
@@ -5013,6 +5036,10 @@ async function abrirModalDeConfiguracao() {
     preencherAtalhosDaConfiguracao(configuracao.atalhos ?? []);
     elementos.campoCaminhoExecutavelDaIde.value = configuracao.caminhoDoExecutavelDaIde ?? '';
     elementos.campoConfigSankhyaOmCodUsu.value = configuracao.sankhyaOmCodUsu ?? '';
+    preencherAcessosDaConfiguracao(
+      configuracao.perfil ?? PERFIL_PADRAO,
+      configuracao.funcionalidadesOcultas ?? [],
+    );
   } catch (erro) {
     exibirAviso(`Não foi possível carregar as configurações: ${erro.message}`, 'erro');
     return;
@@ -5080,6 +5107,8 @@ async function salvarConfiguracao(evento) {
       destinoDosLinks: elementos.campoDestinoDosLinks.value,
       caminhoDoExecutavelDaIde: elementos.campoCaminhoExecutavelDaIde.value.trim(),
       sankhyaOmCodUsu: elementos.campoConfigSankhyaOmCodUsu.value.trim(),
+      perfil: elementos.campoPerfil.value,
+      funcionalidadesOcultas: lerFuncionalidadesOcultasDaConfiguracao(),
     });
     elementos.modalConfiguracao.close();
     exibirAviso('Configurações salvas.');
@@ -5088,11 +5117,81 @@ async function salvarConfiguracao(evento) {
     /* A resposta traz os ids gerados: é dela que a barra passa a viver. */
     estado.atalhos = salva.atalhos ?? [];
     renderizarListaDeAtalhos();
+    aplicarAcessos(salva.funcionalidadesOcultas ?? []);
   } catch (erro) {
     exibirErro(elementos.erroConfiguracao, erro.message);
   } finally {
     elementos.botaoSalvarConfiguracao.disabled = false;
   }
+}
+
+/* --------------------------------- acessos -------------------------------- */
+
+/* Sem perfil gravado, o servidor responde desenvolvedor: nada oculto. */
+const PERFIL_PADRAO = 'desenvolvedor';
+
+/*
+ * Ocultar Repositórios leva junto o que só existe por causa deles: filtro e
+ * indicadores do Git e a aba MCP da configuração.
+ */
+const FUNCIONALIDADE_REPOSITORIOS = 'cliente.repositorios';
+
+/* Clientes (menu) e Geral (cliente) nunca estão no conjunto: não são ocultáveis. */
+function funcionalidadeVisivel(chave) {
+  return !estado.funcionalidadesOcultas.has(chave);
+}
+
+function preencherAcessosDaConfiguracao(perfil, funcionalidadesOcultas) {
+  elementos.campoPerfil.value = perfil;
+  marcarFuncionalidadesVisiveis(funcionalidadesOcultas);
+}
+
+function marcarFuncionalidadesVisiveis(funcionalidadesOcultas) {
+  for (const caixa of elementos.caixasDeFuncionalidade) {
+    caixa.checked = !funcionalidadesOcultas.includes(caixa.dataset.funcionalidade);
+  }
+}
+
+function lerFuncionalidadesOcultasDaConfiguracao() {
+  return [...elementos.caixasDeFuncionalidade]
+    .filter((caixa) => !caixa.checked)
+    .map((caixa) => caixa.dataset.funcionalidade);
+}
+
+/* Trocar o perfil marca o preset dele; as caixas seguem editáveis depois. */
+async function aplicarPresetDoPerfil() {
+  try {
+    const presets = await api.lerPresetsDosPerfis();
+    marcarFuncionalidadesVisiveis(presets[elementos.campoPerfil.value] ?? []);
+  } catch (erro) {
+    exibirErro(
+      elementos.erroConfiguracao,
+      `Não foi possível ler o preset do perfil: ${erro.message}`,
+    );
+  }
+}
+
+/** Mostra ou esconde o menu principal e o que depende dos repositórios, e redesenha. */
+function aplicarAcessos(funcionalidadesOcultas) {
+  estado.funcionalidadesOcultas = new Set(funcionalidadesOcultas);
+
+  elementos.botaoVisualizacaoLocal.hidden = !funcionalidadeVisivel('local');
+  elementos.botaoVisualizacaoAgenda.hidden = !funcionalidadeVisivel('agenda');
+  elementos.botaoVisualizacaoOs.hidden = !funcionalidadeVisivel('os');
+
+  const repositoriosVisiveis = funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS);
+  elementos.botaoFiltros.hidden = !repositoriosVisiveis;
+  elementos.abaConfiguracaoMcp.hidden = !repositoriosVisiveis;
+  if (!repositoriosVisiveis) {
+    // Filtro marcado e escondido sumiria com clientes sem o usuário ter como desfazer.
+    estado.situacoesFiltradas.clear();
+    definirPainelDeFiltros(false);
+  }
+
+  if (!funcionalidadeVisivel(estado.visualizacao)) {
+    alternarVisualizacao('clientes');
+  }
+  renderizar();
 }
 
 /* ----------------- correspondência de nome de cliente --------------------- */
@@ -7341,6 +7440,10 @@ function registrarEventos() {
   elementos.abaConfiguracaoAtalhos.addEventListener('click', () =>
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoAtalhos),
   );
+  elementos.abaConfiguracaoAcessos.addEventListener('click', () =>
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoAcessos),
+  );
+  elementos.campoPerfil.addEventListener('change', aplicarPresetDoPerfil);
   elementos.abaConfiguracaoSobre.addEventListener('click', () =>
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoSobre),
   );
@@ -7633,6 +7736,7 @@ async function iniciar() {
         INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S,
     );
     estado.atalhos = configuracao.atalhos ?? [];
+    aplicarAcessos(configuracao.funcionalidadesOcultas ?? []);
   } catch {
     // Sem a configuração, vale o padrão — não é motivo para outro aviso na tela.
     definirExecucaoAutomatica(INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S);

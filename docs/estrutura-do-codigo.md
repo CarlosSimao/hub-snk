@@ -6,7 +6,8 @@ Mapa dos arquivos, para quem vai mexer no HUB SNK. Para usar o programa, veja o
 ```
 src/
   index.ts                                  sobe o Fastify e serve public/
-  configuracao.ts                           porta, host e diretório de dados
+  configuracao.ts                           porta, host, diretório de dados e perfil do instalador
+  acessos.ts                                preset de funcionalidades ocultas de cada perfil
   tipos.ts                                  os tipos Cliente, Base e RepositorioGit
   repositorio/arquivoDeDados.ts             envelope com versaoDoEsquema, migração e escrita atômica
   repositorio/repositorioClientes.ts        contrato de persistência e erros de domínio

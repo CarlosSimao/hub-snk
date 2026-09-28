@@ -88,13 +88,18 @@ function pastaDeDadosEscolhidaNaVersaoPwa(pastaDeEstado: string): string {
   }
 }
 
+/** `%LOCALAPPDATA%\HubSnk`: onde o instalador NSIS deixa o que o aplicativo lê depois. */
+function pastaDeEstadoDoInstalador(): string {
+  return join(process.env['LOCALAPPDATA'] ?? app.getPath('appData'), 'HubSnk');
+}
+
 /**
  * Pasta de dados empacotada: a mesma que a instalação PWA antiga usava, para quem
  * atualiza não perder o cadastro nem precisar de migração.
  */
 function pastaDeDadosInstalada(): string {
   if (process.platform === 'win32') {
-    const pastaDeEstado = join(process.env['LOCALAPPDATA'] ?? app.getPath('appData'), 'HubSnk');
+    const pastaDeEstado = pastaDeEstadoDoInstalador();
     return pastaDeDadosEscolhidaNaVersaoPwa(pastaDeEstado) || join(pastaDeEstado, 'dados');
   }
   return join(
@@ -112,6 +117,22 @@ function pastaDeDadosInstalada(): string {
 export const DIRETORIO_DE_DADOS =
   process.env['HUB_DADOS_DIR'] ??
   (app.isPackaged ? pastaDeDadosInstalada() : join(RAIZ_PROJETO, 'dados-hub-snk'));
+
+/**
+ * Perfil profissional escolhido na página do instalador (`assets/installer.nsh`), em
+ * `HubSnk\perfil-inicial.txt`. Só o instalador do Windows pergunta; fora dele, e sem o
+ * arquivo, volta vazio e o backend aplica o padrão. Quem valida o valor é o backend.
+ */
+function perfilEscolhidoNoInstalador(): string {
+  if (!app.isPackaged || process.platform !== 'win32') return '';
+  try {
+    return readFileSync(join(pastaDeEstadoDoInstalador(), 'perfil-inicial.txt'), 'utf8').trim();
+  } catch {
+    return '';
+  }
+}
+
+export const PERFIL_INICIAL = process.env['HUB_PERFIL_INICIAL'] ?? perfilEscolhidoNoInstalador();
 
 /** Só a migração do cofre ainda fala com o helper — ver `migracaoCofre.ts`. */
 export const HELPER_URL = process.env['HUB_HELPER_URL'] ?? 'http://127.0.0.1:4102';

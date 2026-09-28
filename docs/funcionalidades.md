@@ -303,6 +303,36 @@ por isso o arquivo executável é chamado direto. As duas exceções do macOS fi
 com o despachante porque só ele sabe iniciá-las: o `.app` é um pacote, e o
 `.command` existe para abrir no Terminal, janela que rodá-lo direto tiraria.
 
+## Acessos por perfil
+
+O HUB SNK atende perfis diferentes, e cada um vê só o que usa. Em
+**Configurações › Acessos** ficam o **Perfil** e uma caixa por funcionalidade:
+as abas **Local**, **Agenda** e **OS** do menu principal e as abas **Bases**,
+**Repositórios**, **Projetos**, **Agenda** e **OS** do cadastro do cliente.
+**Clientes** e a aba **Geral** do cliente não entram na lista: sem elas a tela
+abriria vazia.
+
+| Perfil             | Oculto no preset                          |
+| ------------------ | ----------------------------------------- |
+| Desenvolvedor      | nada                                      |
+| Consultor          | aba Repositórios do cliente               |
+| Analista           | aba Repositórios do cliente               |
+| Gerente de projeto | aba Repositórios do cliente e a aba Local |
+
+O perfil é perguntado na instalação, e o preset dele vale desde a primeira
+abertura. Trocar o perfil na aba Acessos marca as caixas do preset; depois disso
+elas seguem editáveis, uma a uma. Reinstalar ou atualizar não desfaz o ajuste: o
+perfil do instalador só é aplicado enquanto a configuração ainda não tem acessos
+gravados — inclusive quando a pasta de dados vem sincronizada de outra máquina.
+
+Ocultar **Repositórios** leva junto o que só existe por causa deles: o filtro por
+situação do Git, as bolinhas do Git no topo e na lista de clientes e a aba
+**MCP** das configurações.
+
+> Desmarcar só tira a funcionalidade da tela. Nenhum dado é apagado, marcar de
+> novo a traz de volta, e a API continua respondendo: não é controle de
+> permissão.
+
 ## Bancos locais
 
 Ligar, parar e reiniciar o container Docker do banco depende do daemon estar de

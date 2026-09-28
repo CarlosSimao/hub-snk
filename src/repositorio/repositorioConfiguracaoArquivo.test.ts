@@ -150,3 +150,79 @@ describe('RepositorioConfiguracaoArquivo com arquivo no formato antigo', () => {
     assert.deepEqual(copia, conteudoAntigo);
   });
 });
+
+describe('RepositorioConfiguracaoArquivo — acessos', () => {
+  const CONFIGURACAO_SEM_ACESSOS = {
+    scriptPadrao: '',
+    intervaloDeExecucaoAutomaticaSegundos: 30,
+    tempoLimiteSegundos: 5,
+    caminhoDoSchemaMcp: '',
+    atalhos: [],
+    destinoDosLinks: 'hub' as const,
+    caminhoDoExecutavelDaIde: '',
+    sankhyaOmCodUsu: '',
+  };
+
+  it('sem perfil do instalador, nasce desenvolvedor com tudo visível', async () => {
+    const configuracao = await repositorio.ler();
+
+    assert.equal(configuracao.perfil, 'desenvolvedor');
+    assert.deepEqual(configuracao.funcionalidadesOcultas, []);
+  });
+
+  it('aplica o preset do perfil escolhido no instalador', async () => {
+    const doGerente = new RepositorioConfiguracaoArquivo(diretorio, 'gerente-de-projeto');
+
+    const configuracao = await doGerente.ler();
+
+    assert.equal(configuracao.perfil, 'gerente-de-projeto');
+    assert.deepEqual(configuracao.funcionalidadesOcultas, ['cliente.repositorios', 'local']);
+  });
+
+  it('ignora o perfil do instalador quando o arquivo já tem acessos', async () => {
+    await repositorio.salvar({
+      ...CONFIGURACAO_SEM_ACESSOS,
+      perfil: 'desenvolvedor',
+      funcionalidadesOcultas: ['os'],
+    });
+
+    const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, 'consultor').ler();
+
+    assert.equal(configuracao.perfil, 'desenvolvedor');
+    assert.deepEqual(configuracao.funcionalidadesOcultas, ['os']);
+  });
+
+  it('preserva os acessos gravados quando o salvar não os manda', async () => {
+    await repositorio.salvar({
+      ...CONFIGURACAO_SEM_ACESSOS,
+      perfil: 'consultor',
+      funcionalidadesOcultas: ['cliente.repositorios'],
+    });
+
+    await repositorio.salvar(CONFIGURACAO_SEM_ACESSOS);
+
+    repositorio.descartarCache();
+    const configuracao = await repositorio.ler();
+    assert.equal(configuracao.perfil, 'consultor');
+    assert.deepEqual(configuracao.funcionalidadesOcultas, ['cliente.repositorios']);
+  });
+
+  it('descarta funcionalidade repetida ou desconhecida lida do arquivo', async () => {
+    await writeFile(
+      caminhoDoArquivo(),
+      JSON.stringify({
+        versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+        configuracao: {
+          perfil: 'analista',
+          funcionalidadesOcultas: ['agenda', 'agenda', 'removida-numa-versao-nova'],
+        },
+      }),
+      'utf8',
+    );
+
+    const configuracao = await repositorio.ler();
+
+    assert.equal(configuracao.perfil, 'analista');
+    assert.deepEqual(configuracao.funcionalidadesOcultas, ['agenda']);
+  });
+});

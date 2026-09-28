@@ -59,6 +59,7 @@ O servidor só escuta em loopback: um `HUB_HOST` fora dele é recusado na largad
 | `GET`    | `/api/situacao-git?forcar=true`                             | `200` — situação Git dos repositórios com pasta local, indexada pelo id |
 | `GET`    | `/api/configuracao`                                         | `200` — configuração global                                             |
 | `PUT`    | `/api/configuracao`                                         | `200` — configuração salva                                              |
+| `GET`    | `/api/configuracao/perfis`                                  | `200` — funcionalidades ocultas no preset de cada perfil                |
 | `POST`   | `/api/atalhos/selecionar-executavel`                        | `200` — caminho escolhido; `204` quando cancelado                       |
 | `POST`   | `/api/atalhos/:id/abrir`                                    | `204` — programa iniciado; `503` se ele não subir                       |
 | `GET`    | `/api/sistema/versao`                                       | `200` — `{ "versao": "1.0.0" }`, a mesma exibida no rodapé              |

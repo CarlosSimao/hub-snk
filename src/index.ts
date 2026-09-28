@@ -51,6 +51,7 @@ async function iniciarServidor(): Promise<void> {
   const repositorioDeClientes = new RepositorioClientesArquivo(configuracao.diretorioDeDados);
   const repositorioDeConfiguracao = new RepositorioConfiguracaoArquivo(
     configuracao.diretorioDeDados,
+    configuracao.perfilInicial,
   );
   const repositorioLocal = new RepositorioLocalArquivo(configuracao.diretorioDeDados);
   const ponteDoDesktop = new PonteDoDesktop(

@@ -62,3 +62,55 @@ describe('PUT /api/configuracao — destino dos links', () => {
     assert.equal(resposta.statusCode, 400);
   });
 });
+
+describe('PUT /api/configuracao — acessos', () => {
+  it('grava o perfil e as funcionalidades ocultas', async () => {
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao',
+      payload: {
+        ...CONFIGURACAO_SEM_DESTINO_DOS_LINKS,
+        perfil: 'consultor',
+        funcionalidadesOcultas: ['cliente.repositorios', 'agenda'],
+      },
+    });
+
+    assert.equal(resposta.statusCode, 200);
+    assert.equal(resposta.json().perfil, 'consultor');
+    assert.deepEqual(resposta.json().funcionalidadesOcultas, ['cliente.repositorios', 'agenda']);
+  });
+
+  it('recusa um perfil desconhecido', async () => {
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao',
+      payload: { ...CONFIGURACAO_SEM_DESTINO_DOS_LINKS, perfil: 'estagiario' },
+    });
+
+    assert.equal(resposta.statusCode, 400);
+  });
+
+  it('recusa ocultar Clientes, que não é ocultável', async () => {
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao',
+      payload: { ...CONFIGURACAO_SEM_DESTINO_DOS_LINKS, funcionalidadesOcultas: ['clientes'] },
+    });
+
+    assert.equal(resposta.statusCode, 400);
+  });
+});
+
+describe('GET /api/configuracao/perfis', () => {
+  it('devolve o preset de cada perfil', async () => {
+    const resposta = await servidor.inject({ method: 'GET', url: '/api/configuracao/perfis' });
+
+    assert.equal(resposta.statusCode, 200);
+    assert.deepEqual(resposta.json(), {
+      desenvolvedor: [],
+      consultor: ['cliente.repositorios'],
+      analista: ['cliente.repositorios'],
+      'gerente-de-projeto': ['cliente.repositorios', 'local'],
+    });
+  });
+});

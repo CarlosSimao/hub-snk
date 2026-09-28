@@ -639,6 +639,16 @@
           </button>
           <button
             class="aba"
+            id="aba-configuracao-acessos"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-acessos"
+          >
+            Acessos
+          </button>
+          <button
+            class="aba"
             id="aba-configuracao-sobre"
             type="button"
             role="tab"
@@ -917,6 +927,76 @@
                 Adicionar atalho
               </button>
             </div>
+          </div>
+
+          <div
+            class="painel-aba"
+            id="painel-configuracao-acessos"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-acessos"
+            hidden
+          >
+            <p class="texto-auxiliar">
+              Funcionalidades desmarcadas só ficam ocultas na tela: nenhum dado é apagado, e marcar
+              de novo as traz de volta.
+            </p>
+
+            <div class="campo campo-estreito">
+              <label for="campo-perfil">
+                Perfil
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Trocar o perfil marca as funcionalidades do preset dele. Depois, ajuste as
+                    caixas como quiser.</span
+                  ></span
+                >
+              </label>
+              <select id="campo-perfil">
+                <option value="desenvolvedor">Desenvolvedor</option>
+                <option value="consultor">Consultor</option>
+                <option value="analista">Analista</option>
+                <option value="gerente-de-projeto">Gerente de projeto</option>
+              </select>
+            </div>
+
+            <!-- Clientes (menu) e Geral (cliente) não aparecem aqui: não são ocultáveis. -->
+            <fieldset class="grupo-de-acessos">
+              <legend>Menu principal</legend>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="local" /> Local
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="agenda" /> Agenda
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="os" /> OS
+              </label>
+            </fieldset>
+
+            <fieldset class="grupo-de-acessos">
+              <legend>Cadastro do cliente</legend>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="cliente.bases" /> Bases
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="cliente.repositorios" /> Repositórios
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Leva junto o que só faz sentido com repositórios: o filtro por situação do Git,
+                    o indicador do Git no topo e na lista e a aba MCP destas configurações.</span
+                  ></span
+                >
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="cliente.projetos" /> Projetos
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="cliente.agenda" /> Agenda
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="cliente.os" /> OS
+              </label>
+            </fieldset>
           </div>
 
           <div

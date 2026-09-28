@@ -1,10 +1,18 @@
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import {
+  ehPerfilProfissional,
+  FUNCIONALIDADES_OCULTAS_POR_PERFIL,
+  PERFIL_PADRAO,
+} from '../acessos.ts';
+import {
   DESTINOS_DE_LINK,
+  FUNCIONALIDADES,
   type Atalho,
   type ConfiguracaoGlobal,
   type DestinoDeLink,
+  type Funcionalidade,
+  type PerfilProfissional,
 } from '../tipos.ts';
 import {
   gravarArquivoDeDados,
@@ -26,7 +34,7 @@ const MILISSEGUNDOS_POR_SEGUNDO = 1000;
 
 const DESTINO_DOS_LINKS_PADRAO: DestinoDeLink = 'hub';
 
-const CONFIGURACAO_INICIAL: ConfiguracaoGlobal = {
+const CONFIGURACAO_INICIAL: Omit<ConfiguracaoGlobal, 'perfil' | 'funcionalidadesOcultas'> = {
   scriptPadrao: '',
   intervaloDeExecucaoAutomaticaSegundos: INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S,
   tempoLimiteSegundos: TEMPO_LIMITE_PADRAO_S,
@@ -68,6 +76,32 @@ function lerDestinoDosLinks(valor: unknown): DestinoDeLink {
   return ehDestinoDeLink(valor) ? valor : DESTINO_DOS_LINKS_PADRAO;
 }
 
+function ehFuncionalidade(valor: unknown): valor is Funcionalidade {
+  return (FUNCIONALIDADES as readonly unknown[]).includes(valor);
+}
+
+/** Repetidas saem, e uma que deixou de existir numa versão nova some do arquivo. */
+function normalizarFuncionalidadesOcultas(valores: readonly unknown[]): Funcionalidade[] {
+  return [...new Set(valores.filter(ehFuncionalidade))];
+}
+
+/**
+ * Arquivo sem os acessos — instalação nova ou anterior a eles — recebe o perfil
+ * escolhido no instalador com o seu preset. Com o perfil gravado e sem a lista,
+ * vale o preset desse perfil.
+ */
+function lerAcessos(
+  dados: Partial<Record<keyof ConfiguracaoGlobal, unknown>>,
+  perfilInicial: PerfilProfissional,
+): Pick<ConfiguracaoGlobal, 'perfil' | 'funcionalidadesOcultas'> {
+  const perfil = ehPerfilProfissional(dados.perfil) ? dados.perfil : perfilInicial;
+  const ocultas = Array.isArray(dados.funcionalidadesOcultas)
+    ? dados.funcionalidadesOcultas
+    : FUNCIONALIDADES_OCULTAS_POR_PERFIL[perfil];
+
+  return { perfil, funcionalidadesOcultas: normalizarFuncionalidadesOcultas(ocultas) };
+}
+
 /** Atalho recém-cadastrado chega sem id: é aqui que ele ganha um. */
 function normalizarAtalho(atalho: DadosDeAtalho): Atalho {
   return {
@@ -83,10 +117,13 @@ function normalizarAtalho(atalho: DadosDeAtalho): Atalho {
  */
 export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
   readonly #caminhoDoArquivo: string;
+  readonly #perfilInicial: PerfilProfissional;
   #configuracao: ConfiguracaoGlobal | null = null;
 
-  constructor(diretorioDeDados: string) {
+  /** `perfilInicial` é o escolhido no instalador; só vale enquanto o arquivo não tem acessos. */
+  constructor(diretorioDeDados: string, perfilInicial: PerfilProfissional = PERFIL_PADRAO) {
     this.#caminhoDoArquivo = join(diretorioDeDados, NOME_DO_ARQUIVO);
+    this.#perfilInicial = perfilInicial;
   }
 
   descartarCache(): void {
@@ -100,7 +137,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
 
     const conteudo = await lerArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO);
     if (conteudo === null) {
-      this.#configuracao = { ...CONFIGURACAO_INICIAL };
+      this.#configuracao = { ...CONFIGURACAO_INICIAL, ...lerAcessos({}, this.#perfilInicial) };
       return this.#configuracao;
     }
 
@@ -124,6 +161,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       experiencePersonId: dados.experiencePersonId ?? '',
       // Idem: arquivo de antes desta versão não tem o CODUSU do Sankhya OM.
       sankhyaOmCodUsu: dados.sankhyaOmCodUsu ?? '',
+      ...lerAcessos(dados, this.#perfilInicial),
     };
 
     if (precisaMigrar(conteudo)) {
@@ -140,7 +178,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
 
   async salvar(configuracao: ConfiguracaoParaSalvar): Promise<ConfiguracaoGlobal> {
     // Sem campo na tela: preserva o que já estava gravado, em vez de apagar com ''.
-    const { experiencePersonId } = await this.ler();
+    const atual = await this.ler();
 
     const normalizada: ConfiguracaoGlobal = {
       scriptPadrao: configuracao.scriptPadrao.trim(),
@@ -150,8 +188,12 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       atalhos: configuracao.atalhos.map(normalizarAtalho),
       destinoDosLinks: configuracao.destinoDosLinks,
       caminhoDoExecutavelDaIde: configuracao.caminhoDoExecutavelDaIde.trim(),
-      experiencePersonId,
+      experiencePersonId: atual.experiencePersonId,
       sankhyaOmCodUsu: configuracao.sankhyaOmCodUsu.trim(),
+      perfil: configuracao.perfil ?? atual.perfil,
+      funcionalidadesOcultas: normalizarFuncionalidadesOcultas(
+        configuracao.funcionalidadesOcultas ?? atual.funcionalidadesOcultas,
+      ),
     };
 
     await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);

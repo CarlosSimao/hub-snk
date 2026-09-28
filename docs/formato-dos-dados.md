@@ -43,7 +43,9 @@ cadastro.
       }
     ],
     "destinoDosLinks": "hub",
-    "caminhoDoExecutavelDaIde": "C:\\Program Files\\JetBrains\\IntelliJ IDEA\\bin\\idea64.exe"
+    "caminhoDoExecutavelDaIde": "C:\\Program Files\\JetBrains\\IntelliJ IDEA\\bin\\idea64.exe",
+    "perfil": "consultor",
+    "funcionalidadesOcultas": ["cliente.repositorios"]
   }
 }
 ```
@@ -55,6 +57,15 @@ deste campo, ou com um valor desconhecido, vale `hub`.
 
 `caminhoDoExecutavelDaIde` é o executável chamado pelo botão **Abrir IDE** de
 cada repositório, com a pasta como argumento. Vazio desliga o botão.
+
+`perfil` (`desenvolvedor`, `consultor`, `analista` ou `gerente-de-projeto`) e
+`funcionalidadesOcultas` são os acessos de **Configurações › Acessos**. A lista
+guarda o que está **oculto**: uma funcionalidade criada numa versão futura já
+nasce visível. Os valores aceitos são `local`, `agenda` e `os` (menu principal) e
+`cliente.bases`, `cliente.repositorios`, `cliente.projetos`, `cliente.agenda` e
+`cliente.os` (cadastro do cliente). Arquivo sem `perfil` recebe o perfil escolhido
+no instalador, com o preset dele; sem instalador, `desenvolvedor`, com nada
+oculto. Valor desconhecido na lista é descartado na leitura.
 
 ## Cadastro de clientes
 

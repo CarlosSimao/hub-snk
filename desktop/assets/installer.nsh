@@ -1,7 +1,8 @@
 ; Personalizacoes do instalador NSIS do HUB SNK desktop:
 ;
 ;  1. Remocao da instalacao PWA antiga, sempre (resources\instalador\remover-versao-pwa.ps1).
-;  2. Pagina de componentes do Git AutoSync, quando o pacote foi montado com ele.
+;  2. Pagina do perfil profissional, sempre: define o preset de Configuracoes > Acessos.
+;  3. Pagina de componentes do Git AutoSync, quando o pacote foi montado com ele.
 ;
 ; Os binarios do Git AutoSync viajam SEMPRE dentro do pacote (resources\git-autosync).
 ; Sao inertes ate alguem os instalar. O que esta pagina decide e' so' o que tem efeito
@@ -139,10 +140,6 @@ Function GasPaginaSair
   ${EndIf}
 FunctionEnd
 
-!macro customPageAfterChangeDir
-  Page custom GasPaginaCriar GasPaginaSair
-!macroend
-
 ; Roda depois de os arquivos estarem no lugar — `resources\git-autosync` ja' existe aqui.
 !macro GasInstalar
   ${If} $GasInstalar == ${BST_CHECKED}
@@ -214,8 +211,118 @@ FunctionEnd
   ${EndIf}
 !macroend
 
+; --- perfil profissional ------------------------------------------------------------
+;
+; A escolha vai para %LOCALAPPDATA%\HubSnk\perfil-inicial.txt, ao lado do
+; pasta-de-dados.txt. O aplicativo (desktop/src/config.ts) repassa o valor ao backend,
+; que so' aplica o preset enquanto o configuracao.json ainda nao tem acessos: reinstalar
+; ou atualizar nunca desfaz o que o usuario ajustou na aba Acessos.
+;
+; LOCALAPPDATA vem do ambiente, e nao de $LOCALAPPDATA: numa instalacao para todos os
+; usuarios o NSIS troca o contexto e $LOCALAPPDATA passaria a apontar para o ProgramData,
+; que o aplicativo nao le.
+
+Var DialogoPerfil
+Var RadioDesenvolvedor
+Var RadioConsultor
+Var RadioAnalista
+Var RadioGerente
+Var PerfilEscolhido
+
+Function PerfilArquivo
+  ReadEnvStr $R9 LOCALAPPDATA
+  StrCpy $R9 "$R9\HubSnk"
+FunctionEnd
+
+; Reinstalacao abre com o perfil da instalacao anterior marcado.
+Function PerfilLerAnterior
+  StrCpy $PerfilEscolhido "desenvolvedor"
+  Call PerfilArquivo
+  ${If} ${FileExists} "$R9\perfil-inicial.txt"
+    FileOpen $R8 "$R9\perfil-inicial.txt" r
+    FileRead $R8 $R7
+    FileClose $R8
+    ${If} $R7 != ""
+      StrCpy $PerfilEscolhido $R7
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+Function PerfilPaginaCriar
+  nsDialogs::Create 1018
+  Pop $DialogoPerfil
+  ${If} $DialogoPerfil == error
+    Abort
+  ${EndIf}
+
+  ${If} $PerfilEscolhido == ""
+    Call PerfilLerAnterior
+  ${EndIf}
+
+  ${NSD_CreateLabel} 0 0 100% 24u "Qual o seu perfil? Ele define as funcionalidades visiveis no HUB SNK. Depois da instalacao, ajuste em Configuracoes > Acessos."
+  Pop $0
+
+  ${NSD_CreateRadioButton} 0 30u 100% 12u "Desenvolvedor: acesso a tudo"
+  Pop $RadioDesenvolvedor
+  ; Abre o grupo: os botoes seguintes sao mutuamente exclusivos com este.
+  ${NSD_AddStyle} $RadioDesenvolvedor ${WS_GROUP}
+  ${NSD_CreateRadioButton} 0 46u 100% 12u "Consultor: tudo, menos Repositorios do cliente"
+  Pop $RadioConsultor
+  ${NSD_CreateRadioButton} 0 62u 100% 12u "Analista: tudo, menos Repositorios do cliente"
+  Pop $RadioAnalista
+  ${NSD_CreateRadioButton} 0 78u 100% 12u "Gerente de projeto: tudo, menos Repositorios do cliente e a aba Local"
+  Pop $RadioGerente
+
+  ${If} $PerfilEscolhido == "consultor"
+    ${NSD_Check} $RadioConsultor
+  ${ElseIf} $PerfilEscolhido == "analista"
+    ${NSD_Check} $RadioAnalista
+  ${ElseIf} $PerfilEscolhido == "gerente-de-projeto"
+    ${NSD_Check} $RadioGerente
+  ${Else}
+    ${NSD_Check} $RadioDesenvolvedor
+  ${EndIf}
+
+  nsDialogs::Show
+FunctionEnd
+
+Function PerfilPaginaSair
+  ${NSD_GetState} $RadioConsultor $0
+  ${NSD_GetState} $RadioAnalista $1
+  ${NSD_GetState} $RadioGerente $2
+  ${If} $0 == ${BST_CHECKED}
+    StrCpy $PerfilEscolhido "consultor"
+  ${ElseIf} $1 == ${BST_CHECKED}
+    StrCpy $PerfilEscolhido "analista"
+  ${ElseIf} $2 == ${BST_CHECKED}
+    StrCpy $PerfilEscolhido "gerente-de-projeto"
+  ${Else}
+    StrCpy $PerfilEscolhido "desenvolvedor"
+  ${EndIf}
+FunctionEnd
+
+; Instalacao silenciosa nao mostra a pagina: $PerfilEscolhido fica vazio e o arquivo da
+; instalacao anterior, se houver, e' preservado.
+!macro HubSnkGravarPerfil
+  ${If} $PerfilEscolhido != ""
+    Call PerfilArquivo
+    CreateDirectory "$R9"
+    FileOpen $R8 "$R9\perfil-inicial.txt" w
+    FileWrite $R8 "$PerfilEscolhido"
+    FileClose $R8
+  ${EndIf}
+!macroend
+
+!macro customPageAfterChangeDir
+  Page custom PerfilPaginaCriar PerfilPaginaSair
+  !ifdef GAS_PRESENTE
+    Page custom GasPaginaCriar GasPaginaSair
+  !endif
+!macroend
+
 !macro customInstall
   !insertmacro HubSnkRemoverVersaoPwa
+  !insertmacro HubSnkGravarPerfil
   !ifdef GAS_PRESENTE
     !insertmacro GasInstalar
   !endif

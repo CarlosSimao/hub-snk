@@ -19,6 +19,10 @@ versão antiga e mantém o cadastro onde está.
   por usuário, sem pedir administrador e sem exigir Node.js instalado. A janela
   tem as guias **Painel**, **Sankhya Om** e **Experience**, e cada base de cliente
   abre na sua própria guia, isolada das outras, com usuário e senha preenchidos.
+- **Acessos por perfil**: o instalador pergunta o perfil (Desenvolvedor,
+  Consultor, Analista ou Gerente de projeto), e o preset dele oculta as abas que
+  o perfil não usa. Em **Configurações › Acessos** dá para trocar o perfil e
+  marcar ou desmarcar cada aba do menu principal e do cadastro do cliente.
 - **Git AutoSync no instalador**, opcional: commit e push automáticos dos
   repositórios, com tarefa diária, ícone na bandeja, atalhos, skill para os
   agentes de IA e entrada no PATH. A desinstalação pergunta se ele sai junto.

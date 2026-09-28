@@ -284,6 +284,11 @@ a.btn {
   line-height: 0;
 }
 
+/* `display: inline-grid` acima venceria o `display: none` do atributo hidden (aba Acessos). */
+.botao-icone[hidden] {
+  display: none;
+}
+
 .botao-icone svg {
   width: 15px;
   height: 15px;
@@ -2480,6 +2485,22 @@ button.selo-situacao:focus-visible {
 .texto-auxiliar {
   margin: 0;
   font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+/* Um grupo por lugar da tela (menu principal, cadastro do cliente) na aba Acessos. */
+.grupo-de-acessos {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.grupo-de-acessos legend {
+  padding: 0 4px;
+  font-size: 11px;
   color: var(--text-dim);
 }
 

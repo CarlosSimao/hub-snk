@@ -7,7 +7,8 @@ import {
   NOME_DO_ARQUIVO_ENV,
 } from '../sistema/arquivoMcp.ts';
 import { PastaNaoEncontradaError } from '../sistema/pasta.ts';
-import { DESTINOS_DE_LINK } from '../tipos.ts';
+import { FUNCIONALIDADES_OCULTAS_POR_PERFIL } from '../acessos.ts';
+import { DESTINOS_DE_LINK, FUNCIONALIDADES, PERFIS_PROFISSIONAIS } from '../tipos.ts';
 import { esquemaDeConfiguracaoMcp } from './esquemaDeConfiguracaoMcp.ts';
 
 const TAMANHO_MAXIMO_DO_SCRIPT = 500;
@@ -113,6 +114,14 @@ const esquemaDeConfiguracao = z.object({
     .trim()
     .regex(/^\d*$/, 'O código de usuário do Sankhya OM deve ter só números.')
     .default(''),
+  /*
+   * Ausentes, os acessos gravados são preservados — ao contrário dos campos acima, que
+   * voltam ao padrão: um padrão aqui reexibiria o que o usuário ocultou.
+   */
+  perfil: z.enum(PERFIS_PROFISSIONAIS, { error: 'Escolha um perfil válido.' }).optional(),
+  funcionalidadesOcultas: z
+    .array(z.enum(FUNCIONALIDADES, { error: 'Funcionalidade desconhecida.' }))
+    .optional(),
 });
 
 /**
@@ -133,6 +142,9 @@ export function registrarRotasDeConfiguracao(
   repositorio: RepositorioConfiguracao,
 ): void {
   servidor.get('/api/configuracao', async () => repositorio.ler());
+
+  /* A aba Acessos marca o preset ao trocar de perfil: a regra fica só aqui, no servidor. */
+  servidor.get('/api/configuracao/perfis', async () => FUNCIONALIDADES_OCULTAS_POR_PERFIL);
 
   /*
    * Credenciais do MCP global: lidas do `.env` da pasta cadastrada, e não do

@@ -41,6 +41,12 @@
  * do `person_id` da Experience, e sem forma automática de descobrir a partir da
  * sessão capturada (só cookies e nenhum deles carrega o valor). Por isso, ao
  * contrário de `experiencePersonId`, é digitado à mão em Configurações › Geral.
+ *
+ * `perfil` e `funcionalidadesOcultas` são os acessos de Configurações › Acessos. A
+ * lista guarda o que está oculto, e não o que está visível, para que uma
+ * funcionalidade criada numa versão futura já nasça visível para todo mundo. Ocultar
+ * só tira a funcionalidade da tela: não é controle de permissão, e a API segue
+ * respondendo.
  */
 export interface ConfiguracaoGlobal {
   scriptPadrao: string;
@@ -52,6 +58,8 @@ export interface ConfiguracaoGlobal {
   caminhoDoExecutavelDaIde: string;
   experiencePersonId: string;
   sankhyaOmCodUsu: string;
+  perfil: PerfilProfissional;
+  funcionalidadesOcultas: Funcionalidade[];
 }
 
 /**
@@ -62,6 +70,34 @@ export interface ConfiguracaoGlobal {
 export const DESTINOS_DE_LINK = ['hub', 'navegador-padrao'] as const;
 
 export type DestinoDeLink = (typeof DESTINOS_DE_LINK)[number];
+
+/** Perfil do profissional que usa o HUB SNK: define o preset de funcionalidades visíveis. */
+export const PERFIS_PROFISSIONAIS = [
+  'desenvolvedor',
+  'consultor',
+  'analista',
+  'gerente-de-projeto',
+] as const;
+
+export type PerfilProfissional = (typeof PERFIS_PROFISSIONAIS)[number];
+
+/**
+ * Funcionalidades que o usuário pode ocultar: as abas do menu principal e as do
+ * cadastro do cliente. Clientes (menu) e Geral (cliente) ficam de fora de propósito:
+ * sem elas a tela abriria vazia.
+ */
+export const FUNCIONALIDADES = [
+  'local',
+  'agenda',
+  'os',
+  'cliente.bases',
+  'cliente.repositorios',
+  'cliente.projetos',
+  'cliente.agenda',
+  'cliente.os',
+] as const;
+
+export type Funcionalidade = (typeof FUNCIONALIDADES)[number];
 
 /**
  * Atalho para um programa da máquina.

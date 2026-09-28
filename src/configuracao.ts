@@ -1,6 +1,8 @@
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ehPerfilProfissional, PERFIL_PADRAO } from './acessos.ts';
+import { PERFIS_PROFISSIONAIS, type PerfilProfissional } from './tipos.ts';
 
 const PORTA_PADRAO = 4100;
 const HOST_PADRAO = '127.0.0.1';
@@ -74,6 +76,25 @@ function lerArquivoDeTokenDoDesktop(): string {
   return join(pastaDeDadosDeAplicativos, 'sankhya-hub', 'ipc', 'desktop-token.txt');
 }
 
+/**
+ * Perfil escolhido no instalador, repassado pelo shell desktop. Só é aplicado enquanto
+ * a configuração gravada não tem acessos — ver `RepositorioConfiguracaoArquivo`.
+ */
+function lerPerfilInicial(): PerfilProfissional {
+  const bruto = process.env.HUB_PERFIL_INICIAL?.trim();
+  if (!bruto) {
+    return PERFIL_PADRAO;
+  }
+
+  if (!ehPerfilProfissional(bruto)) {
+    throw new Error(
+      `HUB_PERFIL_INICIAL inválido: "${bruto}". Use ${PERFIS_PROFISSIONAIS.join(', ')}.`,
+    );
+  }
+
+  return bruto;
+}
+
 export const configuracao = {
   porta: lerPorta(),
   host: lerHost(),
@@ -81,4 +102,5 @@ export const configuracao = {
   diretorioDeDados: lerDiretorioDeDados(),
   ponteDoDesktopUrl: process.env.SANKHYA_DESKTOP_BRIDGE_URL ?? PONTE_DO_DESKTOP_URL_PADRAO,
   ponteDoDesktopTokenFile: lerArquivoDeTokenDoDesktop(),
+  perfilInicial: lerPerfilInicial(),
 } as const;

@@ -11,9 +11,12 @@ export type DadosDeAtalho = Omit<Atalho, 'id'> & { id?: string };
  */
 export interface ConfiguracaoParaSalvar extends Omit<
   ConfiguracaoGlobal,
-  'atalhos' | 'experiencePersonId'
+  'atalhos' | 'experiencePersonId' | 'perfil' | 'funcionalidadesOcultas'
 > {
   atalhos: DadosDeAtalho[];
+  /** Ausentes, preservam o que está gravado: omitir não pode reexibir o que foi ocultado. */
+  perfil?: ConfiguracaoGlobal['perfil'];
+  funcionalidadesOcultas?: ConfiguracaoGlobal['funcionalidadesOcultas'];
 }
 
 /**
