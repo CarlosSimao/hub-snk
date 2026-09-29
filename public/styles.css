@@ -2666,6 +2666,14 @@ button.selo-situacao:focus-visible {
   align-items: center;
 }
 
+/*
+ * O campo cresce com a lista e o botão de adicionar: ancorado nele, o balão abriria
+ * abaixo do botão e, mesmo invisível, passaria do rodapé e criaria barra de rolagem.
+ */
+#campo-nomes-completos > label {
+  position: relative;
+}
+
 .lista-nomes-completos {
   display: grid;
   gap: 8px;
