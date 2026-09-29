@@ -13,7 +13,8 @@ export function montarMenu(
   tabs: () => TabManager | null,
 ): void {
   const gerenciador = tabs();
-  const guias = gerenciador?.guiasAbertas() ?? [];
+  const guiaBloqueada = (id: string): boolean => gerenciador?.guiaBloqueada(id) ?? false;
+  const guias = (gerenciador?.guiasAbertas() ?? []).filter((guia) => !guiaBloqueada(guia.id));
   const menu = Menu.buildFromTemplate([
     {
       label: 'Hub',
@@ -35,14 +36,17 @@ export function montarMenu(
           accelerator: 'CmdOrCtrl+1',
           click: () => tabs()?.mostrar('hub'),
         },
+        // Com o acesso de terceiro, as duas guias nem existem para o usuário.
         {
           label: 'Ir para o Sankhya Om',
           accelerator: 'CmdOrCtrl+2',
+          visible: !guiaBloqueada('erp'),
           click: () => tabs()?.mostrar('erp'),
         },
         {
           label: 'Ir para a Experience',
           accelerator: 'CmdOrCtrl+3',
+          visible: !guiaBloqueada('experience'),
           click: () => tabs()?.mostrar('experience'),
         },
         { type: 'separator' },

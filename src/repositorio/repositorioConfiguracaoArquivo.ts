@@ -57,7 +57,10 @@ const ALERTA_DA_AGENDA_INICIAL: AlertaDaAgenda = {
   enviarEmail: true,
 };
 
-const CONFIGURACAO_INICIAL: Omit<ConfiguracaoGlobal, 'perfil' | 'funcionalidadesOcultas'> = {
+const CONFIGURACAO_INICIAL: Omit<
+  ConfiguracaoGlobal,
+  'perfil' | 'funcionalidadesOcultas' | 'terceiro'
+> = {
   scriptPadrao: '',
   intervaloDeExecucaoAutomaticaSegundos: INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S,
   tempoLimiteSegundos: TEMPO_LIMITE_PADRAO_S,
@@ -110,21 +113,35 @@ function normalizarFuncionalidadesOcultas(valores: readonly unknown[]): Funciona
   return [...new Set(valores.filter(ehFuncionalidade))];
 }
 
+/** O que o instalador escolheu; só vale para o que o arquivo ainda não tem gravado. */
+export interface AcessosIniciais {
+  perfil: PerfilProfissional;
+  terceiro: boolean;
+}
+
+const ACESSOS_INICIAIS_PADRAO: AcessosIniciais = { perfil: PERFIL_PADRAO, terceiro: false };
+
 /**
  * Arquivo sem os acessos — instalação nova ou anterior a eles — recebe o perfil
  * escolhido no instalador com o seu preset. Com o perfil gravado e sem a lista,
- * vale o preset desse perfil.
+ * vale o preset desse perfil. Terceiro segue a mesma regra, campo a campo: uma
+ * instalação atualizada, que já tem perfil mas ainda não tem o campo, recebe o
+ * que foi marcado no instalador.
  */
 function lerAcessos(
   dados: Partial<Record<keyof ConfiguracaoGlobal, unknown>>,
-  perfilInicial: PerfilProfissional,
-): Pick<ConfiguracaoGlobal, 'perfil' | 'funcionalidadesOcultas'> {
-  const perfil = ehPerfilProfissional(dados.perfil) ? dados.perfil : perfilInicial;
+  iniciais: AcessosIniciais,
+): Pick<ConfiguracaoGlobal, 'perfil' | 'funcionalidadesOcultas' | 'terceiro'> {
+  const perfil = ehPerfilProfissional(dados.perfil) ? dados.perfil : iniciais.perfil;
   const ocultas = Array.isArray(dados.funcionalidadesOcultas)
     ? dados.funcionalidadesOcultas
     : FUNCIONALIDADES_OCULTAS_POR_PERFIL[perfil];
 
-  return { perfil, funcionalidadesOcultas: normalizarFuncionalidadesOcultas(ocultas) };
+  return {
+    perfil,
+    funcionalidadesOcultas: normalizarFuncionalidadesOcultas(ocultas),
+    terceiro: booleanoOuPadrao(dados.terceiro, iniciais.terceiro),
+  };
 }
 
 function ehObjeto(valor: unknown): valor is Record<string, unknown> {
@@ -207,13 +224,16 @@ function normalizarAtalho(atalho: DadosDeAtalho): Atalho {
  */
 export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
   readonly #caminhoDoArquivo: string;
-  readonly #perfilInicial: PerfilProfissional;
+  readonly #acessosIniciais: AcessosIniciais;
   #configuracao: ConfiguracaoGlobal | null = null;
 
-  /** `perfilInicial` é o escolhido no instalador; só vale enquanto o arquivo não tem acessos. */
-  constructor(diretorioDeDados: string, perfilInicial: PerfilProfissional = PERFIL_PADRAO) {
+  /** `acessosIniciais` é o escolhido no instalador; só vale enquanto o arquivo não tem acessos. */
+  constructor(
+    diretorioDeDados: string,
+    acessosIniciais: AcessosIniciais = ACESSOS_INICIAIS_PADRAO,
+  ) {
     this.#caminhoDoArquivo = join(diretorioDeDados, NOME_DO_ARQUIVO);
-    this.#perfilInicial = perfilInicial;
+    this.#acessosIniciais = acessosIniciais;
   }
 
   descartarCache(): void {
@@ -227,7 +247,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
 
     const conteudo = await lerArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO);
     if (conteudo === null) {
-      this.#configuracao = { ...CONFIGURACAO_INICIAL, ...lerAcessos({}, this.#perfilInicial) };
+      this.#configuracao = { ...CONFIGURACAO_INICIAL, ...lerAcessos({}, this.#acessosIniciais) };
       return this.#configuracao;
     }
 
@@ -253,7 +273,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       sankhyaOmCodUsu: dados.sankhyaOmCodUsu ?? '',
       smtp: lerSmtp(dados.smtp),
       alertaDaAgenda: lerAlertaDaAgenda(dados.alertaDaAgenda),
-      ...lerAcessos(dados, this.#perfilInicial),
+      ...lerAcessos(dados, this.#acessosIniciais),
     };
 
     if (precisaMigrar(conteudo)) {
@@ -286,6 +306,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       funcionalidadesOcultas: normalizarFuncionalidadesOcultas(
         configuracao.funcionalidadesOcultas ?? atual.funcionalidadesOcultas,
       ),
+      terceiro: configuracao.terceiro ?? atual.terceiro,
       smtp: configuracao.smtp ? normalizarSmtp(configuracao.smtp) : atual.smtp,
       alertaDaAgenda: configuracao.alertaDaAgenda ?? atual.alertaDaAgenda,
     };

@@ -416,6 +416,27 @@ Ocultar **Repositórios** leva junto o que só existe por causa deles: o filtro 
 situação do Git, as bolinhas do Git no topo e na lista de clientes e a aba
 **MCP** das configurações.
 
+### Terceiro
+
+A caixa **Terceiro**, na aba Acessos e na página do perfil do instalador, é para
+quem não tem acesso ao Sankhya Om nem à Experience. Vale para qualquer perfil e,
+marcada, oculta tudo o que depende das credenciais Sankhya:
+
+- o botão **Credenciais Sankhya** do topo;
+- as abas **Agenda** e **OS** do menu principal e do cadastro do cliente, cujas
+  caixas ficam desabilitadas na aba Acessos;
+- o campo **Nomes completos no Sankhya** do cliente, que só serve à Agenda e à OS;
+- o grupo **Agenda do dia sem OS lançada** de **Configurações › Avisos**, e a
+  verificação a cada 15 minutos deixa de rodar mesmo com o alerta ligado;
+- as guias **Sankhya Om** e **Experience** do aplicativo: saem da barra, do menu
+  **Guias** e dos atalhos Ctrl+2 e Ctrl+3, e o aplicativo deixa de logar sozinho
+  nelas.
+
+Terceiro não altera as caixas gravadas: desmarcá-lo devolve a tela ao que era.
+A caixa do instalador segue a regra do perfil, só é aplicada enquanto a
+configuração ainda não tem o campo — inclusive numa instalação atualizada, que já
+tem perfil.
+
 > Desmarcar só tira a funcionalidade da tela. Nenhum dado é apagado, marcar de
 > novo a traz de volta, e a API continua respondendo: não é controle de
 > permissão.

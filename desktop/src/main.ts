@@ -77,11 +77,17 @@ function criarJanela(): void {
 
   // Boot com credencial salva mas sem sessão capturada: loga sozinho, sem esperar a
   // guia cair em tela de login por conta própria (ela pode nem navegar de novo se o
-  // cookie/token só expirar depois).
-  for (const sistema of cofre.SISTEMAS) {
-    const status = cofre.status(sistema);
-    if (status.definido && !status.sessaoCapturada) void autoLoginSankhya(tabs, sistema);
-  }
+  // cookie/token só expirar depois). Terceiro não usa o Sankhya: não há o que logar.
+  const gerenciadorDeGuias = tabs;
+  void gerenciadorDeGuias.atualizarAcessoDeTerceiro().then(() => {
+    if (gerenciadorDeGuias.terceiro) return;
+    for (const sistema of cofre.SISTEMAS) {
+      const status = cofre.status(sistema);
+      if (status.definido && !status.sessaoCapturada) {
+        void autoLoginSankhya(gerenciadorDeGuias, sistema);
+      }
+    }
+  });
 
   // Captura/recaptura periódica do token da Experience, agora pela JANELA OCULTA — que
   // loga sozinha e renova, sem depender da aba visível estar logada (era o que quebrava a
@@ -97,7 +103,8 @@ function criarJanela(): void {
   // está logando (o primeiro tick pode levar dezenas de segundos).
   let sincronizandoExperience = false;
   setInterval(() => {
-    if (sincronizandoExperience) return;
+    // Terceiro não tem a Experience: a janela oculta nem chega a logar.
+    if (sincronizandoExperience || tabs?.terceiro) return;
     sincronizandoExperience = true;
     void (async () => {
       try {

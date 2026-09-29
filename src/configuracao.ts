@@ -95,6 +95,14 @@ function lerPerfilInicial(): PerfilProfissional {
   return bruto;
 }
 
+/** Valor que o shell desktop grava quando a caixa Terceiro do instalador vem marcada. */
+const TERCEIRO_MARCADO = 'S';
+
+/** Caixa Terceiro do instalador, repassada pelo shell. Mesma regra do perfil inicial. */
+function lerTerceiroInicial(): boolean {
+  return process.env.HUB_TERCEIRO_INICIAL?.trim().toUpperCase() === TERCEIRO_MARCADO;
+}
+
 export const configuracao = {
   porta: lerPorta(),
   host: lerHost(),
@@ -102,5 +110,5 @@ export const configuracao = {
   diretorioDeDados: lerDiretorioDeDados(),
   ponteDoDesktopUrl: process.env.SANKHYA_DESKTOP_BRIDGE_URL ?? PONTE_DO_DESKTOP_URL_PADRAO,
   ponteDoDesktopTokenFile: lerArquivoDeTokenDoDesktop(),
-  perfilInicial: lerPerfilInicial(),
+  acessosIniciais: { perfil: lerPerfilInicial(), terceiro: lerTerceiroInicial() },
 } as const;

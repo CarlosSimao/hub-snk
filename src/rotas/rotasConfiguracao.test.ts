@@ -80,6 +80,27 @@ describe('PUT /api/configuracao — acessos', () => {
     assert.deepEqual(resposta.json().funcionalidadesOcultas, ['cliente.repositorios', 'agenda']);
   });
 
+  it('grava e devolve o acesso de terceiro', async () => {
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao',
+      payload: { ...CONFIGURACAO_SEM_DESTINO_DOS_LINKS, terceiro: true },
+    });
+
+    assert.equal(resposta.statusCode, 200);
+    assert.equal(resposta.json().terceiro, true);
+  });
+
+  it('recusa um terceiro que não é booleano', async () => {
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao',
+      payload: { ...CONFIGURACAO_SEM_DESTINO_DOS_LINKS, terceiro: 'sim' },
+    });
+
+    assert.equal(resposta.statusCode, 400);
+  });
+
   it('recusa um perfil desconhecido', async () => {
     const resposta = await servidor.inject({
       method: 'PUT',

@@ -2632,6 +2632,21 @@ button.selo-situacao:focus-visible {
   top: 16px;
 }
 
+/* Mesmo motivo do `.campo[hidden]`: o `display: grid` venceria o atributo. */
+.grupo-de-acessos[hidden] {
+  display: none;
+}
+
+/* Com Terceiro marcado, o que depende do Sankhya fica visível, mas fora de alcance. */
+.grupo-de-acessos .campo-checkbox:has(input:disabled) {
+  color: var(--text-dim);
+  cursor: not-allowed;
+}
+
+.grupo-de-acessos .campo-checkbox input:disabled {
+  cursor: not-allowed;
+}
+
 .lista-atalhos-config,
 .lista-atalhos {
   display: grid;

@@ -17,6 +17,7 @@ export interface ConfiguracaoParaSalvar extends Omit<
   | 'sankhyaOmCodUsu'
   | 'perfil'
   | 'funcionalidadesOcultas'
+  | 'terceiro'
   | 'smtp'
   | 'alertaDaAgenda'
 > {
@@ -24,6 +25,7 @@ export interface ConfiguracaoParaSalvar extends Omit<
   /** Ausentes, preservam o que está gravado: omitir não pode reexibir o que foi ocultado. */
   perfil?: ConfiguracaoGlobal['perfil'];
   funcionalidadesOcultas?: ConfiguracaoGlobal['funcionalidadesOcultas'];
+  terceiro?: ConfiguracaoGlobal['terceiro'];
   /** Ausentes, preservam o que está gravado: omitir não pode apagar a senha do SMTP. */
   smtp?: ConfiguracaoGlobal['smtp'];
   alertaDaAgenda?: ConfiguracaoGlobal['alertaDaAgenda'];

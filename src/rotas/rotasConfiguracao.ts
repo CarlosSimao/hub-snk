@@ -119,6 +119,7 @@ const esquemaDeConfiguracao = z.object({
   funcionalidadesOcultas: z
     .array(z.enum(FUNCIONALIDADES, { error: 'Funcionalidade desconhecida.' }))
     .optional(),
+  terceiro: z.boolean({ error: 'Terceiro deve ser verdadeiro ou falso.' }).optional(),
   /* Pelo mesmo motivo dos acessos: um padrão aqui apagaria a senha do SMTP gravada. */
   smtp: esquemaDeSmtp.optional(),
   alertaDaAgenda: esquemaDeAlertaDaAgenda.optional(),

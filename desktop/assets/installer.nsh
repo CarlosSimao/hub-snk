@@ -218,6 +218,9 @@ FunctionEnd
 ; que so' aplica o preset enquanto o configuracao.json ainda nao tem acessos: reinstalar
 ; ou atualizar nunca desfaz o que o usuario ajustou na aba Acessos.
 ;
+; A caixa Terceiro vai para terceiro-inicial.txt ("S" ou "N"), com a mesma regra: so'
+; vale enquanto o configuracao.json nao tem o campo `terceiro`.
+;
 ; LOCALAPPDATA vem do ambiente, e nao de $LOCALAPPDATA: numa instalacao para todos os
 ; usuarios o NSIS troca o contexto e $LOCALAPPDATA passaria a apontar para o ProgramData,
 ; que o aplicativo nao le.
@@ -228,6 +231,9 @@ Var RadioConsultor
 Var RadioAnalista
 Var RadioGerente
 Var PerfilEscolhido
+Var CheckTerceiro
+; "S" ou "N"; vazio enquanto a pagina nao foi mostrada (instalacao silenciosa).
+Var TerceiroEscolhido
 
 Function PerfilArquivo
   ReadEnvStr $R9 LOCALAPPDATA
@@ -244,6 +250,16 @@ Function PerfilLerAnterior
     FileClose $R8
     ${If} $R7 != ""
       StrCpy $PerfilEscolhido $R7
+    ${EndIf}
+  ${EndIf}
+
+  StrCpy $TerceiroEscolhido "N"
+  ${If} ${FileExists} "$R9\terceiro-inicial.txt"
+    FileOpen $R8 "$R9\terceiro-inicial.txt" r
+    FileRead $R8 $R7
+    FileClose $R8
+    ${If} $R7 == "S"
+      StrCpy $TerceiroEscolhido "S"
     ${EndIf}
   ${EndIf}
 FunctionEnd
@@ -283,6 +299,15 @@ Function PerfilPaginaCriar
     ${NSD_Check} $RadioDesenvolvedor
   ${EndIf}
 
+  ; Independente do perfil: qualquer um deles pode ser de um terceiro.
+  ${NSD_CreateCheckbox} 0 100u 100% 12u "Terceiro: sem acesso ao Sankhya Om e a Experience"
+  Pop $CheckTerceiro
+  ${NSD_CreateLabel} 12u 114u 90% 18u "Oculta Credenciais Sankhya, Agenda, OS e as guias Sankhya Om e Experience."
+  Pop $0
+  ${If} $TerceiroEscolhido == "S"
+    ${NSD_Check} $CheckTerceiro
+  ${EndIf}
+
   nsDialogs::Show
 FunctionEnd
 
@@ -299,6 +324,13 @@ Function PerfilPaginaSair
   ${Else}
     StrCpy $PerfilEscolhido "desenvolvedor"
   ${EndIf}
+
+  ${NSD_GetState} $CheckTerceiro $3
+  ${If} $3 == ${BST_CHECKED}
+    StrCpy $TerceiroEscolhido "S"
+  ${Else}
+    StrCpy $TerceiroEscolhido "N"
+  ${EndIf}
 FunctionEnd
 
 ; Instalacao silenciosa nao mostra a pagina: $PerfilEscolhido fica vazio e o arquivo da
@@ -309,6 +341,13 @@ FunctionEnd
     CreateDirectory "$R9"
     FileOpen $R8 "$R9\perfil-inicial.txt" w
     FileWrite $R8 "$PerfilEscolhido"
+    FileClose $R8
+  ${EndIf}
+  ${If} $TerceiroEscolhido != ""
+    Call PerfilArquivo
+    CreateDirectory "$R9"
+    FileOpen $R8 "$R9\terceiro-inicial.txt" w
+    FileWrite $R8 "$TerceiroEscolhido"
     FileClose $R8
   ${EndIf}
 !macroend

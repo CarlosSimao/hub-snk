@@ -100,8 +100,9 @@ export class VerificadorDaAgendaDoDia {
 
   async verificar(): Promise<void> {
     const { configuracao, agora } = this.#dependencias;
-    const { alertaDaAgenda, sankhyaOmCodUsu } = await configuracao.ler();
-    if (!alertaDaAgenda.ativo) {
+    const { alertaDaAgenda, sankhyaOmCodUsu, terceiro } = await configuracao.ler();
+    // Terceiro não tem as credenciais do Sankhya: um alerta deixado ligado só geraria falha.
+    if (!alertaDaAgenda.ativo || terceiro) {
       return;
     }
 

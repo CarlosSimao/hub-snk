@@ -184,7 +184,10 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
   });
 
   it('aplica o preset do perfil escolhido no instalador', async () => {
-    const doGerente = new RepositorioConfiguracaoArquivo(diretorio, 'gerente-de-projeto');
+    const doGerente = new RepositorioConfiguracaoArquivo(diretorio, {
+      perfil: 'gerente-de-projeto',
+      terceiro: false,
+    });
 
     const configuracao = await doGerente.ler();
 
@@ -199,7 +202,10 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
       funcionalidadesOcultas: ['os'],
     });
 
-    const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, 'consultor').ler();
+    const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, {
+      perfil: 'consultor',
+      terceiro: false,
+    }).ler();
 
     assert.equal(configuracao.perfil, 'desenvolvedor');
     assert.deepEqual(configuracao.funcionalidadesOcultas, ['os']);
@@ -218,6 +224,51 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     const configuracao = await repositorio.ler();
     assert.equal(configuracao.perfil, 'consultor');
     assert.deepEqual(configuracao.funcionalidadesOcultas, ['cliente.repositorios']);
+  });
+
+  it('sem Terceiro no instalador, nasce sem o acesso de terceiro', async () => {
+    const configuracao = await repositorio.ler();
+
+    assert.equal(configuracao.terceiro, false);
+  });
+
+  it('aplica o Terceiro do instalador a arquivo que já tem perfil mas não tem o campo', async () => {
+    await writeFile(
+      caminhoDoArquivo(),
+      JSON.stringify({
+        versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+        configuracao: { perfil: 'analista', funcionalidadesOcultas: [] },
+      }),
+      'utf8',
+    );
+
+    const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, {
+      perfil: 'desenvolvedor',
+      terceiro: true,
+    }).ler();
+
+    assert.equal(configuracao.terceiro, true);
+    assert.equal(configuracao.perfil, 'analista');
+  });
+
+  it('ignora o Terceiro do instalador quando o arquivo já tem o campo', async () => {
+    await repositorio.salvar({ ...CONFIGURACAO_SEM_ACESSOS, terceiro: false });
+
+    const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, {
+      perfil: 'desenvolvedor',
+      terceiro: true,
+    }).ler();
+
+    assert.equal(configuracao.terceiro, false);
+  });
+
+  it('preserva o Terceiro gravado quando o salvar não o manda', async () => {
+    await repositorio.salvar({ ...CONFIGURACAO_SEM_ACESSOS, terceiro: true });
+
+    await repositorio.salvar(CONFIGURACAO_SEM_ACESSOS);
+
+    repositorio.descartarCache();
+    assert.equal((await repositorio.ler()).terceiro, true);
   });
 
   it('descarta funcionalidade repetida ou desconhecida lida do arquivo', async () => {

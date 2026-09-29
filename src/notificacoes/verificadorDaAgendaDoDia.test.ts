@@ -37,6 +37,7 @@ function evento(campos: Partial<EventoAgenda>): EventoAgenda {
 }
 
 let alerta: AlertaDaAgenda;
+let terceiro: boolean;
 let eventos: EventoAgenda[];
 let situacoes: Map<number, SituacaoDoDia | Error>;
 let consultasDeSituacao: number;
@@ -46,7 +47,11 @@ let agora: Date;
 function criarVerificador(): VerificadorDaAgendaDoDia {
   const configuracao = {
     ler: async () =>
-      ({ alertaDaAgenda: alerta, sankhyaOmCodUsu: String(CODUSU) }) as ConfiguracaoGlobal,
+      ({
+        alertaDaAgenda: alerta,
+        sankhyaOmCodUsu: String(CODUSU),
+        terceiro,
+      }) as ConfiguracaoGlobal,
   } as RepositorioConfiguracao;
 
   return new VerificadorDaAgendaDoDia({
@@ -71,6 +76,7 @@ function criarVerificador(): VerificadorDaAgendaDoDia {
 
 beforeEach(() => {
   alerta = { ativo: true, toleranciaMinutos: 30, enviarEmail: true };
+  terceiro = false;
   eventos = [evento({})];
   situacoes = new Map();
   consultasDeSituacao = 0;
@@ -158,6 +164,15 @@ describe('VerificadorDaAgendaDoDia', () => {
     await criarVerificador().verificar();
 
     assert.equal(consultasDeSituacao, 0);
+  });
+
+  it('não faz nada com o acesso de terceiro, mesmo com o alerta ligado', async () => {
+    terceiro = true;
+
+    await criarVerificador().verificar();
+
+    assert.equal(consultasDeSituacao, 0);
+    assert.equal(emitidas.length, 0);
   });
 
   it('avisa uma vez por dia quando a sessão da Experience caiu', async () => {

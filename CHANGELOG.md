@@ -23,6 +23,11 @@ versão antiga e mantém o cadastro onde está.
   Consultor, Analista ou Gerente de projeto), e o preset dele oculta as abas que
   o perfil não usa. Em **Configurações › Acessos** dá para trocar o perfil e
   marcar ou desmarcar cada aba do menu principal e do cadastro do cliente.
+- **Terceiro**, no instalador e em **Configurações › Acessos**: para quem não tem
+  acesso ao Sankhya Om nem à Experience. Oculta Credenciais Sankhya, as abas
+  Agenda e OS (do menu e do cliente), os nomes completos do cliente, o alerta da
+  agenda e as guias **Sankhya Om** e **Experience** do aplicativo, que também
+  deixa de logar sozinho nelas.
 - **Git AutoSync no instalador**, opcional: commit e push automáticos dos
   repositórios, com tarefa diária, ícone na bandeja, atalhos, skill para os
   agentes de IA e entrada no PATH. A desinstalação pergunta se ele sai junto.

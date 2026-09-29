@@ -64,19 +64,43 @@ interface LinkCadastrado {
   titulo: string;
 }
 
+/** O que o shell usa da configuração global do backend. */
+interface ConfiguracaoDoHub {
+  destinoDosLinks?: DestinoDeLink;
+  terceiro?: boolean;
+}
+
+async function lerConfiguracaoDoHub(): Promise<ConfiguracaoDoHub> {
+  const resposta = await fetch(`${HUB_URL}/api/configuracao`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+  return (await resposta.json()) as ConfiguracaoDoHub;
+}
+
 async function lerDestinoDosLinks(): Promise<DestinoDeLink> {
   try {
-    const resposta = await fetch(`${HUB_URL}/api/configuracao`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
-    const { destinoDosLinks } = (await resposta.json()) as { destinoDosLinks?: DestinoDeLink };
+    const { destinoDosLinks } = await lerConfiguracaoDoHub();
     return destinoDosLinks ?? DESTINO_DOS_LINKS_PADRAO;
   } catch (err) {
     logEvento('destino-dos-links-falhou-ler', { erro: String(err) });
     return DESTINO_DOS_LINKS_PADRAO;
   }
 }
+
+/** `null` quando a configuração não pôde ser lida: quem chama mantém o que estava valendo. */
+async function lerAcessoDeTerceiro(): Promise<boolean | null> {
+  try {
+    const { terceiro } = await lerConfiguracaoDoHub();
+    return terceiro === true;
+  } catch (err) {
+    logEvento('acesso-de-terceiro-falhou-ler', { erro: String(err) });
+    return null;
+  }
+}
+
+/** Guias que só funcionam com as credenciais do Sankhya: somem no acesso de terceiro. */
+const GUIAS_DO_SANKHYA: ReadonlySet<string> = new Set<TabId>(['erp', 'experience']);
 
 /** A mesma URL escrita de jeitos diferentes (barra final, maiúsculas no host) casa. */
 function urlNormalizada(url: string): string {
@@ -264,6 +288,11 @@ export class TabManager {
    * do ERP aberta no lugar certo). E' o contrario de fechar uma aba de cliente.
    */
   readonly #escondidas = new Set<string>();
+  /**
+   * Acesso de terceiro, lido da configuração do backend. Diferente de esconder, a guia
+   * bloqueada não volta por atalho, menu nem clique: some da barra até o acesso mudar.
+   */
+  #terceiro = false;
   #aoMudarGuias: (() => void) | null = null;
 
   constructor(janela: BrowserWindow) {
@@ -285,6 +314,7 @@ export class TabManager {
    */
   async #tentarAutoLoginSankhya(id: TabId, view: WebContentsView): Promise<void> {
     if (id !== 'erp' && id !== 'experience') return;
+    if (this.#terceiro) return;
     const sistema: cofre.Sistema = id === 'erp' ? 'sankhya-erp' : 'sankhya-experience';
     if (!cofre.status(sistema).definido) return;
     if (!podeTentar(sistema)) return;
@@ -347,6 +377,8 @@ export class TabManager {
     });
     view.webContents.on('did-finish-load', () => {
       logEvento('aba-carregada', { id, url: origemSemQuery(view.webContents.getURL()) });
+      // O painel recarrega ao salvar os acessos: é quando o Terceiro pode ter mudado.
+      if (id === 'hub') void this.atualizarAcessoDeTerceiro();
       void this.#tentarAutoLoginSankhya(id, view);
     });
     view.webContents.setWindowOpenHandler(({ url: alvo }) => {
@@ -554,7 +586,7 @@ export class TabManager {
   }
 
   mostrar(id: string): boolean {
-    if (!this.#abas.has(id)) return false;
+    if (!this.#abas.has(id) || this.guiaBloqueada(id)) return false;
     // Abrir de novo uma guia escondida (por atalho ou pelo cartao do cliente) tambem a
     // devolve para a barra. Assim nunca existe conteudo ativo sem guia correspondente.
     if (this.#escondidas.delete(id)) {
@@ -574,7 +606,11 @@ export class TabManager {
   guiasAbertas(): GuiaInfo[] {
     const principais = (['hub', 'erp', 'experience'] as TabId[])
       .filter((id) => this.#abas.has(id))
-      .map((id) => ({ id, rotulo: ROTULO_GUIA[id], visivel: !this.#escondidas.has(id) }));
+      .map((id) => ({
+        id,
+        rotulo: ROTULO_GUIA[id],
+        visivel: !this.#escondidas.has(id) && !this.guiaBloqueada(id),
+      }));
     const clientes = [...this.#abasClientes.values()].map((aba) => ({
       id: aba.origin,
       rotulo: aba.titulo,
@@ -587,6 +623,29 @@ export class TabManager {
     this.#aoMudarGuias = callback;
   }
 
+  get terceiro(): boolean {
+    return this.#terceiro;
+  }
+
+  /** Sankhya Om e Experience, com o acesso de terceiro: fora da barra, do menu e dos atalhos. */
+  guiaBloqueada(id: string): boolean {
+    return this.#terceiro && GUIAS_DO_SANKHYA.has(id);
+  }
+
+  /**
+   * Relê o Terceiro da configuração e redesenha a barra e o menu quando ele muda. A guia
+   * bloqueada continua carregada, como uma escondida: desmarcar Terceiro a traz de volta.
+   */
+  async atualizarAcessoDeTerceiro(): Promise<void> {
+    const terceiro = await lerAcessoDeTerceiro();
+    if (terceiro === null || terceiro === this.#terceiro) return;
+
+    this.#terceiro = terceiro;
+    logEvento('acesso-de-terceiro', { terceiro });
+    if (this.guiaBloqueada(this.#abaAtiva)) this.mostrar('hub');
+    this.#emitirGuias();
+  }
+
   /**
    * Esconde ou traz de volta uma guia da barra.
    *
@@ -594,7 +653,7 @@ export class TabManager {
    * marcada, todas as views ficam invisiveis, mas continuam carregadas em background.
    */
   definirGuiaVisivel(id: string, visivel: boolean): boolean {
-    if (!this.#abas.has(id)) return false;
+    if (!this.#abas.has(id) || this.guiaBloqueada(id)) return false;
 
     if (visivel) {
       this.#escondidas.delete(id);

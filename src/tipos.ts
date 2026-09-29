@@ -64,6 +64,8 @@ export interface ConfiguracaoGlobal {
   sankhyaOmCodUsu: string;
   perfil: PerfilProfissional;
   funcionalidadesOcultas: Funcionalidade[];
+  /** Terceiro não tem acesso ao Sankhya Om nem à Experience: o que depende deles some. */
+  terceiro: boolean;
   smtp: ConfiguracaoSmtp;
   alertaDaAgenda: AlertaDaAgenda;
 }

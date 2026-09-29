@@ -305,7 +305,7 @@
             />
           </div>
 
-          <div class="campo">
+          <div class="campo" id="campo-nomes-completos">
             <label>
               Nomes completos no Sankhya
               <span class="opcional">opcional</span>
@@ -1225,7 +1225,7 @@
             aria-labelledby="aba-configuracao-avisos"
             hidden
           >
-            <fieldset class="grupo-de-acessos">
+            <fieldset class="grupo-de-acessos" id="grupo-alerta-agenda">
               <legend>
                 Agenda do dia sem OS lançada
                 <span class="dica" tabindex="0"
@@ -1284,6 +1284,17 @@
                 <option value="gerente-de-projeto">Gerente de projeto</option>
               </select>
             </div>
+
+            <label class="campo-checkbox">
+              <input type="checkbox" id="campo-terceiro" /> Terceiro
+              <span class="dica" tabindex="0"
+                >?<span class="dica-texto" role="tooltip"
+                  >Para quem não tem acesso ao Sankhya Om nem à Experience. Oculta o que depende
+                  deles: Credenciais Sankhya, Agenda e OS, os nomes completos do cliente, o alerta
+                  da agenda e as guias Sankhya Om e Experience do aplicativo.</span
+                ></span
+              >
+            </label>
 
             <!-- Clientes (menu) e Geral (cliente) não aparecem aqui: não são ocultáveis. -->
             <fieldset class="grupo-de-acessos">

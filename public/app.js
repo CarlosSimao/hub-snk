@@ -220,6 +220,8 @@ const estado = {
   funcionalidadesOcultas: new Set(),
   /* Perfil em vigor na tela; `null` enquanto a configuração não foi lida. */
   perfil: null,
+  /* Acesso de terceiro: sem Sankhya Om nem Experience, o que depende deles some. */
+  terceiro: false,
   clienteEmEdicao: null,
   clienteDaBaseEmEdicao: null,
   baseEmEdicao: null,
@@ -455,6 +457,9 @@ const elementos = {
   campoAlertaAgendaEmail: document.getElementById('campo-alerta-agenda-email'),
   painelConfiguracaoSobre: document.getElementById('painel-configuracao-sobre'),
   campoPerfil: document.getElementById('campo-perfil'),
+  campoTerceiro: document.getElementById('campo-terceiro'),
+  grupoAlertaAgenda: document.getElementById('grupo-alerta-agenda'),
+  campoNomesCompletosCliente: document.getElementById('campo-nomes-completos'),
   caixasDeFuncionalidade: document.querySelectorAll(
     '#painel-configuracao-acessos [data-funcionalidade]',
   ),
@@ -5326,7 +5331,7 @@ async function abrirModalDeConfiguracao() {
   elementos.campoDestinoDosLinks.value = DESTINO_DOS_LINKS_PADRAO;
   preencherAtalhosDaConfiguracao([]);
   elementos.campoCaminhoExecutavelDaIde.value = '';
-  preencherAcessosDaConfiguracao(PERFIL_PADRAO, []);
+  preencherAcessosDaConfiguracao(PERFIL_PADRAO, [], false);
   preencherNotificacoesDaConfiguracao(SMTP_PADRAO, ALERTA_DA_AGENDA_PADRAO);
   exibirResultadoDoTesteDoSmtp(null);
   definirVisibilidadeDoCampo(elementos.campoSmtpSenha, elementos.botaoVerSenhaSmtp, false);
@@ -5345,6 +5350,7 @@ async function abrirModalDeConfiguracao() {
     preencherAcessosDaConfiguracao(
       configuracao.perfil ?? PERFIL_PADRAO,
       configuracao.funcionalidadesOcultas ?? [],
+      configuracao.terceiro ?? false,
     );
     preencherNotificacoesDaConfiguracao(
       configuracao.smtp ?? SMTP_PADRAO,
@@ -5432,6 +5438,7 @@ async function salvarConfiguracao(evento) {
       caminhoDoExecutavelDaIde: elementos.campoCaminhoExecutavelDaIde.value.trim(),
       perfil: elementos.campoPerfil.value,
       funcionalidadesOcultas: lerFuncionalidadesOcultasDaConfiguracao(),
+      terceiro: elementos.campoTerceiro.checked,
       smtp: lerSmtpDaConfiguracao(),
       alertaDaAgenda: lerAlertaDaAgendaDaConfiguracao(),
     });
@@ -5465,14 +5472,39 @@ const PERFIL_PADRAO = 'desenvolvedor';
  */
 const FUNCIONALIDADE_REPOSITORIOS = 'cliente.repositorios';
 
+/*
+ * Espelha `FUNCIONALIDADES_QUE_DEPENDEM_DO_SANKHYA` de `src/acessos.ts`. Com Terceiro,
+ * somem por cima das caixas, sem mexer no que está gravado nelas.
+ */
+const FUNCIONALIDADES_QUE_DEPENDEM_DO_SANKHYA = new Set([
+  'agenda',
+  'os',
+  'cliente.agenda',
+  'cliente.os',
+]);
+
 /* Clientes (menu) e Geral (cliente) nunca estão no conjunto: não são ocultáveis. */
 function funcionalidadeVisivel(chave) {
+  if (estado.terceiro && FUNCIONALIDADES_QUE_DEPENDEM_DO_SANKHYA.has(chave)) {
+    return false;
+  }
   return !estado.funcionalidadesOcultas.has(chave);
 }
 
-function preencherAcessosDaConfiguracao(perfil, funcionalidadesOcultas) {
+function preencherAcessosDaConfiguracao(perfil, funcionalidadesOcultas, terceiro) {
   elementos.campoPerfil.value = perfil;
+  elementos.campoTerceiro.checked = terceiro;
   marcarFuncionalidadesVisiveis(funcionalidadesOcultas);
+  bloquearCaixasQueDependemDoSankhya();
+}
+
+/* Desabilitada, a caixa mantém a marcação: desmarcar Terceiro devolve o que era. */
+function bloquearCaixasQueDependemDoSankhya() {
+  for (const caixa of elementos.caixasDeFuncionalidade) {
+    if (FUNCIONALIDADES_QUE_DEPENDEM_DO_SANKHYA.has(caixa.dataset.funcionalidade)) {
+      caixa.disabled = elementos.campoTerceiro.checked;
+    }
+  }
 }
 
 function marcarFuncionalidadesVisiveis(funcionalidadesOcultas) {
@@ -5501,9 +5533,15 @@ async function aplicarPresetDoPerfil() {
 }
 
 /** Mostra ou esconde o menu principal e o que depende dos repositórios, e redesenha. */
-function aplicarAcessos({ perfil, funcionalidadesOcultas = [] }) {
+function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false }) {
   estado.perfil = perfil;
   estado.funcionalidadesOcultas = new Set(funcionalidadesOcultas);
+  estado.terceiro = terceiro;
+
+  // O que usa as credenciais do Sankhya sem ser aba: some junto com Agenda e OS.
+  elementos.botaoCredenciaisSankhya.hidden = terceiro;
+  elementos.grupoAlertaAgenda.hidden = terceiro;
+  elementos.campoNomesCompletosCliente.hidden = terceiro;
 
   elementos.botaoVisualizacaoLocal.hidden = !funcionalidadeVisivel('local');
   elementos.botaoVisualizacaoAgenda.hidden = !funcionalidadeVisivel('agenda');
@@ -5525,11 +5563,12 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [] }) {
   renderizar();
 }
 
-/* Compara com o que está em vigor na tela: só perfil ou caixas diferentes pedem recarga. */
-function acessosMudaram({ perfil, funcionalidadesOcultas = [] }) {
+/* Compara com o que está em vigor na tela: só perfil, Terceiro ou caixas diferentes pedem recarga. */
+function acessosMudaram({ perfil, funcionalidadesOcultas = [], terceiro = false }) {
   const emVigor = estado.funcionalidadesOcultas;
   return (
     perfil !== estado.perfil ||
+    terceiro !== estado.terceiro ||
     funcionalidadesOcultas.length !== emVigor.size ||
     funcionalidadesOcultas.some((chave) => !emVigor.has(chave))
   );
@@ -8436,6 +8475,7 @@ function registrarEventos() {
   );
   elementos.botaoTestarSmtp.addEventListener('click', testarSmtp);
   elementos.campoPerfil.addEventListener('change', aplicarPresetDoPerfil);
+  elementos.campoTerceiro.addEventListener('change', bloquearCaixasQueDependemDoSankhya);
   elementos.abaConfiguracaoSobre.addEventListener('click', () =>
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoSobre),
   );

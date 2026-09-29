@@ -119,20 +119,25 @@ export const DIRETORIO_DE_DADOS =
   (app.isPackaged ? pastaDeDadosInstalada() : join(RAIZ_PROJETO, 'dados-hub-snk'));
 
 /**
- * Perfil profissional escolhido na página do instalador (`assets/installer.nsh`), em
- * `HubSnk\perfil-inicial.txt`. Só o instalador do Windows pergunta; fora dele, e sem o
- * arquivo, volta vazio e o backend aplica o padrão. Quem valida o valor é o backend.
+ * Escolha feita na página do perfil do instalador (`assets/installer.nsh`), num arquivo
+ * de `HubSnk\`. Só o instalador do Windows pergunta; fora dele, e sem o arquivo, volta
+ * vazio e o backend aplica o padrão. Quem valida o valor é o backend.
  */
-function perfilEscolhidoNoInstalador(): string {
+function escolhaDoInstalador(nomeDoArquivo: string): string {
   if (!app.isPackaged || process.platform !== 'win32') return '';
   try {
-    return readFileSync(join(pastaDeEstadoDoInstalador(), 'perfil-inicial.txt'), 'utf8').trim();
+    return readFileSync(join(pastaDeEstadoDoInstalador(), nomeDoArquivo), 'utf8').trim();
   } catch {
     return '';
   }
 }
 
-export const PERFIL_INICIAL = process.env['HUB_PERFIL_INICIAL'] ?? perfilEscolhidoNoInstalador();
+export const PERFIL_INICIAL =
+  process.env['HUB_PERFIL_INICIAL'] ?? escolhaDoInstalador('perfil-inicial.txt');
+
+/** Caixa Terceiro do instalador: `S` marcada, `N` ou vazio desmarcada. */
+export const TERCEIRO_INICIAL =
+  process.env['HUB_TERCEIRO_INICIAL'] ?? escolhaDoInstalador('terceiro-inicial.txt');
 
 /** Só a migração do cofre ainda fala com o helper — ver `migracaoCofre.ts`. */
 export const HELPER_URL = process.env['HUB_HELPER_URL'] ?? 'http://127.0.0.1:4102';

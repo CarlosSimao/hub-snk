@@ -30,6 +30,7 @@ import {
   PERFIL_INICIAL,
   PORTA_HUB,
   RAIZ_PROJETO,
+  TERCEIRO_INICIAL,
   TZ_PADRAO,
 } from './config';
 import { logEvento } from './log';
@@ -98,6 +99,7 @@ function montarAmbiente(): NodeJS.ProcessEnv {
     HUB_HOST: '127.0.0.1',
     HUB_DADOS_DIR: DIRETORIO_DE_DADOS,
     HUB_PERFIL_INICIAL: PERFIL_INICIAL,
+    HUB_TERCEIRO_INICIAL: TERCEIRO_INICIAL,
     TZ: process.env['TZ'] ?? TZ_PADRAO,
     SANKHYA_DESKTOP_BRIDGE_URL: `http://${BRIDGE_HOST}:${BRIDGE_PORT}`,
     DESKTOP_BRIDGE_TOKEN_FILE: ARQUIVO_TOKEN_BRIDGE,
