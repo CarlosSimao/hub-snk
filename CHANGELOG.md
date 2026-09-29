@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.0.0] - 2026-09-29
+
 Versão de quebra de compatibilidade (MAJOR): o HUB SNK passa a ser um aplicativo
 desktop. Quem usa a versão 1 só precisa rodar o instalador novo — ele remove a
 versão antiga e mantém o cadastro onde está.
@@ -336,6 +338,7 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/CarlosSimao/hub-snk/releases/tag/v1.0.0
