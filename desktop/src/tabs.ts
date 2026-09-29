@@ -807,38 +807,9 @@ export class TabManager {
         url: origemSemQuery(view.webContents.getURL()),
       });
     });
-    // Antes isto negava TODO `window.open`, e como o download do Sankhya costuma abrir
-    // uma guia nova para servir o arquivo, o download morria aqui. Agora a janela é
-    // permitida como filha na MESMA partição isolada do cliente (nada vaza para outra
-    // base), fica registrada para não ser coletada pelo GC no meio do download, e o
-    // `registrarDownload` a fecha sozinha quando o arquivo termina — igual às abas
-    // principais.
-    view.webContents.setWindowOpenHandler(({ url: alvo }) => {
-      logEvento('popup-cliente-solicitado', {
-        clienteId: info.clienteId,
-        alvo: origemSemQuery(alvo),
-      });
-      return {
-        action: 'allow',
-        createWindow: (options) => {
-          const filha = new BrowserWindow({
-            ...options,
-            webPreferences: {
-              ...options.webPreferences,
-              partition: particao,
-              contextIsolation: true,
-              sandbox: true,
-              nodeIntegration: false,
-              webSecurity: true,
-              preload: undefined,
-            },
-          });
-          this.#janelasFilhas.add(filha);
-          filha.on('closed', () => this.#janelasFilhas.delete(filha));
-          return filha.webContents;
-        },
-      };
-    });
+    view.webContents.setWindowOpenHandler(({ url: alvo }) =>
+      this.#popupDaAbaCliente(info, origin, particao, alvo),
+    );
     view.webContents.loadURL(url);
     this.#janela.contentView.addChildView(view);
     this.#abas.set(origin, view);
@@ -855,6 +826,68 @@ export class TabManager {
     // (a senha do JSP, não a do Sankhya), e o preenchedor colocaria a credencial da base
     // no lugar errado.
     if (opcoes.autofill !== false) void tentarAutofill(view, info, origin);
+  }
+
+  /**
+   * Pop-up de uma base de cliente. O download do Sankhya costuma abrir uma guia nova para
+   * servir o arquivo: pop-up do próprio host (ou em branco, que a página navega em
+   * seguida) e de SSO vira janela filha na MESMA partição isolada do cliente, registrada
+   * para não ser coletada pelo GC no meio do download, e o `registrarDownload` a fecha
+   * quando o arquivo termina. O resto abre no navegador do sistema: a janela filha não tem
+   * barra de endereço, e uma página de outro site ali pareceria parte da base.
+   *
+   * A janela filha recebe a mesma política, senão o `window.open` dela cairia no padrão
+   * do Electron, sem restrição nenhuma.
+   */
+  #popupDaAbaCliente(
+    info: InfoBaseCliente,
+    origin: string,
+    particao: string,
+    alvo: string,
+  ): Electron.WindowOpenHandlerResponse {
+    const hostDaBase = new URL(origin).hostname;
+    const permitido =
+      alvo === '' ||
+      alvo === 'about:blank' ||
+      origemPermitida(alvo, [hostDaBase, ...DOMINIOS_POPUP_PERMITIDOS]);
+    logEvento('popup-cliente-solicitado', {
+      clienteId: info.clienteId,
+      alvo: origemSemQuery(alvo),
+      permitido,
+    });
+
+    if (!permitido) {
+      if (ehEnderecoWeb(alvo)) {
+        void shell.openExternal(alvo).catch((erro: unknown) => {
+          logEvento('popup-cliente-externo-falhou', { erro: String(erro) });
+        });
+      }
+      return { action: 'deny' };
+    }
+
+    return {
+      action: 'allow',
+      createWindow: (options) => {
+        const filha = new BrowserWindow({
+          ...options,
+          webPreferences: {
+            ...options.webPreferences,
+            partition: particao,
+            contextIsolation: true,
+            sandbox: true,
+            nodeIntegration: false,
+            webSecurity: true,
+            preload: undefined,
+          },
+        });
+        this.#janelasFilhas.add(filha);
+        filha.on('closed', () => this.#janelasFilhas.delete(filha));
+        filha.webContents.setWindowOpenHandler(({ url: destino }) =>
+          this.#popupDaAbaCliente(info, origin, particao, destino),
+        );
+        return filha.webContents;
+      },
+    };
   }
 
   fecharAbaCliente(origin: string): boolean {
