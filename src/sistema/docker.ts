@@ -251,6 +251,11 @@ export async function containerEstaRodando(
  * Login via `sqlplus` dentro do próprio container — evita adicionar driver
  * Oracle ao HUB SNK só para essa checagem. Assume listener ouvindo na mesma
  * porta cadastrada, dentro do container (`localhost:porta`).
+ *
+ * A credencial vai pela entrada padrão (`/nolog` + `connect`), não pela linha de
+ * comando: a do `docker exec` qualquer processo da máquina lê, e ela se repetia a
+ * cada tique da execução automática. A senha vai entre aspas para `@` e `/` dentro
+ * dela não serem lidos como parte da string de conexão.
  */
 export async function bancoEstaAcessivel(
   dados: {
@@ -262,12 +267,12 @@ export async function bancoEstaAcessivel(
   },
   tempoLimiteMs: number,
 ): Promise<boolean> {
-  const stringDeConexao = `${dados.usuario}/${dados.senha}@//localhost:${dados.porta}/${dados.nomeDoServico}`;
+  const conexao = `connect ${dados.usuario}/"${dados.senha}"@//localhost:${dados.porta}/${dados.nomeDoServico}`;
 
   try {
     const saida = await executarEAguardar(
-      ['exec', '-i', dados.container, 'sqlplus', '-L', '-S', stringDeConexao],
-      { tempoLimiteMs, entradaPadrao: 'select 1 from dual;\nexit;\n' },
+      ['exec', '-i', dados.container, 'sqlplus', '-L', '-S', '/nolog'],
+      { tempoLimiteMs, entradaPadrao: `${conexao}\nselect 1 from dual;\nexit;\n` },
     );
     return !/ORA-\d{4,5}/.test(saida);
   } catch {
