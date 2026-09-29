@@ -20,6 +20,17 @@ export const EXPERIENCE_URL =
 /** Domínios cujos cookies confirmam o login no ERP — nunca saem do processo. */
 export const DOMINIOS_ERP = ['sankhya.com.br'];
 
+/**
+ * Onde o login do Sankhya Om e da Experience acontece (skw, login e experience, todos sob
+ * `sankhya.com.br`), mais os hosts de `ERP_URL` e `EXPERIENCE_URL` quando sobrescritos.
+ * O preenchimento automático só entrega a credencial do cofre a uma página desses hosts.
+ */
+export const HOSTS_DE_LOGIN_SANKHYA = [
+  'sankhya.com.br',
+  new URL(ERP_URL).hostname,
+  new URL(EXPERIENCE_URL).hostname,
+];
+
 /** Domínios autorizados a abrir pop-up de dentro das abas remotas (SSO). */
 export const DOMINIOS_POPUP_PERMITIDOS = [
   'sankhya.com.br',

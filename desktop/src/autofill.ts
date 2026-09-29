@@ -140,6 +140,19 @@ export function scriptAutofillTick(
   })()`;
 }
 
+/**
+ * A credencial só vai para uma página do host esperado. Sem esta conferência, um redirect
+ * para um SSO, uma página intermediária ou um link clicado durante a observação levariam
+ * usuário e senha para outro site, e o clique em "entrar" os submeteria lá.
+ */
+export function paginaNoHost(wc: WebContents, hostPermitido: (host: string) => boolean): boolean {
+  try {
+    return hostPermitido(new URL(wc.getURL()).hostname);
+  } catch {
+    return false;
+  }
+}
+
 /** Clica no botão de entrar depois que usuário/senha já foram preenchidos. */
 export function scriptSubmeterLogin(): string {
   return `(() => {
@@ -201,7 +214,15 @@ export async function aguardarCampoDeSenha(wc: WebContents): Promise<boolean> {
 const JANELA_OBSERVACAO_MS = 90_000;
 const INTERVALO_MS = 1_000;
 
-export async function tentarAutofill(view: WebContentsView, info: InfoBaseCliente): Promise<void> {
+/**
+ * `origin` é o da aba da base. A comparação é pelo host, não pelo origin inteiro: base
+ * cadastrada em `http` que o servidor promove para `https` continua sendo a mesma base.
+ */
+export async function tentarAutofill(
+  view: WebContentsView,
+  info: InfoBaseCliente,
+  origin: string,
+): Promise<void> {
   if (!info.usuario || !info.temSenha) {
     logEvento('autofill-sem-cadastro', { clienteId: info.clienteId, baseId: info.baseId });
     return;
@@ -213,6 +234,7 @@ export async function tentarAutofill(view: WebContentsView, info: InfoBaseClient
     return;
   }
 
+  const hostDaBase = new URL(origin).hostname;
   const inicio = Date.now();
   let preencheuUsuario = false;
   let ultimoMotivo = '';
@@ -231,6 +253,10 @@ export async function tentarAutofill(view: WebContentsView, info: InfoBaseClient
           preencheuUsuario,
           ultimoMotivo,
         });
+        return;
+      }
+      if (!paginaNoHost(view.webContents, (host) => host === hostDaBase)) {
+        ultimoMotivo = 'pagina-fora-do-host-da-base';
         return;
       }
       try {

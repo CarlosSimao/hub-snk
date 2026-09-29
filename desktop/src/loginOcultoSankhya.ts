@@ -8,10 +8,15 @@
  * senha só existe em claro entre estas funções e a página de destino — nunca é logada.
  */
 import { BrowserWindow, type WebContents } from 'electron';
-import { scriptAutofillTick, scriptSubmeterLogin } from './autofill';
+import { paginaNoHost, scriptAutofillTick, scriptSubmeterLogin } from './autofill';
+import { HOSTS_DE_LOGIN_SANKHYA } from './config';
 
 const JANELA_PREENCHIMENTO_MS = 90_000;
 const INTERVALO_MS = 1_000;
+
+function hostDoSankhya(host: string): boolean {
+  return HOSTS_DE_LOGIN_SANKHYA.some((dominio) => host === dominio || host.endsWith(`.${dominio}`));
+}
 
 /** Janela invisível com partição própria, sem estrangular timers (o Angular do Sankhya conta requisições). */
 export function criarJanelaOculta(particao: string): BrowserWindow {
@@ -40,6 +45,8 @@ function esperarSenhaPreenchida(wc: WebContents, usuario: string, senha: string)
           resolve(false);
           return;
         }
+        // Fora do Sankhya (redirect, página intermediária), espera o próximo tick sem preencher.
+        if (!paginaNoHost(wc, hostDoSankhya)) return;
         try {
           const resultado = (await wc.executeJavaScript(
             scriptAutofillTick(usuario, senha, preencheuUsuario),

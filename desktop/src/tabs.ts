@@ -844,7 +844,7 @@ export class TabManager {
     // O monitor de log NÃO recebe autofill: a página dele tem um campo de senha PRÓPRIO
     // (a senha do JSP, não a do Sankhya), e o preenchedor colocaria a credencial da base
     // no lugar errado.
-    if (opcoes.autofill !== false) void tentarAutofill(view, info);
+    if (opcoes.autofill !== false) void tentarAutofill(view, info, origin);
   }
 
   fecharAbaCliente(origin: string): boolean {
