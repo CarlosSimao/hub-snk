@@ -28,7 +28,7 @@
     "empacotar-desktop": "npm --prefix desktop run empacotar"
   },
   "dependencies": {
-    "@fastify/static": "^10.1.3",
+    "@fastify/static": "^10.1.5",
     "croner": "^10.0.1",
     "fastify": "^5.12.1",
     "nodemailer": "^10.0.12",
