@@ -1035,10 +1035,29 @@ function ehEnderecoNavegavel(endereco) {
   }
 }
 
+/*
+ * O modal aberto fica na camada superior (top layer), com o fundo escurecido por cima do
+ * resto da página — inclusive dos avisos, que o usuário não via. Como popover, o
+ * contêiner também vai para essa camada, e mostrá-lo de novo a cada aviso o põe acima do
+ * modal que abriu depois dele.
+ */
+function trazerAvisosParaFrente() {
+  if (elementos.avisos.matches(':popover-open')) {
+    elementos.avisos.hidePopover();
+  }
+  elementos.avisos.showPopover();
+}
+
 function exibirAviso(mensagem, tipo = 'sucesso') {
   const aviso = criarElemento('div', `aviso ${tipo}`, mensagem);
   elementos.avisos.append(aviso);
-  setTimeout(() => aviso.remove(), DURACAO_DO_AVISO_MS);
+  trazerAvisosParaFrente();
+  setTimeout(() => {
+    aviso.remove();
+    if (!elementos.avisos.hasChildNodes()) {
+      elementos.avisos.hidePopover();
+    }
+  }, DURACAO_DO_AVISO_MS);
 }
 
 function clientesFiltradosPorNome() {
@@ -8021,8 +8040,8 @@ function exibirResultadoDoTesteDoSmtp(resultado) {
 }
 
 /*
- * Testa o que está no formulário, antes de salvar. O resultado fica na aba: o aviso do
- * rodapé da página seria desenhado atrás do modal aberto.
+ * Testa o que está no formulário, antes de salvar. O resultado fica na aba, e não num
+ * aviso: o erro do SMTP é longo e precisa ficar na tela enquanto o usuário corrige o campo.
  */
 async function testarSmtp() {
   exibirResultadoDoTesteDoSmtp({ sucesso: null, mensagem: 'Enviando o e-mail de teste…' });

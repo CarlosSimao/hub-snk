@@ -1354,7 +1354,7 @@
                   Enviar e-mail de teste
                 </button>
               </div>
-              <!-- Resultado do e-mail de teste aqui dentro: o aviso de rodapé fica atrás do modal. -->
+              <!-- Resultado do e-mail de teste aqui dentro, e não num aviso: ver `testarSmtp`. -->
               <p class="resultado-teste-smtp" id="resultado-teste-smtp" role="status" hidden></p>
             </fieldset>
           </div>
@@ -2175,7 +2175,8 @@
       </div>
     </dialog>
 
-    <div class="avisos" id="avisos" aria-live="polite"></div>
+    <!-- Popover para subir à camada superior junto com os modais: ver `exibirAviso`. -->
+    <div class="avisos" id="avisos" aria-live="polite" popover="manual"></div>
 
     <script src="/app.js" type="module"></script>
   </body>

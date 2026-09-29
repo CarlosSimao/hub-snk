@@ -2874,14 +2874,23 @@ button.selo-situacao:focus-visible {
 
 /* -------------------------------- avisos -------------------------------- */
 
+/* É popover (`index.html`): as primeiras linhas desfazem o estilo padrão do navegador. */
 .avisos {
+  inset: auto 16px 16px auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
   position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 40;
   display: grid;
   gap: 8px;
   max-width: min(360px, calc(100vw - 32px));
+}
+
+/* Mesmo motivo do `.campo[hidden]`: o `display: grid` venceria o popover fechado. */
+.avisos:not(:popover-open) {
+  display: none;
 }
 
 .aviso {
