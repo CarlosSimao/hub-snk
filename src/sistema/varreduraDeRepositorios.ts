@@ -1,6 +1,7 @@
 import { readdir } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { executarGit } from '../git/executarGit.ts';
+import { mapearComLimite } from './mapearComLimite.ts';
 import { garantirQueEhPasta } from './pasta.ts';
 
 /**
@@ -16,6 +17,9 @@ const PROFUNDIDADE_MAXIMA = 6;
 
 /** Teto de segurança: uma pasta mal escolhida não pode travar o HUB SNK. */
 const QUANTIDADE_MAXIMA_DE_REPOSITORIOS = 500;
+
+/* Dois processos `git` por repositório: sem teto, 500 repositórios abririam 1000 de uma vez. */
+const DESCRICOES_SIMULTANEAS = 8;
 
 /* Pastas grandes que nunca contêm um clone que interesse ao HUB SNK. */
 const PASTAS_IGNORADAS = new Set([
@@ -59,6 +63,9 @@ export interface RepositorioLocalEncontrado {
  * navegador; `ssh://` e `git@host:org/projeto.git` apontam para o mesmo lugar e
  * são convertidos. Protocolo desconhecido vira string vazia: melhor a tela
  * dizer "sem remoto utilizável" do que gravar um endereço que não abre.
+ *
+ * Usuário e senha embutidos (`https://usuario:token@host/...`) saem: a URL vai
+ * para o cadastro, para a tela e para o arquivo exportado ou compartilhado.
  */
 export function converterRemotoParaUrlHttp(remoto: string): string {
   const valor = remoto.trim();
@@ -71,7 +78,12 @@ export function converterRemotoParaUrlHttp(remoto: string): string {
   try {
     const endereco = new URL(semSufixo);
     if (PROTOCOLOS_ACEITOS.includes(endereco.protocol)) {
-      return semSufixo;
+      if (endereco.username === '' && endereco.password === '') {
+        return semSufixo;
+      }
+      endereco.username = '';
+      endereco.password = '';
+      return endereco.href;
     }
     if (endereco.protocol === 'ssh:') {
       return `https://${endereco.host}${endereco.pathname}`;
@@ -176,6 +188,6 @@ export async function varrerRepositoriosLocais(
   }
 
   const unicos = [...new Set(encontrados)];
-  const repositorios = await Promise.all(unicos.map(descreverRepositorio));
+  const repositorios = await mapearComLimite(unicos, DESCRICOES_SIMULTANEAS, descreverRepositorio);
   return repositorios.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 }
