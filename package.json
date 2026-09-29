@@ -12,7 +12,7 @@
   "bugs": {
     "url": "https://github.com/CarlosSimao/hub-snk/issues"
   },
-  "homepage": "https://github.com/CarlosSimao/hub-snk#readme",
+  "homepage": "https://carlossimao.github.io/hub-snk/",
   "type": "module",
   "engines": {
     "node": ">=22.18"

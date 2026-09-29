@@ -10,23 +10,10 @@ na sua máquina, sem Docker, sem banco de dados e sem autenticação.
 É um aplicativo desktop (Electron) só para Windows: a partir da versão 2 não há
 distribuição para Linux nem para macOS.
 
+Funcionalidades e download também em
+**[carlossimao.github.io/hub-snk](https://carlossimao.github.io/hub-snk/)**.
+
 ![Tela do HUB SNK com a lista de clientes cadastrados](docs/img/screenshot.png)
-
----
-
-## Vídeos
-
-Gravações de tela, hospedadas no Drive da empresa — **é preciso estar logado com
-a conta corporativa** para abrir.
-
-1. [Instalação](https://drive.google.com/file/d/1fl85T-dmL1fFpGBBf9L0FtIEaW4gbl4q/view?usp=drive_link)
-   — da versão 1, com o instalador por script, que não existe mais. Para a versão
-   atual, siga a seção [Instalação](#instalação) abaixo.
-2. [Funcionalidades](https://drive.google.com/file/d/1DzZlq7BkFz8LhVUXN41SAo9PKB795mB7/view?usp=sharing)
-   — o dia a dia: cadastro de clientes, bases, repositórios e atalhos.
-3. [Funcionalidades tech](https://drive.google.com/file/d/1ognNxuQbAoATqLoMZ7wzFszq9bB2B6MZ/view?usp=drive_link)
-   — o que está por baixo: diagnóstico Git, bases e bancos locais,
-   `.sankhya-mcp.env`.
 
 ---
 
@@ -55,18 +42,6 @@ Baixe o `HUB-SNK-Setup-<versão>.exe` na
 > O instalador não é assinado digitalmente. Na primeira execução, o SmartScreen
 > pode mostrar _"O Windows protegeu o computador"_: clique em _Mais informações_ ›
 > _Executar assim mesmo_.
-
-### Quem já usava a versão 1 (PWA)
-
-O instalador remove a versão antiga sozinho, e **o cadastro fica onde está** —
-`%LOCALAPPDATA%\HubSnk\dados` é a mesma pasta nas duas versões. Ele encerra o
-servidor antigo, apaga o programa, o `hub-snk.env` e os atalhos antigos, e move o
-que não era do pacote (os logs do WildFly que caíam na pasta do programa, por
-exemplo) para `%LOCALAPPDATA%\HubSnk\restos-da-versao-pwa-<data>`. O que foi
-feito fica registrado em `%LOCALAPPDATA%\HubSnk\remocao-da-versao-pwa.log`.
-
-Se o cadastro estava numa pasta escolhida à mão (`HUB_DADOS_DIR` no
-`hub-snk.env`), o aplicativo novo continua usando essa pasta.
 
 ### Atualizar e desinstalar
 
@@ -188,20 +163,18 @@ Cada uma em detalhe, com as regras, em
 
 ## Solução de problemas
 
-| Sintoma                                                                                | O que fazer                                                                                                                                                                                                                                                                      |
-| -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| _"HUB SNK — o backend não subiu"_ ao abrir                                             | Com _"A porta 4100 já está em uso por outro programa, que não é o backend do HUB SNK"_, feche esse programa e abra o HUB SNK de novo: o aplicativo não usa um backend que não é dele. Sem essa frase, o backend falhou, e as últimas linhas estão na mensagem e em `backend.log` |
-| _"HUB SNK — a ponte com o backend não abriu"_ ao abrir                                 | A porta 4103 está ocupada por outro programa. Credenciais Sankhya, Agenda e login automático ficam indisponíveis até você fechar esse programa e abrir o HUB SNK de novo                                                                                                         |
-| O painel avisa que o aplicativo HUB SNK não está respondendo                           | O painel foi aberto fora do aplicativo (_Abrir o painel no navegador_). Credenciais, agenda e guias só funcionam dentro dele                                                                                                                                                     |
-| A agenda diz que o login automático falhou ou que não há usuário e senha salvos        | Confira o usuário e a senha do Sankhya Om em Credenciais Sankhya e tente de novo                                                                                                                                                                                                 |
-| A agenda diz _"login automático suspenso: ..."_, ou as guias pararam de logar sozinhas | O Sankhya recusou a senha salva duas vezes seguidas, e o login automático parou para não bloquear a conta. Salve usuário e senha de novo em Credenciais Sankhya (ou reabra o aplicativo)                                                                                         |
-| Os botões de Git não fazem nada                                                        | O `git` precisa estar no PATH. Confira com `git --version` num terminal novo                                                                                                                                                                                                     |
-| Mensagem sobre esquema mais novo ao iniciar                                            | O cadastro foi gravado por uma versão mais nova do HUB SNK. Instale a versão mais recente                                                                                                                                                                                        |
-| A instalação avisou que a versão antiga não foi removida                               | O motivo está em `%LOCALAPPDATA%\HubSnk\remocao-da-versao-pwa.log`. O aplicativo novo funciona mesmo assim                                                                                                                                                                       |
-
-Se não estiver na lista, [abra uma issue](https://github.com/CarlosSimao/hub-snk/issues/new/choose)
-— citando a versão que aparece no rodapé da tela, e sem colar senha, host,
-usuário ou nome de cliente: o repositório é público.
+| Sintoma                                                                                             | O que fazer                                                                                                                                                                                                                                                                      |
+| --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _"HUB SNK — o backend não subiu"_ ao abrir                                                          | Com _"A porta 4100 já está em uso por outro programa, que não é o backend do HUB SNK"_, feche esse programa e abra o HUB SNK de novo: o aplicativo não usa um backend que não é dele. Sem essa frase, o backend falhou, e as últimas linhas estão na mensagem e em `backend.log` |
+| _"HUB SNK — a ponte com o backend não abriu"_ ao abrir                                              | A porta 4103 está ocupada por outro programa. Credenciais Sankhya, Agenda e login automático ficam indisponíveis até você fechar esse programa e abrir o HUB SNK de novo                                                                                                         |
+| O painel avisa que o aplicativo HUB SNK não está respondendo                                        | O painel foi aberto fora do aplicativo (_Abrir o painel no navegador_). Credenciais, agenda e guias só funcionam dentro dele                                                                                                                                                     |
+| A agenda diz que o login automático falhou ou que não há usuário e senha salvos                     | Confira o usuário e a senha do Sankhya Om em Credenciais Sankhya e tente de novo                                                                                                                                                                                                 |
+| A agenda diz _"login automático suspenso: ..."_, ou as guias pararam de logar sozinhas              | O Sankhya recusou a senha salva duas vezes seguidas, e o login automático parou para não bloquear a conta. Salve usuário e senha de novo em Credenciais Sankhya (ou reabra o aplicativo)                                                                                         |
+| Os botões de Git não fazem nada                                                                     | O `git` precisa estar no PATH. Confira com `git --version` num terminal novo                                                                                                                                                                                                     |
+| Mensagem sobre esquema mais novo ao iniciar                                                         | O cadastro foi gravado por uma versão mais nova do HUB SNK. Instale a versão mais recente                                                                                                                                                                                        |
+| Se não estiver na lista, [abra uma issue](https://github.com/CarlosSimao/hub-snk/issues/new/choose) |
+| — citando a versão que aparece no rodapé da tela, e sem colar senha, host,                          |
+| usuário ou nome de cliente: o repositório é público.                                                |
 
 ---
 

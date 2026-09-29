@@ -98,6 +98,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
+          # Cópia com nome sem versão: é ela que o link
+          # `releases/latest/download/HUB-SNK-Setup.exe` da página do projeto
+          # baixa, sem precisar mudar a cada versão.
+          cp artefatos/HUB-SNK-Setup-*.exe artefatos/HUB-SNK-Setup.exe
           ls -lh artefatos
 
           # A tag pode chegar antes de a release existir — nesse caso, cria.

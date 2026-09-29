@@ -1,0 +1,51 @@
+name: Site
+
+# Publica a página do projeto (pasta `site/`) no GitHub Pages, em
+# https://carlossimao.github.io/hub-snk/.
+#
+# O print e o ícone não são copiados para `site/`: vêm de `docs/img` e
+# `desktop/assets` na hora da publicação, para existir um arquivo só de cada.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'docs/img/screenshot.png'
+      - 'desktop/assets/hub-snk.png'
+      - '.github/workflows/site.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Duas publicações seguidas não se atropelam: a mais nova espera a anterior.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.publicacao.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Montar o site
+        run: |
+          mkdir -p site/img
+          cp docs/img/screenshot.png site/img/screenshot.png
+          cp desktop/assets/hub-snk.png site/img/icone.png
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      - id: publicacao
+        uses: actions/deploy-pages@v4
