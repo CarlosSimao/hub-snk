@@ -59,10 +59,12 @@ interface Lancamento {
 /*
  * O diálogo do Windows exige apartamento STA, daí o `-STA`. A janela dona é
  * criada só para levar `TopMost`: sem ela o diálogo nasce atrás da janela do
- * HUB SNK e parece que nada aconteceu.
+ * HUB SNK e parece que nada aconteceu. A codificação da saída é fixada pelo
+ * mesmo motivo do seletor de pasta: o PowerShell 5.1 escreve em cp850.
  */
 function montarScriptDoWindows({ titulo, filtroDoWindows }: TipoDeArquivo): string {
   return `
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
 Add-Type -AssemblyName System.Windows.Forms
 $dialogo = New-Object System.Windows.Forms.OpenFileDialog
 $dialogo.Title = '${titulo}'
@@ -113,9 +115,11 @@ function executarSeletor({ comando, argumentos }: Lancamento): Promise<string | 
   return new Promise((resolver, rejeitar) => {
     const processo = spawn(comando, argumentos, { stdio: ['ignore', 'pipe', 'ignore'] });
 
+    // Decodifica o fluxo inteiro, não pedaço a pedaço: um caractere acentuado pode cair na divisa.
+    processo.stdout.setEncoding('utf8');
     let saida = '';
-    processo.stdout.on('data', (pedaco: Buffer) => {
-      saida += pedaco.toString('utf8');
+    processo.stdout.on('data', (pedaco: string) => {
+      saida += pedaco;
     });
 
     processo.once('error', (erro) => {
