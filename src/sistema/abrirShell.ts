@@ -28,6 +28,15 @@ function escaparParaAppleScript(valor: string): string {
 }
 
 /**
+ * O `wt.exe` lê `;` como separador de subcomandos — "nova aba", "dividir painel". Sem o
+ * escape, um script padrão como `git fetch; git status` era partido, e o terminal abria
+ * com um pedaço do script e uma aba a mais.
+ */
+function escaparParaOWindowsTerminal(argumento: string): string {
+  return argumento.replaceAll(';', '\\;');
+}
+
+/**
  * `where.exe` responde se um executável está no PATH sem executá-lo — evita
  * abrir uma janela só para descobrir que o programa existe.
  */
@@ -62,7 +71,12 @@ async function montarLancamentoDoWindows(pasta: string, script: string): Promise
   if (await existeNoWindows('wt.exe')) {
     return {
       comando: 'wt.exe',
-      argumentos: ['-d', pasta, shellEscolhido.comando, ...shellEscolhido.argumentos],
+      argumentos: [
+        '-d',
+        pasta,
+        shellEscolhido.comando,
+        ...shellEscolhido.argumentos.map(escaparParaOWindowsTerminal),
+      ],
     };
   }
 
