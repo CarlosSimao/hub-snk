@@ -3678,13 +3678,48 @@ function restaurarCursorNasAnotacoes(posicao) {
   campo.setSelectionRange(posicao.inicio, posicao.fim);
 }
 
+/*
+ * Agenda e OS consultam o Sankhya e a Experience ao montar, e guardam o mês, o dia e o
+ * filtro escolhidos. O detalhe é redesenhado a cada tique do Git e a cada base
+ * verificada: remontá-las ali repetia as consultas ao vivo dezenas de vezes por minuto e
+ * devolvia a tela ao mês corrente. Cada uma é montada uma vez por cliente e reaproveitada.
+ *
+ * A identidade inclui os nomes porque é por eles que a Agenda e as OS são recortadas:
+ * editar o cliente precisa refazer a consulta.
+ */
+const secoesConsultadasDoDetalhe = { identidade: '', porChave: new Map() };
+
+function identidadeDasConsultasDoCliente(cliente) {
+  return [cliente.id, cliente.nome, ...cliente.nomesCompletos].join('\n');
+}
+
+function secaoConsultadaDoCliente(cliente, chave, criar) {
+  const identidade = identidadeDasConsultasDoCliente(cliente);
+  if (secoesConsultadasDoDetalhe.identidade !== identidade) {
+    secoesConsultadasDoDetalhe.identidade = identidade;
+    secoesConsultadasDoDetalhe.porChave.clear();
+  }
+
+  let secao = secoesConsultadasDoDetalhe.porChave.get(chave);
+  if (!secao) {
+    secao = criar(cliente);
+    secoesConsultadasDoDetalhe.porChave.set(chave, secao);
+  }
+  return secao;
+}
+
+function descartarSecoesConsultadasDoDetalhe() {
+  secoesConsultadasDoDetalhe.identidade = '';
+  secoesConsultadasDoDetalhe.porChave.clear();
+}
+
 /**
  * Abas do detalhe do cliente. Trocar de aba só mostra/esconde o que já foi
  * montado — sem chamar `renderizarDetalhe()` de novo, que descartaria o
  * calendário aberto e qualquer outro estado local da aba.
  *
- * Aba oculta em Configurações › Acessos nem é montada: Agenda e OS consultam o
- * servidor ao montar, e escondê-las só com `hidden` manteria essas consultas.
+ * Aba oculta em Configurações › Acessos nem é montada, e a marcada `soAoAbrir` só é
+ * montada quando aberta: Agenda e OS consultam o servidor ao montar.
  */
 function criarAbasDeDetalhe(todasAsAbas) {
   const abas = todasAsAbas.filter((aba) => funcionalidadeVisivel(`cliente.${aba.chave}`));
@@ -3697,23 +3732,31 @@ function criarAbasDeDetalhe(todasAsAbas) {
   const corpo = criarElemento('div', 'abas-empilhadas detalhe-abas-corpo');
 
   for (const aba of abas) {
+    const painel = criarElemento('div', 'painel-aba');
+    painel.dataset.chave = aba.chave;
+    painel.hidden = aba.chave !== ativaInicial;
+    const montar = () => {
+      if (!painel.hasChildNodes()) {
+        painel.append(aba.criarConteudo());
+      }
+    };
+    if (!aba.soAoAbrir || aba.chave === ativaInicial) {
+      montar();
+    }
+
     const botao = criarBotao(aba.chave === ativaInicial ? 'aba ativa' : 'aba', aba.rotulo, () => {
       estado.abaDetalheAtiva = aba.chave;
+      montar();
       for (const filho of barra.children) {
         filho.classList.toggle('ativa', filho.dataset.chave === aba.chave);
       }
-      for (const painel of corpo.children) {
-        painel.hidden = painel.dataset.chave !== aba.chave;
+      for (const outroPainel of corpo.children) {
+        outroPainel.hidden = outroPainel.dataset.chave !== aba.chave;
       }
     });
     botao.setAttribute('role', 'tab');
     botao.dataset.chave = aba.chave;
     barra.append(botao);
-
-    const painel = criarElemento('div', 'painel-aba');
-    painel.dataset.chave = aba.chave;
-    painel.hidden = aba.chave !== ativaInicial;
-    painel.append(aba.criarConteudo());
     corpo.append(painel);
   }
 
@@ -3768,8 +3811,18 @@ function renderizarDetalhe() {
         rotulo: 'Projetos',
         criarConteudo: () => criarSecaoDeProjetos(cliente),
       },
-      { chave: 'agenda', rotulo: 'Agenda', criarConteudo: () => criarSecaoDeAgenda(cliente) },
-      { chave: 'os', rotulo: 'OS', criarConteudo: () => criarSecaoDeOs(cliente) },
+      {
+        chave: 'agenda',
+        rotulo: 'Agenda',
+        soAoAbrir: true,
+        criarConteudo: () => secaoConsultadaDoCliente(cliente, 'agenda', criarSecaoDeAgenda),
+      },
+      {
+        chave: 'os',
+        rotulo: 'OS',
+        soAoAbrir: true,
+        criarConteudo: () => secaoConsultadaDoCliente(cliente, 'os', criarSecaoDeOs),
+      },
       {
         chave: 'contatos',
         rotulo: 'Contatos',
@@ -8838,6 +8891,8 @@ async function recarregarDetalhe(id) {
     return;
   }
 
+  // Recarregar de propósito é o único redesenho que deve consultar Agenda e OS de novo.
+  descartarSecoesConsultadasDoDetalhe();
   renderizar();
   carregarSituacoesDasBasesDoClienteSelecionado();
   await carregarSituacoesGit(true);
