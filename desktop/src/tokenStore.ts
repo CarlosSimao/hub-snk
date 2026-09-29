@@ -1,7 +1,6 @@
 /**
  * Segredo compartilhado entre o shell desktop e o backend, nas duas direções (backend
- * pedindo a Agenda ao bridge; shell empurrando a sessão da Experience ao backend) — ver
- * "Decisão de transporte" no plano de Fase 2. Mesma ideia do `hub-helper.ps1`: gerado
+ * pedindo a Agenda ao bridge; shell empurrando a sessão da Experience ao backend). Gerado
  * no primeiro boot, lido depois. Nunca exposto à UI (nem local, nem remota).
  */
 import { randomBytes } from 'node:crypto';

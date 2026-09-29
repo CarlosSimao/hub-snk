@@ -35,7 +35,4 @@ contextBridge.exposeInMainWorld('hub', {
   layout: {
     definirAlturaTopo: (altura: number) => ipcRenderer.invoke('layout:definirAlturaTopo', altura),
   },
-  diag: {
-    status: () => ipcRenderer.invoke('diag:status'),
-  },
 });

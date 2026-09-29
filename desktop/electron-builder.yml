@@ -1,4 +1,4 @@
-# Empacotamento do HUB SNK desktop — ver docs/plano-migracao-electron.md (Fase 6).
+# Empacotamento do HUB SNK desktop — ver docs/distribuicao.md.
 #
 # Antes de rodar: `node scripts/preparar-hub.mjs`, que monta `build/hub` com o backend e
 # só as dependências de produção, e `node scripts/preparar-autosync.mjs`, que monta
@@ -55,7 +55,7 @@ extraResources:
       - '*.ps1'
 
 # `asar: true` mantém o shell num arquivo só. O backend está fora dele (extraResources),
-# que é o necessário para o `spawn` do `dist/index.js` funcionar.
+# que é o necessário para o `spawn` do `src/index.ts` funcionar.
 asar: true
 
 win:
@@ -63,12 +63,12 @@ win:
     - target: nsis
       arch: [x64]
   icon: assets/hub-snk.ico
-  # Sem certificado ainda (§4.4). Deixar explícito evita o electron-builder procurar um
-  # certificado da máquina e assinar com algo que não é o nosso.
+  # `true` é o que grava o ícone e a versão no `.exe`. Assinatura não há: sem certificado
+  # configurado (`CSC_LINK`), o electron-builder não assina nada, e o SmartScreen avisa.
   signAndEditExecutable: true
 
 nsis:
-  # Per-user: instala em %LOCALAPPDATA%\Programs\sankhya-hub, sem pedir administrador.
+  # Per-user: instala em %LOCALAPPDATA%\Programs\HUB SNK, sem pedir administrador.
   # É o que permite instalar numa máquina corporativa sem acionar o time de infra.
   perMachine: false
   oneClick: false
@@ -116,6 +116,6 @@ deb:
     - gnome-keyring
     - git
 
-# Nada de auto-update por enquanto (§4.4): sem servidor de publicação, um `latest.yml`
+# Nada de auto-update por enquanto : sem servidor de publicação, um `latest.yml`
 # solto no release só confunde quem for verificar.
 publish: null

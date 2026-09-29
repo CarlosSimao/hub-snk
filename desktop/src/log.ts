@@ -1,7 +1,5 @@
 /**
- * Log com redação de segredo — porta de `poc-desktop/src/report.js`, sem a parte de
- * `resultados.json` (era só o arnês de teste da PoC). A redação por CONTEÚDO (não só
- * por nome de chave) existe porque um vazamento real aconteceu na PoC: o redirect de
+ * Log com redação de segredo. A redação por CONTEÚDO (não só por nome de chave) existe porque um vazamento real aconteceu na PoC: o redirect de
  * SSO da Experience carrega o JWT na querystring, então o campo `url` (que não bate em
  * nenhum nome de chave proibido) também precisa ser varrido.
  */

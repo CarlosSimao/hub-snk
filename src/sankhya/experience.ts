@@ -1,12 +1,12 @@
 /**
  * Cliente de LEITURA da API do Sankhya Experience (API Gateway da AWS).
  *
- * Autentica com o JWT que o helper captura do navegador — não com cookie.
+ * Autentica com o JWT que o shell desktop captura da guia — não com cookie.
  * Medido no projeto original: cookie de sessão devolve 403 nessas rotas,
  * mesmo com Origin e Referer corretos; `Authorization: Bearer <token>`
  * devolve 200.
  *
- * Escopo reduzido de propósito (Fase 4, só leitura): sem geração de OS nem
+ * Escopo reduzido de propósito (só leitura): sem geração de OS nem
  * envio de e-mail.
  */
 import type { Credenciais } from './credenciais.ts';

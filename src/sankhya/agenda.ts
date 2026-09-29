@@ -18,7 +18,6 @@ import type {
   EventoComRecurso,
   ParceiroAgenda,
   RecursoAgenda,
-  RecursoComTotal,
 } from '../tipos.ts';
 
 /** Janela consultada, no mesmo formato TEXT das colunas (`YYYY-MM-DD HH:mm:ss`). */
@@ -256,30 +255,6 @@ export class AgendaRecursos {
       eventos: Number(eventos.n),
       importadoEm: importacao ? Number(importacao.importado_em) : null,
     };
-  }
-
-  recursos(): RecursoComTotal[] {
-    const linhas = this.#db
-      .prepare(
-        `SELECT r.*, COUNT(e.id) AS total_eventos
-           FROM ag_recursos r
-           LEFT JOIN ag_eventos e ON e.recurso_id = r.id
-          GROUP BY r.id
-          ORDER BY r.nomeusu COLLATE NOCASE`,
-      )
-      .all() as unknown as Record<string, unknown>[];
-
-    return linhas.map((l) => ({
-      id: Number(l['id']),
-      codusu: l['codusu'] === null ? null : Number(l['codusu']),
-      nomeusu: String(l['nomeusu']),
-      codcargo: l['codcargo'] === null ? null : Number(l['codcargo']),
-      descrcargo: String(l['descrcargo']),
-      corHex: String(l['cor_hex']),
-      corConflitoHex: String(l['cor_conflito_hex']),
-      problemaConexao: String(l['problema_conexao']),
-      totalEventos: Number(l['total_eventos']),
-    }));
   }
 
   /**

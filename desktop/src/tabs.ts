@@ -1,13 +1,7 @@
 /**
  * Gerenciador de abas do shell: `WebContentsView` para Hub/ERP/Experience (fixas) e uma
  * por base de cliente aberta (dinâmicas), política de pop-up (lista branca de SSO +
- * origin de base cadastrada vira aba própria isolada) e download. Porta de
- * `poc-desktop/src/main.js` (comprovado com dado real nas Rodadas 1-6 da PoC), sem os
- * ganchos de diagnóstico exclusivos da investigação do erro "require is not defined"
- * (stack via CDP, interceptação de `alert`): aquele erro foi caracterizado como interno
- * do Electron, sem impacto funcional (ver
- * docs/specs/sankhya-hub-desktop-poc-relatorio.md, Rodada 3) — não é papel do shell de
- * produção reproduzir o arnês de investigação.
+ * origin de base cadastrada vira aba própria isolada) e download.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';

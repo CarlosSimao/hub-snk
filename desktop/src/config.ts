@@ -1,7 +1,7 @@
 /**
  * Constantes e caminhos do shell desktop. Tudo sobrescrevível por variável de
- * ambiente — os defaults são os mesmos endereços que o backend do HUB SNK e o
- * `hub-helper.ps1` já usam, para não haver um segundo conjunto de URLs "corretas".
+ * ambiente — os defaults são os mesmos endereços que o backend do HUB SNK usa, para
+ * não haver um segundo conjunto de URLs "corretas".
  */
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -16,11 +16,8 @@ export const HUB_URL = process.env['SANKHYA_HUB_URL'] ?? 'http://127.0.0.1:4100'
 export const ERP_URL = process.env['SANKHYA_ERP_URL'] ?? 'https://skw.sankhya.com.br/mge/';
 export const EXPERIENCE_URL =
   process.env['SANKHYA_EXPERIENCE_URL'] ?? 'https://experience.sankhya.com.br/';
-export const EXPERIENCE_API =
-  process.env['SANKHYA_EXPERIENCE_API'] ??
-  'https://d83n39pk6d.execute-api.sa-east-1.amazonaws.com/prod';
 
-/** Domínios cujos cookies interessam ao diagnóstico local do ERP — nunca saem do processo. */
+/** Domínios cujos cookies confirmam o login no ERP — nunca saem do processo. */
 export const DOMINIOS_ERP = ['sankhya.com.br'];
 
 /** Domínios autorizados a abrir pop-up de dentro das abas remotas (SSO). */
@@ -38,14 +35,12 @@ export const BRIDGE_PORT = Number(process.env['SANKHYA_DESKTOP_BRIDGE_PORT'] ?? 
 export const BRIDGE_HOST = '127.0.0.1';
 
 /**
- * Mesma pasta que `hub-helper.ps1` usa para `token.txt`: o shell grava o próprio token
- * ao lado, e o backend acha os dois pelo mesmo padrão (`src/configuracao.ts`).
+ * Pasta do token da ponte: o shell o grava aqui, e o backend o acha pelo mesmo padrão
+ * (`src/configuracao.ts`).
  */
 export const PASTA_IPC =
   process.env['SANKHYA_HUB_IPC_DIR'] ?? join(app.getPath('appData'), 'sankhya-hub', 'ipc');
 export const ARQUIVO_TOKEN_BRIDGE = join(PASTA_IPC, 'desktop-token.txt');
-/** Gerado por `scripts/hub-helper.ps1` no primeiro boot; o shell só lê. */
-export const ARQUIVO_TOKEN_HELPER = join(PASTA_IPC, 'token.txt');
 
 // --- backend hospedado pelo shell --------------------------------------------------
 
@@ -71,7 +66,7 @@ export const RAIZ_PROJETO =
 
 /**
  * O backend roda direto do TypeScript, sem build: o Node embutido no Electron faz o
- * type stripping sozinho (validado na Fase 1 do plano de migração).
+ * type stripping sozinho.
  */
 export const ENTRYPOINT_BACKEND = join(RAIZ_PROJETO, 'src', 'index.ts');
 
@@ -138,9 +133,6 @@ export const PERFIL_INICIAL =
 /** Caixa Terceiro do instalador: `S` marcada, `N` ou vazio desmarcada. */
 export const TERCEIRO_INICIAL =
   process.env['HUB_TERCEIRO_INICIAL'] ?? escolhaDoInstalador('terceiro-inicial.txt');
-
-/** Só a migração do cofre ainda fala com o helper — ver `migracaoCofre.ts`. */
-export const HELPER_URL = process.env['HUB_HELPER_URL'] ?? 'http://127.0.0.1:4102';
 
 export const TZ_PADRAO = 'America/Sao_Paulo';
 

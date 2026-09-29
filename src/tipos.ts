@@ -394,11 +394,6 @@ export interface EventoAgenda {
   diastraso: number | null;
 }
 
-export interface RecursoComTotal extends RecursoAgenda {
-  id: number;
-  totalEventos: number;
-}
-
 /** Evento já com o cargo e a cor do recurso dele, para a tela não cruzar de novo. */
 export interface EventoComRecurso extends EventoAgenda {
   id: number;

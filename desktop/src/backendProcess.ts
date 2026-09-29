@@ -248,8 +248,3 @@ export async function pararBackend(): Promise<void> {
   arquivoSaida = null;
   processo = null;
 }
-
-/** Para a barra de diagnóstico do shell: quem está servindo o painel agora. */
-export function backendGerenciado(): boolean {
-  return processo !== null && processo.exitCode === null;
-}

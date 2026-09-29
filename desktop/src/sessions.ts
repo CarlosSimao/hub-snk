@@ -1,12 +1,9 @@
 /**
- * Captura do token da Experience (localStorage, com decodificação de `exp`) e
- * diagnóstico de cookies do ERP — só para status na UI local, nunca repassado ao
- * backend (a Agenda vai pelo bridge, não por cookie replicado; ver
- * desktop/src/agenda.ts e a Seção 6.2 da especificação). Porta de
- * `poc-desktop/src/main.js`.
+ * Captura do token da Experience (localStorage, com decodificação de `exp`). Cookie do
+ * ERP nunca é repassado ao backend: a Agenda vai pela ponte, consultada pela janela
+ * oculta de `janelaAgendaOculta.ts`.
  */
-import { session, type WebContents, type WebContentsView } from 'electron';
-import { DOMINIOS_ERP, ERP_URL, PARTICAO } from './config';
+import { type WebContents, type WebContentsView } from 'electron';
 import { logEvento } from './log';
 
 export interface SessaoExperience {
@@ -70,26 +67,4 @@ export async function capturarTokenExperience(
   const sessao = await capturarTokenDeWebContents(view.webContents);
   logEvento('experience-token-capturado', { presente: sessao.presente, expIso: sessao.expIso });
   return sessao;
-}
-
-/** Diagnóstico local: nomes/contagem de cookies, nunca o valor. */
-export async function diagnosticoCookiesErp(): Promise<{
-  total: number;
-  httpOnly: number;
-  nomes: string[];
-}> {
-  const ses = session.fromPartition(PARTICAO);
-  const porUrl = await ses.cookies.get({ url: ERP_URL });
-  const porDominio = (
-    await Promise.all(DOMINIOS_ERP.map((d) => ses.cookies.get({ domain: d })))
-  ).flat();
-  const unicos = new Map(
-    [...porUrl, ...porDominio].map((c) => [`${c.domain}|${c.name}|${c.path}`, c]),
-  );
-  const lista = [...unicos.values()];
-  return {
-    total: lista.length,
-    httpOnly: lista.filter((c) => c.httpOnly).length,
-    nomes: lista.map((c) => c.name),
-  };
 }

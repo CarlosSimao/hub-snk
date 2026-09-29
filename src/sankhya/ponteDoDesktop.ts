@@ -1,14 +1,14 @@
 /**
  * Transporte para o shell desktop (Electron, `desktop/`), que expõe em
- * `127.0.0.1:4103` o mesmo contrato do antigo `hub-helper.ps1`: `/credentials/*`,
- * `/browser/*` e as consultas feitas de dentro da guia autenticada do ERP.
+ * `127.0.0.1:4103` o `/credentials/*`, o `/browser/*` e as consultas feitas de
+ * dentro da guia autenticada do ERP.
  *
  * Existe porque, com o HUB SNK hospedado pelo shell, o navegador logado no
  * Sankhya é o próprio Electron: só ele consegue chamar o `service.sbr` de dentro
  * da página autenticada e guardar as credenciais com `safeStorage`.
  *
  * Toda rota exige o header `X-Hub-Token`. O shell grava o token em
- * `desktop-token.txt`, na mesma pasta de IPC do helper, e ele é lido daqui a
+ * `desktop-token.txt`, na pasta de IPC, e ele é lido daqui a
  * cada chamada: o shell recria o token quando o arquivo some, e uma cópia em
  * memória responderia 401 para sempre depois disso.
  */

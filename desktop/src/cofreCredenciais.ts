@@ -1,15 +1,9 @@
 /**
- * Cofre das credenciais do Sankhya ERP e da Experience — Fase 3 da migração "sem Docker".
+ * Cofre das credenciais do Sankhya ERP e da Experience, cifrado com o `safeStorage` do
+ * Electron (DPAPI no Windows).
  *
- * Substitui as rotas `/credentials` e `/secret` do `scripts/hub-helper.ps1`. O helper
- * usava `ProtectedData` (DPAPI) porque o container Linux não tem essa API; o
- * `safeStorage` do Electron É DPAPI no Windows, então a proteção é a mesma e some um
- * processo PowerShell inteiro do caminho.
- *
- * Ganho de superfície: o helper escuta HTTP em TODAS as interfaces da máquina (porta
- * 4102, protegida por token justamente porque `/reveal` devolve senha em texto claro).
- * Aqui o valor decriptado nasce e morre dentro do processo do shell, e só sai pelo
- * bridge em `127.0.0.1`.
+ * O valor decriptado nasce e morre dentro do processo do shell, e só sai pela ponte em
+ * `127.0.0.1`, protegida por token.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -163,34 +157,6 @@ export function revelar(sistema: Sistema): SegredoCredencial {
     logEvento('cofre-decriptacao-falhou', { sistema });
     return { ...base, senha: '', sessao: '', token: '', expira: entrada.expira };
   }
-}
-
-/**
- * Marca do envelope do `safeStorage`, para o backend saber quem cifrou.
- *
- * O blob do `hub-helper.ps1` (DPAPI cru) e o daqui não se abrem mutuamente, e uma falha
- * de decifragem é indistinguível de "senha gravada noutro usuário do Windows" — que é
- * um problema real e de outra natureza. Ver `src/sankhya/cifra.ts`.
- */
-export const PREFIXO_SEGREDO = 'sb1:';
-
-/** Segredo avulso: senha de base de cliente, senha do app do Gmail. */
-export function cifrarSegredo(valor: string): string {
-  return PREFIXO_SEGREDO + cifrar(valor);
-}
-
-export function decifrarSegredo(cifrada: string): string {
-  if (!cifrada.startsWith(PREFIXO_SEGREDO)) {
-    // Blob do helper PowerShell: o `safeStorage` não abre, e tentar devolveria um erro
-    // genérico de criptografia. Melhor dizer o que de fato está acontecendo.
-    throw new Error('este valor foi cifrado pelo hub-helper.ps1 e precisa dele para ser aberto');
-  }
-  return decifrar(cifrada.slice(PREFIXO_SEGREDO.length));
-}
-
-export function vazio(): boolean {
-  const cofre = ler();
-  return SISTEMAS.every((sistema) => !cofre[sistema]);
 }
 
 /**

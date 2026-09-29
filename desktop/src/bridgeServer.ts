@@ -1,8 +1,8 @@
 /**
  * Serviço local que o backend chama (`src/sankhya/ponteDoDesktop.ts`) para o que só a
  * guia autenticada do Electron consegue fazer: cofre de credenciais, captura de sessão e
- * consultas ao `service.sbr` de dentro da página logada. Mesmo modelo e mesmo contrato
- * de `hub-helper.ps1` (porta fixa, token de arquivo, `x-hub-token`), só em 127.0.0.1.
+ * consultas ao `service.sbr` de dentro da página logada. Porta fixa, token de arquivo
+ * (`x-hub-token`) e só em 127.0.0.1.
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { BRIDGE_HOST, BRIDGE_PORT } from './config';
@@ -29,11 +29,10 @@ function responderJson(res: ServerResponse, status: number, corpo: unknown): voi
 }
 
 /**
- * Mesmo contrato das rotas `/credentials` do `hub-helper.ps1`, para o backend não
- * precisar saber quem está do outro lado durante a transição — ver `cofreCredenciais.ts`.
+ * Cofre de credenciais — ver `cofreCredenciais.ts`.
  *
- * O `ok` de transporte vai junto porque o cliente do backend (`HubHelper`) o espera; o
- * estado da credencial em si são os outros campos.
+ * O `ok` de transporte vai junto porque o cliente do backend (`ponteDoDesktop.ts`) o
+ * espera; o estado da credencial em si são os outros campos.
  */
 function tratarCredenciais(req: IncomingMessage, res: ServerResponse, corpo: string): void {
   // `/credentials/<sistema>` ou `/credentials/<sistema>/reveal`.
@@ -91,84 +90,15 @@ function tratarCredenciais(req: IncomingMessage, res: ServerResponse, corpo: str
   responderJson(res, 404, { ok: false, erro: `rota desconhecida: ${req.method} ${req.url}` });
 }
 
-/**
- * Mesmo contrato de `/secret/*` do `hub-helper.ps1`: POST { valor } -> { ok, valor }.
- *
- * O hub guarda estes blobs no SQLite dele — aqui só se empresta a criptografia do
- * sistema, sem nada ficar do lado do shell.
- */
-function tratarSegredo(req: IncomingMessage, res: ServerResponse, corpo: string): void {
-  const acao = (req.url ?? '').split('?')[0]?.split('/').filter(Boolean)[1] ?? '';
-
-  if (req.method !== 'POST' || (acao !== 'encrypt' && acao !== 'decrypt')) {
-    responderJson(res, 404, { ok: false, erro: 'use POST /secret/encrypt ou /secret/decrypt' });
-    return;
-  }
-
-  if (!cofre.disponivel()) {
-    responderJson(res, 503, { ok: false, erro: cofre.motivoIndisponivel() });
-    return;
-  }
-
-  let valor = '';
-  try {
-    valor = String((JSON.parse(corpo || '{}') as { valor?: unknown }).valor ?? '');
-  } catch {
-    responderJson(res, 400, { ok: false, erro: 'corpo não é JSON válido' });
-    return;
-  }
-  if (!valor) {
-    responderJson(res, 400, { ok: false, erro: 'envie { valor }' });
-    return;
-  }
-
-  try {
-    const resultado =
-      acao === 'encrypt' ? cofre.cifrarSegredo(valor) : cofre.decifrarSegredo(valor);
-    responderJson(res, 200, { ok: true, valor: resultado });
-  } catch (err) {
-    // Blob de outro usuário/máquina, ou perfil do Windows recriado: o DPAPI não volta atrás.
-    responderJson(res, 500, { ok: false, erro: (err as Error).message });
-  }
-}
-
-/**
- * Mesmo contrato de `/browser/*` do `hub-helper.ps1`, agora atendido pelo proprio shell
- * — ver `navegador.ts`. O backend nao precisa saber que o Chrome separado deixou de
- * existir.
- */
+/** Guias do Sankhya: abrir, login automático e captura da sessão — ver `navegador.ts`. */
 async function tratarNavegador(
   req: IncomingMessage,
   res: ServerResponse,
-  corpo: string,
   tabs: TabManager | null,
 ): Promise<void> {
   const partes = (req.url ?? '').split('?')[0]?.split('/').filter(Boolean) ?? [];
   const acao = partes[1] ?? '';
   const sistema = partes[2] ?? '';
-  const query = new URL(req.url ?? '/', 'http://local').searchParams;
-
-  let dados: Record<string, unknown> = {};
-  try {
-    dados = JSON.parse(corpo || '{}') as Record<string, unknown>;
-  } catch {
-    dados = {};
-  }
-  const texto = (chave: string) =>
-    typeof dados[chave] === 'string' ? (dados[chave] as string) : '';
-
-  if (req.method === 'GET' && acao === 'status') {
-    responderJson(res, 200, { ok: true, ...navegador.status(tabs) });
-    return;
-  }
-
-  if (req.method === 'GET' && acao === 'favoritos') {
-    responderJson(res, 200, {
-      ok: true,
-      favoritos: navegador.favoritos(query.get('navegador') ?? '', query.get('perfil') ?? ''),
-    });
-    return;
-  }
 
   if (!cofre.ehSistemaValido(sistema)) {
     responderJson(res, 404, { ok: false, erro: `sistema desconhecido: ${sistema}` });
@@ -179,7 +109,7 @@ async function tratarNavegador(
     try {
       responderJson(res, 200, {
         ok: true,
-        url: await navegador.abrir(tabs, sistema, texto('tela')),
+        url: await navegador.abrir(tabs, sistema),
       });
     } catch (err) {
       responderJson(res, 400, { ok: false, erro: (err as Error).message });
@@ -265,13 +195,8 @@ export function criarBridgeServer(
         return;
       }
 
-      if (req.url?.startsWith('/secret/')) {
-        tratarSegredo(req, res, await lerCorpo(req));
-        return;
-      }
-
       if (req.url?.startsWith('/browser/')) {
-        await tratarNavegador(req, res, await lerCorpo(req), tabs());
+        await tratarNavegador(req, res, tabs());
         return;
       }
 
@@ -309,10 +234,9 @@ export function criarBridgeServer(
   });
 
   servidor.listen(BRIDGE_PORT, BRIDGE_HOST, () => {
-    // Gera o arquivo de token JÁ no boot, como o `hub-helper.ps1` faz. Antes ele só
-    // nascia na primeira chamada que partisse do shell (o push da sessão da Experience),
-    // e num perfil que nunca logou na Experience isso não acontecia nunca — o backend
-    // ficava sem token e as credenciais caíam eternamente para o helper PowerShell.
+    // Gera o arquivo de token JÁ no boot. Antes ele só nascia na primeira chamada que
+    // partisse do shell (o push da sessão da Experience), e num perfil que nunca logou
+    // na Experience isso não acontecia nunca — o backend ficava sem token.
     garantirToken();
     logEvento('bridge-servidor-no-ar', { host: BRIDGE_HOST, porta: BRIDGE_PORT });
   });

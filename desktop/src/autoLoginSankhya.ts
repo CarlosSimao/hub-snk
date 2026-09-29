@@ -12,7 +12,7 @@
  */
 import * as cofre from './cofreCredenciais';
 import { logEvento } from './log';
-import { capturar, resolverUrl, type ResultadoCaptura } from './navegador';
+import { capturar, urlDeLogin, type ResultadoCaptura } from './navegador';
 import { preencherESubmeterLogin } from './loginOcultoSankhya';
 import type { TabManager } from './tabs';
 
@@ -63,7 +63,7 @@ export async function autoLoginSankhya(
   ultimaTentativa.set(sistema, Date.now());
   logEvento('autologin-sankhya-iniciado', { sistema });
   try {
-    view.webContents.loadURL(resolverUrl(sistema, ''));
+    view.webContents.loadURL(urlDeLogin(sistema));
     const preencheu = await preencherESubmeterLogin(
       view.webContents,
       segredo.usuario,

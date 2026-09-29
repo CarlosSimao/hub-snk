@@ -2092,21 +2092,6 @@ async function salvarAnotacoesDoProjeto(idDoCliente, idDoProjeto) {
 
 /* ------------------------- recursos locais (visão "Local") ---------------- */
 
-/**
- * Botão de ação ainda sem funcionalidade — só o cadastro de base/banco local é
- * funcional por enquanto. Fica desabilitado para não parecer quebrado.
- */
-function criarBotaoDeAcaoNaoImplementada(tracado, rotulo) {
-  const botao = criarBotaoDeIcone(
-    'btn tiny',
-    tracado,
-    `${rotulo} (ainda não implementado)`,
-    () => {},
-  );
-  botao.disabled = true;
-  return botao;
-}
-
 /** Botão de ação de base local que, além do ciclo padrão, atualiza o selo de situação ao terminar. */
 function criarBotaoDeAcaoDeBaseLocal(tracado, rotulo, acao, idDaBase) {
   const botao = criarBotaoDeIcone('btn tiny', tracado, rotulo, async () => {
@@ -5527,7 +5512,7 @@ const PERFIL_PADRAO = 'desenvolvedor';
 const FUNCIONALIDADE_REPOSITORIOS = 'cliente.repositorios';
 
 /*
- * Espelha `FUNCIONALIDADES_QUE_DEPENDEM_DO_SANKHYA` de `src/acessos.ts`. Com Terceiro,
+ * O que só funciona com as credenciais do Sankhya Om ou da Experience. Com Terceiro,
  * somem por cima das caixas, sem mexer no que está gravado nelas.
  */
 const FUNCIONALIDADES_QUE_DEPENDEM_DO_SANKHYA = new Set([
@@ -5904,7 +5889,7 @@ const MODO_DE_CLIENTE_EXISTENTE = 'existente';
 const MODO_DE_CLIENTE_NOVO = 'novo';
 
 /* Valor reservado do seletor: nenhum cliente pode se chamar assim. */
-const VALOR_DE_CLIENTE_NOVO = ' novo-cliente';
+const VALOR_DE_CLIENTE_NOVO = '\u0000novo-cliente';
 
 /* Separadores usados em nome de pasta de repositório. */
 const DELIMITADORES_DO_NOME = /[-_.\s+@/\\]+/;

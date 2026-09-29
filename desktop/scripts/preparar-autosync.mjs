@@ -1,7 +1,7 @@
 /**
  * Monta `desktop/build/git-autosync` — o que vai para `resources/git-autosync` dentro do
  * pacote, e o que a página de componentes do instalador usa quando o Git AutoSync é
- * marcado (Fase 4, §4.2 e §4.3 de docs/specs/sankhya-hub-sem-docker-plano.md).
+ * marcado — ver docs/distribuicao.md.
  *
  * O Git AutoSync mora em outro repositório (`../scripts/git-autosync` por padrão,
  * ajustável por `GIT_AUTOSYNC_DIR`). Daqui saem cinco arquivos:

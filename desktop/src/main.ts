@@ -1,6 +1,5 @@
 /**
- * Bootstrap do shell desktop do HUB SNK. Veio da branch `flaviano-sankhya-hub` e foi
- * adaptado ao backend da `dev` — ver docs/plano-migracao-electron.md.
+ * Bootstrap do shell desktop do HUB SNK — ver docs/distribuicao.md.
  */
 import './nomeDoApp';
 import { app, BrowserWindow, Menu, dialog, ipcMain } from 'electron';
@@ -13,10 +12,7 @@ import { JanelaAgendaOculta } from './janelaAgendaOculta';
 import { JanelaExperienceOculta } from './janelaExperienceOculta';
 import { criarBridgeServer } from './bridgeServer';
 import { pushSessaoExperience, limparSessaoExperience } from './backendClient';
-import { diagnosticoCookiesErp } from './sessions';
-import { backendDisponivel } from './services';
-import { backendGerenciado, iniciarBackend, pararBackend } from './backendProcess';
-import { migrarCofreDoHelper } from './migracaoCofre';
+import { iniciarBackend, pararBackend } from './backendProcess';
 import { autoLoginSankhya } from './autoLoginSankhya';
 import * as cofre from './cofreCredenciais';
 import { montarMenu } from './menu';
@@ -160,13 +156,6 @@ ipcMain.handle('links:fechar', (_evt, origin: string) => ({
 }));
 ipcMain.handle('links:lista', () => tabs?.abasClientesAbertas() ?? []);
 
-ipcMain.handle('diag:status', async () => ({
-  backend: await backendDisponivel(),
-  backendGerenciado: backendGerenciado(),
-  erp: await diagnosticoCookiesErp(),
-  experienceCapturada,
-}));
-
 app.whenReady().then(async () => {
   logEvento('app-pronto');
 
@@ -179,12 +168,8 @@ app.whenReady().then(async () => {
     iconeExiste: existsSync(ICONE),
   });
 
-  // Antes do backend: a primeira tela que consulta credenciais precisa encontrar o
-  // cofre já preenchido com o que estava no `hub-helper.ps1`.
-  await migrarCofreDoHelper();
-
-  // Também antes do backend: as primeiras consultas de credencial dele já precisam ter
-  // com quem falar, senão caem para o helper sem necessidade.
+  // Antes do backend: as primeiras consultas de credencial dele já precisam ter com
+  // quem falar.
   //
   // A Agenda de Recursos é consultada por uma janela invisível dedicada, que loga sozinha
   // pela web (único jeito de ter o ACL do serviço) e não depende da aba ERP visível do

@@ -49,8 +49,6 @@ export function registrarRotasDeAgenda(
 ): void {
   servidor.get('/api/agenda/estado', async () => agenda.estado());
 
-  servidor.get('/api/agenda/recursos', async () => ({ recursos: agenda.recursos() }));
-
   /** Eventos do snapshot num período, sem recorte por cliente — a visão geral da aba Agenda. */
   servidor.get<{ Querystring: { de?: string; ate?: string } }>(
     '/api/agenda/eventos',
