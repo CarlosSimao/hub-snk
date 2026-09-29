@@ -6,6 +6,7 @@ import {
   migrarArquivoDeDados,
   precisaMigrar,
 } from './arquivoDeDados.ts';
+import { FilaDeOperacoes } from './filaDeOperacoes.ts';
 import type { RepositorioNotificacoes } from './repositorioNotificacoes.ts';
 
 const NOME_DO_ARQUIVO = 'notificacoes.json';
@@ -45,6 +46,7 @@ function descartarChavesVencidas(
 export class RepositorioNotificacoesArquivo implements RepositorioNotificacoes {
   readonly #caminhoDoArquivo: string;
   #dados: DadosDoArquivo | null = null;
+  readonly #fila = new FilaDeOperacoes();
 
   constructor(diretorioDeDados: string) {
     this.#caminhoDoArquivo = join(diretorioDeDados, NOME_DO_ARQUIVO);
@@ -86,40 +88,50 @@ export class RepositorioNotificacoesArquivo implements RepositorioNotificacoes {
     this.#dados = dados;
   }
 
-  async listar(): Promise<Notificacao[]> {
-    const dados = await this.#ler();
-    return dados.lista;
-  }
-
-  async chaveJaEmitida(chave: string): Promise<boolean> {
-    const dados = await this.#ler();
-    return chave in dados.chavesEmitidas;
-  }
-
-  async adicionar(notificacao: Notificacao): Promise<void> {
-    const dados = await this.#ler();
-    const chavesEmitidas = descartarChavesVencidas(dados.chavesEmitidas, new Date());
-    chavesEmitidas[notificacao.chave] = notificacao.criadaEm;
-
-    await this.#gravar({
-      lista: [notificacao, ...dados.lista].slice(0, LIMITE_DE_NOTIFICACOES),
-      chavesEmitidas,
+  listar(): Promise<Notificacao[]> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      return dados.lista;
     });
   }
 
-  async marcarComoLidas(ids?: readonly string[]): Promise<Notificacao[]> {
-    const dados = await this.#ler();
-    const alvos = ids ? new Set(ids) : null;
-    const lista = dados.lista.map((notificacao) =>
-      alvos === null || alvos.has(notificacao.id) ? { ...notificacao, lida: true } : notificacao,
-    );
-
-    await this.#gravar({ ...dados, lista });
-    return lista;
+  chaveJaEmitida(chave: string): Promise<boolean> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      return chave in dados.chavesEmitidas;
+    });
   }
 
-  async limpar(): Promise<void> {
-    const dados = await this.#ler();
-    await this.#gravar({ ...dados, lista: [] });
+  adicionar(notificacao: Notificacao): Promise<void> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      const chavesEmitidas = descartarChavesVencidas(dados.chavesEmitidas, new Date());
+      chavesEmitidas[notificacao.chave] = notificacao.criadaEm;
+
+      await this.#gravar({
+        lista: [notificacao, ...dados.lista].slice(0, LIMITE_DE_NOTIFICACOES),
+        chavesEmitidas,
+      });
+    });
+  }
+
+  marcarComoLidas(ids?: readonly string[]): Promise<Notificacao[]> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      const alvos = ids ? new Set(ids) : null;
+      const lista = dados.lista.map((notificacao) =>
+        alvos === null || alvos.has(notificacao.id) ? { ...notificacao, lida: true } : notificacao,
+      );
+
+      await this.#gravar({ ...dados, lista });
+      return lista;
+    });
+  }
+
+  limpar(): Promise<void> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      await this.#gravar({ ...dados, lista: [] });
+    });
   }
 }

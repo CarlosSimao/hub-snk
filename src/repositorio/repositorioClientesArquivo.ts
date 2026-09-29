@@ -15,6 +15,7 @@ import {
   migrarArquivoDeDados,
   precisaMigrar,
 } from './arquivoDeDados.ts';
+import { FilaDeOperacoes } from './filaDeOperacoes.ts';
 import {
   AcessoDeBaseDuplicadoError,
   BaseJaCadastradaError,
@@ -79,7 +80,7 @@ function chaveAchatadaDeNome(valor: string): string {
 export class RepositorioClientesArquivo implements RepositorioClientes {
   readonly #caminhoDoArquivo: string;
   #clientes: Cliente[] | null = null;
-  #ultimaOperacao: Promise<unknown> = Promise.resolve();
+  readonly #fila = new FilaDeOperacoes();
 
   constructor(diretorioDeDados: string) {
     this.#caminhoDoArquivo = join(diretorioDeDados, NOME_DO_ARQUIVO);
@@ -90,21 +91,21 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async listar(): Promise<Cliente[]> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       return [...clientes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     });
   }
 
   async buscarPorId(id: string): Promise<Cliente | undefined> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       return clientes.find((cliente) => cliente.id === id);
     });
   }
 
   async criar(dados: DadosDeCliente): Promise<Cliente> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       this.#garantirNomeDisponivel(clientes, dados.nome);
 
@@ -128,7 +129,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async atualizar(id: string, dados: DadosDeCliente): Promise<Cliente> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, id);
       this.#garantirNomeDisponivel(clientes, dados.nome, id);
@@ -138,7 +139,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async definirAnotacoes(id: string, anotacoes: string): Promise<Cliente> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, id);
 
@@ -147,7 +148,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async definirNomesCompletos(id: string, nomesCompletos: string[]): Promise<Cliente> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, id);
 
@@ -159,7 +160,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async remover(id: string): Promise<void> {
-    await this.#enfileirar(async () => {
+    await this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const restantes = clientes.filter((cliente) => cliente.id !== id);
       if (restantes.length === clientes.length) {
@@ -171,7 +172,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async adicionarBase(idDoCliente: string, dados: DadosDeBase): Promise<Base> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       this.#garantirAcessoDisponivel(cliente, dados);
@@ -183,7 +184,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async importarBases(itens: DadosDeImportacaoDeBase[]): Promise<ResultadoDaImportacao> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       this.#garantirImportacaoSemRepeticao(itens);
 
@@ -223,7 +224,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   async importarCadastros(
     itens: DadosDeImportacaoDeCadastro[],
   ): Promise<ResultadoDaImportacaoDeCadastros> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
 
       const agora = new Date().toISOString();
@@ -263,7 +264,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async atualizarBase(idDoCliente: string, idDaBase: string, dados: DadosDeBase): Promise<Base> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
 
@@ -287,7 +288,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async removerBase(idDoCliente: string, idDaBase: string): Promise<void> {
-    await this.#enfileirar(async () => {
+    await this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
 
@@ -305,7 +306,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     idDaBase: string,
     dados: DadosDeBancoDeDados,
   ): Promise<BancoDeDados> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       const posicao = this.#obterPosicaoDaBase(cliente, idDaBase);
@@ -321,7 +322,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async removerBancoDeDados(idDoCliente: string, idDaBase: string): Promise<void> {
-    await this.#enfileirar(async () => {
+    await this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       const posicao = this.#obterPosicaoDaBase(cliente, idDaBase);
@@ -338,7 +339,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     idDoCliente: string,
     dados: DadosDeRepositorio,
   ): Promise<RepositorioGit> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       this.#garantirRepositorioDisponivel(cliente, dados.url);
@@ -358,7 +359,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   async importarRepositorios(
     itens: DadosDeImportacaoDeRepositorio[],
   ): Promise<ResultadoDaImportacaoDeRepositorios> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       this.#garantirImportacaoDeRepositoriosSemRepeticao(itens);
 
@@ -402,7 +403,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     idDoRepositorio: string,
     dados: DadosDeRepositorio,
   ): Promise<RepositorioGit> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
 
@@ -428,7 +429,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async removerRepositorio(idDoCliente: string, idDoRepositorio: string): Promise<void> {
-    await this.#enfileirar(async () => {
+    await this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
 
@@ -444,7 +445,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async adicionarLink(idDoCliente: string, dados: DadosDeLink): Promise<LinkDoCliente> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       this.#garantirLinkDisponivel(cliente, dados.url);
@@ -463,7 +464,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     idDoLink: string,
     dados: DadosDeLink,
   ): Promise<LinkDoCliente> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
 
@@ -487,7 +488,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async removerLink(idDoCliente: string, idDoLink: string): Promise<void> {
-    await this.#enfileirar(async () => {
+    await this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
 
@@ -501,7 +502,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async adicionarProjeto(idDoCliente: string, dados: DadosDeProjeto): Promise<Projeto> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       this.#garantirNomeDeProjetoDisponivel(cliente, dados.nome);
@@ -529,7 +530,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     idDoProjeto: string,
     dados: DadosDeProjeto,
   ): Promise<Projeto> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
@@ -549,7 +550,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async removerProjeto(idDoCliente: string, idDoProjeto: string): Promise<void> {
-    await this.#enfileirar(async () => {
+    await this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
 
@@ -567,7 +568,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     idDoProjeto: string,
     anotacoes: string,
   ): Promise<Projeto> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
@@ -590,7 +591,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     idDoProjeto: string,
     dados: DadosDeLink,
   ): Promise<LinkDoCliente> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
@@ -617,7 +618,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     idDoLink: string,
     dados: DadosDeLink,
   ): Promise<LinkDoCliente> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
@@ -655,7 +656,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     idDoProjeto: string,
     idDoLink: string,
   ): Promise<void> {
-    await this.#enfileirar(async () => {
+    await this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
@@ -981,16 +982,6 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     if (conflito) {
       throw new UrlDeLinkDuplicadaError(url.trim());
     }
-  }
-
-  /**
-   * Serializa as operações: cada chamada só começa depois que a anterior
-   * terminou, com sucesso ou erro.
-   */
-  #enfileirar<T>(tarefa: () => Promise<T>): Promise<T> {
-    const resultado = this.#ultimaOperacao.then(tarefa, tarefa);
-    this.#ultimaOperacao = resultado.catch(() => undefined);
-    return resultado;
   }
 
   async #carregar(): Promise<Cliente[]> {

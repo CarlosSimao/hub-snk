@@ -7,6 +7,7 @@ import {
   migrarArquivoDeDados,
   precisaMigrar,
 } from './arquivoDeDados.ts';
+import { FilaDeOperacoes } from './filaDeOperacoes.ts';
 import {
   ContatoNaoEncontradoError,
   type DadosDeContato,
@@ -33,6 +34,7 @@ function normalizarDados(dados: DadosDeContato): DadosDeContato {
 export class RepositorioContatosArquivo implements RepositorioContatos {
   readonly #caminhoDoArquivo: string;
   #contatos: Contato[] | null = null;
+  readonly #fila = new FilaDeOperacoes();
 
   constructor(diretorioDeDados: string) {
     this.#caminhoDoArquivo = join(diretorioDeDados, NOME_DO_ARQUIVO);
@@ -72,62 +74,72 @@ export class RepositorioContatosArquivo implements RepositorioContatos {
     this.#contatos = contatos;
   }
 
-  async listar(): Promise<Contato[]> {
-    return this.#ler();
+  listar(): Promise<Contato[]> {
+    return this.#fila.enfileirar(async () => {
+      return this.#ler();
+    });
   }
 
-  async criar(dados: DadosDeContato): Promise<Contato> {
-    const contatos = await this.#ler();
-    const agora = new Date().toISOString();
-    const contato: Contato = {
-      id: randomUUID(),
-      ...normalizarDados(dados),
-      criadoEm: agora,
-      atualizadoEm: agora,
-    };
+  criar(dados: DadosDeContato): Promise<Contato> {
+    return this.#fila.enfileirar(async () => {
+      const contatos = await this.#ler();
+      const agora = new Date().toISOString();
+      const contato: Contato = {
+        id: randomUUID(),
+        ...normalizarDados(dados),
+        criadoEm: agora,
+        atualizadoEm: agora,
+      };
 
-    await this.#gravar([...contatos, contato]);
-    return contato;
+      await this.#gravar([...contatos, contato]);
+      return contato;
+    });
   }
 
-  async atualizar(id: string, dados: DadosDeContato): Promise<Contato> {
-    const contatos = await this.#ler();
-    const atual = contatos.find((contato) => contato.id === id);
-    if (!atual) {
-      throw new ContatoNaoEncontradoError(id);
-    }
+  atualizar(id: string, dados: DadosDeContato): Promise<Contato> {
+    return this.#fila.enfileirar(async () => {
+      const contatos = await this.#ler();
+      const atual = contatos.find((contato) => contato.id === id);
+      if (!atual) {
+        throw new ContatoNaoEncontradoError(id);
+      }
 
-    const alterado: Contato = {
-      ...atual,
-      ...normalizarDados(dados),
-      atualizadoEm: new Date().toISOString(),
-    };
-    await this.#gravar(contatos.map((contato) => (contato.id === id ? alterado : contato)));
-    return alterado;
+      const alterado: Contato = {
+        ...atual,
+        ...normalizarDados(dados),
+        atualizadoEm: new Date().toISOString(),
+      };
+      await this.#gravar(contatos.map((contato) => (contato.id === id ? alterado : contato)));
+      return alterado;
+    });
   }
 
-  async remover(id: string): Promise<void> {
-    const contatos = await this.#ler();
-    if (!contatos.some((contato) => contato.id === id)) {
-      throw new ContatoNaoEncontradoError(id);
-    }
+  remover(id: string): Promise<void> {
+    return this.#fila.enfileirar(async () => {
+      const contatos = await this.#ler();
+      if (!contatos.some((contato) => contato.id === id)) {
+        throw new ContatoNaoEncontradoError(id);
+      }
 
-    await this.#gravar(contatos.filter((contato) => contato.id !== id));
+      await this.#gravar(contatos.filter((contato) => contato.id !== id));
+    });
   }
 
-  async desvincularDoCliente(clienteId: string): Promise<void> {
-    const contatos = await this.#ler();
-    if (!contatos.some((contato) => contato.clienteId === clienteId)) {
-      return;
-    }
+  desvincularDoCliente(clienteId: string): Promise<void> {
+    return this.#fila.enfileirar(async () => {
+      const contatos = await this.#ler();
+      if (!contatos.some((contato) => contato.clienteId === clienteId)) {
+        return;
+      }
 
-    const agora = new Date().toISOString();
-    await this.#gravar(
-      contatos.map((contato) =>
-        contato.clienteId === clienteId
-          ? { ...contato, clienteId: null, atualizadoEm: agora }
-          : contato,
-      ),
-    );
+      const agora = new Date().toISOString();
+      await this.#gravar(
+        contatos.map((contato) =>
+          contato.clienteId === clienteId
+            ? { ...contato, clienteId: null, atualizadoEm: agora }
+            : contato,
+        ),
+      );
+    });
   }
 }

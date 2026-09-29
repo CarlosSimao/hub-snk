@@ -23,6 +23,7 @@ import {
   migrarArquivoDeDados,
   precisaMigrar,
 } from './arquivoDeDados.ts';
+import { FilaDeOperacoes } from './filaDeOperacoes.ts';
 import type {
   ConfiguracaoParaSalvar,
   DadosDeAtalho,
@@ -226,6 +227,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
   readonly #caminhoDoArquivo: string;
   readonly #acessosIniciais: AcessosIniciais;
   #configuracao: ConfiguracaoGlobal | null = null;
+  readonly #fila = new FilaDeOperacoes();
 
   /** `acessosIniciais` é o escolhido no instalador; só vale enquanto o arquivo não tem acessos. */
   constructor(
@@ -240,7 +242,11 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
     this.#configuracao = null;
   }
 
-  async ler(): Promise<ConfiguracaoGlobal> {
+  ler(): Promise<ConfiguracaoGlobal> {
+    return this.#fila.enfileirar(() => this.#carregar());
+  }
+
+  async #carregar(): Promise<ConfiguracaoGlobal> {
     if (this.#configuracao) {
       return this.#configuracao;
     }
@@ -288,9 +294,13 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
     return this.#configuracao;
   }
 
-  async salvar(configuracao: ConfiguracaoParaSalvar): Promise<ConfiguracaoGlobal> {
+  salvar(configuracao: ConfiguracaoParaSalvar): Promise<ConfiguracaoGlobal> {
+    return this.#fila.enfileirar(() => this.#gravarTudo(configuracao));
+  }
+
+  async #gravarTudo(configuracao: ConfiguracaoParaSalvar): Promise<ConfiguracaoGlobal> {
     // Sem campo na tela: preserva o que já estava gravado, em vez de apagar com ''.
-    const atual = await this.ler();
+    const atual = await this.#carregar();
 
     const normalizada: ConfiguracaoGlobal = {
       scriptPadrao: configuracao.scriptPadrao.trim(),
@@ -317,16 +327,16 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
     return normalizada;
   }
 
-  async definirExperiencePersonId(personId: string): Promise<ConfiguracaoGlobal> {
-    return this.#gravarCampo({ experiencePersonId: personId.trim() });
+  definirExperiencePersonId(personId: string): Promise<ConfiguracaoGlobal> {
+    return this.#fila.enfileirar(() => this.#gravarCampo({ experiencePersonId: personId.trim() }));
   }
 
-  async definirSankhyaOmCodUsu(codusu: string): Promise<ConfiguracaoGlobal> {
-    return this.#gravarCampo({ sankhyaOmCodUsu: codusu.trim() });
+  definirSankhyaOmCodUsu(codusu: string): Promise<ConfiguracaoGlobal> {
+    return this.#fila.enfileirar(() => this.#gravarCampo({ sankhyaOmCodUsu: codusu.trim() }));
   }
 
   async #gravarCampo(campo: Partial<ConfiguracaoGlobal>): Promise<ConfiguracaoGlobal> {
-    const atual = await this.ler();
+    const atual = await this.#carregar();
     const normalizada: ConfiguracaoGlobal = { ...atual, ...campo };
 
     await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);

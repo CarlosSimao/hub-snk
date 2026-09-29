@@ -109,6 +109,18 @@ describe('RepositorioConfiguracaoArquivo', () => {
     const configuracao = await repositorio.ler();
     assert.equal(configuracao.sankhyaOmCodUsu, '4817');
   });
+
+  it('não perde um campo quando dois são gravados ao mesmo tempo', async () => {
+    await Promise.all([
+      repositorio.definirExperiencePersonId('99999'),
+      repositorio.definirSankhyaOmCodUsu('4817'),
+    ]);
+
+    repositorio.descartarCache();
+    const configuracao = await repositorio.ler();
+    assert.equal(configuracao.experiencePersonId, '99999');
+    assert.equal(configuracao.sankhyaOmCodUsu, '4817');
+  });
 });
 
 describe('RepositorioConfiguracaoArquivo com arquivo no formato antigo', () => {

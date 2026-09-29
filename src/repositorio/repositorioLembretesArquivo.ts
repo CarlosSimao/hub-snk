@@ -7,6 +7,7 @@ import {
   migrarArquivoDeDados,
   precisaMigrar,
 } from './arquivoDeDados.ts';
+import { FilaDeOperacoes } from './filaDeOperacoes.ts';
 import {
   LembreteNaoEncontradoError,
   type DadosDeLembrete,
@@ -69,6 +70,7 @@ function mudouOQuando(atual: Lembrete, dados: DadosDeLembrete): boolean {
 export class RepositorioLembretesArquivo implements RepositorioLembretes {
   readonly #caminhoDoArquivo: string;
   #lembretes: Lembrete[] | null = null;
+  readonly #fila = new FilaDeOperacoes();
 
   constructor(diretorioDeDados: string) {
     this.#caminhoDoArquivo = join(diretorioDeDados, NOME_DO_ARQUIVO);
@@ -110,35 +112,39 @@ export class RepositorioLembretesArquivo implements RepositorioLembretes {
     this.#lembretes = lembretes;
   }
 
-  async #substituir(id: string, alterar: (atual: Lembrete) => Lembrete): Promise<Lembrete> {
-    const lembretes = await this.#ler();
-    const atual = lembretes.find((lembrete) => lembrete.id === id);
-    if (!atual) {
-      throw new LembreteNaoEncontradoError(id);
-    }
+  #substituir(id: string, alterar: (atual: Lembrete) => Lembrete): Promise<Lembrete> {
+    return this.#fila.enfileirar(async () => {
+      const lembretes = await this.#ler();
+      const atual = lembretes.find((lembrete) => lembrete.id === id);
+      if (!atual) {
+        throw new LembreteNaoEncontradoError(id);
+      }
 
-    const alterado = alterar(atual);
-    await this.#gravar(lembretes.map((lembrete) => (lembrete.id === id ? alterado : lembrete)));
-    return alterado;
+      const alterado = alterar(atual);
+      await this.#gravar(lembretes.map((lembrete) => (lembrete.id === id ? alterado : lembrete)));
+      return alterado;
+    });
   }
 
-  async listar(): Promise<Lembrete[]> {
-    return this.#ler();
+  listar(): Promise<Lembrete[]> {
+    return this.#fila.enfileirar(() => this.#ler());
   }
 
-  async criar(dados: DadosDeLembrete): Promise<Lembrete> {
-    const lembretes = await this.#ler();
-    const agora = new Date().toISOString();
-    const lembrete: Lembrete = {
-      id: randomUUID(),
-      ...normalizarDados(dados),
-      ultimoDisparoEm: '',
-      criadoEm: agora,
-      atualizadoEm: agora,
-    };
+  criar(dados: DadosDeLembrete): Promise<Lembrete> {
+    return this.#fila.enfileirar(async () => {
+      const lembretes = await this.#ler();
+      const agora = new Date().toISOString();
+      const lembrete: Lembrete = {
+        id: randomUUID(),
+        ...normalizarDados(dados),
+        ultimoDisparoEm: '',
+        criadoEm: agora,
+        atualizadoEm: agora,
+      };
 
-    await this.#gravar([...lembretes, lembrete]);
-    return lembrete;
+      await this.#gravar([...lembretes, lembrete]);
+      return lembrete;
+    });
   }
 
   atualizar(id: string, dados: DadosDeLembrete): Promise<Lembrete> {
@@ -153,13 +159,15 @@ export class RepositorioLembretesArquivo implements RepositorioLembretes {
     });
   }
 
-  async remover(id: string): Promise<void> {
-    const lembretes = await this.#ler();
-    if (!lembretes.some((lembrete) => lembrete.id === id)) {
-      throw new LembreteNaoEncontradoError(id);
-    }
+  remover(id: string): Promise<void> {
+    return this.#fila.enfileirar(async () => {
+      const lembretes = await this.#ler();
+      if (!lembretes.some((lembrete) => lembrete.id === id)) {
+        throw new LembreteNaoEncontradoError(id);
+      }
 
-    await this.#gravar(lembretes.filter((lembrete) => lembrete.id !== id));
+      await this.#gravar(lembretes.filter((lembrete) => lembrete.id !== id));
+    });
   }
 
   registrarDisparo(id: string, disparadoEm: Date): Promise<Lembrete> {

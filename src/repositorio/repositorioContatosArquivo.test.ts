@@ -65,6 +65,18 @@ describe('RepositorioContatosArquivo', () => {
     assert.deepEqual(await repositorio.listar(), []);
   });
 
+  it('não perde cadastro quando vários chegam ao mesmo tempo', async () => {
+    const QUANTIDADE = 5;
+    await Promise.all(
+      Array.from({ length: QUANTIDADE }, (_, indice) =>
+        repositorio.criar({ ...CONTATO, nome: `Contato ${indice}` }),
+      ),
+    );
+
+    repositorio.descartarCache();
+    assert.equal((await repositorio.listar()).length, QUANTIDADE);
+  });
+
   it('desvincula do cliente excluído sem apagar os contatos', async () => {
     const doCliente = await repositorio.criar(CONTATO);
     const deOutro = await repositorio.criar({ ...CONTATO, clienteId: 'cliente-2' });
