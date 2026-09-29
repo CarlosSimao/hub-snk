@@ -2710,10 +2710,13 @@ function criarGradeMensalDeEventos(mes, eventos) {
   return grade;
 }
 
+/** Pela data local, como o `mesAtualIso`: o `toISOString` é UTC e virava o dia depois das 21h. */
 function dataIsoDeHoje(deslocamentoEmDias = 0) {
   const data = new Date();
   data.setDate(data.getDate() + deslocamentoEmDias);
-  return data.toISOString().slice(0, 10);
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return `${data.getFullYear()}-${mes}-${dia}`;
 }
 
 /**
