@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { BrowserWindow, WebContentsView, app, session, shell } from 'electron';
 import { DOMINIOS_POPUP_PERMITIDOS, HUB_URL, ICONE } from './config';
 import { logEvento, origemSemQuery } from './log';
-import { tentarAutofill } from './autofill';
+import { aguardarCampoDeSenha, tentarAutofill } from './autofill';
 import { autoLoginSankhya, podeTentar } from './autoLoginSankhya';
 import * as cofre from './cofreCredenciais';
 
@@ -280,14 +280,20 @@ export class TabManager {
   /**
    * Guia erp/experience caiu sozinha numa tela de login (sessão expirada, cookie
    * limpo, primeiro boot) e há credencial salva: tenta logar sem pedir nada ao
-   * usuário. Mesma heurística de URL que `navegador.status()` já usa para "logado".
+   * usuário. A URL só denuncia o login da Experience; o Sankhya Om pede a senha na
+   * própria `/mge/`, então sem "login" na URL a prova é um campo de senha na tela.
    */
-  #tentarAutoLoginSankhya(id: TabId, view: WebContentsView): void {
+  async #tentarAutoLoginSankhya(id: TabId, view: WebContentsView): Promise<void> {
     if (id !== 'erp' && id !== 'experience') return;
     const sistema: cofre.Sistema = id === 'erp' ? 'sankhya-erp' : 'sankhya-experience';
-    if (!/login|signin/i.test(view.webContents.getURL())) return;
     if (!cofre.status(sistema).definido) return;
     if (!podeTentar(sistema)) return;
+
+    const telaDeLogin =
+      /login|signin/i.test(view.webContents.getURL()) ||
+      (await aguardarCampoDeSenha(view.webContents));
+    // Reconfere: outro `did-finish-load` pode ter disparado o login durante a espera.
+    if (!telaDeLogin || !podeTentar(sistema)) return;
     void autoLoginSankhya(this, sistema);
   }
 
@@ -341,7 +347,7 @@ export class TabManager {
     });
     view.webContents.on('did-finish-load', () => {
       logEvento('aba-carregada', { id, url: origemSemQuery(view.webContents.getURL()) });
-      this.#tentarAutoLoginSankhya(id, view);
+      void this.#tentarAutoLoginSankhya(id, view);
     });
     view.webContents.setWindowOpenHandler(({ url: alvo }) => {
       let origin = '';

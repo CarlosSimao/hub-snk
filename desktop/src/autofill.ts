@@ -15,7 +15,7 @@
  * pelo preload, pelo renderer da UI local, nem é logada — `logEvento` abaixo só recebe
  * booleanos/IDs.
  */
-import type { WebContentsView } from 'electron';
+import type { WebContents, WebContentsView } from 'electron';
 import { HUB_URL } from './config';
 import { logEvento } from './log';
 import type { InfoBaseCliente } from './tabs';
@@ -161,6 +161,35 @@ export function scriptSubmeterLogin(): string {
     if (alvo) { alvo.click(); return true; }
     return false;
   })()`;
+}
+
+/** A tela de login do Sankhya é montada por JS depois do `did-finish-load`. */
+const ESPERA_CAMPO_DE_SENHA_MS = 15_000;
+
+const SCRIPT_TEM_CAMPO_DE_SENHA = `(() => {
+  const visivel = (el) => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  const visitar = (raiz) => {
+    for (const el of raiz.querySelectorAll('input[type="password"]')) if (visivel(el)) return true;
+    for (const el of raiz.querySelectorAll('*')) if (el.shadowRoot && visitar(el.shadowRoot)) return true;
+    return false;
+  };
+  return visitar(document);
+})()`;
+
+/**
+ * A página mostra um campo de senha visível dentro do prazo? É o sinal de tela de login
+ * quando a URL não denuncia — o Sankhya Om pede a senha na própria `/mge/`.
+ */
+export async function aguardarCampoDeSenha(wc: WebContents): Promise<boolean> {
+  const inicio = Date.now();
+  while (!wc.isDestroyed() && Date.now() - inicio < ESPERA_CAMPO_DE_SENHA_MS) {
+    const achou = (await wc
+      .executeJavaScript(SCRIPT_TEM_CAMPO_DE_SENHA, true)
+      .catch(() => false)) as boolean;
+    if (achou) return true;
+    await new Promise((resolve) => setTimeout(resolve, INTERVALO_MS));
+  }
+  return false;
 }
 
 /**
