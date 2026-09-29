@@ -87,6 +87,8 @@ export type SituacaoDoDia =
   | {
       tipo: 'os-lancada';
       numeroOs: string;
+      /** Mesmo status que agrupa a aba OS ("Concluído", "Gerado"…). */
+      status: string;
       pedido: string;
       tarefasRealizadas: string;
       horaInicio: string;
@@ -396,6 +398,7 @@ export class Experience {
         return {
           tipo: 'os-lancada',
           numeroOs: ordemDoDia.numeroSankhya || String(ordemDoDia.id),
+          status: ordemDoDia.statusAceite,
           pedido: ordemDoDia.pedido,
           ...detalhe,
         };

@@ -2711,6 +2711,7 @@ function anexarSituacaoDoEvento(linhaHorario, informacoes, codparc, dia, forcarN
   linhaHorario.append(selo, botaoAtualizar);
 
   let subbloco = null;
+  let seloStatus = null;
 
   async function carregar(forcar) {
     selo.className = 'selo-situacao';
@@ -2719,6 +2720,10 @@ function anexarSituacaoDoEvento(linhaHorario, informacoes, codparc, dia, forcarN
     if (subbloco) {
       subbloco.remove();
       subbloco = null;
+    }
+    if (seloStatus) {
+      seloStatus.remove();
+      seloStatus = null;
     }
 
     const resultado = await consultarSituacaoDoDia(codparc, dia, forcar);
@@ -2736,6 +2741,15 @@ function anexarSituacaoDoEvento(linhaHorario, informacoes, codparc, dia, forcarN
       selo.classList.add('ok');
       selo.textContent = `OS nº ${situacao.numeroOs}`;
       selo.title = `FAP ${faps}`;
+      if (situacao.status) {
+        const classeDeCor = atribuirCoresAosStatus([situacao.status]).get(situacao.status);
+        seloStatus = criarElemento(
+          'span',
+          `selo-situacao selo-status-os ${classeDeCor}`,
+          situacao.status,
+        );
+        selo.after(seloStatus);
+      }
 
       const detalhes = [
         situacao.horaInicio && `Início ${situacao.horaInicio}`,
