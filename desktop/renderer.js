@@ -29,8 +29,18 @@ for (const botao of botoesFixos) {
   botao.addEventListener('click', () => mostrarAba(botao.dataset.id));
 }
 
-document.getElementById('recarregar').addEventListener('click', () => {
+const botaoRecarregar = document.getElementById('recarregar');
+botaoRecarregar.addEventListener('click', () => {
   window.hub.tabs.recarregar(abaAtiva);
+  // Remover e forçar reflow reinicia a animação mesmo em cliques seguidos.
+  botaoRecarregar.classList.remove('girando');
+  void botaoRecarregar.offsetWidth;
+  botaoRecarregar.classList.add('girando');
+});
+
+document.getElementById('menu').addEventListener('click', (evento) => {
+  const { left, bottom } = evento.currentTarget.getBoundingClientRect();
+  window.hub.menu.abrir(left, bottom);
 });
 
 function renderizarAbasClientes(lista) {
@@ -72,22 +82,6 @@ function informarAlturaTopo() {
 }
 window.addEventListener('resize', informarAlturaTopo);
 informarAlturaTopo();
-
-async function atualizarStatus() {
-  const status = document.getElementById('status');
-  try {
-    const diag = await window.hub.diag.status();
-    status.textContent = diag.backend
-      ? `backend online · ${diag.erp.total} cookie(s) ERP · Experience ${diag.experienceCapturada ? 'logada' : 'deslogada'}`
-      : 'backend indisponível';
-    status.classList.toggle('offline', !diag.backend);
-  } catch {
-    status.textContent = 'status indisponível';
-    status.classList.add('offline');
-  }
-}
-atualizarStatus();
-setInterval(atualizarStatus, 20_000);
 
 /**
  * Guias escondidas pelo menu do aplicativo.

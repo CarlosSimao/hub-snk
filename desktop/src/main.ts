@@ -3,7 +3,7 @@
  * adaptado ao backend da `dev` — ver docs/plano-migracao-electron.md.
  */
 import './nomeDoApp';
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu, dialog, ipcMain } from 'electron';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { HUB_URL, ERP_URL, EXPERIENCE_URL, ICONE, PARTICAO, userAgentLimpo } from './config';
@@ -52,6 +52,9 @@ function criarJanela(): void {
       webSecurity: true,
     },
   });
+  // A barra nativa ocupava uma linha inteira só para o menu: ele passa a abrir pelo botão
+  // da barra de guias. O menu continua registrado, então os atalhos seguem valendo.
+  janelaPrincipal.setMenuBarVisibility(false);
   janelaPrincipal.loadFile(join(__dirname, '..', 'index.html'));
   janelaPrincipal.on('resize', () => tabs?.reposicionar());
   // Fechar a janela principal encerra o aplicativo mesmo com uma janela filha aberta
@@ -132,6 +135,13 @@ function criarJanela(): void {
 
 ipcMain.handle('layout:definirAlturaTopo', (_evt, altura: number) => {
   tabs?.definirAlturaTopo(altura);
+  return { ok: true };
+});
+
+ipcMain.handle('menu:abrir', (_evt, x: number, y: number) => {
+  const menu = Menu.getApplicationMenu();
+  if (!menu || !janelaPrincipal) return { ok: false };
+  menu.popup({ window: janelaPrincipal, x: Math.round(x), y: Math.round(y) });
   return { ok: true };
 });
 

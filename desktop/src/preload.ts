@@ -28,6 +28,10 @@ contextBridge.exposeInMainWorld('hub', {
       cb: (lista: Array<{ origin: string; titulo: string; visivel: boolean }>) => void,
     ) => ipcRenderer.on('links:lista', (_e, lista) => cb(lista)),
   },
+  menu: {
+    /** Abre o menu do aplicativo na posição informada (coordenadas da janela). */
+    abrir: (x: number, y: number) => ipcRenderer.invoke('menu:abrir', x, y),
+  },
   layout: {
     definirAlturaTopo: (altura: number) => ipcRenderer.invoke('layout:definirAlturaTopo', altura),
   },
