@@ -20,6 +20,8 @@ const TAMANHO_MAXIMO_DO_TEXTO = 1000;
 const TAMANHO_MAXIMO_DA_EXPRESSAO = 120;
 const OCORRENCIAS_NA_PREVIA = 3;
 
+const esquemaDeDataHoraComFuso = z.iso.datetime({ offset: true });
+
 const esquemaDeLembrete = z
   .object({
     resumo: z
@@ -39,10 +41,16 @@ const esquemaDeLembrete = z
         `O lembrete deve ter no máximo ${TAMANHO_MAXIMO_DO_TEXTO} caracteres.`,
       ),
     tipo: z.enum(TIPOS_DE_LEMBRETE, { error: 'Escolha se o lembrete é único ou recorrente.' }),
-    /* A tela manda ISO 8601 com fuso; vazio é aceito aqui e cobrado abaixo, só no único. */
+    /*
+     * A tela manda ISO 8601 com fuso; vazio é aceito aqui e cobrado abaixo, só no único.
+     * Sem fuso não serve: "2026-10-01" seria lido como UTC e dispararia na noite anterior.
+     */
     dataHora: z
       .string()
-      .refine((valor) => valor === '' || !Number.isNaN(Date.parse(valor)), 'Data e hora inválidas.')
+      .refine(
+        (valor) => valor === '' || esquemaDeDataHoraComFuso.safeParse(valor).success,
+        'Data e hora inválidas.',
+      )
       .default(''),
     expressaoCron: z.string().trim().max(TAMANHO_MAXIMO_DA_EXPRESSAO).default(''),
     clienteId: z.string().min(1).nullable().default(null),

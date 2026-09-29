@@ -59,6 +59,17 @@ describe('POST /api/lembretes', () => {
     assert.match(resposta.json().mensagem, /data e a hora/);
   });
 
+  it('recusa a data sem fuso, que seria lida como UTC', async () => {
+    const resposta = await servidor.inject({
+      method: 'POST',
+      url: '/api/lembretes',
+      payload: { ...LEMBRETE_UNICO, dataHora: '2026-10-01' },
+    });
+
+    assert.equal(resposta.statusCode, 400);
+    assert.match(resposta.json().mensagem, /Data e hora inválidas/);
+  });
+
   it('recusa o recorrente com cron inválido', async () => {
     const resposta = await servidor.inject({
       method: 'POST',

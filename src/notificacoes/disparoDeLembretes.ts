@@ -87,7 +87,12 @@ export function proximoDisparo(lembrete: Lembrete, agora: Date): Date | null {
   }
 
   if (lembrete.tipo === 'unico') {
-    return lembrete.ultimoDisparoEm === '' ? new Date(lembrete.dataHora) : null;
+    if (lembrete.ultimoDisparoEm !== '') {
+      return null;
+    }
+    const quando = new Date(lembrete.dataHora);
+    // Data editada à mão no arquivo: o lembrete aparece, só sem previsão.
+    return Number.isNaN(quando.getTime()) ? null : quando;
   }
 
   return (

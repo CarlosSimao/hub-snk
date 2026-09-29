@@ -94,6 +94,11 @@ describe('proximoDisparo', () => {
     assert.equal(proximoDisparo(disparado, new Date(2026, 8, 28, 11)), null);
   });
 
+  it('é nulo para o único com data ilegível, editada à mão no arquivo', () => {
+    const ilegivel = lembrete({ dataHora: 'amanhã cedo' });
+    assert.equal(proximoDisparo(ilegivel, new Date(2026, 8, 28, 11)), null);
+  });
+
   it('é a ocorrência pendente do recorrente, quando há uma', () => {
     const diario = lembrete({ tipo: 'recorrente', expressaoCron: '30 14 * * *' });
     assert.equal(
