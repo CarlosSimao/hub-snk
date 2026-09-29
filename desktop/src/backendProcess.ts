@@ -5,8 +5,10 @@
  *
  *   1. `SANKHYA_HUB_BACKEND=externo` — não sobe nada, só espera. É o modo de quem roda
  *      `npm run dev` noutra janela para desenvolver o backend.
- *   2. Já existe alguém respondendo em `/api/healthz` — reusa. Sem isto, abrir o shell
- *      com um `npm run dev` no ar daria EADDRINUSE na 4100 e o diagnóstico seria confuso.
+ *   2. Já existe alguém respondendo em `/api/healthz`. Em desenvolvimento, reusa: sem
+ *      isto, abrir o shell com um `npm run dev` no ar daria EADDRINUSE na 4100 e o
+ *      diagnóstico seria confuso. No aplicativo instalado, só aceita encerrar um backend
+ *      que prove ser do HUB SNK (sobra de um shell que caiu) e sobe o próprio.
  *   3. Ninguém respondendo — spawn do backend e espera ele ficar de pé.
  *
  * O backend roda sempre no Node embutido no Electron (`ELECTRON_RUN_AS_NODE`), direto do
@@ -119,6 +121,26 @@ async function esperarSubir(timeoutMs: number): Promise<boolean> {
   return false;
 }
 
+/**
+ * O aplicativo instalado não reusa o que estiver na porta: o shell entrega o token dele e
+ * o JWT da Experience a esse backend, e com o token a ponte revela as senhas do cofre.
+ * Qualquer processo da máquina — de outra sessão do Windows, inclusive, que o loopback é
+ * compartilhado — poderia se passar pelo backend só respondendo `/api/healthz`.
+ *
+ * Um backend do HUB SNK que sobrou de um shell que caiu aceita o encerramento com o token
+ * gravado em disco e solta a porta. Um impostor recusa o token ou continua na porta.
+ */
+async function liberarPortaDeBackendQueSobrou(): Promise<boolean> {
+  if (!(await pedirEncerramento())) return false;
+
+  const limite = Date.now() + TIMEOUT_ENCERRAMENTO_MS;
+  while (Date.now() < limite) {
+    if (!(await backendRespondendo())) return true;
+    await new Promise((resolva) => setTimeout(resolva, 300));
+  }
+  return false;
+}
+
 function diagnostico(): string {
   return ultimasLinhas.length ? ultimasLinhas.join('\n') : '(o backend não escreveu nada na saída)';
 }
@@ -138,10 +160,22 @@ export async function iniciarBackend(): Promise<ResultadoBackend> {
   }
 
   if (await backendRespondendo()) {
-    // `npm run dev` rodando noutra janela. Reusar evita EADDRINUSE e, pior, dois
-    // backends disputando o mesmo `sankhya.db`.
-    logEvento('backend-externo-detectado', { url: HUB_URL });
-    return { modo: 'externo', erro: '' };
+    if (!app.isPackaged) {
+      // `npm run dev` rodando noutra janela. Reusar evita EADDRINUSE e, pior, dois
+      // backends disputando o mesmo `sankhya.db`.
+      logEvento('backend-externo-detectado', { url: HUB_URL });
+      return { modo: 'externo', erro: '' };
+    }
+    if (!(await liberarPortaDeBackendQueSobrou())) {
+      logEvento('backend-porta-ocupada', { url: HUB_URL });
+      return {
+        modo: 'falhou',
+        erro:
+          `A porta ${PORTA_HUB} já está em uso por outro programa, que não é o backend do ` +
+          'HUB SNK. Feche esse programa e abra o HUB SNK de novo.',
+      };
+    }
+    logEvento('backend-que-sobrou-encerrado', { url: HUB_URL });
   }
 
   if (!existsSync(ENTRYPOINT_BACKEND)) {
