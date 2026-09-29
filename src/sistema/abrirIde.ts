@@ -1,6 +1,10 @@
 import { extname } from 'node:path';
 import { garantirQueEhPasta } from './pasta.ts';
 import { lancarProcesso, LancamentoFalhouError, type Candidato } from './lancarProcesso.ts';
+import {
+  argumentosDoCmdParaScript,
+  ArgumentoInseguroParaOCmdError,
+} from './linhaDeComandoDoCmd.ts';
 
 /**
  * Abertura de uma IDE qualquer já com a pasta do repositório carregada como
@@ -29,14 +33,22 @@ export class IdeIndisponivelError extends Error {
 /** Pacote do macOS: só o `open` sabe iniciar, e a pasta vai em `--args`. */
 const SUFIXO_DE_APLICATIVO_DO_MAC = '.app';
 
+interface Lancamento extends Candidato {
+  argumentosLiterais?: boolean;
+}
+
 /**
  * Script `.cmd`/`.bat` não é executável para o `spawn`: quem o interpreta é o
- * `cmd.exe`, chamado com os argumentos separados — nunca com `shell: true` —
- * para que continuem argumentos e não linha de comando.
+ * `cmd.exe` — nunca com `shell: true` —, com a linha citada do jeito que ele
+ * entende (o `code.cmd` do VS Code é o caso comum).
  */
-function montarLancamento(caminhoDoExecutavel: string, pasta: string): Candidato {
+function montarLancamento(caminhoDoExecutavel: string, pasta: string): Lancamento {
   if (process.platform === 'win32' && /\.(cmd|bat)$/i.test(caminhoDoExecutavel)) {
-    return { comando: 'cmd.exe', argumentos: ['/c', caminhoDoExecutavel, pasta] };
+    return {
+      comando: 'cmd.exe',
+      argumentos: argumentosDoCmdParaScript(caminhoDoExecutavel, [pasta]),
+      argumentosLiterais: true,
+    };
   }
 
   if (
@@ -56,13 +68,21 @@ export async function abrirIdeNaPasta(caminhoDoExecutavel: string, pasta: string
 
   await garantirQueEhPasta(pasta);
 
-  const { comando, argumentos } = montarLancamento(caminhoDoExecutavel, pasta);
-
   try {
-    await lancarProcesso(comando, argumentos, { ocultarJanelaNoWindows: true });
+    const { comando, argumentos, argumentosLiterais } = montarLancamento(
+      caminhoDoExecutavel,
+      pasta,
+    );
+    await lancarProcesso(comando, argumentos, {
+      ocultarJanelaNoWindows: true,
+      argumentosLiterais,
+    });
   } catch (erro) {
     if (erro instanceof LancamentoFalhouError) {
       throw new IdeIndisponivelError(caminhoDoExecutavel, erro.motivo);
+    }
+    if (erro instanceof ArgumentoInseguroParaOCmdError) {
+      throw new IdeIndisponivelError(caminhoDoExecutavel, erro.message);
     }
     throw erro;
   }

@@ -3,6 +3,7 @@ import { accessSync, constants, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { connect } from 'node:net';
 import { extrairVersaoDaPlataforma } from './versaoDaPlataforma.ts';
+import { argumentosDoCmdParaScript } from './linhaDeComandoDoCmd.ts';
 
 /**
  * Controle de processo do WildFly local — sem docker, sem daemon central pra
@@ -110,9 +111,10 @@ function dispararScript(caminhoDoScriptAlvo: string, argumentos: string[]): Prom
      * (bug conhecido: nodejs/node#21825) — por isso aqui só windowsHide. */
     const processo =
       process.platform === 'win32'
-        ? spawn('cmd.exe', ['/c', caminhoDoScriptAlvo, ...argumentos], {
+        ? spawn('cmd.exe', argumentosDoCmdParaScript(caminhoDoScriptAlvo, argumentos), {
             stdio: 'ignore',
             windowsHide: true,
+            windowsVerbatimArguments: true,
           })
         : spawn(caminhoDoScriptAlvo, argumentos, { detached: true, stdio: 'ignore' });
 
@@ -131,7 +133,10 @@ function executarEAguardar(caminhoDoScriptAlvo: string, argumentos: string[]): P
   return new Promise((resolver, rejeitar) => {
     const processo =
       process.platform === 'win32'
-        ? spawn('cmd.exe', ['/c', caminhoDoScriptAlvo, ...argumentos], { windowsHide: true })
+        ? spawn('cmd.exe', argumentosDoCmdParaScript(caminhoDoScriptAlvo, argumentos), {
+            windowsHide: true,
+            windowsVerbatimArguments: true,
+          })
         : spawn(caminhoDoScriptAlvo, argumentos);
 
     let saida = '';

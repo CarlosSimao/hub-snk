@@ -46,6 +46,8 @@ export interface OpcoesDeLancamento {
   pastaDeTrabalho?: string;
   /** Evita o console preto piscando no Windows em programas de linha de comando. */
   ocultarJanelaNoWindows?: boolean;
+  /** Argumentos já citados para o `cmd.exe` (`linhaDeComandoDoCmd.ts`): o Node não os reescreve. */
+  argumentosLiterais?: boolean;
 }
 
 /**
@@ -71,6 +73,7 @@ export function lancarProcesso(
       detached: true,
       stdio: 'ignore',
       windowsHide: opcoes.ocultarJanelaNoWindows,
+      windowsVerbatimArguments: opcoes.argumentosLiterais,
     });
 
     let decidido = false;
