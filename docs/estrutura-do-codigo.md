@@ -111,9 +111,12 @@ desktop/                                    shell Electron: o aplicativo que o u
   electron-builder.yml                      identidade, recursos e alvos do instalador
 ```
 
-As rotas dependem apenas da interface `RepositorioClientes`. Trocar o
-armazenamento local por outro — banco, API remota — é implementar essa interface
-e injetá-la no `index.ts`; nada mais muda.
+As rotas dependem só das interfaces de repositório — `RepositorioClientes`,
+`RepositorioConfiguracao`, `RepositorioLocal`, `RepositorioLembretes` e
+`RepositorioContatos`; as de notificações passam pela `CentralDeNotificacoes`, que
+depende de `RepositorioNotificacoes` —, e nunca das implementações em arquivo.
+Trocar o armazenamento local por outro — banco, API remota — é implementar essas
+interfaces e injetá-las no `index.ts`.
 
 O servidor não tem etapa de build: os arquivos `.ts` rodam direto, no Node 22.18
 ou mais novo em desenvolvimento e no Node embutido no Electron no aplicativo. O

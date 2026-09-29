@@ -1,4 +1,4 @@
-﻿# Remove a instalação PWA antiga do HUB SNK (a do instalar-hub-snk.ps1), chamado pelo
+﻿# Remove a instalação PWA antiga do HUB SNK (a do instalador por script da versão 1), chamado pelo
 # instalador NSIS do aplicativo desktop logo depois de copiar os arquivos.
 #
 # O cadastro NUNCA é tocado: a pasta de dados é a mesma que o aplicativo desktop usa.
@@ -23,8 +23,8 @@ $ErrorActionPreference = 'Stop'
 $PORTA_DO_APP_DESKTOP = '4100'
 $SEGUNDOS_PARA_OS_PROCESSOS_SAIREM = 5
 
-# O que o pacote PWA instalava na pasta do programa (empacotar-comum.mjs +
-# empacotar-windows.mjs). Só isto é apagado.
+# O que o pacote zip da versão 1 (PWA) instalava na pasta do programa, fixo porque
+# aquele pacote não muda mais. Só isto é apagado.
 $ITENS_DO_PACOTE_PWA = @(
     'src', 'public', 'node_modules',
     'abrir-hub-snk.vbs', 'encerrar-hub-snk.vbs',

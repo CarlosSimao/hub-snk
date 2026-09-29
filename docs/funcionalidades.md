@@ -6,9 +6,10 @@ dispara cada cor. O [README](../README.md) traz o resumo; aqui está o detalhe.
 
 ## Cadastro de clientes
 
-Cada cliente reúne quatro listas: **bases** (a URL do ERP, com usuário, senha e
-o banco de dados vinculado), **repositórios** Git, **links** avulsos e as
-**anotações**.
+Cada cliente reúne **bases** (a URL do ERP, com usuário, senha e o banco de dados
+vinculado), **repositórios** Git, **links** avulsos, **projetos** (com anotações e
+links próprios), **contatos**, as **anotações** e os **nomes completos** — as
+razões sociais dele no Sankhya, que casam o cliente com a agenda e as OS.
 
 Nomes de cliente não se repetem. Nas bases, a mesma URL pode aparecer várias
 vezes desde que o usuário mude — assim dá para cadastrar um acesso de
@@ -21,26 +22,26 @@ pontas pode fazer parte dela.
 
 ## Onde os links abrem
 
-Na aba **Geral** das configurações, três escolhas dizem onde cada tipo de link do
-cadastro abre quando é clicado no aplicativo desktop:
+Na aba **Geral** das configurações, o campo **Abrir os links em** diz onde abre
+todo link clicável do cadastro — bases, repositórios, links gerais e links de
+projeto — quando é clicado no aplicativo desktop. É uma escolha só
+(`destinoDosLinks`), e o padrão é o navegador do HUB SNK:
 
-| Tipo de link                             | Navegador do HUB SNK                                                    | Navegador padrão                                |
-| ---------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------- |
-| **Bases** (padrão: HUB SNK)              | Guia do aplicativo, isolada das outras, com usuário e senha preenchidos | Navegador do sistema, sem preenchimento         |
-| **Links gerais** (padrão: navegador)     | Guia do aplicativo, isolada, sem preenchimento                          | Navegador do sistema, com a sessão e o SSO dele |
-| **Links de projeto** (padrão: navegador) | Idem aos links gerais                                                   | Idem aos links gerais                           |
+| Escolha                           | Bases                                                                   | Repositórios, links gerais e links de projeto   |
+| --------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------- |
+| **Navegador do HUB SNK** (padrão) | Guia do aplicativo, isolada das outras, com usuário e senha preenchidos | Guia do aplicativo, isolada, sem preenchimento  |
+| **Navegador padrão**              | Navegador do sistema, sem preenchimento                                 | Navegador do sistema, com a sessão e o SSO dele |
 
 Quem aplica a escolha é o aplicativo, na hora do clique, relendo o cadastro e a
 configuração — mudar a opção vale no próximo clique, sem reiniciar. As regras:
 
 - **A URL exata de um link vale mais que a origem de uma base.** Um link geral que
-  aponta para uma tela da base segue a escolha dos links gerais, não a das bases.
+  aponta para uma tela da base abre como link, sem o preenchimento do login.
 - Link aberto no HUB SNK com a mesma origem de uma guia já aberta (a da base, por
   exemplo) navega aquela guia até o endereço do link.
 - O monitor de log de uma base abre sempre na guia dela.
-- Endereço da própria máquina (`localhost`), o link do repositório e qualquer link
-  que não esteja no cadastro seguem como antes: o local numa guia do aplicativo, o
-  resto no navegador do sistema.
+- Endereço da própria máquina (`localhost`) abre numa guia do aplicativo, e
+  qualquer link que não esteja no cadastro abre no navegador do sistema.
 - Só `http` e `https` abrem no navegador do sistema; outro esquema (`file:`,
   `mailto:`) é recusado e fica registrado no log.
 
@@ -192,46 +193,18 @@ aberta depois para você ler a saída.
 > mesmo critério de digitar um comando direto no terminal: só coloque ali o que
 > você mesmo executaria.
 
-### Que programa é chamado em cada sistema
+### Que programa é chamado
 
-| Botão                            | Windows                                                                                                            | macOS                                                            | Linux                                                                                         |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **Arquivos**                     | `explorer.exe`                                                                                                     | `open`                                                           | `xdg-open`                                                                                    |
-| **Shell**                        | Windows Terminal quando existe; o shell é `pwsh.exe`, `powershell.exe` ou `cmd.exe`, o primeiro encontrado no PATH | `Terminal.app`, via `osascript` quando há script a executar      | primeiro entre `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal` e `xterm` |
-| **Abrir IDE**                    | o executável cadastrado; `.cmd`/`.bat` são executados via `cmd.exe /c`                                             | o executável cadastrado; pacote `.app` é aberto via `open -n -a` | o executável cadastrado                                                                       |
-| **Seletor de arquivo** (atalhos) | `OpenFileDialog` do Windows Forms, via `powershell.exe -STA`                                                       | `choose file`, via `osascript`                                   | `zenity --file-selection`, com `kdialog` como alternativa                                     |
-
-Quando nada é encontrado, o HUB SNK mostra o aviso na tela — inclusive o
-**Arquivos** no Linux sem `xdg-open`, que responde pedindo a instalação do
-`xdg-utils`. No Linux sem `zenity` nem `kdialog`, resta digitar o caminho do
-atalho à mão.
+| Botão                            | Programa                                                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Arquivos**                     | `explorer.exe`                                                                                                     |
+| **Shell**                        | Windows Terminal quando existe; o shell é `pwsh.exe`, `powershell.exe` ou `cmd.exe`, o primeiro encontrado no PATH |
+| **Abrir IDE**                    | o executável cadastrado; `.cmd`/`.bat` são executados via `cmd.exe /c`                                             |
+| **Seletor de arquivo** (atalhos) | `OpenFileDialog` do Windows Forms, via `powershell.exe -STA`                                                       |
 
 O programa não é dado como aberto só por ter nascido: o HUB SNK espera um
 instante e, se ele morreu com erro nesse intervalo, tenta o próximo candidato da
-lista e só então avisa a tela. É o que faz um `x-terminal-emulator` apontando
-para um emulador que não aceita `--working-directory` ceder a vez ao
-`gnome-terminal`, em vez de encerrar a fila sem abrir nada.
-
-### Permissão de Automação no macOS
-
-Com **Script padrão** preenchido, o botão Shell no macOS passa pelo `osascript`
-para mandar o Terminal executar o comando. Isso é automação de um aplicativo por
-outro, e o macOS pede autorização: **na primeira vez aparece o diálogo "node quer
-controlar Terminal"**. Autorize — a permissão é lembrada, e o pedido não volta.
-
-Autorizar depois, ou rever a decisão, fica em _Ajustes do Sistema_ ›
-_Privacidade e Segurança_ › _Automação_.
-
-Negada a permissão, o botão Shell não deixa de funcionar: o HUB SNK cai no
-`open -a Terminal`, e o Terminal abre na pasta do repositório. **O que se perde é
-o Script padrão** — ele não é executado, e a tela não tem como avisar, porque
-para ela o terminal abriu. Um terminal que abre na pasta certa mas ignora o
-script é o sintoma de permissão negada.
-
-O diálogo de autorização é o único caso em que a espera de um instante descrita
-acima não ajuda: enquanto ele está na tela o `osascript` continua vivo, então o
-HUB SNK o considera iniciado. Se você negar depois disso, nada abre naquela
-tentativa — o segundo clique já cai no `open -a Terminal`.
+lista e só então avisa a tela. Quando nada abre, o aviso aparece na tela.
 
 ### Arquivo `.sankhya-mcp.env`
 
@@ -283,25 +256,11 @@ O botão de pasta ao lado do caminho abre o seletor de arquivos do sistema e
 preenche o campo. O campo continua editável — dá para colar um caminho ou
 ajustar o que veio do seletor.
 
-Vale para `.exe`, `.lnk`, `.bat` e qualquer extensão associada. A existência do
+Vale para `.exe`, `.lnk`, `.bat` e qualquer extensão associada: o programa é
+iniciado sempre pelo `explorer.exe`, que resolve a extensão. A existência do
 arquivo é checada na hora de executar, não no cadastro, então dá para cadastrar
 o caminho de um programa ainda não instalado; sem o arquivo, o HUB SNK avisa na
 tela.
-
-### Como cada sistema inicia o programa
-
-| Sistema | O que acontece                                                                                                          |
-| ------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Windows | Sempre pelo `explorer.exe`, que resolve a extensão associada                                                            |
-| macOS   | Pacote `.app` e `.command` vão para o `open`; o resto com bit de execução roda direto                                   |
-| Linux   | Arquivo com bit de execução roda direto; sem ele, vai para o `xdg-open` — que é o caminho do `.desktop` e do atalho web |
-
-Fora do Windows o despachante do sistema não serve para tudo: ele decide pela
-associação de tipo, e a de script costuma ser um editor. Um `.sh` entregue ao
-`open` ou ao `xdg-open` abriria no Xcode ou no bloco de notas em vez de rodar —
-por isso o arquivo executável é chamado direto. As duas exceções do macOS ficam
-com o despachante porque só ele sabe iniciá-las: o `.app` é um pacote, e o
-`.command` existe para abrir no Terminal, janela que rodá-lo direto tiraria.
 
 ## Lista de OS
 
@@ -479,24 +438,8 @@ tem perfil.
 Ligar, parar e reiniciar o container Docker do banco depende do daemon estar de
 pé, e o cliente `docker` não o sobe sozinho. As ações que ligam o banco tentam
 subi-lo antes e esperam ele atender — a primeira subida da VM leva bem mais que
-alguns segundos.
-
-O que é "subir o Docker" muda de sistema:
-
-| Sistema | O que o HUB SNK faz                                                           |
-| ------- | ----------------------------------------------------------------------------- |
-| Windows | Abre o `Docker Desktop.exe` do caminho de instalação encontrado               |
-| macOS   | `open -a Docker`                                                              |
-| Linux   | `systemctl --user start docker-desktop` e, se não houver, o `docker` rootless |
-
-No Linux não há aplicativo para abrir: tanto o Docker Desktop quanto o modo
-rootless são serviços de usuário do systemd, e sobem sem root.
-
-**O Docker Engine instalado como serviço do sistema fica de fora**, de
-propósito: subi-lo exige `sudo`, e pedir senha numa janela que ninguém está
-vendo não levaria a nada. Ele também costuma já estar no ar, porque é habilitado
-no boot. Se estiver parado, o HUB SNK diz isso e mostra o comando —
-`sudo systemctl start docker`.
+alguns segundos. Subir o Docker é abrir o `Docker Desktop.exe` do caminho de
+instalação encontrado.
 
 ## Diagnóstico dos repositórios Git
 

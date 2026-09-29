@@ -412,6 +412,7 @@ bases por chamada.
 
 ```json
 {
+  "resumo": "Relatório de horas",
   "texto": "Enviar o relatório de horas",
   "tipo": "recorrente",
   "dataHora": "",
@@ -419,13 +420,37 @@ bases por chamada.
   "clienteId": "4fb3993a-f8b3-4e9a-be7d-c79556fa78e5",
   "projetoId": null,
   "enviarEmail": true,
+  "contatoIds": ["0d6f3c2e-8a41-4b7e-9c55-1e2f3a4b5c6d"],
   "ativo": true
 }
 ```
 
-`tipo` é `unico` (exige `dataHora`, ISO 8601) ou `recorrente` (exige
-`expressaoCron`, cinco campos). `projetoId` exige `clienteId`, e o projeto precisa
-ser daquele cliente.
+`resumo` (até 120 caracteres) e `texto` (até 1000) são obrigatórios. `tipo` é
+`unico` ou `recorrente`. O `unico` exige `dataHora` em ISO 8601 **com fuso** —
+`2026-10-01T12:00:00.000Z` ou `2026-10-01T09:00:00-03:00`; data sem fuso
+(`2026-10-01T09:00`) responde `400` com "Data e hora inválidas.". O `recorrente`
+exige `expressaoCron`, cinco campos. `projetoId` exige `clienteId`, e o projeto
+precisa ser daquele cliente. `contatoIds` são os contatos em cópia no e-mail do
+lembrete: com `enviarEmail`, cada um precisa existir, ter e-mail e, com
+`clienteId` preenchido, ser sem cliente ou daquele cliente — senão, `400`.
+Ausentes, `contatoIds` vale `[]`, `enviarEmail` vale `false` e `ativo`, `true`.
+
+### Contato
+
+```json
+{
+  "nome": "Ana Souza",
+  "cargo": "Coordenadora de TI",
+  "telefone": "(11) 99999-0000",
+  "email": "ana@cliente.com.br",
+  "clienteId": "4fb3993a-f8b3-4e9a-be7d-c79556fa78e5"
+}
+```
+
+Só o `nome` é obrigatório (até 120 caracteres); `cargo` vai até 120, `telefone`
+até 40 e `email`, quando preenchido, precisa ser um endereço válido. `clienteId` é
+opcional — `null` é o contato sem cliente — e precisa existir no cadastro. Os
+dois erros respondem `400`.
 
 ### SMTP
 

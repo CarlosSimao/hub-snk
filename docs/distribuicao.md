@@ -69,7 +69,7 @@ npm run empacotar-desktop
 2. `scripts/preparar-hub.mjs`: copia `src/` e `public/` sem os testes, o
    `package.json`, o `package-lock.json` e a `LICENSE` para `desktop/build/hub`, e
    roda `npm ci --omit=dev` ali — o backend do pacote só com as dependências de
-   produção (cerca de 28 MB).
+   produção (cerca de 31 MB, 30 MB deles de `node_modules`).
 3. `scripts/preparar-autosync.mjs`: copia os binários do Git AutoSync, o
    `install-standalone.ps1`, a `SKILL.md` e o `VERSION` para
    `desktop/build/git-autosync`, e gera o `build/gas-version.nsh` que liga a página
@@ -154,13 +154,9 @@ certificado. O SmartScreen avisa na primeira execução. Assinar exige um
 certificado de assinatura de código; com ele, basta configurar o
 `electron-builder` (`win.certificateFile` ou a assinatura na nuvem).
 
-## Linux e macOS
+## Só Windows
 
-O `electron-builder.yml` já declara AppImage e `.deb`, e o shell trata os caminhos
-do Linux, mas o pacote Linux ainda não foi gerado nem validado. Ele precisa ser
-montado numa máquina Linux (os binários do Git AutoSync saem do
-`python/build_linux.sh` de lá), e o `.deb` depende de `libsecret`: sem chaveiro do
-sistema, o `safeStorage` cairia numa cifra de chave fixa, e o shell recusa gravar
-credencial nesse estado.
-
-O macOS não tem distribuição a partir da versão 2.
+A versão 2 é distribuída só para Windows: não há pacote para Linux nem para macOS,
+e o workflow de distribuição só gera o instalador NSIS. O bloco `linux` do
+`electron-builder.yml` e os caminhos do Linux no shell ficaram no código, mas estão
+dormentes — nenhum pacote Linux foi gerado nem validado.

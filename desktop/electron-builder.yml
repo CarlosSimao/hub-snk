@@ -34,7 +34,7 @@ extraResources:
   # acima, o electron-builder não copia um `node_modules` que esteja DENTRO de um
   # `extraResources` — ele o trata como árvore de dependências do app, não como
   # conteúdo. Medido nas duas primeiras tentativas: `resources/hub` saiu com 1,6 MB
-  # (sem dependência nenhuma) em vez dos 34 MB corretos.
+  # (sem dependência nenhuma) em vez dos cerca de 31 MB corretos.
   - from: build/hub/node_modules
     to: hub/node_modules
     filter:
@@ -77,8 +77,8 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: HUB SNK
-  # A desinstalação remove os binários; `userData` (histórico, cofre, services.yaml do
-  # usuário) fica. Apagar dados de quem só está reinstalando seria irreversível.
+  # A desinstalação remove os binários; `userData` (cofre das credenciais, cookies das
+  # guias e logs) fica. Apagar dados de quem só está reinstalando seria irreversível.
   deleteAppDataOnUninstall: false
   artifactName: HUB-SNK-Setup-${version}.${ext}
   # Página de componentes do Git AutoSync e as chamadas de instalação/desinstalação dele.
@@ -86,6 +86,7 @@ nsis:
   include: installer.nsh
 
 linux:
+  # Dormente: a distribuição é só para Windows, e nenhum workflow gera este alvo.
   # AppImage é o equivalente ao NSIS per-user: roda sem root, sem instalar nada no
   # sistema. O `.deb` fica para quem prefere pacote gerenciado, e é ele que declara as
   # dependências de chaveiro.

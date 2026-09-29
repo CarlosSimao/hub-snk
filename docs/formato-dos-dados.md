@@ -3,23 +3,26 @@
 Como o HUB SNK grava o que você cadastra. Para o uso do dia a dia, veja o
 [README](../README.md) — nada aqui é necessário para usar o programa.
 
-Os arquivos ficam na pasta de dados (`dados-hub-snk/` por padrão, ou o que
-estiver em `HUB_DADOS_DIR`):
+Os arquivos ficam na pasta de dados: `%LOCALAPPDATA%\HubSnk\dados` no aplicativo
+instalado, `dados-hub-snk/` na raiz do repositório em desenvolvimento, ou o que
+estiver em `HUB_DADOS_DIR`:
 
-| Arquivo             | Guarda                                                          |
-| ------------------- | --------------------------------------------------------------- |
-| `clientes.json`     | O cadastro de clientes, com bases, bancos, repositórios e links |
-| `configuracao.json` | A configuração global, os atalhos e o SMTP                      |
-| `local.json`        | As bases e os bancos da própria máquina                         |
-| `lembretes.json`    | Os lembretes cadastrados                                        |
-| `contatos.json`     | Os contatos, com ou sem cliente                                 |
-| `notificacoes.json` | O painel de notificações e as chaves já notificadas             |
+| Arquivo             | Guarda                                                                    |
+| ------------------- | ------------------------------------------------------------------------- |
+| `clientes.json`     | O cadastro de clientes, com bases, bancos, repositórios, links e projetos |
+| `configuracao.json` | A configuração global, os acessos, os atalhos e o SMTP                    |
+| `local.json`        | As bases e os bancos da própria máquina                                   |
+| `lembretes.json`    | Os lembretes cadastrados                                                  |
+| `contatos.json`     | Os contatos, com ou sem cliente                                           |
+| `notificacoes.json` | O painel de notificações e as chaves já notificadas                       |
+| `sankhya.db`        | O snapshot da Agenda de Recursos, em SQLite                               |
 
 ## Envelope
 
-Todos seguem a mesma forma: um campo `versaoDoEsquema` e o conteúdo sob uma
-chave própria — `clientes`, `configuracao`, `local`, `lembretes` e
-`notificacoes`.
+Todos os `.json` seguem a mesma forma: um campo `versaoDoEsquema` e o conteúdo sob
+uma chave própria — `clientes`, `configuracao`, `local`, `lembretes`, `contatos` e
+`notificacoes`. O `sankhya.db` fica fora do envelope: é o snapshot que cada
+consulta da agenda atualiza, e as rotas de eventos leem.
 
 ```json
 { "versaoDoEsquema": 1, "clientes": [ ... ] }
@@ -48,8 +51,11 @@ cadastro.
     ],
     "destinoDosLinks": "hub",
     "caminhoDoExecutavelDaIde": "C:\\Program Files\\JetBrains\\IntelliJ IDEA\\bin\\idea64.exe",
+    "experiencePersonId": "123456",
+    "sankhyaOmCodUsu": "4817",
     "perfil": "consultor",
     "funcionalidadesOcultas": ["cliente.repositorios"],
+    "terceiro": false,
     "smtp": {
       "host": "smtp.office365.com",
       "porta": 587,
@@ -75,11 +81,22 @@ cada repositório, com a pasta como argumento. Vazio desliga o botão.
 `perfil` (`desenvolvedor`, `consultor`, `analista` ou `gerente-de-projeto`) e
 `funcionalidadesOcultas` são os acessos de **Configurações › Acessos**. A lista
 guarda o que está **oculto**: uma funcionalidade criada numa versão futura já
-nasce visível. Os valores aceitos são `local`, `agenda`, `os` e `lembretes` (menu principal) e
-`cliente.bases`, `cliente.repositorios`, `cliente.projetos`, `cliente.agenda` e
-`cliente.os` (cadastro do cliente). Arquivo sem `perfil` recebe o perfil escolhido
-no instalador, com o preset dele; sem instalador, `desenvolvedor`, com nada
-oculto. Valor desconhecido na lista é descartado na leitura.
+nasce visível. Os valores aceitos são `local`, `agenda`, `os`, `lembretes` e
+`contatos` (menu principal) e `cliente.bases`, `cliente.repositorios`,
+`cliente.projetos`, `cliente.agenda`, `cliente.os` e `cliente.contatos` (cadastro
+do cliente). Arquivo sem `perfil` recebe o perfil escolhido no instalador, com o
+preset dele; sem instalador, `desenvolvedor`, com nada oculto. Valor desconhecido
+na lista é descartado na leitura.
+
+`terceiro` é a caixa **Terceiro** da aba Acessos: `true` oculta, por cima de
+`funcionalidadesOcultas`, o que depende do Sankhya Om e da Experience, sem alterar
+a lista. Arquivo sem o campo recebe a escolha do instalador; sem instalador,
+`false`.
+
+`sankhyaOmCodUsu` é o `CODUSU` digitado no topo de **Credenciais Sankhya**, que
+recorta a Agenda de Recursos para os seus eventos. `experiencePersonId` é o
+`person_id` da Experience, gravado sozinho ao capturar a sessão e nunca digitado;
+vazio, a aba OS não tem de quem buscar as OS.
 
 `smtp` é o servidor dos e-mails das notificações, com a senha em texto puro;
 `seguranca` é `ssl`, `starttls` ou `nenhuma`, e host vazio desliga o e-mail.

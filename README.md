@@ -7,8 +7,8 @@ Hub local de cadastro de clientes, das bases e dos repositórios Git de cada
 um, com o Sankhya Om e a Experience abertos em guias do próprio aplicativo. Roda
 na sua máquina, sem Docker, sem banco de dados e sem autenticação.
 
-É um aplicativo desktop (Electron) para Windows. O pacote para Linux está em
-preparação, e o macOS não tem distribuição a partir da versão 2.
+É um aplicativo desktop (Electron) só para Windows: a partir da versão 2 não há
+distribuição para Linux nem para macOS.
 
 ![Tela do HUB SNK com a lista de clientes cadastrados](docs/img/screenshot.png)
 
@@ -87,10 +87,10 @@ A janela tem guias no topo:
 | **Experience**      | A Experience, com o mesmo login automático                                                   |
 | Uma por base aberta | Cada base de cliente abre na sua própria guia, isolada das outras, com o login já preenchido |
 
-Onde cada tipo de link abre — bases, links gerais e links de projeto — é escolha
-sua, na aba **Geral** das configurações: numa guia do HUB SNK ou no navegador
-padrão do sistema. O padrão é a base no HUB SNK, com o login preenchido, e os
-links no navegador padrão. Detalhes em
+Onde os links do cadastro abrem — bases, repositórios, links gerais e links de
+projeto — é uma escolha só, na aba **Geral** das configurações: numa guia do HUB
+SNK ou no navegador padrão do sistema. O padrão é a guia do HUB SNK, onde a base
+já abre com o login preenchido. Detalhes em
 [Onde os links abrem](docs/funcionalidades.md#onde-os-links-abrem).
 
 O menu _Guias_ esconde e mostra cada guia, e _Ajuda_ › _Abrir o painel no
@@ -188,14 +188,16 @@ Cada uma em detalhe, com as regras, em
 
 ## Solução de problemas
 
-| Sintoma                                                                         | O que fazer                                                                                                                  |
-| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| _"HUB SNK — o backend não subiu"_ ao abrir                                      | A porta 4100 está ocupada por outro programa, ou o backend falhou. As últimas linhas estão na mensagem e em `backend.log`    |
-| O painel avisa que o aplicativo HUB SNK não está respondendo                    | O painel foi aberto fora do aplicativo (_Abrir o painel no navegador_). Credenciais, agenda e guias só funcionam dentro dele |
-| A agenda diz que o login automático falhou ou que não há usuário e senha salvos | Confira o usuário e a senha do Sankhya Om em Credenciais Sankhya e tente de novo                                             |
-| Os botões de Git não fazem nada                                                 | O `git` precisa estar no PATH. Confira com `git --version` num terminal novo                                                 |
-| Mensagem sobre esquema mais novo ao iniciar                                     | O cadastro foi gravado por uma versão mais nova do HUB SNK. Instale a versão mais recente                                    |
-| A instalação avisou que a versão antiga não foi removida                        | O motivo está em `%LOCALAPPDATA%\HubSnk\remocao-da-versao-pwa.log`. O aplicativo novo funciona mesmo assim                   |
+| Sintoma                                                                                | O que fazer                                                                                                                                                                                                                                                                      |
+| -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _"HUB SNK — o backend não subiu"_ ao abrir                                             | Com _"A porta 4100 já está em uso por outro programa, que não é o backend do HUB SNK"_, feche esse programa e abra o HUB SNK de novo: o aplicativo não usa um backend que não é dele. Sem essa frase, o backend falhou, e as últimas linhas estão na mensagem e em `backend.log` |
+| _"HUB SNK — a ponte com o backend não abriu"_ ao abrir                                 | A porta 4103 está ocupada por outro programa. Credenciais Sankhya, Agenda e login automático ficam indisponíveis até você fechar esse programa e abrir o HUB SNK de novo                                                                                                         |
+| O painel avisa que o aplicativo HUB SNK não está respondendo                           | O painel foi aberto fora do aplicativo (_Abrir o painel no navegador_). Credenciais, agenda e guias só funcionam dentro dele                                                                                                                                                     |
+| A agenda diz que o login automático falhou ou que não há usuário e senha salvos        | Confira o usuário e a senha do Sankhya Om em Credenciais Sankhya e tente de novo                                                                                                                                                                                                 |
+| A agenda diz _"login automático suspenso: ..."_, ou as guias pararam de logar sozinhas | O Sankhya recusou a senha salva duas vezes seguidas, e o login automático parou para não bloquear a conta. Salve usuário e senha de novo em Credenciais Sankhya (ou reabra o aplicativo)                                                                                         |
+| Os botões de Git não fazem nada                                                        | O `git` precisa estar no PATH. Confira com `git --version` num terminal novo                                                                                                                                                                                                     |
+| Mensagem sobre esquema mais novo ao iniciar                                            | O cadastro foi gravado por uma versão mais nova do HUB SNK. Instale a versão mais recente                                                                                                                                                                                        |
+| A instalação avisou que a versão antiga não foi removida                               | O motivo está em `%LOCALAPPDATA%\HubSnk\remocao-da-versao-pwa.log`. O aplicativo novo funciona mesmo assim                                                                                                                                                                       |
 
 Se não estiver na lista, [abra uma issue](https://github.com/CarlosSimao/hub-snk/issues/new/choose)
 — citando a versão que aparece no rodapé da tela, e sem colar senha, host,

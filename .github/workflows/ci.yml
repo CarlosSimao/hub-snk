@@ -77,8 +77,9 @@ jobs:
       - name: Montar o backend do pacote
         run: node desktop/scripts/preparar-hub.mjs
 
-      # Prova o que a Fase 1 do plano de migração provou à mão: o backend roda
-      # direto do TypeScript no Node do Electron, só com as dependências de produção.
+      # O aplicativo instalado depende disto: o backend roda direto do TypeScript no
+      # Node do Electron, só com as dependências de produção. Se quebrar, a janela
+      # abre com "o backend não subiu".
       - name: Subir o backend do pacote no Node do Electron
         shell: pwsh
         run: |

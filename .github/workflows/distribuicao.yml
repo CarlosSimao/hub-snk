@@ -15,8 +15,8 @@ permissions:
   contents: write
 
 env:
-  # O Git AutoSync entra no instalador (decisão D7 do plano de migração) e mora em
-  # outro repositório. A branch é a `master`: só ela tem o `install-standalone.ps1`
+  # O Git AutoSync é oferecido no instalador, como opcional, e mora em outro
+  # repositório. A branch é a `master`: só ela tem o `install-standalone.ps1`
   # que o `installer.nsh` chama.
   REPOSITORIO_GIT_AUTOSYNC: FlavianoRS/git-autosync
   BRANCH_GIT_AUTOSYNC: master

@@ -16,9 +16,9 @@ npm run app      # compila o shell e abre o aplicativo, que sobe o backend
 Para mexer no backend com recarga automática, suba-o sozinho e deixe o aplicativo
 usar esse backend em vez de subir o dele:
 
-```bash
-npm run dev                                   # uma janela: backend com --watch
-SANKHYA_HUB_BACKEND=externo npm run app       # outra: o shell, sem subir backend
+```powershell
+npm run dev                                          # uma janela: backend com --watch
+$env:SANKHYA_HUB_BACKEND = 'externo'; npm run app    # outra: o shell, sem subir backend
 ```
 
 Não há etapa de build no backend: a partir do Node 22.18 os arquivos `.ts` rodam
@@ -41,18 +41,22 @@ $env:HUB_DADOS_DIR = "$env:TEMP\hub-snk-dev"
 npm run app
 ```
 
+Variáveis internas, raramente necessárias: no shell, `SANKHYA_HUB_IPC_DIR` troca a
+pasta do `desktop-token.txt` (padrão `%APPDATA%\sankhya-hub\ipc`) e
+`SANKHYA_HUB_RAIZ` troca a pasta do backend que ele sobe (padrão: a raiz do
+repositório em desenvolvimento, `resources\hub` no instalado); no backend,
+`SANKHYA_DESKTOP_BRIDGE_URL` e `DESKTOP_BRIDGE_TOKEN_FILE` dizem onde está a ponte e
+o token dela — o shell passa as duas ao backend que sobe, e só o `npm run dev` com
+o shell fora do padrão precisa defini-las à mão.
+
 Sem o aplicativo aberto, as rotas que dependem dele (credenciais, guias do
 Sankhya, agenda) respondem `503` com `shellIndisponivel`; o resto do painel
 funciona no navegador, em `http://127.0.0.1:4100`.
 
 Use uma pasta de dados separada, para não mexer no cadastro de verdade:
 
-```bash
-# Windows (PowerShell)
+```powershell
 $env:HUB_DADOS_DIR = "$env:TEMP\hub-snk-dev"; npm run dev
-
-# Linux / macOS
-HUB_DADOS_DIR=/tmp/hub-snk-dev npm run dev
 ```
 
 ## Antes de commitar
@@ -63,8 +67,9 @@ npm test
 npm run formatar
 ```
 
-É o que o CI roda em cada push e pull request, no Linux, no Windows e no macOS,
-nas versões 22.18 e 24 do Node. O `typecheck` existe porque o Node apaga os tipos
+É o que o CI roda em cada pull request e em cada push na `main`, no Linux, no
+Windows e no macOS, nas versões 22.18 e 24 do Node — o backend roda com o Node do
+sistema em desenvolvimento, embora o aplicativo seja distribuído só para Windows. O `typecheck` existe porque o Node apaga os tipos
 sem conferi-los: sem ele, erro de tipo só apareceria rodando.
 
 A formatação é do Prettier, configurado no `.prettierrc.json`. O

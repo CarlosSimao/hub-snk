@@ -65,9 +65,9 @@ versão antiga e mantém o cadastro onde está.
   antes é lido como Oracle por service name.
 - **Importar .env**, na aba MCP das configurações: escolhe o `.env` do
   `sankhya-schema-mcp` e preenche o caminho e as variáveis com o conteúdo dele.
-- **Onde os links abrem**, na aba Geral das configurações: para bases, links
-  gerais e links de projeto, a escolha entre uma guia do HUB SNK e o navegador
-  padrão do sistema. Padrão: bases no HUB SNK, links no navegador padrão.
+- **Onde os links abrem**, na aba Geral das configurações: uma escolha só, entre
+  uma guia do HUB SNK e o navegador padrão do sistema, que vale para as bases, os
+  repositórios, os links gerais e os links de projeto. Padrão: guia do HUB SNK.
 - Links do painel que não estão no cadastro (GitHub, página de release) abrem no
   navegador do sistema.
 - **F12** abre as ferramentas de desenvolvedor da guia ativa; Ctrl+Shift+I segue
@@ -91,6 +91,8 @@ versão antiga e mantém o cadastro onde está.
 - **Contatos**, no menu principal e no cadastro do cliente: nome, cargo, telefone,
   e-mail e cliente opcional, com filtro por nome e por cliente. Um lembrete com
   e-mail pode copiar contatos: o destinatário do SMTP vai no "Para" e eles, em cópia.
+- A aba **Sobre** das configurações ganha o e-mail de contato do autor, e o nome
+  "HUB SNK" ali leva ao repositório no GitHub.
 
 ### Alterado
 
@@ -104,7 +106,7 @@ versão antiga e mantém o cadastro onde está.
 - O detalhe do cliente abre na aba **Bases** quando a Geral não tem anotações nem
   links.
 - O menu do aplicativo (Hub, Guias, Janela, Ajuda) saiu da barra nativa e abre por
-  um botão à esquerda da guia Hub, com os mesmos atalhos. O botão de recarregar
+  um botão à esquerda da guia Painel, com os mesmos atalhos. O botão de recarregar
   foi redesenhado, e o texto de situação (backend, cookies do ERP, Experience)
   saiu da barra.
 - O `hub-snk.env` deixa de ser lido. O backend escuta sempre em `127.0.0.1`, na
@@ -120,7 +122,7 @@ versão antiga e mantém o cadastro onde está.
   e tar.gz e os launchers `iniciar.vbs`/`iniciar.sh`.
 - As variáveis `HUB_PERMITIR_REDE`, `HUB_NAVEGADOR` e `HUB_ABRIR_JANELA`. O
   `HUB_HOST` só aceita loopback.
-- A distribuição para **macOS**. O pacote para Linux está em preparação.
+- A distribuição para **macOS** e **Linux**: a versão 2 é só para Windows.
 
 ### Corrigido
 
@@ -128,6 +130,9 @@ versão antiga e mantém o cadastro onde está.
   as descartava. Agora acusa o erro.
 - Os balões de ajuda das legendas das configurações abriam abaixo do rodapé e
   criavam barra de rolagem.
+- O balão de ajuda dos nomes completos do cliente abria abaixo do botão de
+  adicionar, passava do rodapé da janela e criava barra de rolagem. Agora abre logo
+  abaixo do rótulo.
 - Base cadastrada em https cujo servidor rebaixa para http no redirecionamento
   deixava o login carregando para sempre na guia. Agora a guia volta para https.
 

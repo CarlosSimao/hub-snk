@@ -19,15 +19,14 @@ body:
     validations:
       required: true
 
-  - type: dropdown
+  - type: input
     id: sistema
     attributes:
-      label: Sistema operacional
-      options:
-        - Windows
-        - Linux
+      label: Versão do Windows
+      description: O HUB SNK é distribuído só para Windows.
+      placeholder: Windows 11 23H2
     validations:
-      required: true
+      required: false
 
   - type: dropdown
     id: como-roda
