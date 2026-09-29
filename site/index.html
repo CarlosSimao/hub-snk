@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HUB SNK</title>
+    <meta
+      name="description"
+      content="Cadastro de clientes, bases e repositórios, com o Sankhya Om e a Experience abertos em guias do próprio aplicativo. Para Windows."
+    />
+    <meta property="og:title" content="HUB SNK" />
+    <meta
+      property="og:description"
+      content="Clientes, bases, agenda e OS num aplicativo só, com login automático no Sankhya Om e na Experience."
+    />
+    <meta property="og:image" content="https://carlossimao.github.io/hub-snk/img/screenshot.png" />
+    <meta property="og:url" content="https://carlossimao.github.io/hub-snk/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="img/icone.png" />
+    <style>
+      :root {
+        --marca: #66cb66;
+        --marca-forte: #4fb84f;
+        --aviso: #f59e0b;
+        --bg: #070b14;
+        --bg-soft: #0d1425;
+        --surface: #131c30;
+        --border: rgba(148, 163, 184, 0.14);
+        --border-strong: rgba(148, 163, 184, 0.26);
+        --text: #e8eefc;
+        --text-dim: #97a5c0;
+        --text-no-botao: #07210a;
+        --radius: 16px;
+        --radius-sm: 10px;
+        --sans: 'Segoe UI', Arial, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+        color-scheme: dark;
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root:not([data-theme='dark']) {
+          --marca-forte: #2f8f2f;
+          --bg: #f1f5f9;
+          --bg-soft: #e8eef7;
+          --surface: #ffffff;
+          --border: rgba(15, 23, 42, 0.1);
+          --border-strong: rgba(15, 23, 42, 0.18);
+          --text: #0f172a;
+          --text-dim: #475569;
+          color-scheme: light;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        line-height: 1.55;
+      }
+
+      a {
+        color: var(--marca-forte);
+      }
+
+      .conteudo {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 16px;
+      }
+
+      header.topo {
+        border-bottom: 1px solid var(--border);
+      }
+
+      header.topo .conteudo {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: 64px;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text);
+        text-decoration: none;
+        font-size: 1.15rem;
+      }
+
+      .logo img {
+        width: 32px;
+        height: 32px;
+      }
+
+      .logo span {
+        font-weight: 300;
+      }
+
+      nav.links {
+        display: flex;
+        gap: 20px;
+        font-size: 0.95rem;
+      }
+
+      nav.links a {
+        color: var(--text-dim);
+        text-decoration: none;
+      }
+
+      nav.links a:hover {
+        color: var(--text);
+      }
+
+      .abertura {
+        padding: 64px 0 40px;
+        text-align: center;
+      }
+
+      .abertura h1 {
+        margin: 0 0 16px;
+        font-size: clamp(2rem, 5vw, 3rem);
+        line-height: 1.15;
+        text-wrap: balance;
+      }
+
+      .abertura p.resumo {
+        max-width: 640px;
+        margin: 0 auto 32px;
+        color: var(--text-dim);
+        font-size: 1.1rem;
+        text-wrap: pretty;
+      }
+
+      .botao-download {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 28px;
+        border-radius: var(--radius-sm);
+        background: var(--marca);
+        color: var(--text-no-botao);
+        font-weight: 700;
+        font-size: 1.05rem;
+        text-decoration: none;
+      }
+
+      .botao-download:hover {
+        background: var(--marca-forte);
+        color: #fff;
+      }
+
+      .botao-download svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .sob-o-botao {
+        margin-top: 14px;
+        color: var(--text-dim);
+        font-size: 0.9rem;
+      }
+
+      .print {
+        margin: 0 0 72px;
+      }
+
+      .print img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius);
+        box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.8);
+      }
+
+      section {
+        padding: 0 0 72px;
+      }
+
+      section h2 {
+        margin: 0 0 8px;
+        font-size: 1.75rem;
+      }
+
+      section p.introducao {
+        margin: 0 0 28px;
+        color: var(--text-dim);
+        max-width: 720px;
+      }
+
+      .funcionalidades {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+      }
+
+      .funcionalidade {
+        padding: 20px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+
+      .funcionalidade h3 {
+        margin: 0 0 6px;
+        font-size: 1.05rem;
+      }
+
+      .funcionalidade p {
+        margin: 0;
+        color: var(--text-dim);
+        font-size: 0.95rem;
+      }
+
+      ol.passos {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: passo;
+        display: grid;
+        gap: 16px;
+      }
+
+      ol.passos li {
+        counter-increment: passo;
+        position: relative;
+        padding: 20px 20px 20px 68px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+
+      ol.passos li::before {
+        content: counter(passo);
+        position: absolute;
+        left: 20px;
+        top: 18px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--marca);
+        color: var(--text-no-botao);
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+      }
+
+      ol.passos h3 {
+        margin: 0 0 4px;
+        font-size: 1.05rem;
+      }
+
+      ol.passos p {
+        margin: 0;
+        color: var(--text-dim);
+      }
+
+      .aviso {
+        margin-top: 10px;
+        padding: 10px 14px;
+        border-left: 3px solid var(--aviso);
+        border-radius: 6px;
+        background: var(--bg-soft);
+        color: var(--text-dim);
+        font-size: 0.93rem;
+      }
+
+      em.caminho {
+        font-style: normal;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .requisitos {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+      }
+
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 28px 0 40px;
+        color: var(--text-dim);
+        font-size: 0.9rem;
+      }
+
+      footer .conteudo {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      footer nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+      }
+
+      @media (max-width: 600px) {
+        nav.links {
+          display: none;
+        }
+
+        .abertura {
+          padding-top: 40px;
+        }
+
+        ol.passos li {
+          padding-left: 60px;
+        }
+
+        ol.passos li::before {
+          left: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="./">
+          <img src="img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav class="links">
+          <a href="#funcionalidades">Funcionalidades</a>
+          <a href="#instalacao">Instalação</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="conteudo">
+      <div class="abertura">
+        <h1>Seus clientes, bases e o Sankhya num aplicativo só</h1>
+        <p class="resumo">
+          Cadastre os clientes com as bases e os repositórios de cada um, e abra o Sankhya Om, a
+          Experience e as bases dos clientes em guias do próprio HUB SNK, com o login feito sozinho.
+        </p>
+        <a
+          class="botao-download"
+          href="https://github.com/CarlosSimao/hub-snk/releases/latest/download/HUB-SNK-Setup.exe"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 3v12" />
+            <path d="m7 10 5 5 5-5" />
+            <path d="M5 21h14" />
+          </svg>
+          Baixar para Windows
+        </a>
+        <div class="sob-o-botao">
+          Windows 10 ou 11 · instala sem pedir administrador ·
+          <a href="https://github.com/CarlosSimao/hub-snk/releases">versões e novidades</a>
+        </div>
+      </div>
+
+      <div class="print">
+        <img
+          src="img/screenshot.png"
+          width="1600"
+          height="901"
+          alt="Tela do HUB SNK com a lista de clientes à esquerda e as bases de um cliente à direita"
+        />
+      </div>
+
+      <section id="funcionalidades">
+        <h2>Funcionalidades</h2>
+        <p class="introducao">
+          O que aparece no painel depende do seu perfil, escolhido na instalação e ajustável depois
+          em Configurações › Acessos.
+        </p>
+        <div class="funcionalidades">
+          <article class="funcionalidade">
+            <h3>Cadastro de clientes</h3>
+            <p>
+              Bases de Produção e Teste com usuário, senha e banco (Oracle ou SQL Server),
+              repositórios Git, projetos, links, contatos e anotações de cada cliente.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Sankhya Om e Experience em guias</h3>
+            <p>
+              Os dois sistemas abertos dentro do aplicativo, com login automático. Cada base de
+              cliente abre na sua própria guia, isolada das outras, já logada.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Credenciais protegidas</h3>
+            <p>
+              Usuário e senha do Sankhya Om e da Experience ficam no cofre do Windows, cifrados, e
+              só são preenchidos na página de login esperada.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Agenda de Recursos</h3>
+            <p>
+              Os seus eventos da agenda num calendário, também separados por cliente, sem abrir o
+              Sankhya Om.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Ordens de Serviço</h3>
+            <p>
+              As OS que você lançou na Experience, mês a mês, agrupadas por status e com o total de
+              horas. E um aviso quando um atendimento do dia terminou sem OS lançada.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Lembretes e notificações</h3>
+            <p>
+              Lembretes numa data ou recorrentes, ligados a um cliente ou projeto. Avisos no sino do
+              topo, com som, e por e-mail, se você configurar.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Repositórios Git</h3>
+            <p>
+              Abra a pasta, o terminal ou a sua IDE com um clique. Um selo mostra a branch e o que
+              está pendente: commit faltando, conflito ou arquivo sensível versionado.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Ambiente local</h3>
+            <p>
+              Ligue, pare e reinicie o WildFly e o banco Docker da sua máquina, com a situação do
+              serviço e o log ao vivo.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Importar favoritos</h3>
+            <p>
+              Transforme os favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, com
+              Produção ou Teste deduzido do nome.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Atalhos</h3>
+            <p>Os programas que você mais usa, abertos com um clique a partir do painel.</p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Git AutoSync (opcional)</h3>
+            <p>
+              Oferecido no instalador: commit e push automáticos dos seus repositórios, com tarefa
+              diária e ícone na bandeja.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Seus dados na sua máquina</h3>
+            <p>
+              O cadastro fica em arquivos no seu computador, sem conta, sem servidor e sem banco de
+              dados para instalar.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="instalacao">
+        <h2>Instalação</h2>
+        <p class="introducao">
+          O instalador ainda não tem assinatura digital, por isso o navegador e o Windows mostram
+          avisos. Os passos abaixo explicam como seguir.
+        </p>
+        <ol class="passos">
+          <li>
+            <h3>Baixe o instalador</h3>
+            <p>
+              Clique em
+              <a
+                href="https://github.com/CarlosSimao/hub-snk/releases/latest/download/HUB-SNK-Setup.exe"
+                >Baixar para Windows</a
+              >. Ele sempre traz a versão mais recente.
+            </p>
+            <div class="aviso">
+              Se o navegador disser que o arquivo não é baixado com frequência, escolha
+              <em class="caminho">Manter</em>. No Edge, fica no menu <em class="caminho">···</em> do
+              aviso de download.
+            </div>
+          </li>
+          <li>
+            <h3>Rode o HUB-SNK-Setup.exe</h3>
+            <p>Ele instala só para o seu usuário e não pede senha de administrador.</p>
+            <div class="aviso">
+              Se aparecer <em class="caminho">"O Windows protegeu o computador"</em>, clique em
+              <em class="caminho">Mais informações</em> ›
+              <em class="caminho">Executar assim mesmo</em>.
+            </div>
+          </li>
+          <li>
+            <h3>Escolha o seu perfil</h3>
+            <p>
+              Desenvolvedor, Consultor, Analista ou Gerente de projeto: o perfil define as abas
+              visíveis. Marque <em class="caminho">Terceiro</em> se você não tem acesso ao Sankhya
+              Om nem à Experience. Na tela seguinte, instale o Git AutoSync, se quiser.
+            </p>
+          </li>
+          <li>
+            <h3>Salve as suas credenciais</h3>
+            <p>
+              Abra o HUB SNK pelo atalho na área de trabalho e salve usuário e senha em
+              <em class="caminho">Credenciais Sankhya</em>, no cadeado do topo, junto com o seu
+              código de usuário Sankhya OM, que filtra a agenda. A partir daí, as guias logam
+              sozinhas.
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <section id="requisitos">
+        <h2>Bom saber</h2>
+        <div class="requisitos">
+          <article class="funcionalidade">
+            <h3>Atualizar</h3>
+            <p>Baixe e rode o instalador de novo, por cima. O cadastro continua onde está.</p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Desinstalar</h3>
+            <p>Em Configurações do Windows › Aplicativos › HUB SNK. O cadastro não é apagado.</p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Recursos opcionais</h3>
+            <p>
+              O Git precisa estar instalado para os recursos de repositório e para o Git AutoSync, e
+              o Docker, para o banco local.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Encontrou um problema?</h3>
+            <p>
+              <a href="https://github.com/CarlosSimao/hub-snk/issues/new/choose">Abra uma issue</a>
+              com a versão do rodapé do aplicativo, sem colar senha, host ou nome de cliente: o
+              repositório é público.
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="conteudo">
+        <span>HUB SNK · licença MIT · feito por Carlos Nascimento</span>
+        <nav>
+          <a href="https://github.com/CarlosSimao/hub-snk">Código no GitHub</a>
+          <a href="https://github.com/CarlosSimao/hub-snk/blob/main/CHANGELOG.md">O que mudou</a>
+          <a href="https://github.com/CarlosSimao/hub-snk/releases">Todas as versões</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>
