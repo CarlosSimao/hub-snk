@@ -5,6 +5,7 @@
  * (`x-hub-token`) e só em 127.0.0.1.
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { dialog } from 'electron';
 import { BRIDGE_HOST, BRIDGE_PORT } from './config';
 import { garantirToken } from './tokenStore';
 import { logEvento } from './log';
@@ -231,6 +232,18 @@ export function criarBridgeServer(
 
       responderJson(res, 404, { erro: 'rota desconhecida' });
     })();
+  });
+
+  // Porta ocupada (outro HUB SNK aberto com as mesmas portas, por exemplo) viraria exceção
+  // não tratada, e cofre, Agenda e login automático morreriam sem dizer por quê.
+  servidor.once('error', (erro) => {
+    logEvento('bridge-servidor-falhou', { erro: String(erro) });
+    dialog.showErrorBox(
+      'HUB SNK — a ponte com o backend não abriu',
+      `A porta ${BRIDGE_PORT} de ${BRIDGE_HOST} não pôde ser aberta (${String(erro)}). ` +
+        'Credenciais Sankhya, Agenda e login automático ficam indisponíveis. Feche o outro ' +
+        'programa que usa essa porta e abra o HUB SNK de novo.',
+    );
   });
 
   servidor.listen(BRIDGE_PORT, BRIDGE_HOST, () => {

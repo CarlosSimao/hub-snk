@@ -110,12 +110,16 @@ function montarAmbiente(): NodeJS.ProcessEnv {
   return ambiente;
 }
 
-/** Espera o `/api/healthz` responder, desistindo cedo se o processo já morreu. */
-async function esperarSubir(timeoutMs: number): Promise<boolean> {
+/**
+ * Espera o `/api/healthz` responder, desistindo cedo se o processo já morreu. Recebe o
+ * processo em vez de ler a variável do módulo: o `exit` a zera, e a checagem de morte
+ * nunca valia — um backend que caía no boot fazia esperar o prazo inteiro.
+ */
+async function esperarSubir(timeoutMs: number, filho?: ChildProcess): Promise<boolean> {
   const limite = Date.now() + timeoutMs;
   while (Date.now() < limite) {
     if (await backendRespondendo()) return true;
-    if (processo && processo.exitCode !== null) return false;
+    if (filho && (filho.exitCode !== null || filho.signalCode !== null)) return false;
     await new Promise((resolva) => setTimeout(resolva, 300));
   }
   return false;
@@ -191,7 +195,7 @@ export async function iniciarBackend(): Promise<ResultadoBackend> {
 
   logEvento('backend-iniciando', { runtime: process.execPath, entrypoint: ENTRYPOINT_BACKEND });
 
-  processo = spawn(process.execPath, [ENTRYPOINT_BACKEND], {
+  const filho = spawn(process.execPath, [ENTRYPOINT_BACKEND], {
     // A raiz, e não `src/`: é onde o Node acha o `package.json` com `"type": "module"`
     // e o `node_modules`.
     cwd: RAIZ_PROJETO,
@@ -201,23 +205,30 @@ export async function iniciarBackend(): Promise<ResultadoBackend> {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
-  processo.stdout?.on('data', (pedaco: Buffer) => {
+  processo = filho;
+
+  // Sem listener, uma falha do próprio spawn vira exceção não tratada no processo do shell.
+  filho.once('error', (erro) => {
+    logEvento('backend-spawn-falhou', { erro: String(erro) });
+    registrarSaida(String(erro));
+  });
+  filho.stdout?.on('data', (pedaco: Buffer) => {
     const texto = pedaco.toString('utf8');
     saida.write(texto);
     registrarSaida(texto);
   });
-  processo.stderr?.on('data', (pedaco: Buffer) => {
+  filho.stderr?.on('data', (pedaco: Buffer) => {
     const texto = pedaco.toString('utf8');
     saida.write(texto);
     registrarSaida(texto);
   });
 
-  processo.on('exit', (codigo, sinal) => {
+  filho.on('exit', (codigo, sinal) => {
     logEvento('backend-encerrado', { codigo, sinal, deProposito: encerrandoDeProposito });
     processo = null;
   });
 
-  const subiu = await esperarSubir(TIMEOUT_BOOT_MS);
+  const subiu = await esperarSubir(TIMEOUT_BOOT_MS, filho);
   if (subiu) {
     logEvento('backend-pronto', { url: HUB_URL });
     return { modo: 'gerenciado', erro: '' };

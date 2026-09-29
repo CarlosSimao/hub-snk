@@ -266,6 +266,7 @@ export class TabManager {
   readonly #abas = new Map<string, WebContentsView>();
   readonly #abasClientes = new Map<string, AbaClienteInfo>();
   readonly #janelasFilhas = new Set<BrowserWindow>();
+  readonly #particoesComDownload = new Set<string>();
   /** origin (protocolo+host+porta) -> base cadastrada. Precisa ser exato: duas bases do
    * mesmo cliente podem compartilhar host e diferir só na porta (caso real: prod/teste
    * do mesmo cliente em portas distintas), com usuário/senha diferentes. */
@@ -294,6 +295,18 @@ export class TabManager {
     // Sessão padrão: onde as abas de cliente (partição própria por origin) e a
     // navegação de pop-up defensivamente caem — ver comentário em criarAbaPrincipal.
     session.defaultSession.on('will-download', registrarDownload('default', this.#janelasFilhas));
+  }
+
+  /**
+   * Um listener por partição. As três guias principais dividem a mesma, e a sessão de uma
+   * base reaberta é a mesma de antes: registrar a cada guia repetia cada download no log.
+   */
+  #registrarDownloadsDaParticao(particao: string): void {
+    if (this.#particoesComDownload.has(particao)) return;
+    this.#particoesComDownload.add(particao);
+    session
+      .fromPartition(particao)
+      .on('will-download', registrarDownload(particao, this.#janelasFilhas));
   }
 
   aba(id: TabId): WebContentsView | undefined {
@@ -355,9 +368,7 @@ export class TabManager {
         // Nenhum preload nas abas remotas: zero bridge para conteúdo de fora.
       },
     });
-    session
-      .fromPartition(particao)
-      .on('will-download', registrarDownload(particao, this.#janelasFilhas));
+    this.#registrarDownloadsDaParticao(particao);
     // Diagnóstico das abas remotas: sem isto, um erro de JS dentro da página do Sankhya
     // só aparece como caixa de alerta na tela do usuário, sem rastro nenhum de onde veio.
     // Só `error` (level 3) — `warning` do Sankhya é ruidoso demais para valer log.
@@ -708,7 +719,8 @@ export class TabManager {
     this.#emitirGuias();
   }
 
-  recarregar(id: string): boolean {
+  /** Sem `id`, a guia que está na tela — é o que o Ctrl+R do menu quer. */
+  recarregar(id: string = this.#abaAtiva): boolean {
     const view = this.#abas.get(id);
     if (!view) return false;
     view.webContents.reload();
@@ -787,9 +799,7 @@ export class TabManager {
     // Sem isto, um download servido pela partição isolada do cliente não dispara nada: o
     // listener de `will-download` só existia na sessão padrão e nas partições das abas
     // principais, então baixar de dentro de uma aba de cliente falhava em silêncio.
-    session
-      .fromPartition(particao)
-      .on('will-download', registrarDownload(particao, this.#janelasFilhas));
+    this.#registrarDownloadsDaParticao(particao);
     manterHttpsDaBase(particao, origin);
     view.webContents.on('did-finish-load', () => {
       logEvento('aba-cliente-carregada', {
@@ -851,6 +861,9 @@ export class TabManager {
     const view = this.#abas.get(origin);
     if (!view || !this.#abasClientes.has(origin)) return false;
     this.#janela.contentView.removeChildView(view);
+    // Tirar da janela não encerra a página: sem isto ela seguia viva e logada, com timers
+    // e o autofill rodando, e cada abrir e fechar deixava um renderer para trás.
+    view.webContents.close();
     this.#abas.delete(origin);
     this.#abasClientes.delete(origin);
     this.#escondidas.delete(origin);

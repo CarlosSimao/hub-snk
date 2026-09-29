@@ -22,7 +22,7 @@ export function montarMenu(
         {
           label: 'Recarregar a guia atual',
           accelerator: 'CmdOrCtrl+R',
-          click: () => tabs()?.recarregar(''),
+          click: () => tabs()?.recarregar(),
         },
         { type: 'separator' },
         { label: 'Sair', role: 'quit' },
