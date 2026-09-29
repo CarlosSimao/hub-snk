@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8" />
+    <title>HUB SNK</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        background: #12151b;
+        color: #e6e6e6;
+      }
+
+      /* A barra e a "trilha" das guias: mesmo fundo do corpo, borda só embaixo — é nela que
+     a guia ativa "encosta" pra dar a sensação de continuar no conteúdo abaixo. */
+      #barra {
+        display: flex;
+        align-items: flex-end;
+        gap: 0;
+        padding: 8px 10px 0;
+        background: #12151b;
+        border-bottom: 1px solid #333;
+        flex-wrap: wrap;
+      }
+
+      /* Guia fixa do menu: sem borda nem fundo de guia, para não competir com as guias de
+     conteúdo — só destaca no hover. */
+      #menu {
+        align-self: stretch;
+        display: flex;
+        align-items: center;
+        margin-right: 2px;
+        padding: 0 6px;
+        border: none;
+        border-radius: 6px 6px 0 0;
+        background: transparent;
+        color: #7d8595;
+        cursor: pointer;
+      }
+      /* SVG em vez do caractere ☰: a fonte desenha as três linhas com espessuras e vãos
+     desiguais. */
+      #menu svg {
+        display: block;
+        fill: currentColor;
+      }
+      #menu:hover {
+        background: #1b1f27;
+        color: #e6e6e6;
+      }
+
+      #abas,
+      #abasClientes {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        flex-wrap: wrap;
+      }
+
+      /* Guia de navegador: cantos só em cima, sem borda embaixo (a ativa cobre o traço da
+     barra), levemente mais baixa quando inativa — realça qual guia "está na frente". */
+      #abas button,
+      .aba-cliente {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        margin-bottom: 0;
+        border: 1px solid #333;
+        border-bottom: none;
+        border-radius: 8px 8px 0 0;
+        background: #1b1f27;
+        color: #b7bfcc;
+        font: inherit;
+        font-size: 12.5px;
+        cursor: pointer;
+        transition:
+          background 0.12s ease,
+          color 0.12s ease;
+      }
+      #abas button:hover,
+      .aba-cliente:hover {
+        background: #232833;
+        color: #e6e6e6;
+      }
+      #abas button.ativa,
+      .aba-cliente.ativa {
+        background: #2d6cdf;
+        color: #fff;
+        border-color: #2d6cdf;
+        box-shadow:
+          0 -2px 0 0 #2d6cdf inset,
+          0 -3px 8px rgba(0, 0, 0, 0.25);
+        position: relative;
+        z-index: 1;
+      }
+
+      .aba-cliente .fechar {
+        opacity: 0;
+        padding: 0 2px;
+        border-radius: 3px;
+      }
+      .aba-cliente:hover .fechar,
+      .aba-cliente.ativa .fechar {
+        opacity: 0.75;
+      }
+      .aba-cliente .fechar:hover {
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      /* Controles ficam fora da fileira de guias — navegador de verdade nunca mistura ação
+     de navegação com guia. */
+      #controles {
+        display: flex;
+        align-items: center;
+        margin-left: auto;
+        padding-bottom: 5px;
+      }
+      #recarregar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        padding: 0;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: #7d8595;
+        cursor: pointer;
+        transition:
+          background 0.12s ease,
+          color 0.12s ease;
+      }
+      #recarregar:hover {
+        background: #1b1f27;
+        color: #e6e6e6;
+      }
+      #recarregar svg {
+        display: block;
+      }
+      /* Um giro por clique: confirma que o comando saiu, sem ficar girando à toa. */
+      #recarregar.girando svg {
+        animation: girar 0.5s ease;
+      }
+      @keyframes girar {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="barra">
+      <button id="menu" title="Menu" aria-label="Menu" aria-haspopup="menu">
+        <svg width="12" height="10" viewBox="0 0 12 10" aria-hidden="true">
+          <rect y="0" width="12" height="2" rx="1" />
+          <rect y="4" width="12" height="2" rx="1" />
+          <rect y="8" width="12" height="2" rx="1" />
+        </svg>
+      </button>
+      <div id="abas">
+        <button data-id="hub" class="ativa">Painel</button>
+        <button data-id="erp">Sankhya Om</button>
+        <button data-id="experience">Experience</button>
+      </div>
+      <div id="abasClientes"></div>
+      <div id="controles">
+        <button id="recarregar" title="Recarregar a guia ativa" aria-label="Recarregar">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+            <path d="M21 3v6h-6" />
+          </svg>
+        </button>
+      </div>
+    </div>
+    <script src="renderer.js"></script>
+  </body>
+</html>

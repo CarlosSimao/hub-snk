@@ -38,8 +38,13 @@ interface Lancamento {
  * pega o diálogo por `GetWindow(..., GW_ENABLEDPOPUP)` a partir da dona. A
  * janela dona existe só para dar esse ponto de partida, por isso nasce
  * transparente e com 1x1 pixel.
+ *
+ * O PowerShell 5.1 escreve na saída padrão na página de código do console
+ * (cp850), e o Node lê UTF-8: sem fixar a codificação, "Área de Trabalho" ou
+ * "C:\Users\João" voltam corrompidos e o caminho gravado não existe.
  */
 const SCRIPT_DO_WINDOWS = `
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 Add-Type -Namespace HubSnk -Name Janela -MemberDefinition @'
@@ -130,9 +135,11 @@ function executarSeletor({ comando, argumentos }: Lancamento): Promise<string | 
   return new Promise((resolver, rejeitar) => {
     const processo = spawn(comando, argumentos, { stdio: ['ignore', 'pipe', 'ignore'] });
 
+    // Decodifica o fluxo inteiro, não pedaço a pedaço: um caractere acentuado pode cair na divisa.
+    processo.stdout.setEncoding('utf8');
     let saida = '';
-    processo.stdout.on('data', (pedaco: Buffer) => {
-      saida += pedaco.toString('utf8');
+    processo.stdout.on('data', (pedaco: string) => {
+      saida += pedaco;
     });
 
     processo.once('error', (erro) => {

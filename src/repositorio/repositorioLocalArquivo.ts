@@ -7,6 +7,7 @@ import {
   migrarArquivoDeDados,
   precisaMigrar,
 } from './arquivoDeDados.ts';
+import { FilaDeOperacoes } from './filaDeOperacoes.ts';
 import {
   BaseLocalNaoEncontradaError,
   BancoLocalNaoEncontradoError,
@@ -27,11 +28,12 @@ const ARQUIVO_INICIAL: DadosDoArquivo = { bases: [], bancos: [] };
 
 /**
  * Bases e bancos locais num arquivo JSON próprio, com a mesma escrita atômica
- * usada nos demais repositórios (grava em `.tmp` e renomeia por cima).
+ * e a mesma fila de operações dos demais repositórios.
  */
 export class RepositorioLocalArquivo implements RepositorioLocal {
   readonly #caminhoDoArquivo: string;
   #dados: DadosDoArquivo | null = null;
+  readonly #fila = new FilaDeOperacoes();
 
   constructor(diretorioDeDados: string) {
     this.#caminhoDoArquivo = join(diretorioDeDados, NOME_DO_ARQUIVO);
@@ -73,105 +75,121 @@ export class RepositorioLocalArquivo implements RepositorioLocal {
     this.#dados = dados;
   }
 
-  async listarBases(): Promise<BaseLocal[]> {
-    const dados = await this.#ler();
-    return dados.bases;
+  listarBases(): Promise<BaseLocal[]> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      return dados.bases;
+    });
   }
 
-  async criarBase(dadosDaBase: DadosDeBaseLocal): Promise<BaseLocal> {
-    const dados = await this.#ler();
-    const agora = new Date().toISOString();
+  criarBase(dadosDaBase: DadosDeBaseLocal): Promise<BaseLocal> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      const agora = new Date().toISOString();
 
-    const base: BaseLocal = {
-      id: randomUUID(),
-      nome: dadosDaBase.nome,
-      caminhoWildfly: dadosDaBase.caminhoWildfly,
-      porta: dadosDaBase.porta,
-      criadoEm: agora,
-      atualizadoEm: agora,
-    };
+      const base: BaseLocal = {
+        id: randomUUID(),
+        nome: dadosDaBase.nome,
+        caminhoWildfly: dadosDaBase.caminhoWildfly,
+        porta: dadosDaBase.porta,
+        criadoEm: agora,
+        atualizadoEm: agora,
+      };
 
-    await this.#gravar({ ...dados, bases: [...dados.bases, base] });
-    return base;
+      await this.#gravar({ ...dados, bases: [...dados.bases, base] });
+      return base;
+    });
   }
 
-  async atualizarBase(id: string, dadosDaBase: DadosDeBaseLocal): Promise<BaseLocal> {
-    const dados = await this.#ler();
-    const indice = dados.bases.findIndex((base) => base.id === id);
-    if (indice === -1) {
-      throw new BaseLocalNaoEncontradaError(id);
-    }
+  atualizarBase(id: string, dadosDaBase: DadosDeBaseLocal): Promise<BaseLocal> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      const indice = dados.bases.findIndex((base) => base.id === id);
+      if (indice === -1) {
+        throw new BaseLocalNaoEncontradaError(id);
+      }
 
-    const base: BaseLocal = {
-      ...dados.bases[indice]!,
-      nome: dadosDaBase.nome,
-      caminhoWildfly: dadosDaBase.caminhoWildfly,
-      porta: dadosDaBase.porta,
-      atualizadoEm: new Date().toISOString(),
-    };
+      const base: BaseLocal = {
+        ...dados.bases[indice]!,
+        nome: dadosDaBase.nome,
+        caminhoWildfly: dadosDaBase.caminhoWildfly,
+        porta: dadosDaBase.porta,
+        atualizadoEm: new Date().toISOString(),
+      };
 
-    const bases = [...dados.bases];
-    bases[indice] = base;
+      const bases = [...dados.bases];
+      bases[indice] = base;
 
-    await this.#gravar({ ...dados, bases });
-    return base;
+      await this.#gravar({ ...dados, bases });
+      return base;
+    });
   }
 
-  async removerBase(id: string): Promise<void> {
-    const dados = await this.#ler();
-    if (!dados.bases.some((base) => base.id === id)) {
-      throw new BaseLocalNaoEncontradaError(id);
-    }
+  removerBase(id: string): Promise<void> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      if (!dados.bases.some((base) => base.id === id)) {
+        throw new BaseLocalNaoEncontradaError(id);
+      }
 
-    await this.#gravar({ ...dados, bases: dados.bases.filter((base) => base.id !== id) });
+      await this.#gravar({ ...dados, bases: dados.bases.filter((base) => base.id !== id) });
+    });
   }
 
-  async listarBancos(): Promise<BancoLocal[]> {
-    const dados = await this.#ler();
-    return dados.bancos;
+  listarBancos(): Promise<BancoLocal[]> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      return dados.bancos;
+    });
   }
 
-  async criarBanco(dadosDoBanco: DadosDeBancoLocal): Promise<BancoLocal> {
-    const dados = await this.#ler();
-    const agora = new Date().toISOString();
+  criarBanco(dadosDoBanco: DadosDeBancoLocal): Promise<BancoLocal> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      const agora = new Date().toISOString();
 
-    const banco: BancoLocal = {
-      id: randomUUID(),
-      ...dadosDoBanco,
-      criadoEm: agora,
-      atualizadoEm: agora,
-    };
+      const banco: BancoLocal = {
+        id: randomUUID(),
+        ...dadosDoBanco,
+        criadoEm: agora,
+        atualizadoEm: agora,
+      };
 
-    await this.#gravar({ ...dados, bancos: [...dados.bancos, banco] });
-    return banco;
+      await this.#gravar({ ...dados, bancos: [...dados.bancos, banco] });
+      return banco;
+    });
   }
 
-  async atualizarBanco(id: string, dadosDoBanco: DadosDeBancoLocal): Promise<BancoLocal> {
-    const dados = await this.#ler();
-    const indice = dados.bancos.findIndex((banco) => banco.id === id);
-    if (indice === -1) {
-      throw new BancoLocalNaoEncontradoError(id);
-    }
+  atualizarBanco(id: string, dadosDoBanco: DadosDeBancoLocal): Promise<BancoLocal> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      const indice = dados.bancos.findIndex((banco) => banco.id === id);
+      if (indice === -1) {
+        throw new BancoLocalNaoEncontradoError(id);
+      }
 
-    const banco: BancoLocal = {
-      ...dados.bancos[indice]!,
-      ...dadosDoBanco,
-      atualizadoEm: new Date().toISOString(),
-    };
+      const banco: BancoLocal = {
+        ...dados.bancos[indice]!,
+        ...dadosDoBanco,
+        atualizadoEm: new Date().toISOString(),
+      };
 
-    const bancos = [...dados.bancos];
-    bancos[indice] = banco;
+      const bancos = [...dados.bancos];
+      bancos[indice] = banco;
 
-    await this.#gravar({ ...dados, bancos });
-    return banco;
+      await this.#gravar({ ...dados, bancos });
+      return banco;
+    });
   }
 
-  async removerBanco(id: string): Promise<void> {
-    const dados = await this.#ler();
-    if (!dados.bancos.some((banco) => banco.id === id)) {
-      throw new BancoLocalNaoEncontradoError(id);
-    }
+  removerBanco(id: string): Promise<void> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      if (!dados.bancos.some((banco) => banco.id === id)) {
+        throw new BancoLocalNaoEncontradoError(id);
+      }
 
-    await this.#gravar({ ...dados, bancos: dados.bancos.filter((banco) => banco.id !== id) });
+      await this.#gravar({ ...dados, bancos: dados.bancos.filter((banco) => banco.id !== id) });
+    });
   }
 }

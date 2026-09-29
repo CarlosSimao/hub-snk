@@ -9,6 +9,8 @@ dist/
 docs/videos/
 .idea/
 .vscode/
-.claude-secundario
 .DS_Store
 Thumbs.db
+
+# Instaladores gerados pelo electron-builder (desktop/electron-builder.yml).
+release/

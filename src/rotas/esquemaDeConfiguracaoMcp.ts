@@ -39,5 +39,3 @@ export const esquemaDeConfiguracaoMcp = z.object({
     .min(1, 'Informe o SANKHYA_DB_PASSWORD.')
     .max(TAMANHO_MAXIMO_DA_SENHA),
 });
-
-export type DadosDeConfiguracaoMcp = z.infer<typeof esquemaDeConfiguracaoMcp>;

@@ -1,0 +1,5 @@
+node_modules/
+dist/
+
+# Artefatos do empacotamento: staging do backend e instaladores gerados.
+build/

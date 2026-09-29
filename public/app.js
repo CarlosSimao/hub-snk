@@ -18,6 +18,9 @@ const CAMINHO_DOS_ATALHOS = '/api/atalhos';
 const CAMINHO_DO_SISTEMA = '/api/sistema';
 const CAMINHO_DAS_BASES_LOCAIS = '/api/local/bases';
 const CAMINHO_DOS_BANCOS_LOCAIS = '/api/local/bancos';
+const CAMINHO_DAS_NOTIFICACOES = '/api/notificacoes';
+const CAMINHO_DOS_LEMBRETES = '/api/lembretes';
+const CAMINHO_DOS_CONTATOS = '/api/contatos';
 const CAMINHO_DA_IMPORTACAO = `${CAMINHO_DA_API}/importacao`;
 const CAMINHO_DA_IMPORTACAO_DE_REPOSITORIOS = `${CAMINHO_DA_API}/importacao-de-repositorios`;
 const CAMINHO_DA_IMPORTACAO_DE_CADASTROS = `${CAMINHO_DA_API}/importacao-de-cadastros`;
@@ -34,11 +37,17 @@ const SENHA_MASCARADA = '••••••••';
 const SEM_VALOR = '—';
 const NOME_DO_ARQUIVO_MCP = '.sankhya-mcp.env';
 const PORTA_PADRAO_DO_BANCO = 1521;
+const PORTAS_PADRAO_POR_SGBD = { oracle: 1521, sqlserver: 1433 };
+const ROTULOS_DE_SGBD = { oracle: 'Oracle', sqlserver: 'SQL Server' };
+const ROTULOS_DE_IDENTIFICADOR_ORACLE = { 'service-name': 'Service Name', sid: 'SID' };
+const ROTULO_DO_DATABASE = 'Database';
 /* O id fixo é o que permite reencontrar o campo depois de o detalhe ser redesenhado. */
 const ID_DO_CAMPO_DE_ANOTACOES = 'campo-anotacoes';
 const LINHAS_DO_CAMPO_DE_ANOTACOES = 5;
 /* Mesmo limite validado no servidor. */
 const TAMANHO_MAXIMO_DAS_ANOTACOES = 5000;
+/* O mesmo limite de `src/rotas/rotasClientes.ts`: cobrado aqui antes de gravar qualquer coisa. */
+const MAXIMO_DE_NOMES_COMPLETOS = 20;
 
 const ROTULOS_DE_TIPO_DE_BASE = {
   producao: 'Produção',
@@ -149,12 +158,13 @@ const ICONES = {
   olhoFechado:
     'M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94 M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19 M14.12 14.12a3 3 0 1 1-4.24-4.24 M1 1l22 22',
   seta: 'M7 17L17 7 M7 7h10v10',
+  /* Chevron para baixo: alterna entre exibir e ocultar o corpo de um card. */
+  chevronBaixo: 'M6 9l6 6 6-6',
   mais: 'M12 5v14 M5 12h14',
   pasta: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z',
   terminal: 'M4 17l6-6-6-6 M12 19h8',
   /* Chaves de bloco de código: o botão que abre o projeto na IDE. */
-  intellij:
-    'M10 4h-.5a2 2 0 0 0-2 2v3.2a2 2 0 0 1-2 2 2 2 0 0 1 2 2V17a2 2 0 0 0 2 2h.5 M14 4h.5a2 2 0 0 1 2 2v3.2a2 2 0 0 0 2 2 2 2 0 0 0-2 2V17a2 2 0 0 1-2 2H14',
+  ide: 'M10 4h-.5a2 2 0 0 0-2 2v3.2a2 2 0 0 1-2 2 2 2 0 0 1 2 2V17a2 2 0 0 0 2 2h.5 M14 4h.5a2 2 0 0 1 2 2v3.2a2 2 0 0 0 2 2 2 2 0 0 0-2 2V17a2 2 0 0 1-2 2H14',
   banco:
     'M12 8c4.97 0 9-1.34 9-3s-4.03-3-9-3-9 1.34-9 3 4.03 3 9 3z M3 5v7c0 1.66 4.03 3 9 3s9-1.34 9-3V5 M3 12v7c0 1.66 4.03 3 9 3s9-1.34 9-3v-7',
   plugue: 'M9 2v6 M15 2v6 M6 8h12v3a6 6 0 0 1-12 0z M12 17v5',
@@ -170,6 +180,8 @@ const ICONES = {
     'M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M10 11v6 M14 11v6',
   /* Raio: o botão que abre a lista de atalhos. */
   raio: 'M13 2L3 14h7l-1 8 10-12h-7l1-8z',
+  /* Cadeado: o botão que abre as credenciais do Sankhya. */
+  cadeado: 'M5 11h14v10H5z M8 11V7a4 4 0 0 1 8 0v4',
   /* Funil: o botão que abre o painel de filtros da lista de clientes. */
   funil: 'M3 4h18l-7 8.5V20l-4-2.5v-5z',
   /* Triângulo de play: iniciar processo. */
@@ -190,17 +202,29 @@ const ICONES = {
   importar: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3',
   /* A mesma bandeja com a seta saindo: o botão que exporta os cadastros. */
   exportar: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 8l5-5 5 5 M12 3v12',
+  /* Elos de corrente: o botão que vincula o parceiro do evento a um cliente do HUB. */
+  link: 'M15 7h3a5 5 0 0 1 0 10h-3 M9 17H6a5 5 0 0 1 0-10h3 M8 12h8',
+  /* Sino: o botão que abre o painel de notificações. */
+  sino: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0',
 };
 
 const estado = {
   clientes: [],
   idSelecionado: null,
+  /** Aba ativa no detalhe do cliente; reiniciada em 'geral' ao trocar de cliente. */
+  abaDetalheAtiva: 'geral',
   filtro: '',
   /*
    * Situações do Git marcadas nos chips da coluna lateral. Vazio significa
    * "todas": é o mesmo resultado de marcar as cinco, com um clique só.
    */
   situacoesFiltradas: new Set(),
+  /* Funcionalidades desmarcadas em Configurações › Acessos: só somem da tela. */
+  funcionalidadesOcultas: new Set(),
+  /* Perfil em vigor na tela; `null` enquanto a configuração não foi lida. */
+  perfil: null,
+  /* Acesso de terceiro: sem Sankhya Om nem Experience, o que depende deles some. */
+  terceiro: false,
   clienteEmEdicao: null,
   clienteDaBaseEmEdicao: null,
   baseEmEdicao: null,
@@ -208,6 +232,10 @@ const estado = {
   repositorioEmEdicao: null,
   clienteDoLinkEmEdicao: null,
   linkEmEdicao: null,
+  /** Projeto dono do link em edição no modal de link; `null` quando o link é do cliente. */
+  projetoDoLinkEmEdicao: null,
+  clienteDoProjetoEmEdicao: null,
+  projetoEmEdicao: null,
   clienteDoBancoEmEdicao: null,
   baseDoBancoEmEdicao: null,
   /* Alvo do modal do MCP: repositório de cliente ou base local. */
@@ -226,10 +254,14 @@ const estado = {
    * rascunho, o que estivesse sendo digitado sumiria no meio da frase.
    */
   anotacoesEmEdicao: null,
+  /** Mesma ideia de `anotacoesEmEdicao`, mas para anotações de projeto: `{ idDoCliente, idDoProjeto, texto }`. */
+  anotacoesDoProjetoEmEdicao: null,
   senhasReveladas: new Set(),
   /* Situação Git por id de repositório, preenchida depois do primeiro desenho. */
   situacoesGit: {},
   pendenciasExpandidas: new Set(),
+  /** Ids de projeto com o corpo do card exibido; ausente aqui = recolhido (estado inicial). */
+  projetosComInformacoesVisiveis: new Set(),
   /* Situação (container + banco) por id de banco local, preenchida depois do primeiro desenho. */
   situacoesDeBancosLocais: {},
   /* Situação (serviço + HTTP) por id de base local, preenchida depois do primeiro desenho. */
@@ -238,6 +270,22 @@ const estado = {
   situacoesDeBasesDeClientes: {},
   /* Atalhos da barra da direita, relidos a cada gravação da configuração. */
   atalhos: [],
+  /* Painel de notificações: a lista vem do servidor e cresce pelo fluxo SSE. */
+  notificacoes: [],
+  lembretes: [],
+  /* Lembrete aberto no modal; `null` quando é um novo. */
+  lembreteEmEdicao: null,
+  /* Ids dos contatos em cópia no lembrete aberto no modal. */
+  contatosDoLembrete: [],
+  contatos: [],
+  /* Contato aberto no modal; `null` quando é um novo. */
+  contatoEmEdicao: null,
+  /* Cliente de quem o modal foi aberto, pela aba Contatos do cliente; `null` fora dela. */
+  clienteFixoDoContato: null,
+  /* Contato novo aberto pelo lembrete: nasce com e-mail e já entra na cópia ao salvar. */
+  contatoParaOLembrete: false,
+  /* Filtros da aba Contatos do menu principal. */
+  filtroDeContatos: { nome: '', clienteId: '' },
   /*
    * Assistente de importação de favoritos. `pastas` é a árvore lida do arquivo,
    * `selecionados` guarda as chaves marcadas na etapa da árvore e `linhas` são
@@ -315,8 +363,74 @@ const elementos = {
 
   botaoVisualizacaoClientes: document.getElementById('btn-visualizacao-clientes'),
   botaoVisualizacaoLocal: document.getElementById('btn-visualizacao-local'),
+  botaoVisualizacaoAgenda: document.getElementById('btn-visualizacao-agenda'),
+  botaoVisualizacaoOs: document.getElementById('btn-visualizacao-os'),
   visualizacaoClientes: document.getElementById('visualizacao-clientes'),
   visualizacaoLocal: document.getElementById('visualizacao-local'),
+  visualizacaoAgenda: document.getElementById('visualizacao-agenda'),
+  visualizacaoOs: document.getElementById('visualizacao-os'),
+  botaoVisualizacaoLembretes: document.getElementById('btn-visualizacao-lembretes'),
+  visualizacaoLembretes: document.getElementById('visualizacao-lembretes'),
+  mountLembretes: document.getElementById('mount-lembretes'),
+  botaoVisualizacaoContatos: document.getElementById('btn-visualizacao-contatos'),
+  visualizacaoContatos: document.getElementById('visualizacao-contatos'),
+  mountContatos: document.getElementById('mount-contatos'),
+  campoFiltroNomeContato: document.getElementById('campo-filtro-nome-contato'),
+  campoFiltroClienteContato: document.getElementById('campo-filtro-cliente-contato'),
+  modalContato: document.getElementById('modal-contato'),
+  formularioContato: document.getElementById('formulario-contato'),
+  tituloModalContato: document.getElementById('modal-contato-titulo'),
+  campoNomeContato: document.getElementById('campo-nome-contato'),
+  campoCargoContato: document.getElementById('campo-cargo-contato'),
+  campoTelefoneContato: document.getElementById('campo-telefone-contato'),
+  campoEmailContato: document.getElementById('campo-email-contato'),
+  opcionalEmailContato: document.getElementById('opcional-email-contato'),
+  grupoClienteContato: document.getElementById('grupo-cliente-contato'),
+  campoClienteContato: document.getElementById('campo-cliente-contato'),
+  erroContato: document.getElementById('erro-contato'),
+  botaoSalvarContato: document.getElementById('btn-salvar-contato'),
+  botaoCancelarContato: document.getElementById('btn-cancelar-contato'),
+
+  botaoNotificacoes: document.getElementById('btn-notificacoes'),
+  contadorNotificacoes: document.getElementById('contador-notificacoes'),
+  painelNotificacoes: document.getElementById('painel-notificacoes'),
+  listaNotificacoes: document.getElementById('lista-notificacoes'),
+  pilhaNotificacoes: document.getElementById('pilha-notificacoes'),
+  botaoMarcarNotificacoesLidas: document.getElementById('btn-marcar-notificacoes-lidas'),
+  botaoLimparNotificacoes: document.getElementById('btn-limpar-notificacoes'),
+  botaoFecharNotificacoes: document.getElementById('btn-fechar-notificacoes'),
+
+  modalLembrete: document.getElementById('modal-lembrete'),
+  formularioLembrete: document.getElementById('formulario-lembrete'),
+  tituloModalLembrete: document.getElementById('modal-lembrete-titulo'),
+  campoResumoLembrete: document.getElementById('campo-resumo-lembrete'),
+  campoTextoLembrete: document.getElementById('campo-texto-lembrete'),
+  opcoesTipoLembrete: document.querySelectorAll('input[name="tipo-lembrete"]'),
+  grupoDataHoraLembrete: document.getElementById('grupo-data-hora-lembrete'),
+  campoDataHoraLembrete: document.getElementById('campo-data-hora-lembrete'),
+  grupoRecorrenciaLembrete: document.getElementById('grupo-recorrencia-lembrete'),
+  campoModeloRecorrencia: document.getElementById('campo-modelo-recorrencia'),
+  campoExpressaoCron: document.getElementById('campo-expressao-cron'),
+  previaCron: document.getElementById('previa-cron'),
+  campoClienteLembrete: document.getElementById('campo-cliente-lembrete'),
+  campoProjetoLembrete: document.getElementById('campo-projeto-lembrete'),
+  campoEmailLembrete: document.getElementById('campo-email-lembrete'),
+  campoAtivoLembrete: document.getElementById('campo-ativo-lembrete'),
+  grupoContatosLembrete: document.getElementById('grupo-contatos-lembrete'),
+  listaContatosLembrete: document.getElementById('lista-contatos-lembrete'),
+  botaoAdicionarContatoLembrete: document.getElementById('btn-adicionar-contato-lembrete'),
+  opcoesContatosLembrete: document.getElementById('opcoes-contatos-lembrete'),
+  erroLembrete: document.getElementById('erro-lembrete'),
+  botaoSalvarLembrete: document.getElementById('btn-salvar-lembrete'),
+  botaoCancelarLembrete: document.getElementById('btn-cancelar-lembrete'),
+  avisoShellAgenda: document.getElementById('aviso-shell-agenda'),
+  botaoAtualizarAgenda: document.getElementById('btn-atualizar-agenda'),
+  ultimaAtualizacaoAgenda: document.getElementById('ultima-atualizacao-agenda'),
+  mountAgendaGeral: document.getElementById('mount-agenda-geral'),
+  avisoShellOs: document.getElementById('aviso-shell-os'),
+  botaoAtualizarOs: document.getElementById('btn-atualizar-os'),
+  ultimaAtualizacaoOs: document.getElementById('ultima-atualizacao-os'),
+  mountOsGeral: document.getElementById('mount-os-geral'),
   secaoBasesLocais: document.getElementById('secao-bases-locais'),
   secaoBancosLocais: document.getElementById('secao-bancos-locais'),
 
@@ -345,14 +459,47 @@ const elementos = {
   botaoSalvarBancoLocal: document.getElementById('btn-salvar-banco-local'),
   botaoCancelarBancoLocal: document.getElementById('btn-cancelar-banco-local'),
 
+  botaoCredenciaisSankhya: document.getElementById('btn-credenciais-sankhya'),
+  modalCredenciaisSankhya: document.getElementById('modal-credenciais-sankhya'),
+  avisoShellSankhya: document.getElementById('aviso-shell-sankhya'),
+  botaoFecharCredenciaisSankhya: document.getElementById('btn-fechar-credenciais-sankhya'),
+
   modalConfiguracao: document.getElementById('modal-configuracao'),
   formularioConfiguracao: document.getElementById('formulario-configuracao'),
   abaConfiguracaoGeral: document.getElementById('aba-configuracao-geral'),
   abaConfiguracaoMcp: document.getElementById('aba-configuracao-mcp'),
   abaConfiguracaoAtalhos: document.getElementById('aba-configuracao-atalhos'),
+  abaConfiguracaoSmtp: document.getElementById('aba-configuracao-smtp'),
+  abaConfiguracaoAvisos: document.getElementById('aba-configuracao-avisos'),
+  abaConfiguracaoAcessos: document.getElementById('aba-configuracao-acessos'),
+  abaConfiguracaoSobre: document.getElementById('aba-configuracao-sobre'),
   painelConfiguracaoGeral: document.getElementById('painel-configuracao-geral'),
   painelConfiguracaoMcp: document.getElementById('painel-configuracao-mcp'),
   painelConfiguracaoAtalhos: document.getElementById('painel-configuracao-atalhos'),
+  painelConfiguracaoSmtp: document.getElementById('painel-configuracao-smtp'),
+  painelConfiguracaoAvisos: document.getElementById('painel-configuracao-avisos'),
+  painelConfiguracaoAcessos: document.getElementById('painel-configuracao-acessos'),
+  campoSmtpHost: document.getElementById('campo-smtp-host'),
+  campoSmtpPorta: document.getElementById('campo-smtp-porta'),
+  campoSmtpSeguranca: document.getElementById('campo-smtp-seguranca'),
+  campoSmtpUsuario: document.getElementById('campo-smtp-usuario'),
+  campoSmtpSenha: document.getElementById('campo-smtp-senha'),
+  botaoVerSenhaSmtp: document.getElementById('btn-ver-senha-smtp'),
+  campoSmtpRemetente: document.getElementById('campo-smtp-remetente'),
+  campoSmtpDestinatario: document.getElementById('campo-smtp-destinatario'),
+  botaoTestarSmtp: document.getElementById('btn-testar-smtp'),
+  resultadoTesteSmtp: document.getElementById('resultado-teste-smtp'),
+  campoAlertaAgendaAtivo: document.getElementById('campo-alerta-agenda-ativo'),
+  campoAlertaAgendaTolerancia: document.getElementById('campo-alerta-agenda-tolerancia'),
+  campoAlertaAgendaEmail: document.getElementById('campo-alerta-agenda-email'),
+  painelConfiguracaoSobre: document.getElementById('painel-configuracao-sobre'),
+  campoPerfil: document.getElementById('campo-perfil'),
+  campoTerceiro: document.getElementById('campo-terceiro'),
+  grupoAlertaAgenda: document.getElementById('grupo-alerta-agenda'),
+  campoNomesCompletosCliente: document.getElementById('campo-nomes-completos'),
+  caixasDeFuncionalidade: document.querySelectorAll(
+    '#painel-configuracao-acessos [data-funcionalidade]',
+  ),
   listaDeAtalhosDaConfiguracao: document.getElementById('lista-atalhos-config'),
   botaoAdicionarAtalho: document.getElementById('btn-adicionar-atalho'),
   campoScriptPadrao: document.getElementById('campo-script-padrao'),
@@ -360,6 +507,12 @@ const elementos = {
     'campo-intervalo-execucao-automatica',
   ),
   campoTempoLimite: document.getElementById('campo-tempo-limite'),
+  campoDestinoDosLinks: document.getElementById('campo-destino-dos-links'),
+  campoConfigSankhyaOmCodUsu: document.getElementById('campo-sankhya-om-codusu'),
+  botaoSalvarCodusu: document.getElementById('btn-salvar-codusu'),
+  erroCodusu: document.getElementById('erro-codusu'),
+  campoCaminhoExecutavelDaIde: document.getElementById('campo-caminho-executavel-ide'),
+  botaoSelecionarExecutavelDaIde: document.getElementById('btn-selecionar-executavel-ide'),
   campoCaminhoSchemaMcp: document.getElementById('campo-caminho-schema-mcp'),
   campoConfigMcpHost: document.getElementById('campo-config-mcp-host'),
   campoConfigMcpPorta: document.getElementById('campo-config-mcp-port'),
@@ -367,6 +520,8 @@ const elementos = {
   campoConfigMcpUsuario: document.getElementById('campo-config-mcp-user'),
   campoConfigMcpSenha: document.getElementById('campo-config-mcp-password'),
   botaoVerSenhaConfigMcp: document.getElementById('btn-ver-senha-config-mcp'),
+  botaoImportarEnvMcp: document.getElementById('btn-importar-env-mcp'),
+  grupoSankhyaSchema: document.getElementById('grupo-sankhya-schema'),
   erroConfiguracao: document.getElementById('erro-configuracao'),
   botaoSalvarConfiguracao: document.getElementById('btn-salvar-configuracao'),
   botaoCancelarConfiguracao: document.getElementById('btn-cancelar-configuracao'),
@@ -380,6 +535,8 @@ const elementos = {
   modalTitulo: document.getElementById('modal-titulo'),
   modalSubtitulo: document.getElementById('modal-subtitulo'),
   campoNome: document.getElementById('campo-nome'),
+  listaNomesCompletosCliente: document.getElementById('lista-nomes-completos'),
+  botaoAdicionarNomeCompleto: document.getElementById('btn-adicionar-nome-completo'),
   erroCliente: document.getElementById('erro-formulario'),
   botaoSalvarCliente: document.getElementById('btn-salvar'),
   botaoCancelarCliente: document.getElementById('btn-cancelar'),
@@ -401,12 +558,17 @@ const elementos = {
   formularioBanco: document.getElementById('formulario-banco'),
   modalBancoTitulo: document.getElementById('modal-banco-titulo'),
   modalBancoSubtitulo: document.getElementById('modal-banco-subtitulo'),
+  campoSgbd: document.getElementById('campo-sgbd'),
+  grupoIdentificadorOracle: document.getElementById('grupo-identificador-oracle'),
+  campoIdentificadorOracle: document.getElementById('campo-identificador-oracle'),
   campoHost: document.getElementById('campo-host'),
   campoPorta: document.getElementById('campo-porta'),
+  rotuloCampoServico: document.getElementById('rotulo-campo-servico'),
   campoServico: document.getElementById('campo-servico'),
   campoUsuarioBanco: document.getElementById('campo-usuario-banco'),
   campoSenhaBanco: document.getElementById('campo-senha-banco'),
   botaoVerSenhaBanco: document.getElementById('btn-ver-senha-banco'),
+  botoesDeCopiarDoBanco: document.querySelectorAll('#formulario-banco [data-copiar-campo]'),
   erroBanco: document.getElementById('erro-banco'),
   botaoSalvarBanco: document.getElementById('btn-salvar-banco'),
   botaoCancelarBanco: document.getElementById('btn-cancelar-banco'),
@@ -431,7 +593,6 @@ const elementos = {
   formularioRepositorio: document.getElementById('formulario-repositorio'),
   modalRepositorioTitulo: document.getElementById('modal-repositorio-titulo'),
   modalRepositorioSubtitulo: document.getElementById('modal-repositorio-subtitulo'),
-  campoNomeRepositorio: document.getElementById('campo-nome-repositorio'),
   campoUrlRepositorio: document.getElementById('campo-url-repositorio'),
   campoCaminhoLocal: document.getElementById('campo-caminho-local'),
   botaoEscolherCaminhoLocal: document.getElementById('btn-escolher-caminho-local'),
@@ -448,6 +609,15 @@ const elementos = {
   erroLink: document.getElementById('erro-link'),
   botaoSalvarLink: document.getElementById('btn-salvar-link'),
   botaoCancelarLink: document.getElementById('btn-cancelar-link'),
+
+  modalProjeto: document.getElementById('modal-projeto'),
+  formularioProjeto: document.getElementById('formulario-projeto'),
+  modalProjetoTitulo: document.getElementById('modal-projeto-titulo'),
+  modalProjetoSubtitulo: document.getElementById('modal-projeto-subtitulo'),
+  campoNomeProjeto: document.getElementById('campo-nome-projeto'),
+  erroProjeto: document.getElementById('erro-projeto'),
+  botaoSalvarProjeto: document.getElementById('btn-salvar-projeto'),
+  botaoCancelarProjeto: document.getElementById('btn-cancelar-projeto'),
 
   modalImportacao: document.getElementById('modal-importacao'),
   formularioImportacao: document.getElementById('formulario-importacao'),
@@ -547,13 +717,82 @@ async function requisitar(caminho, opcoes = {}) {
 
   const conteudo = await resposta.json().catch(() => null);
   if (!resposta.ok) {
-    throw new Error(conteudo?.mensagem ?? `Falha na requisição (HTTP ${resposta.status}).`);
+    const erro = new Error(conteudo?.mensagem ?? `Falha na requisição (HTTP ${resposta.status}).`);
+    // Repassado pra quem chama decidir, ex.: mostrar "app desktop fora do ar" em vez do erro genérico.
+    erro.shellIndisponivel = Boolean(conteudo?.shellIndisponivel);
+    throw erro;
   }
 
   return conteudo;
 }
 
 const api = {
+  shellSankhya: () => requisitar('/api/sankhya/shell'),
+  credenciaisSankhya: () => requisitar('/api/sankhya/credenciais'),
+  salvarCredencialSankhya: (sistema, usuario, senha) =>
+    requisitar(`/api/sankhya/credenciais/${sistema}`, {
+      metodo: 'POST',
+      corpo: { usuario, senha },
+    }),
+  senhaCredencialSankhya: (sistema) => requisitar(`/api/sankhya/credenciais/${sistema}/senha`),
+  removerCredencialSankhya: (sistema) =>
+    requisitar(`/api/sankhya/credenciais/${sistema}`, { metodo: 'DELETE' }),
+  abrirNavegadorSankhya: (sistema) =>
+    requisitar(`/api/sankhya/navegador/abrir/${sistema}`, { metodo: 'POST' }),
+  capturarSessaoSankhya: (sistema) =>
+    requisitar(`/api/sankhya/navegador/capturar/${sistema}`, { metodo: 'POST' }),
+  autoLoginSankhya: (sistema) =>
+    requisitar(`/api/sankhya/navegador/autologin/${sistema}`, { metodo: 'POST' }),
+  estadoAgenda: () => requisitar('/api/agenda/estado'),
+  salvarNomesCompletos: (id, nomesCompletos) =>
+    requisitar(`${CAMINHO_DA_API}/${id}/nomes-completos`, {
+      metodo: 'PUT',
+      corpo: { nomesCompletos },
+    }),
+  consultarAgenda: (de, ate) =>
+    requisitar('/api/agenda/consultar', { metodo: 'POST', corpo: { de, ate } }),
+  eventosDaAgenda: (de, ate) =>
+    requisitar(`/api/agenda/eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`),
+  eventosDoClienteNaAgenda: (id, de, ate) =>
+    requisitar(
+      `${CAMINHO_DA_API}/${id}/agenda-eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`,
+    ),
+  situacaoDoDiaNoExperience: (codparc, dia) =>
+    requisitar(
+      `/api/agenda/situacao-do-dia?codparc=${encodeURIComponent(codparc)}&dia=${encodeURIComponent(dia)}`,
+    ),
+  consultarOsGeral: (de, ate) =>
+    requisitar('/api/os/consultar', { metodo: 'POST', corpo: { de, ate } }),
+  consultarOsDoCliente: (id, de, ate) =>
+    requisitar(`${CAMINHO_DA_API}/${id}/os-consultar`, { metodo: 'POST', corpo: { de, ate } }),
+
+  salvarSankhyaOmCodUsu: (sankhyaOmCodUsu) =>
+    requisitar(`${CAMINHO_DA_CONFIGURACAO}/sankhya-om-codusu`, {
+      metodo: 'PUT',
+      corpo: { sankhyaOmCodUsu },
+    }),
+  listarNotificacoes: () => requisitar(CAMINHO_DAS_NOTIFICACOES),
+  marcarNotificacoesComoLidas: (ids) =>
+    requisitar(`${CAMINHO_DAS_NOTIFICACOES}/lidas`, { metodo: 'POST', corpo: { ids } }),
+  limparNotificacoes: () => requisitar(CAMINHO_DAS_NOTIFICACOES, { metodo: 'DELETE' }),
+  enviarEmailDeTeste: (smtp) =>
+    requisitar(`${CAMINHO_DAS_NOTIFICACOES}/email-de-teste`, { metodo: 'POST', corpo: { smtp } }),
+
+  listarLembretes: () => requisitar(CAMINHO_DOS_LEMBRETES),
+  criarLembrete: (lembrete) =>
+    requisitar(CAMINHO_DOS_LEMBRETES, { metodo: 'POST', corpo: lembrete }),
+  atualizarLembrete: (id, lembrete) =>
+    requisitar(`${CAMINHO_DOS_LEMBRETES}/${id}`, { metodo: 'PUT', corpo: lembrete }),
+  removerLembrete: (id) => requisitar(`${CAMINHO_DOS_LEMBRETES}/${id}`, { metodo: 'DELETE' }),
+  previaDoCron: (expressao) =>
+    requisitar(`${CAMINHO_DOS_LEMBRETES}/previa?expressao=${encodeURIComponent(expressao)}`),
+
+  listarContatos: () => requisitar(CAMINHO_DOS_CONTATOS),
+  criarContato: (contato) => requisitar(CAMINHO_DOS_CONTATOS, { metodo: 'POST', corpo: contato }),
+  atualizarContato: (id, contato) =>
+    requisitar(`${CAMINHO_DOS_CONTATOS}/${id}`, { metodo: 'PUT', corpo: contato }),
+  removerContato: (id) => requisitar(`${CAMINHO_DOS_CONTATOS}/${id}`, { metodo: 'DELETE' }),
+
   listar: () => requisitar(CAMINHO_DA_API),
   buscar: (id) => requisitar(`${CAMINHO_DA_API}/${id}`),
   criar: (nome) => requisitar(CAMINHO_DA_API, { metodo: 'POST', corpo: { nome } }),
@@ -619,6 +858,35 @@ const api = {
   removerLink: (idDoCliente, idDoLink) =>
     requisitar(`${CAMINHO_DA_API}/${idDoCliente}/links/${idDoLink}`, { metodo: 'DELETE' }),
 
+  adicionarProjeto: (idDoCliente, projeto) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/projetos`, { metodo: 'POST', corpo: projeto }),
+  atualizarProjeto: (idDoCliente, idDoProjeto, projeto) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/projetos/${idDoProjeto}`, {
+      metodo: 'PUT',
+      corpo: projeto,
+    }),
+  removerProjeto: (idDoCliente, idDoProjeto) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/projetos/${idDoProjeto}`, { metodo: 'DELETE' }),
+  salvarAnotacoesDoProjeto: (idDoCliente, idDoProjeto, anotacoes) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/projetos/${idDoProjeto}/anotacoes`, {
+      metodo: 'PUT',
+      corpo: { anotacoes },
+    }),
+  adicionarLinkDoProjeto: (idDoCliente, idDoProjeto, link) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/projetos/${idDoProjeto}/links`, {
+      metodo: 'POST',
+      corpo: link,
+    }),
+  atualizarLinkDoProjeto: (idDoCliente, idDoProjeto, idDoLink, link) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/projetos/${idDoProjeto}/links/${idDoLink}`, {
+      metodo: 'PUT',
+      corpo: link,
+    }),
+  removerLinkDoProjeto: (idDoCliente, idDoProjeto, idDoLink) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/projetos/${idDoProjeto}/links/${idDoLink}`, {
+      metodo: 'DELETE',
+    }),
+
   abrirPastaDoRepositorio: (idDoCliente, idDoRepositorio) =>
     requisitar(`${CAMINHO_DA_API}/${idDoCliente}/repositorios/${idDoRepositorio}/abrir-pasta`, {
       metodo: 'POST',
@@ -636,8 +904,8 @@ const api = {
       metodo: 'POST',
     }),
 
-  abrirIntelliJDoRepositorio: (idDoCliente, idDoRepositorio) =>
-    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/repositorios/${idDoRepositorio}/abrir-intellij`, {
+  abrirIdeDoRepositorio: (idDoCliente, idDoRepositorio) =>
+    requisitar(`${CAMINHO_DA_API}/${idDoCliente}/repositorios/${idDoRepositorio}/abrir-ide`, {
       metodo: 'POST',
     }),
 
@@ -649,6 +917,9 @@ const api = {
   salvarConfiguracao: (configuracao) =>
     requisitar(CAMINHO_DA_CONFIGURACAO, { metodo: 'PUT', corpo: configuracao }),
   lerConfiguracaoMcpGlobal: () => requisitar(`${CAMINHO_DA_CONFIGURACAO}/mcp`),
+  importarEnvDoMcpGlobal: () =>
+    requisitar(`${CAMINHO_DA_CONFIGURACAO}/mcp/importar`, { metodo: 'POST' }),
+  lerPresetsDosPerfis: () => requisitar(`${CAMINHO_DA_CONFIGURACAO}/perfis`),
 
   abrirAtalho: (id) => requisitar(`${CAMINHO_DOS_ATALHOS}/${id}/abrir`, { metodo: 'POST' }),
   selecionarExecutavel: () =>
@@ -766,10 +1037,29 @@ function ehEnderecoNavegavel(endereco) {
   }
 }
 
+/*
+ * O modal aberto fica na camada superior (top layer), com o fundo escurecido por cima do
+ * resto da página — inclusive dos avisos, que o usuário não via. Como popover, o
+ * contêiner também vai para essa camada, e mostrá-lo de novo a cada aviso o põe acima do
+ * modal que abriu depois dele.
+ */
+function trazerAvisosParaFrente() {
+  if (elementos.avisos.matches(':popover-open')) {
+    elementos.avisos.hidePopover();
+  }
+  elementos.avisos.showPopover();
+}
+
 function exibirAviso(mensagem, tipo = 'sucesso') {
   const aviso = criarElemento('div', `aviso ${tipo}`, mensagem);
   elementos.avisos.append(aviso);
-  setTimeout(() => aviso.remove(), DURACAO_DO_AVISO_MS);
+  trazerAvisosParaFrente();
+  setTimeout(() => {
+    aviso.remove();
+    if (!elementos.avisos.hasChildNodes()) {
+      elementos.avisos.hidePopover();
+    }
+  }, DURACAO_DO_AVISO_MS);
 }
 
 function clientesFiltradosPorNome() {
@@ -926,7 +1216,9 @@ function renderizarLista() {
 
     item.append(titulo);
 
-    const severidade = severidadeDoCliente(cliente);
+    const severidade = funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS)
+      ? severidadeDoCliente(cliente)
+      : null;
     if (severidade) {
       const ponto = criarPontoDeSituacao(severidade);
       ponto.title = ROTULOS_DE_SEVERIDADE[severidade];
@@ -1190,14 +1482,14 @@ function criarAcoesDeUsoDoRepositorio(cliente, repositorio) {
       ),
   );
 
-  const botaoDeIntelliJ = criarBotaoDeIcone(
+  const botaoDeIde = criarBotaoDeIcone(
     'btn tiny',
-    ICONES.intellij,
-    `Abrir ${repositorio.caminhoLocal} no IntelliJ IDEA`,
+    ICONES.ide,
+    `Abrir IDE em ${repositorio.caminhoLocal}`,
     () =>
       executarAcaoDoSistema(
-        () => api.abrirIntelliJDoRepositorio(cliente.id, repositorio.id),
-        botaoDeIntelliJ,
+        () => api.abrirIdeDoRepositorio(cliente.id, repositorio.id),
+        botaoDeIde,
       ),
   );
 
@@ -1209,7 +1501,7 @@ function criarAcoesDeUsoDoRepositorio(cliente, repositorio) {
     () => abrirModalDeMcp(alvoDoMcpDoRepositorio(cliente, repositorio)),
   );
 
-  return [botaoDeArquivos, botaoDeShell, botaoDeIntelliJ, botaoDeMcp];
+  return [botaoDeArquivos, botaoDeShell, botaoDeIde, botaoDeMcp];
 }
 
 /* --------------------------- situação do Git ------------------------------ */
@@ -1370,7 +1662,9 @@ function severidadeGlobalDoGit() {
 
 /** Bolinha do cabeçalho: pisca em vermelho ou amarelo e fica acesa em verde. */
 function renderizarIndicadorGitGlobal() {
-  const severidade = severidadeGlobalDoGit();
+  const severidade = funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS)
+    ? severidadeGlobalDoGit()
+    : null;
   const indicador = elementos.indicadorGitGlobal;
 
   indicador.hidden = severidade === null;
@@ -1390,7 +1684,7 @@ function renderizarIndicadorGitGlobal() {
 function criarLinhaDeRepositorio(cliente, repositorio) {
   const informacoes = criarElemento('div', 'recurso-info');
   informacoes.append(
-    criarElemento('p', 'recurso-nome', repositorio.nome),
+    criarElemento('p', 'recurso-nome', nomeDeExibicaoDoRepositorio(repositorio)),
     criarLinhaDeUrl(repositorio.url, 'secundaria'),
   );
 
@@ -1417,12 +1711,16 @@ function criarLinhaDeRepositorio(cliente, repositorio) {
 }
 
 /** Bloco de "Bases" ou "Repositórios": cabeçalho, botão de adicionar e as linhas. */
+/**
+ * `titulo` nulo omite o `h3`: usado quando o título repetiria o rótulo da aba
+ * ativa (Projetos, Bases, Repositórios), redundante logo abaixo dela.
+ */
 function criarSecaoDeRecursos({ titulo, rotuloDoBotao, aoAdicionar, linhas, mensagemVazia }) {
   const cabecalho = criarElemento('div', 'secao-cabecalho');
-  cabecalho.append(
-    criarElemento('h3', null, titulo),
-    criarBotaoDeIcone('btn tiny primario', ICONES.mais, rotuloDoBotao, aoAdicionar),
-  );
+  if (titulo) {
+    cabecalho.append(criarElemento('h3', null, titulo));
+  }
+  cabecalho.append(criarBotaoDeIcone('btn tiny primario', ICONES.mais, rotuloDoBotao, aoAdicionar));
 
   const secao = criarElemento('div', 'secao-recursos');
   secao.append(cabecalho);
@@ -1451,7 +1749,7 @@ function basesOrdenadasPorTipo(bases) {
 
 function criarSecaoDeBases(cliente) {
   return criarSecaoDeRecursos({
-    titulo: 'Bases',
+    titulo: null,
     rotuloDoBotao: 'Adicionar base',
     aoAdicionar: () => abrirModalDeCadastroDeBase(cliente),
     linhas: basesOrdenadasPorTipo(cliente.bases).map((base) => criarLinhaDeBase(cliente, base)),
@@ -1461,7 +1759,7 @@ function criarSecaoDeBases(cliente) {
 
 function criarSecaoDeRepositorios(cliente) {
   return criarSecaoDeRecursos({
-    titulo: 'Repositórios',
+    titulo: null,
     rotuloDoBotao: 'Adicionar repositório',
     aoAdicionar: () => abrirModalDeCadastroDeRepositorio(cliente),
     linhas: cliente.repositorios.map((repositorio) =>
@@ -1471,12 +1769,22 @@ function criarSecaoDeRepositorios(cliente) {
   });
 }
 
+/** Nome do link como hiperlink, quando a URL é navegável; texto simples caso contrário. */
+function criarNomeDeLink(link) {
+  if (!ehEnderecoNavegavel(link.url)) {
+    return criarElemento('p', 'recurso-nome', link.nome);
+  }
+
+  const nome = criarElemento('a', 'recurso-nome', link.nome);
+  nome.href = link.url;
+  nome.target = '_blank';
+  nome.rel = 'noopener noreferrer';
+  return nome;
+}
+
 function criarLinhaDeLink(cliente, link) {
   const informacoes = criarElemento('div', 'recurso-info');
-  informacoes.append(
-    criarElemento('p', 'recurso-nome', link.nome),
-    criarLinhaDeUrl(link.url, 'secundaria'),
-  );
+  informacoes.append(criarNomeDeLink(link));
 
   const acoes = criarAcoesDeRecurso({
     rotuloDeEdicao: 'Editar link',
@@ -1492,11 +1800,118 @@ function criarLinhaDeLink(cliente, link) {
 
 function criarSecaoDeLinks(cliente) {
   return criarSecaoDeRecursos({
-    titulo: 'Links',
+    titulo: 'Links gerais',
     rotuloDoBotao: 'Adicionar link',
     aoAdicionar: () => abrirModalDeCadastroDeLink(cliente),
     linhas: cliente.links.map((link) => criarLinhaDeLink(cliente, link)),
     mensagemVazia: 'Nenhum link cadastrado para este cliente.',
+  });
+}
+
+/* -------------------------------- projetos --------------------------------- */
+
+function criarLinhaDeLinkDeProjeto(cliente, projeto, link) {
+  const informacoes = criarElemento('div', 'recurso-info');
+  informacoes.append(criarNomeDeLink(link));
+
+  const acoes = criarAcoesDeRecurso({
+    rotuloDeEdicao: 'Editar link',
+    aoEditar: () => abrirModalDeEdicaoDeLinkDeProjeto(cliente, projeto, link),
+    rotuloDeExclusao: 'Excluir link',
+    aoExcluir: () => pedirExclusaoDeLinkDeProjeto(cliente, projeto, link),
+  });
+
+  const linha = criarElemento('div', 'linha-recurso');
+  linha.append(informacoes, acoes);
+  return linha;
+}
+
+function criarSecaoDeLinksDoProjeto(cliente, projeto) {
+  return criarSecaoDeRecursos({
+    titulo: 'Links do projeto',
+    rotuloDoBotao: 'Adicionar link',
+    aoAdicionar: () => abrirModalDeCadastroDeLinkDeProjeto(cliente, projeto),
+    linhas: projeto.links.map((link) => criarLinhaDeLinkDeProjeto(cliente, projeto, link)),
+    mensagemVazia: 'Nenhum link cadastrado para este projeto.',
+  });
+}
+
+/** O rascunho tem precedência sobre o gravado, igual `anotacoesEmExibicao`. */
+function anotacoesDoProjetoEmExibicao(projeto) {
+  const rascunho = estado.anotacoesDoProjetoEmEdicao;
+  return rascunho?.idDoProjeto === projeto.id ? rascunho.texto : (projeto.anotacoes ?? '');
+}
+
+function criarCampoDeAnotacoesDoProjeto(cliente, projeto) {
+  const campo = criarElemento('textarea', 'campo-anotacoes');
+  campo.rows = LINHAS_DO_CAMPO_DE_ANOTACOES;
+  campo.maxLength = TAMANHO_MAXIMO_DAS_ANOTACOES;
+  campo.placeholder = 'Anotações deste projeto.';
+  campo.value = anotacoesDoProjetoEmExibicao(projeto);
+
+  campo.addEventListener('input', () => {
+    estado.anotacoesDoProjetoEmEdicao = {
+      idDoCliente: cliente.id,
+      idDoProjeto: projeto.id,
+      texto: campo.value,
+    };
+  });
+  campo.addEventListener('blur', () => salvarAnotacoesDoProjeto(cliente.id, projeto.id));
+
+  return campo;
+}
+
+function alternarInformacoesDoProjeto(idDoProjeto) {
+  if (estado.projetosComInformacoesVisiveis.has(idDoProjeto)) {
+    estado.projetosComInformacoesVisiveis.delete(idDoProjeto);
+  } else {
+    estado.projetosComInformacoesVisiveis.add(idDoProjeto);
+  }
+
+  renderizarDetalhe();
+}
+
+function criarCardDeProjeto(cliente, projeto) {
+  const visivel = estado.projetosComInformacoesVisiveis.has(projeto.id);
+
+  const botaoAlternar = criarBotaoDeIcone(
+    'btn tiny ghost botao-alternar-projeto',
+    ICONES.chevronBaixo,
+    visivel ? 'Ocultar informações do projeto' : 'Exibir informações do projeto',
+    () => alternarInformacoesDoProjeto(projeto.id),
+  );
+  botaoAlternar.setAttribute('aria-expanded', String(visivel));
+
+  const cabecalho = criarElemento('div', 'card-projeto-cabecalho');
+  cabecalho.append(botaoAlternar, criarElemento('h3', 'card-projeto-titulo', projeto.nome));
+  cabecalho.append(
+    criarAcoesDeRecurso({
+      rotuloDeEdicao: 'Editar projeto',
+      aoEditar: () => abrirModalDeEdicaoDeProjeto(cliente, projeto),
+      rotuloDeExclusao: 'Excluir projeto',
+      aoExcluir: () => pedirExclusaoDeProjeto(cliente, projeto),
+    }),
+  );
+
+  const corpo = criarElemento('div', 'card-projeto-corpo');
+  corpo.hidden = !visivel;
+  corpo.append(
+    criarCampoDeAnotacoesDoProjeto(cliente, projeto),
+    criarSecaoDeLinksDoProjeto(cliente, projeto),
+  );
+
+  const card = criarElemento('div', 'card card-projeto');
+  card.append(cabecalho, corpo);
+  return card;
+}
+
+function criarSecaoDeProjetos(cliente) {
+  return criarSecaoDeRecursos({
+    titulo: null,
+    rotuloDoBotao: 'Adicionar projeto',
+    aoAdicionar: () => abrirModalDeCadastroDeProjeto(cliente),
+    linhas: cliente.projetos.map((projeto) => criarCardDeProjeto(cliente, projeto)),
+    mensagemVazia: 'Nenhum projeto cadastrado para este cliente.',
   });
 }
 
@@ -1513,9 +1928,113 @@ function anotacoesEmExibicao(cliente) {
  * o texto digitado fica no estado, e é de lá que o campo é preenchido a cada
  * redesenho do detalhe.
  */
+/* ---- calendário mensal: só leitura, sem geração de OS nem envio de e-mail ---- */
+
+const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+
+function mesAtualIso() {
+  const agora = new Date();
+  return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function deslocarMes(mes, passo) {
+  const [ano, numero] = mes.split('-').map(Number);
+  const data = new Date(Date.UTC(ano, numero - 1 + passo, 1));
+  return `${data.getUTCFullYear()}-${String(data.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function nomeDoMes(mes) {
+  const [ano, numero] = mes.split('-').map(Number);
+  const data = new Date(Date.UTC(ano, numero - 1, 1));
+  const nome = data.toLocaleDateString('pt-BR', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+  return nome.charAt(0).toUpperCase() + nome.slice(1);
+}
+
+/** Monta a grade de 42 células (6 semanas): cabeçalho de dias da semana + uma célula por dia. */
+function criarGradeDoCalendario(grade, criarCelula) {
+  const container = criarElemento('div', 'calendario-sankhya');
+
+  const cabecalhoSemana = criarElemento('div', 'calendario-cabecalho-semana');
+  for (const rotulo of DIAS_SEMANA) {
+    cabecalhoSemana.append(criarElemento('span', null, rotulo));
+  }
+  container.append(cabecalhoSemana);
+
+  const dias = criarElemento('div', 'calendario-dias');
+  for (const dia of grade) {
+    dias.append(criarCelula(dia));
+  }
+  container.append(dias);
+
+  return container;
+}
+
+/**
+ * Vínculo do cliente com a Agenda de Recursos do ERP (`codparc`) e a agenda
+ * mensal — igual à aba Agenda do topo, só que recortada pra este cliente. A
+ * situação de cada evento no Experience (sem tarefa/tarefa aberta/OS
+ * lançada) sai sozinha do `codparc`, sem campo nenhum pra preencher à mão.
+ */
+/**
+ * Aba Agenda do cadastro do cliente: eventos recortados pelo(s) `codparc` vinculado(s) —
+ * o vínculo em si é editado no cadastro/edição do cliente (modal), não aqui.
+ */
+function criarSecaoDeAgenda(cliente) {
+  const widgetDeAgendaDoCliente = criarWidgetDeAgenda({
+    buscarEventos: (de, ate) =>
+      api.eventosDoClienteNaAgenda(cliente.id, de, ate).then((resposta) => resposta.eventos),
+    aoMudarMes: async () => {
+      await widgetDeAgendaDoCliente.carregar();
+      void refrescarAgendaDoClienteEmSegundoPlano(widgetDeAgendaDoCliente);
+    },
+  });
+
+  const secao = criarElemento('div', 'secao-recursos');
+  secao.append(widgetDeAgendaDoCliente.elemento);
+  // Mostra o snapshot local na hora e, em segundo plano, consulta o mês para preencher o
+  // que ainda não foi baixado — a mesma consulta da aba Agenda do topo, que traz a agenda
+  // inteira do usuário e da qual este cadastro só exibe a fatia do parceiro vinculado.
+  void widgetDeAgendaDoCliente
+    .carregar()
+    .then(() => refrescarAgendaDoClienteEmSegundoPlano(widgetDeAgendaDoCliente));
+  return secao;
+}
+
+/** Consulta o mês do widget em segundo plano e recarrega; erro não apaga o cache exibido. */
+async function refrescarAgendaDoClienteEmSegundoPlano(widget) {
+  const { de, ate } = limitesDoMesCliente(widget.mes);
+  try {
+    await api.consultarAgenda(de, ate);
+    await widget.carregar();
+  } catch (erro) {
+    exibirErro(widget.elementoErro, erro.message);
+  }
+}
+
+/**
+ * Aba OS do cadastro do cliente: mesmas OS "minhas" da aba OS do topo, recortadas pelo
+ * backend comparando o nome da empresa (Experience) com o nome deste cliente — sem nada
+ * pra configurar aqui, só a sessão da Experience capturada em Credenciais Sankhya.
+ */
+function criarSecaoDeOs(cliente) {
+  const widgetDeOsDoCliente = criarWidgetDeOs({
+    buscarOs: (de, ate) =>
+      api.consultarOsDoCliente(cliente.id, de, ate).then((resposta) => resposta.itens),
+  });
+
+  const secao = criarElemento('div', 'secao-recursos');
+  secao.append(widgetDeOsDoCliente.elemento);
+  void widgetDeOsDoCliente.carregar();
+  return secao;
+}
+
 function criarSecaoDeAnotacoes(cliente) {
   const cabecalho = criarElemento('div', 'secao-cabecalho');
-  cabecalho.append(criarElemento('h3', null, 'Anotações'));
+  cabecalho.append(criarElemento('h3', null, 'Anotações gerais'));
 
   const campo = criarElemento('textarea', 'campo-anotacoes');
   campo.id = ID_DO_CAMPO_DE_ANOTACOES;
@@ -1565,22 +2084,34 @@ async function salvarAnotacoes(idDoCliente) {
   }
 }
 
-/* ------------------------- recursos locais (visão "Local") ---------------- */
+/** Grava o rascunho pendente das anotações do projeto, igual `salvarAnotacoes`. */
+async function salvarAnotacoesDoProjeto(idDoCliente, idDoProjeto) {
+  const rascunho = estado.anotacoesDoProjetoEmEdicao;
+  if (!rascunho || rascunho.idDoCliente !== idDoCliente || rascunho.idDoProjeto !== idDoProjeto) {
+    return;
+  }
 
-/**
- * Botão de ação ainda sem funcionalidade — só o cadastro de base/banco local é
- * funcional por enquanto. Fica desabilitado para não parecer quebrado.
- */
-function criarBotaoDeAcaoNaoImplementada(tracado, rotulo) {
-  const botao = criarBotaoDeIcone(
-    'btn tiny',
-    tracado,
-    `${rotulo} (ainda não implementado)`,
-    () => {},
-  );
-  botao.disabled = true;
-  return botao;
+  const cliente = estado.clientes.find((candidato) => candidato.id === idDoCliente);
+  const projeto = cliente?.projetos.find((candidato) => candidato.id === idDoProjeto);
+  const texto = rascunho.texto.trim();
+  estado.anotacoesDoProjetoEmEdicao = null;
+
+  if (!projeto || texto === projeto.anotacoes) {
+    return;
+  }
+
+  try {
+    const atualizado = await api.salvarAnotacoesDoProjeto(idDoCliente, idDoProjeto, texto);
+    projeto.anotacoes = atualizado.anotacoes;
+    projeto.atualizadoEm = atualizado.atualizadoEm;
+    exibirAviso('Anotações do projeto salvas.');
+  } catch (erro) {
+    estado.anotacoesDoProjetoEmEdicao = { idDoCliente, idDoProjeto, texto };
+    exibirAviso(`Não foi possível salvar as anotações do projeto: ${erro.message}`, 'erro');
+  }
 }
+
+/* ------------------------- recursos locais (visão "Local") ---------------- */
 
 /** Botão de ação de base local que, além do ciclo padrão, atualiza o selo de situação ao terminar. */
 function criarBotaoDeAcaoDeBaseLocal(tracado, rotulo, acao, idDaBase) {
@@ -2126,20 +2657,976 @@ async function carregarLocal() {
 }
 
 /** Troca entre as visões "Clientes" e "Local", refletindo na chave e no conteúdo visível. */
+/* ------------------------- aba Agenda (visão geral) ------------------------ */
+
+/** Primeiro e último dia do mês `YYYY-MM`, em `YYYY-MM-DD`. */
+function limitesDoMesCliente(mes) {
+  const [ano, numero] = mes.split('-').map(Number);
+  const ultimo = new Date(Date.UTC(ano, numero, 0)).getUTCDate();
+  return { de: `${mes}-01`, ate: `${mes}-${String(ultimo).padStart(2, '0')}` };
+}
+
+/** Maior período (em dias) que um evento pode cobrir na grade — trava contra data absurda/malformada. */
+const LIMITE_DE_DIAS_DE_UM_EVENTO = 366;
+
+/** A grade de 42 células do mês, cada uma com os eventos que cobrem aquele dia. */
+function criarGradeMensalDeEventos(mes, eventos) {
+  const [ano, numero] = mes.split('-').map(Number);
+  const primeiro = new Date(Date.UTC(ano, numero - 1, 1));
+  const inicio = new Date(primeiro);
+  inicio.setUTCDate(inicio.getUTCDate() - primeiro.getUTCDay());
+  const hoje = dataIsoDeHoje();
+
+  // Evento pode durar vários dias (férias, projeto de semana inteira): entra em
+  // TODO dia que ele cobre, não só no dia em que começa — senão o resto do
+  // período some da grade.
+  const porDia = new Map();
+  for (const evento of eventos) {
+    const cursor = new Date(`${evento.inicio.slice(0, 10)}T00:00:00Z`);
+    const limite = new Date(`${evento.fim.slice(0, 10)}T00:00:00Z`);
+    for (let dias = 0; cursor <= limite && dias < LIMITE_DE_DIAS_DE_UM_EVENTO; dias += 1) {
+      const dia = cursor.toISOString().slice(0, 10);
+      porDia.set(dia, [...(porDia.get(dia) ?? []), evento]);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+  }
+
+  const grade = [];
+  for (let i = 0; i < 42; i += 1) {
+    const data = new Date(inicio);
+    data.setUTCDate(inicio.getUTCDate() + i);
+    const dia = data.toISOString().slice(0, 10);
+
+    grade.push({
+      dia,
+      numero: data.getUTCDate(),
+      doMes: dia.slice(0, 7) === mes,
+      hoje: dia === hoje,
+      eventos: porDia.get(dia) ?? [],
+    });
+
+    if (i % 7 === 6 && dia.slice(0, 7) > mes) break;
+  }
+  return grade;
+}
+
+/** Pela data local, como o `mesAtualIso`: o `toISOString` é UTC e virava o dia depois das 21h. */
+function dataIsoDeHoje(deslocamentoEmDias = 0) {
+  const data = new Date();
+  data.setDate(data.getDate() + deslocamentoEmDias);
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return `${data.getFullYear()}-${mes}-${dia}`;
+}
+
+/**
+ * Cache da situação do dia (cliente + data) no Experience — cada consulta
+ * dispara automação real no navegador do ERP (lenta, e pede pra tela da
+ * Agenda de Recursos estar aberta lá). Sem cache, reabrir o mesmo dia
+ * repetiria a mesma consulta à toa.
+ */
+const cacheSituacaoDoDia = new Map();
+
+/**
+ * Consulta (com cache) a situação de um cliente num dia no Experience.
+ * `forcar` descarta o valor em cache e consulta de novo — usado no botão de
+ * atualizar do card e sempre que o dia selecionado no calendário muda.
+ */
+function consultarSituacaoDoDia(codparc, dia, forcar = false) {
+  const chave = `${codparc}|${dia}`;
+  if (forcar) {
+    cacheSituacaoDoDia.delete(chave);
+  }
+  if (!cacheSituacaoDoDia.has(chave)) {
+    cacheSituacaoDoDia.set(
+      chave,
+      api
+        .situacaoDoDiaNoExperience(codparc, dia)
+        .catch((erro) => ({ falhou: true, mensagem: erro.message })),
+    );
+  }
+  return cacheSituacaoDoDia.get(chave);
+}
+
+/**
+ * Selo + sub-bloco de situação de um evento no Experience, com botão de
+ * atualizar ao lado. Três estados: sem tarefa aberta (vermelho), tarefa
+ * aberta (amarelo) e OS já lançada (verde, com o número, horários e
+ * "Tarefas Realizadas"). Começa neutro ("verificando…") pra não travar a
+ * lista inteira esperando o Experience responder.
+ */
+function anexarSituacaoDoEvento(linhaHorario, informacoes, codparc, dia, forcarNaAbertura) {
+  const selo = criarElemento('span', 'selo-situacao', 'Verificando situação no Experience…');
+  const botaoAtualizar = criarBotaoDeIcone(
+    'btn tiny ghost',
+    ICONES.recarregar,
+    'Atualizar situação no Experience',
+    () => executarAcaoDoSistema(() => carregar(true), botaoAtualizar),
+  );
+  linhaHorario.append(selo, botaoAtualizar);
+
+  let subbloco = null;
+  let seloStatus = null;
+
+  async function carregar(forcar) {
+    selo.className = 'selo-situacao';
+    selo.textContent = 'Verificando situação no Experience…';
+    selo.title = '';
+    if (subbloco) {
+      subbloco.remove();
+      subbloco = null;
+    }
+    if (seloStatus) {
+      seloStatus.remove();
+      seloStatus = null;
+    }
+
+    const resultado = await consultarSituacaoDoDia(codparc, dia, forcar);
+
+    if (resultado.falhou) {
+      selo.classList.add('erro');
+      selo.textContent = 'Não verifiquei a situação no Experience';
+      selo.title = resultado.mensagem;
+      return;
+    }
+
+    const faps = resultado.faps.join(', ');
+    const situacao = resultado.situacao;
+    if (situacao.tipo === 'os-lancada') {
+      selo.classList.add('ok');
+      selo.textContent = `OS nº ${situacao.numeroOs}`;
+      selo.title = `FAP ${faps}`;
+      if (situacao.status) {
+        const classeDeCor = atribuirCoresAosStatus([situacao.status]).get(situacao.status);
+        seloStatus = criarElemento(
+          'span',
+          `selo-situacao selo-status-os ${classeDeCor}`,
+          situacao.status,
+        );
+        selo.after(seloStatus);
+      }
+
+      const detalhes = [
+        situacao.horaInicio && `Início ${situacao.horaInicio}`,
+        situacao.horaFim && `Fim ${situacao.horaFim}`,
+        situacao.intervalo && `Intervalo ${situacao.intervalo}`,
+        situacao.tempoRealizado && `Realizado ${situacao.tempoRealizado}`,
+        situacao.pedido && `Pedido ${situacao.pedido}`,
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      if (detalhes || situacao.tarefasRealizadas) {
+        subbloco = criarElemento('div', 'subbloco-os-lancada');
+        if (detalhes) {
+          subbloco.append(criarElemento('p', 'texto-auxiliar', detalhes));
+        }
+        if (situacao.tarefasRealizadas) {
+          subbloco.append(
+            criarElemento(
+              'p',
+              'texto-auxiliar texto-tarefas-realizadas',
+              situacao.tarefasRealizadas,
+            ),
+          );
+        }
+        informacoes.append(subbloco);
+      }
+    } else if (situacao.tipo === 'tarefa-aberta') {
+      selo.classList.add('atencao');
+      selo.textContent = 'Tarefa aberta no Experience';
+      selo.title = `FAP ${faps}`;
+    } else {
+      selo.classList.add('erro');
+      selo.textContent = 'Sem tarefa aberta no Experience';
+      selo.title = resultado.faps.length ? `FAP ${faps}` : 'Cliente sem FAP de implantação.';
+    }
+  }
+
+  void carregar(forcarNaAbertura);
+}
+
+/**
+ * Normaliza um nome para comparação frouxa (acento, caixa, sufixo societário) — espelha o
+ * `chaveNome` do backend, para o "já vinculado" bater com o mesmo critério do recorte.
+ */
+function normalizarNomeParaVinculo(nome) {
+  return (nome || '')
+    .normalize('NFD')
+    .toUpperCase()
+    .replace(/\b(LTDA|S\.?A|ME|EPP|EIRELI|COMERCIAL|IMPORTADORA|E OUTRO\(S\))\b/g, '')
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+/** Cliente do HUB cujo nome (ou algum Nome Completo) corresponde a este nome do Sankhya. */
+function clientePorNomeSankhya(nomeSankhya) {
+  const alvo = normalizarNomeParaVinculo(nomeSankhya);
+  if (!alvo) return null;
+  return (
+    estado.clientes.find((cliente) =>
+      [cliente.nome, ...cliente.nomesCompletos].some((nome) => {
+        const chave = normalizarNomeParaVinculo(nome);
+        return chave && (chave === alvo || chave.startsWith(alvo) || alvo.startsWith(chave));
+      }),
+    ) ?? null
+  );
+}
+
+/** Adiciona o nome do Sankhya aos Nomes Completos de um cliente existente (sem duplicar). */
+async function vincularNomeSankhyaAoCliente(nomeSankhya, clienteId) {
+  const cliente = estado.clientes.find((c) => c.id === clienteId);
+  if (!cliente) return;
+
+  const alvo = normalizarNomeParaVinculo(nomeSankhya);
+  const jaTem = cliente.nomesCompletos.some((nome) => normalizarNomeParaVinculo(nome) === alvo);
+  if (jaTem) return;
+
+  await api.salvarNomesCompletos(clienteId, [...cliente.nomesCompletos, nomeSankhya]);
+  await recarregarClientes();
+}
+
+/** Cria um cliente novo já com o nome do Sankhya vinculado nos Nomes Completos. */
+async function criarClienteComNomeSankhya(nomeDoCadastro, nomeSankhya) {
+  const cliente = await api.criar(nomeDoCadastro);
+  await api.salvarNomesCompletos(cliente.id, [nomeSankhya]);
+  await recarregarClientes();
+}
+
+/**
+ * Painel para vincular o parceiro do evento a um cliente do HUB: busca entre os existentes
+ * ou cadastra um novo já vinculado (nome pré-preenchido com o do Sankhya).
+ */
+function criarSeletorDeVinculoDeCliente(nomeSankhya, aoConcluir) {
+  const painel = criarElemento('div', 'painel-vinculo');
+
+  const busca = criarElemento('input', 'painel-vinculo-busca');
+  busca.type = 'search';
+  busca.placeholder = 'Buscar cliente do HUB…';
+  busca.setAttribute('aria-label', 'Buscar cliente do HUB');
+
+  const lista = criarElemento('ul', 'painel-vinculo-lista');
+
+  const novo = criarElemento('div', 'painel-vinculo-novo');
+  const campoNovo = criarElemento('input', 'painel-vinculo-busca');
+  campoNovo.type = 'text';
+  campoNovo.value = nomeSankhya;
+  campoNovo.placeholder = 'Nome do novo cliente';
+  campoNovo.setAttribute('aria-label', 'Nome do novo cliente');
+  const botaoNovo = criarBotao('btn tiny', 'Cadastrar e vincular', () => void criarNovo());
+  novo.append(campoNovo, botaoNovo);
+
+  painel.append(busca, lista, novo);
+
+  const jaVinculado = clientePorNomeSankhya(nomeSankhya);
+
+  async function escolher(cliente) {
+    painel.classList.add('ocupado');
+    try {
+      await vincularNomeSankhyaAoCliente(nomeSankhya, cliente.id);
+      exibirAviso(`"${nomeSankhya}" vinculado a "${cliente.nome}".`);
+    } catch (erro) {
+      exibirAviso(`Não consegui vincular: ${erro.message}`, 'erro');
+    }
+    aoConcluir();
+  }
+
+  async function criarNovo() {
+    const nome = campoNovo.value.trim();
+    if (!nome) {
+      campoNovo.focus();
+      return;
+    }
+    painel.classList.add('ocupado');
+    try {
+      await criarClienteComNomeSankhya(nome, nomeSankhya);
+      exibirAviso(`Cliente "${nome}" criado e vinculado a "${nomeSankhya}".`);
+    } catch (erro) {
+      exibirAviso(`Não consegui cadastrar: ${erro.message}`, 'erro');
+    }
+    aoConcluir();
+  }
+
+  function renderizarLista() {
+    const termo = busca.value.trim().toLowerCase();
+    const clientes = estado.clientes.filter((cliente) =>
+      cliente.nome.toLowerCase().includes(termo),
+    );
+    lista.replaceChildren();
+
+    if (!clientes.length) {
+      lista.append(criarElemento('li', 'painel-vinculo-vazio', 'Nenhum cliente encontrado.'));
+      return;
+    }
+
+    for (const cliente of clientes) {
+      const item = criarElemento('li');
+      const opcao = criarElemento('button', 'painel-vinculo-opcao', cliente.nome);
+      opcao.type = 'button';
+      if (cliente === jaVinculado) {
+        opcao.classList.add('atual');
+        opcao.append(criarElemento('span', 'painel-vinculo-marca', 'vinculado'));
+      }
+      opcao.addEventListener('click', () => void escolher(cliente));
+      item.append(opcao);
+      lista.append(item);
+    }
+  }
+
+  busca.addEventListener('input', renderizarLista);
+  busca.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Escape') aoConcluir();
+  });
+  campoNovo.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Enter') {
+      evento.preventDefault();
+      void criarNovo();
+    } else if (evento.key === 'Escape') {
+      aoConcluir();
+    }
+  });
+
+  renderizarLista();
+  requestAnimationFrame(() => busca.focus());
+
+  return painel;
+}
+
+/**
+ * Botão ao lado do nome do parceiro no card de evento: vincula esse nome do Sankhya a um
+ * cliente do HUB (existente ou novo). Fica "vinculado" (verde) quando já há um cliente com
+ * esse nome. Clicar abre o seletor ao lado; clicar de novo fecha.
+ */
+function criarBotaoDeVinculoDeCliente(evento) {
+  let seletor = null;
+  let fecharForaDoPainel = null;
+
+  function fechar() {
+    if (fecharForaDoPainel) {
+      document.removeEventListener('pointerdown', fecharForaDoPainel, true);
+      fecharForaDoPainel = null;
+    }
+    seletor?.remove();
+    seletor = null;
+    atualizarBotao();
+  }
+
+  /** Ancora o popover abaixo do botão; se não couber, joga pra cima. Preso à viewport. */
+  function posicionar() {
+    if (!seletor) return;
+    const alvo = botao.getBoundingClientRect();
+    const largura = seletor.offsetWidth;
+    const altura = seletor.offsetHeight;
+    const margem = 8;
+    const esquerda = Math.min(Math.max(alvo.left, margem), window.innerWidth - largura - margem);
+    const cabeAbaixo = alvo.bottom + altura + margem <= window.innerHeight;
+    const topo = cabeAbaixo ? alvo.bottom + 4 : Math.max(alvo.top - altura - 4, margem);
+    seletor.style.left = `${esquerda}px`;
+    seletor.style.top = `${topo}px`;
+  }
+
+  const botao = criarBotaoDeIcone('btn tiny ghost', ICONES.link, '', () => {
+    if (seletor) {
+      fechar();
+      return;
+    }
+    seletor = criarSeletorDeVinculoDeCliente(evento.nomeparc, fechar);
+    document.body.append(seletor);
+    posicionar();
+
+    fecharForaDoPainel = (evt) => {
+      if (!seletor?.contains(evt.target) && evt.target !== botao && !botao.contains(evt.target)) {
+        fechar();
+      }
+    };
+    document.addEventListener('pointerdown', fecharForaDoPainel, true);
+  });
+
+  function atualizarBotao() {
+    const dono = clientePorNomeSankhya(evento.nomeparc);
+    botao.classList.toggle('vinculado', Boolean(dono));
+    const rotulo = dono
+      ? `Vinculado a "${dono.nome}" — clique pra trocar`
+      : 'Vincular a um cliente do HUB (ou cadastrar novo)';
+    botao.title = rotulo;
+    botao.setAttribute('aria-label', rotulo);
+  }
+  atualizarBotao();
+
+  return botao;
+}
+
+/**
+ * Widget de calendário mensal da Agenda de Recursos: navegação de mês, grade
+ * clicável e detalhe do dia selecionado, com a situação de cada evento no
+ * Experience (selo + sub-bloco de OS lançada). Cria os próprios elementos —
+ * quem usa só pluga `elemento` num container.
+ *
+ * Reusado em dois lugares: a aba Agenda do topo (todos os eventos do
+ * snapshot) e a aba Agenda do cadastro do cliente (só os eventos do
+ * `codparc` amarrado a ele) — a diferença é de onde vêm os eventos
+ * (`buscarEventos`) e o que fazer ao trocar de mês (`aoMudarMes`; sem ele,
+ * troca de mês só recarrega local — é o que a aba do cliente quer; a aba do
+ * topo passa isso pra disparar a consulta ao vivo na Sankhya).
+ */
+function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualIso() }) {
+  const estadoWidget = {
+    mes: mesInicial,
+    diaSelecionado: dataIsoDeHoje(),
+  };
+
+  const rotuloMes = criarElemento('span', 'rotulo-mes-calendario');
+  const navegacao = criarElemento('div', 'navegacao-calendario');
+  navegacao.append(
+    criarBotao('btn tiny ghost', '‹', () => mudarMes(-1)),
+    rotuloMes,
+    criarBotao('btn tiny ghost', '›', () => mudarMes(1)),
+  );
+
+  const status = criarElemento('p', 'texto-auxiliar texto-centralizado');
+  const erro = criarElemento('p', 'erro-formulario');
+  erro.hidden = true;
+  const areaCalendario = criarElemento('div');
+  const areaDetalhe = criarElemento('div', 'detalhe-dia-agenda');
+
+  const elemento = criarElemento('div', 'secao-agenda-geral');
+  elemento.append(erro, navegacao, status, areaCalendario, areaDetalhe);
+
+  /**
+   * Uma célula da grade: número do dia + bolinha quando há evento. A borda
+   * verde marca o dia SELECIONADO neste widget, não fixo em "hoje" — clicar
+   * noutro dia move a borda pra ele.
+   */
+  function celula(dia) {
+    const selecionado = dia.dia === estadoWidget.diaSelecionado;
+    const botaoCelula = criarElemento(
+      'button',
+      `celula-calendario celula-calendario-clicavel${dia.doMes ? '' : ' fora-do-mes'}${selecionado ? ' selecionado' : ''}`,
+    );
+    botaoCelula.type = 'button';
+    botaoCelula.dataset.dia = dia.dia;
+    botaoCelula.append(criarElemento('span', 'celula-calendario-numero', String(dia.numero)));
+
+    if (dia.eventos.length) {
+      const selo = criarElemento('span', 'selo-situacao ok', String(dia.eventos.length));
+      selo.title = `${dia.eventos.length} evento(s)`;
+      botaoCelula.append(selo);
+    }
+
+    botaoCelula.addEventListener('click', () => {
+      estadoWidget.diaSelecionado = dia.dia;
+      for (const outra of areaCalendario.querySelectorAll('.celula-calendario')) {
+        outra.classList.toggle('selecionado', outra.dataset.dia === dia.dia);
+      }
+      renderizarDetalhe(dia, true);
+    });
+    return botaoCelula;
+  }
+
+  /**
+   * Detalhe do dia selecionado: lista de eventos, abaixo da grade.
+   *
+   * `forcarAtualizacaoDaSituacao` ignora o cache de situação do Experience de
+   * cada evento — usado quando o clique é numa troca de dia de verdade, não
+   * na reabertura do mesmo dia que já estava selecionado.
+   */
+  function renderizarDetalhe(dia, forcarAtualizacaoDaSituacao = false) {
+    areaDetalhe.replaceChildren();
+    if (!dia) return;
+
+    const titulo = new Date(`${dia.dia}T00:00:00`).toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
+    });
+    areaDetalhe.append(criarElemento('h3', null, titulo));
+
+    if (!dia.eventos.length) {
+      areaDetalhe.append(criarElemento('p', 'texto-auxiliar', 'Nenhum evento neste dia.'));
+      return;
+    }
+
+    for (const evento of dia.eventos) {
+      const linha = criarElemento('div', 'linha-recurso');
+      const informacoes = criarElemento('div', 'recurso-info');
+      const horario =
+        evento.allday === 'S'
+          ? 'Dia todo'
+          : `${evento.inicio.slice(11, 16)}–${evento.fim.slice(11, 16)}`;
+      const tituloDoEvento = evento.nomeparc
+        ? `${evento.codparc ?? ''} - ${evento.nomeparc}`
+        : evento.descrlonga || evento.descrabrev || '(sem título)';
+      const descricaoCompleta = evento.descrlonga || evento.descrabrev;
+
+      if (evento.nomeparc) {
+        const linhaNome = criarElemento('div', 'linha-horario-situacao');
+        linhaNome.append(criarElemento('p', 'recurso-nome', tituloDoEvento));
+        linhaNome.append(criarBotaoDeVinculoDeCliente(evento));
+        informacoes.append(linhaNome);
+      } else {
+        informacoes.append(criarElemento('p', 'recurso-nome', tituloDoEvento));
+      }
+      if (descricaoCompleta && descricaoCompleta !== tituloDoEvento) {
+        informacoes.append(criarElemento('p', 'texto-auxiliar', descricaoCompleta));
+      }
+
+      const linhaHorario = criarElemento('div', 'linha-horario-situacao');
+      linhaHorario.append(criarElemento('span', 'texto-auxiliar', horario));
+      informacoes.append(linhaHorario);
+
+      if (evento.codparc) {
+        // O dia certo pra checar é o dia sendo VISTO no calendário, não o de
+        // início do evento — um evento de período (férias, semana inteira)
+        // aparece em todo dia que cobre, e cada um tem sua própria situação.
+        anexarSituacaoDoEvento(
+          linhaHorario,
+          informacoes,
+          evento.codparc,
+          dia.dia,
+          forcarAtualizacaoDaSituacao,
+        );
+      }
+
+      linha.append(informacoes);
+      areaDetalhe.append(linha);
+    }
+  }
+
+  /** Busca os eventos do mês em exibição e redesenha a grade — sem consulta ao vivo. */
+  async function carregar() {
+    limparErro(erro);
+    rotuloMes.textContent = nomeDoMes(estadoWidget.mes);
+    areaCalendario.replaceChildren(criarElemento('p', 'texto-auxiliar', 'Carregando…'));
+    areaDetalhe.replaceChildren();
+
+    const { de, ate } = limitesDoMesCliente(estadoWidget.mes);
+    try {
+      const eventos = await buscarEventos(de, ate);
+      const grade = criarGradeMensalDeEventos(estadoWidget.mes, eventos);
+      areaCalendario.replaceChildren(criarGradeDoCalendario(grade, celula));
+      status.textContent = eventos.length
+        ? `${eventos.length} evento(s) neste mês.`
+        : 'Nenhum evento neste mês.';
+
+      // Reabre no dia selecionado antes (ou hoje, na primeira vez) — a borda
+      // verde da célula já sai marcada nele, via `celula`.
+      const diaSelecionado =
+        grade.find((dia) => dia.dia === estadoWidget.diaSelecionado) ??
+        grade.find((dia) => dia.hoje);
+      if (diaSelecionado) {
+        renderizarDetalhe(diaSelecionado);
+      }
+    } catch (erroDeCarga) {
+      areaCalendario.replaceChildren();
+      status.textContent = '';
+      exibirErro(erro, erroDeCarga.message);
+    }
+  }
+
+  async function mudarMes(passo) {
+    estadoWidget.mes = deslocarMes(estadoWidget.mes, passo);
+    if (aoMudarMes) {
+      await aoMudarMes(estadoWidget.mes);
+    } else {
+      await carregar();
+    }
+  }
+
+  return {
+    elemento,
+    carregar,
+    elementoErro: erro,
+    elementoStatus: status,
+    get mes() {
+      return estadoWidget.mes;
+    },
+  };
+}
+
+/** Discreto, ao lado do botão de atualizar — sem hora nunca importado ainda. */
+function renderizarUltimaAtualizacaoDaAgenda(importadoEm) {
+  elementos.ultimaAtualizacaoAgenda.textContent = importadoEm
+    ? `Atualizado em ${new Date(importadoEm).toLocaleString('pt-BR')}`
+    : '';
+}
+
+/**
+ * O widget da aba Agenda do topo: todos os eventos do snapshot, sem recorte de cliente.
+ * Ao trocar de mês a grade mostra na hora o que já está no snapshot local e a consulta ao
+ * vivo roda em segundo plano — sem tela de espera bloqueando a navegação entre meses.
+ */
+const widgetAgendaGeral = criarWidgetDeAgenda({
+  buscarEventos: async (de, ate) => {
+    const [{ eventos }, estadoDoSnapshot] = await Promise.all([
+      api.eventosDaAgenda(de, ate),
+      api.estadoAgenda(),
+    ]);
+    renderizarUltimaAtualizacaoDaAgenda(estadoDoSnapshot.importadoEm);
+    return eventos;
+  },
+  aoMudarMes: async () => {
+    await widgetAgendaGeral.carregar();
+    void atualizarAgendaGeral();
+  },
+});
+
+/**
+ * Consulta ao vivo o mês em exibição e recarrega a grade. Não apaga o que já estava em
+ * cache: a grade continua visível enquanto atualiza, e um erro deixa o cache no lugar em
+ * vez de esvaziar a tela.
+ */
+async function atualizarAgendaGeral() {
+  limparErro(widgetAgendaGeral.elementoErro);
+  elementos.avisoShellAgenda.hidden = true;
+  elementos.botaoAtualizarAgenda.disabled = true;
+  const statusAntes = widgetAgendaGeral.elementoStatus.textContent;
+  widgetAgendaGeral.elementoStatus.textContent = 'Atualizando…';
+
+  const { de, ate } = limitesDoMesCliente(widgetAgendaGeral.mes);
+  try {
+    await api.consultarAgenda(de, ate);
+    await widgetAgendaGeral.carregar();
+  } catch (erro) {
+    if (erro.shellIndisponivel) {
+      elementos.avisoShellAgenda.hidden = false;
+    }
+    exibirErro(widgetAgendaGeral.elementoErro, erro.message);
+    widgetAgendaGeral.elementoStatus.textContent = statusAntes ?? '';
+  } finally {
+    elementos.botaoAtualizarAgenda.disabled = false;
+  }
+}
+
+/* ---------------------------------- OS ------------------------------------ */
+
+/** `YYYY-MM-DD` -> `DD/MM/YYYY`. Vazio (OS sem data de conclusão) vira travessão. */
+function formatarDiaDeOs(dia) {
+  if (!dia) return '—';
+  const [ano, mes, diaDoMes] = dia.split('-');
+  return `${diaDoMes}/${mes}/${ano}`;
+}
+
+const MINUTOS_POR_HORA = 60;
+
+/* `diff_time` da Experience: `HH:MM`, com as horas podendo passar de 24 e segundos opcionais. */
+const FORMATO_DE_HORAS_DA_OS = /^(\d+):(\d{2})(?::\d{2})?$/;
+
+/** `'08:30'` -> 510. Vazio ou fora do formato vale 0: a OS fica fora da soma, sem inventar horas. */
+function minutosDasHoras(horas) {
+  const partes = FORMATO_DE_HORAS_DA_OS.exec(horas?.trim() ?? '');
+  if (!partes) return 0;
+  return Number(partes[1]) * MINUTOS_POR_HORA + Number(partes[2]);
+}
+
+/** 8400 -> `'140:00'`: total do mês, sem virar dias. */
+function formatarMinutosComoHoras(minutos) {
+  const horas = Math.floor(minutos / MINUTOS_POR_HORA);
+  const resto = String(minutos % MINUTOS_POR_HORA).padStart(2, '0');
+  return `${String(horas).padStart(2, '0')}:${resto}`;
+}
+
+/* OS sem status na Experience: agrupada à parte, com um nome legível no agrupador. */
+const STATUS_DE_OS_VAZIO = 'Sem status';
+
+/* Posição na paleta `.cor-status-N` do styles.css. Os status conhecidos têm cor fixa. */
+const CORES_FIXAS_DOS_STATUS_DE_OS = new Map([
+  ['Concluído', 0],
+  ['Gerado', 1],
+]);
+const QUANTIDADE_DE_CORES_DE_STATUS = 7;
+
+function statusDaOs(item) {
+  return item.statusAceite || STATUS_DE_OS_VAZIO;
+}
+
+/** Mais recente primeiro: dia de conclusão e, no mesmo dia, horário de início. Sem data vai para o fim. */
+function ordenarOsDaMaisRecente(itens) {
+  const chaveDeOrdem = (item) => `${item.dia || '0000-00-00'} ${item.horaInicio}`;
+  return [...itens].sort((a, b) => chaveDeOrdem(b).localeCompare(chaveDeOrdem(a)));
+}
+
+/** Quantidade de OS de cada status, com os status em ordem alfabética. */
+function contarOsPorStatus(itens) {
+  const contagens = new Map();
+  for (const item of itens) {
+    const status = statusDaOs(item);
+    contagens.set(status, (contagens.get(status) ?? 0) + 1);
+  }
+  return new Map([...contagens].sort(([a], [b]) => a.localeCompare(b, 'pt-BR')));
+}
+
+/**
+ * Classe de cor de cada status. Os conhecidos têm cor fixa; os demais pegam as cores
+ * livres na ordem recebida, para dois status do mesmo mês não saírem com a mesma cor.
+ */
+function atribuirCoresAosStatus(statuses) {
+  const fixas = new Set(CORES_FIXAS_DOS_STATUS_DE_OS.values());
+  const livres = [...Array(QUANTIDADE_DE_CORES_DE_STATUS).keys()].filter((i) => !fixas.has(i));
+  let proximaLivre = 0;
+
+  const cores = new Map();
+  for (const status of statuses) {
+    const indice =
+      CORES_FIXAS_DOS_STATUS_DE_OS.get(status) ?? livres[proximaLivre++ % livres.length];
+    cores.set(status, `cor-status-${indice}`);
+  }
+  return cores;
+}
+
+/** Botão de um status: marcado, filtra a lista por ele; vários podem estar marcados. */
+function criarAgrupadorDeStatus({ status, quantidade, classeDeCor, marcado, aoAlternar }) {
+  const classes = `agrupador-status ${classeDeCor}${marcado ? ' ativo' : ''}`;
+  const botao = criarBotao(classes, undefined, aoAlternar);
+  botao.setAttribute('aria-pressed', String(marcado));
+  botao.title = marcado ? `Parar de filtrar por ${status}` : `Mostrar as OS ${status}`;
+  botao.append(
+    criarElemento('span', 'ponto-status'),
+    criarElemento('span', null, status),
+    criarElemento('span', 'opcao-contagem', String(quantidade)),
+  );
+  return botao;
+}
+
+/** Uma OS na lista: número + tipo, empresa/descrição, e uma linha de detalhes. */
+function criarLinhaDeOs(item, classeDeCor) {
+  const linha = criarElemento('div', 'linha-recurso');
+  const informacoes = criarElemento('div', 'recurso-info');
+
+  const linhaTitulo = criarElemento('div', 'linha-horario-situacao');
+  linhaTitulo.append(
+    criarElemento('p', 'recurso-nome', `OS ${item.numeroSankhya || '(sem número)'} · ${item.tipo}`),
+  );
+  if (item.statusAceite) {
+    linhaTitulo.append(
+      criarElemento('span', `selo-situacao selo-status-os ${classeDeCor}`, item.statusAceite),
+    );
+  }
+  informacoes.append(linhaTitulo);
+
+  if (item.empresa) {
+    informacoes.append(criarElemento('p', 'texto-auxiliar', item.empresa));
+  }
+  if (item.erro) {
+    informacoes.append(criarElemento('p', 'erro-formulario', item.erro));
+  }
+  if (item.observacoes) {
+    informacoes.append(
+      criarElemento('p', 'texto-auxiliar', `Tarefas realizadas: ${item.observacoes}`),
+    );
+  }
+
+  const detalhes = [
+    `Concluída em: ${formatarDiaDeOs(item.dia)}`,
+    item.horaInicio && item.horaFim && `Horário: ${item.horaInicio}–${item.horaFim}`,
+    item.intervalo && `Intervalo: ${item.intervalo}`,
+    item.horasFeitas && `Horas: ${item.horasFeitas}`,
+    item.horasExcedidas && 'Horas excedidas',
+    item.etapa && `Etapa: ${item.etapa}`,
+    item.processos && `Processos: ${item.processos}`,
+    item.pedido && `Pedido: ${item.pedido}`,
+    item.coordenador && `Coordenador: ${item.coordenador}`,
+    item.statusNumeroSankhya && `Status Sankhya: ${item.statusNumeroSankhya}`,
+  ].filter(Boolean);
+  informacoes.append(criarElemento('p', 'texto-auxiliar', detalhes.join(' • ')));
+
+  linha.append(informacoes);
+  return linha;
+}
+
+/**
+ * Widget da aba OS: navegação de mês (sem calendário — só a lista) e busca ao vivo no
+ * Sankhya Experience a cada mês trocado ou "atualizar". Reusado na aba OS do topo (todas
+ * as OS do usuário) e na aba OS do cadastro do cliente (recortadas pro cliente) — a
+ * diferença é de onde vêm os itens (`buscarOs`).
+ */
+function criarWidgetDeOs({ buscarOs, aoErro, mesInicial = mesAtualIso() }) {
+  /* `statusFiltrados` vazio mostra tudo; a seleção sobrevive à troca de mês. */
+  const estadoWidget = { mes: mesInicial, itens: [], statusFiltrados: new Set() };
+
+  const rotuloMes = criarElemento('span', 'rotulo-mes-calendario');
+  const navegacao = criarElemento('div', 'navegacao-calendario');
+  navegacao.append(
+    criarBotao('btn tiny ghost', '‹', () => mudarMes(-1)),
+    rotuloMes,
+    criarBotao('btn tiny ghost', '›', () => mudarMes(1)),
+  );
+
+  const agrupadores = criarElemento('div', 'agrupadores-status');
+  agrupadores.setAttribute('role', 'group');
+  agrupadores.setAttribute('aria-label', 'Filtrar as OS pelo status');
+  const status = criarElemento('p', 'texto-auxiliar totais-os');
+  const barra = criarElemento('div', 'barra-os');
+  barra.append(agrupadores, status);
+
+  const erro = criarElemento('p', 'erro-formulario');
+  erro.hidden = true;
+  const lista = criarElemento('div', 'lista-os');
+
+  const elemento = criarElemento('div', 'secao-agenda-geral');
+  elemento.append(erro, navegacao, barra, lista);
+
+  function alternarStatus(statusDoAgrupador) {
+    const filtrados = estadoWidget.statusFiltrados;
+    if (!filtrados.delete(statusDoAgrupador)) {
+      filtrados.add(statusDoAgrupador);
+    }
+    renderizarItens();
+  }
+
+  /* Contador e horas somam só as OS visíveis; os agrupadores contam o mês inteiro. */
+  function renderizarItens() {
+    const { itens, statusFiltrados } = estadoWidget;
+    const contagens = contarOsPorStatus(itens);
+    const cores = atribuirCoresAosStatus(contagens.keys());
+    const visiveis = statusFiltrados.size
+      ? itens.filter((item) => statusFiltrados.has(statusDaOs(item)))
+      : itens;
+
+    agrupadores.replaceChildren(
+      ...[...contagens].map(([statusDoAgrupador, quantidade]) =>
+        criarAgrupadorDeStatus({
+          status: statusDoAgrupador,
+          quantidade,
+          classeDeCor: cores.get(statusDoAgrupador),
+          marcado: statusFiltrados.has(statusDoAgrupador),
+          aoAlternar: () => alternarStatus(statusDoAgrupador),
+        }),
+      ),
+    );
+    const minutosLancados = visiveis.reduce(
+      (total, item) => total + minutosDasHoras(item.horasFeitas),
+      0,
+    );
+    status.textContent = itens.length
+      ? `${visiveis.length} OS neste mês · ${formatarMinutosComoHoras(minutosLancados)} horas lançadas.`
+      : 'Nenhuma OS neste mês.';
+    lista.replaceChildren(
+      ...visiveis.map((item) => criarLinhaDeOs(item, cores.get(statusDaOs(item)))),
+    );
+  }
+
+  /* Status marcado que não existe no mês novo sai da seleção: senão a lista viria vazia. */
+  function descartarStatusAusentes() {
+    const presentes = new Set(estadoWidget.itens.map(statusDaOs));
+    for (const statusMarcado of estadoWidget.statusFiltrados) {
+      if (!presentes.has(statusMarcado)) {
+        estadoWidget.statusFiltrados.delete(statusMarcado);
+      }
+    }
+  }
+
+  async function carregar() {
+    limparErro(erro);
+    rotuloMes.textContent = nomeDoMes(estadoWidget.mes);
+    lista.replaceChildren(criarElemento('p', 'texto-auxiliar', 'Carregando…'));
+
+    const { de, ate } = limitesDoMesCliente(estadoWidget.mes);
+    try {
+      estadoWidget.itens = ordenarOsDaMaisRecente(await buscarOs(de, ate));
+      descartarStatusAusentes();
+      renderizarItens();
+    } catch (erroDeCarga) {
+      estadoWidget.itens = [];
+      agrupadores.replaceChildren();
+      lista.replaceChildren();
+      status.textContent = '';
+      exibirErro(erro, erroDeCarga.message);
+      aoErro?.(erroDeCarga);
+    }
+  }
+
+  async function mudarMes(passo) {
+    estadoWidget.mes = deslocarMes(estadoWidget.mes, passo);
+    await carregar();
+  }
+
+  return {
+    elemento,
+    carregar,
+    elementoErro: erro,
+    elementoStatus: status,
+    get mes() {
+      return estadoWidget.mes;
+    },
+  };
+}
+
+function renderizarUltimaAtualizacaoDeOs(buscadoEm) {
+  elementos.ultimaAtualizacaoOs.textContent = buscadoEm
+    ? `Atualizado em ${new Date(buscadoEm).toLocaleString('pt-BR')}`
+    : '';
+}
+
+/** O widget da aba OS do topo: todas as OS do usuário, somando os clientes com parceiro vinculado. */
+const widgetOsGeral = criarWidgetDeOs({
+  buscarOs: async (de, ate) => {
+    const { itens, buscadoEm } = await api.consultarOsGeral(de, ate);
+    renderizarUltimaAtualizacaoDeOs(buscadoEm);
+    return itens;
+  },
+  aoErro: (erro) => {
+    elementos.avisoShellOs.hidden = !erro.shellIndisponivel;
+  },
+});
+
+async function atualizarOsGeral() {
+  elementos.avisoShellOs.hidden = true;
+  elementos.botaoAtualizarOs.disabled = true;
+  try {
+    await widgetOsGeral.carregar();
+  } finally {
+    elementos.botaoAtualizarOs.disabled = false;
+  }
+}
+
 function alternarVisualizacao(visualizacao) {
   estado.visualizacao = visualizacao;
 
-  const emClientes = visualizacao === 'clientes';
-  elementos.visualizacaoClientes.hidden = !emClientes;
-  elementos.visualizacaoLocal.hidden = emClientes;
+  const opcoes = [
+    {
+      chave: 'clientes',
+      botao: elementos.botaoVisualizacaoClientes,
+      area: elementos.visualizacaoClientes,
+    },
+    { chave: 'local', botao: elementos.botaoVisualizacaoLocal, area: elementos.visualizacaoLocal },
+    {
+      chave: 'agenda',
+      botao: elementos.botaoVisualizacaoAgenda,
+      area: elementos.visualizacaoAgenda,
+    },
+    { chave: 'os', botao: elementos.botaoVisualizacaoOs, area: elementos.visualizacaoOs },
+    {
+      chave: 'lembretes',
+      botao: elementos.botaoVisualizacaoLembretes,
+      area: elementos.visualizacaoLembretes,
+    },
+    {
+      chave: 'contatos',
+      botao: elementos.botaoVisualizacaoContatos,
+      area: elementos.visualizacaoContatos,
+    },
+  ];
 
-  elementos.botaoVisualizacaoClientes.classList.toggle('ativo', emClientes);
-  elementos.botaoVisualizacaoClientes.setAttribute('aria-pressed', String(emClientes));
-  elementos.botaoVisualizacaoLocal.classList.toggle('ativo', !emClientes);
-  elementos.botaoVisualizacaoLocal.setAttribute('aria-pressed', String(!emClientes));
+  for (const { chave, botao, area } of opcoes) {
+    const ativa = chave === visualizacao;
+    area.hidden = !ativa;
+    botao.classList.toggle('ativa', ativa);
+    botao.setAttribute('aria-selected', String(ativa));
+  }
 
-  if (!emClientes) {
+  if (visualizacao === 'local') {
     carregarLocal();
+  }
+  if (visualizacao === 'agenda') {
+    // Mostra o snapshot local na hora e atualiza em segundo plano.
+    void widgetAgendaGeral.carregar().then(() => atualizarAgendaGeral());
+  }
+  if (visualizacao === 'os') {
+    void widgetOsGeral.carregar();
+  }
+  if (visualizacao === 'lembretes') {
+    void recarregarLembretes();
+  }
+  if (visualizacao === 'contatos') {
+    void recarregarContatos();
   }
 }
 
@@ -2215,6 +3702,93 @@ function restaurarCursorNasAnotacoes(posicao) {
   campo.setSelectionRange(posicao.inicio, posicao.fim);
 }
 
+/*
+ * Agenda e OS consultam o Sankhya e a Experience ao montar, e guardam o mês, o dia e o
+ * filtro escolhidos. O detalhe é redesenhado a cada tique do Git e a cada base
+ * verificada: remontá-las ali repetia as consultas ao vivo dezenas de vezes por minuto e
+ * devolvia a tela ao mês corrente. Cada uma é montada uma vez por cliente e reaproveitada.
+ *
+ * A identidade inclui os nomes porque é por eles que a Agenda e as OS são recortadas:
+ * editar o cliente precisa refazer a consulta.
+ */
+const secoesConsultadasDoDetalhe = { identidade: '', porChave: new Map() };
+
+function identidadeDasConsultasDoCliente(cliente) {
+  return [cliente.id, cliente.nome, ...cliente.nomesCompletos].join('\n');
+}
+
+function secaoConsultadaDoCliente(cliente, chave, criar) {
+  const identidade = identidadeDasConsultasDoCliente(cliente);
+  if (secoesConsultadasDoDetalhe.identidade !== identidade) {
+    secoesConsultadasDoDetalhe.identidade = identidade;
+    secoesConsultadasDoDetalhe.porChave.clear();
+  }
+
+  let secao = secoesConsultadasDoDetalhe.porChave.get(chave);
+  if (!secao) {
+    secao = criar(cliente);
+    secoesConsultadasDoDetalhe.porChave.set(chave, secao);
+  }
+  return secao;
+}
+
+function descartarSecoesConsultadasDoDetalhe() {
+  secoesConsultadasDoDetalhe.identidade = '';
+  secoesConsultadasDoDetalhe.porChave.clear();
+}
+
+/**
+ * Abas do detalhe do cliente. Trocar de aba só mostra/esconde o que já foi
+ * montado — sem chamar `renderizarDetalhe()` de novo, que descartaria o
+ * calendário aberto e qualquer outro estado local da aba.
+ *
+ * Aba oculta em Configurações › Acessos nem é montada, e a marcada `soAoAbrir` só é
+ * montada quando aberta: Agenda e OS consultam o servidor ao montar.
+ */
+function criarAbasDeDetalhe(todasAsAbas) {
+  const abas = todasAsAbas.filter((aba) => funcionalidadeVisivel(`cliente.${aba.chave}`));
+  const ativaInicial = abas.some((aba) => aba.chave === estado.abaDetalheAtiva)
+    ? estado.abaDetalheAtiva
+    : abas[0].chave;
+
+  const barra = criarElemento('div', 'abas-modal detalhe-abas');
+  barra.setAttribute('role', 'tablist');
+  const corpo = criarElemento('div', 'abas-empilhadas detalhe-abas-corpo');
+
+  for (const aba of abas) {
+    const painel = criarElemento('div', 'painel-aba');
+    painel.dataset.chave = aba.chave;
+    painel.hidden = aba.chave !== ativaInicial;
+    const montar = () => {
+      if (!painel.hasChildNodes()) {
+        painel.append(aba.criarConteudo());
+      }
+    };
+    if (!aba.soAoAbrir || aba.chave === ativaInicial) {
+      montar();
+    }
+
+    const botao = criarBotao(aba.chave === ativaInicial ? 'aba ativa' : 'aba', aba.rotulo, () => {
+      estado.abaDetalheAtiva = aba.chave;
+      montar();
+      for (const filho of barra.children) {
+        filho.classList.toggle('ativa', filho.dataset.chave === aba.chave);
+      }
+      for (const outroPainel of corpo.children) {
+        outroPainel.hidden = outroPainel.dataset.chave !== aba.chave;
+      }
+    });
+    botao.setAttribute('role', 'tab');
+    botao.dataset.chave = aba.chave;
+    barra.append(botao);
+    corpo.append(painel);
+  }
+
+  const container = criarElemento('div', 'detalhe-abas-container');
+  container.append(barra, corpo);
+  return container;
+}
+
 function renderizarDetalhe() {
   const cliente = clienteSelecionado();
   if (!cliente) {
@@ -2242,13 +3816,43 @@ function renderizarDetalhe() {
   const cabecalho = criarElemento('div', 'detalhe-cabecalho');
   cabecalho.append(identidade, acoes);
 
+  const secaoGeral = criarElemento('div');
+  secaoGeral.append(criarSecaoDeAnotacoes(cliente), criarSecaoDeLinks(cliente));
+
   const card = criarElemento('div', 'card');
   card.append(
     cabecalho,
-    criarSecaoDeBases(cliente),
-    criarSecaoDeRepositorios(cliente),
-    criarSecaoDeLinks(cliente),
-    criarSecaoDeAnotacoes(cliente),
+    criarAbasDeDetalhe([
+      { chave: 'geral', rotulo: 'Geral', criarConteudo: () => secaoGeral },
+      { chave: 'bases', rotulo: 'Bases', criarConteudo: () => criarSecaoDeBases(cliente) },
+      {
+        chave: 'repositorios',
+        rotulo: 'Repositórios',
+        criarConteudo: () => criarSecaoDeRepositorios(cliente),
+      },
+      {
+        chave: 'projetos',
+        rotulo: 'Projetos',
+        criarConteudo: () => criarSecaoDeProjetos(cliente),
+      },
+      {
+        chave: 'agenda',
+        rotulo: 'Agenda',
+        soAoAbrir: true,
+        criarConteudo: () => secaoConsultadaDoCliente(cliente, 'agenda', criarSecaoDeAgenda),
+      },
+      {
+        chave: 'os',
+        rotulo: 'OS',
+        soAoAbrir: true,
+        criarConteudo: () => secaoConsultadaDoCliente(cliente, 'os', criarSecaoDeOs),
+      },
+      {
+        chave: 'contatos',
+        rotulo: 'Contatos',
+        criarConteudo: () => criarSecaoDeContatosDoCliente(cliente),
+      },
+    ]),
   );
   elementos.detalhe.replaceChildren(card);
   restaurarCursorNasAnotacoes(cursorNasAnotacoes);
@@ -2277,6 +3881,7 @@ function abrirModalDeCadastro() {
   elementos.modalTitulo.textContent = 'Cadastrar cliente';
   elementos.modalSubtitulo.textContent = 'Informe o nome do cliente.';
   elementos.campoNome.value = '';
+  preencherNomesCompletos([]);
   limparErro(elementos.erroCliente);
   elementos.modalCliente.showModal();
   elementos.campoNome.focus();
@@ -2287,9 +3892,52 @@ function abrirModalDeEdicao(cliente) {
   elementos.modalTitulo.textContent = 'Editar cliente';
   elementos.modalSubtitulo.textContent = 'Altere o nome do cliente.';
   elementos.campoNome.value = cliente.nome;
+  preencherNomesCompletos(cliente.nomesCompletos);
   limparErro(elementos.erroCliente);
   elementos.modalCliente.showModal();
   elementos.campoNome.select();
+}
+
+/** Uma linha do cadastro de "Nomes completos": um campo de texto e um botão de remover. */
+function criarLinhaDeNomeCompleto(valor) {
+  const linha = criarElemento('div', 'linha-nome-completo');
+
+  const campo = criarElemento('input');
+  campo.type = 'text';
+  campo.value = valor;
+  campo.maxLength = 120;
+  campo.autocomplete = 'off';
+  campo.spellcheck = false;
+  campo.placeholder = 'Ex.: Indústria Alfa Ltda';
+  campo.setAttribute('aria-label', 'Nome completo');
+
+  const remover = criarBotaoDeIcone('btn tiny danger', ICONES.lixeira, 'Remover nome', () =>
+    linha.remove(),
+  );
+
+  linha.append(campo, remover);
+  return linha;
+}
+
+function adicionarLinhaDeNomeCompleto(valor) {
+  const linha = criarLinhaDeNomeCompleto(valor);
+  elementos.listaNomesCompletosCliente.append(linha);
+  return linha;
+}
+
+function preencherNomesCompletos(nomes) {
+  elementos.listaNomesCompletosCliente.replaceChildren();
+  for (const nome of nomes) {
+    adicionarLinhaDeNomeCompleto(nome);
+  }
+}
+
+/** Linha em branco é descartada: é o que sobra de um "Adicionar nome" desistido. */
+function lerNomesCompletosDoFormulario() {
+  const valores = [...elementos.listaNomesCompletosCliente.querySelectorAll('input')]
+    .map((campo) => campo.value.trim())
+    .filter(Boolean);
+  return [...new Set(valores)];
 }
 
 async function salvarCliente(evento) {
@@ -2301,12 +3949,26 @@ async function salvarCliente(evento) {
     return;
   }
 
+  const nomesCompletos = lerNomesCompletosDoFormulario();
+  if (nomesCompletos.length > MAXIMO_DE_NOMES_COMPLETOS) {
+    exibirErro(
+      elementos.erroCliente,
+      `No máximo ${MAXIMO_DE_NOMES_COMPLETOS} nomes completos por cliente.`,
+    );
+    return;
+  }
+
   limparErro(elementos.erroCliente);
   elementos.botaoSalvarCliente.disabled = true;
 
   try {
     const emEdicao = estado.clienteEmEdicao;
-    const cliente = emEdicao ? await api.atualizar(emEdicao.id, nome) : await api.criar(nome);
+    let cliente = emEdicao ? await api.atualizar(emEdicao.id, nome) : await api.criar(nome);
+    // São duas gravações: se a dos nomes falhar, o cliente já existe, e salvar de novo
+    // precisa atualizá-lo em vez de cadastrar um segundo.
+    estado.clienteEmEdicao = cliente;
+
+    cliente = await api.salvarNomesCompletos(cliente.id, nomesCompletos);
 
     estado.idSelecionado = cliente.id;
     await recarregarClientes();
@@ -2316,6 +3978,60 @@ async function salvarCliente(evento) {
     exibirErro(elementos.erroCliente, erro.message);
   } finally {
     elementos.botaoSalvarCliente.disabled = false;
+  }
+}
+
+function abrirModalDeCadastroDeProjeto(cliente) {
+  estado.clienteDoProjetoEmEdicao = cliente;
+  estado.projetoEmEdicao = null;
+  elementos.modalProjetoTitulo.textContent = 'Cadastrar projeto';
+  elementos.modalProjetoSubtitulo.textContent = `Cliente: ${cliente.nome}`;
+  elementos.campoNomeProjeto.value = '';
+  limparErro(elementos.erroProjeto);
+  elementos.modalProjeto.showModal();
+  elementos.campoNomeProjeto.focus();
+}
+
+function abrirModalDeEdicaoDeProjeto(cliente, projeto) {
+  estado.clienteDoProjetoEmEdicao = cliente;
+  estado.projetoEmEdicao = projeto;
+  elementos.modalProjetoTitulo.textContent = 'Editar projeto';
+  elementos.modalProjetoSubtitulo.textContent = `Cliente: ${cliente.nome}`;
+  elementos.campoNomeProjeto.value = projeto.nome;
+  limparErro(elementos.erroProjeto);
+  elementos.modalProjeto.showModal();
+  elementos.campoNomeProjeto.select();
+}
+
+async function salvarProjeto(evento) {
+  evento.preventDefault();
+
+  const nome = elementos.campoNomeProjeto.value.trim();
+  if (!nome) {
+    exibirErro(elementos.erroProjeto, 'Informe o nome do projeto.');
+    return;
+  }
+
+  limparErro(elementos.erroProjeto);
+  elementos.botaoSalvarProjeto.disabled = true;
+
+  try {
+    const cliente = estado.clienteDoProjetoEmEdicao;
+    const emEdicao = estado.projetoEmEdicao;
+
+    if (emEdicao) {
+      await api.atualizarProjeto(cliente.id, emEdicao.id, { nome });
+    } else {
+      await api.adicionarProjeto(cliente.id, { nome });
+    }
+
+    await recarregarClientes();
+    elementos.modalProjeto.close();
+    exibirAviso(emEdicao ? 'Projeto atualizado.' : 'Projeto cadastrado.');
+  } catch (erro) {
+    exibirErro(elementos.erroProjeto, erro.message);
+  } finally {
+    elementos.botaoSalvarProjeto.disabled = false;
   }
 }
 
@@ -2447,6 +4163,8 @@ function abrirModalDeBanco(cliente, base) {
     ? 'Editar banco de dados'
     : 'Vincular banco de dados';
   elementos.modalBancoSubtitulo.textContent = `Base: ${base.url}`;
+  elementos.campoSgbd.value = banco?.sgbd ?? 'oracle';
+  elementos.campoIdentificadorOracle.value = banco?.identificadorOracle ?? 'service-name';
   elementos.campoHost.value = banco?.host ?? '';
   elementos.campoPorta.value = banco?.porta ?? PORTA_PADRAO_DO_BANCO;
   elementos.campoServico.value = banco?.nomeDoServico ?? '';
@@ -2454,6 +4172,7 @@ function abrirModalDeBanco(cliente, base) {
   elementos.campoSenhaBanco.value = banco?.senha ?? '';
   elementos.botaoDesvincularBanco.hidden = !banco;
 
+  atualizarCamposDoSgbd();
   definirVisibilidadeDaSenhaDoBanco(false);
   limparErro(elementos.erroBanco);
   elementos.modalBanco.showModal();
@@ -2462,6 +4181,8 @@ function abrirModalDeBanco(cliente, base) {
 
 function lerFormularioDeBanco() {
   return {
+    sgbd: elementos.campoSgbd.value,
+    identificadorOracle: elementos.campoIdentificadorOracle.value,
     host: elementos.campoHost.value.trim(),
     porta: elementos.campoPorta.value.trim(),
     nomeDoServico: elementos.campoServico.value.trim(),
@@ -2481,7 +4202,7 @@ function validarFormularioDeBanco(dados) {
   }
 
   if (!dados.nomeDoServico) {
-    return 'Informe o service name.';
+    return `Informe o ${rotuloDoCampoDeServico(dados)}.`;
   }
 
   if (!dados.usuario) {
@@ -2493,6 +4214,54 @@ function validarFormularioDeBanco(dados) {
   }
 
   return null;
+}
+
+/* O mesmo campo guarda service name ou SID no Oracle e o database no SQL Server. */
+function rotuloDoCampoDeServico({ sgbd, identificadorOracle }) {
+  return sgbd === 'oracle'
+    ? ROTULOS_DE_IDENTIFICADOR_ORACLE[identificadorOracle]
+    : ROTULO_DO_DATABASE;
+}
+
+function atualizarCamposDoSgbd() {
+  const dados = lerFormularioDeBanco();
+
+  elementos.grupoIdentificadorOracle.hidden = dados.sgbd !== 'oracle';
+  elementos.rotuloCampoServico.textContent = rotuloDoCampoDeServico(dados);
+  elementos.botoesDeCopiarDoBanco.forEach(rotularBotaoDeCopiarDoBanco);
+}
+
+/* O rótulo vem do `<label>` do campo porque o do serviço muda com o SGBD. */
+function rotuloDoCampoCopiado(botao) {
+  return document.querySelector(`label[for="${botao.dataset.copiarCampo}"]`).textContent;
+}
+
+function rotularBotaoDeCopiarDoBanco(botao) {
+  const rotulo = `Copiar ${rotuloDoCampoCopiado(botao)}`;
+  botao.title = rotulo;
+  botao.setAttribute('aria-label', rotulo);
+}
+
+function copiarCampoDoBanco(botao) {
+  const valor = document.getElementById(botao.dataset.copiarCampo).value;
+  const rotulo = rotuloDoCampoCopiado(botao);
+
+  if (valor === '') {
+    exibirAviso(`${rotulo} está vazio: nada para copiar.`, 'erro');
+    return;
+  }
+
+  copiarParaAreaDeTransferencia(valor, `${rotulo} copiado.`);
+}
+
+/* Só troca a porta padrão do outro SGBD: porta digitada pelo usuário é preservada. */
+function aplicarPortaPadraoDoSgbd() {
+  const portaAtual = Number(elementos.campoPorta.value);
+  const ehPortaPadrao = Object.values(PORTAS_PADRAO_POR_SGBD).includes(portaAtual);
+
+  if (elementos.campoPorta.value === '' || ehPortaPadrao) {
+    elementos.campoPorta.value = PORTAS_PADRAO_POR_SGBD[elementos.campoSgbd.value];
+  }
 }
 
 async function salvarBanco(evento) {
@@ -2773,13 +4542,22 @@ function abrirModalDeRepositorio(cliente, repositorio) {
     ? 'Editar repositório'
     : 'Cadastrar repositório';
   elementos.modalRepositorioSubtitulo.textContent = `Cliente: ${cliente.nome}`;
-  elementos.campoNomeRepositorio.value = repositorio?.nome ?? '';
   elementos.campoUrlRepositorio.value = repositorio?.url ?? '';
   elementos.campoCaminhoLocal.value = repositorio?.caminhoLocal ?? '';
 
   limparErro(elementos.erroRepositorio);
   elementos.modalRepositorio.showModal();
-  elementos.campoNomeRepositorio.focus();
+  elementos.campoCaminhoLocal.focus();
+}
+
+/** Último componente do caminho, aceitando `\` e `/`. */
+function nomeDaPasta(caminho) {
+  return caminho.split(/[\\/]/).filter(Boolean).pop() ?? '';
+}
+
+/** Nome de exibição do repositório: a pasta do clone ou, sem clone, a URL. */
+function nomeDeExibicaoDoRepositorio(repositorio) {
+  return nomeDaPasta(repositorio.caminhoLocal ?? repositorio.url.replace(/\.git$/, ''));
 }
 
 /**
@@ -2816,13 +4594,12 @@ async function salvarRepositorio(evento) {
   evento.preventDefault();
 
   const dados = {
-    nome: elementos.campoNomeRepositorio.value.trim(),
     url: elementos.campoUrlRepositorio.value.trim(),
     caminhoLocal: elementos.campoCaminhoLocal.value.trim(),
   };
 
-  if (!dados.nome) {
-    exibirErro(elementos.erroRepositorio, 'Informe o nome do repositório.');
+  if (!dados.caminhoLocal) {
+    exibirErro(elementos.erroRepositorio, 'Informe o caminho local do repositório.');
     return;
   }
 
@@ -2861,12 +4638,16 @@ async function salvarRepositorio(evento) {
 
 /* ------------------------------ links do cliente -------------------------- */
 
-function abrirModalDeLink(cliente, link) {
+/** `projeto` é `null` quando o link é geral do cliente, não de um projeto. */
+function abrirModalDeLink(cliente, link, projeto = null) {
   estado.clienteDoLinkEmEdicao = cliente;
   estado.linkEmEdicao = link;
+  estado.projetoDoLinkEmEdicao = projeto;
 
   elementos.modalLinkTitulo.textContent = link ? 'Editar link' : 'Cadastrar link';
-  elementos.modalLinkSubtitulo.textContent = `Cliente: ${cliente.nome}`;
+  elementos.modalLinkSubtitulo.textContent = projeto
+    ? `Cliente: ${cliente.nome} · Projeto: ${projeto.nome}`
+    : `Cliente: ${cliente.nome}`;
   elementos.campoNomeLink.value = link?.nome ?? '';
   elementos.campoUrlLink.value = link?.url ?? '';
 
@@ -2881,6 +4662,14 @@ function abrirModalDeCadastroDeLink(cliente) {
 
 function abrirModalDeEdicaoDeLink(cliente, link) {
   abrirModalDeLink(cliente, link);
+}
+
+function abrirModalDeCadastroDeLinkDeProjeto(cliente, projeto) {
+  abrirModalDeLink(cliente, null, projeto);
+}
+
+function abrirModalDeEdicaoDeLinkDeProjeto(cliente, projeto, link) {
+  abrirModalDeLink(cliente, link, projeto);
 }
 
 async function salvarLink(evento) {
@@ -2911,9 +4700,16 @@ async function salvarLink(evento) {
 
   try {
     const cliente = estado.clienteDoLinkEmEdicao;
+    const projeto = estado.projetoDoLinkEmEdicao;
     const emEdicao = estado.linkEmEdicao;
 
-    if (emEdicao) {
+    if (projeto) {
+      if (emEdicao) {
+        await api.atualizarLinkDoProjeto(cliente.id, projeto.id, emEdicao.id, dados);
+      } else {
+        await api.adicionarLinkDoProjeto(cliente.id, projeto.id, dados);
+      }
+    } else if (emEdicao) {
       await api.atualizarLink(cliente.id, emEdicao.id, dados);
     } else {
       await api.adicionarLink(cliente.id, dados);
@@ -3120,6 +4916,231 @@ async function salvarConfiguracaoMcp(evento) {
   }
 }
 
+/* --------------------------- credenciais do sankhya ------------------------ */
+
+/** Os elementos de um cartão de credencial, lidos pelo atributo `data-papel`. */
+function elementosDoCartaoDeCredencial(cartao) {
+  return {
+    sistema: cartao.dataset.sistema,
+    status: cartao.querySelector('[data-papel="status"]'),
+    campoUsuario: cartao.querySelector('[data-papel="usuario"]'),
+    campoSenha: cartao.querySelector('[data-papel="senha"]'),
+    botaoVerSenha: cartao.querySelector('[data-papel="ver-senha"]'),
+    botaoSalvar: cartao.querySelector('[data-papel="salvar"]'),
+    botaoRemover: cartao.querySelector('[data-papel="remover"]'),
+    botaoAbrirAba: cartao.querySelector('[data-papel="abrir-aba"]'),
+    botaoCapturarSessao: cartao.querySelector('[data-papel="capturar-sessao"]'),
+    erro: cartao.querySelector('[data-papel="erro"]'),
+  };
+}
+
+/* Só os cartões de login têm `data-sistema`; o do CODUSU usa o mesmo visual e fica de fora. */
+function cartoesDeCredenciaisSankhya() {
+  return [
+    ...elementos.modalCredenciaisSankhya.querySelectorAll('.cartao-credencial[data-sistema]'),
+  ].map(elementosDoCartaoDeCredencial);
+}
+
+/** Pinta o selo do cartão a partir do status devolvido pelo cofre do app desktop. */
+function renderizarStatusCredencial(cartaoElementos, status) {
+  const { campoUsuario, status: selo } = cartaoElementos;
+  campoUsuario.value = status.usuario;
+
+  if (status.sessaoCapturada) {
+    const expira = status.sessaoExpiraEm
+      ? ` até ${new Date(status.sessaoExpiraEm).toLocaleString('pt-BR')}`
+      : '';
+    selo.className = 'selo-situacao ok';
+    selo.textContent = `Sessão ativa${expira}`;
+    return;
+  }
+
+  if (status.definido) {
+    selo.className = 'selo-situacao atencao';
+    selo.textContent = 'Credencial salva, sem sessão capturada';
+    return;
+  }
+
+  selo.className = 'selo-situacao';
+  selo.textContent = 'Sem credencial';
+}
+
+/** Recarrega os dois cartões; app desktop fora do ar avisa uma vez só. */
+async function atualizarCredenciaisSankhya() {
+  const cartoes = cartoesDeCredenciaisSankhya();
+
+  let shellDisponivel = true;
+  try {
+    ({ disponivel: shellDisponivel } = await api.shellSankhya());
+  } catch {
+    shellDisponivel = false;
+  }
+  elementos.avisoShellSankhya.hidden = shellDisponivel;
+
+  for (const cartaoElementos of cartoes) {
+    limparErro(cartaoElementos.erro);
+  }
+
+  try {
+    const { credenciais } = await api.credenciaisSankhya();
+    for (const status of credenciais) {
+      const cartaoElementos = cartoes.find((c) => c.sistema === status.sistema);
+      if (!cartaoElementos) continue;
+      renderizarStatusCredencial(cartaoElementos, status);
+      cartaoElementos.campoSenha.value = status.definido
+        ? (await api.senhaCredencialSankhya(status.sistema)).senha
+        : '';
+    }
+  } catch (erro) {
+    for (const cartaoElementos of cartoes) {
+      exibirErro(cartaoElementos.erro, erro.message);
+    }
+  }
+}
+
+function abrirModalDeCredenciaisSankhya() {
+  elementos.modalCredenciaisSankhya.showModal();
+  void atualizarCredenciaisSankhya();
+  void carregarCodusuSankhyaOm();
+}
+
+async function carregarCodusuSankhyaOm() {
+  limparErro(elementos.erroCodusu);
+  elementos.campoConfigSankhyaOmCodUsu.value = '';
+  try {
+    const configuracao = await api.lerConfiguracao();
+    elementos.campoConfigSankhyaOmCodUsu.value = configuracao.sankhyaOmCodUsu ?? '';
+  } catch (erro) {
+    exibirErro(elementos.erroCodusu, `Não foi possível ler o código de usuário: ${erro.message}`);
+  }
+}
+
+/* Gravado sozinho, sem o formulário das configurações: é o único campo global daqui. */
+async function salvarCodusuSankhyaOm() {
+  limparErro(elementos.erroCodusu);
+  elementos.botaoSalvarCodusu.disabled = true;
+  try {
+    await api.salvarSankhyaOmCodUsu(elementos.campoConfigSankhyaOmCodUsu.value.trim());
+    exibirAviso('Código de usuário do Sankhya OM salvo.');
+  } catch (erro) {
+    exibirErro(elementos.erroCodusu, erro.message);
+  } finally {
+    elementos.botaoSalvarCodusu.disabled = false;
+  }
+}
+
+async function salvarCredencialDoCartao(cartaoElementos) {
+  const usuario = cartaoElementos.campoUsuario.value.trim();
+  const senha = cartaoElementos.campoSenha.value;
+  limparErro(cartaoElementos.erro);
+
+  if (!usuario || !senha) {
+    exibirErro(cartaoElementos.erro, 'Informe usuário e senha.');
+    return;
+  }
+
+  cartaoElementos.botaoSalvar.disabled = true;
+  try {
+    const status = await api.salvarCredencialSankhya(cartaoElementos.sistema, usuario, senha);
+    renderizarStatusCredencial(cartaoElementos, status);
+    exibirAviso('Credencial salva. Logando automaticamente…');
+  } catch (erro) {
+    exibirErro(cartaoElementos.erro, erro.message);
+    return;
+  } finally {
+    cartaoElementos.botaoSalvar.disabled = false;
+  }
+
+  await autoLoginDoCartao(cartaoElementos);
+}
+
+/**
+ * Loga sozinho na guia do sistema (usuário/senha do cofre) e já captura a sessão —
+ * substitui o "abrir aba > logar na mão > capturar sessão" manual. Chamado depois de
+ * salvar a credencial; os botões manuais continuam à mão como reserva se isto falhar.
+ */
+async function autoLoginDoCartao(cartaoElementos) {
+  limparErro(cartaoElementos.erro);
+  try {
+    await api.autoLoginSankhya(cartaoElementos.sistema);
+    exibirAviso('Sessão capturada automaticamente.');
+    await atualizarCredenciaisSankhya();
+  } catch (erro) {
+    exibirErro(
+      cartaoElementos.erro,
+      `${erro.message} — use "Abrir aba" e "Capturar sessão" manualmente.`,
+    );
+  }
+}
+
+async function removerCredencialDoCartao(cartaoElementos) {
+  limparErro(cartaoElementos.erro);
+  cartaoElementos.botaoRemover.disabled = true;
+  try {
+    const status = await api.removerCredencialSankhya(cartaoElementos.sistema);
+    cartaoElementos.campoUsuario.value = '';
+    cartaoElementos.campoSenha.value = '';
+    renderizarStatusCredencial(cartaoElementos, status);
+    exibirAviso('Credencial removida.');
+  } catch (erro) {
+    exibirErro(cartaoElementos.erro, erro.message);
+  } finally {
+    cartaoElementos.botaoRemover.disabled = false;
+  }
+}
+
+/**
+ * Troca para a guia do sistema no app desktop. O modal fica aberto por baixo:
+ * ao voltar para o Painel depois do login, o "Capturar sessão" está à mão.
+ */
+async function abrirAbaDoCartao(cartaoElementos) {
+  limparErro(cartaoElementos.erro);
+  cartaoElementos.botaoAbrirAba.disabled = true;
+  try {
+    await api.abrirNavegadorSankhya(cartaoElementos.sistema);
+    exibirAviso('Faça login na guia e volte ao Painel para clicar em "Capturar sessão".');
+  } catch (erro) {
+    exibirErro(cartaoElementos.erro, erro.message);
+  } finally {
+    cartaoElementos.botaoAbrirAba.disabled = false;
+  }
+}
+
+async function capturarSessaoDoCartao(cartaoElementos) {
+  limparErro(cartaoElementos.erro);
+  cartaoElementos.botaoCapturarSessao.disabled = true;
+  try {
+    await api.capturarSessaoSankhya(cartaoElementos.sistema);
+    exibirAviso('Sessão capturada.');
+    await atualizarCredenciaisSankhya();
+  } catch (erro) {
+    exibirErro(cartaoElementos.erro, erro.message);
+  } finally {
+    cartaoElementos.botaoCapturarSessao.disabled = false;
+  }
+}
+
+function registrarEventosDoCartaoDeCredencial(cartaoElementos) {
+  cartaoElementos.botaoVerSenha.append(criarIcone(ICONES.olho));
+  cartaoElementos.botaoVerSenha.addEventListener('click', () => {
+    definirVisibilidadeDoCampo(
+      cartaoElementos.campoSenha,
+      cartaoElementos.botaoVerSenha,
+      cartaoElementos.campoSenha.type === 'password',
+    );
+  });
+  cartaoElementos.botaoSalvar.addEventListener('click', () =>
+    salvarCredencialDoCartao(cartaoElementos),
+  );
+  cartaoElementos.botaoRemover.addEventListener('click', () =>
+    removerCredencialDoCartao(cartaoElementos),
+  );
+  cartaoElementos.botaoAbrirAba.addEventListener('click', () => abrirAbaDoCartao(cartaoElementos));
+  cartaoElementos.botaoCapturarSessao.addEventListener('click', () =>
+    capturarSessaoDoCartao(cartaoElementos),
+  );
+}
+
 /* ----------------------------- configuração global ------------------------ */
 
 /** Alterna entre as abas do modal de configuração. */
@@ -3128,6 +5149,10 @@ function selecionarAbaDaConfiguracao(abaEscolhida) {
     { aba: elementos.abaConfiguracaoGeral, painel: elementos.painelConfiguracaoGeral },
     { aba: elementos.abaConfiguracaoMcp, painel: elementos.painelConfiguracaoMcp },
     { aba: elementos.abaConfiguracaoAtalhos, painel: elementos.painelConfiguracaoAtalhos },
+    { aba: elementos.abaConfiguracaoSmtp, painel: elementos.painelConfiguracaoSmtp },
+    { aba: elementos.abaConfiguracaoAvisos, painel: elementos.painelConfiguracaoAvisos },
+    { aba: elementos.abaConfiguracaoAcessos, painel: elementos.painelConfiguracaoAcessos },
+    { aba: elementos.abaConfiguracaoSobre, painel: elementos.painelConfiguracaoSobre },
   ];
 
   for (const { aba, painel } of abas) {
@@ -3144,6 +5169,30 @@ function preencherCamposDoMcpGlobal(configuracao) {
   elementos.campoConfigMcpServico.value = configuracao?.SANKHYA_DB_SERVICE_NAME ?? '';
   elementos.campoConfigMcpUsuario.value = configuracao?.SANKHYA_DB_USER ?? '';
   elementos.campoConfigMcpSenha.value = configuracao?.SANKHYA_DB_PASSWORD ?? '';
+}
+
+/**
+ * Preenche o caminho com a pasta do `.env` escolhido e as variáveis com o que ele
+ * contém. A gravação continua no "Salvar" da janela.
+ */
+async function importarEnvDoMcpGlobal() {
+  elementos.botaoImportarEnvMcp.disabled = true;
+
+  try {
+    const importado = await api.importarEnvDoMcpGlobal();
+    // Sem resposta o usuário cancelou: o que já estava nos campos continua valendo.
+    if (!importado) {
+      return;
+    }
+
+    limparErro(elementos.erroConfiguracao);
+    elementos.campoCaminhoSchemaMcp.value = importado.caminhoDoSchemaMcp;
+    preencherCamposDoMcpGlobal(importado.configuracao);
+  } catch (erro) {
+    exibirErro(elementos.erroConfiguracao, erro.message);
+  } finally {
+    elementos.botaoImportarEnvMcp.disabled = false;
+  }
 }
 
 function lerCamposDoMcpGlobal() {
@@ -3405,7 +5454,13 @@ async function abrirModalDeConfiguracao() {
   elementos.campoScriptPadrao.value = '';
   elementos.campoIntervaloDeExecucaoAutomatica.value = INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S;
   elementos.campoTempoLimite.value = TEMPO_LIMITE_PADRAO_S;
+  elementos.campoDestinoDosLinks.value = DESTINO_DOS_LINKS_PADRAO;
   preencherAtalhosDaConfiguracao([]);
+  elementos.campoCaminhoExecutavelDaIde.value = '';
+  preencherAcessosDaConfiguracao(PERFIL_PADRAO, [], false);
+  preencherNotificacoesDaConfiguracao(SMTP_PADRAO, ALERTA_DA_AGENDA_PADRAO);
+  exibirResultadoDoTesteDoSmtp(null);
+  definirVisibilidadeDoCampo(elementos.campoSmtpSenha, elementos.botaoVerSenhaSmtp, false);
 
   try {
     const configuracao = await api.lerConfiguracao();
@@ -3415,7 +5470,18 @@ async function abrirModalDeConfiguracao() {
       INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S;
     elementos.campoTempoLimite.value = configuracao.tempoLimiteSegundos ?? TEMPO_LIMITE_PADRAO_S;
     elementos.campoCaminhoSchemaMcp.value = configuracao.caminhoDoSchemaMcp ?? '';
+    elementos.campoDestinoDosLinks.value = configuracao.destinoDosLinks ?? DESTINO_DOS_LINKS_PADRAO;
     preencherAtalhosDaConfiguracao(configuracao.atalhos ?? []);
+    elementos.campoCaminhoExecutavelDaIde.value = configuracao.caminhoDoExecutavelDaIde ?? '';
+    preencherAcessosDaConfiguracao(
+      configuracao.perfil ?? PERFIL_PADRAO,
+      configuracao.funcionalidadesOcultas ?? [],
+      configuracao.terceiro ?? false,
+    );
+    preencherNotificacoesDaConfiguracao(
+      configuracao.smtp ?? SMTP_PADRAO,
+      configuracao.alertaDaAgenda ?? ALERTA_DA_AGENDA_PADRAO,
+    );
   } catch (erro) {
     exibirAviso(`Não foi possível carregar as configurações: ${erro.message}`, 'erro');
     return;
@@ -3432,9 +5498,18 @@ async function abrirModalDeConfiguracao() {
     exibirAviso(`Não foi possível ler o .env do sankhya-schema-mcp: ${erro.message}`, 'erro');
   }
 
+  // Recolhido a cada abertura: o que ficou expandido da última vez não conta.
+  elementos.grupoSankhyaSchema.open = false;
   elementos.modalConfiguracao.showModal();
   elementos.campoScriptPadrao.focus();
 }
+
+/*
+ * O mesmo padrão do servidor. Vale para todo link clicável do cadastro —
+ * bases, repositório, links gerais e de projeto. Quem aplica a escolha é o
+ * aplicativo desktop, na hora do clique.
+ */
+const DESTINO_DOS_LINKS_PADRAO = 'hub';
 
 async function salvarConfiguracao(evento) {
   evento.preventDefault();
@@ -3443,10 +5518,22 @@ async function salvarConfiguracao(evento) {
   const caminhoDoSchemaMcp = elementos.campoCaminhoSchemaMcp.value.trim();
   const mcp = caminhoDoSchemaMcp === '' ? undefined : lerCamposDoMcpGlobal();
 
+  // Sem esta cobrança as variáveis digitadas seriam descartadas com "Configurações salvas.".
+  if (!mcp && Object.values(lerCamposDoMcpGlobal()).some((valor) => valor !== '')) {
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoMcp);
+    elementos.grupoSankhyaSchema.open = true;
+    exibirErro(
+      elementos.erroConfiguracao,
+      'Informe o caminho do sankhya-schema-mcp ou importe o .env para gravar as variáveis.',
+    );
+    return;
+  }
+
   if (mcp) {
     const mensagemDeErro = validarFormularioDoMcp(mcp);
     if (mensagemDeErro) {
       selecionarAbaDaConfiguracao(elementos.abaConfiguracaoMcp);
+      elementos.grupoSankhyaSchema.open = true;
       exibirErro(elementos.erroConfiguracao, mensagemDeErro);
       return;
     }
@@ -3473,8 +5560,20 @@ async function salvarConfiguracao(evento) {
       ),
       tempoLimiteSegundos: Number(elementos.campoTempoLimite.value),
       atalhos,
+      destinoDosLinks: elementos.campoDestinoDosLinks.value,
+      caminhoDoExecutavelDaIde: elementos.campoCaminhoExecutavelDaIde.value.trim(),
+      perfil: elementos.campoPerfil.value,
+      funcionalidadesOcultas: lerFuncionalidadesOcultasDaConfiguracao(),
+      terceiro: elementos.campoTerceiro.checked,
+      smtp: lerSmtpDaConfiguracao(),
+      alertaDaAgenda: lerAlertaDaAgendaDaConfiguracao(),
     });
     elementos.modalConfiguracao.close();
+    if (acessosMudaram(salva)) {
+      recarregarPainelPorMudancaDeAcessos();
+      return;
+    }
+
     exibirAviso('Configurações salvas.');
     definirExecucaoAutomatica(Number(elementos.campoIntervaloDeExecucaoAutomatica.value));
 
@@ -3486,6 +5585,129 @@ async function salvarConfiguracao(evento) {
   } finally {
     elementos.botaoSalvarConfiguracao.disabled = false;
   }
+}
+
+/* --------------------------------- acessos -------------------------------- */
+
+/* Sem perfil gravado, o servidor responde desenvolvedor: nada oculto. */
+const PERFIL_PADRAO = 'desenvolvedor';
+
+/*
+ * Ocultar Repositórios leva junto o que só existe por causa deles: filtro e
+ * indicadores do Git e a aba MCP da configuração.
+ */
+const FUNCIONALIDADE_REPOSITORIOS = 'cliente.repositorios';
+
+/*
+ * O que só funciona com as credenciais do Sankhya Om ou da Experience. Com Terceiro,
+ * somem por cima das caixas, sem mexer no que está gravado nelas.
+ */
+const FUNCIONALIDADES_QUE_DEPENDEM_DO_SANKHYA = new Set([
+  'agenda',
+  'os',
+  'cliente.agenda',
+  'cliente.os',
+]);
+
+/* Clientes (menu) e Geral (cliente) nunca estão no conjunto: não são ocultáveis. */
+function funcionalidadeVisivel(chave) {
+  if (estado.terceiro && FUNCIONALIDADES_QUE_DEPENDEM_DO_SANKHYA.has(chave)) {
+    return false;
+  }
+  return !estado.funcionalidadesOcultas.has(chave);
+}
+
+function preencherAcessosDaConfiguracao(perfil, funcionalidadesOcultas, terceiro) {
+  elementos.campoPerfil.value = perfil;
+  elementos.campoTerceiro.checked = terceiro;
+  marcarFuncionalidadesVisiveis(funcionalidadesOcultas);
+  bloquearCaixasQueDependemDoSankhya();
+}
+
+/* Desabilitada, a caixa mantém a marcação: desmarcar Terceiro devolve o que era. */
+function bloquearCaixasQueDependemDoSankhya() {
+  for (const caixa of elementos.caixasDeFuncionalidade) {
+    if (FUNCIONALIDADES_QUE_DEPENDEM_DO_SANKHYA.has(caixa.dataset.funcionalidade)) {
+      caixa.disabled = elementos.campoTerceiro.checked;
+    }
+  }
+}
+
+function marcarFuncionalidadesVisiveis(funcionalidadesOcultas) {
+  for (const caixa of elementos.caixasDeFuncionalidade) {
+    caixa.checked = !funcionalidadesOcultas.includes(caixa.dataset.funcionalidade);
+  }
+}
+
+function lerFuncionalidadesOcultasDaConfiguracao() {
+  return [...elementos.caixasDeFuncionalidade]
+    .filter((caixa) => !caixa.checked)
+    .map((caixa) => caixa.dataset.funcionalidade);
+}
+
+/* Trocar o perfil marca o preset dele; as caixas seguem editáveis depois. */
+async function aplicarPresetDoPerfil() {
+  try {
+    const presets = await api.lerPresetsDosPerfis();
+    marcarFuncionalidadesVisiveis(presets[elementos.campoPerfil.value] ?? []);
+  } catch (erro) {
+    exibirErro(
+      elementos.erroConfiguracao,
+      `Não foi possível ler o preset do perfil: ${erro.message}`,
+    );
+  }
+}
+
+/** Mostra ou esconde o menu principal e o que depende dos repositórios, e redesenha. */
+function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false }) {
+  estado.perfil = perfil;
+  estado.funcionalidadesOcultas = new Set(funcionalidadesOcultas);
+  estado.terceiro = terceiro;
+
+  // O que usa as credenciais do Sankhya sem ser aba: some junto com Agenda e OS.
+  elementos.botaoCredenciaisSankhya.hidden = terceiro;
+  elementos.grupoAlertaAgenda.hidden = terceiro;
+  elementos.campoNomesCompletosCliente.hidden = terceiro;
+
+  elementos.botaoVisualizacaoLocal.hidden = !funcionalidadeVisivel('local');
+  elementos.botaoVisualizacaoAgenda.hidden = !funcionalidadeVisivel('agenda');
+  elementos.botaoVisualizacaoOs.hidden = !funcionalidadeVisivel('os');
+  elementos.botaoVisualizacaoLembretes.hidden = !funcionalidadeVisivel('lembretes');
+  elementos.botaoVisualizacaoContatos.hidden = !funcionalidadeVisivel('contatos');
+
+  const repositoriosVisiveis = funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS);
+  elementos.botaoFiltros.hidden = !repositoriosVisiveis;
+  elementos.abaConfiguracaoMcp.hidden = !repositoriosVisiveis;
+  if (!repositoriosVisiveis) {
+    // Filtro marcado e escondido sumiria com clientes sem o usuário ter como desfazer.
+    estado.situacoesFiltradas.clear();
+    definirPainelDeFiltros(false);
+  }
+
+  if (!funcionalidadeVisivel(estado.visualizacao)) {
+    alternarVisualizacao('clientes');
+  }
+  renderizar();
+}
+
+/* Compara com o que está em vigor na tela: só perfil, Terceiro ou caixas diferentes pedem recarga. */
+function acessosMudaram({ perfil, funcionalidadesOcultas = [], terceiro = false }) {
+  const emVigor = estado.funcionalidadesOcultas;
+  return (
+    perfil !== estado.perfil ||
+    terceiro !== estado.terceiro ||
+    funcionalidadesOcultas.length !== emVigor.size ||
+    funcionalidadesOcultas.some((chave) => !emVigor.has(chave))
+  );
+}
+
+/* Tempo para o aviso ser lido antes de a página sumir. */
+const ESPERA_ANTES_DE_RECARREGAR_MS = 1500;
+
+/** Recarregar monta o Painel do zero com os acessos novos, sem resto do estado anterior. */
+function recarregarPainelPorMudancaDeAcessos() {
+  exibirAviso('Acessos salvos. Recarregando o painel…');
+  setTimeout(() => window.location.reload(), ESPERA_ANTES_DE_RECARREGAR_MS);
 }
 
 /* ----------------- correspondência de nome de cliente --------------------- */
@@ -3754,7 +5976,7 @@ const MODO_DE_CLIENTE_EXISTENTE = 'existente';
 const MODO_DE_CLIENTE_NOVO = 'novo';
 
 /* Valor reservado do seletor: nenhum cliente pode se chamar assim. */
-const VALOR_DE_CLIENTE_NOVO = ' novo-cliente';
+const VALOR_DE_CLIENTE_NOVO = '\u0000novo-cliente';
 
 /* Separadores usados em nome de pasta de repositório. */
 const DELIMITADORES_DO_NOME = /[-_.\s+@/\\]+/;
@@ -4211,7 +6433,6 @@ async function concluirImportacaoDeRepositorios() {
 
   const repositorios = repositoriosSelecionadosParaImportacao().map((selecionado) => ({
     nomeDoCliente: selecionado.nomeDoCliente.trim(),
-    nome: selecionado.nome,
     url: selecionado.url,
     caminhoLocal: selecionado.caminho,
   }));
@@ -5057,6 +7278,10 @@ function trechoDoBancoDeDados(banco) {
   return [
     'Banco de dados',
     ...linhasDeCamposExportados([
+      ['SGBD', ROTULOS_DE_SGBD[banco.sgbd]],
+      ...(banco.sgbd === 'oracle'
+        ? [['Identificação', ROTULOS_DE_IDENTIFICADOR_ORACLE[banco.identificadorOracle]]]
+        : []),
       ['Host', banco.host],
       ['Porta', String(banco.porta)],
       ['Serviço', banco.nomeDoServico],
@@ -5454,6 +7679,24 @@ function pedirExclusaoDeLink(cliente, link) {
   );
 }
 
+function pedirExclusaoDeProjeto(cliente, projeto) {
+  pedirExclusao(
+    'Excluir projeto',
+    `Excluir o projeto "${projeto.nome}" de ${cliente.nome}? Esta ação não pode ser desfeita.`,
+    () => api.removerProjeto(cliente.id, projeto.id),
+    'Projeto excluído.',
+  );
+}
+
+function pedirExclusaoDeLinkDeProjeto(cliente, projeto, link) {
+  pedirExclusao(
+    'Excluir link',
+    `Excluir o link "${link.nome}" do projeto "${projeto.nome}"? Esta ação não pode ser desfeita.`,
+    () => api.removerLinkDoProjeto(cliente.id, projeto.id, link.id),
+    'Link excluído.',
+  );
+}
+
 async function confirmarExclusao() {
   const pendente = estado.exclusaoPendente;
   if (!pendente) {
@@ -5473,6 +7716,1041 @@ async function confirmarExclusao() {
     elementos.botaoConfirmarExclusao.disabled = false;
     estado.exclusaoPendente = null;
   }
+}
+
+/* ------------------------------ notificações ------------------------------ */
+
+/* O mesmo padrão do servidor: é o que a tela mostra enquanto a configuração não chega. */
+const SMTP_PADRAO = {
+  host: '',
+  porta: 587,
+  seguranca: 'starttls',
+  usuario: '',
+  senha: '',
+  remetente: '',
+  destinatario: '',
+};
+const ALERTA_DA_AGENDA_PADRAO = { ativo: false, toleranciaMinutos: 30, enviarEmail: true };
+
+const DURACAO_DO_CARTAO_DE_NOTIFICACAO_MS = 15_000;
+const LIMITE_DO_CONTADOR_DE_NOTIFICACOES = 99;
+
+/* Duas notas ascendentes e curtas: chama atenção sem ser alarme. */
+const NOTAS_DO_SOM_HZ = [880, 1318.5];
+const DURACAO_DE_CADA_NOTA_S = 0.22;
+const INTERVALO_ENTRE_NOTAS_S = 0.16;
+const VOLUME_DO_SOM = 0.18;
+const VOLUME_SILENCIOSO = 0.0001;
+const SUBIDA_DO_VOLUME_S = 0.02;
+
+const ROTULOS_DE_ORIGEM_DA_NOTIFICACAO = {
+  agenda: 'Agenda',
+  sistema: 'HUB SNK',
+};
+
+const FORMATO_DE_DATA_E_HORA = { dateStyle: 'short', timeStyle: 'short' };
+
+function formatarDataEHora(iso) {
+  return new Date(iso).toLocaleString('pt-BR', FORMATO_DE_DATA_E_HORA);
+}
+
+/* Criado no primeiro som: o navegador pode recusar um contexto de áudio antes disso. */
+let contextoDeAudio = null;
+
+/** Sintetizado na hora com Web Audio: sem arquivo de som para empacotar. */
+function tocarSomDeNotificacao() {
+  try {
+    contextoDeAudio ??= new AudioContext();
+    void contextoDeAudio.resume();
+    const inicio = contextoDeAudio.currentTime;
+
+    NOTAS_DO_SOM_HZ.forEach((frequencia, indice) => {
+      const comeco = inicio + indice * INTERVALO_ENTRE_NOTAS_S;
+      const oscilador = contextoDeAudio.createOscillator();
+      const volume = contextoDeAudio.createGain();
+
+      oscilador.type = 'sine';
+      oscilador.frequency.value = frequencia;
+      volume.gain.setValueAtTime(VOLUME_SILENCIOSO, comeco);
+      volume.gain.exponentialRampToValueAtTime(VOLUME_DO_SOM, comeco + SUBIDA_DO_VOLUME_S);
+      volume.gain.exponentialRampToValueAtTime(VOLUME_SILENCIOSO, comeco + DURACAO_DE_CADA_NOTA_S);
+      oscilador.connect(volume).connect(contextoDeAudio.destination);
+      oscilador.start(comeco);
+      oscilador.stop(comeco + DURACAO_DE_CADA_NOTA_S);
+    });
+  } catch (erro) {
+    // Sem áudio (política do navegador, sem saída de som): a notificação aparece mesmo assim.
+    console.warn('Som da notificação indisponível:', erro);
+  }
+}
+
+function quantidadeDeNaoLidas() {
+  return estado.notificacoes.filter((notificacao) => !notificacao.lida).length;
+}
+
+function renderizarContadorDeNotificacoes() {
+  const naoLidas = quantidadeDeNaoLidas();
+  elementos.contadorNotificacoes.hidden = naoLidas === 0;
+  elementos.contadorNotificacoes.textContent =
+    naoLidas > LIMITE_DO_CONTADOR_DE_NOTIFICACOES
+      ? `${LIMITE_DO_CONTADOR_DE_NOTIFICACOES}+`
+      : String(naoLidas);
+  const rotulo = naoLidas === 0 ? 'Notificações' : `Notificações (${naoLidas} não lidas)`;
+  elementos.botaoNotificacoes.title = rotulo;
+  elementos.botaoNotificacoes.setAttribute('aria-label', rotulo);
+}
+
+/*
+ * O lembrete é quase tudo o que chega ao painel: dizer "Lembrete" seria ruído. Os
+ * gravados antes do resumo têm esse título fixo, e o texto sobe para o destaque.
+ */
+const TITULO_DO_LEMBRETE_SEM_RESUMO = 'Lembrete';
+
+function tituloEMensagemDaNotificacao(notificacao) {
+  const semResumo =
+    notificacao.origem === 'lembrete' && notificacao.titulo === TITULO_DO_LEMBRETE_SEM_RESUMO;
+  return semResumo
+    ? { titulo: notificacao.mensagem, mensagem: '' }
+    : { titulo: notificacao.titulo, mensagem: notificacao.mensagem };
+}
+
+function criarCabecalhoDaNotificacao(notificacao) {
+  const cabecalho = criarElemento('div', 'notificacao-cabecalho');
+  if (notificacao.origem !== 'lembrete') {
+    cabecalho.append(
+      criarElemento(
+        'span',
+        `notificacao-origem origem-${notificacao.origem}`,
+        ROTULOS_DE_ORIGEM_DA_NOTIFICACAO[notificacao.origem] ?? notificacao.origem,
+      ),
+    );
+  }
+  cabecalho.append(
+    criarElemento('time', 'notificacao-quando', formatarDataEHora(notificacao.criadaEm)),
+  );
+  return cabecalho;
+}
+
+function criarConteudoDaNotificacao(notificacao) {
+  const conteudo = criarElemento('div', 'notificacao-conteudo');
+  const { titulo, mensagem } = tituloEMensagemDaNotificacao(notificacao);
+  conteudo.append(
+    criarCabecalhoDaNotificacao(notificacao),
+    criarElemento('strong', 'notificacao-titulo', titulo),
+  );
+  if (mensagem) {
+    conteudo.append(criarElemento('p', 'notificacao-mensagem', mensagem));
+  }
+  if (notificacao.erroDoEmail) {
+    conteudo.append(
+      criarElemento(
+        'p',
+        'notificacao-erro-email',
+        `O e-mail não foi enviado: ${notificacao.erroDoEmail}`,
+      ),
+    );
+  }
+  return conteudo;
+}
+
+async function marcarNotificacaoComoLida(notificacao) {
+  if (notificacao.lida) {
+    return;
+  }
+
+  try {
+    const resposta = await api.marcarNotificacoesComoLidas([notificacao.id]);
+    estado.notificacoes = resposta.notificacoes;
+    renderizarNotificacoes();
+  } catch (erro) {
+    exibirAviso(`Não foi possível marcar a notificação: ${erro.message}`, 'erro');
+  }
+}
+
+function criarItemDeNotificacao(notificacao) {
+  const item = criarElemento('button', `item-notificacao${notificacao.lida ? '' : ' nao-lida'}`);
+  item.type = 'button';
+  item.title = notificacao.lida ? '' : 'Marcar como lida';
+  item.append(criarConteudoDaNotificacao(notificacao));
+  item.addEventListener('click', () => marcarNotificacaoComoLida(notificacao));
+  return item;
+}
+
+function renderizarNotificacoes() {
+  renderizarContadorDeNotificacoes();
+
+  if (estado.notificacoes.length === 0) {
+    elementos.listaNotificacoes.replaceChildren(
+      criarElemento('p', 'secao-vazia', 'Nenhuma notificação.'),
+    );
+    return;
+  }
+  elementos.listaNotificacoes.replaceChildren(...estado.notificacoes.map(criarItemDeNotificacao));
+}
+
+async function carregarNotificacoes() {
+  try {
+    const resposta = await api.listarNotificacoes();
+    estado.notificacoes = resposta.notificacoes;
+    renderizarNotificacoes();
+  } catch (erro) {
+    console.warn('Não foi possível carregar as notificações:', erro);
+  }
+}
+
+function painelDeNotificacoesAberto() {
+  return !elementos.painelNotificacoes.hidden;
+}
+
+/* Com o painel aberto, o cartão só repetiria o que está nele, e por cima do cabeçalho. */
+function definirPainelDeNotificacoes(aberto) {
+  elementos.painelNotificacoes.hidden = !aberto;
+  elementos.botaoNotificacoes.setAttribute('aria-expanded', String(aberto));
+  if (aberto) {
+    elementos.pilhaNotificacoes.replaceChildren();
+  }
+}
+
+/** Cartão no canto da tela para a notificação que acabou de chegar; clicar abre o painel. */
+function exibirCartaoDeNotificacao(notificacao) {
+  const cartao = criarElemento('div', 'cartao-notificacao');
+  cartao.setAttribute('role', 'status');
+  const fechar = criarBotao('btn tiny ghost cartao-notificacao-fechar', '✕', (evento) => {
+    evento.stopPropagation();
+    cartao.remove();
+  });
+  fechar.setAttribute('aria-label', 'Fechar');
+  cartao.append(criarConteudoDaNotificacao(notificacao), fechar);
+  cartao.addEventListener('click', () => {
+    cartao.remove();
+    definirPainelDeNotificacoes(true);
+  });
+
+  elementos.pilhaNotificacoes.prepend(cartao);
+  setTimeout(() => cartao.remove(), DURACAO_DO_CARTAO_DE_NOTIFICACAO_MS);
+}
+
+function receberNotificacao(notificacao) {
+  if (estado.notificacoes.some((existente) => existente.id === notificacao.id)) {
+    return;
+  }
+
+  estado.notificacoes = [notificacao, ...estado.notificacoes];
+  renderizarNotificacoes();
+  if (!painelDeNotificacoesAberto()) {
+    exibirCartaoDeNotificacao(notificacao);
+  }
+  tocarSomDeNotificacao();
+
+  // O disparo muda o "próximo" do lembrete: a lista aberta não pode ficar desatualizada.
+  if (notificacao.origem === 'lembrete' && estado.visualizacao === 'lembretes') {
+    void recarregarLembretes();
+  }
+}
+
+/**
+ * O servidor empurra cada notificação nova pelo SSE. O `EventSource` reconecta sozinho
+ * quando o backend reinicia; a cada conexão a lista é relida, porque o que chegou com a
+ * conexão caída não passou por aqui.
+ */
+function conectarFluxoDeNotificacoes() {
+  const fluxo = new EventSource(`${CAMINHO_DAS_NOTIFICACOES}/fluxo`);
+  fluxo.addEventListener('open', () => void carregarNotificacoes());
+  fluxo.addEventListener('notificacao', (evento) => {
+    receberNotificacao(JSON.parse(evento.data));
+  });
+}
+
+async function marcarTodasAsNotificacoesComoLidas() {
+  try {
+    const resposta = await api.marcarNotificacoesComoLidas();
+    estado.notificacoes = resposta.notificacoes;
+    renderizarNotificacoes();
+  } catch (erro) {
+    exibirAviso(`Não foi possível marcar as notificações: ${erro.message}`, 'erro');
+  }
+}
+
+async function limparNotificacoes() {
+  try {
+    await api.limparNotificacoes();
+    estado.notificacoes = [];
+    renderizarNotificacoes();
+  } catch (erro) {
+    exibirAviso(`Não foi possível limpar as notificações: ${erro.message}`, 'erro');
+  }
+}
+
+function registrarEventosDasNotificacoes() {
+  elementos.botaoNotificacoes.prepend(criarIcone(ICONES.sino));
+  elementos.botaoNotificacoes.addEventListener('click', () =>
+    definirPainelDeNotificacoes(!painelDeNotificacoesAberto()),
+  );
+  elementos.botaoFecharNotificacoes.addEventListener('click', () =>
+    definirPainelDeNotificacoes(false),
+  );
+  elementos.botaoMarcarNotificacoesLidas.addEventListener(
+    'click',
+    marcarTodasAsNotificacoesComoLidas,
+  );
+  elementos.botaoLimparNotificacoes.addEventListener('click', limparNotificacoes);
+
+  /* Como a lista de atalhos: fecha com clique fora dele ou `Esc`. */
+  document.addEventListener('click', (evento) => {
+    const dentro =
+      elementos.painelNotificacoes.contains(evento.target) ||
+      elementos.botaoNotificacoes.contains(evento.target) ||
+      elementos.pilhaNotificacoes.contains(evento.target);
+    if (painelDeNotificacoesAberto() && !dentro) {
+      definirPainelDeNotificacoes(false);
+    }
+  });
+  document.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Escape' && painelDeNotificacoesAberto()) {
+      definirPainelDeNotificacoes(false);
+    }
+  });
+}
+
+function preencherNotificacoesDaConfiguracao(smtp, alertaDaAgenda) {
+  elementos.campoSmtpHost.value = smtp.host;
+  elementos.campoSmtpPorta.value = smtp.porta;
+  elementos.campoSmtpSeguranca.value = smtp.seguranca;
+  elementos.campoSmtpUsuario.value = smtp.usuario;
+  elementos.campoSmtpSenha.value = smtp.senha;
+  elementos.campoSmtpRemetente.value = smtp.remetente;
+  elementos.campoSmtpDestinatario.value = smtp.destinatario;
+  elementos.campoAlertaAgendaAtivo.checked = alertaDaAgenda.ativo;
+  elementos.campoAlertaAgendaTolerancia.value = alertaDaAgenda.toleranciaMinutos;
+  elementos.campoAlertaAgendaEmail.checked = alertaDaAgenda.enviarEmail;
+}
+
+function lerSmtpDaConfiguracao() {
+  return {
+    host: elementos.campoSmtpHost.value.trim(),
+    porta: Number(elementos.campoSmtpPorta.value),
+    seguranca: elementos.campoSmtpSeguranca.value,
+    usuario: elementos.campoSmtpUsuario.value.trim(),
+    senha: elementos.campoSmtpSenha.value,
+    remetente: elementos.campoSmtpRemetente.value.trim(),
+    destinatario: elementos.campoSmtpDestinatario.value.trim(),
+  };
+}
+
+function lerAlertaDaAgendaDaConfiguracao() {
+  return {
+    ativo: elementos.campoAlertaAgendaAtivo.checked,
+    toleranciaMinutos: Number(elementos.campoAlertaAgendaTolerancia.value),
+    enviarEmail: elementos.campoAlertaAgendaEmail.checked,
+  };
+}
+
+/** `null` esconde; senão mostra a mensagem na própria aba, verde ou vermelha. */
+function exibirResultadoDoTesteDoSmtp(resultado) {
+  const elemento = elementos.resultadoTesteSmtp;
+  elemento.hidden = resultado === null;
+  elemento.textContent = resultado?.mensagem ?? '';
+  elemento.classList.toggle('sucesso', resultado?.sucesso === true);
+  elemento.classList.toggle('erro', resultado?.sucesso === false);
+}
+
+/*
+ * Testa o que está no formulário, antes de salvar. O resultado fica na aba, e não num
+ * aviso: o erro do SMTP é longo e precisa ficar na tela enquanto o usuário corrige o campo.
+ */
+async function testarSmtp() {
+  exibirResultadoDoTesteDoSmtp({ sucesso: null, mensagem: 'Enviando o e-mail de teste…' });
+  elementos.botaoTestarSmtp.disabled = true;
+  try {
+    const resposta = await api.enviarEmailDeTeste(lerSmtpDaConfiguracao());
+    exibirResultadoDoTesteDoSmtp({ sucesso: true, mensagem: resposta.mensagem });
+  } catch (erro) {
+    exibirResultadoDoTesteDoSmtp({ sucesso: false, mensagem: erro.message });
+  } finally {
+    elementos.botaoTestarSmtp.disabled = false;
+  }
+}
+
+/* -------------------------------- lembretes ------------------------------- */
+
+const ESPERA_DA_PREVIA_DO_CRON_MS = 300;
+const MILISSEGUNDOS_POR_MINUTO = 60_000;
+const TAMANHO_DE_DATA_E_HORA_LOCAL = 16;
+const SEM_CLIENTE = '';
+
+/* Última prévia pedida: a resposta de uma digitação antiga não sobrescreve a atual. */
+let temporizadorDaPreviaDoCron = null;
+let ultimaExpressaoPrevista = '';
+
+/** ISO 8601 -> `YYYY-MM-DDTHH:mm` local, o formato do `datetime-local`. */
+function paraDataHoraLocal(iso) {
+  const data = new Date(iso);
+  const local = new Date(data.getTime() - data.getTimezoneOffset() * MILISSEGUNDOS_POR_MINUTO);
+  return local.toISOString().slice(0, TAMANHO_DE_DATA_E_HORA_LOCAL);
+}
+
+/* Sugestão para o lembrete novo: a próxima hora cheia. */
+function proximaHoraCheia() {
+  const data = new Date();
+  data.setHours(data.getHours() + 1, 0, 0, 0);
+  return data.toISOString();
+}
+
+function tipoDoLembreteEscolhido() {
+  return [...elementos.opcoesTipoLembrete].find((opcao) => opcao.checked)?.value ?? 'unico';
+}
+
+function resumoDoLembrete(lembrete) {
+  return lembrete.resumo || lembrete.texto;
+}
+
+function clienteDoLembrete(lembrete) {
+  return estado.clientes.find((cliente) => cliente.id === lembrete.clienteId) ?? null;
+}
+
+function descreverVinculoDoLembrete(lembrete) {
+  const cliente = clienteDoLembrete(lembrete);
+  if (!cliente) {
+    return '';
+  }
+  const projeto = cliente.projetos.find((item) => item.id === lembrete.projetoId);
+  return projeto ? `${cliente.nome} › ${projeto.nome}` : cliente.nome;
+}
+
+function descreverQuandoDoLembrete(lembrete) {
+  if (lembrete.tipo === 'unico') {
+    return `Uma vez, em ${formatarDataEHora(lembrete.dataHora)}`;
+  }
+  return `Recorrente: ${lembrete.expressaoCron}`;
+}
+
+function descreverSituacaoDoLembrete(lembrete) {
+  if (!lembrete.ativo) {
+    return 'Desligado';
+  }
+  if (lembrete.proximoDisparo) {
+    return `Próximo: ${formatarDataEHora(lembrete.proximoDisparo)}`;
+  }
+  if (lembrete.ultimoDisparoEm) {
+    return `Disparado em ${formatarDataEHora(lembrete.ultimoDisparoEm)}`;
+  }
+  return 'Sem próxima ocorrência';
+}
+
+/* Os que vão disparar primeiro no topo; desligados e concluídos no fim. */
+function lembretesOrdenados(lembretes) {
+  const momento = (lembrete) =>
+    lembrete.proximoDisparo ? Date.parse(lembrete.proximoDisparo) : Number.POSITIVE_INFINITY;
+  return [...lembretes].sort((a, b) => momento(a) - momento(b));
+}
+
+function criarLinhaDeLembrete(lembrete) {
+  const linha = criarElemento('div', `linha-recurso${lembrete.ativo ? '' : ' lembrete-desligado'}`);
+  const info = criarElemento('div', 'recurso-info');
+  // Lembrete de antes do resumo não tem um: o texto fica no lugar dele.
+  info.append(criarElemento('span', 'recurso-nome lembrete-texto', resumoDoLembrete(lembrete)));
+  if (lembrete.resumo) {
+    info.append(criarElemento('span', 'recurso-url secundaria lembrete-texto', lembrete.texto));
+  }
+  info.append(
+    criarElemento('span', 'recurso-url secundaria', descreverQuandoDoLembrete(lembrete)),
+    criarElemento('span', 'recurso-url', descreverSituacaoDoLembrete(lembrete)),
+  );
+
+  const vinculo = descreverVinculoDoLembrete(lembrete);
+  if (vinculo) {
+    info.append(criarElemento('span', 'recurso-url secundaria', vinculo));
+  }
+  if (lembrete.enviarEmail) {
+    info.append(criarElemento('span', 'selo-tipo outro', 'E-mail'));
+  }
+
+  linha.append(
+    info,
+    criarAcoesDeRecurso({
+      rotuloDeEdicao: 'Editar lembrete',
+      aoEditar: () => abrirModalDeLembrete(lembrete),
+      rotuloDeExclusao: 'Excluir lembrete',
+      aoExcluir: () => pedirExclusaoDeLembrete(lembrete),
+    }),
+  );
+  return linha;
+}
+
+function renderizarLembretes() {
+  elementos.mountLembretes.replaceChildren(
+    criarSecaoDeRecursos({
+      titulo: 'Cadastrados',
+      rotuloDoBotao: 'Novo lembrete',
+      aoAdicionar: () => abrirModalDeLembrete(null),
+      linhas: lembretesOrdenados(estado.lembretes).map(criarLinhaDeLembrete),
+      mensagemVazia: 'Nenhum lembrete cadastrado.',
+    }),
+  );
+}
+
+async function recarregarLembretes() {
+  try {
+    const resposta = await api.listarLembretes();
+    estado.lembretes = resposta.lembretes;
+    renderizarLembretes();
+  } catch (erro) {
+    exibirAviso(`Não foi possível carregar os lembretes: ${erro.message}`, 'erro');
+  }
+}
+
+function criarOpcao(valor, texto) {
+  const opcao = criarElemento('option', null, texto);
+  opcao.value = valor;
+  return opcao;
+}
+
+function preencherClientesDoLembrete(clienteId) {
+  const clientes = [...estado.clientes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  elementos.campoClienteLembrete.replaceChildren(
+    criarOpcao(SEM_CLIENTE, 'Nenhum'),
+    ...clientes.map((cliente) => criarOpcao(cliente.id, cliente.nome)),
+  );
+  elementos.campoClienteLembrete.value = clienteId ?? SEM_CLIENTE;
+}
+
+/* O projeto depende do cliente: sem cliente, ou cliente sem projeto, o campo fica travado. */
+function preencherProjetosDoLembrete(projetoId) {
+  const cliente = estado.clientes.find((item) => item.id === elementos.campoClienteLembrete.value);
+  const projetos = cliente?.projetos ?? [];
+  elementos.campoProjetoLembrete.replaceChildren(
+    criarOpcao(SEM_CLIENTE, 'Nenhum'),
+    ...projetos.map((projeto) => criarOpcao(projeto.id, projeto.nome)),
+  );
+  elementos.campoProjetoLembrete.disabled = projetos.length === 0;
+  elementos.campoProjetoLembrete.value = projetos.some((projeto) => projeto.id === projetoId)
+    ? projetoId
+    : SEM_CLIENTE;
+}
+
+function aplicarTipoDoLembrete() {
+  const recorrente = tipoDoLembreteEscolhido() === 'recorrente';
+  elementos.grupoDataHoraLembrete.hidden = recorrente;
+  elementos.grupoRecorrenciaLembrete.hidden = !recorrente;
+  if (recorrente) {
+    agendarPreviaDoCron();
+  }
+}
+
+async function atualizarPreviaDoCron() {
+  const expressao = elementos.campoExpressaoCron.value.trim();
+  ultimaExpressaoPrevista = expressao;
+  elementos.previaCron.classList.remove('erro-formulario');
+  if (!expressao) {
+    elementos.previaCron.textContent = '';
+    return;
+  }
+
+  try {
+    const { ocorrencias } = await api.previaDoCron(expressao);
+    if (expressao !== ultimaExpressaoPrevista) return;
+    elementos.previaCron.textContent = `Próximas: ${ocorrencias.map(formatarDataEHora).join(' · ')}`;
+  } catch (erro) {
+    if (expressao !== ultimaExpressaoPrevista) return;
+    elementos.previaCron.classList.add('erro-formulario');
+    elementos.previaCron.textContent = erro.message;
+  }
+}
+
+function agendarPreviaDoCron() {
+  clearTimeout(temporizadorDaPreviaDoCron);
+  temporizadorDaPreviaDoCron = setTimeout(atualizarPreviaDoCron, ESPERA_DA_PREVIA_DO_CRON_MS);
+}
+
+function abrirModalDeLembrete(lembrete) {
+  estado.lembreteEmEdicao = lembrete;
+  limparErro(elementos.erroLembrete);
+  elementos.tituloModalLembrete.textContent = lembrete ? 'Editar lembrete' : 'Novo lembrete';
+
+  const tipo = lembrete?.tipo ?? 'unico';
+  for (const opcao of elementos.opcoesTipoLembrete) {
+    opcao.checked = opcao.value === tipo;
+  }
+  elementos.campoResumoLembrete.value = lembrete?.resumo ?? '';
+  elementos.campoTextoLembrete.value = lembrete?.texto ?? '';
+  elementos.campoDataHoraLembrete.value = paraDataHoraLocal(
+    lembrete?.dataHora || proximaHoraCheia(),
+  );
+  elementos.campoModeloRecorrencia.value = '';
+  elementos.campoExpressaoCron.value = lembrete?.expressaoCron ?? '';
+  elementos.previaCron.textContent = '';
+  elementos.campoEmailLembrete.checked = lembrete?.enviarEmail ?? false;
+  elementos.campoAtivoLembrete.checked = lembrete?.ativo ?? true;
+  preencherClientesDoLembrete(lembrete?.clienteId ?? null);
+  preencherProjetosDoLembrete(lembrete?.projetoId ?? null);
+  aplicarTipoDoLembrete();
+  // Contato excluído depois do cadastro do lembrete some da lista em vez de travar o salvar.
+  estado.contatosDoLembrete = (lembrete?.contatoIds ?? []).filter((id) =>
+    estado.contatos.some((contato) => contato.id === id),
+  );
+  aplicarEnvioPorEmailDoLembrete();
+
+  elementos.modalLembrete.showModal();
+  elementos.campoResumoLembrete.focus();
+  // A lista pode ter mudado noutro lugar desde a última leitura.
+  void carregarContatos().then(() => {
+    if (elementos.modalLembrete.open) renderizarContatosDoLembrete();
+  });
+}
+
+function lerFormularioDeLembrete() {
+  const tipo = tipoDoLembreteEscolhido();
+  const dataHoraLocal = elementos.campoDataHoraLembrete.value;
+  const clienteId = elementos.campoClienteLembrete.value || null;
+  const enviarEmail = elementos.campoEmailLembrete.checked;
+  return {
+    resumo: elementos.campoResumoLembrete.value.trim(),
+    texto: elementos.campoTextoLembrete.value.trim(),
+    tipo,
+    dataHora: tipo === 'unico' && dataHoraLocal ? new Date(dataHoraLocal).toISOString() : '',
+    expressaoCron: tipo === 'recorrente' ? elementos.campoExpressaoCron.value.trim() : '',
+    clienteId,
+    projetoId: clienteId ? elementos.campoProjetoLembrete.value || null : null,
+    enviarEmail,
+    contatoIds: enviarEmail ? [...estado.contatosDoLembrete] : [],
+    ativo: elementos.campoAtivoLembrete.checked,
+  };
+}
+
+function validarFormularioDeLembrete(dados) {
+  if (!dados.resumo) return 'Informe o resumo do lembrete.';
+  if (!dados.texto) return 'Informe o texto do lembrete.';
+  if (dados.tipo === 'unico' && !dados.dataHora) return 'Informe a data e a hora do lembrete.';
+  if (dados.tipo === 'recorrente' && !dados.expressaoCron) {
+    return 'Informe a expressão da recorrência ou escolha um modelo.';
+  }
+  return null;
+}
+
+async function salvarLembrete(evento) {
+  evento.preventDefault();
+
+  const dados = lerFormularioDeLembrete();
+  const mensagemDeErro = validarFormularioDeLembrete(dados);
+  if (mensagemDeErro) {
+    exibirErro(elementos.erroLembrete, mensagemDeErro);
+    return;
+  }
+
+  limparErro(elementos.erroLembrete);
+  elementos.botaoSalvarLembrete.disabled = true;
+  try {
+    const emEdicao = estado.lembreteEmEdicao;
+    if (emEdicao) {
+      await api.atualizarLembrete(emEdicao.id, dados);
+    } else {
+      await api.criarLembrete(dados);
+    }
+    elementos.modalLembrete.close();
+    exibirAviso(emEdicao ? 'Lembrete atualizado.' : 'Lembrete cadastrado.');
+    await recarregarLembretes();
+  } catch (erro) {
+    exibirErro(elementos.erroLembrete, erro.message);
+  } finally {
+    elementos.botaoSalvarLembrete.disabled = false;
+  }
+}
+
+function pedirExclusaoDeLembrete(lembrete) {
+  pedirExclusao(
+    'Excluir lembrete',
+    `Excluir o lembrete "${resumoDoLembrete(lembrete)}"? Esta ação não pode ser desfeita.`,
+    () => api.removerLembrete(lembrete.id),
+    'Lembrete excluído.',
+    recarregarLembretes,
+  );
+}
+
+function registrarEventosDoLembrete() {
+  elementos.formularioLembrete.addEventListener('submit', salvarLembrete);
+  elementos.botaoCancelarLembrete.addEventListener('click', () => elementos.modalLembrete.close());
+  for (const opcao of elementos.opcoesTipoLembrete) {
+    opcao.addEventListener('change', aplicarTipoDoLembrete);
+  }
+  elementos.campoModeloRecorrencia.addEventListener('change', () => {
+    if (!elementos.campoModeloRecorrencia.value) return;
+    elementos.campoExpressaoCron.value = elementos.campoModeloRecorrencia.value;
+    agendarPreviaDoCron();
+  });
+  elementos.campoExpressaoCron.addEventListener('input', () => {
+    elementos.campoModeloRecorrencia.value = '';
+    agendarPreviaDoCron();
+  });
+  elementos.campoClienteLembrete.addEventListener('change', () => {
+    preencherProjetosDoLembrete(null);
+    descartarContatosIncompativeisDoLembrete();
+  });
+  elementos.campoEmailLembrete.addEventListener('change', aplicarEnvioPorEmailDoLembrete);
+  elementos.botaoAdicionarContatoLembrete.addEventListener('click', () =>
+    definirOpcoesDeContatosDoLembrete(elementos.opcoesContatosLembrete.hidden),
+  );
+  // Clique fora da lista a fecha, como um menu.
+  elementos.modalLembrete.addEventListener('click', (evento) => {
+    if (!evento.target.closest('.seletor-de-contatos')) definirOpcoesDeContatosDoLembrete(false);
+  });
+}
+
+/* Com cliente no lembrete, só os contatos sem cliente e os desse cliente; e só com e-mail. */
+function contatoPodeIrNoLembrete(contato, clienteId) {
+  if (!contato.email) {
+    return false;
+  }
+  if (!clienteId) {
+    return true;
+  }
+  const cliente = clienteDoContato(contato);
+  return cliente === null || cliente.id === clienteId;
+}
+
+function contatosDisponiveisParaOLembrete() {
+  const clienteId = elementos.campoClienteLembrete.value;
+  return contatosOrdenados(
+    estado.contatos.filter(
+      (contato) =>
+        !estado.contatosDoLembrete.includes(contato.id) &&
+        contatoPodeIrNoLembrete(contato, clienteId),
+    ),
+  );
+}
+
+/* Sem e-mail não há a quem copiar: os contatos somem junto com a caixa. */
+function aplicarEnvioPorEmailDoLembrete() {
+  const enviaEmail = elementos.campoEmailLembrete.checked;
+  elementos.grupoContatosLembrete.hidden = !enviaEmail;
+  if (!enviaEmail) {
+    estado.contatosDoLembrete = [];
+  }
+  definirOpcoesDeContatosDoLembrete(false);
+  renderizarContatosDoLembrete();
+}
+
+/* Trocar o cliente tira da cópia quem é de outro cliente. */
+function descartarContatosIncompativeisDoLembrete() {
+  const clienteId = elementos.campoClienteLembrete.value;
+  estado.contatosDoLembrete = estado.contatosDoLembrete.filter((id) => {
+    const contato = estado.contatos.find((item) => item.id === id);
+    return contato && contatoPodeIrNoLembrete(contato, clienteId);
+  });
+  definirOpcoesDeContatosDoLembrete(false);
+  renderizarContatosDoLembrete();
+}
+
+function criarContatoEscolhidoDoLembrete(contato) {
+  const item = criarElemento('div', 'contato-do-lembrete');
+  const remover = criarBotao('btn tiny ghost', '✕', () => {
+    estado.contatosDoLembrete = estado.contatosDoLembrete.filter((id) => id !== contato.id);
+    renderizarContatosDoLembrete();
+  });
+  remover.setAttribute('aria-label', `Tirar ${contato.nome} da cópia`);
+  remover.title = 'Tirar da cópia';
+  item.append(
+    criarElemento('span', 'contato-do-lembrete-nome', contato.nome),
+    criarElemento('span', 'contato-do-lembrete-email', contato.email),
+    remover,
+  );
+  return item;
+}
+
+function renderizarContatosDoLembrete() {
+  const escolhidos = estado.contatosDoLembrete
+    .map((id) => estado.contatos.find((contato) => contato.id === id))
+    .filter(Boolean);
+  elementos.listaContatosLembrete.replaceChildren(
+    ...(escolhidos.length > 0
+      ? escolhidos.map(criarContatoEscolhidoDoLembrete)
+      : [criarElemento('p', 'texto-auxiliar', 'Nenhum contato em cópia.')]),
+  );
+}
+
+function criarOpcaoDeContatoDoLembrete(contato) {
+  const opcao = criarBotao('opcao-de-contato', '', () => {
+    estado.contatosDoLembrete = [...estado.contatosDoLembrete, contato.id];
+    definirOpcoesDeContatosDoLembrete(false);
+    renderizarContatosDoLembrete();
+  });
+  const cliente = clienteDoContato(contato);
+  opcao.append(
+    criarElemento('span', 'opcao-de-contato-nome', contato.nome),
+    criarElemento(
+      'span',
+      'opcao-de-contato-detalhe',
+      cliente ? `${contato.email} · ${cliente.nome}` : contato.email,
+    ),
+  );
+  return opcao;
+}
+
+/* Sem contato disponível a lista não fica vazia: sempre dá para cadastrar um ali mesmo. */
+function definirOpcoesDeContatosDoLembrete(aberta) {
+  elementos.opcoesContatosLembrete.hidden = !aberta;
+  if (!aberta) {
+    return;
+  }
+
+  const disponiveis = contatosDisponiveisParaOLembrete();
+  const novo = criarBotao('btn tiny ghost opcao-de-contato-novo', 'Cadastrar contato novo', () => {
+    definirOpcoesDeContatosDoLembrete(false);
+    abrirModalDeContato(null, null, { paraOLembrete: true });
+  });
+  elementos.opcoesContatosLembrete.replaceChildren(
+    ...(disponiveis.length > 0
+      ? disponiveis.map(criarOpcaoDeContatoDoLembrete)
+      : [criarElemento('p', 'texto-auxiliar', 'Nenhum contato com e-mail disponível.')]),
+    novo,
+  );
+}
+
+/* Nasce com o cliente do lembrete, ou sem cliente: sempre cabe na cópia. */
+function incluirContatoNovoNoLembrete(contato) {
+  estado.contatosDoLembrete = [...estado.contatosDoLembrete, contato.id];
+  renderizarContatosDoLembrete();
+}
+
+/* -------------------------------- contatos -------------------------------- */
+
+/* Valor do filtro de cliente que separa os contatos sem cliente; nunca é um id. */
+const FILTRO_SEM_CLIENTE = '__sem-cliente__';
+
+/* Cliente excluído fora do HUB SNK (pasta sincronizada) vale como sem cliente. */
+function clienteDoContato(contato) {
+  return estado.clientes.find((cliente) => cliente.id === contato.clienteId) ?? null;
+}
+
+function contatosOrdenados(contatos) {
+  return [...contatos].sort((um, outro) => um.nome.localeCompare(outro.nome, 'pt-BR'));
+}
+
+function chaveDeBuscaDoContato(texto) {
+  return semAcentos(texto).toLocaleLowerCase('pt-BR');
+}
+
+/** Lê do servidor sem redesenhar: quem chama decide o que atualizar. */
+async function carregarContatos() {
+  try {
+    const resposta = await api.listarContatos();
+    estado.contatos = resposta.contatos;
+  } catch (erro) {
+    exibirAviso(`Não foi possível carregar os contatos: ${erro.message}`, 'erro');
+  }
+}
+
+async function recarregarContatos() {
+  await carregarContatos();
+  renderizarContatos();
+}
+
+/* Qualquer mudança de contato aparece nas duas abas: a do menu e a do cliente aberto. */
+async function recarregarContatosNasTelas() {
+  await recarregarContatos();
+  renderizarDetalhe();
+}
+
+function contatoPassaNoFiltro(contato) {
+  const { nome, clienteId } = estado.filtroDeContatos;
+  if (nome && !chaveDeBuscaDoContato(contato.nome).includes(chaveDeBuscaDoContato(nome))) {
+    return false;
+  }
+  if (clienteId === FILTRO_SEM_CLIENTE) {
+    return clienteDoContato(contato) === null;
+  }
+  return !clienteId || clienteDoContato(contato)?.id === clienteId;
+}
+
+function criarLinhaDeContato(contato, { mostrarCliente }) {
+  const info = criarElemento('div', 'recurso-info');
+  info.append(criarElemento('span', 'recurso-nome', contato.nome));
+
+  const cliente = mostrarCliente ? clienteDoContato(contato) : null;
+  const detalhes = [contato.cargo, cliente?.nome].filter(Boolean).join(' · ');
+  if (detalhes) {
+    info.append(criarElemento('span', 'recurso-url secundaria', detalhes));
+  }
+  const meios = [contato.telefone, contato.email].filter(Boolean).join(' · ');
+  if (meios) {
+    info.append(criarElemento('span', 'recurso-url', meios));
+  }
+
+  const linha = criarElemento('div', 'linha-recurso');
+  linha.append(
+    info,
+    criarAcoesDeRecurso({
+      rotuloDeEdicao: 'Editar contato',
+      aoEditar: () => abrirModalDeContato(contato, mostrarCliente ? null : cliente),
+      rotuloDeExclusao: 'Excluir contato',
+      aoExcluir: () => pedirExclusaoDeContato(contato),
+    }),
+  );
+  return linha;
+}
+
+/* Mantém a escolha feita, a não ser que o cliente dela tenha deixado de existir. */
+function preencherFiltroDeClienteDosContatos() {
+  const campo = elementos.campoFiltroClienteContato;
+  const clientes = [...estado.clientes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  campo.replaceChildren(
+    criarOpcao('', 'Todos os clientes'),
+    criarOpcao(FILTRO_SEM_CLIENTE, 'Sem cliente'),
+    ...clientes.map((cliente) => criarOpcao(cliente.id, cliente.nome)),
+  );
+  const escolhido = estado.filtroDeContatos.clienteId;
+  const aindaExiste =
+    escolhido === FILTRO_SEM_CLIENTE || clientes.some((cliente) => cliente.id === escolhido);
+  estado.filtroDeContatos.clienteId = aindaExiste ? escolhido : '';
+  campo.value = estado.filtroDeContatos.clienteId;
+}
+
+function renderizarContatos() {
+  preencherFiltroDeClienteDosContatos();
+  const filtrados = contatosOrdenados(estado.contatos.filter(contatoPassaNoFiltro));
+  elementos.mountContatos.replaceChildren(
+    criarSecaoDeRecursos({
+      titulo: 'Cadastrados',
+      rotuloDoBotao: 'Novo contato',
+      aoAdicionar: () => abrirModalDeContato(null, null),
+      linhas: filtrados.map((contato) => criarLinhaDeContato(contato, { mostrarCliente: true })),
+      mensagemVazia:
+        estado.contatos.length === 0
+          ? 'Nenhum contato cadastrado.'
+          : 'Nenhum contato com estes filtros.',
+    }),
+  );
+}
+
+/** Aba Contatos do cliente: sem filtro, e o contato novo já nasce dele. */
+function criarSecaoDeContatosDoCliente(cliente) {
+  const doCliente = estado.contatos.filter((contato) => contato.clienteId === cliente.id);
+  return criarSecaoDeRecursos({
+    titulo: null,
+    rotuloDoBotao: 'Novo contato',
+    aoAdicionar: () => abrirModalDeContato(null, cliente),
+    linhas: contatosOrdenados(doCliente).map((contato) =>
+      criarLinhaDeContato(contato, { mostrarCliente: false }),
+    ),
+    mensagemVazia: 'Nenhum contato vinculado a este cliente.',
+  });
+}
+
+function preencherClientesDoContato(clienteId) {
+  const clientes = [...estado.clientes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  elementos.campoClienteContato.replaceChildren(
+    criarOpcao(SEM_CLIENTE, 'Nenhum'),
+    ...clientes.map((cliente) => criarOpcao(cliente.id, cliente.nome)),
+  );
+  elementos.campoClienteContato.value = clientes.some((cliente) => cliente.id === clienteId)
+    ? clienteId
+    : SEM_CLIENTE;
+}
+
+/**
+ * `clienteFixo`: aberto pela aba do cliente, o campo Cliente some e vale esse cliente.
+ * `paraOLembrete`: aberto pelo modal do lembrete, o campo some e vale o cliente do
+ * lembrete — sem cliente nele, o contato também fica sem. E o e-mail passa a ser exigido.
+ */
+function abrirModalDeContato(contato, clienteFixo, { paraOLembrete = false } = {}) {
+  const clienteDoLembrete = paraOLembrete
+    ? (estado.clientes.find((cliente) => cliente.id === elementos.campoClienteLembrete.value) ??
+      null)
+    : null;
+  estado.contatoEmEdicao = contato;
+  estado.clienteFixoDoContato = clienteFixo ?? clienteDoLembrete;
+  estado.contatoParaOLembrete = paraOLembrete;
+  limparErro(elementos.erroContato);
+  elementos.tituloModalContato.textContent = contato ? 'Editar contato' : 'Novo contato';
+  elementos.campoNomeContato.value = contato?.nome ?? '';
+  elementos.campoCargoContato.value = contato?.cargo ?? '';
+  elementos.campoTelefoneContato.value = contato?.telefone ?? '';
+  elementos.campoEmailContato.value = contato?.email ?? '';
+  elementos.opcionalEmailContato.hidden = paraOLembrete;
+  elementos.grupoClienteContato.hidden = clienteFixo !== null || paraOLembrete;
+  preencherClientesDoContato(estado.clienteFixoDoContato?.id ?? contato?.clienteId ?? null);
+
+  elementos.modalContato.showModal();
+  elementos.campoNomeContato.focus();
+}
+
+/* O campo Cliente só vale quando está na tela; escondido, manda o cliente fixado. */
+function clienteDoFormularioDeContato() {
+  if (!elementos.grupoClienteContato.hidden) {
+    return elementos.campoClienteContato.value || null;
+  }
+  return estado.clienteFixoDoContato?.id ?? null;
+}
+
+function lerFormularioDeContato() {
+  return {
+    nome: elementos.campoNomeContato.value.trim(),
+    cargo: elementos.campoCargoContato.value.trim(),
+    telefone: elementos.campoTelefoneContato.value.trim(),
+    email: elementos.campoEmailContato.value.trim(),
+    clienteId: clienteDoFormularioDeContato(),
+  };
+}
+
+function validarFormularioDeContato(dados) {
+  if (!dados.nome) return 'Informe o nome do contato.';
+  if (!dados.email && estado.contatoParaOLembrete) {
+    return 'Informe o e-mail: é por ele que o contato recebe o lembrete.';
+  }
+  if (dados.email && !elementos.campoEmailContato.checkValidity()) return 'E-mail inválido.';
+  return null;
+}
+
+async function salvarContato(evento) {
+  evento.preventDefault();
+
+  const dados = lerFormularioDeContato();
+  const mensagemDeErro = validarFormularioDeContato(dados);
+  if (mensagemDeErro) {
+    exibirErro(elementos.erroContato, mensagemDeErro);
+    return;
+  }
+
+  limparErro(elementos.erroContato);
+  elementos.botaoSalvarContato.disabled = true;
+  try {
+    const emEdicao = estado.contatoEmEdicao;
+    const salvo = emEdicao
+      ? await api.atualizarContato(emEdicao.id, dados)
+      : await api.criarContato(dados);
+    elementos.modalContato.close();
+    exibirAviso(emEdicao ? 'Contato atualizado.' : 'Contato cadastrado.');
+    await recarregarContatosNasTelas();
+    if (estado.contatoParaOLembrete && elementos.modalLembrete.open) {
+      incluirContatoNovoNoLembrete(salvo);
+    }
+  } catch (erro) {
+    exibirErro(elementos.erroContato, erro.message);
+  } finally {
+    elementos.botaoSalvarContato.disabled = false;
+  }
+}
+
+function pedirExclusaoDeContato(contato) {
+  pedirExclusao(
+    'Excluir contato',
+    `Excluir o contato "${contato.nome}"? Os lembretes deixam de copiá-lo. Esta ação não pode ser desfeita.`,
+    () => api.removerContato(contato.id),
+    'Contato excluído.',
+    recarregarContatosNasTelas,
+  );
+}
+
+function registrarEventosDosContatos() {
+  elementos.formularioContato.addEventListener('submit', salvarContato);
+  elementos.botaoCancelarContato.addEventListener('click', () => elementos.modalContato.close());
+  elementos.campoFiltroNomeContato.addEventListener('input', () => {
+    estado.filtroDeContatos.nome = elementos.campoFiltroNomeContato.value.trim();
+    renderizarContatos();
+  });
+  elementos.campoFiltroClienteContato.addEventListener('change', () => {
+    estado.filtroDeContatos.clienteId = elementos.campoFiltroClienteContato.value;
+    renderizarContatos();
+  });
 }
 
 /* ----------------------------------- tema --------------------------------- */
@@ -5597,6 +8875,12 @@ async function recarregarCliente(id) {
   estado.clientes[posicao] = cliente;
 }
 
+/** Geral vazia (sem anotações nem links gerais) não tem o que mostrar: abre em Bases. */
+function abaInicialDoCliente(cliente) {
+  const geralVazia = !cliente?.anotacoes?.trim() && !cliente?.links?.length;
+  return geralVazia ? 'bases' : 'geral';
+}
+
 /**
  * Seleciona e relê o cliente.
  *
@@ -5606,6 +8890,11 @@ async function recarregarCliente(id) {
  * descartado para não redesenhar por cima da nova seleção.
  */
 async function selecionarCliente(id) {
+  if (estado.idSelecionado !== id) {
+    estado.abaDetalheAtiva = abaInicialDoCliente(
+      estado.clientes.find((cliente) => cliente.id === id),
+    );
+  }
   estado.idSelecionado = id;
   renderizar();
 
@@ -5636,6 +8925,8 @@ async function recarregarDetalhe(id) {
     return;
   }
 
+  // Recarregar de propósito é o único redesenho que deve consultar Agenda e OS de novo.
+  descartarSecoesConsultadasDoDetalhe();
   renderizar();
   carregarSituacoesDasBasesDoClienteSelecionado();
   await carregarSituacoesGit(true);
@@ -5652,6 +8943,23 @@ function registrarEventos() {
     alternarVisualizacao('clientes'),
   );
   elementos.botaoVisualizacaoLocal.addEventListener('click', () => alternarVisualizacao('local'));
+  elementos.botaoVisualizacaoAgenda.addEventListener('click', () => alternarVisualizacao('agenda'));
+  elementos.botaoVisualizacaoOs.addEventListener('click', () => alternarVisualizacao('os'));
+  elementos.botaoVisualizacaoLembretes.addEventListener('click', () =>
+    alternarVisualizacao('lembretes'),
+  );
+  elementos.botaoVisualizacaoContatos.addEventListener('click', () =>
+    alternarVisualizacao('contatos'),
+  );
+  registrarEventosDasNotificacoes();
+  registrarEventosDoLembrete();
+  registrarEventosDosContatos();
+  elementos.botaoAtualizarAgenda.append(criarIcone(ICONES.recarregar));
+  elementos.botaoAtualizarAgenda.addEventListener('click', atualizarAgendaGeral);
+  elementos.mountAgendaGeral.append(widgetAgendaGeral.elemento);
+  elementos.botaoAtualizarOs.append(criarIcone(ICONES.recarregar));
+  elementos.botaoAtualizarOs.addEventListener('click', atualizarOsGeral);
+  elementos.mountOsGeral.append(widgetOsGeral.elemento);
 
   elementos.botaoAtalhos.append(criarIcone(ICONES.raio));
   elementos.botaoAtalhos.addEventListener('click', alternarListaDeAtalhos);
@@ -5673,6 +8981,16 @@ function registrarEventos() {
     }
   });
 
+  elementos.botaoCredenciaisSankhya.append(criarIcone(ICONES.cadeado));
+  elementos.botaoCredenciaisSankhya.addEventListener('click', abrirModalDeCredenciaisSankhya);
+  elementos.botaoSalvarCodusu.addEventListener('click', salvarCodusuSankhyaOm);
+  elementos.botaoFecharCredenciaisSankhya.addEventListener('click', () =>
+    elementos.modalCredenciaisSankhya.close(),
+  );
+  for (const cartaoElementos of cartoesDeCredenciaisSankhya()) {
+    registrarEventosDoCartaoDeCredencial(cartaoElementos);
+  }
+
   elementos.botaoConfiguracao.append(criarIcone(ICONES.engrenagem));
   elementos.botaoConfiguracao.addEventListener('click', abrirModalDeConfiguracao);
   elementos.formularioConfiguracao.addEventListener('submit', salvarConfiguracao);
@@ -5685,13 +9003,47 @@ function registrarEventos() {
   elementos.abaConfiguracaoAtalhos.addEventListener('click', () =>
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoAtalhos),
   );
+  elementos.abaConfiguracaoSmtp.addEventListener('click', () =>
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoSmtp),
+  );
+  elementos.abaConfiguracaoAvisos.addEventListener('click', () =>
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoAvisos),
+  );
+  elementos.abaConfiguracaoAcessos.addEventListener('click', () =>
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoAcessos),
+  );
+  elementos.botaoVerSenhaSmtp.addEventListener('click', () =>
+    definirVisibilidadeDoCampo(
+      elementos.campoSmtpSenha,
+      elementos.botaoVerSenhaSmtp,
+      elementos.campoSmtpSenha.type === 'password',
+    ),
+  );
+  elementos.botaoTestarSmtp.addEventListener('click', testarSmtp);
+  elementos.campoPerfil.addEventListener('change', aplicarPresetDoPerfil);
+  elementos.campoTerceiro.addEventListener('change', bloquearCaixasQueDependemDoSankhya);
+  elementos.abaConfiguracaoSobre.addEventListener('click', () =>
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoSobre),
+  );
   elementos.botaoAdicionarAtalho.addEventListener('click', () => {
     const linha = adicionarLinhaDeAtalho({ id: '', nome: '', caminhoDoExecutavel: '' });
     linha.querySelector('input').focus();
   });
+  elementos.botaoAdicionarNomeCompleto.addEventListener('click', () => {
+    const linha = adicionarLinhaDeNomeCompleto('');
+    linha.querySelector('input').focus();
+  });
+  elementos.botaoSelecionarExecutavelDaIde.append(criarIcone(ICONES.pasta));
+  elementos.botaoSelecionarExecutavelDaIde.addEventListener('click', () =>
+    escolherExecutavelDoAtalho(
+      elementos.campoCaminhoExecutavelDaIde,
+      elementos.botaoSelecionarExecutavelDaIde,
+    ),
+  );
   elementos.botaoCancelarConfiguracao.addEventListener('click', () =>
     elementos.modalConfiguracao.close(),
   );
+  elementos.botaoImportarEnvMcp.addEventListener('click', importarEnvDoMcpGlobal);
   elementos.botaoVerSenhaConfigMcp.addEventListener('click', () =>
     definirVisibilidadeDoCampo(
       elementos.campoConfigMcpSenha,
@@ -5715,6 +9067,12 @@ function registrarEventos() {
   elementos.botaoVerSenhaBanco.addEventListener('click', () => {
     definirVisibilidadeDaSenhaDoBanco(elementos.campoSenhaBanco.type === 'password');
   });
+  elementos.botoesDeCopiarDoBanco.forEach((botao) => {
+    botao.append(criarIcone(ICONES.copiar));
+    botao.addEventListener('click', () => copiarCampoDoBanco(botao));
+  });
+  elementos.campoSgbd.addEventListener('change', aplicarPortaPadraoDoSgbd);
+  elementos.formularioBanco.addEventListener('input', atualizarCamposDoSgbd);
 
   elementos.formularioMcp.addEventListener('submit', salvarConfiguracaoMcp);
   elementos.botaoCancelarMcp.addEventListener('click', () => elementos.modalMcp.close());
@@ -5734,6 +9092,9 @@ function registrarEventos() {
 
   elementos.formularioLink.addEventListener('submit', salvarLink);
   elementos.botaoCancelarLink.addEventListener('click', () => elementos.modalLink.close());
+
+  elementos.formularioProjeto.addEventListener('submit', salvarProjeto);
+  elementos.botaoCancelarProjeto.addEventListener('click', () => elementos.modalProjeto.close());
 
   elementos.formularioBaseLocal.addEventListener('submit', salvarBaseLocal);
   elementos.botaoEscolherCaminhoWildfly.append(criarIcone(ICONES.pasta));
@@ -5883,14 +9244,22 @@ function registrarEventosDaImportacao() {
   elementos.botaoBaixarExportacaoDeCadastros.addEventListener('click', baixarExportacaoDeCadastros);
 }
 
-function registrarServiceWorker() {
+/*
+ * O HUB SNK deixou de ser PWA: roda dentro do app desktop. Quem abrir o painel
+ * num navegador que ainda guarda o service worker da versão antiga ficaria
+ * preso ao cache dela, então o registro remanescente é desfeito aqui.
+ */
+async function removerServiceWorkerDaVersaoPwa() {
   if (!('serviceWorker' in navigator)) {
     return;
   }
 
-  navigator.serviceWorker.register('/sw.js').catch((erro) => {
-    console.error('Falha ao registrar o service worker:', erro);
-  });
+  try {
+    const registros = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registros.map((registro) => registro.unregister()));
+  } catch (erro) {
+    console.error('Falha ao remover o service worker da versão PWA:', erro);
+  }
 }
 
 /*
@@ -5929,7 +9298,7 @@ async function exibirAvisoDeVersaoNova() {
 async function iniciar() {
   restaurarTema();
   registrarEventos();
-  registrarServiceWorker();
+  void removerServiceWorkerDaVersaoPwa();
   void exibirVersaoNoRodape();
   void exibirAvisoDeVersaoNova();
 
@@ -5938,6 +9307,8 @@ async function iniciar() {
   } catch (erro) {
     exibirAviso(`Não foi possível carregar os clientes: ${erro.message}`, 'erro');
   }
+  // A aba Contatos do cliente e o modal do lembrete leem daqui, sem consulta própria.
+  void carregarContatos().then(renderizarDetalhe);
 
   try {
     const configuracao = await api.lerConfiguracao();
@@ -5946,12 +9317,15 @@ async function iniciar() {
         INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S,
     );
     estado.atalhos = configuracao.atalhos ?? [];
+    aplicarAcessos(configuracao);
   } catch {
     // Sem a configuração, vale o padrão — não é motivo para outro aviso na tela.
     definirExecucaoAutomatica(INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S);
   }
 
   renderizarListaDeAtalhos();
+  void carregarNotificacoes();
+  conectarFluxoDeNotificacoes();
 }
 
 iniciar();

@@ -6,9 +6,10 @@ dispara cada cor. O [README](../README.md) traz o resumo; aqui está o detalhe.
 
 ## Cadastro de clientes
 
-Cada cliente reúne quatro listas: **bases** (a URL do ERP, com usuário, senha e
-o banco de dados vinculado), **repositórios** Git, **links** avulsos e as
-**anotações**.
+Cada cliente reúne **bases** (a URL do ERP, com usuário, senha e o banco de dados
+vinculado), **repositórios** Git, **links** avulsos, **projetos** (com anotações e
+links próprios), **contatos**, as **anotações** e os **nomes completos** — as
+razões sociais dele no Sankhya, que casam o cliente com a agenda e as OS.
 
 Nomes de cliente não se repetem. Nas bases, a mesma URL pode aparecer várias
 vezes desde que o usuário mude — assim dá para cadastrar um acesso de
@@ -18,6 +19,34 @@ pontas.
 
 Cada base tem no máximo um banco de dados. A senha não é aparada: espaço nas
 pontas pode fazer parte dela.
+
+## Onde os links abrem
+
+Na aba **Geral** das configurações, o campo **Abrir os links em** diz onde abre
+todo link clicável do cadastro — bases, repositórios, links gerais e links de
+projeto — quando é clicado no aplicativo desktop. É uma escolha só
+(`destinoDosLinks`), e o padrão é o navegador do HUB SNK:
+
+| Escolha                           | Bases                                                                   | Repositórios, links gerais e links de projeto   |
+| --------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------- |
+| **Navegador do HUB SNK** (padrão) | Guia do aplicativo, isolada das outras, com usuário e senha preenchidos | Guia do aplicativo, isolada, sem preenchimento  |
+| **Navegador padrão**              | Navegador do sistema, sem preenchimento                                 | Navegador do sistema, com a sessão e o SSO dele |
+
+Quem aplica a escolha é o aplicativo, na hora do clique, relendo o cadastro e a
+configuração — mudar a opção vale no próximo clique, sem reiniciar. As regras:
+
+- **A URL exata de um link vale mais que a origem de uma base.** Um link geral que
+  aponta para uma tela da base abre como link, sem o preenchimento do login.
+- Link aberto no HUB SNK com a mesma origem de uma guia já aberta (a da base, por
+  exemplo) navega aquela guia até o endereço do link.
+- O monitor de log de uma base abre sempre na guia dela.
+- Endereço da própria máquina (`localhost`) abre numa guia do aplicativo, e
+  qualquer link que não esteja no cadastro abre no navegador do sistema.
+- Só `http` e `https` abrem no navegador do sistema; outro esquema (`file:`,
+  `mailto:`) é recusado e fica registrado no log.
+
+Com o painel aberto num navegador comum (_Ajuda_ › _Abrir o painel no navegador_),
+a escolha não se aplica: os links abrem nesse navegador.
 
 ## Anotações do cliente
 
@@ -145,8 +174,15 @@ arquivo entra normalmente.
 
 Repositório com **caminho local** cadastrado ganha quatro botões na própria
 linha: **Arquivos** abre a pasta no gerenciador de arquivos, **Shell** abre o
-terminal já posicionado nela, **`{ }`** abre a pasta como projeto no IntelliJ
-IDEA e a **tomada** edita o `.sankhya-mcp.env`.
+terminal já posicionado nela, **Abrir IDE** (`{ }`) abre a pasta como projeto
+na IDE configurada em _Configurações_ e a **tomada** edita o
+`.sankhya-mcp.env`.
+
+O botão **Abrir IDE** chama o executável cadastrado no campo **Executável da
+IDE** (_Configurações_ › _Geral_), passando a pasta do repositório como
+argumento de linha de comando — funciona com qualquer IDE que aceite esse
+contrato (IntelliJ IDEA, VS Code, WebStorm, Rider e outras). Sem executável
+cadastrado, o botão responde com aviso pedindo para configurar.
 
 Se o **Script padrão** estiver preenchido em _Configurações_ (engrenagem no
 topo), o botão Shell o executa assim que o terminal abre, e a janela continua
@@ -157,47 +193,18 @@ aberta depois para você ler a saída.
 > mesmo critério de digitar um comando direto no terminal: só coloque ali o que
 > você mesmo executaria.
 
-### Que programa é chamado em cada sistema
+### Que programa é chamado
 
-| Botão                            | Windows                                                                                                                    | macOS                                                                        | Linux                                                                                         |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **Arquivos**                     | `explorer.exe`                                                                                                             | `open`                                                                       | `xdg-open`                                                                                    |
-| **Shell**                        | Windows Terminal quando existe; o shell é `pwsh.exe`, `powershell.exe` ou `cmd.exe`, o primeiro encontrado no PATH         | `Terminal.app`, via `osascript` quando há script a executar                  | primeiro entre `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal` e `xterm` |
-| **`{ }`**                        | primeiro no PATH entre `idea64.exe`, `idea.exe`, `idea.cmd` e `idea.bat`; os `.cmd`/`.bat` são executados via `cmd.exe /c` | `open -n -a "IntelliJ IDEA"` (ou a edição _CE_), com `idea` como alternativa | primeiro entre `intellij-idea-ultimate`, `intellij-idea-community`, `idea` e `idea.sh`        |
-| **Seletor de arquivo** (atalhos) | `OpenFileDialog` do Windows Forms, via `powershell.exe -STA`                                                               | `choose file`, via `osascript`                                               | `zenity --file-selection`, com `kdialog` como alternativa                                     |
-
-Quando nada é encontrado, o HUB SNK mostra o aviso na tela — inclusive o
-**Arquivos** no Linux sem `xdg-open`, que responde pedindo a instalação do
-`xdg-utils`. No Windows, a pasta `bin` do IntelliJ precisa estar no PATH, ou o
-launcher de linha de comando precisa ter sido gerado pelo JetBrains Toolbox. No
-Linux sem `zenity` nem `kdialog`, resta digitar o caminho do atalho à mão.
+| Botão                            | Programa                                                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Arquivos**                     | `explorer.exe`                                                                                                     |
+| **Shell**                        | Windows Terminal quando existe; o shell é `pwsh.exe`, `powershell.exe` ou `cmd.exe`, o primeiro encontrado no PATH |
+| **Abrir IDE**                    | o executável cadastrado; `.cmd`/`.bat` são executados via `cmd.exe /c`                                             |
+| **Seletor de arquivo** (atalhos) | `OpenFileDialog` do Windows Forms, via `powershell.exe -STA`                                                       |
 
 O programa não é dado como aberto só por ter nascido: o HUB SNK espera um
 instante e, se ele morreu com erro nesse intervalo, tenta o próximo candidato da
-lista e só então avisa a tela. É o que faz um `x-terminal-emulator` apontando
-para um emulador que não aceita `--working-directory` ceder a vez ao
-`gnome-terminal`, em vez de encerrar a fila sem abrir nada.
-
-### Permissão de Automação no macOS
-
-Com **Script padrão** preenchido, o botão Shell no macOS passa pelo `osascript`
-para mandar o Terminal executar o comando. Isso é automação de um aplicativo por
-outro, e o macOS pede autorização: **na primeira vez aparece o diálogo "node quer
-controlar Terminal"**. Autorize — a permissão é lembrada, e o pedido não volta.
-
-Autorizar depois, ou rever a decisão, fica em _Ajustes do Sistema_ ›
-_Privacidade e Segurança_ › _Automação_.
-
-Negada a permissão, o botão Shell não deixa de funcionar: o HUB SNK cai no
-`open -a Terminal`, e o Terminal abre na pasta do repositório. **O que se perde é
-o Script padrão** — ele não é executado, e a tela não tem como avisar, porque
-para ela o terminal abriu. Um terminal que abre na pasta certa mas ignora o
-script é o sintoma de permissão negada.
-
-O diálogo de autorização é o único caso em que a espera de um instante descrita
-acima não ajuda: enquanto ele está na tela o `osascript` continua vivo, então o
-HUB SNK o considera iniciado. Se você negar depois disso, nada abre naquela
-tentativa — o segundo clique já cai no `open -a Terminal`.
+lista e só então avisa a tela. Quando nada abre, o aviso aparece na tela.
 
 ### Arquivo `.sankhya-mcp.env`
 
@@ -249,49 +256,190 @@ O botão de pasta ao lado do caminho abre o seletor de arquivos do sistema e
 preenche o campo. O campo continua editável — dá para colar um caminho ou
 ajustar o que veio do seletor.
 
-Vale para `.exe`, `.lnk`, `.bat` e qualquer extensão associada. A existência do
+Vale para `.exe`, `.lnk`, `.bat` e qualquer extensão associada: o programa é
+iniciado sempre pelo `explorer.exe`, que resolve a extensão. A existência do
 arquivo é checada na hora de executar, não no cadastro, então dá para cadastrar
 o caminho de um programa ainda não instalado; sem o arquivo, o HUB SNK avisa na
 tela.
 
-### Como cada sistema inicia o programa
+## Lista de OS
 
-| Sistema | O que acontece                                                                                                          |
-| ------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Windows | Sempre pelo `explorer.exe`, que resolve a extensão associada                                                            |
-| macOS   | Pacote `.app` e `.command` vão para o `open`; o resto com bit de execução roda direto                                   |
-| Linux   | Arquivo com bit de execução roda direto; sem ele, vai para o `xdg-open` — que é o caminho do `.desktop` e do atalho web |
+As abas **OS** do menu principal e do cadastro do cliente listam as OS do mês da
+mais recente para a mais antiga — pela data de conclusão e, no mesmo dia, pelo
+horário de início. OS sem data de conclusão vai para o fim.
 
-Fora do Windows o despachante do sistema não serve para tudo: ele decide pela
-associação de tipo, e a de script costuma ser um editor. Um `.sh` entregue ao
-`open` ou ao `xdg-open` abriria no Xcode ou no bloco de notas em vez de rodar —
-por isso o arquivo executável é chamado direto. As duas exceções do macOS ficam
-com o despachante porque só ele sabe iniciá-las: o `.app` é um pacote, e o
-`.command` existe para abrir no Terminal, janela que rodá-lo direto tiraria.
+À esquerda, acima da lista, fica um agrupador por status da OS, com a
+quantidade de OS do mês em cada um e uma cor própria: **Concluído** em verde,
+**Gerado** em azul e os demais com as cores livres da paleta, em ordem
+alfabética. O selo de status de cada OS usa a mesma cor. Clicar num agrupador
+filtra a lista por ele; clicar de novo tira o filtro, e vários podem ficar
+marcados ao mesmo tempo. A seleção continua ao trocar de mês, perdendo só o
+status que não existir no mês novo.
+
+À direita ficam o contador e o total de horas lançadas das OS **visíveis**: a
+soma das **Horas** de cada uma, no formato `HHH:MM` (`20 OS neste mês · 134:00
+horas lançadas.`). OS sem horas, ou com um valor fora do formato `HH:MM`, fica
+fora da soma. As quantidades dos agrupadores contam sempre o mês inteiro.
+
+## Notificações
+
+O sino no topo do painel abre o **painel de notificações**, à direita, com a
+contagem das não lidas. Cada notificação nova chega na hora (o servidor a empurra
+pela conexão aberta com a tela), aparece num cartão no canto direito por 15
+segundos e toca um som curto. Clicar numa notificação a marca como lida; os botões
+do painel marcam todas ou limpam a lista.
+
+No lembrete, o cartão não diz "Lembrete": o **resumo** vem em destaque e, abaixo,
+mais discretos, o texto e o cliente › projeto. O alerta da agenda e os avisos do
+próprio HUB SNK continuam com a etiqueta de origem.
+
+Com o painel no navegador comum, e não no aplicativo, o som pode ficar mudo até o
+primeiro clique na página: é a política de autoplay do navegador. A guia Painel do
+aplicativo já nasce liberada para tocar.
+
+### E-mail
+
+Em **Configurações › SMTP** ficam o servidor de e-mail (host, porta, segurança,
+usuário, senha, remetente e destinatário) e o botão **Enviar e-mail de teste**, que
+usa o que está no formulário, antes de salvar. A aba só tem o SMTP porque ele serve
+a tudo o que o HUB SNK enviar por e-mail, e não só às notificações. Sem host, as
+notificações ficam só no painel. O e-mail que falha não impede a notificação: ela aparece no painel com
+o motivo.
+
+> A senha do SMTP fica em texto puro no `configuracao.json`, como as senhas das
+> bases no `clientes.json`. Com a pasta de dados na nuvem, ela vai junto.
+
+### Agenda do dia sem OS lançada
+
+Ligado em **Configurações › Avisos**, o HUB SNK confere a cada 15 minutos (a
+primeira vez dois minutos depois de abrir) os eventos de hoje da sua Agenda de
+Recursos:
+
+1. traz o dia de novo do Sankhya Om, pela guia já logada — sem conseguir, vale o
+   que já estava no snapshot;
+2. pega só os eventos do seu `CODUSU` que têm parceiro (folga e evento interno
+   ficam de fora);
+3. para cada evento que terminou há mais que a tolerância configurada (padrão, 30
+   minutos), confere na Experience se o parceiro tem **OS lançada** no dia. Tarefa
+   aberta sem OS conta como não lançada.
+
+Sem OS, sai uma notificação — e o e-mail, se marcado — **uma vez por evento por
+dia**. Evento de dia inteiro, ou que continua amanhã, usa as 18h como fim.
+
+Precisa do código de usuário do Sankhya OM (no topo de **Credenciais Sankhya**) e das sessões do Sankhya
+Om e da Experience ativas no aplicativo. Sessão caída vira uma notificação do
+próprio HUB SNK, uma vez por dia; com o backend rodando sem o aplicativo
+(`npm run dev`), a verificação só registra no log.
+
+## Lembretes
+
+A aba **Lembretes** do menu principal cadastra avisos com um **resumo**
+obrigatório (até 120 caracteres, o destaque da notificação e o assunto do e-mail)
+e um texto livre, opcionalmente ligados a um cliente e a um projeto dele. Cada um
+pode mandar também e-mail e pode ser desligado sem ser apagado. Lembrete
+cadastrado antes do resumo continua disparando, com o texto no lugar dele; editar
+pede o resumo.
+
+- **Uma vez**: data e hora. Dispara uma vez só; depois a lista mostra quando
+  disparou.
+- **Recorrente**: expressão cron de cinco campos — minuto, hora, dia do mês, mês
+  e dia da semana (0 é domingo). O formulário tem modelos prontos (todo dia, dias
+  úteis, toda segunda, dia 1º do mês…) e mostra as três próximas ocorrências
+  enquanto a expressão é digitada.
+
+Com o HUB SNK fechado na hora marcada, o lembrete dispara ao abrir, marcado como
+atrasado. Do recorrente que perdeu várias ocorrências, só uma volta. Mudar a data,
+a expressão ou o tipo rearma o lembrete; corrigir só o texto, não.
+
+### E-mail do lembrete
+
+O assunto é `[HUB SNK] Lembrete - <resumo>`. O corpo é em HTML, com a logo do HUB
+SNK embutida no próprio e-mail (não depende de internet para aparecer), o resumo
+como título, o texto, o cliente › projeto e o horário previsto — com aviso quando
+disparou depois dele. Vai junto uma versão em texto puro, para o cliente de
+e-mail que não mostra HTML.
+
+O e-mail vai **para** o destinatário do SMTP, com os **contatos** do lembrete em
+**cópia**. A seção de contatos só aparece com **Enviar também por e-mail**
+marcado, e o botão **Adicionar contato** lista só contatos com e-mail — com
+cliente escolhido no lembrete, só os sem cliente e os desse cliente. Trocar o
+cliente tira da cópia quem é de outro cliente; contato excluído depois deixa de
+receber, sem travar o lembrete.
+
+> Com a mesma pasta de dados aberta em duas máquinas ao mesmo tempo, as duas
+> disparam o lembrete — e mandam o e-mail — cada uma por si.
+
+## Contatos
+
+A aba **Contatos** do menu principal lista todos os contatos, com filtro por nome
+e por cliente (inclusive **Sem cliente**). Cada contato tem nome (obrigatório),
+cargo, telefone, e-mail e, opcionalmente, o cliente.
+
+No cadastro do cliente, a aba **Contatos** mostra só os dele, sem filtro, e o
+**Novo contato** dali já nasce vinculado ao cliente — o campo Cliente nem
+aparece. Excluir um cliente não apaga os contatos dele: eles passam a sem cliente.
+
+## Acessos por perfil
+
+O HUB SNK atende perfis diferentes, e cada um vê só o que usa. Em
+**Configurações › Acessos** ficam o **Perfil** e uma caixa por funcionalidade:
+as abas **Local**, **Agenda**, **OS**, **Lembretes** e **Contatos** do menu principal e as
+abas **Bases**, **Repositórios**, **Projetos**, **Agenda**, **OS** e **Contatos** do cadastro
+do cliente.
+**Clientes** e a aba **Geral** do cliente não entram na lista: sem elas a tela
+abriria vazia.
+
+| Perfil             | Oculto no preset                          |
+| ------------------ | ----------------------------------------- |
+| Desenvolvedor      | nada                                      |
+| Consultor          | aba Repositórios do cliente               |
+| Analista           | aba Repositórios do cliente               |
+| Gerente de projeto | aba Repositórios do cliente e a aba Local |
+
+O perfil é perguntado na instalação, e o preset dele vale desde a primeira
+abertura. Trocar o perfil na aba Acessos marca as caixas do preset; depois disso
+elas seguem editáveis, uma a uma. Salvar com o perfil ou as caixas alterados
+recarrega o Painel, que volta montado do zero com os acessos novos; as guias do
+Sankhya e das bases continuam abertas. Reinstalar ou atualizar não desfaz o ajuste: o
+perfil do instalador só é aplicado enquanto a configuração ainda não tem acessos
+gravados — inclusive quando a pasta de dados vem sincronizada de outra máquina.
+
+Ocultar **Repositórios** leva junto o que só existe por causa deles: o filtro por
+situação do Git, as bolinhas do Git no topo e na lista de clientes e a aba
+**MCP** das configurações.
+
+### Terceiro
+
+A caixa **Terceiro**, na aba Acessos e na página do perfil do instalador, é para
+quem não tem acesso ao Sankhya Om nem à Experience. Vale para qualquer perfil e,
+marcada, oculta tudo o que depende das credenciais Sankhya:
+
+- o botão **Credenciais Sankhya** do topo;
+- as abas **Agenda** e **OS** do menu principal e do cadastro do cliente, cujas
+  caixas ficam desabilitadas na aba Acessos;
+- o campo **Nomes completos no Sankhya** do cliente, que só serve à Agenda e à OS;
+- o grupo **Agenda do dia sem OS lançada** de **Configurações › Avisos**, e a
+  verificação a cada 15 minutos deixa de rodar mesmo com o alerta ligado;
+- as guias **Sankhya Om** e **Experience** do aplicativo: saem da barra, do menu
+  **Guias** e dos atalhos Ctrl+2 e Ctrl+3, e o aplicativo deixa de logar sozinho
+  nelas.
+
+Terceiro não altera as caixas gravadas: desmarcá-lo devolve a tela ao que era.
+A caixa do instalador segue a regra do perfil, só é aplicada enquanto a
+configuração ainda não tem o campo — inclusive numa instalação atualizada, que já
+tem perfil.
+
+> Desmarcar só tira a funcionalidade da tela. Nenhum dado é apagado, marcar de
+> novo a traz de volta, e a API continua respondendo: não é controle de
+> permissão.
 
 ## Bancos locais
 
 Ligar, parar e reiniciar o container Docker do banco depende do daemon estar de
 pé, e o cliente `docker` não o sobe sozinho. As ações que ligam o banco tentam
 subi-lo antes e esperam ele atender — a primeira subida da VM leva bem mais que
-alguns segundos.
-
-O que é "subir o Docker" muda de sistema:
-
-| Sistema | O que o HUB SNK faz                                                           |
-| ------- | ----------------------------------------------------------------------------- |
-| Windows | Abre o `Docker Desktop.exe` do caminho de instalação encontrado               |
-| macOS   | `open -a Docker`                                                              |
-| Linux   | `systemctl --user start docker-desktop` e, se não houver, o `docker` rootless |
-
-No Linux não há aplicativo para abrir: tanto o Docker Desktop quanto o modo
-rootless são serviços de usuário do systemd, e sobem sem root.
-
-**O Docker Engine instalado como serviço do sistema fica de fora**, de
-propósito: subi-lo exige `sudo`, e pedir senha numa janela que ninguém está
-vendo não levaria a nada. Ele também costuma já estar no ar, porque é habilitado
-no boot. Se estiver parado, o HUB SNK diz isso e mostra o comando —
-`sudo systemctl start docker`.
+alguns segundos. Subir o Docker é abrir o `Docker Desktop.exe` do caminho de
+instalação encontrado.
 
 ## Diagnóstico dos repositórios Git
 

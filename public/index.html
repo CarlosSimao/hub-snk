@@ -7,8 +7,6 @@
     <meta name="theme-color" content="#070b14" />
     <title>HUB SNK</title>
     <link rel="icon" href="/img/icone-192.png" />
-    <link rel="apple-touch-icon" href="/img/icone-192.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -23,20 +21,82 @@
       </div>
 
       <div class="topbar-actions">
-        <!-- Chave Clientes/Local: os ícones são montados pelo app.js. -->
-        <div class="seletor-visualizacao" role="group" aria-label="Visualização">
+        <div class="abas-modal barra-visualizacao" role="tablist" aria-label="Visualização">
           <button
-            class="btn ghost ativo"
+            class="aba ativa"
             id="btn-visualizacao-clientes"
             type="button"
-            aria-pressed="true"
+            role="tab"
+            aria-selected="true"
           >
             Clientes
           </button>
-          <button class="btn ghost" id="btn-visualizacao-local" type="button" aria-pressed="false">
+          <button
+            class="aba"
+            id="btn-visualizacao-local"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
             Local
           </button>
+          <button
+            class="aba"
+            id="btn-visualizacao-agenda"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Agenda
+          </button>
+          <button
+            class="aba"
+            id="btn-visualizacao-os"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            OS
+          </button>
+          <button
+            class="aba"
+            id="btn-visualizacao-lembretes"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Lembretes
+          </button>
+          <button
+            class="aba"
+            id="btn-visualizacao-contatos"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Contatos
+          </button>
         </div>
+        <!-- O ícone de sino é montado pelo app.js; o contador só aparece com não lidas. -->
+        <button
+          class="btn ghost botao-icone botao-notificacoes"
+          id="btn-notificacoes"
+          type="button"
+          title="Notificações"
+          aria-label="Notificações"
+          aria-expanded="false"
+          aria-controls="painel-notificacoes"
+        >
+          <span class="contador-notificacoes" id="contador-notificacoes" hidden></span>
+        </button>
+        <!-- O ícone de cadeado é montado pelo app.js. -->
+        <button
+          class="btn ghost botao-icone"
+          id="btn-credenciais-sankhya"
+          type="button"
+          title="Credenciais Sankhya"
+          aria-label="Credenciais Sankhya"
+        ></button>
         <!-- O ícone de engrenagem é montado pelo app.js. -->
         <button
           class="btn ghost botao-icone"
@@ -128,7 +188,138 @@
         <div class="secao-recursos" id="secao-bases-locais"></div>
         <div class="secao-recursos" id="secao-bancos-locais"></div>
       </div>
+
+      <div class="card" id="visualizacao-agenda" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Agenda de Recursos</h2>
+            <p class="texto-auxiliar">Consulta ao vivo, direto da guia do Sankhya ERP já logada.</p>
+          </div>
+          <div class="detalhe-acoes">
+            <span class="texto-auxiliar" id="ultima-atualizacao-agenda"></span>
+            <!-- O ícone de recarregar é montado pelo app.js. -->
+            <button
+              class="btn ghost botao-icone"
+              type="button"
+              id="btn-atualizar-agenda"
+              title="Atualizar da Sankhya"
+              aria-label="Atualizar da Sankhya"
+            ></button>
+          </div>
+        </div>
+
+        <div class="secao-recursos">
+          <p class="aviso-shell" id="aviso-shell-agenda" hidden>
+            A consulta ao Sankhya precisa do aplicativo HUB SNK aberto, com login feito na guia
+            Sankhya Om.
+          </p>
+          <!-- Navegação de mês, calendário e detalhe do dia são montados pelo app.js
+               (`criarWidgetDeAgenda`) — o mesmo widget usado na aba Agenda do cadastro
+               do cliente, só que sem recorte de cliente. -->
+          <div id="mount-agenda-geral"></div>
+        </div>
+      </div>
+
+      <div class="card" id="visualizacao-os" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Minhas OS</h2>
+            <p class="texto-auxiliar">
+              Ordens de Serviço do Sankhya Experience, em todos os projetos do seu usuário.
+            </p>
+          </div>
+          <div class="detalhe-acoes">
+            <span class="texto-auxiliar" id="ultima-atualizacao-os"></span>
+            <!-- O ícone de recarregar é montado pelo app.js. -->
+            <button
+              class="btn ghost botao-icone"
+              type="button"
+              id="btn-atualizar-os"
+              title="Atualizar da Sankhya"
+              aria-label="Atualizar da Sankhya"
+            ></button>
+          </div>
+        </div>
+
+        <div class="secao-recursos">
+          <p class="aviso-shell" id="aviso-shell-os" hidden>
+            A consulta ao Sankhya precisa do aplicativo HUB SNK aberto, com a sessão do Sankhya
+            Experience capturada (Credenciais Sankhya).
+          </p>
+          <!-- Navegação de mês e lista de OS são montados pelo app.js (`criarWidgetDeOs`) —
+               o mesmo widget usado na aba OS do cadastro do cliente, só que sem recorte de
+               cliente. -->
+          <div id="mount-os-geral"></div>
+        </div>
+      </div>
+
+      <div class="card" id="visualizacao-lembretes" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Lembretes</h2>
+            <p class="texto-auxiliar">
+              Avisos no painel de notificações, com som e, se quiser, por e-mail.
+            </p>
+          </div>
+        </div>
+        <!-- A lista é montada pelo app.js. -->
+        <div id="mount-lembretes"></div>
+      </div>
+
+      <div class="card" id="visualizacao-contatos" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Contatos</h2>
+            <p class="texto-auxiliar">
+              Pessoas dos clientes, ou sem cliente, que podem receber os lembretes por e-mail.
+            </p>
+          </div>
+        </div>
+        <div class="filtros-de-contatos">
+          <input
+            class="busca"
+            id="campo-filtro-nome-contato"
+            type="search"
+            placeholder="Filtrar por nome…"
+            aria-label="Filtrar contatos por nome"
+          />
+          <!-- As opções são montadas pelo app.js. -->
+          <select
+            class="busca"
+            id="campo-filtro-cliente-contato"
+            aria-label="Filtrar contatos por cliente"
+          ></select>
+        </div>
+        <!-- A lista é montada pelo app.js. -->
+        <div id="mount-contatos"></div>
+      </div>
     </main>
+
+    <aside class="painel-notificacoes" id="painel-notificacoes" aria-label="Notificações" hidden>
+      <div class="painel-notificacoes-cabecalho">
+        <h2>Notificações</h2>
+        <div class="painel-notificacoes-acoes">
+          <button class="btn tiny ghost" id="btn-marcar-notificacoes-lidas" type="button">
+            Marcar todas como lidas
+          </button>
+          <button class="btn tiny ghost" id="btn-limpar-notificacoes" type="button">Limpar</button>
+          <button
+            class="btn tiny ghost"
+            id="btn-fechar-notificacoes"
+            type="button"
+            aria-label="Fechar notificações"
+            title="Fechar"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+      <!-- Os itens são montados pelo app.js. -->
+      <div class="lista-notificacoes" id="lista-notificacoes"></div>
+    </aside>
+
+    <!-- Cartões das notificações que acabaram de chegar; somem sozinhos. -->
+    <div class="pilha-notificacoes" id="pilha-notificacoes" aria-live="polite"></div>
 
     <dialog class="modal" id="modal-cliente">
       <form method="dialog" id="formulario-cliente" novalidate>
@@ -150,6 +341,29 @@
               required
             />
           </div>
+
+          <div class="campo" id="campo-nomes-completos">
+            <label>
+              Nomes completos no Sankhya
+              <span class="opcional">opcional</span>
+              <span class="dica" tabindex="0"
+                >?<span class="dica-texto" role="tooltip"
+                  >Razão social deste cliente no Sankhya OM/Experience — costuma ser diferente do
+                  nome digitado acima (abreviado, com sufixo societário, matriz/filial). Usado para
+                  achar as OS deste cliente na aba OS. Um cliente pode ter mais de uma. Nenhuma
+                  cadastrada usa o nome do cadastro.</span
+                ></span
+              >
+            </label>
+
+            <!-- As linhas são montadas pelo app.js. -->
+            <div class="lista-nomes-completos" id="lista-nomes-completos"></div>
+
+            <button class="btn ghost" type="button" id="btn-adicionar-nome-completo">
+              Adicionar nome completo
+            </button>
+          </div>
+
           <p class="erro-formulario" id="erro-formulario" hidden></p>
         </div>
 
@@ -235,44 +449,90 @@
         <div class="modal-corpo">
           <div class="campo-duplo">
             <div class="campo">
+              <label for="campo-sgbd">SGBD</label>
+              <select id="campo-sgbd">
+                <option value="oracle">Oracle</option>
+                <option value="sqlserver">SQL Server</option>
+              </select>
+            </div>
+
+            <div class="campo" id="grupo-identificador-oracle">
+              <label for="campo-identificador-oracle">Identificação</label>
+              <select id="campo-identificador-oracle">
+                <option value="service-name">Service Name</option>
+                <option value="sid">SID</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="campo-duplo">
+            <div class="campo">
               <label for="campo-host">Host</label>
+              <div class="campo-com-acao">
+                <input
+                  id="campo-host"
+                  type="text"
+                  maxlength="200"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="Ex.: 192.168.0.10"
+                />
+                <button
+                  class="btn tiny botao-icone"
+                  type="button"
+                  data-copiar-campo="campo-host"
+                ></button>
+              </div>
+            </div>
+
+            <div class="campo campo-estreito campo-estreito-com-acao">
+              <label for="campo-porta">Port</label>
+              <div class="campo-com-acao">
+                <input id="campo-porta" type="number" min="1" max="65535" autocomplete="off" />
+                <button
+                  class="btn tiny botao-icone"
+                  type="button"
+                  data-copiar-campo="campo-porta"
+                ></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="campo-servico" id="rotulo-campo-servico">Service Name</label>
+            <div class="campo-com-acao">
               <input
-                id="campo-host"
+                id="campo-servico"
                 type="text"
                 maxlength="200"
                 autocomplete="off"
                 spellcheck="false"
-                placeholder="Ex.: 192.168.0.10"
+                placeholder="Ex.: ORCL"
               />
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                data-copiar-campo="campo-servico"
+              ></button>
             </div>
-
-            <div class="campo campo-estreito">
-              <label for="campo-porta">Port</label>
-              <input id="campo-porta" type="number" min="1" max="65535" autocomplete="off" />
-            </div>
-          </div>
-
-          <div class="campo">
-            <label for="campo-servico">Service Name</label>
-            <input
-              id="campo-servico"
-              type="text"
-              maxlength="200"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="Ex.: ORCL"
-            />
           </div>
 
           <div class="campo">
             <label for="campo-usuario-banco">User</label>
-            <input
-              id="campo-usuario-banco"
-              type="text"
-              maxlength="120"
-              autocomplete="off"
-              spellcheck="false"
-            />
+            <div class="campo-com-acao">
+              <input
+                id="campo-usuario-banco"
+                type="text"
+                maxlength="120"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                data-copiar-campo="campo-usuario-banco"
+              ></button>
+            </div>
           </div>
 
           <div class="campo">
@@ -289,6 +549,11 @@
                 type="button"
                 id="btn-ver-senha-banco"
                 aria-pressed="false"
+              ></button>
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                data-copiar-campo="campo-senha-banco"
               ></button>
             </div>
           </div>
@@ -316,14 +581,24 @@
 
         <div class="modal-corpo">
           <div class="campo">
-            <label for="campo-nome-repositorio">Nome do repositório</label>
-            <input
-              id="campo-nome-repositorio"
-              type="text"
-              maxlength="120"
-              autocomplete="off"
-              placeholder="Ex.: Addon de faturamento"
-            />
+            <label for="campo-caminho-local">Caminho local</label>
+            <div class="campo-com-acao">
+              <input
+                id="campo-caminho-local"
+                type="text"
+                maxlength="400"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: C:\Workspace\projeto"
+                required
+              />
+              <!-- O ícone de pasta é montado pelo app.js. -->
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                id="btn-escolher-caminho-local"
+              ></button>
+            </div>
           </div>
 
           <div class="campo">
@@ -339,34 +614,42 @@
             />
           </div>
 
-          <div class="campo">
-            <label for="campo-caminho-local"
-              >Caminho local <span class="opcional">opcional</span></label
-            >
-            <div class="campo-com-acao">
-              <input
-                id="campo-caminho-local"
-                type="text"
-                maxlength="400"
-                autocomplete="off"
-                spellcheck="false"
-                placeholder="Ex.: C:\Workspace\projeto"
-              />
-              <!-- O ícone de pasta é montado pelo app.js. -->
-              <button
-                class="btn tiny botao-icone"
-                type="button"
-                id="btn-escolher-caminho-local"
-              ></button>
-            </div>
-          </div>
-
           <p class="erro-formulario" id="erro-repositorio" hidden></p>
         </div>
 
         <div class="modal-rodape">
           <button class="btn ghost" type="button" id="btn-cancelar-repositorio">Cancelar</button>
           <button class="btn primario" type="submit" id="btn-salvar-repositorio">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-projeto">
+      <form method="dialog" id="formulario-projeto" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-projeto-titulo">Cadastrar projeto</h2>
+          <p id="modal-projeto-subtitulo">Informe o nome do projeto.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-nome-projeto">Nome do projeto</label>
+            <input
+              id="campo-nome-projeto"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Ex.: Portal de chamados"
+              required
+            />
+          </div>
+
+          <p class="erro-formulario" id="erro-projeto" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-projeto">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-projeto">Salvar</button>
         </div>
       </form>
     </dialog>
@@ -413,6 +696,216 @@
       </form>
     </dialog>
 
+    <dialog class="modal" id="modal-lembrete">
+      <form method="dialog" id="formulario-lembrete" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-lembrete-titulo">Novo lembrete</h2>
+          <p>Um aviso numa data e hora, ou recorrente.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-resumo-lembrete">Resumo</label>
+            <input
+              id="campo-resumo-lembrete"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Ex.: Relatório de horas"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-texto-lembrete">Lembrete</label>
+            <textarea
+              id="campo-texto-lembrete"
+              class="campo-anotacoes"
+              rows="3"
+              maxlength="1000"
+              placeholder="Ex.: Enviar o relatório de horas ao coordenador"
+            ></textarea>
+          </div>
+
+          <fieldset class="grupo-de-acessos">
+            <legend>Quando</legend>
+            <label class="campo-checkbox">
+              <input type="radio" name="tipo-lembrete" value="unico" checked /> Uma vez
+            </label>
+            <label class="campo-checkbox">
+              <input type="radio" name="tipo-lembrete" value="recorrente" /> Recorrente
+            </label>
+          </fieldset>
+
+          <div class="campo campo-estreito" id="grupo-data-hora-lembrete">
+            <label for="campo-data-hora-lembrete">Data e hora</label>
+            <input id="campo-data-hora-lembrete" type="datetime-local" />
+          </div>
+
+          <div id="grupo-recorrencia-lembrete" hidden>
+            <div class="campo">
+              <label for="campo-modelo-recorrencia">Modelo</label>
+              <select id="campo-modelo-recorrencia">
+                <option value="">Escolha um modelo ou digite a expressão abaixo</option>
+                <option value="0 9 * * *">Todo dia às 09:00</option>
+                <option value="0 9 * * 1-5">Dias úteis às 09:00</option>
+                <option value="0 9 * * 1">Toda segunda às 09:00</option>
+                <option value="0 17 * * 5">Toda sexta às 17:00</option>
+                <option value="0 9 1 * *">Todo dia 1º do mês às 09:00</option>
+                <option value="*/30 8-18 * * 1-5">
+                  A cada 30 minutos, das 8h às 18h, em dias úteis
+                </option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="campo-expressao-cron">
+                Expressão cron
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Cinco campos separados por espaço: minuto, hora, dia do mês, mês e dia da
+                    semana (0 = domingo). Aceita <code>*</code>, listas (<code>1,15</code>), faixas
+                    (<code>1-5</code>) e passos (<code>*/15</code>). Exemplo:
+                    <code>0 9 * * 1-5</code> é às 09:00 de segunda a sexta.</span
+                  ></span
+                >
+              </label>
+              <input
+                id="campo-expressao-cron"
+                type="text"
+                maxlength="120"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: 0 9 * * 1-5"
+              />
+              <p class="texto-auxiliar" id="previa-cron" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="campo-cliente-lembrete">
+              Cliente <span class="opcional">opcional</span>
+            </label>
+            <!-- As opções são montadas pelo app.js. -->
+            <select id="campo-cliente-lembrete"></select>
+          </div>
+
+          <div class="campo">
+            <label for="campo-projeto-lembrete">
+              Projeto <span class="opcional">opcional</span>
+            </label>
+            <!-- As opções dependem do cliente escolhido e são montadas pelo app.js. -->
+            <select id="campo-projeto-lembrete" disabled></select>
+          </div>
+
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-email-lembrete" /> Enviar também por e-mail
+          </label>
+
+          <div class="campo" id="grupo-contatos-lembrete" hidden>
+            <label>
+              Contatos em cópia <span class="opcional">opcional</span>
+              <span class="dica" tabindex="0"
+                >?<span class="dica-texto" role="tooltip"
+                  >O e-mail vai para o destinatário do SMTP, com estes contatos em cópia. Só
+                  aparecem contatos com e-mail; com cliente escolhido, os sem cliente e os desse
+                  cliente.</span
+                ></span
+              >
+            </label>
+            <!-- Os contatos escolhidos e a lista para adicionar são montados pelo app.js. -->
+            <div class="contatos-do-lembrete" id="lista-contatos-lembrete"></div>
+            <div class="seletor-de-contatos">
+              <button class="btn ghost" type="button" id="btn-adicionar-contato-lembrete">
+                Adicionar contato
+              </button>
+              <div class="opcoes-de-contatos" id="opcoes-contatos-lembrete" hidden></div>
+            </div>
+          </div>
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-ativo-lembrete" checked /> Ativo
+          </label>
+
+          <p class="erro-formulario" id="erro-lembrete" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-lembrete">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-lembrete">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-contato">
+      <form method="dialog" id="formulario-contato" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-contato-titulo">Novo contato</h2>
+          <p>Só o nome é obrigatório.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-nome-contato">Nome</label>
+            <input
+              id="campo-nome-contato"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Ex.: Ana Souza"
+            />
+          </div>
+          <div class="campo">
+            <label for="campo-cargo-contato">Cargo <span class="opcional">opcional</span></label>
+            <input
+              id="campo-cargo-contato"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Ex.: Coordenadora de TI"
+            />
+          </div>
+          <div class="campo">
+            <label for="campo-telefone-contato"
+              >Telefone <span class="opcional">opcional</span></label
+            >
+            <input
+              id="campo-telefone-contato"
+              type="tel"
+              maxlength="40"
+              autocomplete="off"
+              placeholder="Ex.: (11) 99999-0000"
+            />
+          </div>
+          <div class="campo">
+            <label for="campo-email-contato"
+              >E-mail <span class="opcional" id="opcional-email-contato">opcional</span></label
+            >
+            <input
+              id="campo-email-contato"
+              type="email"
+              maxlength="254"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Ex.: ana@cliente.com.br"
+            />
+          </div>
+          <!-- Na aba Contatos do cliente o campo some: o contato já nasce dele. -->
+          <div class="campo" id="grupo-cliente-contato">
+            <label for="campo-cliente-contato"
+              >Cliente <span class="opcional">opcional</span></label
+            >
+            <!-- As opções são montadas pelo app.js. -->
+            <select id="campo-cliente-contato"></select>
+          </div>
+
+          <p class="erro-formulario" id="erro-contato" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-contato">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-contato">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog class="modal" id="modal-configuracao">
       <form method="dialog" id="formulario-configuracao" novalidate>
         <div class="modal-cabecalho">
@@ -433,6 +926,26 @@
           </button>
           <button
             class="aba"
+            id="aba-configuracao-smtp"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-smtp"
+          >
+            SMTP
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-avisos"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-avisos"
+          >
+            Avisos
+          </button>
+          <button
+            class="aba"
             id="aba-configuracao-mcp"
             type="button"
             role="tab"
@@ -450,6 +963,26 @@
             aria-controls="painel-configuracao-atalhos"
           >
             Atalhos
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-acessos"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-acessos"
+          >
+            Acessos
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-sobre"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-sobre"
+          >
+            Sobre
           </button>
         </div>
 
@@ -502,37 +1035,90 @@
               />
             </div>
 
-            <div class="campo campo-estreito">
-              <label for="campo-intervalo-execucao-automatica">
-                Intervalo de execução automática (segundos)
+            <div class="grade-de-campos">
+              <div class="campo">
+                <label for="campo-intervalo-execucao-automatica">
+                  Intervalo de execução automática (segundos)
+                  <span class="dica" tabindex="0"
+                    >?<span class="dica-texto" role="tooltip"
+                      >De quanto em quanto tempo a tela refaz sozinha, com a aba em primeiro plano:
+                      o diagnóstico Git dos repositórios (remoto ausente, alterações pendentes); a
+                      situação de cada banco local (container no Docker e login com as credenciais
+                      cadastradas); a situação de cada base local (serviço do WildFly e HTTP 200 em
+                      <code>localhost</code>); e a situação das bases do cliente selecionado (URL
+                      cadastrada). Cada tique também alimenta o gráfico de uptime.</span
+                    ></span
+                  >
+                </label>
+                <input id="campo-intervalo-execucao-automatica" type="number" min="5" max="3600" />
+              </div>
+
+              <div class="campo">
+                <label for="campo-tempo-limite">
+                  Tempo limite para timeout (segundos)
+                  <span class="dica" tabindex="0"
+                    >?<span class="dica-texto" role="tooltip"
+                      >Quanto tempo cada checagem de situação espera por resposta antes de desistir
+                      e marcar o alvo como fora do ar: URL da base do cliente, portas e página do
+                      WildFly local e os comandos <code>docker</code> do banco local. Vale aumentar
+                      se a rede até as bases de cliente for lenta. Não vale para os comandos
+                      <code>git</code>, que têm limites próprios.</span
+                    ></span
+                  >
+                </label>
+                <input id="campo-tempo-limite" type="number" min="1" max="60" />
+              </div>
+            </div>
+
+            <div class="campo">
+              <label for="campo-caminho-executavel-ide">
+                Executável da IDE
+                <span class="opcional">opcional</span>
                 <span class="dica" tabindex="0"
                   >?<span class="dica-texto" role="tooltip"
-                    >De quanto em quanto tempo a tela refaz sozinha, com a aba em primeiro plano: o
-                    diagnóstico Git dos repositórios (remoto ausente, alterações pendentes); a
-                    situação de cada banco local (container no Docker e login com as credenciais
-                    cadastradas); a situação de cada base local (serviço do WildFly e HTTP 200 em
-                    <code>localhost</code>); e a situação das bases do cliente selecionado (URL
-                    cadastrada). Cada tique também alimenta o gráfico de uptime.</span
+                    >Executável aberto pelo botão "Abrir IDE" de cada repositório, já com a pasta
+                    carregada como projeto. Funciona com qualquer IDE que aceite a pasta como
+                    argumento de linha de comando: IntelliJ IDEA, VS Code, WebStorm, Rider e outras.
+                    Vazio desliga o botão.</span
                   ></span
                 >
               </label>
-              <input id="campo-intervalo-execucao-automatica" type="number" min="5" max="3600" />
+              <div class="campo-com-botao">
+                <input
+                  id="campo-caminho-executavel-ide"
+                  type="text"
+                  maxlength="400"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="Ex.: C:\Program Files\JetBrains\IntelliJ IDEA\bin\idea64.exe"
+                />
+                <button
+                  class="btn tiny botao-icone"
+                  id="btn-selecionar-executavel-ide"
+                  type="button"
+                  title="Escolher o executável"
+                  aria-label="Escolher o executável"
+                ></button>
+              </div>
             </div>
 
             <div class="campo campo-estreito">
-              <label for="campo-tempo-limite">
-                Tempo limite para timeout (segundos)
+              <label for="campo-destino-dos-links">
+                Abrir os links em
                 <span class="dica" tabindex="0"
                   >?<span class="dica-texto" role="tooltip"
-                    >Quanto tempo cada checagem de situação espera por resposta antes de desistir e
-                    marcar o alvo como fora do ar: URL da base do cliente, portas e página do
-                    WildFly local e os comandos <code>docker</code> do banco local. Vale aumentar se
-                    a rede até as bases de cliente for lenta. Não vale para os comandos
-                    <code>git</code>, que têm limites próprios.</span
+                    >Vale para todo link clicável do cadastro: bases, repositórios, links gerais e
+                    links de projeto. Navegador do HUB SNK: abre numa guia do aplicativo — bases
+                    isoladas das outras, com usuário e senha já preenchidos. Navegador padrão: abre
+                    no navegador do sistema, com a sessão e o login único (SSO) que você já usa
+                    nele, mas sem o preenchimento das bases.</span
                   ></span
                 >
               </label>
-              <input id="campo-tempo-limite" type="number" min="1" max="60" />
+              <select id="campo-destino-dos-links">
+                <option value="hub">Navegador do HUB SNK</option>
+                <option value="navegador-padrao">Navegador padrão</option>
+              </select>
             </div>
           </div>
 
@@ -543,89 +1129,101 @@
             aria-labelledby="aba-configuracao-mcp"
             hidden
           >
-            <p class="linha-do-link-sobre">
-              <a
-                class="link-sobre"
-                href="https://github.com/frshaka/sankhya-schema-mcp"
-                target="_blank"
-                rel="noopener noreferrer"
-                >Sobre</a
-              >
-            </p>
+            <details class="grupo-recolhivel" id="grupo-sankhya-schema">
+              <summary>sankhya-schema</summary>
+              <div class="grupo-recolhivel-corpo">
+                <p class="linha-do-link-sobre">
+                  <button class="btn tiny" type="button" id="btn-importar-env-mcp">
+                    Importar .env
+                  </button>
+                  <a
+                    class="link-sobre"
+                    href="https://github.com/frshaka/sankhya-schema-mcp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >Sobre</a
+                  >
+                </p>
 
-            <div class="campo">
-              <label for="campo-caminho-schema-mcp">Caminho sankhya-schema-mcp</label>
-              <input
-                id="campo-caminho-schema-mcp"
-                type="text"
-                maxlength="400"
-                autocomplete="off"
-                spellcheck="false"
-                placeholder="Ex.: C:\Workspace\sankhya-schema-mcp"
-              />
-            </div>
+                <div class="campo">
+                  <label for="campo-caminho-schema-mcp">Caminho sankhya-schema-mcp</label>
+                  <input
+                    id="campo-caminho-schema-mcp"
+                    type="text"
+                    maxlength="400"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="Ex.: C:\Workspace\sankhya-schema-mcp"
+                  />
+                </div>
 
-            <div class="campo">
-              <label for="campo-config-mcp-host">SANKHYA_DB_HOST</label>
-              <input
-                id="campo-config-mcp-host"
-                type="text"
-                maxlength="200"
-                autocomplete="off"
-                spellcheck="false"
-              />
-            </div>
+                <div class="grade-de-campos">
+                  <div class="campo">
+                    <label for="campo-config-mcp-host">SANKHYA_DB_HOST</label>
+                    <input
+                      id="campo-config-mcp-host"
+                      type="text"
+                      maxlength="200"
+                      autocomplete="off"
+                      spellcheck="false"
+                    />
+                  </div>
 
-            <div class="campo campo-estreito">
-              <label for="campo-config-mcp-port">SANKHYA_DB_PORT</label>
-              <input
-                id="campo-config-mcp-port"
-                type="number"
-                min="1"
-                max="65535"
-                autocomplete="off"
-              />
-            </div>
+                  <div class="campo">
+                    <label for="campo-config-mcp-port">SANKHYA_DB_PORT</label>
+                    <input
+                      id="campo-config-mcp-port"
+                      type="number"
+                      min="1"
+                      max="65535"
+                      autocomplete="off"
+                    />
+                  </div>
+                </div>
 
-            <div class="campo">
-              <label for="campo-config-mcp-service">SANKHYA_DB_SERVICE_NAME</label>
-              <input
-                id="campo-config-mcp-service"
-                type="text"
-                maxlength="200"
-                autocomplete="off"
-                spellcheck="false"
-              />
-            </div>
+                <div class="campo">
+                  <label for="campo-config-mcp-service">SANKHYA_DB_SERVICE_NAME</label>
+                  <input
+                    id="campo-config-mcp-service"
+                    type="text"
+                    maxlength="200"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                </div>
 
-            <div class="campo">
-              <label for="campo-config-mcp-user">SANKHYA_DB_USER</label>
-              <input
-                id="campo-config-mcp-user"
-                type="text"
-                maxlength="120"
-                autocomplete="off"
-                spellcheck="false"
-              />
-            </div>
+                <div class="grade-de-campos">
+                  <div class="campo">
+                    <label for="campo-config-mcp-user">SANKHYA_DB_USER</label>
+                    <input
+                      id="campo-config-mcp-user"
+                      type="text"
+                      maxlength="120"
+                      autocomplete="off"
+                      spellcheck="false"
+                    />
+                  </div>
 
-            <div class="campo">
-              <label for="campo-config-mcp-password">SANKHYA_DB_PASSWORD</label>
-              <div class="campo-com-acao">
-                <input
-                  id="campo-config-mcp-password"
-                  type="password"
-                  maxlength="200"
-                  autocomplete="new-password"
-                />
-                <button
-                  class="btn tiny botao-icone"
-                  type="button"
-                  id="btn-ver-senha-config-mcp"
-                  aria-pressed="false"
-                ></button>
+                  <div class="campo">
+                    <label for="campo-config-mcp-password">SANKHYA_DB_PASSWORD</label>
+                    <div class="campo-com-acao">
+                      <input
+                        id="campo-config-mcp-password"
+                        type="password"
+                        maxlength="200"
+                        autocomplete="new-password"
+                      />
+                      <button
+                        class="btn tiny botao-icone"
+                        type="button"
+                        id="btn-ver-senha-config-mcp"
+                        aria-pressed="false"
+                      ></button>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            </details>
           </div>
 
           <div
@@ -650,6 +1248,301 @@
             </div>
           </div>
 
+          <div
+            class="painel-aba"
+            id="painel-configuracao-smtp"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-smtp"
+            hidden
+          >
+            <fieldset class="grupo-de-acessos">
+              <legend>
+                Servidor de e-mail
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Usado por tudo o que o HUB SNK envia por e-mail, como as notificações. Sem
+                    host, nada é enviado.</span
+                  ></span
+                >
+              </legend>
+
+              <div class="grade-duas-colunas">
+                <div class="campo">
+                  <label for="campo-smtp-host">Host</label>
+                  <input
+                    id="campo-smtp-host"
+                    type="text"
+                    maxlength="200"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="Ex.: smtp.office365.com"
+                  />
+                </div>
+
+                <div class="campo">
+                  <label for="campo-smtp-porta">Porta</label>
+                  <input id="campo-smtp-porta" type="number" min="1" max="65535" />
+                </div>
+
+                <div class="campo">
+                  <label for="campo-smtp-seguranca">
+                    Segurança
+                    <span class="dica" tabindex="0"
+                      >?<span class="dica-texto" role="tooltip"
+                        >STARTTLS é o comum na porta 587 (Office 365, Gmail); SSL/TLS, na 465. Sem
+                        TLS só serve para servidor da rede local.</span
+                      ></span
+                    >
+                  </label>
+                  <select id="campo-smtp-seguranca">
+                    <option value="starttls">STARTTLS</option>
+                    <option value="ssl">SSL/TLS</option>
+                    <option value="nenhuma">Sem TLS</option>
+                  </select>
+                </div>
+
+                <div class="campo">
+                  <label for="campo-smtp-usuario">
+                    Usuário <span class="opcional">opcional</span>
+                  </label>
+                  <input id="campo-smtp-usuario" type="text" maxlength="200" autocomplete="off" />
+                </div>
+
+                <div class="campo">
+                  <label for="campo-smtp-senha">Senha</label>
+                  <div class="campo-com-botao">
+                    <input
+                      id="campo-smtp-senha"
+                      type="password"
+                      maxlength="200"
+                      autocomplete="new-password"
+                    />
+                    <!-- O ícone de olho é montado pelo app.js. -->
+                    <button
+                      class="btn ghost botao-icone"
+                      id="btn-ver-senha-smtp"
+                      type="button"
+                      title="Mostrar senha"
+                      aria-label="Mostrar senha"
+                    ></button>
+                  </div>
+                </div>
+
+                <div class="campo">
+                  <label for="campo-smtp-remetente">Remetente</label>
+                  <input
+                    id="campo-smtp-remetente"
+                    type="email"
+                    maxlength="320"
+                    autocomplete="off"
+                    placeholder="voce@empresa.com.br"
+                  />
+                </div>
+
+                <div class="campo">
+                  <label for="campo-smtp-destinatario">Destinatário</label>
+                  <input
+                    id="campo-smtp-destinatario"
+                    type="email"
+                    maxlength="320"
+                    autocomplete="off"
+                    placeholder="voce@empresa.com.br"
+                  />
+                </div>
+
+                <button class="btn ghost botao-testar-smtp" type="button" id="btn-testar-smtp">
+                  Enviar e-mail de teste
+                </button>
+              </div>
+              <!-- Resultado do e-mail de teste aqui dentro, e não num aviso: ver `testarSmtp`. -->
+              <p class="resultado-teste-smtp" id="resultado-teste-smtp" role="status" hidden></p>
+            </fieldset>
+          </div>
+
+          <div
+            class="painel-aba"
+            id="painel-configuracao-avisos"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-avisos"
+            hidden
+          >
+            <fieldset class="grupo-de-acessos" id="grupo-alerta-agenda">
+              <legend>
+                Agenda do dia sem OS lançada
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >A cada 15 minutos, confere os eventos de hoje da sua Agenda de Recursos. Evento
+                    de cliente que já terminou e não tem OS lançada na Experience gera uma
+                    notificação, uma vez por evento. Precisa do código de usuário do Sankhya OM e do
+                    login feito, os dois em Credenciais Sankhya. O e-mail usa o SMTP da aba
+                    SMTP.</span
+                  ></span
+                >
+              </legend>
+              <div class="grade-duas-colunas">
+                <div class="campo">
+                  <label for="campo-alerta-agenda-tolerancia">Minutos após o fim do evento</label>
+                  <input id="campo-alerta-agenda-tolerancia" type="number" min="0" max="720" />
+                </div>
+                <div class="opcoes-do-alerta">
+                  <label class="campo-checkbox">
+                    <input type="checkbox" id="campo-alerta-agenda-ativo" /> Ligado
+                  </label>
+                  <label class="campo-checkbox">
+                    <input type="checkbox" id="campo-alerta-agenda-email" /> Enviar por e-mail
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+
+          <div
+            class="painel-aba"
+            id="painel-configuracao-acessos"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-acessos"
+            hidden
+          >
+            <p class="texto-auxiliar">
+              Funcionalidades desmarcadas só ficam ocultas na tela: nenhum dado é apagado, e marcar
+              de novo as traz de volta.
+            </p>
+
+            <div class="campo campo-estreito">
+              <label for="campo-perfil">
+                Perfil
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Trocar o perfil marca as funcionalidades do preset dele. Depois, ajuste as
+                    caixas como quiser.</span
+                  ></span
+                >
+              </label>
+              <select id="campo-perfil">
+                <option value="desenvolvedor">Desenvolvedor</option>
+                <option value="consultor">Consultor</option>
+                <option value="analista">Analista</option>
+                <option value="gerente-de-projeto">Gerente de projeto</option>
+              </select>
+            </div>
+
+            <label class="campo-checkbox">
+              <input type="checkbox" id="campo-terceiro" /> Terceiro
+              <span class="dica" tabindex="0"
+                >?<span class="dica-texto" role="tooltip"
+                  >Para quem não tem acesso ao Sankhya Om nem à Experience. Oculta o que depende
+                  deles: Credenciais Sankhya, Agenda e OS, os nomes completos do cliente, o alerta
+                  da agenda e as guias Sankhya Om e Experience do aplicativo.</span
+                ></span
+              >
+            </label>
+
+            <!-- Clientes (menu) e Geral (cliente) não aparecem aqui: não são ocultáveis. -->
+            <fieldset class="grupo-de-acessos">
+              <legend>Menu principal</legend>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="local" /> Local
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="agenda" /> Agenda
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="os" /> OS
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="lembretes" /> Lembretes
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="contatos" /> Contatos
+              </label>
+            </fieldset>
+
+            <fieldset class="grupo-de-acessos">
+              <legend>Cadastro do cliente</legend>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="cliente.bases" /> Bases
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="cliente.repositorios" /> Repositórios
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Leva junto o que só faz sentido com repositórios: o filtro por situação do Git,
+                    o indicador do Git no topo e na lista e a aba MCP destas configurações.</span
+                  ></span
+                >
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="cliente.projetos" /> Projetos
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="cliente.agenda" /> Agenda
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="cliente.os" /> OS
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="cliente.contatos" /> Contatos
+              </label>
+            </fieldset>
+          </div>
+
+          <div
+            class="painel-aba"
+            id="painel-configuracao-sobre"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-sobre"
+            hidden
+          >
+            <section class="bloco-sobre">
+              <h3 class="bloco-sobre-titulo">Versão</h3>
+              <div class="bloco-sobre-corpo">
+                <a
+                  class="bloco-sobre-destaque"
+                  href="https://github.com/CarlosSimao/hub-snk"
+                  target="_blank"
+                  rel="noreferrer"
+                  >HUB SNK <span id="rodape-versao"></span
+                ></a>
+                <a
+                  class="rodape-atualizacao"
+                  id="rodape-atualizacao"
+                  target="_blank"
+                  rel="noreferrer"
+                  hidden
+                ></a>
+              </div>
+            </section>
+
+            <section class="bloco-sobre">
+              <h3 class="bloco-sobre-titulo">Desenvolvido por</h3>
+              <div class="bloco-sobre-corpo">
+                <a
+                  class="rodape-link"
+                  href="https://github.com/CarlosSimao"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Carlos Nascimento</a
+                >
+              </div>
+            </section>
+
+            <section class="bloco-sobre">
+              <h3 class="bloco-sobre-titulo">Ajuda e Sugestões</h3>
+              <div class="bloco-sobre-corpo">
+                <a
+                  class="rodape-link"
+                  href="https://github.com/CarlosSimao/hub-snk/issues/new/choose"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Reportar problema</a
+                >
+                <a class="rodape-link" href="mailto:carlos.snuk@gmail.com">
+                  carlos.snuk@gmail.com
+                </a>
+              </div>
+            </section>
+          </div>
+
           <p class="erro-formulario" id="erro-configuracao" hidden></p>
         </div>
 
@@ -658,6 +1551,140 @@
           <button class="btn primario" type="submit" id="btn-salvar-configuracao">Salvar</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog class="modal largo" id="modal-credenciais-sankhya">
+      <div class="modal-cabecalho">
+        <h2>Credenciais Sankhya</h2>
+        <p>
+          Login usado pelo HUB SNK para entrar sozinho no Sankhya Om e na Experience, ao abrir o
+          aplicativo e sempre que a sessão expirar.
+        </p>
+      </div>
+
+      <div class="modal-corpo">
+        <section class="cartao-credencial">
+          <div class="campo campo-em-linha">
+            <label for="campo-sankhya-om-codusu">
+              Meu código de usuário Sankhya OM
+              <span class="dica" tabindex="0"
+                >?<span class="dica-texto" role="tooltip"
+                  >Seu <code>CODUSU</code> no Sankhya OM (ERP) — diferente do usuário da Experience,
+                  que é capturado sozinho junto com a sessão. Recorta a Agenda de Recursos só para
+                  você.</span
+                ></span
+              >
+            </label>
+            <div class="campo-com-acao">
+              <input
+                id="campo-sankhya-om-codusu"
+                type="text"
+                inputmode="numeric"
+                maxlength="10"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: 4817"
+              />
+              <button class="btn ghost" type="button" id="btn-salvar-codusu">Salvar</button>
+            </div>
+          </div>
+          <p class="erro-formulario" id="erro-codusu" hidden></p>
+        </section>
+
+        <p class="aviso-shell" id="aviso-shell-sankhya" hidden>
+          O aplicativo HUB SNK não está respondendo. As credenciais e as guias do Sankhya só
+          funcionam com o painel aberto por ele.
+        </p>
+
+        <section class="cartao-credencial" data-sistema="sankhya-erp">
+          <div class="cartao-credencial-cabecalho">
+            <h3>Sankhya ERP</h3>
+            <span class="selo-situacao" data-papel="status"></span>
+          </div>
+
+          <div class="campo campo-em-linha">
+            <label>Usuário</label>
+            <input type="text" maxlength="200" autocomplete="off" data-papel="usuario" />
+          </div>
+          <div class="campo campo-em-linha">
+            <label>Senha</label>
+            <div class="campo-com-acao">
+              <input
+                type="password"
+                maxlength="200"
+                autocomplete="new-password"
+                data-papel="senha"
+              />
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                data-papel="ver-senha"
+                aria-pressed="false"
+              ></button>
+            </div>
+          </div>
+
+          <div class="cartao-credencial-acoes">
+            <button class="btn ghost" type="button" data-papel="salvar">Salvar credencial</button>
+            <button class="btn ghost" type="button" data-papel="remover">Remover</button>
+            <span class="rodape-espacador"></span>
+            <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
+            <button class="btn ghost" type="button" data-papel="capturar-sessao">
+              Capturar sessão
+            </button>
+          </div>
+
+          <p class="erro-formulario" data-papel="erro" hidden></p>
+        </section>
+
+        <section class="cartao-credencial" data-sistema="sankhya-experience">
+          <div class="cartao-credencial-cabecalho">
+            <h3>Sankhya Experience</h3>
+            <span class="selo-situacao" data-papel="status"></span>
+          </div>
+
+          <div class="campo campo-em-linha">
+            <label>Usuário</label>
+            <input type="text" maxlength="200" autocomplete="off" data-papel="usuario" />
+          </div>
+          <div class="campo campo-em-linha">
+            <label>Senha</label>
+            <div class="campo-com-acao">
+              <input
+                type="password"
+                maxlength="200"
+                autocomplete="new-password"
+                data-papel="senha"
+              />
+              <button
+                class="btn tiny botao-icone"
+                type="button"
+                data-papel="ver-senha"
+                aria-pressed="false"
+              ></button>
+            </div>
+          </div>
+
+          <div class="cartao-credencial-acoes">
+            <button class="btn ghost" type="button" data-papel="salvar">Salvar credencial</button>
+            <button class="btn ghost" type="button" data-papel="remover">Remover</button>
+            <span class="rodape-espacador"></span>
+            <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
+            <button class="btn ghost" type="button" data-papel="capturar-sessao">
+              Capturar sessão
+            </button>
+          </div>
+
+          <p class="erro-formulario" data-papel="erro" hidden></p>
+        </section>
+      </div>
+
+      <div class="modal-rodape">
+        <span class="rodape-espacador"></span>
+        <button class="btn primario" type="button" id="btn-fechar-credenciais-sankhya">
+          Fechar
+        </button>
+      </div>
     </dialog>
 
     <dialog class="modal largo" id="modal-mcp">
@@ -1148,37 +2175,8 @@
       </div>
     </dialog>
 
-    <footer class="rodape">
-      <span>HUB SNK <span id="rodape-versao"></span></span>
-      <a
-        class="rodape-atualizacao"
-        id="rodape-atualizacao"
-        target="_blank"
-        rel="noreferrer"
-        hidden
-      ></a>
-      <span class="rodape-separador" aria-hidden="true">·</span>
-      <span>
-        by
-        <a
-          class="rodape-link"
-          href="https://github.com/CarlosSimao"
-          target="_blank"
-          rel="noreferrer"
-          >Carlos Nascimento</a
-        >
-      </span>
-      <span class="rodape-separador" aria-hidden="true">·</span>
-      <a
-        class="rodape-link"
-        href="https://github.com/CarlosSimao/hub-snk/issues/new/choose"
-        target="_blank"
-        rel="noreferrer"
-        >Reportar problema</a
-      >
-    </footer>
-
-    <div class="avisos" id="avisos" aria-live="polite"></div>
+    <!-- Popover para subir à camada superior junto com os modais: ver `exibirAviso`. -->
+    <div class="avisos" id="avisos" aria-live="polite" popover="manual"></div>
 
     <script src="/app.js" type="module"></script>
   </body>

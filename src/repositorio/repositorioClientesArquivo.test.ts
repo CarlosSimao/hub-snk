@@ -10,6 +10,9 @@ import {
   ClienteNaoEncontradoError,
   FavoritoDuplicadoNaImportacaoError,
   NomeDeClienteDuplicadoError,
+  NomeDeProjetoDuplicadoError,
+  ProjetoNaoEncontradoError,
+  UrlDeLinkDuplicadaError,
 } from './repositorioClientes.ts';
 import { RepositorioClientesArquivo } from './repositorioClientesArquivo.ts';
 
@@ -98,6 +101,8 @@ describe('RepositorioClientesArquivo', () => {
     const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
     const base = await repositorio.adicionarBase(cliente.id, BASE_DE_EXEMPLO);
     await repositorio.definirBancoDeDados(cliente.id, base.id, {
+      sgbd: 'oracle',
+      identificadorOracle: 'service-name',
       host: '192.168.0.10',
       porta: 1521,
       nomeDoServico: 'ORCL',
@@ -111,6 +116,61 @@ describe('RepositorioClientesArquivo', () => {
     });
 
     assert.equal(atualizada.bancoDeDados?.nomeDoServico, 'ORCL');
+  });
+
+  it('grava o SGBD e o identificador Oracle do banco', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    const base = await repositorio.adicionarBase(cliente.id, BASE_DE_EXEMPLO);
+
+    const banco = await repositorio.definirBancoDeDados(cliente.id, base.id, {
+      sgbd: 'sqlserver',
+      identificadorOracle: 'sid',
+      host: '192.168.0.20',
+      porta: 1433,
+      nomeDoServico: 'SANKHYA',
+      usuario: 'sa',
+      senha: 'segredo',
+    });
+
+    repositorio.descartarCache();
+    const [relido] = await repositorio.listar();
+
+    assert.equal(banco.sgbd, 'sqlserver');
+    assert.deepEqual(relido?.bases[0]?.bancoDeDados, banco);
+  });
+
+  it('lê como Oracle por service name o banco gravado antes do SGBD existir', async () => {
+    await writeFile(
+      caminhoDoArquivo(),
+      JSON.stringify({
+        versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+        clientes: [
+          {
+            id: 'a',
+            nome: 'Indústria Alfa',
+            bases: [
+              {
+                id: 'b',
+                ...BASE_DE_EXEMPLO,
+                bancoDeDados: {
+                  host: '192.168.0.10',
+                  porta: 1521,
+                  nomeDoServico: 'ORCL',
+                  usuario: 'system',
+                  senha: 'segredo',
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      'utf8',
+    );
+
+    const [cliente] = await repositorio.listar();
+
+    assert.equal(cliente?.bases[0]?.bancoDeDados?.sgbd, 'oracle');
+    assert.equal(cliente?.bases[0]?.bancoDeDados?.identificadorOracle, 'service-name');
   });
 
   it('reaproveita o cliente existente na importação, mesmo escrito de outro jeito', async () => {
@@ -176,6 +236,8 @@ describe('RepositorioClientesArquivo', () => {
 
 describe('RepositorioClientesArquivo.importarCadastros', () => {
   const BANCO_DE_EXEMPLO = {
+    sgbd: 'oracle' as const,
+    identificadorOracle: 'service-name' as const,
     host: '192.168.0.10',
     porta: 1521,
     nomeDoServico: 'ORCL',
@@ -384,7 +446,103 @@ describe('RepositorioClientesArquivo com arquivo no formato antigo', () => {
     assert.equal(cliente?.anotacoes, '');
     assert.deepEqual(cliente?.bases, []);
     assert.deepEqual(cliente?.links, []);
-    /* Repositório gravado antes do campo `nome` recebe o fim da URL como rótulo. */
-    assert.equal(cliente?.repositorios[0]?.nome, 'projeto-antigo');
+    /* `nome` existiu no passado e some do repositório na primeira leitura. */
+    assert.equal('nome' in (cliente?.repositorios[0] ?? {}), false);
+  });
+});
+
+describe('RepositorioClientesArquivo — projetos', () => {
+  it('cria projeto vazio dentro do cliente', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+
+    const projeto = await repositorio.adicionarProjeto(cliente.id, {
+      nome: '  Addon Faturamento ',
+    });
+
+    assert.equal(projeto.nome, 'Addon Faturamento');
+    assert.equal(projeto.anotacoes, '');
+    assert.deepEqual(projeto.links, []);
+    assert.equal((await repositorio.buscarPorId(cliente.id))?.projetos.length, 1);
+  });
+
+  it('recusa nome de projeto repetido no mesmo cliente, ignorando caixa', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    await repositorio.adicionarProjeto(cliente.id, { nome: 'Addon' });
+
+    await assert.rejects(
+      repositorio.adicionarProjeto(cliente.id, { nome: 'ADDON' }),
+      NomeDeProjetoDuplicadoError,
+    );
+  });
+
+  it('permite renomear o projeto para o próprio nome', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    const projeto = await repositorio.adicionarProjeto(cliente.id, { nome: 'Addon' });
+
+    const atualizado = await repositorio.atualizarProjeto(cliente.id, projeto.id, {
+      nome: 'Addon',
+    });
+
+    assert.equal(atualizado.nome, 'Addon');
+  });
+
+  it('grava anotações e links do projeto sem afetar os do cliente', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    const projeto = await repositorio.adicionarProjeto(cliente.id, { nome: 'Addon' });
+
+    await repositorio.definirAnotacoesDoProjeto(cliente.id, projeto.id, 'texto do projeto');
+    await repositorio.adicionarLinkDoProjeto(cliente.id, projeto.id, {
+      nome: 'Docs',
+      url: 'https://exemplo.com/docs',
+    });
+
+    const gravado = await repositorio.buscarPorId(cliente.id);
+    assert.equal(gravado?.projetos[0]?.anotacoes, 'texto do projeto');
+    assert.equal(gravado?.projetos[0]?.links.length, 1);
+    assert.equal(gravado?.anotacoes, '');
+    assert.deepEqual(gravado?.links, []);
+  });
+
+  it('recusa URL de link repetida dentro do mesmo projeto', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    const projeto = await repositorio.adicionarProjeto(cliente.id, { nome: 'Addon' });
+    const link = { nome: 'Docs', url: 'https://exemplo.com/docs' };
+    await repositorio.adicionarLinkDoProjeto(cliente.id, projeto.id, link);
+
+    await assert.rejects(
+      repositorio.adicionarLinkDoProjeto(cliente.id, projeto.id, link),
+      UrlDeLinkDuplicadaError,
+    );
+  });
+
+  it('falha com projeto inexistente', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+
+    await assert.rejects(
+      repositorio.removerProjeto(cliente.id, 'inexistente'),
+      ProjetoNaoEncontradoError,
+    );
+  });
+});
+
+describe('RepositorioClientesArquivo — vínculo antigo de agenda por CODPARC', () => {
+  it('descarta agendaCodparcs/agendaCodparc/agendaRecursoUsuario na leitura', async () => {
+    await writeFile(
+      caminhoDoArquivo(),
+      JSON.stringify({
+        versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+        clientes: [
+          { id: 'a', nome: 'Com lista', agendaCodparcs: [10, 20] },
+          { id: 'b', nome: 'Com singular', agendaCodparc: 42, agendaRecursoUsuario: 'fulano' },
+        ],
+      }),
+      'utf8',
+    );
+
+    const [comLista, comSingular] = await repositorio.listar();
+
+    assert.equal('agendaCodparcs' in (comLista ?? {}), false);
+    assert.equal('agendaCodparc' in (comSingular ?? {}), false);
+    assert.equal('agendaRecursoUsuario' in (comSingular ?? {}), false);
   });
 });

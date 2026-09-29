@@ -19,23 +19,22 @@ body:
     validations:
       required: true
 
-  - type: dropdown
+  - type: input
     id: sistema
     attributes:
-      label: Sistema operacional
-      options:
-        - Windows
-        - Linux
-        - macOS
+      label: Versão do Windows
+      description: O HUB SNK é distribuído só para Windows.
+      placeholder: Windows 11 23H2
     validations:
-      required: true
+      required: false
 
-  - type: input
-    id: node
+  - type: dropdown
+    id: como-roda
     attributes:
-      label: Versão do Node.js
-      description: Saída de `node -v`.
-      placeholder: v22.18.0
+      label: Como o HUB SNK está rodando
+      options:
+        - Aplicativo instalado pelo HUB-SNK-Setup
+        - Pelo código-fonte (npm run app ou npm run dev)
     validations:
       required: true
 
@@ -69,8 +68,11 @@ body:
   - type: textarea
     id: log
     attributes:
-      label: Log do servidor (opcional)
-      description: A janela do terminal onde o HUB SNK está rodando. Revise antes de colar.
+      label: Log do aplicativo (opcional)
+      description: >-
+        As últimas linhas do `backend.log` e do `desktop.log`, em `%APPDATA%\HUB SNK\log` no aplicativo
+        instalado, ou em `%APPDATA%\HUB SNK (desenvolvimento)\log` no `npm run app`. No `npm run dev`,
+        a janela do terminal. Revise antes de colar.
       render: shell
 
   - type: checkboxes

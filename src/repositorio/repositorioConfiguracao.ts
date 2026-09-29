@@ -3,8 +3,32 @@ import type { Atalho, ConfiguracaoGlobal } from '../tipos.ts';
 /** Atalho que ainda não foi gravado não tem id: quem o cria é o repositório. */
 export type DadosDeAtalho = Omit<Atalho, 'id'> & { id?: string };
 
-export interface ConfiguracaoParaSalvar extends Omit<ConfiguracaoGlobal, 'atalhos'> {
+/**
+ * `experiencePersonId` e `sankhyaOmCodUsu` ficam de fora: não têm campo na tela de
+ * configuração (o CODUSU é digitado em Credenciais Sankhya), então o formulário nunca
+ * manda esses valores. Se entrassem aqui, `salvar()` — que grava o objeto inteiro —
+ * apagaria o que `definirExperiencePersonId` e `definirSankhyaOmCodUsu` guardaram a
+ * cada vez que o usuário só mudasse outro campo da tela.
+ */
+export interface ConfiguracaoParaSalvar extends Omit<
+  ConfiguracaoGlobal,
+  | 'atalhos'
+  | 'experiencePersonId'
+  | 'sankhyaOmCodUsu'
+  | 'perfil'
+  | 'funcionalidadesOcultas'
+  | 'terceiro'
+  | 'smtp'
+  | 'alertaDaAgenda'
+> {
   atalhos: DadosDeAtalho[];
+  /** Ausentes, preservam o que está gravado: omitir não pode reexibir o que foi ocultado. */
+  perfil?: ConfiguracaoGlobal['perfil'];
+  funcionalidadesOcultas?: ConfiguracaoGlobal['funcionalidadesOcultas'];
+  terceiro?: ConfiguracaoGlobal['terceiro'];
+  /** Ausentes, preservam o que está gravado: omitir não pode apagar a senha do SMTP. */
+  smtp?: ConfiguracaoGlobal['smtp'];
+  alertaDaAgenda?: ConfiguracaoGlobal['alertaDaAgenda'];
 }
 
 /**
@@ -19,4 +43,8 @@ export interface RepositorioConfiguracao {
 
   ler(): Promise<ConfiguracaoGlobal>;
   salvar(configuracao: ConfiguracaoParaSalvar): Promise<ConfiguracaoGlobal>;
+  /** Escrita isolada do `person_id` da Experience, fora do fluxo da tela de configuração. */
+  definirExperiencePersonId(personId: string): Promise<ConfiguracaoGlobal>;
+  /** Escrita isolada do `CODUSU` do Sankhya OM, digitado em Credenciais Sankhya. */
+  definirSankhyaOmCodUsu(codusu: string): Promise<ConfiguracaoGlobal>;
 }

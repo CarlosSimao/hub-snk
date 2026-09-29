@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
-import type { BancoDeDados, Base, Cliente, LinkDoCliente, RepositorioGit } from '../tipos.ts';
+import type {
+  BancoDeDados,
+  Base,
+  Cliente,
+  LinkDoCliente,
+  Projeto,
+  RepositorioGit,
+} from '../tipos.ts';
 import {
   ArquivoDeDadosInvalidoError,
   gravarArquivoDeDados,
@@ -8,6 +15,7 @@ import {
   migrarArquivoDeDados,
   precisaMigrar,
 } from './arquivoDeDados.ts';
+import { FilaDeOperacoes } from './filaDeOperacoes.ts';
 import {
   AcessoDeBaseDuplicadoError,
   BaseJaCadastradaError,
@@ -16,6 +24,8 @@ import {
   FavoritoDuplicadoNaImportacaoError,
   LinkNaoEncontradoError,
   NomeDeClienteDuplicadoError,
+  NomeDeProjetoDuplicadoError,
+  ProjetoNaoEncontradoError,
   RepositorioDuplicadoNaImportacaoError,
   RepositorioNaoEncontradoError,
   UrlDeLinkDuplicadaError,
@@ -28,6 +38,7 @@ import {
   type DadosDeImportacaoDeCadastro,
   type DadosDeImportacaoDeRepositorio,
   type DadosDeLink,
+  type DadosDeProjeto,
   type DadosDeRepositorio,
   type RepositorioClientes,
   type ResultadoDaImportacao,
@@ -59,16 +70,6 @@ function chaveAchatadaDeNome(valor: string): string {
     .replace(FORA_DE_LETRA_OU_DIGITO, '');
 }
 
-/** Nome de exibição para repositórios gravados antes do campo `nome` existir. */
-function nomeDerivadoDaUrl(url: string): string {
-  try {
-    const caminho = new URL(url).pathname.replace(/\.git$/, '');
-    return caminho.split('/').filter(Boolean).pop() ?? url;
-  } catch {
-    return url;
-  }
-}
-
 /**
  * Persistência dos clientes em um único arquivo JSON no disco local.
  *
@@ -79,7 +80,7 @@ function nomeDerivadoDaUrl(url: string): string {
 export class RepositorioClientesArquivo implements RepositorioClientes {
   readonly #caminhoDoArquivo: string;
   #clientes: Cliente[] | null = null;
-  #ultimaOperacao: Promise<unknown> = Promise.resolve();
+  readonly #fila = new FilaDeOperacoes();
 
   constructor(diretorioDeDados: string) {
     this.#caminhoDoArquivo = join(diretorioDeDados, NOME_DO_ARQUIVO);
@@ -90,21 +91,21 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async listar(): Promise<Cliente[]> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       return [...clientes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     });
   }
 
   async buscarPorId(id: string): Promise<Cliente | undefined> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       return clientes.find((cliente) => cliente.id === id);
     });
   }
 
   async criar(dados: DadosDeCliente): Promise<Cliente> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       this.#garantirNomeDisponivel(clientes, dados.nome);
 
@@ -116,6 +117,8 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
         bases: [],
         repositorios: [],
         links: [],
+        projetos: [],
+        nomesCompletos: [],
         criadoEm: agora,
         atualizadoEm: agora,
       };
@@ -126,7 +129,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async atualizar(id: string, dados: DadosDeCliente): Promise<Cliente> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, id);
       this.#garantirNomeDisponivel(clientes, dados.nome, id);
@@ -136,7 +139,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async definirAnotacoes(id: string, anotacoes: string): Promise<Cliente> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, id);
 
@@ -144,8 +147,20 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     });
   }
 
+  async definirNomesCompletos(id: string, nomesCompletos: string[]): Promise<Cliente> {
+    return this.#fila.enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, id);
+
+      return this.#substituirCliente(clientes, {
+        ...cliente,
+        nomesCompletos: nomesCompletos.map((nome) => nome.trim()).filter(Boolean),
+      });
+    });
+  }
+
   async remover(id: string): Promise<void> {
-    await this.#enfileirar(async () => {
+    await this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const restantes = clientes.filter((cliente) => cliente.id !== id);
       if (restantes.length === clientes.length) {
@@ -157,7 +172,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async adicionarBase(idDoCliente: string, dados: DadosDeBase): Promise<Base> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       this.#garantirAcessoDisponivel(cliente, dados);
@@ -169,7 +184,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async importarBases(itens: DadosDeImportacaoDeBase[]): Promise<ResultadoDaImportacao> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       this.#garantirImportacaoSemRepeticao(itens);
 
@@ -209,7 +224,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   async importarCadastros(
     itens: DadosDeImportacaoDeCadastro[],
   ): Promise<ResultadoDaImportacaoDeCadastros> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
 
       const agora = new Date().toISOString();
@@ -249,7 +264,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async atualizarBase(idDoCliente: string, idDaBase: string, dados: DadosDeBase): Promise<Base> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
 
@@ -273,7 +288,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async removerBase(idDoCliente: string, idDaBase: string): Promise<void> {
-    await this.#enfileirar(async () => {
+    await this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
 
@@ -291,7 +306,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     idDaBase: string,
     dados: DadosDeBancoDeDados,
   ): Promise<BancoDeDados> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       const posicao = this.#obterPosicaoDaBase(cliente, idDaBase);
@@ -307,7 +322,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async removerBancoDeDados(idDoCliente: string, idDaBase: string): Promise<void> {
-    await this.#enfileirar(async () => {
+    await this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       const posicao = this.#obterPosicaoDaBase(cliente, idDaBase);
@@ -324,7 +339,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     idDoCliente: string,
     dados: DadosDeRepositorio,
   ): Promise<RepositorioGit> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       this.#garantirRepositorioDisponivel(cliente, dados.url);
@@ -344,7 +359,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   async importarRepositorios(
     itens: DadosDeImportacaoDeRepositorio[],
   ): Promise<ResultadoDaImportacaoDeRepositorios> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       this.#garantirImportacaoDeRepositoriosSemRepeticao(itens);
 
@@ -388,7 +403,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     idDoRepositorio: string,
     dados: DadosDeRepositorio,
   ): Promise<RepositorioGit> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
 
@@ -414,7 +429,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async removerRepositorio(idDoCliente: string, idDoRepositorio: string): Promise<void> {
-    await this.#enfileirar(async () => {
+    await this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
 
@@ -430,7 +445,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async adicionarLink(idDoCliente: string, dados: DadosDeLink): Promise<LinkDoCliente> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
       this.#garantirLinkDisponivel(cliente, dados.url);
@@ -449,7 +464,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     idDoLink: string,
     dados: DadosDeLink,
   ): Promise<LinkDoCliente> {
-    return this.#enfileirar(async () => {
+    return this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
 
@@ -473,7 +488,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   }
 
   async removerLink(idDoCliente: string, idDoLink: string): Promise<void> {
-    await this.#enfileirar(async () => {
+    await this.#fila.enfileirar(async () => {
       const clientes = await this.#carregar();
       const cliente = this.#obterCliente(clientes, idDoCliente);
 
@@ -484,6 +499,214 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
 
       await this.#substituirCliente(clientes, { ...cliente, links: restantes });
     });
+  }
+
+  async adicionarProjeto(idDoCliente: string, dados: DadosDeProjeto): Promise<Projeto> {
+    return this.#fila.enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, idDoCliente);
+      this.#garantirNomeDeProjetoDisponivel(cliente, dados.nome);
+
+      const agora = new Date().toISOString();
+      const novoProjeto: Projeto = {
+        id: randomUUID(),
+        nome: dados.nome.trim(),
+        anotacoes: '',
+        links: [],
+        criadoEm: agora,
+        atualizadoEm: agora,
+      };
+
+      await this.#substituirCliente(clientes, {
+        ...cliente,
+        projetos: [...cliente.projetos, novoProjeto],
+      });
+      return novoProjeto;
+    });
+  }
+
+  async atualizarProjeto(
+    idDoCliente: string,
+    idDoProjeto: string,
+    dados: DadosDeProjeto,
+  ): Promise<Projeto> {
+    return this.#fila.enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, idDoCliente);
+      const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
+      this.#garantirNomeDeProjetoDisponivel(cliente, dados.nome, idDoProjeto);
+
+      const projetoAtualizado: Projeto = {
+        ...(cliente.projetos[posicao] as Projeto),
+        nome: dados.nome.trim(),
+        atualizadoEm: new Date().toISOString(),
+      };
+      const projetos = [...cliente.projetos];
+      projetos[posicao] = projetoAtualizado;
+
+      await this.#substituirCliente(clientes, { ...cliente, projetos });
+      return projetoAtualizado;
+    });
+  }
+
+  async removerProjeto(idDoCliente: string, idDoProjeto: string): Promise<void> {
+    await this.#fila.enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, idDoCliente);
+
+      const restantes = cliente.projetos.filter((projeto) => projeto.id !== idDoProjeto);
+      if (restantes.length === cliente.projetos.length) {
+        throw new ProjetoNaoEncontradoError(idDoProjeto);
+      }
+
+      await this.#substituirCliente(clientes, { ...cliente, projetos: restantes });
+    });
+  }
+
+  async definirAnotacoesDoProjeto(
+    idDoCliente: string,
+    idDoProjeto: string,
+    anotacoes: string,
+  ): Promise<Projeto> {
+    return this.#fila.enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, idDoCliente);
+      const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
+
+      const projetoAtualizado: Projeto = {
+        ...(cliente.projetos[posicao] as Projeto),
+        anotacoes,
+        atualizadoEm: new Date().toISOString(),
+      };
+      const projetos = [...cliente.projetos];
+      projetos[posicao] = projetoAtualizado;
+
+      await this.#substituirCliente(clientes, { ...cliente, projetos });
+      return projetoAtualizado;
+    });
+  }
+
+  async adicionarLinkDoProjeto(
+    idDoCliente: string,
+    idDoProjeto: string,
+    dados: DadosDeLink,
+  ): Promise<LinkDoCliente> {
+    return this.#fila.enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, idDoCliente);
+      const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
+      const projeto = cliente.projetos[posicao] as Projeto;
+      this.#garantirLinkDeProjetoDisponivel(projeto, dados.url);
+
+      const novoLink: LinkDoCliente = { id: randomUUID(), ...this.#normalizarDadosDeLink(dados) };
+      const projetoAtualizado: Projeto = {
+        ...projeto,
+        links: [...projeto.links, novoLink],
+        atualizadoEm: new Date().toISOString(),
+      };
+      const projetos = [...cliente.projetos];
+      projetos[posicao] = projetoAtualizado;
+
+      await this.#substituirCliente(clientes, { ...cliente, projetos });
+      return novoLink;
+    });
+  }
+
+  async atualizarLinkDoProjeto(
+    idDoCliente: string,
+    idDoProjeto: string,
+    idDoLink: string,
+    dados: DadosDeLink,
+  ): Promise<LinkDoCliente> {
+    return this.#fila.enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, idDoCliente);
+      const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
+      const projeto = cliente.projetos[posicao] as Projeto;
+
+      const posicaoDoLink = projeto.links.findIndex((link) => link.id === idDoLink);
+      if (posicaoDoLink === -1) {
+        throw new LinkNaoEncontradoError(idDoLink);
+      }
+
+      this.#garantirLinkDeProjetoDisponivel(projeto, dados.url, idDoLink);
+
+      const linkAtualizado: LinkDoCliente = {
+        id: idDoLink,
+        ...this.#normalizarDadosDeLink(dados),
+      };
+      const links = [...projeto.links];
+      links[posicaoDoLink] = linkAtualizado;
+
+      const projetoAtualizado: Projeto = {
+        ...projeto,
+        links,
+        atualizadoEm: new Date().toISOString(),
+      };
+      const projetos = [...cliente.projetos];
+      projetos[posicao] = projetoAtualizado;
+
+      await this.#substituirCliente(clientes, { ...cliente, projetos });
+      return linkAtualizado;
+    });
+  }
+
+  async removerLinkDoProjeto(
+    idDoCliente: string,
+    idDoProjeto: string,
+    idDoLink: string,
+  ): Promise<void> {
+    await this.#fila.enfileirar(async () => {
+      const clientes = await this.#carregar();
+      const cliente = this.#obterCliente(clientes, idDoCliente);
+      const posicao = this.#obterPosicaoDoProjeto(cliente, idDoProjeto);
+      const projeto = cliente.projetos[posicao] as Projeto;
+
+      const restantes = projeto.links.filter((link) => link.id !== idDoLink);
+      if (restantes.length === projeto.links.length) {
+        throw new LinkNaoEncontradoError(idDoLink);
+      }
+
+      const projetoAtualizado: Projeto = {
+        ...projeto,
+        links: restantes,
+        atualizadoEm: new Date().toISOString(),
+      };
+      const projetos = [...cliente.projetos];
+      projetos[posicao] = projetoAtualizado;
+
+      await this.#substituirCliente(clientes, { ...cliente, projetos });
+    });
+  }
+
+  #obterPosicaoDoProjeto(cliente: Cliente, idDoProjeto: string): number {
+    const posicao = cliente.projetos.findIndex((projeto) => projeto.id === idDoProjeto);
+    if (posicao === -1) {
+      throw new ProjetoNaoEncontradoError(idDoProjeto);
+    }
+    return posicao;
+  }
+
+  #garantirNomeDeProjetoDisponivel(cliente: Cliente, nome: string, idIgnorado?: string): void {
+    const alvo = normalizarParaComparacao(nome);
+    const conflito = cliente.projetos.some(
+      (projeto) => projeto.id !== idIgnorado && normalizarParaComparacao(projeto.nome) === alvo,
+    );
+
+    if (conflito) {
+      throw new NomeDeProjetoDuplicadoError(nome.trim());
+    }
+  }
+
+  #garantirLinkDeProjetoDisponivel(projeto: Projeto, url: string, idIgnorado?: string): void {
+    const alvo = normalizarParaComparacao(url);
+    const conflito = projeto.links.some(
+      (link) => link.id !== idIgnorado && normalizarParaComparacao(link.url) === alvo,
+    );
+
+    if (conflito) {
+      throw new UrlDeLinkDuplicadaError(url.trim());
+    }
   }
 
   #obterPosicaoDaBase(cliente: Cliente, idDaBase: string): number {
@@ -507,7 +730,6 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     const caminhoLocal = dados.caminhoLocal?.trim();
 
     return {
-      nome: dados.nome.trim(),
       url: dados.url.trim(),
       ...(caminhoLocal ? { caminhoLocal } : {}),
     };
@@ -532,6 +754,8 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
   /** A senha não é aparada: espaço nas pontas pode fazer parte dela. */
   #normalizarDadosDeBancoDeDados(dados: DadosDeBancoDeDados): BancoDeDados {
     return {
+      sgbd: dados.sgbd,
+      identificadorOracle: dados.identificadorOracle,
       host: dados.host.trim(),
       porta: dados.porta,
       nomeDoServico: dados.nomeDoServico.trim(),
@@ -679,6 +903,8 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
       bases: [],
       repositorios: [],
       links: [],
+      projetos: [],
+      nomesCompletos: [],
       criadoEm: agora,
       atualizadoEm: agora,
     };
@@ -758,16 +984,6 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     }
   }
 
-  /**
-   * Serializa as operações: cada chamada só começa depois que a anterior
-   * terminou, com sucesso ou erro.
-   */
-  #enfileirar<T>(tarefa: () => Promise<T>): Promise<T> {
-    const resultado = this.#ultimaOperacao.then(tarefa, tarefa);
-    this.#ultimaOperacao = resultado.catch(() => undefined);
-    return resultado;
-  }
-
   async #carregar(): Promise<Cliente[]> {
     if (this.#clientes) {
       return this.#clientes;
@@ -787,16 +1003,52 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     }
 
     // Clientes gravados antes de anotações, bases, repositórios e links existirem não têm os campos.
-    this.#clientes = (conteudo.corpo as Cliente[]).map((cliente) => ({
-      ...cliente,
-      anotacoes: cliente.anotacoes ?? '',
-      bases: cliente.bases ?? [],
-      repositorios: (cliente.repositorios ?? []).map((repositorio) => ({
-        ...repositorio,
-        nome: repositorio.nome ?? nomeDerivadoDaUrl(repositorio.url),
-      })),
-      links: cliente.links ?? [],
-    }));
+    this.#clientes = (
+      conteudo.corpo as (Cliente & {
+        agendaCodparc?: number | null;
+        agendaCodparcs?: number[];
+        agendaRecursoUsuario?: string;
+        experienceProjetoId?: number | null;
+      })[]
+    ).map(
+      ({
+        // Vínculo por CODPARC removido: a aba Agenda do cliente passou a casar o parceiro
+        // pelo NOME (os "Nomes Completos"), como a aba OS. Descartados na leitura para
+        // saírem do arquivo na próxima gravação.
+        agendaCodparc: _agendaCodparcRemovido,
+        agendaCodparcs: _agendaCodparcsRemovido,
+        agendaRecursoUsuario: _agendaRecursoUsuarioRemovido,
+        // Campo removido: o vínculo com a Experience passou a ser só o `person_id` da
+        // configuração geral, sem `implantation_id` por cliente.
+        experienceProjetoId: _experienceProjetoIdRemovido,
+        ...cliente
+      }) => ({
+        ...cliente,
+        anotacoes: cliente.anotacoes ?? '',
+        // Banco gravado antes do SGBD ser escolhível só podia ser Oracle por service name.
+        bases: (cliente.bases ?? []).map((base) =>
+          base.bancoDeDados
+            ? {
+                ...base,
+                bancoDeDados: {
+                  ...base.bancoDeDados,
+                  sgbd: base.bancoDeDados.sgbd ?? 'oracle',
+                  identificadorOracle: base.bancoDeDados.identificadorOracle ?? 'service-name',
+                },
+              }
+            : base,
+        ),
+        // `nome` existiu no passado: descartado na leitura para sair do arquivo na próxima gravação.
+        repositorios: (cliente.repositorios ?? []).map(
+          ({ nome: _nomeRemovido, ...repositorio }: RepositorioGit & { nome?: string }) =>
+            repositorio,
+        ),
+        links: cliente.links ?? [],
+        projetos: cliente.projetos ?? [],
+        // Campo novo: arquivo de antes desta versão não tem, nasce vazio (cai no `nome`).
+        nomesCompletos: Array.isArray(cliente.nomesCompletos) ? cliente.nomesCompletos : [],
+      }),
+    );
 
     if (precisaMigrar(conteudo)) {
       await migrarArquivoDeDados({

@@ -1,8 +1,9 @@
+import { mapearComLimite } from '../sistema/mapearComLimite.ts';
 import type { ConfiguracaoGlobal, SituacaoGit } from '../tipos.ts';
 import { lerSituacaoDoRepositorio, type DadosDoRepositorio } from './situacaoDoRepositorio.ts';
 
 /**
- * O diagnóstico dispara cerca de dez processos `git` por repositório. Sem cache,
+ * O diagnóstico dispara cinco processos `git` por repositório. Sem cache,
  * cada clique na tela repetiria tudo; sem limite de paralelismo, um cadastro
  * grande abriria dezenas de processos de uma vez.
  */
@@ -60,33 +61,17 @@ async function lerComCache(
   return situacao;
 }
 
-/**
- * Verifica os repositórios em paralelo, com no máximo `LEITURAS_SIMULTANEAS`
- * em andamento. Cada trabalhador puxa o próximo índice da fila até acabarem.
- */
+/** Verifica os repositórios em paralelo, com no máximo `LEITURAS_SIMULTANEAS` em andamento. */
 export async function coletarSituacoes(
   repositorios: RepositorioParaVerificar[],
   configuracao: ConfiguracaoGlobal,
   forcar: boolean,
 ): Promise<Record<string, SituacaoGit>> {
-  const situacoes: Record<string, SituacaoGit> = {};
-  let proximo = 0;
-
-  async function trabalhar(): Promise<void> {
-    while (proximo < repositorios.length) {
-      const repositorio = repositorios[proximo] as RepositorioParaVerificar;
-      proximo += 1;
-
-      situacoes[repositorio.id] = await lerComCache(repositorio, configuracao, forcar);
-    }
-  }
-
-  const trabalhadores = Array.from(
-    { length: Math.min(LEITURAS_SIMULTANEAS, repositorios.length) },
-    trabalhar,
+  const situacoes = await mapearComLimite(repositorios, LEITURAS_SIMULTANEAS, (repositorio) =>
+    lerComCache(repositorio, configuracao, forcar),
   );
 
-  await Promise.all(trabalhadores);
-
-  return situacoes;
+  return Object.fromEntries(
+    repositorios.map((repositorio, indice) => [repositorio.id, situacoes[indice] as SituacaoGit]),
+  );
 }

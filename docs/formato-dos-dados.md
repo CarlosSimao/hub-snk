@@ -3,19 +3,26 @@
 Como o HUB SNK grava o que você cadastra. Para o uso do dia a dia, veja o
 [README](../README.md) — nada aqui é necessário para usar o programa.
 
-Os três arquivos ficam na pasta de dados (`dados-hub-snk/` por padrão, ou o que
-estiver em `HUB_DADOS_DIR`):
+Os arquivos ficam na pasta de dados: `%LOCALAPPDATA%\HubSnk\dados` no aplicativo
+instalado, `dados-hub-snk/` na raiz do repositório em desenvolvimento, ou o que
+estiver em `HUB_DADOS_DIR`:
 
-| Arquivo             | Guarda                                                          |
-| ------------------- | --------------------------------------------------------------- |
-| `clientes.json`     | O cadastro de clientes, com bases, bancos, repositórios e links |
-| `configuracao.json` | A configuração global e os atalhos                              |
-| `local.json`        | As bases e os bancos da própria máquina                         |
+| Arquivo             | Guarda                                                                    |
+| ------------------- | ------------------------------------------------------------------------- |
+| `clientes.json`     | O cadastro de clientes, com bases, bancos, repositórios, links e projetos |
+| `configuracao.json` | A configuração global, os acessos, os atalhos e o SMTP                    |
+| `local.json`        | As bases e os bancos da própria máquina                                   |
+| `lembretes.json`    | Os lembretes cadastrados                                                  |
+| `contatos.json`     | Os contatos, com ou sem cliente                                           |
+| `notificacoes.json` | O painel de notificações e as chaves já notificadas                       |
+| `sankhya.db`        | O snapshot da Agenda de Recursos, em SQLite                               |
 
 ## Envelope
 
-Os três seguem a mesma forma: um campo `versaoDoEsquema` e o conteúdo sob uma
-chave própria — `clientes`, `configuracao` e `local`.
+Todos os `.json` seguem a mesma forma: um campo `versaoDoEsquema` e o conteúdo sob
+uma chave própria — `clientes`, `configuracao`, `local`, `lembretes`, `contatos` e
+`notificacoes`. O `sankhya.db` fica fora do envelope: é o snapshot que cada
+consulta da agenda atualiza, e as rotas de eventos leem.
 
 ```json
 { "versaoDoEsquema": 1, "clientes": [ ... ] }
@@ -41,10 +48,123 @@ cadastro.
         "nome": "DataGrip",
         "caminhoDoExecutavel": "C:\\Program Files\\JetBrains\\DataGrip\\bin\\datagrip64.exe"
       }
-    ]
+    ],
+    "destinoDosLinks": "hub",
+    "caminhoDoExecutavelDaIde": "C:\\Program Files\\JetBrains\\IntelliJ IDEA\\bin\\idea64.exe",
+    "experiencePersonId": "123456",
+    "sankhyaOmCodUsu": "4817",
+    "perfil": "consultor",
+    "funcionalidadesOcultas": ["cliente.repositorios"],
+    "terceiro": false,
+    "smtp": {
+      "host": "smtp.office365.com",
+      "porta": 587,
+      "seguranca": "starttls",
+      "usuario": "voce@empresa.com.br",
+      "senha": "...",
+      "remetente": "voce@empresa.com.br",
+      "destinatario": "voce@empresa.com.br"
+    },
+    "alertaDaAgenda": { "ativo": true, "toleranciaMinutos": 30, "enviarEmail": true }
   }
 }
 ```
+
+`destinoDosLinks` diz onde todo link clicável do cadastro abre no aplicativo
+desktop — bases, repositório, links gerais e de projeto: `hub` (guia do
+aplicativo) ou `navegador-padrao` (o navegador do sistema). Arquivo de antes
+deste campo, ou com um valor desconhecido, vale `hub`.
+
+`caminhoDoExecutavelDaIde` é o executável chamado pelo botão **Abrir IDE** de
+cada repositório, com a pasta como argumento. Vazio desliga o botão.
+
+`perfil` (`desenvolvedor`, `consultor`, `analista` ou `gerente-de-projeto`) e
+`funcionalidadesOcultas` são os acessos de **Configurações › Acessos**. A lista
+guarda o que está **oculto**: uma funcionalidade criada numa versão futura já
+nasce visível. Os valores aceitos são `local`, `agenda`, `os`, `lembretes` e
+`contatos` (menu principal) e `cliente.bases`, `cliente.repositorios`,
+`cliente.projetos`, `cliente.agenda`, `cliente.os` e `cliente.contatos` (cadastro
+do cliente). Arquivo sem `perfil` recebe o perfil escolhido no instalador, com o
+preset dele; sem instalador, `desenvolvedor`, com nada oculto. Valor desconhecido
+na lista é descartado na leitura.
+
+`terceiro` é a caixa **Terceiro** da aba Acessos: `true` oculta, por cima de
+`funcionalidadesOcultas`, o que depende do Sankhya Om e da Experience, sem alterar
+a lista. Arquivo sem o campo recebe a escolha do instalador; sem instalador,
+`false`.
+
+`sankhyaOmCodUsu` é o `CODUSU` digitado no topo de **Credenciais Sankhya**, que
+recorta a Agenda de Recursos para os seus eventos. `experiencePersonId` é o
+`person_id` da Experience, gravado sozinho ao capturar a sessão e nunca digitado;
+vazio, a aba OS não tem de quem buscar as OS.
+
+`smtp` é o servidor dos e-mails das notificações, com a senha em texto puro;
+`seguranca` é `ssl`, `starttls` ou `nenhuma`, e host vazio desliga o e-mail.
+`alertaDaAgenda` liga o aviso de evento da agenda de hoje sem OS lançada. Arquivo
+de antes destes campos nasce com o SMTP vazio (porta 587, STARTTLS) e o alerta
+desligado.
+
+## Lembretes
+
+O conteúdo de `lembretes`:
+
+```json
+[
+  {
+    "id": "7c1e4f0a-3b8d-4e2a-9f61-2d5c8a7b9e10",
+    "resumo": "Relatório de horas",
+    "texto": "Enviar o relatório de horas",
+    "tipo": "recorrente",
+    "dataHora": "",
+    "expressaoCron": "0 17 * * 5",
+    "clienteId": "4fb3993a-f8b3-4e9a-be7d-c79556fa78e5",
+    "projetoId": null,
+    "enviarEmail": true,
+    "contatoIds": ["0d6f3c2e-8a41-4b7e-9c55-1e2f3a4b5c6d"],
+    "ativo": true,
+    "ultimoDisparoEm": "2026-09-25T20:00:04.112Z",
+    "criadoEm": "2026-09-01T12:00:00.000Z",
+    "atualizadoEm": "2026-09-01T12:00:00.000Z"
+  }
+]
+```
+
+`dataHora` só vale para o `unico` e `expressaoCron` só para o `recorrente`.
+`ultimoDisparoEm` vazio é lembrete que nunca disparou; o recorrente conta a
+próxima ocorrência a partir dele, ou de `atualizadoEm` quando vazio.
+`contatoIds` são os contatos em cópia no e-mail, e fica vazio quando o lembrete não
+envia e-mail. Lembrete gravado antes do `resumo` e dos `contatoIds` é lido com os
+dois vazios.
+
+## Contatos
+
+O conteúdo de `contatos`:
+
+```json
+[
+  {
+    "id": "0d6f3c2e-8a41-4b7e-9c55-1e2f3a4b5c6d",
+    "nome": "Ana Souza",
+    "telefone": "(11) 99999-0000",
+    "email": "ana@cliente.com.br",
+    "cargo": "Coordenadora de TI",
+    "clienteId": "4fb3993a-f8b3-4e9a-be7d-c79556fa78e5",
+    "criadoEm": "2026-09-28T12:00:00.000Z",
+    "atualizadoEm": "2026-09-28T12:00:00.000Z"
+  }
+]
+```
+
+Só o `nome` é obrigatório; os outros textos ficam vazios. `clienteId` é `null` no
+contato sem cliente, e excluir o cliente o passa a `null`. Um `clienteId` que não
+existe mais — pasta sincronizada com outra máquina — vale como sem cliente.
+
+## Notificações
+
+O conteúdo de `notificacoes` tem a `lista` (as 200 mais recentes) e as
+`chavesEmitidas`, que impedem notificar duas vezes o mesmo fato — o evento da
+agenda num dia, a ocorrência de um lembrete. Limpar o painel esvazia só a lista;
+as chaves ficam por sete dias.
 
 ## Cadastro de clientes
 
@@ -64,6 +184,8 @@ O conteúdo de `clientes`:
         "usuario": "admin",
         "senha": "...",
         "bancoDeDados": {
+          "sgbd": "oracle",
+          "identificadorOracle": "service-name",
           "host": "192.168.0.10",
           "porta": 1521,
           "nomeDoServico": "ORCL",
@@ -75,8 +197,8 @@ O conteúdo de `clientes`:
     "repositorios": [
       {
         "id": "0d1df29e-dd3d-4a9c-ada9-1d25a877f2cf",
-        "nome": "Addon de faturamento",
-        "url": "https://github.com/grupo/projeto"
+        "url": "https://github.com/grupo/projeto",
+        "caminhoLocal": "C:\\Workspace\\projeto"
       }
     ],
     "links": [
@@ -92,9 +214,16 @@ O conteúdo de `clientes`:
 ]
 ```
 
+Repositório não tem nome gravado: a tela mostra a pasta do `caminhoLocal` ou, sem
+clone, o último trecho da URL. O cadastro exige o `caminhoLocal`; ele só falta em
+repositório gravado por versão anterior, quando o campo ainda era opcional.
+
 Clientes gravados antes de anotações, bases, repositórios e links existirem são
-carregados com essas listas vazias, e repositórios sem `nome` recebem como
-rótulo o último trecho da URL. Não há migração manual a rodar.
+carregados com essas listas vazias. O `nome` que versões anteriores gravavam em
+cada repositório é descartado na leitura e sai do arquivo na próxima gravação.
+Banco de dados gravado antes de `sgbd` e
+`identificadorOracle` existirem é lido como `oracle` e `service-name`. Não há
+migração manual a rodar.
 
 ## Versão do esquema
 
@@ -118,10 +247,21 @@ e antes de reescrever qualquer coisa o arquivo original é copiado para
 `esquema0` é o formato anterior ao envelope. A cópia é feita uma vez por versão
 de origem e nunca é sobrescrita: ela guarda o estado original, não o último.
 
-Os três arquivos são lidos na inicialização, antes de o servidor abrir a porta.
+Os arquivos são lidos na inicialização, antes de o servidor abrir a porta.
 Erro de esquema aparece no terminal na largada, e não na primeira tela aberta.
 
 Ao publicar uma versão que muda o formato dos dados, suba a
 `VERSAO_ATUAL_DO_ESQUEMA` em `src/repositorio/arquivoDeDados.ts` junto com a
 parte MAJOR da versão do HUB SNK, e escreva a migração da versão anterior para a
 nova.
+
+A recíproca não vale: release MAJOR não obriga a subir o esquema. A versão 2 é
+MAJOR pela troca da PWA pelo aplicativo desktop, e a `VERSAO_ATUAL_DO_ESQUEMA`
+continua `1`, porque a única retirada de campo, o `nome` dos repositórios, é
+compatível nos dois sentidos: a versão 2 descarta o campo na leitura, e a 1.1.0,
+ao abrir um arquivo sem ele, deriva o nome do último trecho da URL. O resto da
+versão 2 só acrescenta campos. No `clientes.json` eles sobrevivem a uma gravação
+da 1.1.0, que preserva o que não reconhece em cada cliente; no
+`configuracao.json`, não: a 1.1.0 remonta a configuração só com os campos dela, e
+salvar as configurações nela descarta acessos, SMTP e alerta da agenda gravados
+pela versão 2. Numa pasta compartilhada entre máquinas, atualize todas.

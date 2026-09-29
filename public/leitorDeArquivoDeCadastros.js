@@ -42,6 +42,8 @@ const PROPRIEDADES_DA_BASE = {
 const PROPRIEDADES_DO_BANCO = {
   host: 'host',
   porta: 'porta',
+  sgbd: 'sgbd',
+  identificacao: 'identificadorOracle',
   servico: 'nomeDoServico',
   'nome do servico': 'nomeDoServico',
   usuario: 'usuario',
@@ -53,6 +55,14 @@ const TIPOS_DE_BASE = ['producao', 'teste', 'outro'];
 
 /* Tipo de quem chegou sem rótulo reconhecível: não dá para inventar ambiente. */
 const TIPO_PADRAO = 'outro';
+
+/* Rótulo exportado do SGBD e da identificação, achatado → valor guardado no cadastro. */
+const SGBDS = { oracle: 'oracle', 'sql server': 'sqlserver', sqlserver: 'sqlserver' };
+const IDENTIFICADORES_ORACLE = { 'service name': 'service-name', sid: 'sid' };
+
+/* Arquivo exportado antes destes campos só podia trazer Oracle por service name. */
+const SGBD_PADRAO = 'oracle';
+const IDENTIFICADOR_ORACLE_PADRAO = 'service-name';
 
 const PORTA_MINIMA = 1;
 const PORTA_MAXIMA = 65535;
@@ -112,7 +122,15 @@ function criarBaseEmBranco() {
 }
 
 function criarBancoEmBranco() {
-  return { host: '', porta: '', nomeDoServico: '', usuario: '', senha: '' };
+  return {
+    sgbd: '',
+    identificadorOracle: '',
+    host: '',
+    porta: '',
+    nomeDoServico: '',
+    usuario: '',
+    senha: '',
+  };
 }
 
 function dividirEmBlocos(texto) {
@@ -221,6 +239,10 @@ function validarBanco(banco, nomeDoCliente, url, avisos) {
   }
 
   return {
+    sgbd: SGBDS[achatarRotulo(banco.sgbd)] ?? SGBD_PADRAO,
+    identificadorOracle:
+      IDENTIFICADORES_ORACLE[achatarRotulo(banco.identificadorOracle)] ??
+      IDENTIFICADOR_ORACLE_PADRAO,
     host: banco.host,
     porta,
     nomeDoServico: banco.nomeDoServico,

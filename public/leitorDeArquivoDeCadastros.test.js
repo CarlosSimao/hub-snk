@@ -39,6 +39,8 @@ describe('lerCadastrosDoTexto', () => {
             usuario: 'mge',
             senha: 'alfa123',
             bancoDeDados: {
+              sgbd: 'oracle',
+              identificadorOracle: 'service-name',
               host: '10.0.0.5',
               porta: 1521,
               nomeDoServico: 'ORCL',
@@ -49,6 +51,30 @@ describe('lerCadastrosDoTexto', () => {
         ],
       },
     ]);
+  });
+
+  it('lê o SGBD e a identificação Oracle do banco de dados', () => {
+    const blocoDoBanco = (sgbd, identificacao) =>
+      [
+        'Cliente: Beta Ltda',
+        'Tipo de base: Teste',
+        'URL: https://beta:8180/mge',
+        '',
+        'Banco de dados',
+        `SGBD: ${sgbd}`,
+        `Identificação: ${identificacao}`,
+        'Host: 10.0.0.5',
+        'Porta: 1521',
+        'Serviço: ORCL',
+        'Usuário: sankhya',
+        'Senha: sankhya',
+      ].join('\n');
+
+    const [comSid] = lerCadastrosDoTexto(blocoDoBanco('Oracle', 'SID')).clientes;
+    const [comSqlServer] = lerCadastrosDoTexto(blocoDoBanco('SQL Server', '—')).clientes;
+
+    assert.equal(comSid.bases[0].bancoDeDados.identificadorOracle, 'sid');
+    assert.equal(comSqlServer.bases[0].bancoDeDados.sgbd, 'sqlserver');
   });
 
   it('lê o bloco mínimo, só com nome, tipo e URL', () => {

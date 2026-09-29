@@ -1,3 +1,4 @@
+import { basename, dirname } from 'node:path';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
@@ -7,7 +8,15 @@ import {
   NOME_DO_ARQUIVO_ENV,
 } from '../sistema/arquivoMcp.ts';
 import { PastaNaoEncontradaError } from '../sistema/pasta.ts';
+import {
+  selecionarArquivoNoSistema,
+  SeletorDeArquivoIndisponivelError,
+  TIPO_ENV,
+} from '../sistema/selecionarArquivo.ts';
+import { FUNCIONALIDADES_OCULTAS_POR_PERFIL } from '../acessos.ts';
+import { DESTINOS_DE_LINK, FUNCIONALIDADES, PERFIS_PROFISSIONAIS } from '../tipos.ts';
 import { esquemaDeConfiguracaoMcp } from './esquemaDeConfiguracaoMcp.ts';
+import { esquemaDeAlertaDaAgenda, esquemaDeSmtp } from './esquemaDeNotificacoes.ts';
 
 const TAMANHO_MAXIMO_DO_SCRIPT = 500;
 const TAMANHO_MAXIMO_DO_CAMINHO = 400;
@@ -41,6 +50,10 @@ const esquemaDeAtalho = z.object({
       TAMANHO_MAXIMO_DO_CAMINHO,
       `O caminho deve ter no máximo ${TAMANHO_MAXIMO_DO_CAMINHO} caracteres.`,
     ),
+});
+
+const esquemaDeDestinoDeLink = z.enum(DESTINOS_DE_LINK, {
+  error: 'Escolha onde o link abre: no HUB SNK ou no navegador padrão.',
 });
 
 const esquemaDeConfiguracao = z.object({
@@ -87,6 +100,29 @@ const esquemaDeConfiguracao = z.object({
     .default(''),
   /* Ausente vale como lista vazia, pelo mesmo motivo do caminho do MCP. */
   atalhos: z.array(esquemaDeAtalho).default([]),
+  /* Ausente ou vazio desliga o botão "Abrir IDE" dos repositórios. */
+  caminhoDoExecutavelDaIde: z
+    .string()
+    .trim()
+    .max(
+      TAMANHO_MAXIMO_DO_CAMINHO,
+      `O caminho deve ter no máximo ${TAMANHO_MAXIMO_DO_CAMINHO} caracteres.`,
+    )
+    .default(''),
+  /* Vale para todo link clicável do cadastro: bases, repositório, links gerais e de projeto. */
+  destinoDosLinks: esquemaDeDestinoDeLink.default('hub'),
+  /*
+   * Ausentes, os acessos gravados são preservados — ao contrário dos campos acima, que
+   * voltam ao padrão: um padrão aqui reexibiria o que o usuário ocultou.
+   */
+  perfil: z.enum(PERFIS_PROFISSIONAIS, { error: 'Escolha um perfil válido.' }).optional(),
+  funcionalidadesOcultas: z
+    .array(z.enum(FUNCIONALIDADES, { error: 'Funcionalidade desconhecida.' }))
+    .optional(),
+  terceiro: z.boolean({ error: 'Terceiro deve ser verdadeiro ou falso.' }).optional(),
+  /* Pelo mesmo motivo dos acessos: um padrão aqui apagaria a senha do SMTP gravada. */
+  smtp: esquemaDeSmtp.optional(),
+  alertaDaAgenda: esquemaDeAlertaDaAgenda.optional(),
 });
 
 /**
@@ -95,6 +131,17 @@ const esquemaDeConfiguracao = z.object({
  */
 const esquemaDoCorpoDaConfiguracao = esquemaDeConfiguracao.extend({
   mcp: esquemaDeConfiguracaoMcp.optional(),
+});
+
+/*
+ * O CODUSU tem rota própria porque é digitado em Credenciais Sankhya, e não no
+ * formulário das configurações; vazio desliga a consulta da agenda.
+ */
+const esquemaDoCodusu = z.object({
+  sankhyaOmCodUsu: z
+    .string({ error: 'Informe o código de usuário do Sankhya OM.' })
+    .trim()
+    .regex(/^\d*$/, 'O código de usuário do Sankhya OM deve ter só números.'),
 });
 
 function responderErroDeValidacao(resposta: FastifyReply, erro: z.ZodError): FastifyReply {
@@ -107,6 +154,9 @@ export function registrarRotasDeConfiguracao(
   repositorio: RepositorioConfiguracao,
 ): void {
   servidor.get('/api/configuracao', async () => repositorio.ler());
+
+  /* A aba Acessos marca o preset ao trocar de perfil: a regra fica só aqui, no servidor. */
+  servidor.get('/api/configuracao/perfis', async () => FUNCIONALIDADES_OCULTAS_POR_PERFIL);
 
   /*
    * Credenciais do MCP global: lidas do `.env` da pasta cadastrada, e não do
@@ -128,6 +178,48 @@ export function registrarRotasDeConfiguracao(
       }
       throw erro;
     }
+  });
+
+  /*
+   * O `.env` é escolhido no seletor do sistema porque o navegador não entrega o
+   * caminho absoluto do arquivo, e é a pasta dele que passa a ser o caminho do
+   * MCP. Nada é gravado aqui: a pasta e as variáveis voltam para a tela e só
+   * persistem no "Salvar". Cancelar responde 204.
+   */
+  servidor.post('/api/configuracao/mcp/importar', async (_requisicao, resposta) => {
+    let caminhoDoArquivo: string | null;
+    try {
+      caminhoDoArquivo = await selecionarArquivoNoSistema(TIPO_ENV);
+    } catch (erro) {
+      if (erro instanceof SeletorDeArquivoIndisponivelError) {
+        return resposta.status(503).send({ mensagem: erro.message });
+      }
+      throw erro;
+    }
+
+    if (caminhoDoArquivo === null) {
+      return resposta.status(204).send();
+    }
+
+    // O sankhya-schema-mcp só lê o `.env` da própria pasta; outro nome não seria regravado.
+    if (basename(caminhoDoArquivo) !== NOME_DO_ARQUIVO_ENV) {
+      return resposta.status(400).send({
+        mensagem: `Selecione o arquivo ${NOME_DO_ARQUIVO_ENV} da pasta do sankhya-schema-mcp.`,
+      });
+    }
+
+    const caminhoDoSchemaMcp = dirname(caminhoDoArquivo);
+    const { configuracao } = await lerConfiguracaoMcp(caminhoDoSchemaMcp, NOME_DO_ARQUIVO_ENV);
+    return { caminhoDoSchemaMcp, configuracao };
+  });
+
+  servidor.put('/api/configuracao/sankhya-om-codusu', async (requisicao, resposta) => {
+    const dados = esquemaDoCodusu.safeParse(requisicao.body);
+    if (!dados.success) {
+      return responderErroDeValidacao(resposta, dados.error);
+    }
+
+    return repositorio.definirSankhyaOmCodUsu(dados.data.sankhyaOmCodUsu);
   });
 
   servidor.put('/api/configuracao', async (requisicao, resposta) => {

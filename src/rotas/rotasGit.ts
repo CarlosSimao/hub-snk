@@ -10,7 +10,7 @@ const esquemaDaConsulta = z.object({ forcar: z.string().optional() });
  * Situação Git de todos os repositórios com pasta local, indexada pelo id do
  * repositório.
  *
- * Fica fora de `/api/clientes` de propósito: são sete processos `git` por
+ * Fica fora de `/api/clientes` de propósito: são cinco processos `git` por
  * repositório, e a lista de clientes precisa continuar respondendo na hora. O
  * HUB SNK desenha primeiro e preenche os indicadores quando esta rota responde.
  */
