@@ -124,6 +124,27 @@ export function registrarRotasDeSankhya(
     }
   });
 
+  /**
+   * A senha em claro, para a janela de credenciais mostrar. Mesma exposição das
+   * senhas de base do cadastro: a API local não tem autenticação além da
+   * proteção de origem.
+   */
+  servidor.get<{ Params: { sistema: string } }>(
+    '/api/sankhya/credenciais/:sistema/senha',
+    async (requisicao, resposta) => {
+      const { sistema } = requisicao.params;
+      if (!ehSistemaValido(sistema)) {
+        return resposta.status(404).send({ mensagem: `sistema "${sistema}" não existe` });
+      }
+
+      try {
+        return { senha: await credenciais.revelarSenha(sistema) };
+      } catch (erro) {
+        return responderErroDoShell(resposta, erro);
+      }
+    },
+  );
+
   servidor.post<{ Params: { sistema: string }; Body: { usuario?: unknown; senha?: unknown } }>(
     '/api/sankhya/credenciais/:sistema',
     async (requisicao, resposta) => {

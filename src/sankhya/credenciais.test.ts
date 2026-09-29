@@ -123,6 +123,22 @@ describe('Credenciais', () => {
     }
   });
 
+  it('revela só a senha do cofre, mesmo com sessão empurrada da Experience', async () => {
+    const sessaoDoDesktop = new SessaoDoDesktop();
+    sessaoDoDesktop.definir({ usuario: 'usuario', token: 'jwt-da-guia', expira: '' });
+    const shell = await subirServidorFalso(200, { senha: 'senha-do-cofre', token: 'jwt' });
+
+    try {
+      const credenciais = criarCredenciais({ urlDaPonte: shell.url, sessaoDoDesktop });
+      const senha = await credenciais.revelarSenha('sankhya-experience');
+
+      assert.equal(senha, 'senha-do-cofre');
+      assert.deepEqual(shell.chamadas, ['/credentials/sankhya-experience/reveal']);
+    } finally {
+      shell.servidor.close();
+    }
+  });
+
   it('informa indisponível quando o shell não responde', async () => {
     const credenciais = criarCredenciais({ urlDaPonte: URL_SEM_NINGUEM_ESCUTANDO });
 

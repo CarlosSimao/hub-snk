@@ -692,6 +692,7 @@ const api = {
       metodo: 'POST',
       corpo: { usuario, senha },
     }),
+  senhaCredencialSankhya: (sistema) => requisitar(`/api/sankhya/credenciais/${sistema}/senha`),
   removerCredencialSankhya: (sistema) =>
     requisitar(`/api/sankhya/credenciais/${sistema}`, { metodo: 'DELETE' }),
   abrirNavegadorSankhya: (sistema) =>
@@ -4839,9 +4840,11 @@ async function atualizarCredenciaisSankhya() {
     const { credenciais } = await api.credenciaisSankhya();
     for (const status of credenciais) {
       const cartaoElementos = cartoes.find((c) => c.sistema === status.sistema);
-      if (cartaoElementos) {
-        renderizarStatusCredencial(cartaoElementos, status);
-      }
+      if (!cartaoElementos) continue;
+      renderizarStatusCredencial(cartaoElementos, status);
+      cartaoElementos.campoSenha.value = status.definido
+        ? (await api.senhaCredencialSankhya(status.sistema)).senha
+        : '';
     }
   } catch (erro) {
     for (const cartaoElementos of cartoes) {
@@ -4894,7 +4897,6 @@ async function salvarCredencialDoCartao(cartaoElementos) {
   cartaoElementos.botaoSalvar.disabled = true;
   try {
     const status = await api.salvarCredencialSankhya(cartaoElementos.sistema, usuario, senha);
-    cartaoElementos.campoSenha.value = '';
     renderizarStatusCredencial(cartaoElementos, status);
     exibirAviso('Credencial salva. Logando automaticamente…');
   } catch (erro) {

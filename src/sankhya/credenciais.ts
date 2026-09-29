@@ -2,9 +2,10 @@
  * Credenciais do Sankhya ERP e do Sankhya Experience, guardadas pelo cofre do
  * shell desktop (`safeStorage` do Electron) — nunca em texto puro pelo HUB SNK.
  *
- * `revelar()` não tem rota HTTP correspondente, de propósito: o valor
- * decriptado só existe dentro do backend, para autenticar chamadas server-to-
- * server (`Experience`). Nenhum caminho leva a senha ou o token até o navegador.
+ * `revelar()` não tem rota HTTP correspondente, de propósito: cookies e token
+ * só existem dentro do backend, para autenticar chamadas server-to-server
+ * (`Experience`). A senha, e só ela, vai ao navegador por `revelarSenha()`:
+ * a janela de credenciais a mostra, decisão consciente de quem usa o hub.
  */
 import type { OpcoesDaPonte, PonteDoDesktop } from './ponteDoDesktop.ts';
 import type { SessaoDoDesktop, SessaoEmpurrada } from './sessaoDoDesktop.ts';
@@ -113,6 +114,15 @@ export class Credenciais {
       method: 'DELETE',
     });
     return montar(sistema, corpo);
+  }
+
+  /**
+   * A senha guardada no cofre, e nada mais — nem a sessão empurrada da
+   * Experience, que não tem senha, serve aqui.
+   */
+  async revelarSenha(sistema: SistemaSankhya): Promise<string> {
+    const segredo = await this.#requisitar<SegredoSankhya>(`/credentials/${sistema}/reveal`);
+    return segredo.senha ?? '';
   }
 
   /**
