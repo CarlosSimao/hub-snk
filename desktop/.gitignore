@@ -1,6 +1,5 @@
 node_modules/
 dist/
-.perfil/
 
-# Artefatos do empacotamento (Fase 4): staging do backend e instaladores gerados.
+# Artefatos do empacotamento: staging do backend e instaladores gerados.
 build/

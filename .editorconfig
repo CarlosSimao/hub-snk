@@ -14,6 +14,8 @@ trim_trailing_whitespace = true
 [*.md]
 trim_trailing_whitespace = false
 
-# Arquivos que só o Windows lê.
-[*.{vbs,iss}]
+# Scripts que o instalador roda no Windows PowerShell 5.1: CRLF, como manda o
+# .gitattributes, e UTF-8 com BOM, sem o qual ele lê os acentos como ANSI.
+[*.ps1]
 end_of_line = crlf
+charset = utf-8-bom
