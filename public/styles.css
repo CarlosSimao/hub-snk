@@ -2175,6 +2175,11 @@ button.selo-situacao:focus-visible {
   gap: 6px;
 }
 
+/* Mesmo motivo do `.campo[hidden]`: o `display: flex` venceria o atributo. */
+.barra-da-arvore-acoes[hidden] {
+  display: none;
+}
+
 .arvore-de-favoritos {
   max-height: 46vh;
   overflow: auto;
@@ -2406,6 +2411,11 @@ button.selo-situacao:focus-visible {
   border-bottom: 1px solid var(--border);
   font-size: 11.5px;
   color: var(--text-dim);
+}
+
+/* Mesmo motivo do `.campo[hidden]`: o `display: flex` venceria o atributo. */
+.barra-de-exportacao[hidden] {
+  display: none;
 }
 
 .linhas-de-exportacao {
