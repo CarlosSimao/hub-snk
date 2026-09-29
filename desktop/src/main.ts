@@ -51,6 +51,10 @@ function criarJanela(): void {
   // A barra nativa ocupava uma linha inteira só para o menu: ele passa a abrir pelo botão
   // da barra de guias. O menu continua registrado, então os atalhos seguem valendo.
   janelaPrincipal.setMenuBarVisibility(false);
+  // A barra de guias é a única página com o preload: arrastar um link ou arquivo para ela
+  // a navegaria para fora, e a página de destino ganharia o `window.hub`.
+  janelaPrincipal.webContents.on('will-navigate', (evento) => evento.preventDefault());
+  janelaPrincipal.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   janelaPrincipal.loadFile(join(__dirname, '..', 'index.html'));
   janelaPrincipal.on('resize', () => tabs?.reposicionar());
   // Fechar a janela principal encerra o aplicativo mesmo com uma janela filha aberta
@@ -136,25 +140,45 @@ function criarJanela(): void {
   }, 15_000);
 }
 
-ipcMain.handle('layout:definirAlturaTopo', (_evt, altura: number) => {
+/**
+ * Canal que só a barra de guias chama. O preload só existe nela, mas conferir o remetente
+ * custa uma linha e não depende de nenhuma outra página nunca ganhar o preload.
+ */
+function tratarDaBarraDeGuias<A extends unknown[], R>(
+  canal: string,
+  tratar: (...argumentos: A) => R,
+): void {
+  ipcMain.handle(canal, (evento, ...argumentos) => {
+    const daBarra =
+      evento.sender === janelaPrincipal?.webContents &&
+      evento.senderFrame === evento.sender.mainFrame;
+    if (!daBarra) {
+      logEvento('ipc-recusado', { canal });
+      throw new Error(`o canal ${canal} só atende a barra de guias`);
+    }
+    return tratar(...(argumentos as A));
+  });
+}
+
+tratarDaBarraDeGuias('layout:definirAlturaTopo', (altura: number) => {
   tabs?.definirAlturaTopo(altura);
   return { ok: true };
 });
 
-ipcMain.handle('menu:abrir', (_evt, x: number, y: number) => {
+tratarDaBarraDeGuias('menu:abrir', (x: number, y: number) => {
   const menu = Menu.getApplicationMenu();
   if (!menu || !janelaPrincipal) return { ok: false };
   menu.popup({ window: janelaPrincipal, x: Math.round(x), y: Math.round(y) });
   return { ok: true };
 });
 
-ipcMain.handle('tabs:mostrar', (_evt, id: string) => ({ ok: tabs?.mostrar(id) ?? false }));
-ipcMain.handle('guias:estado', () => tabs?.guiasAbertas() ?? []);
-ipcMain.handle('tabs:recarregar', (_evt, id: string) => ({ ok: tabs?.recarregar(id) ?? false }));
-ipcMain.handle('links:fechar', (_evt, origin: string) => ({
+tratarDaBarraDeGuias('tabs:mostrar', (id: string) => ({ ok: tabs?.mostrar(id) ?? false }));
+tratarDaBarraDeGuias('guias:estado', () => tabs?.guiasAbertas() ?? []);
+tratarDaBarraDeGuias('tabs:recarregar', (id: string) => ({ ok: tabs?.recarregar(id) ?? false }));
+tratarDaBarraDeGuias('links:fechar', (origin: string) => ({
   ok: tabs?.fecharAbaCliente(origin) ?? false,
 }));
-ipcMain.handle('links:lista', () => tabs?.abasClientesAbertas() ?? []);
+tratarDaBarraDeGuias('links:lista', () => tabs?.abasClientesAbertas() ?? []);
 
 app.whenReady().then(async () => {
   logEvento('app-pronto');

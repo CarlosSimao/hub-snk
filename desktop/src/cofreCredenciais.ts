@@ -5,7 +5,7 @@
  * O valor decriptado nasce e morre dentro do processo do shell, e só sai pela ponte em
  * `127.0.0.1`, protegida por token.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { app, safeStorage } from 'electron';
 import { logEvento } from './log';
@@ -96,16 +96,29 @@ function ler(): CofreGravado {
   try {
     return JSON.parse(readFileSync(ARQUIVO, 'utf8')) as CofreGravado;
   } catch {
-    // Arquivo truncado por desligamento no meio da escrita. Perder a credencial é ruim,
-    // mas travar o shell por causa dela é pior — o usuário regrava pela tela.
-    logEvento('cofre-ilegivel');
+    // Travar o shell por causa do cofre seria pior que perder a credencial — o usuário a
+    // regrava pela tela. Mas o arquivo sai do caminho em vez de ficar para ser sobrescrito
+    // pela próxima gravação automática de sessão: quem precisar ainda o tem.
+    const guardado = `${ARQUIVO}.ilegivel-${Date.now()}`;
+    try {
+      renameSync(ARQUIVO, guardado);
+      logEvento('cofre-ilegivel', { guardadoEm: guardado });
+    } catch (erro) {
+      logEvento('cofre-ilegivel-nao-guardado', { erro: String(erro) });
+    }
     return {};
   }
 }
 
+/**
+ * Grava ao lado e renomeia por cima: uma queda no meio da escrita deixa o cofre
+ * anterior intacto, em vez de um arquivo pela metade que apagaria as duas credenciais.
+ */
 function gravarArquivo(cofre: CofreGravado): void {
   mkdirSync(dirname(ARQUIVO), { recursive: true });
-  writeFileSync(ARQUIVO, JSON.stringify(cofre, null, 2), 'utf8');
+  const temporario = `${ARQUIVO}.tmp`;
+  writeFileSync(temporario, JSON.stringify(cofre, null, 2), 'utf8');
+  renameSync(temporario, ARQUIVO);
 }
 
 function statusDe(entrada: EntradaGravada | undefined): StatusCredencial {
