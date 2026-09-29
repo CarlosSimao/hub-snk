@@ -23,6 +23,9 @@ versão antiga e mantém o cadastro onde está.
   clica em entrar.
 - **Login automático no Sankhya Om e na Experience**: com a credencial salva, a
   guia que cai na tela de login entra sozinha, inclusive ao abrir o aplicativo.
+  Se o Sankhya recusar a senha salva duas vezes seguidas, o login automático para,
+  para não bloquear a conta, até a senha ser salva de novo em Credenciais Sankhya
+  (ou o aplicativo ser reaberto).
 - **Credenciais Sankhya**: usuário e senha do Sankhya Om e da Experience ficam no
   cofre do aplicativo (`safeStorage`, o cofre do sistema operacional), cifrados.
   A janela mostra a senha salva, com o olho para revelar o texto, e **Abrir guia**
@@ -135,6 +138,38 @@ versão antiga e mantém o cadastro onde está.
   abaixo do rótulo.
 - Base cadastrada em https cujo servidor rebaixa para http no redirecionamento
   deixava o login carregando para sempre na guia. Agora a guia volta para https.
+- O seletor de pasta e de arquivo devolvia caminho com acento corrompido
+  ("Área de Trabalho", "C:\Users\João"), e o caminho gravado não existia.
+- Salvar ao mesmo tempo duas alterações da configuração, dos lembretes, dos
+  contatos, das notificações ou do ambiente local podia perder uma delas.
+- Os avisos disparados com um modal aberto ("Credencial salva", "X copiado",
+  "Arquivo de exportação gerado") ficavam por baixo dele, ilegíveis.
+- A barra "Marcar todas" da exportação aparecia vazia com uma única base, e
+  "Manter todos os atuais / Substituir todos" apareciam sem conflito nenhum.
+- Um erro ao gravar os nomes completos deixava o cliente já criado, e salvar de
+  novo cadastrava um segundo.
+- O script do WildFly não rodava com a pasta dele com espaço, e uma pasta com `&`
+  no nome executava o texto depois do `&` como comando.
+- O script padrão do terminal com `;` (`git fetch; git status`) era partido pelo
+  Windows Terminal e abria com uma aba a mais.
+- A importação de repositórios abria dois processos `git` por repositório de uma
+  vez só — até mil numa pasta grande.
+
+### Segurança
+
+- O preenchimento automático só entrega usuário e senha a uma página do host
+  esperado: a da própria base, ou `sankhya.com.br` para o Sankhya Om e a
+  Experience. Antes, um redirecionamento ou um link clicado no meio do login
+  recebia a credencial.
+- O aplicativo instalado não usa um backend que não é dele: com a porta 4100
+  ocupada por outro programa, avisa em vez de entregar o token do aplicativo a
+  ele.
+- Pop-up de uma base para outro site abre no navegador do sistema, e não numa
+  janela do aplicativo sem barra de endereço.
+- A senha do banco local deixa de ir na linha de comando do `docker exec`, que
+  qualquer programa da máquina lê.
+- Um remoto `https://usuario:token@...` importado deixa de levar o usuário e o
+  token para o cadastro e para o arquivo exportado.
 
 ### Migração da versão 1
 
