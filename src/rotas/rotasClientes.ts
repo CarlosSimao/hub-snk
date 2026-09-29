@@ -46,6 +46,7 @@ import {
 } from '../sistema/historicoDeSituacaoDaBaseDoCliente.ts';
 
 const TAMANHO_MAXIMO_DO_NOME = 120;
+const MAXIMO_DE_NOMES_COMPLETOS = 20;
 const TAMANHO_MAXIMO_DA_URL = 300;
 const TAMANHO_MAXIMO_DO_USUARIO = 120;
 const TAMANHO_MAXIMO_DA_SENHA = 200;
@@ -107,7 +108,10 @@ const esquemaDeNomesCompletos = z.object({
           `Cada nome deve ter no máximo ${TAMANHO_MAXIMO_DO_NOME} caracteres.`,
         ),
     )
-    .max(20, 'No máximo 20 nomes completos por cliente.'),
+    .max(
+      MAXIMO_DE_NOMES_COMPLETOS,
+      `No máximo ${MAXIMO_DE_NOMES_COMPLETOS} nomes completos por cliente.`,
+    ),
 });
 
 const esquemaDeDadosDeBase = z.object({

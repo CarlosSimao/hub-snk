@@ -46,6 +46,8 @@ const ID_DO_CAMPO_DE_ANOTACOES = 'campo-anotacoes';
 const LINHAS_DO_CAMPO_DE_ANOTACOES = 5;
 /* Mesmo limite validado no servidor. */
 const TAMANHO_MAXIMO_DAS_ANOTACOES = 5000;
+/* O mesmo limite de `src/rotas/rotasClientes.ts`: cobrado aqui antes de gravar qualquer coisa. */
+const MAXIMO_DE_NOMES_COMPLETOS = 20;
 
 const ROTULOS_DE_TIPO_DE_BASE = {
   producao: 'Produção',
@@ -3945,6 +3947,13 @@ async function salvarCliente(evento) {
   }
 
   const nomesCompletos = lerNomesCompletosDoFormulario();
+  if (nomesCompletos.length > MAXIMO_DE_NOMES_COMPLETOS) {
+    exibirErro(
+      elementos.erroCliente,
+      `No máximo ${MAXIMO_DE_NOMES_COMPLETOS} nomes completos por cliente.`,
+    );
+    return;
+  }
 
   limparErro(elementos.erroCliente);
   elementos.botaoSalvarCliente.disabled = true;
@@ -3952,6 +3961,9 @@ async function salvarCliente(evento) {
   try {
     const emEdicao = estado.clienteEmEdicao;
     let cliente = emEdicao ? await api.atualizar(emEdicao.id, nome) : await api.criar(nome);
+    // São duas gravações: se a dos nomes falhar, o cliente já existe, e salvar de novo
+    // precisa atualizá-lo em vez de cadastrar um segundo.
+    estado.clienteEmEdicao = cliente;
 
     cliente = await api.salvarNomesCompletos(cliente.id, nomesCompletos);
 
