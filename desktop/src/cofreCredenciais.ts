@@ -48,6 +48,39 @@ type CofreGravado = Partial<Record<Sistema, EntradaGravada>>;
 
 const ARQUIVO = join(app.getPath('userData'), 'credenciais.json');
 
+/*
+ * Com a senha trocada fora do HUB SNK, as janelas ocultas e o login automático das guias
+ * repetiriam a senha antiga para sempre — a cada consulta da Agenda, a cada renovação do
+ * token da Experience — até o Sankhya bloquear a conta. Depois deste tanto de recusas
+ * seguidas, o login automático para até a senha ser regravada. Em memória de propósito:
+ * reabrir o aplicativo dá uma nova chance.
+ */
+const LIMITE_DE_LOGINS_RECUSADOS = 2;
+const loginsRecusadosSeguidos = new Map<Sistema, number>();
+
+export const MENSAGEM_DE_LOGIN_SUSPENSO =
+  'login automático suspenso: o Sankhya recusou a senha salva mais de uma vez seguida — ' +
+  'confira usuário e senha em Credenciais Sankhya e salve de novo';
+
+export function loginAutomaticoSuspenso(sistema: Sistema): boolean {
+  return (loginsRecusadosSeguidos.get(sistema) ?? 0) >= LIMITE_DE_LOGINS_RECUSADOS;
+}
+
+/** Chamado por quem submeteu a senha, com o veredito do próprio critério de sucesso. */
+export function registrarLoginAutomatico(sistema: Sistema, aceito: boolean): void {
+  if (aceito) {
+    loginsRecusadosSeguidos.delete(sistema);
+    return;
+  }
+  const recusados = (loginsRecusadosSeguidos.get(sistema) ?? 0) + 1;
+  loginsRecusadosSeguidos.set(sistema, recusados);
+  logEvento('login-automatico-recusado', {
+    sistema,
+    recusados,
+    suspenso: recusados >= LIMITE_DE_LOGINS_RECUSADOS,
+  });
+}
+
 function cifrar(valor: string): string {
   if (!valor) return '';
   return safeStorage.encryptString(valor).toString('base64');
@@ -104,6 +137,7 @@ export function gravar(sistema: Sistema, usuario: string, senha: string): Status
     expira: anterior?.expira ?? '',
   };
   gravarArquivo(cofre);
+  loginsRecusadosSeguidos.delete(sistema);
   return statusDe(cofre[sistema]);
 }
 
@@ -129,6 +163,7 @@ export function remover(sistema: Sistema): StatusCredencial {
   const cofre = ler();
   delete cofre[sistema];
   gravarArquivo(cofre);
+  loginsRecusadosSeguidos.delete(sistema);
   return statusDe(undefined);
 }
 

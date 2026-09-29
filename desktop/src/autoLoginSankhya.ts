@@ -10,7 +10,9 @@
  * preenchimento pode disparar SSO, MFA ou um redirect que só resolve alguns segundos
  * depois de o formulário submeter.
  */
+import type { WebContents } from 'electron';
 import * as cofre from './cofreCredenciais';
+import { URL_WORKSPACE_ERP } from './config';
 import { logEvento } from './log';
 import { capturar, urlDeLogin, type ResultadoCaptura } from './navegador';
 import { preencherESubmeterLogin } from './loginOcultoSankhya';
@@ -19,6 +21,9 @@ import type { TabManager } from './tabs';
 /** Tempo para o POST de login terminar e a página redirecionar antes de ler cookie/token. */
 const PAUSA_APOS_SENHA_MS = 2_000;
 const TENTATIVAS_DE_CAPTURA = 5;
+/** Tempo para o Sankhya Om sair da tela de login e abrir o workspace. */
+const ESPERA_WORKSPACE_MS = 30_000;
+const INTERVALO_MS = 1_000;
 /** Evita reentrar a cada `did-finish-load` da própria navegação que este módulo dispara. */
 const COOLDOWN_MS = 20_000;
 
@@ -26,13 +31,26 @@ const emAndamento = new Set<cofre.Sistema>();
 const ultimaTentativa = new Map<cofre.Sistema, number>();
 
 export function podeTentar(sistema: cofre.Sistema): boolean {
-  if (emAndamento.has(sistema)) return false;
+  if (emAndamento.has(sistema) || cofre.loginAutomaticoSuspenso(sistema)) return false;
   const anterior = ultimaTentativa.get(sistema);
   return !anterior || Date.now() - anterior > COOLDOWN_MS;
 }
 
 function pausa(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * O Sankhya Om pede a senha na própria `/mge/` e deixa cookie antes do login: nem a URL
+ * nem a captura dizem se a senha foi aceita. Só a chegada ao workspace diz.
+ */
+async function chegouAoWorkspaceDoErp(wc: WebContents): Promise<boolean> {
+  const inicio = Date.now();
+  while (!wc.isDestroyed() && Date.now() - inicio < ESPERA_WORKSPACE_MS) {
+    if (wc.getURL().startsWith(URL_WORKSPACE_ERP)) return true;
+    await pausa(INTERVALO_MS);
+  }
+  return false;
 }
 
 /**
@@ -44,6 +62,9 @@ export async function autoLoginSankhya(
   tabs: TabManager | null,
   sistema: cofre.Sistema,
 ): Promise<ResultadoCaptura> {
+  if (cofre.loginAutomaticoSuspenso(sistema)) {
+    return { ok: false, cookies: 0, erro: cofre.MENSAGEM_DE_LOGIN_SUSPENSO };
+  }
   if (!podeTentar(sistema)) {
     return { ok: false, cookies: 0, erro: 'login automático já em andamento ou tentado há pouco' };
   }
@@ -78,15 +99,26 @@ export async function autoLoginSankhya(
       };
     }
 
+    if (sistema === 'sankhya-erp' && !(await chegouAoWorkspaceDoErp(view.webContents))) {
+      cofre.registrarLoginAutomatico(sistema, false);
+      return {
+        ok: false,
+        cookies: 0,
+        erro: 'o Sankhya Om não aceitou o login automático — confira usuário e senha salvos',
+      };
+    }
+
     await pausa(PAUSA_APOS_SENHA_MS);
     for (let tentativa = 0; tentativa < TENTATIVAS_DE_CAPTURA; tentativa++) {
       const resultado = await capturar(tabs, sistema);
       if (resultado.ok) {
+        cofre.registrarLoginAutomatico(sistema, true);
         logEvento('autologin-sankhya-concluido', { sistema });
         return resultado;
       }
-      await pausa(1_000);
+      await pausa(INTERVALO_MS);
     }
+    cofre.registrarLoginAutomatico(sistema, false);
     return {
       ok: false,
       cookies: 0,

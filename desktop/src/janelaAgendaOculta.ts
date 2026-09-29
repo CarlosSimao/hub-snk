@@ -13,7 +13,7 @@
  */
 import { type BrowserWindow, type WebContents } from 'electron';
 import * as cofre from './cofreCredenciais';
-import { ERP_URL } from './config';
+import { ERP_URL, URL_WORKSPACE_ERP } from './config';
 import { logEvento } from './log';
 import { criarJanelaOculta, preencherESubmeterLogin } from './loginOcultoSankhya';
 
@@ -37,14 +37,12 @@ export interface ConsultorDeAgenda {
 const PARTICAO_AGENDA = 'persist:sankhya-hub-agenda';
 const RES = 'br.com.sankhya.os.mov.agenda.recursos';
 const MARCADOR_TELA = 'AgendaRecursos.xhtml5';
-const ORIGEM_ERP = new URL(ERP_URL).origin;
 /**
  * O workspace abre a tela ao receber este hash — o mesmo efeito de um clique de menu, que
  * registra o `resourceID` na sessão. Carregar o `.xhtml5` direto por URL responde 500: a
  * tela não existe sem esse registro server-side (descoberto no diagnóstico ao vivo).
  */
 const HASH_TELA_AGENDA = `#app/${Buffer.from(RES, 'utf8').toString('base64')}`;
-const URL_WORKSPACE = `${ORIGEM_ERP}/mge/system.jsp`;
 
 const INTERVALO_MS = 1_000;
 /** Tempo para o POST de login redirecionar antes de considerar autenticado. */
@@ -56,10 +54,6 @@ const CLIENT_EVENT = { clientEvent: [{ $: 'br.com.sankhya.mgeserv.event.envio.em
 
 function pausa(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function ehTelaDeLogin(url: string): boolean {
-  return /login|signin|gotologin/i.test(url);
 }
 
 /**
@@ -217,6 +211,9 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
         erro: 'sem usuário/senha do Sankhya OM salvos — configure o login do ERP',
       };
     }
+    if (cofre.loginAutomaticoSuspenso('sankhya-erp')) {
+      return { ok: false, erro: cofre.MENSAGEM_DE_LOGIN_SUSPENSO };
+    }
 
     this.#criarJanela();
     const wc = this.#janela!.webContents;
@@ -244,17 +241,23 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
     logEvento('agenda-oculta-janela-criada');
   }
 
-  /** Preenche/submete o login web e espera sair da tela de login. */
+  /** Preenche/submete o login web e espera chegar ao workspace. */
   async #logar(wc: WebContents, usuario: string, senha: string): Promise<boolean> {
     const submeteu = await preencherESubmeterLogin(wc, usuario, senha);
     if (!submeteu) {
       logEvento('agenda-oculta-sem-tela-de-login');
       return false;
     }
-    return this.#esperarAutenticado(wc);
+    const autenticou = await this.#esperarAutenticado(wc);
+    cofre.registrarLoginAutomatico('sankhya-erp', autenticou);
+    return autenticou;
   }
 
-  /** Espera a navegação sair da tela de login (o POST de login redireciona para o workspace). */
+  /**
+   * Espera o workspace. A senha é pedida na própria `/mge/`, então "a URL não fala em
+   * login" não prova nada: com a senha errada a página fica ali, e só o login aceito leva
+   * ao `system.jsp`.
+   */
   #esperarAutenticado(wc: WebContents): Promise<boolean> {
     return new Promise((resolve) => {
       const inicio = Date.now();
@@ -264,7 +267,7 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
           resolve(false);
           return;
         }
-        if (!ehTelaDeLogin(wc.getURL())) {
+        if (wc.getURL().startsWith(URL_WORKSPACE_ERP)) {
           clearInterval(intervalo);
           resolve(true);
           return;
@@ -292,7 +295,7 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
         return { ok: false, erro: 'a janela da Agenda foi fechada durante o carregamento' };
 
       // Só mexe no hash quando já está no workspace, senão o hash é perdido no redirect.
-      if (wc.getURL().startsWith(URL_WORKSPACE)) {
+      if (wc.getURL().startsWith(URL_WORKSPACE_ERP)) {
         await wc.executeJavaScript(scriptAbrirTela(), true).catch(() => '');
       }
 

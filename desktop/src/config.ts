@@ -17,6 +17,12 @@ export const ERP_URL = process.env['SANKHYA_ERP_URL'] ?? 'https://skw.sankhya.co
 export const EXPERIENCE_URL =
   process.env['SANKHYA_EXPERIENCE_URL'] ?? 'https://experience.sankhya.com.br/';
 
+/**
+ * Workspace do Sankhya Om: é para onde o login aceito leva. A senha é pedida na própria
+ * `/mge/`, então sair da tela de login não aparece na URL de outro jeito.
+ */
+export const URL_WORKSPACE_ERP = new URL('system.jsp', ERP_URL).href;
+
 /** Domínios cujos cookies confirmam o login no ERP — nunca saem do processo. */
 export const DOMINIOS_ERP = ['sankhya.com.br'];
 

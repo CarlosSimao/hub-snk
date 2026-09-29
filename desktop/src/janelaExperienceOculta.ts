@@ -63,6 +63,7 @@ export class JanelaExperienceOculta {
 
     const segredo = cofre.revelar('sankhya-experience');
     if (!segredo.usuario || !segredo.senha) return SEM_SESSAO;
+    if (cofre.loginAutomaticoSuspenso('sankhya-experience')) return SEM_SESSAO;
 
     this.#criarJanela();
     const wc = this.#janela!.webContents;
@@ -80,10 +81,16 @@ export class JanelaExperienceOculta {
 
     const submeteu = await preencherESubmeterLogin(wc, segredo.usuario, segredo.senha);
     if (!submeteu) {
+      // A partição é persistente: com a sessão ainda viva, a Experience abre logada e não
+      // há tela de login — o token já está lá.
+      const jaLogada = await capturarTokenDeWebContents(wc).catch(() => SEM_SESSAO);
+      if (jaLogada.presente) return jaLogada;
       logEvento('experience-oculta-sem-tela-de-login');
       return SEM_SESSAO;
     }
-    return this.#esperarToken(wc);
+    const sessao = await this.#esperarToken(wc);
+    cofre.registrarLoginAutomatico('sankhya-experience', sessao.presente);
+    return sessao;
   }
 
   #criarJanela(): void {
