@@ -141,13 +141,8 @@ export class Experience {
    * por projeto (`/persons/implantation/{id}` não existe; testado e devolve
    * 403 tanto com o FAP quanto com o `implantation_id` real). O jeito certo é
    * `/persons/information-by-email`, sem projeto nenhum envolvido.
-   *
-   * `projetoId` é só para achar o NOME: essa rota não devolve nome, então
-   * busca opcionalmente na lista de pessoas do projeto (mesma lista do filtro
-   * de tarefas) pra casar pelo `person_id`. Sem `projetoId`, ou sem achar o
-   * nome lá, devolve `nome: ''`.
    */
-  async descobrirPersonId(projetoId?: number): Promise<{ personId: number; nome: string } | null> {
+  async descobrirPersonId(): Promise<number | null> {
     const token = await this.#token();
 
     const payload = token.split('.')[1];
@@ -170,17 +165,7 @@ export class Experience {
       },
     );
     const personId = Number(corpo.data?.user_id);
-    if (!Number.isFinite(personId)) return null;
-
-    if (projetoId === undefined) {
-      return { personId, nome: '' };
-    }
-
-    const pessoas = await this.#chamar<{ data?: Record<string, unknown>[] }>(
-      `/tasks/implantation/${projetoId}/filter/persons`,
-    );
-    const eu = (pessoas.data ?? []).find((p) => Number(p['person_id']) === personId);
-    return { personId, nome: texto(eu?.['person_name']) };
+    return Number.isFinite(personId) ? personId : null;
   }
 
   /**
@@ -328,11 +313,6 @@ export class Experience {
     return implantacoes;
   }
 
-  async #implantationIdPorFap(fapNumero: number): Promise<number | null> {
-    const implantacoes = await this.#implantacoesComFap();
-    return implantacoes.find((i) => i.fap === fapNumero)?.id ?? null;
-  }
-
   /**
    * Detalhe de uma OS já lançada: o texto de "Tarefas Realizadas" (etapa,
    * processos e observações — junta mais de uma linha quando a OS consolida
@@ -382,16 +362,25 @@ export class Experience {
    *
    * Testa um FAP por vez e para no primeiro que achar OS ou tarefa — não
    * precisa somar os FAPs, só saber o estado.
+   *
+   * A lista de implantações (até `MAX_PAGINAS` páginas) e o `person_id` saem uma
+   * vez por chamada, não por FAP: roda para cada parceiro do dia a cada verificação
+   * da agenda, e o `person_id` não depende do projeto.
    */
   async situacaoDoDia(fapIds: number[], dia: string): Promise<SituacaoDoDia> {
+    if (fapIds.length === 0) return { tipo: 'sem-tarefa' };
+
+    const [implantacoes, personId] = await Promise.all([
+      this.#implantacoesComFap(),
+      this.descobrirPersonId(),
+    ]);
+    if (personId === null) return { tipo: 'sem-tarefa' };
+
     for (const fapId of fapIds) {
-      const implantationId = await this.#implantationIdPorFap(fapId);
+      const implantationId = implantacoes.find((i) => i.fap === fapId)?.id ?? null;
       if (implantationId === null) continue;
 
-      const pessoa = await this.descobrirPersonId(implantationId);
-      if (!pessoa) continue;
-
-      const ordens = await this.ordens(implantationId, pessoa.personId, dia, dia);
+      const ordens = await this.ordens(implantationId, personId, dia, dia);
       const ordemDoDia = ordens.find((o) => o.dia === dia);
       if (ordemDoDia) {
         const detalhe = await this.#detalheDaOrdem(ordemDoDia.id);
@@ -404,7 +393,7 @@ export class Experience {
         };
       }
 
-      const tarefas = await this.tarefas(implantationId, pessoa.personId);
+      const tarefas = await this.tarefas(implantationId, personId);
       if (tarefas.some((t) => t.dia === dia)) {
         return { tipo: 'tarefa-aberta' };
       }

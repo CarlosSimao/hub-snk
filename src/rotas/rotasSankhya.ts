@@ -85,9 +85,9 @@ async function atualizarExperiencePersonId(
   repositorioDeConfiguracao: RepositorioConfiguracao,
 ): Promise<void> {
   try {
-    const pessoa = await experience.descobrirPersonId();
-    if (pessoa) {
-      await repositorioDeConfiguracao.definirExperiencePersonId(String(pessoa.personId));
+    const personId = await experience.descobrirPersonId();
+    if (personId !== null) {
+      await repositorioDeConfiguracao.definirExperiencePersonId(String(personId));
     }
   } catch {
     // Sem sessão, sem rede: a aba OS só reflete o valor antigo até a próxima captura.
