@@ -78,3 +78,30 @@ describe('POST /api/clientes/:id/bases/:idBase/senha', () => {
     assert.equal(resposta.statusCode, 404);
   });
 });
+
+describe('DELETE /api/clientes/:id', () => {
+  it('avisa quem depende do cliente depois de excluí-lo', async () => {
+    const pastaDeDados = mkdtempSync(join(pasta, 'dados-'));
+    const repositorio = new RepositorioClientesArquivo(pastaDeDados);
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    const removidos: string[] = [];
+    const servidor = Fastify();
+    registrarRotasDeClientes(
+      servidor,
+      repositorio,
+      new RepositorioConfiguracaoArquivo(pastaDeDados),
+      arquivoDeToken,
+      async (clienteId) => {
+        removidos.push(clienteId);
+      },
+    );
+
+    const resposta = await servidor.inject({
+      method: 'DELETE',
+      url: `/api/clientes/${cliente.id}`,
+    });
+
+    assert.equal(resposta.statusCode, 204);
+    assert.deepEqual(removidos, [cliente.id]);
+  });
+});

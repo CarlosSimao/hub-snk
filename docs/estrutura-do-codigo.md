@@ -18,6 +18,8 @@ src/
   repositorio/repositorioLocalArquivo.ts    bases e bancos locais em arquivo JSON
   repositorio/repositorioLembretes.ts       contrato dos lembretes
   repositorio/repositorioLembretesArquivo.ts  lembretes em arquivo JSON local
+  repositorio/repositorioContatos.ts        contrato dos contatos
+  repositorio/repositorioContatosArquivo.ts contatos em arquivo JSON local
   repositorio/repositorioNotificacoes.ts    contrato do painel de notificações
   repositorio/repositorioNotificacoesArquivo.ts  notificações e chaves emitidas em arquivo JSON
   rotas/protecaoDeOrigem.ts                 confere Host e Origin antes de qualquer rota
@@ -31,6 +33,7 @@ src/
   rotas/rotasAgenda.ts                      Agenda de Recursos e situação do dia na Experience
   rotas/rotasNotificacoes.ts                painel de notificações, fluxo SSE e e-mail de teste
   rotas/rotasLembretes.ts                   cadastro dos lembretes e prévia do cron
+  rotas/rotasContatos.ts                    cadastro dos contatos
   rotas/esquemaDeNotificacoes.ts            validação do SMTP e do alerta da agenda
   rotas/autenticacaoDoShell.ts              confere o token das rotas que só o shell desktop chama
   rotas/respostasDoShell.ts                 traduz a falha da ponte com o shell em resposta HTTP
@@ -45,6 +48,7 @@ src/
   notificacoes/verificadorDaAgendaDoDia.ts  alerta de evento de hoje sem OS lançada, a cada 15 minutos
   notificacoes/disparoDeLembretes.ts        quando cada lembrete dispara (croner)
   notificacoes/agendadorDeLembretes.ts      confere os lembretes a cada 30 segundos e dispara os vencidos
+  notificacoes/emailDoLembrete.ts           assunto, HTML com a logo e texto puro do e-mail do lembrete
   notificacoes/relogio.ts                   datas no fuso da máquina
   sankhya/experience.ts                     leitura da API da Experience com o JWT da guia
   git/executarGit.ts                        executa comandos git sem shell e sem prompt

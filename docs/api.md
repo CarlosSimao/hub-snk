@@ -75,6 +75,10 @@ O servidor só escuta em loopback: um `HUB_HOST` fora dele é recusado na largad
 | `PUT`    | `/api/lembretes/:id`                                        | `200` — lembrete atualizado                                              |
 | `DELETE` | `/api/lembretes/:id`                                        | `204` — sem conteúdo                                                     |
 | `GET`    | `/api/lembretes/previa?expressao=`                          | `200` — `{ ocorrencias }`, as três próximas; `400` com o cron inválido   |
+| `GET`    | `/api/contatos`                                             | `200` — `{ contatos }`                                                   |
+| `POST`   | `/api/contatos`                                             | `201` — contato criado                                                   |
+| `PUT`    | `/api/contatos/:id`                                         | `200` — contato atualizado                                               |
+| `DELETE` | `/api/contatos/:id`                                         | `204` — sem conteúdo                                                     |
 
 ## Integração com o Sankhya e com o aplicativo desktop
 

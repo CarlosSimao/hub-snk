@@ -7,6 +7,7 @@ import {
   validarExpressaoCron,
 } from '../notificacoes/disparoDeLembretes.ts';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
+import type { RepositorioContatos } from '../repositorio/repositorioContatos.ts';
 import {
   LembreteNaoEncontradoError,
   type DadosDeLembrete,
@@ -14,12 +15,21 @@ import {
 } from '../repositorio/repositorioLembretes.ts';
 import { TIPOS_DE_LEMBRETE, type Lembrete } from '../tipos.ts';
 
+const TAMANHO_MAXIMO_DO_RESUMO = 120;
 const TAMANHO_MAXIMO_DO_TEXTO = 1000;
 const TAMANHO_MAXIMO_DA_EXPRESSAO = 120;
 const OCORRENCIAS_NA_PREVIA = 3;
 
 const esquemaDeLembrete = z
   .object({
+    resumo: z
+      .string({ error: 'Informe o resumo do lembrete.' })
+      .trim()
+      .min(1, 'Informe o resumo do lembrete.')
+      .max(
+        TAMANHO_MAXIMO_DO_RESUMO,
+        `O resumo deve ter no máximo ${TAMANHO_MAXIMO_DO_RESUMO} caracteres.`,
+      ),
     texto: z
       .string({ error: 'Informe o texto do lembrete.' })
       .trim()
@@ -38,6 +48,7 @@ const esquemaDeLembrete = z
     clienteId: z.string().min(1).nullable().default(null),
     projetoId: z.string().min(1).nullable().default(null),
     enviarEmail: z.boolean().default(false),
+    contatoIds: z.array(z.string().min(1)).default([]),
     ativo: z.boolean().default(true),
   })
   .superRefine((lembrete, contexto) => {
@@ -80,6 +91,7 @@ export function registrarRotasDeLembretes(
   servidor: FastifyInstance,
   repositorio: RepositorioLembretes,
   clientes: RepositorioClientes,
+  contatos: RepositorioContatos,
 ): void {
   /** Cliente e projeto precisam existir, e o projeto precisa ser daquele cliente. */
   async function validarVinculo(dados: DadosDeLembrete): Promise<string | null> {
@@ -97,6 +109,36 @@ export function registrarRotasDeLembretes(
     return null;
   }
 
+  /**
+   * Os contatos recebem o e-mail em cópia: precisam existir e ter e-mail. Com cliente no
+   * lembrete, só vale contato sem cliente ou desse cliente; contato de cliente já
+   * excluído vale como sem cliente.
+   */
+  async function validarContatos(dados: DadosDeLembrete): Promise<string | null> {
+    if (!dados.enviarEmail || dados.contatoIds.length === 0) {
+      return null;
+    }
+
+    const cadastrados = await contatos.listar();
+    for (const id of dados.contatoIds) {
+      const contato = cadastrados.find((item) => item.id === id);
+      if (!contato) {
+        return 'Contato não encontrado.';
+      }
+      if (contato.email === '') {
+        return `O contato ${contato.nome} não tem e-mail.`;
+      }
+      if (dados.clienteId === null || contato.clienteId === null) {
+        continue;
+      }
+      const clienteDoContato = await clientes.buscarPorId(contato.clienteId);
+      if (clienteDoContato && clienteDoContato.id !== dados.clienteId) {
+        return `O contato ${contato.nome} é de outro cliente.`;
+      }
+    }
+    return null;
+  }
+
   /** Validação que depende de outro cadastro ou do `croner`, fora do alcance do zod. */
   async function validarLembrete(dados: DadosDeLembrete): Promise<string | null> {
     if (dados.tipo === 'recorrente') {
@@ -107,7 +149,7 @@ export function registrarRotasDeLembretes(
         throw erro;
       }
     }
-    return validarVinculo(dados);
+    return (await validarVinculo(dados)) ?? validarContatos(dados);
   }
 
   /** O corpo validado, ou a mensagem do primeiro problema encontrado. */

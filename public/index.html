@@ -67,6 +67,15 @@
           >
             Lembretes
           </button>
+          <button
+            class="aba"
+            id="btn-visualizacao-contatos"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Contatos
+          </button>
         </div>
         <!-- O ícone de sino é montado pelo app.js; o contador só aparece com não lidas. -->
         <button
@@ -255,6 +264,34 @@
         </div>
         <!-- A lista é montada pelo app.js. -->
         <div id="mount-lembretes"></div>
+      </div>
+
+      <div class="card" id="visualizacao-contatos" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Contatos</h2>
+            <p class="texto-auxiliar">
+              Pessoas dos clientes, ou sem cliente, que podem receber os lembretes por e-mail.
+            </p>
+          </div>
+        </div>
+        <div class="filtros-de-contatos">
+          <input
+            class="busca"
+            id="campo-filtro-nome-contato"
+            type="search"
+            placeholder="Filtrar por nome…"
+            aria-label="Filtrar contatos por nome"
+          />
+          <!-- As opções são montadas pelo app.js. -->
+          <select
+            class="busca"
+            id="campo-filtro-cliente-contato"
+            aria-label="Filtrar contatos por cliente"
+          ></select>
+        </div>
+        <!-- A lista é montada pelo app.js. -->
+        <div id="mount-contatos"></div>
       </div>
     </main>
 
@@ -668,6 +705,17 @@
 
         <div class="modal-corpo">
           <div class="campo">
+            <label for="campo-resumo-lembrete">Resumo</label>
+            <input
+              id="campo-resumo-lembrete"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Ex.: Relatório de horas"
+            />
+          </div>
+
+          <div class="campo">
             <label for="campo-texto-lembrete">Lembrete</label>
             <textarea
               id="campo-texto-lembrete"
@@ -751,6 +799,27 @@
           <label class="campo-checkbox">
             <input type="checkbox" id="campo-email-lembrete" /> Enviar também por e-mail
           </label>
+
+          <div class="campo" id="grupo-contatos-lembrete" hidden>
+            <label>
+              Contatos em cópia <span class="opcional">opcional</span>
+              <span class="dica" tabindex="0"
+                >?<span class="dica-texto" role="tooltip"
+                  >O e-mail vai para o destinatário do SMTP, com estes contatos em cópia. Só
+                  aparecem contatos com e-mail; com cliente escolhido, os sem cliente e os desse
+                  cliente.</span
+                ></span
+              >
+            </label>
+            <!-- Os contatos escolhidos e a lista para adicionar são montados pelo app.js. -->
+            <div class="contatos-do-lembrete" id="lista-contatos-lembrete"></div>
+            <div class="seletor-de-contatos">
+              <button class="btn ghost" type="button" id="btn-adicionar-contato-lembrete">
+                Adicionar contato
+              </button>
+              <div class="opcoes-de-contatos" id="opcoes-contatos-lembrete" hidden></div>
+            </div>
+          </div>
           <label class="campo-checkbox">
             <input type="checkbox" id="campo-ativo-lembrete" checked /> Ativo
           </label>
@@ -761,6 +830,78 @@
         <div class="modal-rodape">
           <button class="btn ghost" type="button" id="btn-cancelar-lembrete">Cancelar</button>
           <button class="btn primario" type="submit" id="btn-salvar-lembrete">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-contato">
+      <form method="dialog" id="formulario-contato" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-contato-titulo">Novo contato</h2>
+          <p>Só o nome é obrigatório.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-nome-contato">Nome</label>
+            <input
+              id="campo-nome-contato"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Ex.: Ana Souza"
+            />
+          </div>
+          <div class="campo">
+            <label for="campo-cargo-contato">Cargo <span class="opcional">opcional</span></label>
+            <input
+              id="campo-cargo-contato"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Ex.: Coordenadora de TI"
+            />
+          </div>
+          <div class="campo">
+            <label for="campo-telefone-contato"
+              >Telefone <span class="opcional">opcional</span></label
+            >
+            <input
+              id="campo-telefone-contato"
+              type="tel"
+              maxlength="40"
+              autocomplete="off"
+              placeholder="Ex.: (11) 99999-0000"
+            />
+          </div>
+          <div class="campo">
+            <label for="campo-email-contato"
+              >E-mail <span class="opcional" id="opcional-email-contato">opcional</span></label
+            >
+            <input
+              id="campo-email-contato"
+              type="email"
+              maxlength="254"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Ex.: ana@cliente.com.br"
+            />
+          </div>
+          <!-- Na aba Contatos do cliente o campo some: o contato já nasce dele. -->
+          <div class="campo" id="grupo-cliente-contato">
+            <label for="campo-cliente-contato"
+              >Cliente <span class="opcional">opcional</span></label
+            >
+            <!-- As opções são montadas pelo app.js. -->
+            <select id="campo-cliente-contato"></select>
+          </div>
+
+          <p class="erro-formulario" id="erro-contato" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-contato">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-contato">Salvar</button>
         </div>
       </form>
     </dialog>
@@ -1311,6 +1452,9 @@
               <label class="campo-checkbox">
                 <input type="checkbox" data-funcionalidade="lembretes" /> Lembretes
               </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="contatos" /> Contatos
+              </label>
             </fieldset>
 
             <fieldset class="grupo-de-acessos">
@@ -1335,6 +1479,9 @@
               </label>
               <label class="campo-checkbox">
                 <input type="checkbox" data-funcionalidade="cliente.os" /> OS
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="cliente.contatos" /> Contatos
               </label>
             </fieldset>
           </div>

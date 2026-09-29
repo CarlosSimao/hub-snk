@@ -129,11 +129,13 @@ export const FUNCIONALIDADES = [
   'agenda',
   'os',
   'lembretes',
+  'contatos',
   'cliente.bases',
   'cliente.repositorios',
   'cliente.projetos',
   'cliente.agenda',
   'cliente.os',
+  'cliente.contatos',
 ] as const;
 
 export type Funcionalidade = (typeof FUNCIONALIDADES)[number];
@@ -524,6 +526,8 @@ export type TipoDeLembrete = (typeof TIPOS_DE_LEMBRETE)[number];
  */
 export interface Lembrete {
   id: string;
+  /** Linha curta em destaque na notificação e no assunto do e-mail. */
+  resumo: string;
   texto: string;
   tipo: TipoDeLembrete;
   dataHora: string;
@@ -531,8 +535,28 @@ export interface Lembrete {
   clienteId: string | null;
   projetoId: string | null;
   enviarEmail: boolean;
+  /** Contatos que recebem o e-mail em cópia; vazio quando o lembrete não envia e-mail. */
+  contatoIds: string[];
   ativo: boolean;
   ultimoDisparoEm: string;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+/* -------------------------------- Contatos -------------------------------- */
+
+/**
+ * Pessoa de contato, opcionalmente ligada a um cliente. Só o nome é obrigatório: os
+ * outros campos ficam vazios quando não informados. `clienteId` de um cliente que já
+ * foi excluído vale como sem cliente.
+ */
+export interface Contato {
+  id: string;
+  nome: string;
+  telefone: string;
+  email: string;
+  cargo: string;
+  clienteId: string | null;
   criadoEm: string;
   atualizadoEm: string;
 }

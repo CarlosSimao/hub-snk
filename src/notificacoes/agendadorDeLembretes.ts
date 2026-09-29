@@ -1,8 +1,10 @@
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
+import type { RepositorioContatos } from '../repositorio/repositorioContatos.ts';
 import type { RepositorioLembretes } from '../repositorio/repositorioLembretes.ts';
 import type { Lembrete } from '../tipos.ts';
 import type { DadosDeNotificacao, RegistradorDeNotificacoes } from './centralDeNotificacoes.ts';
 import { ocorrenciaDevida } from './disparoDeLembretes.ts';
+import { montarEmailDoLembrete } from './emailDoLembrete.ts';
 import { dataHoraLocal } from './relogio.ts';
 
 /* O cron tem resolução de minuto: conferir a cada meio minuto dispara no minuto certo. */
@@ -14,6 +16,9 @@ const ATRASO_TOLERADO_MS = 2 * 60_000;
 export interface DependenciasDoAgendadorDeLembretes {
   lembretes: RepositorioLembretes;
   clientes: RepositorioClientes;
+  contatos: RepositorioContatos;
+  /** Logo do HUB SNK embutida no e-mail. */
+  caminhoDaLogo: string;
   emitir(dados: DadosDeNotificacao): Promise<unknown>;
   agora(): Date;
   registrador: RegistradorDeNotificacoes;
@@ -86,36 +91,70 @@ export class AgendadorDeLembretes {
       return;
     }
 
-    await this.#dependencias.emitir({
-      origem: 'lembrete',
-      chave: `lembrete:${lembrete.id}:${ocorrencia.toISOString()}`,
-      titulo: 'Lembrete',
-      mensagem: await this.#montarMensagem(lembrete, ocorrencia, agora),
-      enviarEmail: lembrete.enviarEmail,
-    });
+    await this.#dependencias.emitir(await this.#montarNotificacao(lembrete, ocorrencia, agora));
     await this.#dependencias.lembretes.registrarDisparo(lembrete.id, agora);
   }
 
-  async #montarMensagem(lembrete: Lembrete, ocorrencia: Date, agora: Date): Promise<string> {
-    const linhas = [lembrete.texto, ...(await this.#descreverVinculo(lembrete))];
-    if (agora.getTime() - ocorrencia.getTime() > ATRASO_TOLERADO_MS) {
+  /*
+   * O resumo é o destaque; o texto e o vínculo vêm abaixo. Lembrete de antes do resumo
+   * não tem um: o texto sobe para o destaque, e nada se repete embaixo.
+   */
+  async #montarNotificacao(
+    lembrete: Lembrete,
+    ocorrencia: Date,
+    agora: Date,
+  ): Promise<DadosDeNotificacao> {
+    const resumo = lembrete.resumo || lembrete.texto;
+    const texto = lembrete.resumo ? lembrete.texto : '';
+    const vinculo = await this.#descreverVinculo(lembrete);
+    const atrasado = agora.getTime() - ocorrencia.getTime() > ATRASO_TOLERADO_MS;
+    const linhas = [texto, vinculo];
+    if (atrasado) {
       linhas.push(`Atrasado: era para ${dataHoraLocal(ocorrencia)}.`);
     }
-    return linhas.join('\n');
+
+    return {
+      origem: 'lembrete',
+      chave: `lembrete:${lembrete.id}:${ocorrencia.toISOString()}`,
+      titulo: resumo,
+      mensagem: linhas.filter(Boolean).join('\n'),
+      enviarEmail: lembrete.enviarEmail,
+      email: montarEmailDoLembrete({
+        resumo,
+        texto,
+        vinculo,
+        previstoPara: dataHoraLocal(ocorrencia),
+        atrasado,
+        copia: await this.#emailsDosContatos(lembrete),
+        caminhoDaLogo: this.#dependencias.caminhoDaLogo,
+      }),
+    };
+  }
+
+  /* Contato excluído, ou que perdeu o e-mail depois do cadastro do lembrete, fica de fora. */
+  async #emailsDosContatos(lembrete: Lembrete): Promise<string[]> {
+    if (lembrete.contatoIds.length === 0) {
+      return [];
+    }
+
+    const contatos = await this.#dependencias.contatos.listar();
+    return contatos
+      .filter((contato) => lembrete.contatoIds.includes(contato.id) && contato.email !== '')
+      .map((contato) => contato.email);
   }
 
   /* Cliente ou projeto removido depois do cadastro do lembrete só some da mensagem. */
-  async #descreverVinculo(lembrete: Lembrete): Promise<string[]> {
+  async #descreverVinculo(lembrete: Lembrete): Promise<string> {
     if (lembrete.clienteId === null) {
-      return [];
+      return '';
     }
 
     const cliente = await this.#dependencias.clientes.buscarPorId(lembrete.clienteId);
     if (!cliente) {
-      return [];
+      return '';
     }
 
     const projeto = cliente.projetos.find((item) => item.id === lembrete.projetoId);
-    return [projeto ? `${cliente.nome} › ${projeto.nome}` : cliente.nome];
+    return projeto ? `${cliente.nome} › ${projeto.nome}` : cliente.nome;
   }
 }

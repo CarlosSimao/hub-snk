@@ -330,6 +330,10 @@ pela conexão aberta com a tela), aparece num cartão no canto direito por 15
 segundos e toca um som curto. Clicar numa notificação a marca como lida; os botões
 do painel marcam todas ou limpam a lista.
 
+No lembrete, o cartão não diz "Lembrete": o **resumo** vem em destaque e, abaixo,
+mais discretos, o texto e o cliente › projeto. O alerta da agenda e os avisos do
+próprio HUB SNK continuam com a etiqueta de origem.
+
 Com o painel no navegador comum, e não no aplicativo, o som pode ficar mudo até o
 primeiro clique na página: é a política de autoplay do navegador. A guia Painel do
 aplicativo já nasce liberada para tocar.
@@ -370,9 +374,12 @@ próprio HUB SNK, uma vez por dia; com o backend rodando sem o aplicativo
 
 ## Lembretes
 
-A aba **Lembretes** do menu principal cadastra avisos com texto livre,
-opcionalmente ligados a um cliente e a um projeto dele. Cada um pode mandar
-também e-mail e pode ser desligado sem ser apagado.
+A aba **Lembretes** do menu principal cadastra avisos com um **resumo**
+obrigatório (até 120 caracteres, o destaque da notificação e o assunto do e-mail)
+e um texto livre, opcionalmente ligados a um cliente e a um projeto dele. Cada um
+pode mandar também e-mail e pode ser desligado sem ser apagado. Lembrete
+cadastrado antes do resumo continua disparando, com o texto no lugar dele; editar
+pede o resumo.
 
 - **Uma vez**: data e hora. Dispara uma vez só; depois a lista mostra quando
   disparou.
@@ -385,15 +392,41 @@ Com o HUB SNK fechado na hora marcada, o lembrete dispara ao abrir, marcado como
 atrasado. Do recorrente que perdeu várias ocorrências, só uma volta. Mudar a data,
 a expressão ou o tipo rearma o lembrete; corrigir só o texto, não.
 
+### E-mail do lembrete
+
+O assunto é `[HUB SNK] Lembrete - <resumo>`. O corpo é em HTML, com a logo do HUB
+SNK embutida no próprio e-mail (não depende de internet para aparecer), o resumo
+como título, o texto, o cliente › projeto e o horário previsto — com aviso quando
+disparou depois dele. Vai junto uma versão em texto puro, para o cliente de
+e-mail que não mostra HTML.
+
+O e-mail vai **para** o destinatário do SMTP, com os **contatos** do lembrete em
+**cópia**. A seção de contatos só aparece com **Enviar também por e-mail**
+marcado, e o botão **Adicionar contato** lista só contatos com e-mail — com
+cliente escolhido no lembrete, só os sem cliente e os desse cliente. Trocar o
+cliente tira da cópia quem é de outro cliente; contato excluído depois deixa de
+receber, sem travar o lembrete.
+
 > Com a mesma pasta de dados aberta em duas máquinas ao mesmo tempo, as duas
 > disparam o lembrete — e mandam o e-mail — cada uma por si.
+
+## Contatos
+
+A aba **Contatos** do menu principal lista todos os contatos, com filtro por nome
+e por cliente (inclusive **Sem cliente**). Cada contato tem nome (obrigatório),
+cargo, telefone, e-mail e, opcionalmente, o cliente.
+
+No cadastro do cliente, a aba **Contatos** mostra só os dele, sem filtro, e o
+**Novo contato** dali já nasce vinculado ao cliente — o campo Cliente nem
+aparece. Excluir um cliente não apaga os contatos dele: eles passam a sem cliente.
 
 ## Acessos por perfil
 
 O HUB SNK atende perfis diferentes, e cada um vê só o que usa. Em
 **Configurações › Acessos** ficam o **Perfil** e uma caixa por funcionalidade:
-as abas **Local**, **Agenda**, **OS** e **Lembretes** do menu principal e as abas **Bases**,
-**Repositórios**, **Projetos**, **Agenda** e **OS** do cadastro do cliente.
+as abas **Local**, **Agenda**, **OS**, **Lembretes** e **Contatos** do menu principal e as
+abas **Bases**, **Repositórios**, **Projetos**, **Agenda**, **OS** e **Contatos** do cadastro
+do cliente.
 **Clientes** e a aba **Geral** do cliente não entram na lista: sem elas a tela
 abriria vazia.
 

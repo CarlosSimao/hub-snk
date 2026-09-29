@@ -365,6 +365,8 @@ export function registrarRotasDeClientes(
   repositorio: RepositorioClientes,
   repositorioDeConfiguracao: RepositorioConfiguracao,
   arquivoTokenDoDesktop: string,
+  /** O que outros cadastros ligados ao cliente fazem quando ele é excluído (os contatos). */
+  aoRemoverCliente: (clienteId: string) => Promise<void> = async () => {},
 ): void {
   /**
    * Localiza o repositório e devolve o caminho local, ou uma resposta de erro
@@ -564,6 +566,7 @@ export function registrarRotasDeClientes(
 
     try {
       await repositorio.remover(parametros.data.id);
+      await aoRemoverCliente(parametros.data.id);
       return resposta.status(204).send();
     } catch (erro) {
       return responderErroDeDominio(resposta, erro);

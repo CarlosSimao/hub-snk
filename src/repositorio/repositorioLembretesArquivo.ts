@@ -16,10 +16,14 @@ import {
 const NOME_DO_ARQUIVO = 'lembretes.json';
 const CHAVE_DO_CORPO = 'lembretes';
 
-/** Campo do outro tipo sai vazio: o lembrete único não carrega cron velho, nem o recorrente data. */
+/**
+ * Campo do outro tipo sai vazio: o lembrete único não carrega cron velho, nem o recorrente
+ * data. Sem e-mail, não há a quem copiar: os contatos saem junto.
+ */
 function normalizarDados(dados: DadosDeLembrete): DadosDeLembrete {
   const unico = dados.tipo === 'unico';
   return {
+    resumo: dados.resumo.trim(),
     texto: dados.texto.trim(),
     tipo: dados.tipo,
     dataHora: unico ? dados.dataHora : '',
@@ -27,7 +31,19 @@ function normalizarDados(dados: DadosDeLembrete): DadosDeLembrete {
     clienteId: dados.clienteId,
     projetoId: dados.clienteId === null ? null : dados.projetoId,
     enviarEmail: dados.enviarEmail,
+    contatoIds: dados.enviarEmail ? [...new Set(dados.contatoIds)] : [],
     ativo: dados.ativo,
+  };
+}
+
+/** Lembrete gravado antes do resumo e dos contatos não tem os campos: nascem vazios. */
+function lerLembrete(bruto: Lembrete): Lembrete {
+  return {
+    ...bruto,
+    resumo: typeof bruto.resumo === 'string' ? bruto.resumo : '',
+    contatoIds: Array.isArray(bruto.contatoIds)
+      ? bruto.contatoIds.filter((id): id is string => typeof id === 'string')
+      : [],
   };
 }
 
@@ -73,7 +89,9 @@ export class RepositorioLembretesArquivo implements RepositorioLembretes {
       return this.#lembretes;
     }
 
-    this.#lembretes = Array.isArray(conteudo.corpo) ? (conteudo.corpo as Lembrete[]) : [];
+    this.#lembretes = Array.isArray(conteudo.corpo)
+      ? (conteudo.corpo as Lembrete[]).map(lerLembrete)
+      : [];
 
     if (precisaMigrar(conteudo)) {
       await migrarArquivoDeDados({

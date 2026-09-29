@@ -12,6 +12,7 @@ estiver em `HUB_DADOS_DIR`):
 | `configuracao.json` | A configuração global, os atalhos e o SMTP                      |
 | `local.json`        | As bases e os bancos da própria máquina                         |
 | `lembretes.json`    | Os lembretes cadastrados                                        |
+| `contatos.json`     | Os contatos, com ou sem cliente                                 |
 | `notificacoes.json` | O painel de notificações e as chaves já notificadas             |
 
 ## Envelope
@@ -94,6 +95,7 @@ O conteúdo de `lembretes`:
 [
   {
     "id": "7c1e4f0a-3b8d-4e2a-9f61-2d5c8a7b9e10",
+    "resumo": "Relatório de horas",
     "texto": "Enviar o relatório de horas",
     "tipo": "recorrente",
     "dataHora": "",
@@ -101,6 +103,7 @@ O conteúdo de `lembretes`:
     "clienteId": "4fb3993a-f8b3-4e9a-be7d-c79556fa78e5",
     "projetoId": null,
     "enviarEmail": true,
+    "contatoIds": ["0d6f3c2e-8a41-4b7e-9c55-1e2f3a4b5c6d"],
     "ativo": true,
     "ultimoDisparoEm": "2026-09-25T20:00:04.112Z",
     "criadoEm": "2026-09-01T12:00:00.000Z",
@@ -112,6 +115,32 @@ O conteúdo de `lembretes`:
 `dataHora` só vale para o `unico` e `expressaoCron` só para o `recorrente`.
 `ultimoDisparoEm` vazio é lembrete que nunca disparou; o recorrente conta a
 próxima ocorrência a partir dele, ou de `atualizadoEm` quando vazio.
+`contatoIds` são os contatos em cópia no e-mail, e fica vazio quando o lembrete não
+envia e-mail. Lembrete gravado antes do `resumo` e dos `contatoIds` é lido com os
+dois vazios.
+
+## Contatos
+
+O conteúdo de `contatos`:
+
+```json
+[
+  {
+    "id": "0d6f3c2e-8a41-4b7e-9c55-1e2f3a4b5c6d",
+    "nome": "Ana Souza",
+    "telefone": "(11) 99999-0000",
+    "email": "ana@cliente.com.br",
+    "cargo": "Coordenadora de TI",
+    "clienteId": "4fb3993a-f8b3-4e9a-be7d-c79556fa78e5",
+    "criadoEm": "2026-09-28T12:00:00.000Z",
+    "atualizadoEm": "2026-09-28T12:00:00.000Z"
+  }
+]
+```
+
+Só o `nome` é obrigatório; os outros textos ficam vazios. `clienteId` é `null` no
+contato sem cliente, e excluir o cliente o passa a `null`. Um `clienteId` que não
+existe mais — pasta sincronizada com outra máquina — vale como sem cliente.
 
 ## Notificações
 

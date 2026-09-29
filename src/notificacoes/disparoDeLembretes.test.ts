@@ -12,6 +12,7 @@ import {
 function lembrete(campos: Partial<Lembrete>): Lembrete {
   return {
     id: 'l1',
+    resumo: 'Relatório',
     texto: 'Enviar relatório',
     tipo: 'unico',
     dataHora: '',
@@ -19,6 +20,7 @@ function lembrete(campos: Partial<Lembrete>): Lembrete {
     clienteId: null,
     projetoId: null,
     enviarEmail: false,
+    contatoIds: [],
     ativo: true,
     ultimoDisparoEm: '',
     criadoEm: new Date(2026, 8, 28, 8, 0).toISOString(),

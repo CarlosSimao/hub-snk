@@ -67,6 +67,19 @@ describe('CentralDeNotificacoes', () => {
     assert.equal(emailsEnviados.length, 1);
   });
 
+  it('envia o e-mail próprio de quem gerou, no lugar do padrão', async () => {
+    const proprio: MensagemDeEmail = {
+      assunto: '[HUB SNK] Lembrete - Relatório',
+      texto: 'Relatório',
+      html: '<h1>Relatório</h1>',
+      copia: ['ana@alfa.com'],
+    };
+
+    await central.emitir(dados({ email: proprio }));
+
+    assert.deepEqual(emailsEnviados, [proprio]);
+  });
+
   it('não envia e-mail quando não é para enviar', async () => {
     await central.emitir(dados({ enviarEmail: false }));
     assert.equal(emailsEnviados.length, 0);

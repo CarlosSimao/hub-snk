@@ -22,6 +22,8 @@ export interface DadosDeNotificacao {
   titulo: string;
   mensagem: string;
   enviarEmail: boolean;
+  /** E-mail próprio de quem gerou; sem ele, sai o padrão com o título e a mensagem. */
+  email?: MensagemDeEmail;
 }
 
 export type OuvinteDeNotificacao = (notificacao: Notificacao) => void;
@@ -112,10 +114,12 @@ export class CentralDeNotificacoes {
   /** Falha no e-mail não impede a notificação: ela vai para o painel com o motivo. */
   async #tentarEnviarEmail(dados: DadosDeNotificacao): Promise<string> {
     try {
-      await this.#email.enviarPeloSmtpGravado({
-        assunto: `${PREFIXO_DO_ASSUNTO} ${dados.titulo}`,
-        texto: dados.mensagem,
-      });
+      await this.#email.enviarPeloSmtpGravado(
+        dados.email ?? {
+          assunto: `${PREFIXO_DO_ASSUNTO} ${dados.titulo}`,
+          texto: dados.mensagem,
+        },
+      );
       return '';
     } catch (erro) {
       const motivo = descreverErro(erro);

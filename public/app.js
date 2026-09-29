@@ -20,6 +20,7 @@ const CAMINHO_DAS_BASES_LOCAIS = '/api/local/bases';
 const CAMINHO_DOS_BANCOS_LOCAIS = '/api/local/bancos';
 const CAMINHO_DAS_NOTIFICACOES = '/api/notificacoes';
 const CAMINHO_DOS_LEMBRETES = '/api/lembretes';
+const CAMINHO_DOS_CONTATOS = '/api/contatos';
 const CAMINHO_DA_IMPORTACAO = `${CAMINHO_DA_API}/importacao`;
 const CAMINHO_DA_IMPORTACAO_DE_REPOSITORIOS = `${CAMINHO_DA_API}/importacao-de-repositorios`;
 const CAMINHO_DA_IMPORTACAO_DE_CADASTROS = `${CAMINHO_DA_API}/importacao-de-cadastros`;
@@ -272,6 +273,17 @@ const estado = {
   lembretes: [],
   /* Lembrete aberto no modal; `null` quando é um novo. */
   lembreteEmEdicao: null,
+  /* Ids dos contatos em cópia no lembrete aberto no modal. */
+  contatosDoLembrete: [],
+  contatos: [],
+  /* Contato aberto no modal; `null` quando é um novo. */
+  contatoEmEdicao: null,
+  /* Cliente de quem o modal foi aberto, pela aba Contatos do cliente; `null` fora dela. */
+  clienteFixoDoContato: null,
+  /* Contato novo aberto pelo lembrete: nasce com e-mail e já entra na cópia ao salvar. */
+  contatoParaOLembrete: false,
+  /* Filtros da aba Contatos do menu principal. */
+  filtroDeContatos: { nome: '', clienteId: '' },
   /*
    * Assistente de importação de favoritos. `pastas` é a árvore lida do arquivo,
    * `selecionados` guarda as chaves marcadas na etapa da árvore e `linhas` são
@@ -358,6 +370,24 @@ const elementos = {
   botaoVisualizacaoLembretes: document.getElementById('btn-visualizacao-lembretes'),
   visualizacaoLembretes: document.getElementById('visualizacao-lembretes'),
   mountLembretes: document.getElementById('mount-lembretes'),
+  botaoVisualizacaoContatos: document.getElementById('btn-visualizacao-contatos'),
+  visualizacaoContatos: document.getElementById('visualizacao-contatos'),
+  mountContatos: document.getElementById('mount-contatos'),
+  campoFiltroNomeContato: document.getElementById('campo-filtro-nome-contato'),
+  campoFiltroClienteContato: document.getElementById('campo-filtro-cliente-contato'),
+  modalContato: document.getElementById('modal-contato'),
+  formularioContato: document.getElementById('formulario-contato'),
+  tituloModalContato: document.getElementById('modal-contato-titulo'),
+  campoNomeContato: document.getElementById('campo-nome-contato'),
+  campoCargoContato: document.getElementById('campo-cargo-contato'),
+  campoTelefoneContato: document.getElementById('campo-telefone-contato'),
+  campoEmailContato: document.getElementById('campo-email-contato'),
+  opcionalEmailContato: document.getElementById('opcional-email-contato'),
+  grupoClienteContato: document.getElementById('grupo-cliente-contato'),
+  campoClienteContato: document.getElementById('campo-cliente-contato'),
+  erroContato: document.getElementById('erro-contato'),
+  botaoSalvarContato: document.getElementById('btn-salvar-contato'),
+  botaoCancelarContato: document.getElementById('btn-cancelar-contato'),
 
   botaoNotificacoes: document.getElementById('btn-notificacoes'),
   contadorNotificacoes: document.getElementById('contador-notificacoes'),
@@ -371,6 +401,7 @@ const elementos = {
   modalLembrete: document.getElementById('modal-lembrete'),
   formularioLembrete: document.getElementById('formulario-lembrete'),
   tituloModalLembrete: document.getElementById('modal-lembrete-titulo'),
+  campoResumoLembrete: document.getElementById('campo-resumo-lembrete'),
   campoTextoLembrete: document.getElementById('campo-texto-lembrete'),
   opcoesTipoLembrete: document.querySelectorAll('input[name="tipo-lembrete"]'),
   grupoDataHoraLembrete: document.getElementById('grupo-data-hora-lembrete'),
@@ -383,6 +414,10 @@ const elementos = {
   campoProjetoLembrete: document.getElementById('campo-projeto-lembrete'),
   campoEmailLembrete: document.getElementById('campo-email-lembrete'),
   campoAtivoLembrete: document.getElementById('campo-ativo-lembrete'),
+  grupoContatosLembrete: document.getElementById('grupo-contatos-lembrete'),
+  listaContatosLembrete: document.getElementById('lista-contatos-lembrete'),
+  botaoAdicionarContatoLembrete: document.getElementById('btn-adicionar-contato-lembrete'),
+  opcoesContatosLembrete: document.getElementById('opcoes-contatos-lembrete'),
   erroLembrete: document.getElementById('erro-lembrete'),
   botaoSalvarLembrete: document.getElementById('btn-salvar-lembrete'),
   botaoCancelarLembrete: document.getElementById('btn-cancelar-lembrete'),
@@ -749,6 +784,12 @@ const api = {
   removerLembrete: (id) => requisitar(`${CAMINHO_DOS_LEMBRETES}/${id}`, { metodo: 'DELETE' }),
   previaDoCron: (expressao) =>
     requisitar(`${CAMINHO_DOS_LEMBRETES}/previa?expressao=${encodeURIComponent(expressao)}`),
+
+  listarContatos: () => requisitar(CAMINHO_DOS_CONTATOS),
+  criarContato: (contato) => requisitar(CAMINHO_DOS_CONTATOS, { metodo: 'POST', corpo: contato }),
+  atualizarContato: (id, contato) =>
+    requisitar(`${CAMINHO_DOS_CONTATOS}/${id}`, { metodo: 'PUT', corpo: contato }),
+  removerContato: (id) => requisitar(`${CAMINHO_DOS_CONTATOS}/${id}`, { metodo: 'DELETE' }),
 
   listar: () => requisitar(CAMINHO_DA_API),
   buscar: (id) => requisitar(`${CAMINHO_DA_API}/${id}`),
@@ -3548,6 +3589,11 @@ function alternarVisualizacao(visualizacao) {
       botao: elementos.botaoVisualizacaoLembretes,
       area: elementos.visualizacaoLembretes,
     },
+    {
+      chave: 'contatos',
+      botao: elementos.botaoVisualizacaoContatos,
+      area: elementos.visualizacaoContatos,
+    },
   ];
 
   for (const { chave, botao, area } of opcoes) {
@@ -3569,6 +3615,9 @@ function alternarVisualizacao(visualizacao) {
   }
   if (visualizacao === 'lembretes') {
     void recarregarLembretes();
+  }
+  if (visualizacao === 'contatos') {
+    void recarregarContatos();
   }
 }
 
@@ -3736,6 +3785,11 @@ function renderizarDetalhe() {
       },
       { chave: 'agenda', rotulo: 'Agenda', criarConteudo: () => criarSecaoDeAgenda(cliente) },
       { chave: 'os', rotulo: 'OS', criarConteudo: () => criarSecaoDeOs(cliente) },
+      {
+        chave: 'contatos',
+        rotulo: 'Contatos',
+        criarConteudo: () => criarSecaoDeContatosDoCliente(cliente),
+      },
     ]),
   );
   elementos.detalhe.replaceChildren(card);
@@ -5547,6 +5601,7 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false 
   elementos.botaoVisualizacaoAgenda.hidden = !funcionalidadeVisivel('agenda');
   elementos.botaoVisualizacaoOs.hidden = !funcionalidadeVisivel('os');
   elementos.botaoVisualizacaoLembretes.hidden = !funcionalidadeVisivel('lembretes');
+  elementos.botaoVisualizacaoContatos.hidden = !funcionalidadeVisivel('contatos');
 
   const repositoriosVisiveis = funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS);
   elementos.botaoFiltros.hidden = !repositoriosVisiveis;
@@ -7618,7 +7673,6 @@ const SUBIDA_DO_VOLUME_S = 0.02;
 
 const ROTULOS_DE_ORIGEM_DA_NOTIFICACAO = {
   agenda: 'Agenda',
-  lembrete: 'Lembrete',
   sistema: 'HUB SNK',
 };
 
@@ -7674,22 +7728,47 @@ function renderizarContadorDeNotificacoes() {
   elementos.botaoNotificacoes.setAttribute('aria-label', rotulo);
 }
 
-function criarConteudoDaNotificacao(notificacao) {
-  const conteudo = criarElemento('div', 'notificacao-conteudo');
+/*
+ * O lembrete é quase tudo o que chega ao painel: dizer "Lembrete" seria ruído. Os
+ * gravados antes do resumo têm esse título fixo, e o texto sobe para o destaque.
+ */
+const TITULO_DO_LEMBRETE_SEM_RESUMO = 'Lembrete';
+
+function tituloEMensagemDaNotificacao(notificacao) {
+  const semResumo =
+    notificacao.origem === 'lembrete' && notificacao.titulo === TITULO_DO_LEMBRETE_SEM_RESUMO;
+  return semResumo
+    ? { titulo: notificacao.mensagem, mensagem: '' }
+    : { titulo: notificacao.titulo, mensagem: notificacao.mensagem };
+}
+
+function criarCabecalhoDaNotificacao(notificacao) {
   const cabecalho = criarElemento('div', 'notificacao-cabecalho');
+  if (notificacao.origem !== 'lembrete') {
+    cabecalho.append(
+      criarElemento(
+        'span',
+        `notificacao-origem origem-${notificacao.origem}`,
+        ROTULOS_DE_ORIGEM_DA_NOTIFICACAO[notificacao.origem] ?? notificacao.origem,
+      ),
+    );
+  }
   cabecalho.append(
-    criarElemento(
-      'span',
-      `notificacao-origem origem-${notificacao.origem}`,
-      ROTULOS_DE_ORIGEM_DA_NOTIFICACAO[notificacao.origem] ?? notificacao.origem,
-    ),
     criarElemento('time', 'notificacao-quando', formatarDataEHora(notificacao.criadaEm)),
   );
+  return cabecalho;
+}
+
+function criarConteudoDaNotificacao(notificacao) {
+  const conteudo = criarElemento('div', 'notificacao-conteudo');
+  const { titulo, mensagem } = tituloEMensagemDaNotificacao(notificacao);
   conteudo.append(
-    cabecalho,
-    criarElemento('strong', 'notificacao-titulo', notificacao.titulo),
-    criarElemento('p', 'notificacao-mensagem', notificacao.mensagem),
+    criarCabecalhoDaNotificacao(notificacao),
+    criarElemento('strong', 'notificacao-titulo', titulo),
   );
+  if (mensagem) {
+    conteudo.append(criarElemento('p', 'notificacao-mensagem', mensagem));
+  }
   if (notificacao.erroDoEmail) {
     conteudo.append(
       criarElemento(
@@ -7949,6 +8028,10 @@ function tipoDoLembreteEscolhido() {
   return [...elementos.opcoesTipoLembrete].find((opcao) => opcao.checked)?.value ?? 'unico';
 }
 
+function resumoDoLembrete(lembrete) {
+  return lembrete.resumo || lembrete.texto;
+}
+
 function clienteDoLembrete(lembrete) {
   return estado.clientes.find((cliente) => cliente.id === lembrete.clienteId) ?? null;
 }
@@ -7992,8 +8075,12 @@ function lembretesOrdenados(lembretes) {
 function criarLinhaDeLembrete(lembrete) {
   const linha = criarElemento('div', `linha-recurso${lembrete.ativo ? '' : ' lembrete-desligado'}`);
   const info = criarElemento('div', 'recurso-info');
+  // Lembrete de antes do resumo não tem um: o texto fica no lugar dele.
+  info.append(criarElemento('span', 'recurso-nome lembrete-texto', resumoDoLembrete(lembrete)));
+  if (lembrete.resumo) {
+    info.append(criarElemento('span', 'recurso-url secundaria lembrete-texto', lembrete.texto));
+  }
   info.append(
-    criarElemento('span', 'recurso-nome lembrete-texto', lembrete.texto),
     criarElemento('span', 'recurso-url secundaria', descreverQuandoDoLembrete(lembrete)),
     criarElemento('span', 'recurso-url', descreverSituacaoDoLembrete(lembrete)),
   );
@@ -8112,6 +8199,7 @@ function abrirModalDeLembrete(lembrete) {
   for (const opcao of elementos.opcoesTipoLembrete) {
     opcao.checked = opcao.value === tipo;
   }
+  elementos.campoResumoLembrete.value = lembrete?.resumo ?? '';
   elementos.campoTextoLembrete.value = lembrete?.texto ?? '';
   elementos.campoDataHoraLembrete.value = paraDataHoraLocal(
     lembrete?.dataHora || proximaHoraCheia(),
@@ -8124,28 +8212,41 @@ function abrirModalDeLembrete(lembrete) {
   preencherClientesDoLembrete(lembrete?.clienteId ?? null);
   preencherProjetosDoLembrete(lembrete?.projetoId ?? null);
   aplicarTipoDoLembrete();
+  // Contato excluído depois do cadastro do lembrete some da lista em vez de travar o salvar.
+  estado.contatosDoLembrete = (lembrete?.contatoIds ?? []).filter((id) =>
+    estado.contatos.some((contato) => contato.id === id),
+  );
+  aplicarEnvioPorEmailDoLembrete();
 
   elementos.modalLembrete.showModal();
-  elementos.campoTextoLembrete.focus();
+  elementos.campoResumoLembrete.focus();
+  // A lista pode ter mudado noutro lugar desde a última leitura.
+  void carregarContatos().then(() => {
+    if (elementos.modalLembrete.open) renderizarContatosDoLembrete();
+  });
 }
 
 function lerFormularioDeLembrete() {
   const tipo = tipoDoLembreteEscolhido();
   const dataHoraLocal = elementos.campoDataHoraLembrete.value;
   const clienteId = elementos.campoClienteLembrete.value || null;
+  const enviarEmail = elementos.campoEmailLembrete.checked;
   return {
+    resumo: elementos.campoResumoLembrete.value.trim(),
     texto: elementos.campoTextoLembrete.value.trim(),
     tipo,
     dataHora: tipo === 'unico' && dataHoraLocal ? new Date(dataHoraLocal).toISOString() : '',
     expressaoCron: tipo === 'recorrente' ? elementos.campoExpressaoCron.value.trim() : '',
     clienteId,
     projetoId: clienteId ? elementos.campoProjetoLembrete.value || null : null,
-    enviarEmail: elementos.campoEmailLembrete.checked,
+    enviarEmail,
+    contatoIds: enviarEmail ? [...estado.contatosDoLembrete] : [],
     ativo: elementos.campoAtivoLembrete.checked,
   };
 }
 
 function validarFormularioDeLembrete(dados) {
+  if (!dados.resumo) return 'Informe o resumo do lembrete.';
   if (!dados.texto) return 'Informe o texto do lembrete.';
   if (dados.tipo === 'unico' && !dados.dataHora) return 'Informe a data e a hora do lembrete.';
   if (dados.tipo === 'recorrente' && !dados.expressaoCron) {
@@ -8186,7 +8287,7 @@ async function salvarLembrete(evento) {
 function pedirExclusaoDeLembrete(lembrete) {
   pedirExclusao(
     'Excluir lembrete',
-    `Excluir o lembrete "${lembrete.texto}"? Esta ação não pode ser desfeita.`,
+    `Excluir o lembrete "${resumoDoLembrete(lembrete)}"? Esta ação não pode ser desfeita.`,
     () => api.removerLembrete(lembrete.id),
     'Lembrete excluído.',
     recarregarLembretes,
@@ -8208,9 +8309,376 @@ function registrarEventosDoLembrete() {
     elementos.campoModeloRecorrencia.value = '';
     agendarPreviaDoCron();
   });
-  elementos.campoClienteLembrete.addEventListener('change', () =>
-    preencherProjetosDoLembrete(null),
+  elementos.campoClienteLembrete.addEventListener('change', () => {
+    preencherProjetosDoLembrete(null);
+    descartarContatosIncompativeisDoLembrete();
+  });
+  elementos.campoEmailLembrete.addEventListener('change', aplicarEnvioPorEmailDoLembrete);
+  elementos.botaoAdicionarContatoLembrete.addEventListener('click', () =>
+    definirOpcoesDeContatosDoLembrete(elementos.opcoesContatosLembrete.hidden),
   );
+  // Clique fora da lista a fecha, como um menu.
+  elementos.modalLembrete.addEventListener('click', (evento) => {
+    if (!evento.target.closest('.seletor-de-contatos')) definirOpcoesDeContatosDoLembrete(false);
+  });
+}
+
+/* Com cliente no lembrete, só os contatos sem cliente e os desse cliente; e só com e-mail. */
+function contatoPodeIrNoLembrete(contato, clienteId) {
+  if (!contato.email) {
+    return false;
+  }
+  if (!clienteId) {
+    return true;
+  }
+  const cliente = clienteDoContato(contato);
+  return cliente === null || cliente.id === clienteId;
+}
+
+function contatosDisponiveisParaOLembrete() {
+  const clienteId = elementos.campoClienteLembrete.value;
+  return contatosOrdenados(
+    estado.contatos.filter(
+      (contato) =>
+        !estado.contatosDoLembrete.includes(contato.id) &&
+        contatoPodeIrNoLembrete(contato, clienteId),
+    ),
+  );
+}
+
+/* Sem e-mail não há a quem copiar: os contatos somem junto com a caixa. */
+function aplicarEnvioPorEmailDoLembrete() {
+  const enviaEmail = elementos.campoEmailLembrete.checked;
+  elementos.grupoContatosLembrete.hidden = !enviaEmail;
+  if (!enviaEmail) {
+    estado.contatosDoLembrete = [];
+  }
+  definirOpcoesDeContatosDoLembrete(false);
+  renderizarContatosDoLembrete();
+}
+
+/* Trocar o cliente tira da cópia quem é de outro cliente. */
+function descartarContatosIncompativeisDoLembrete() {
+  const clienteId = elementos.campoClienteLembrete.value;
+  estado.contatosDoLembrete = estado.contatosDoLembrete.filter((id) => {
+    const contato = estado.contatos.find((item) => item.id === id);
+    return contato && contatoPodeIrNoLembrete(contato, clienteId);
+  });
+  definirOpcoesDeContatosDoLembrete(false);
+  renderizarContatosDoLembrete();
+}
+
+function criarContatoEscolhidoDoLembrete(contato) {
+  const item = criarElemento('div', 'contato-do-lembrete');
+  const remover = criarBotao('btn tiny ghost', '✕', () => {
+    estado.contatosDoLembrete = estado.contatosDoLembrete.filter((id) => id !== contato.id);
+    renderizarContatosDoLembrete();
+  });
+  remover.setAttribute('aria-label', `Tirar ${contato.nome} da cópia`);
+  remover.title = 'Tirar da cópia';
+  item.append(
+    criarElemento('span', 'contato-do-lembrete-nome', contato.nome),
+    criarElemento('span', 'contato-do-lembrete-email', contato.email),
+    remover,
+  );
+  return item;
+}
+
+function renderizarContatosDoLembrete() {
+  const escolhidos = estado.contatosDoLembrete
+    .map((id) => estado.contatos.find((contato) => contato.id === id))
+    .filter(Boolean);
+  elementos.listaContatosLembrete.replaceChildren(
+    ...(escolhidos.length > 0
+      ? escolhidos.map(criarContatoEscolhidoDoLembrete)
+      : [criarElemento('p', 'texto-auxiliar', 'Nenhum contato em cópia.')]),
+  );
+}
+
+function criarOpcaoDeContatoDoLembrete(contato) {
+  const opcao = criarBotao('opcao-de-contato', '', () => {
+    estado.contatosDoLembrete = [...estado.contatosDoLembrete, contato.id];
+    definirOpcoesDeContatosDoLembrete(false);
+    renderizarContatosDoLembrete();
+  });
+  const cliente = clienteDoContato(contato);
+  opcao.append(
+    criarElemento('span', 'opcao-de-contato-nome', contato.nome),
+    criarElemento(
+      'span',
+      'opcao-de-contato-detalhe',
+      cliente ? `${contato.email} · ${cliente.nome}` : contato.email,
+    ),
+  );
+  return opcao;
+}
+
+/* Sem contato disponível a lista não fica vazia: sempre dá para cadastrar um ali mesmo. */
+function definirOpcoesDeContatosDoLembrete(aberta) {
+  elementos.opcoesContatosLembrete.hidden = !aberta;
+  if (!aberta) {
+    return;
+  }
+
+  const disponiveis = contatosDisponiveisParaOLembrete();
+  const novo = criarBotao('btn tiny ghost opcao-de-contato-novo', 'Cadastrar contato novo', () => {
+    definirOpcoesDeContatosDoLembrete(false);
+    abrirModalDeContato(null, null, { paraOLembrete: true });
+  });
+  elementos.opcoesContatosLembrete.replaceChildren(
+    ...(disponiveis.length > 0
+      ? disponiveis.map(criarOpcaoDeContatoDoLembrete)
+      : [criarElemento('p', 'texto-auxiliar', 'Nenhum contato com e-mail disponível.')]),
+    novo,
+  );
+}
+
+/* Nasce com o cliente do lembrete, ou sem cliente: sempre cabe na cópia. */
+function incluirContatoNovoNoLembrete(contato) {
+  estado.contatosDoLembrete = [...estado.contatosDoLembrete, contato.id];
+  renderizarContatosDoLembrete();
+}
+
+/* -------------------------------- contatos -------------------------------- */
+
+/* Valor do filtro de cliente que separa os contatos sem cliente; nunca é um id. */
+const FILTRO_SEM_CLIENTE = '__sem-cliente__';
+
+/* Cliente excluído fora do HUB SNK (pasta sincronizada) vale como sem cliente. */
+function clienteDoContato(contato) {
+  return estado.clientes.find((cliente) => cliente.id === contato.clienteId) ?? null;
+}
+
+function contatosOrdenados(contatos) {
+  return [...contatos].sort((um, outro) => um.nome.localeCompare(outro.nome, 'pt-BR'));
+}
+
+function chaveDeBuscaDoContato(texto) {
+  return semAcentos(texto).toLocaleLowerCase('pt-BR');
+}
+
+/** Lê do servidor sem redesenhar: quem chama decide o que atualizar. */
+async function carregarContatos() {
+  try {
+    const resposta = await api.listarContatos();
+    estado.contatos = resposta.contatos;
+  } catch (erro) {
+    exibirAviso(`Não foi possível carregar os contatos: ${erro.message}`, 'erro');
+  }
+}
+
+async function recarregarContatos() {
+  await carregarContatos();
+  renderizarContatos();
+}
+
+/* Qualquer mudança de contato aparece nas duas abas: a do menu e a do cliente aberto. */
+async function recarregarContatosNasTelas() {
+  await recarregarContatos();
+  renderizarDetalhe();
+}
+
+function contatoPassaNoFiltro(contato) {
+  const { nome, clienteId } = estado.filtroDeContatos;
+  if (nome && !chaveDeBuscaDoContato(contato.nome).includes(chaveDeBuscaDoContato(nome))) {
+    return false;
+  }
+  if (clienteId === FILTRO_SEM_CLIENTE) {
+    return clienteDoContato(contato) === null;
+  }
+  return !clienteId || clienteDoContato(contato)?.id === clienteId;
+}
+
+function criarLinhaDeContato(contato, { mostrarCliente }) {
+  const info = criarElemento('div', 'recurso-info');
+  info.append(criarElemento('span', 'recurso-nome', contato.nome));
+
+  const cliente = mostrarCliente ? clienteDoContato(contato) : null;
+  const detalhes = [contato.cargo, cliente?.nome].filter(Boolean).join(' · ');
+  if (detalhes) {
+    info.append(criarElemento('span', 'recurso-url secundaria', detalhes));
+  }
+  const meios = [contato.telefone, contato.email].filter(Boolean).join(' · ');
+  if (meios) {
+    info.append(criarElemento('span', 'recurso-url', meios));
+  }
+
+  const linha = criarElemento('div', 'linha-recurso');
+  linha.append(
+    info,
+    criarAcoesDeRecurso({
+      rotuloDeEdicao: 'Editar contato',
+      aoEditar: () => abrirModalDeContato(contato, mostrarCliente ? null : cliente),
+      rotuloDeExclusao: 'Excluir contato',
+      aoExcluir: () => pedirExclusaoDeContato(contato),
+    }),
+  );
+  return linha;
+}
+
+/* Mantém a escolha feita, a não ser que o cliente dela tenha deixado de existir. */
+function preencherFiltroDeClienteDosContatos() {
+  const campo = elementos.campoFiltroClienteContato;
+  const clientes = [...estado.clientes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  campo.replaceChildren(
+    criarOpcao('', 'Todos os clientes'),
+    criarOpcao(FILTRO_SEM_CLIENTE, 'Sem cliente'),
+    ...clientes.map((cliente) => criarOpcao(cliente.id, cliente.nome)),
+  );
+  const escolhido = estado.filtroDeContatos.clienteId;
+  const aindaExiste =
+    escolhido === FILTRO_SEM_CLIENTE || clientes.some((cliente) => cliente.id === escolhido);
+  estado.filtroDeContatos.clienteId = aindaExiste ? escolhido : '';
+  campo.value = estado.filtroDeContatos.clienteId;
+}
+
+function renderizarContatos() {
+  preencherFiltroDeClienteDosContatos();
+  const filtrados = contatosOrdenados(estado.contatos.filter(contatoPassaNoFiltro));
+  elementos.mountContatos.replaceChildren(
+    criarSecaoDeRecursos({
+      titulo: 'Cadastrados',
+      rotuloDoBotao: 'Novo contato',
+      aoAdicionar: () => abrirModalDeContato(null, null),
+      linhas: filtrados.map((contato) => criarLinhaDeContato(contato, { mostrarCliente: true })),
+      mensagemVazia:
+        estado.contatos.length === 0
+          ? 'Nenhum contato cadastrado.'
+          : 'Nenhum contato com estes filtros.',
+    }),
+  );
+}
+
+/** Aba Contatos do cliente: sem filtro, e o contato novo já nasce dele. */
+function criarSecaoDeContatosDoCliente(cliente) {
+  const doCliente = estado.contatos.filter((contato) => contato.clienteId === cliente.id);
+  return criarSecaoDeRecursos({
+    titulo: null,
+    rotuloDoBotao: 'Novo contato',
+    aoAdicionar: () => abrirModalDeContato(null, cliente),
+    linhas: contatosOrdenados(doCliente).map((contato) =>
+      criarLinhaDeContato(contato, { mostrarCliente: false }),
+    ),
+    mensagemVazia: 'Nenhum contato vinculado a este cliente.',
+  });
+}
+
+function preencherClientesDoContato(clienteId) {
+  const clientes = [...estado.clientes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  elementos.campoClienteContato.replaceChildren(
+    criarOpcao(SEM_CLIENTE, 'Nenhum'),
+    ...clientes.map((cliente) => criarOpcao(cliente.id, cliente.nome)),
+  );
+  elementos.campoClienteContato.value = clientes.some((cliente) => cliente.id === clienteId)
+    ? clienteId
+    : SEM_CLIENTE;
+}
+
+/**
+ * `clienteFixo`: aberto pela aba do cliente, o campo Cliente some e vale esse cliente.
+ * `paraOLembrete`: aberto pelo modal do lembrete, o campo some e vale o cliente do
+ * lembrete — sem cliente nele, o contato também fica sem. E o e-mail passa a ser exigido.
+ */
+function abrirModalDeContato(contato, clienteFixo, { paraOLembrete = false } = {}) {
+  const clienteDoLembrete = paraOLembrete
+    ? (estado.clientes.find((cliente) => cliente.id === elementos.campoClienteLembrete.value) ??
+      null)
+    : null;
+  estado.contatoEmEdicao = contato;
+  estado.clienteFixoDoContato = clienteFixo ?? clienteDoLembrete;
+  estado.contatoParaOLembrete = paraOLembrete;
+  limparErro(elementos.erroContato);
+  elementos.tituloModalContato.textContent = contato ? 'Editar contato' : 'Novo contato';
+  elementos.campoNomeContato.value = contato?.nome ?? '';
+  elementos.campoCargoContato.value = contato?.cargo ?? '';
+  elementos.campoTelefoneContato.value = contato?.telefone ?? '';
+  elementos.campoEmailContato.value = contato?.email ?? '';
+  elementos.opcionalEmailContato.hidden = paraOLembrete;
+  elementos.grupoClienteContato.hidden = clienteFixo !== null || paraOLembrete;
+  preencherClientesDoContato(estado.clienteFixoDoContato?.id ?? contato?.clienteId ?? null);
+
+  elementos.modalContato.showModal();
+  elementos.campoNomeContato.focus();
+}
+
+/* O campo Cliente só vale quando está na tela; escondido, manda o cliente fixado. */
+function clienteDoFormularioDeContato() {
+  if (!elementos.grupoClienteContato.hidden) {
+    return elementos.campoClienteContato.value || null;
+  }
+  return estado.clienteFixoDoContato?.id ?? null;
+}
+
+function lerFormularioDeContato() {
+  return {
+    nome: elementos.campoNomeContato.value.trim(),
+    cargo: elementos.campoCargoContato.value.trim(),
+    telefone: elementos.campoTelefoneContato.value.trim(),
+    email: elementos.campoEmailContato.value.trim(),
+    clienteId: clienteDoFormularioDeContato(),
+  };
+}
+
+function validarFormularioDeContato(dados) {
+  if (!dados.nome) return 'Informe o nome do contato.';
+  if (!dados.email && estado.contatoParaOLembrete) {
+    return 'Informe o e-mail: é por ele que o contato recebe o lembrete.';
+  }
+  if (dados.email && !elementos.campoEmailContato.checkValidity()) return 'E-mail inválido.';
+  return null;
+}
+
+async function salvarContato(evento) {
+  evento.preventDefault();
+
+  const dados = lerFormularioDeContato();
+  const mensagemDeErro = validarFormularioDeContato(dados);
+  if (mensagemDeErro) {
+    exibirErro(elementos.erroContato, mensagemDeErro);
+    return;
+  }
+
+  limparErro(elementos.erroContato);
+  elementos.botaoSalvarContato.disabled = true;
+  try {
+    const emEdicao = estado.contatoEmEdicao;
+    const salvo = emEdicao
+      ? await api.atualizarContato(emEdicao.id, dados)
+      : await api.criarContato(dados);
+    elementos.modalContato.close();
+    exibirAviso(emEdicao ? 'Contato atualizado.' : 'Contato cadastrado.');
+    await recarregarContatosNasTelas();
+    if (estado.contatoParaOLembrete && elementos.modalLembrete.open) {
+      incluirContatoNovoNoLembrete(salvo);
+    }
+  } catch (erro) {
+    exibirErro(elementos.erroContato, erro.message);
+  } finally {
+    elementos.botaoSalvarContato.disabled = false;
+  }
+}
+
+function pedirExclusaoDeContato(contato) {
+  pedirExclusao(
+    'Excluir contato',
+    `Excluir o contato "${contato.nome}"? Os lembretes deixam de copiá-lo. Esta ação não pode ser desfeita.`,
+    () => api.removerContato(contato.id),
+    'Contato excluído.',
+    recarregarContatosNasTelas,
+  );
+}
+
+function registrarEventosDosContatos() {
+  elementos.formularioContato.addEventListener('submit', salvarContato);
+  elementos.botaoCancelarContato.addEventListener('click', () => elementos.modalContato.close());
+  elementos.campoFiltroNomeContato.addEventListener('input', () => {
+    estado.filtroDeContatos.nome = elementos.campoFiltroNomeContato.value.trim();
+    renderizarContatos();
+  });
+  elementos.campoFiltroClienteContato.addEventListener('change', () => {
+    estado.filtroDeContatos.clienteId = elementos.campoFiltroClienteContato.value;
+    renderizarContatos();
+  });
 }
 
 /* ----------------------------------- tema --------------------------------- */
@@ -8406,8 +8874,12 @@ function registrarEventos() {
   elementos.botaoVisualizacaoLembretes.addEventListener('click', () =>
     alternarVisualizacao('lembretes'),
   );
+  elementos.botaoVisualizacaoContatos.addEventListener('click', () =>
+    alternarVisualizacao('contatos'),
+  );
   registrarEventosDasNotificacoes();
   registrarEventosDoLembrete();
+  registrarEventosDosContatos();
   elementos.botaoAtualizarAgenda.append(criarIcone(ICONES.recarregar));
   elementos.botaoAtualizarAgenda.addEventListener('click', atualizarAgendaGeral);
   elementos.mountAgendaGeral.append(widgetAgendaGeral.elemento);
@@ -8761,6 +9233,8 @@ async function iniciar() {
   } catch (erro) {
     exibirAviso(`Não foi possível carregar os clientes: ${erro.message}`, 'erro');
   }
+  // A aba Contatos do cliente e o modal do lembrete leem daqui, sem consulta própria.
+  void carregarContatos().then(renderizarDetalhe);
 
   try {
     const configuracao = await api.lerConfiguracao();

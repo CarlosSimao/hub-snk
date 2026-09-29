@@ -52,9 +52,14 @@ versão antiga e mantém o cadastro onde está.
 - **Alerta da agenda do dia sem OS lançada**, em **Configurações › Avisos**: a
   cada 15 minutos o HUB SNK confere os eventos de cliente de hoje na sua Agenda de
   Recursos e avisa, uma vez por evento, o que já terminou sem OS na Experience.
-- **Lembretes**, no menu principal: texto livre numa data e hora ou recorrente por
-  expressão cron (com modelos prontos e prévia das próximas ocorrências),
-  opcionalmente ligados a um cliente e a um projeto dele, e com e-mail opcional.
+- **Lembretes**, no menu principal: resumo e texto livre numa data e hora ou
+  recorrente por expressão cron (com modelos prontos e prévia das próximas
+  ocorrências), opcionalmente ligados a um cliente e a um projeto dele, e com
+  e-mail opcional. A notificação mostra o resumo em destaque e o texto abaixo; o
+  e-mail tem o assunto `[HUB SNK] Lembrete - <resumo>` e corpo em HTML com a logo.
+- **Contatos**, no menu principal e no cadastro do cliente: nome, cargo, telefone,
+  e-mail e cliente opcional, com filtro por nome e por cliente. Um lembrete com
+  e-mail pode copiar contatos: o destinatário do SMTP vai no "Para" e eles, em cópia.
 
 ### Alterado
 

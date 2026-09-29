@@ -2,11 +2,13 @@ import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import type { FSWatcher } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import { configuracao } from './configuracao.ts';
 import { ArquivoDeDadosInvalidoError, EsquemaMaisNovoError } from './repositorio/arquivoDeDados.ts';
 import { RepositorioClientesArquivo } from './repositorio/repositorioClientesArquivo.ts';
 import { RepositorioConfiguracaoArquivo } from './repositorio/repositorioConfiguracaoArquivo.ts';
 import { RepositorioLembretesArquivo } from './repositorio/repositorioLembretesArquivo.ts';
+import { RepositorioContatosArquivo } from './repositorio/repositorioContatosArquivo.ts';
 import { RepositorioLocalArquivo } from './repositorio/repositorioLocalArquivo.ts';
 import { RepositorioNotificacoesArquivo } from './repositorio/repositorioNotificacoesArquivo.ts';
 import { AgendadorDeLembretes } from './notificacoes/agendadorDeLembretes.ts';
@@ -17,6 +19,7 @@ import { registrarProtecaoDeOrigem } from './rotas/protecaoDeOrigem.ts';
 import { registrarRotasDeAtalhos } from './rotas/rotasAtalhos.ts';
 import { registrarRotasDeClientes } from './rotas/rotasClientes.ts';
 import { registrarRotasDeConfiguracao } from './rotas/rotasConfiguracao.ts';
+import { registrarRotasDeContatos } from './rotas/rotasContatos.ts';
 import { registrarRotasDeGit } from './rotas/rotasGit.ts';
 import { registrarRotasDeAgenda } from './rotas/rotasAgenda.ts';
 import { registrarRotasDeLembretes } from './rotas/rotasLembretes.ts';
@@ -72,6 +75,7 @@ async function iniciarServidor(): Promise<void> {
   const agendaDeRecursos = new AgendaRecursos(configuracao.diretorioDeDados);
   const experience = new Experience(credenciaisSankhya);
   const repositorioDeLembretes = new RepositorioLembretesArquivo(configuracao.diretorioDeDados);
+  const repositorioDeContatos = new RepositorioContatosArquivo(configuracao.diretorioDeDados);
   const enviadorDeEmail = new EnviadorDeEmail(repositorioDeConfiguracao);
   const registradorDasNotificacoes = {
     info: (mensagem: string) => servidor.log.info(mensagem),
@@ -85,6 +89,8 @@ async function iniciarServidor(): Promise<void> {
   const agendadorDeLembretes = new AgendadorDeLembretes({
     lembretes: repositorioDeLembretes,
     clientes: repositorioDeClientes,
+    contatos: repositorioDeContatos,
+    caminhoDaLogo: join(configuracao.diretorioPublico, 'img', 'icone-192.png'),
     emitir: (dados) => centralDeNotificacoes.emitir(dados),
     agora: () => new Date(),
     registrador: registradorDasNotificacoes,
@@ -120,6 +126,7 @@ async function iniciarServidor(): Promise<void> {
     repositorioDeClientes,
     repositorioDeConfiguracao,
     configuracao.ponteDoDesktopTokenFile,
+    (clienteId) => repositorioDeContatos.desvincularDoCliente(clienteId),
   );
   registrarRotasDeConfiguracao(servidor, repositorioDeConfiguracao);
   registrarRotasDeGit(servidor, repositorioDeClientes, repositorioDeConfiguracao);
@@ -158,7 +165,13 @@ async function iniciarServidor(): Promise<void> {
   );
   registrarRotasDeOs(servidor, experience, repositorioDeClientes, repositorioDeConfiguracao);
   registrarRotasDeNotificacoes(servidor, centralDeNotificacoes, enviadorDeEmail);
-  registrarRotasDeLembretes(servidor, repositorioDeLembretes, repositorioDeClientes);
+  registrarRotasDeLembretes(
+    servidor,
+    repositorioDeLembretes,
+    repositorioDeClientes,
+    repositorioDeContatos,
+  );
+  registrarRotasDeContatos(servidor, repositorioDeContatos, repositorioDeClientes);
 
   /*
    * Leitura antecipada dos arquivos: arquivo em esquema desconhecido e
@@ -170,6 +183,7 @@ async function iniciarServidor(): Promise<void> {
     repositorioDeConfiguracao.ler(),
     repositorioLocal.listarBases(),
     repositorioDeLembretes.listar(),
+    repositorioDeContatos.listar(),
     centralDeNotificacoes.listar(),
   ]);
 
@@ -192,6 +206,7 @@ async function iniciarServidor(): Promise<void> {
       ['configuracao.json', repositorioDeConfiguracao],
       ['local.json', repositorioLocal],
       ['lembretes.json', repositorioDeLembretes],
+      ['contatos.json', repositorioDeContatos],
     ]),
     registrador: {
       info: (mensagem) => servidor.log.info(mensagem),

@@ -13,9 +13,21 @@ export class SmtpNaoConfiguradoError extends Error {
   }
 }
 
+/** Imagem anexada e referenciada no HTML por `cid:`, sem depender de internet. */
+export interface ImagemEmbutida {
+  cid: string;
+  nomeDoArquivo: string;
+  caminho: string;
+}
+
 export interface MensagemDeEmail {
   assunto: string;
+  /** Sempre presente: é o corpo de quem não mostra HTML. */
   texto: string;
+  html?: string;
+  /** Em cópia; o destinatário do SMTP vai sempre no "Para". */
+  copia?: string[];
+  imagensEmbutidas?: ImagemEmbutida[];
 }
 
 export function smtpConfigurado(smtp: ConfiguracaoSmtp): boolean {
@@ -61,8 +73,15 @@ export class EnviadorDeEmail {
       await transporte.sendMail({
         from: smtp.remetente,
         to: smtp.destinatario,
+        cc: mensagem.copia?.length ? mensagem.copia : undefined,
         subject: mensagem.assunto,
         text: mensagem.texto,
+        html: mensagem.html,
+        attachments: mensagem.imagensEmbutidas?.map((imagem) => ({
+          cid: imagem.cid,
+          filename: imagem.nomeDoArquivo,
+          path: imagem.caminho,
+        })),
       });
     } finally {
       transporte.close();
