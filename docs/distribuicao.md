@@ -1,9 +1,9 @@
 # Distribuição
 
 Como o aplicativo desktop do HUB SNK é montado e o que o instalador faz na
-máquina. Para instalar e usar, veja o [README](../README.md). As decisões por trás
-de cada escolha, e o que foi validado, estão no
-[plano de migração para o Electron](plano-migracao-electron.md).
+máquina. Para instalar e usar, veja o [README](../README.md). O que testar à mão
+antes de publicar está no
+[roteiro de teste de release](manutencao.md#roteiro-de-teste-de-release).
 
 Até a versão 1, o HUB SNK era distribuído como zip e tar.gz, com scripts de
 instalação e uma janela `--app` do Edge ou do Chrome. Isso acabou: a versão 2 é
@@ -11,11 +11,11 @@ um aplicativo Electron com instalador NSIS, e o instalador remove a versão anti
 
 ## As três peças
 
-| Peça           | Onde mora                                                      | O que é                                                                        |
-| -------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| **Shell**      | `desktop/`                                                     | O Electron: janela, guias, cofre das credenciais e a ponte que o backend chama |
-| **Backend**    | `src/`                                                         | O mesmo Fastify de sempre, rodando direto do TypeScript, servindo o `public/`  |
-| **Instalador** | `desktop/electron-builder.yml`, `desktop/assets/installer.nsh` | NSIS por usuário, com a remoção da versão PWA e a página do Git AutoSync       |
+| Peça           | Onde mora                                                      | O que é                                                                                |
+| -------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **Shell**      | `desktop/`                                                     | O Electron: janela, guias, cofre das credenciais e a ponte que o backend chama         |
+| **Backend**    | `src/`                                                         | O mesmo Fastify de sempre, rodando direto do TypeScript, servindo o `public/`          |
+| **Instalador** | `desktop/electron-builder.yml`, `desktop/assets/installer.nsh` | NSIS por usuário, com a remoção da versão PWA e as páginas de perfil e do Git AutoSync |
 
 O shell sobe o backend como processo filho com o próprio executável do Electron
 (`ELECTRON_RUN_AS_NODE=1`), espera o `GET /api/healthz` e só então abre a janela.
@@ -39,9 +39,7 @@ a máquina de quem instala não precisa de Node nenhum.
 | `4103` | Ponte do shell (`127.0.0.1`, com `x-hub-token`) | O backend                  |
 
 O token da ponte fica em `%APPDATA%\sankhya-hub\ipc\desktop-token.txt`. O shell o
-cria ao abrir, e o backend o lê a cada chamada. A mesma pasta guardava o
-`token.txt` do antigo `hub-helper.ps1`, que o shell ainda lê uma única vez, para
-trazer as credenciais que estavam no cofre dele.
+cria ao abrir, e o backend o lê a cada chamada.
 
 ## Onde fica cada coisa na máquina
 
@@ -101,11 +99,29 @@ de componentes simplesmente não aparece.
   máquina corporativa sem acionar o time de infra.
 - Cria os atalhos "HUB SNK" no menu Iniciar e na área de trabalho.
 - Roda o `resources\instalador\remover-versao-pwa.ps1` (a seguir).
+- Mostra a página de perfil profissional (a seguir).
 - Mostra a página do Git AutoSync e, se marcado, chama o `install-standalone.ps1`
   com as opções escolhidas. Falha do Git AutoSync (o motivo mais comum é não haver
   Git na máquina) não aborta a instalação do HUB SNK. Instalado por ele, o Git
   AutoSync recebe a marca `instalado-pelo-hub.txt`, e só nesse caso a
   desinstalação pergunta se ele sai junto.
+
+### A página de perfil
+
+Aparece em toda instalação, antes da do Git AutoSync. O perfil (Desenvolvedor,
+Consultor, Analista ou Gerente de projeto) define o preset de funcionalidades
+ocultas, o mesmo de **Configurações › Acessos** (`src/acessos.ts`). A caixa
+**Terceiro**, independente do perfil, oculta por cima do preset o que depende das
+credenciais do Sankhya Om e da Experience: Credenciais Sankhya, as abas Agenda e
+OS e as guias dos dois sistemas.
+
+A escolha vai para `%LOCALAPPDATA%\HubSnk\perfil-inicial.txt` e
+`terceiro-inicial.txt` (`S` ou `N`). O shell repassa os dois ao backend
+(`HUB_PERFIL_INICIAL` e `HUB_TERCEIRO_INICIAL`), que só aplica cada um enquanto o
+`configuracao.json` ainda não tem o campo correspondente: reinstalar ou atualizar nunca
+desfaz o que o usuário ajustou. Uma reinstalação abre a página com a escolha
+anterior marcada, e a instalação silenciosa, que não mostra a página, preserva os
+arquivos que já existiam.
 
 ### A remoção da versão PWA
 

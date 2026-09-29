@@ -39,7 +39,15 @@ Baixe o `HUB-SNK-Setup-<versão>.exe` na
   pedir administrador**.
 - Não exige Node.js: o backend roda no Node que vem dentro do aplicativo.
 - Cria os atalhos "HUB SNK" no menu Iniciar e na área de trabalho.
-- Uma das telas oferece instalar junto o **Git AutoSync** (commit e push
+- Pergunta o seu **perfil profissional** — Desenvolvedor, Consultor, Analista ou
+  Gerente de projeto —, que define as abas visíveis no painel. Consultor e
+  Analista não veem os repositórios do cliente, e Gerente de projeto também não
+  vê a aba Local. A caixa **Terceiro**, independente do perfil, é para quem não
+  tem acesso ao Sankhya Om nem à Experience: oculta Credenciais Sankhya, Agenda,
+  OS e as guias dos dois sistemas. A escolha vale só como ponto de partida: depois
+  da instalação, ajuste em _Configurações_ › _Acessos_, e reinstalar não desfaz o
+  que você ajustou.
+- Outra tela oferece instalar junto o **Git AutoSync** (commit e push
   automáticos dos repositórios), com tarefa diária, ícone na bandeja, atalhos,
   skill para os agentes de IA e entrada no PATH. Ele exige o Git instalado; sem o
   Git, o HUB SNK é instalado do mesmo jeito e o Git AutoSync fica de fora.
@@ -75,8 +83,8 @@ A janela tem guias no topo:
 | Guia                | O que é                                                                                      |
 | ------------------- | -------------------------------------------------------------------------------------------- |
 | **Painel**          | O HUB SNK: clientes, bases, repositórios, ambiente local e agenda                            |
-| **Sankhya Om**      | O ERP. O login feito aqui é o que o HUB SNK usa para consultar a Agenda de Recursos          |
-| **Experience**      | A Experience. O HUB SNK lê a sessão desta guia sozinho, sem precisar capturar nada           |
+| **Sankhya Om**      | O ERP, que loga sozinho com a credencial salva em Credenciais Sankhya                        |
+| **Experience**      | A Experience, com o mesmo login automático                                                   |
 | Uma por base aberta | Cada base de cliente abre na sua própria guia, isolada das outras, com o login já preenchido |
 
 Onde cada tipo de link abre — bases, links gerais e links de projeto — é escolha
@@ -96,13 +104,14 @@ O aplicativo não precisa de configuração: porta, endereço e pasta de dados s
 fixos. Para quem desenvolve ou precisa mudar alguma coisa, estas variáveis de
 ambiente valem antes de abrir o aplicativo:
 
-| Variável                 | Padrão                               | O que faz                                                                      |
-| ------------------------ | ------------------------------------ | ------------------------------------------------------------------------------ |
-| `HUB_DADOS_DIR`          | `%LOCALAPPDATA%\HubSnk\dados`        | Onde o cadastro é gravado                                                      |
-| `SANKHYA_HUB_URL`        | `http://127.0.0.1:4100`              | Endereço do backend. A porta daqui é a porta em que o aplicativo o sobe        |
-| `SANKHYA_HUB_BACKEND`    | `gerenciado`                         | `externo` faz o aplicativo usar um backend que já esteja no ar (`npm run dev`) |
-| `SANKHYA_ERP_URL`        | `https://skw.sankhya.com.br/mge/`    | Endereço da guia Sankhya Om                                                    |
-| `SANKHYA_EXPERIENCE_URL` | `https://experience.sankhya.com.br/` | Endereço da guia Experience                                                    |
+| Variável                      | Padrão                               | O que faz                                                                      |
+| ----------------------------- | ------------------------------------ | ------------------------------------------------------------------------------ |
+| `HUB_DADOS_DIR`               | `%LOCALAPPDATA%\HubSnk\dados`        | Onde o cadastro é gravado                                                      |
+| `SANKHYA_HUB_URL`             | `http://127.0.0.1:4100`              | Endereço do backend. A porta daqui é a porta em que o aplicativo o sobe        |
+| `SANKHYA_DESKTOP_BRIDGE_PORT` | `4103`                               | Porta da ponte que o backend chama no aplicativo (cofre, agenda)               |
+| `SANKHYA_HUB_BACKEND`         | `gerenciado`                         | `externo` faz o aplicativo usar um backend que já esteja no ar (`npm run dev`) |
+| `SANKHYA_ERP_URL`             | `https://skw.sankhya.com.br/mge/`    | Endereço da guia Sankhya Om                                                    |
+| `SANKHYA_EXPERIENCE_URL`      | `https://experience.sankhya.com.br/` | Endereço da guia Experience                                                    |
 
 Rodando só o backend (`npm run dev`, veja [Manutenção](docs/manutencao.md)),
 valem `HUB_PORTA` (padrão `4100`), `HUB_HOST` (padrão `127.0.0.1`, e só aceita
@@ -151,7 +160,7 @@ Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Cadastro de clientes**    | Bases do ERP com usuário, senha e banco vinculado, repositórios Git, links avulsos, projetos e anotações livres                  |
 | **Guias do Sankhya**        | Sankhya Om e Experience dentro do aplicativo; cada base de cliente numa guia isolada, com usuário e senha preenchidos            |
-| **Agenda de Recursos**      | Consultada de dentro da guia do Sankhya Om já logada, cruzada com a Experience no calendário de cada cliente                     |
+| **Agenda de Recursos**      | Consultada por uma janela oculta que loga no Sankhya Om sozinha, cruzada com a Experience no calendário de cada cliente          |
 | **Notificações**            | Painel no sino do topo, com som e e-mail opcional: agenda de hoje sem OS lançada e lembretes na data ou recorrentes (cron)       |
 | **Importação de favoritos** | Transforma favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, deduzindo Produção ou Teste do nome                     |
 | **Botões do repositório**   | Abrem a pasta, o terminal (rodando o script padrão) e a IDE configurada; e editam o `.sankhya-mcp.env` do MCP Claude             |
@@ -179,14 +188,14 @@ Cada uma em detalhe, com as regras, em
 
 ## Solução de problemas
 
-| Sintoma                                                       | O que fazer                                                                                                                  |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| _"HUB SNK — o backend não subiu"_ ao abrir                    | A porta 4100 está ocupada por outro programa, ou o backend falhou. As últimas linhas estão na mensagem e em `backend.log`    |
-| O painel avisa que o aplicativo HUB SNK não está respondendo  | O painel foi aberto fora do aplicativo (_Abrir o painel no navegador_). Credenciais, agenda e guias só funcionam dentro dele |
-| A agenda diz que a tela da Agenda de Recursos não está aberta | Abra a Agenda de Recursos na guia Sankhya Om, com o login feito, e tente de novo                                             |
-| Os botões de Git não fazem nada                               | O `git` precisa estar no PATH. Confira com `git --version` num terminal novo                                                 |
-| Mensagem sobre esquema mais novo ao iniciar                   | O cadastro foi gravado por uma versão mais nova do HUB SNK. Instale a versão mais recente                                    |
-| A instalação avisou que a versão antiga não foi removida      | O motivo está em `%LOCALAPPDATA%\HubSnk\remocao-da-versao-pwa.log`. O aplicativo novo funciona mesmo assim                   |
+| Sintoma                                                                         | O que fazer                                                                                                                  |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| _"HUB SNK — o backend não subiu"_ ao abrir                                      | A porta 4100 está ocupada por outro programa, ou o backend falhou. As últimas linhas estão na mensagem e em `backend.log`    |
+| O painel avisa que o aplicativo HUB SNK não está respondendo                    | O painel foi aberto fora do aplicativo (_Abrir o painel no navegador_). Credenciais, agenda e guias só funcionam dentro dele |
+| A agenda diz que o login automático falhou ou que não há usuário e senha salvos | Confira o usuário e a senha do Sankhya Om em Credenciais Sankhya e tente de novo                                             |
+| Os botões de Git não fazem nada                                                 | O `git` precisa estar no PATH. Confira com `git --version` num terminal novo                                                 |
+| Mensagem sobre esquema mais novo ao iniciar                                     | O cadastro foi gravado por uma versão mais nova do HUB SNK. Instale a versão mais recente                                    |
+| A instalação avisou que a versão antiga não foi removida                        | O motivo está em `%LOCALAPPDATA%\HubSnk\remocao-da-versao-pwa.log`. O aplicativo novo funciona mesmo assim                   |
 
 Se não estiver na lista, [abra uma issue](https://github.com/CarlosSimao/hub-snk/issues/new/choose)
 — citando a versão que aparece no rodapé da tela, e sem colar senha, host,
@@ -203,8 +212,7 @@ Nada disto é necessário para usar o HUB SNK.
 - [Formato dos arquivos de dados](docs/formato-dos-dados.md) — o envelope, o esquema e a migração
 - [Distribuição](docs/distribuicao.md) — como o aplicativo desktop e o instalador são montados
 - [Estrutura do código](docs/estrutura-do-codigo.md) — mapa dos arquivos
-- [Manutenção](docs/manutencao.md) — modo de desenvolvimento, padrões do código, regra de versão e publicação
-- [Plano de migração para o Electron](docs/plano-migracao-electron.md) — decisões e o que foi validado em cada fase
+- [Manutenção](docs/manutencao.md) — modo de desenvolvimento, padrões do código, regra de versão, roteiro de teste e publicação
 - [CHANGELOG](CHANGELOG.md) — o que mudou em cada versão
 
 ---

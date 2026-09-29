@@ -69,8 +69,11 @@ body:
   - type: textarea
     id: log
     attributes:
-      label: Log do servidor (opcional)
-      description: A janela do terminal onde o HUB SNK está rodando. Revise antes de colar.
+      label: Log do aplicativo (opcional)
+      description: >-
+        As últimas linhas do `backend.log` e do `desktop.log`, em `%APPDATA%\HUB SNK\log` no aplicativo
+        instalado, ou em `%APPDATA%\HUB SNK (desenvolvimento)\log` no `npm run app`. No `npm run dev`,
+        a janela do terminal. Revise antes de colar.
       render: shell
 
   - type: checkboxes

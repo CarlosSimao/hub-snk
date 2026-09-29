@@ -77,9 +77,9 @@ Esses três comandos não cobrem o aplicativo desktop. Para ele o CI tem o job
 PowerShell 5.1 e monta a pasta do aplicativo com o `electron-builder --dir`.
 
 O que nenhum job cobre, e precisa ser testado à mão antes de uma release: o
-instalador NSIS de ponta a ponta (instalar, a página do Git AutoSync, instalar
-por cima de uma versão anterior e desinstalar). O roteiro, com o que foi
-validado na migração, está em [plano-migracao-electron.md](plano-migracao-electron.md).
+instalador NSIS de ponta a ponta e o aplicativo instalado, logado no Sankhya de
+verdade. O passo a passo está em
+[Roteiro de teste de release](#roteiro-de-teste-de-release).
 
 ## Padrões do código
 
@@ -124,6 +124,66 @@ O número da versão diz o que esperar de uma atualização:
 
 Toda mudança visível fica registrada no [CHANGELOG](../CHANGELOG.md).
 
+## Roteiro de teste de release
+
+Feito no Windows, com o instalador gerado na sua máquina (`npm run
+empacotar-desktop`, veja [Publicando uma versão](#publicando-uma-versão)), antes
+de abrir o pull request da release. Use uma cópia do cadastro, ou confira o
+SHA-256 do `clientes.json` antes e depois: parte do roteiro instala por cima do
+que já existe.
+
+### Instalador
+
+- **Instalação limpa**, num usuário sem HUB SNK: instala sem pedir administrador
+  em `%LOCALAPPDATA%\Programs\HUB SNK`, cria os atalhos "HUB SNK" no menu
+  Iniciar e na área de trabalho e abre o aplicativo no fim.
+- **Página de perfil**: o perfil escolhido vai para
+  `%LOCALAPPDATA%\HubSnk\perfil-inicial.txt`, e a caixa Terceiro, para o
+  `terceiro-inicial.txt`. Na primeira abertura, **Configurações › Acessos** mostra
+  o preset do perfil, e com Terceiro marcado somem Credenciais Sankhya, Agenda, OS
+  e as guias Sankhya Om e Experience.
+- **Reinstalação**: a página de perfil abre com a escolha anterior marcada, e o
+  que foi ajustado na aba Acessos não é desfeito.
+- **Página do Git AutoSync**: com as opções marcadas, ele fica em
+  `%USERPROFILE%\.git-autosync`, com a tarefa diária, o ícone na bandeja, os
+  atalhos, a skill e a entrada no PATH, e o `resources\git-autosync` do programa
+  ganha a marca `instalado-pelo-hub.txt`. Numa máquina sem Git, o HUB SNK instala do mesmo jeito e só o Git AutoSync fica
+  de fora.
+- **Por cima da versão anterior**: o cadastro continua o mesmo (mesmo SHA-256), e
+  os atalhos apontam para o `HUB SNK.exe` novo.
+- **Por cima da versão 1 (PWA)**, enquanto houver quem a use: o
+  `%LOCALAPPDATA%\HubSnk\remocao-da-versao-pwa.log` registra o que foi removido,
+  nenhum `node.exe` antigo sobra, o que não era do pacote vai para
+  `restos-da-versao-pwa-<data>` e a pasta de dados fica intacta.
+- **Desinstalação**: pergunta se o Git AutoSync sai junto só quando ele foi
+  instalado pelo HUB SNK, e preserva `%LOCALAPPDATA%\HubSnk\dados` e
+  `%APPDATA%\HUB SNK`.
+
+### Aplicativo
+
+- Abre em instância única: uma segunda execução foca a janela que já está aberta.
+  O primeiro boot depois de instalar pode levar alguns segundos a mais, pela
+  varredura do antivírus.
+- O cadastro existente aparece, e criar, editar e remover funcionam em clientes,
+  bases, repositórios, links, projetos, contatos e lembretes.
+- Com credencial salva, as guias Sankhya Om e Experience logam sozinhas, e a
+  sessão continua depois de reiniciar o aplicativo. A janela de Credenciais
+  Sankhya mostra a senha salva.
+- A Agenda de Recursos e as negociações (FAP) do parceiro chegam pela janela
+  oculta, com o login de verdade no ERP, e a aba OS lista as OS da Experience.
+- A guia de uma base de cliente preenche o usuário, avança para a senha e entra
+  sozinha.
+- Bases e bancos locais (WildFly e Docker) ligam, param e mostram o log ao vivo.
+- Os botões de abrir pasta, terminal e IDE e os atalhos cadastrados abrem o
+  programa certo.
+- O e-mail de teste do SMTP chega, e um lembrete marcado para dali a um minuto
+  dispara a notificação.
+- Com uma release mais nova publicada no GitHub, o aviso de atualização aparece.
+- Ao fechar o aplicativo, o backend encerra: nenhum `HUB SNK.exe` sobra no
+  Gerenciador de Tarefas, e o `sankhya.db` fica sem `-wal` na pasta de dados.
+- O `backend.log` e o `desktop.log`, em `%APPDATA%\HUB SNK\log`, não trazem erro
+  nem senha, token ou cookie em texto puro.
+
 ## Publicando uma versão
 
 Nada entra na `main` por push direto — nem código, nem release. Toda mudança
@@ -152,7 +212,9 @@ passa por branch e pull request, e a tag nasce depois do merge.
    # ou patch, ou major
    ```
 
-5. Commite, abra o pull request e mergeie com o CI verde:
+5. Gere o instalador com o número novo e passe pelo
+   [roteiro de teste de release](#roteiro-de-teste-de-release). Depois, commite,
+   abra o pull request e mergeie com o CI verde:
 
    ```bash
    git commit -am "chore(release): v1.2.0"

@@ -18,11 +18,23 @@ versão antiga e mantém o cadastro onde está.
 - **Aplicativo desktop (Electron)**, com instalador `HUB-SNK-Setup-<versão>.exe`
   por usuário, sem pedir administrador e sem exigir Node.js instalado. A janela
   tem as guias **Painel**, **Sankhya Om** e **Experience**, e cada base de cliente
-  abre na sua própria guia, isolada das outras, com usuário e senha preenchidos.
+  abre na sua própria guia, isolada das outras, com o login feito sozinho: o
+  aplicativo preenche o usuário, avança para a etapa da senha, preenche a senha e
+  clica em entrar.
+- **Login automático no Sankhya Om e na Experience**: com a credencial salva, a
+  guia que cai na tela de login entra sozinha, inclusive ao abrir o aplicativo.
+- **Credenciais Sankhya**: usuário e senha do Sankhya Om e da Experience ficam no
+  cofre do aplicativo (`safeStorage`, o cofre do sistema operacional), cifrados.
+  A janela mostra a senha salva, com o olho para revelar o texto, e **Abrir guia**
+  troca para a guia do sistema dentro do aplicativo. No topo dela fica **Meu
+  código de usuário Sankhya OM**, com botão de salvar próprio: é ele que recorta a
+  Agenda de Recursos para os seus eventos.
 - **Acessos por perfil**: o instalador pergunta o perfil (Desenvolvedor,
   Consultor, Analista ou Gerente de projeto), e o preset dele oculta as abas que
   o perfil não usa. Em **Configurações › Acessos** dá para trocar o perfil e
-  marcar ou desmarcar cada aba do menu principal e do cadastro do cliente.
+  marcar ou desmarcar cada aba do menu principal e do cadastro do cliente. Salvar
+  acessos alterados recarrega o Painel já com eles, sem fechar as guias do Sankhya
+  e das bases.
 - **Terceiro**, no instalador e em **Configurações › Acessos**: para quem não tem
   acesso ao Sankhya Om nem à Experience. Oculta Credenciais Sankhya, as abas
   Agenda e OS (do menu e do cliente), os nomes completos do cliente, o alerta da
@@ -31,16 +43,35 @@ versão antiga e mantém o cadastro onde está.
 - **Git AutoSync no instalador**, opcional: commit e push automáticos dos
   repositórios, com tarefa diária, ícone na bandeja, atalhos, skill para os
   agentes de IA e entrada no PATH. A desinstalação pergunta se ele sai junto.
-- **Agenda de Recursos e Experience** consultadas de dentro das guias do
-  aplicativo, sem o `hub-helper.ps1` e sem Chrome separado. A sessão da
-  Experience é lida da guia sozinha, a cada 15 segundos.
-- **Projetos no cadastro do cliente** e **agenda no cadastro do cliente**, com o
-  vínculo do cliente aos parceiros da Agenda de Recursos.
+- **Agenda de Recursos e Experience** consultadas por janelas ocultas do
+  aplicativo, que fazem o login web sozinhas com a credencial salva — sem Chrome
+  separado e sem depender das guias que você está usando. A sessão da Experience
+  é renovada antes de vencer.
+- **Aba OS**, no menu principal e no cadastro do cliente: as Ordens de Serviço que
+  você lançou na Experience, consultadas ao vivo mês a mês, com o horário, o
+  intervalo e as tarefas realizadas de cada uma. A lista vai da mais recente para
+  a mais antiga, com um agrupador por status à esquerda — quantidade do mês e uma
+  cor por status; clicar filtra, e dá para marcar vários — e, à direita, o
+  contador e o total de horas das OS visíveis. Na agenda, o evento com OS lançada
+  ganha um selo com o status dela, nas mesmas cores.
+- **Projetos no cadastro do cliente**, com anotações e links próprios, em cards
+  que abrem recolhidos. E **agenda no cadastro do cliente**, com o vínculo por
+  nome: os **nomes completos** do cliente (as razões sociais dele no Sankhya)
+  casam o parceiro da agenda e a empresa das OS. No card de um evento da agenda
+  geral, um botão vincula o parceiro a um cliente existente ou cadastra um novo.
+- **SGBD do banco da base**: Oracle ou SQL Server e, no Oracle, a identificação
+  por service name ou SID. A porta padrão acompanha o SGBD sem sobrescrever a que
+  você digitou, e cada campo do banco ganha botão de copiar. Banco cadastrado
+  antes é lido como Oracle por service name.
+- **Importar .env**, na aba MCP das configurações: escolhe o `.env` do
+  `sankhya-schema-mcp` e preenche o caminho e as variáveis com o conteúdo dele.
 - **Onde os links abrem**, na aba Geral das configurações: para bases, links
   gerais e links de projeto, a escolha entre uma guia do HUB SNK e o navegador
   padrão do sistema. Padrão: bases no HUB SNK, links no navegador padrão.
 - Links do painel que não estão no cadastro (GitHub, página de release) abrem no
   navegador do sistema.
+- **F12** abre as ferramentas de desenvolvedor da guia ativa; Ctrl+Shift+I segue
+  abrindo as da barra de guias.
 - **Executável da IDE**, na aba Geral das configurações: o botão **Abrir IDE** de
   cada repositório passa a chamar o executável cadastrado ali, com a pasta como
   argumento — funciona com qualquer IDE (IntelliJ IDEA, VS Code, WebStorm, Rider
@@ -63,15 +94,23 @@ versão antiga e mantém o cadastro onde está.
 
 ### Alterado
 
-- A janela de **Configurações** ficou duas vezes mais larga.
-- **Meu código de usuário Sankhya OM** saiu da aba Geral das configurações e foi
-  para o topo de **Credenciais Sankhya**, com botão de salvar próprio.
-- As credenciais do Sankhya ERP e da Experience ficam no cofre do aplicativo
-  (`safeStorage`, o cofre do sistema operacional). As que estavam no
-  `hub-helper.ps1` são trazidas uma vez, na primeira abertura.
-- No modal de credenciais, **Abrir navegador** virou **Abrir guia**, que troca
-  para a guia do sistema dentro do aplicativo.
-- A porta (4100) e o endereço (`127.0.0.1`) são fixos no aplicativo.
+- A janela de **Configurações** ficou duas vezes mais larga, com as abas na ordem
+  Geral, SMTP, Avisos, MCP, Atalhos, Acessos e Sobre, os campos lado a lado em
+  Geral e MCP e o card **Ajuda e Sugestões** em Sobre. As variáveis do
+  `sankhya-schema` na aba MCP ficam num grupo recolhível, fechado a cada abertura.
+- O **repositório Git** deixa de ter nome próprio: a tela mostra a pasta do clone
+  ou, sem ela, o fim da URL, e o caminho local passa a ser obrigatório no
+  cadastro. O nome gravado antes é descartado sozinho, sem migração a rodar.
+- O detalhe do cliente abre na aba **Bases** quando a Geral não tem anotações nem
+  links.
+- O menu do aplicativo (Hub, Guias, Janela, Ajuda) saiu da barra nativa e abre por
+  um botão à esquerda da guia Hub, com os mesmos atalhos. O botão de recarregar
+  foi redesenhado, e o texto de situação (backend, cookies do ERP, Experience)
+  saiu da barra.
+- O `hub-snk.env` deixa de ser lido. O backend escuta sempre em `127.0.0.1`, na
+  porta 4100, e a ponte do aplicativo, na 4103. Para usar outras portas — uma
+  segunda cópia ao lado da instalada, por exemplo —, defina `SANKHYA_HUB_URL` e
+  `SANKHYA_DESKTOP_BRIDGE_PORT` antes de abrir o aplicativo.
 
 ### Removido
 
@@ -79,10 +118,18 @@ versão antiga e mantém o cadastro onde está.
   manifest.
 - O **instalador por script** (`instalar-hub-snk.bat`/`.ps1`/`.sh`), os pacotes zip
   e tar.gz e os launchers `iniciar.vbs`/`iniciar.sh`.
-- O **`hub-helper.ps1`**: tudo o que ele fazia é do aplicativo agora.
 - As variáveis `HUB_PERMITIR_REDE`, `HUB_NAVEGADOR` e `HUB_ABRIR_JANELA`. O
   `HUB_HOST` só aceita loopback.
 - A distribuição para **macOS**. O pacote para Linux está em preparação.
+
+### Corrigido
+
+- Salvar as variáveis do MCP com o caminho vazio dizia "Configurações salvas." e
+  as descartava. Agora acusa o erro.
+- Os balões de ajuda das legendas das configurações abriam abaixo do rodapé e
+  criavam barra de rolagem.
+- Base cadastrada em https cujo servidor rebaixa para http no redirecionamento
+  deixava o login carregando para sempre na guia. Agora a guia volta para https.
 
 ### Migração da versão 1
 

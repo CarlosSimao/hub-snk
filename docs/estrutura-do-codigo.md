@@ -8,7 +8,9 @@ src/
   index.ts                                  sobe o Fastify e serve public/
   configuracao.ts                           porta, host, diretório de dados e perfil do instalador
   acessos.ts                                preset de funcionalidades ocultas de cada perfil
-  tipos.ts                                  os tipos Cliente, Base e RepositorioGit
+  tipos.ts                                  os tipos do domínio: cadastro (Cliente, Base, BancoDeDados, RepositorioGit,
+                                            Projeto), configuração global e acessos, situação do Git, bases e bancos
+                                            locais, Agenda de Recursos, OS da Experience, notificações, lembretes e contatos
   repositorio/arquivoDeDados.ts             envelope com versaoDoEsquema, migração e escrita atômica
   repositorio/repositorioClientes.ts        contrato de persistência e erros de domínio
   repositorio/repositorioClientesArquivo.ts implementação em arquivo JSON local
@@ -31,15 +33,17 @@ src/
   rotas/rotasSistema.ts                     versão, sonda de vida, encerramento, seletores do SO e varredura
   rotas/rotasSankhya.ts                     credenciais, guias do Sankhya e sessão empurrada pelo shell
   rotas/rotasAgenda.ts                      Agenda de Recursos e situação do dia na Experience
+  rotas/rotasOs.ts                          OS da Experience, geral e por cliente, consultadas ao vivo
   rotas/rotasNotificacoes.ts                painel de notificações, fluxo SSE e e-mail de teste
   rotas/rotasLembretes.ts                   cadastro dos lembretes e prévia do cron
   rotas/rotasContatos.ts                    cadastro dos contatos
   rotas/esquemaDeNotificacoes.ts            validação do SMTP e do alerta da agenda
+  rotas/esquemaDeConfiguracaoMcp.ts         validação do .sankhya-mcp.env, comum ao repositório e à base local
   rotas/autenticacaoDoShell.ts              confere o token das rotas que só o shell desktop chama
   rotas/respostasDoShell.ts                 traduz a falha da ponte com o shell em resposta HTTP
   sankhya/ponteDoDesktop.ts                 cliente HTTP da ponte do shell desktop (127.0.0.1:4103)
   sankhya/sessaoDoDesktop.ts                JWT da Experience empurrado pelo shell, em memória
-  sankhya/credenciais.ts                    credenciais e consultas feitas de dentro da guia do ERP
+  sankhya/credenciais.ts                    credenciais do cofre do shell e consultas feitas por ele no ERP
   sankhya/agenda.ts  sankhya/agendaParser.ts   snapshot da Agenda de Recursos em SQLite
   sankhya/negociacoes.ts                    FAPs de um parceiro, a partir das negociações do ERP
   sankhya/consultasDaAgenda.ts              importar um período da agenda e a situação do dia do parceiro
@@ -61,6 +65,7 @@ src/
   sistema/abrirShell.ts                     abre o terminal do SO na pasta
   sistema/abrirIde.ts                        abre a pasta como projeto na IDE configurada
   sistema/abrirExecutavel.ts                inicia o programa de um atalho
+  sistema/lancarProcesso.ts                 lança um programa e confere que ele de fato subiu
   sistema/selecionarArquivo.ts              abre o seletor de arquivo do SO
   sistema/selecionarPasta.ts                abre o seletor de pasta do SO
   sistema/arquivoMcp.ts                     lê e grava o .sankhya-mcp.env do repositório
@@ -68,6 +73,12 @@ src/
   sistema/ultimaVersaoPublicada.ts          consulta a última release no GitHub, com cache
   sistema/comparacaoDeVersao.ts             diz se a versão publicada é mais nova que a instalada
   sistema/wildfly.ts  sistema/docker.ts     situação das bases e dos bancos locais
+  sistema/logDaBase.ts                      final do server.log de uma base local e o que chega depois, para o log ao vivo
+  sistema/baseDoCliente.ts                  checagem HTTP da base de um cliente
+  sistema/versaoDaPlataforma.ts             versão da plataforma lida da página inicial do Sankhya
+  sistema/historicoDeSituacaoDaBase.ts      amostras de situação de cada base local, em memória, para o gráfico de uptime
+  sistema/historicoDeSituacaoDoBanco.ts     o mesmo para cada banco local
+  sistema/historicoDeSituacaoDaBaseDoCliente.ts  o mesmo para cada base de cliente
 public/
   index.html  styles.css  app.js            interface, sem framework e sem build
   leitorDeFavoritos.js                      lê o arquivo de favoritos de qualquer navegador suportado
@@ -81,17 +92,22 @@ desktop/                                    shell Electron: o aplicativo que o u
   src/config.ts                             endereços, portas e caminhos, em desenvolvimento e empacotado
   src/tabs.ts                               guias fixas e por base, política de pop-up e de links
   src/bridgeServer.ts                       ponte que o backend chama: cofre, guias e consultas ao ERP
+  src/tokenStore.ts                         token compartilhado entre a ponte e o backend, gerado no primeiro boot
   src/cofreCredenciais.ts                   cofre das credenciais com o safeStorage do Electron
-  src/navegador.ts  src/sessions.ts         abrir e capturar a sessão das guias do Sankhya
-  src/agenda.ts                             Agenda de Recursos e negociações, de dentro da guia do ERP
+  src/navegador.ts  src/sessions.ts         abrir as guias do Sankhya e capturar a sessão delas
+  src/autoLoginSankhya.ts                   login automático nas guias Sankhya Om e Experience com a credencial do cofre
+  src/loginOcultoSankhya.ts                 janela invisível e preenchimento do login web, comuns às janelas ocultas
+  src/janelaAgendaOculta.ts                 janela oculta que loga no ERP e consulta a Agenda de Recursos e as negociações
+  src/janelaExperienceOculta.ts             janela oculta que loga na Experience e mantém o JWT para o backend
   src/autofill.ts                           preenche o login da guia de uma base de cliente
   src/backendClient.ts                      empurra a sessão da Experience para o backend
-  src/migracaoCofre.ts                      traz as credenciais do antigo hub-helper.ps1, uma vez
-  src/menu.ts  src/preload.ts  index.html  renderer.js   menu nativo e a barra de guias
+  src/log.ts                                desktop.log, com redação de senha, token, JWT e e-mail
+  src/menu.ts  src/preload.ts  index.html  renderer.js   menu e a barra de guias
   scripts/preparar-hub.mjs                  monta o backend do pacote, só com as dependências de produção
   scripts/preparar-autosync.mjs             monta os binários do Git AutoSync para o instalador
   instalador/remover-versao-pwa.ps1         remove a instalação PWA antiga, preservando o cadastro
-  assets/installer.nsh                      personalização do NSIS: remoção da PWA e página do Git AutoSync
+  assets/installer.nsh                      personalização do NSIS: remoção da PWA, página de perfil (com a caixa
+                                            Terceiro) e página do Git AutoSync
   electron-builder.yml                      identidade, recursos e alvos do instalador
 ```
 

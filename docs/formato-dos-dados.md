@@ -180,8 +180,8 @@ O conteúdo de `clientes`:
     "repositorios": [
       {
         "id": "0d1df29e-dd3d-4a9c-ada9-1d25a877f2cf",
-        "nome": "Addon de faturamento",
-        "url": "https://github.com/grupo/projeto"
+        "url": "https://github.com/grupo/projeto",
+        "caminhoLocal": "C:\\Workspace\\projeto"
       }
     ],
     "links": [
@@ -197,9 +197,14 @@ O conteúdo de `clientes`:
 ]
 ```
 
+Repositório não tem nome gravado: a tela mostra a pasta do `caminhoLocal` ou, sem
+clone, o último trecho da URL. O cadastro exige o `caminhoLocal`; ele só falta em
+repositório gravado por versão anterior, quando o campo ainda era opcional.
+
 Clientes gravados antes de anotações, bases, repositórios e links existirem são
-carregados com essas listas vazias, e repositórios sem `nome` recebem como
-rótulo o último trecho da URL. Banco de dados gravado antes de `sgbd` e
+carregados com essas listas vazias. O `nome` que versões anteriores gravavam em
+cada repositório é descartado na leitura e sai do arquivo na próxima gravação.
+Banco de dados gravado antes de `sgbd` e
 `identificadorOracle` existirem é lido como `oracle` e `service-name`. Não há
 migração manual a rodar.
 
@@ -232,3 +237,14 @@ Ao publicar uma versão que muda o formato dos dados, suba a
 `VERSAO_ATUAL_DO_ESQUEMA` em `src/repositorio/arquivoDeDados.ts` junto com a
 parte MAJOR da versão do HUB SNK, e escreva a migração da versão anterior para a
 nova.
+
+A recíproca não vale: release MAJOR não obriga a subir o esquema. A versão 2 é
+MAJOR pela troca da PWA pelo aplicativo desktop, e a `VERSAO_ATUAL_DO_ESQUEMA`
+continua `1`, porque a única retirada de campo, o `nome` dos repositórios, é
+compatível nos dois sentidos: a versão 2 descarta o campo na leitura, e a 1.1.0,
+ao abrir um arquivo sem ele, deriva o nome do último trecho da URL. O resto da
+versão 2 só acrescenta campos. No `clientes.json` eles sobrevivem a uma gravação
+da 1.1.0, que preserva o que não reconhece em cada cliente; no
+`configuracao.json`, não: a 1.1.0 remonta a configuração só com os campos dela, e
+salvar as configurações nela descarta acessos, SMTP e alerta da agenda gravados
+pela versão 2. Numa pasta compartilhada entre máquinas, atualize todas.
