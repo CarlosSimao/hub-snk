@@ -28,7 +28,7 @@ type ObterMenu = () => Menu | null;
 const FUNDO_TRANSPARENTE = '#00000000';
 
 /** `CmdOrCtrl+1` → `Ctrl+1`: o shell só é distribuído para Windows e Linux. */
-function atalhoLegivel(acelerador: string | null | undefined): string {
+export function atalhoLegivel(acelerador: string | null | undefined): string {
   return (acelerador ?? '').replace(/^(CmdOrCtrl|CommandOrControl)\+/, 'Ctrl+');
 }
 

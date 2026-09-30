@@ -2,7 +2,7 @@
  * Bootstrap do shell desktop do HUB SNK — ver docs/distribuicao.md.
  */
 import './nomeDoApp';
-import { app, BrowserWindow, Menu, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu, dialog, globalShortcut, ipcMain, type Tray } from 'electron';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { execFile } from 'node:child_process';
@@ -27,6 +27,14 @@ import { iniciarBackend, pararBackend } from './backendProcess';
 import { autoLoginSankhya } from './autoLoginSankhya';
 import * as cofre from './cofreCredenciais';
 import { montarMenu } from './menu';
+import { avisarQueContinuaNaBandeja, criarBandeja } from './bandeja';
+import { AtalhoGlobalDaBusca } from './atalhoGlobal';
+import { abrirBuscaRapida } from './buscaRapida';
+import {
+  definirInicioAutomatico,
+  foiIniciadoPeloWindows,
+  inicioAutomaticoLigado,
+} from './inicioAutomatico';
 
 if (!app.requestSingleInstanceLock()) {
   // app.quit() só agenda o encerramento — sem process.exit aqui, o resto do módulo
@@ -46,6 +54,13 @@ let experienceCapturada = false;
 /** `expIso` do que já foi confirmado empurrado — dispara push de novo se mudar (relogin
  * sem passar por "ausente" no meio, ex.: trocar de conta sem sair primeiro). */
 let ultimoExpEmpurrado = '';
+/** Referência mantida só para o coletor de lixo não levar o ícone da bandeja embora. */
+let bandeja: Tray | null = null;
+/** Encerramento pedido (Sair): a partir daqui o X fecha a janela em vez de escondê-la. */
+let encerrando = false;
+/** Windows desligando ou saindo da conta: segurar o fechamento travaria o desligamento. */
+let sessaoDoWindowsEncerrando = false;
+const atalhoGlobal = new AtalhoGlobalDaBusca(() => abrirBuscaRapidaNaJanela());
 
 function criarJanela(): void {
   janelaPrincipal = new BrowserWindow({
@@ -53,6 +68,8 @@ function criarJanela(): void {
     height: 860,
     title: 'HUB SNK',
     icon: ICONE,
+    // Aberto pelo Windows no login, o app sobe escondido na bandeja, sem janela na frente.
+    show: !foiIniciadoPeloWindows(),
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -81,6 +98,17 @@ function criarJanela(): void {
   // (log de uma base, pop-up de SSO): sem isto o `window-all-closed` não dispara, e o
   // app e o backend continuam de pé sem a janela que os controla.
   janelaPrincipal.on('closed', () => app.quit());
+  // Com a bandeja, o X só esconde: o atalho global e os avisos de mensagem nova seguem
+  // valendo. Sair de verdade é por Hub › Sair ou pela bandeja.
+  janelaPrincipal.on('close', (evento) => {
+    if (encerrando || sessaoDoWindowsEncerrando) return;
+    evento.preventDefault();
+    janelaPrincipal?.hide();
+    avisarQueContinuaNaBandeja();
+  });
+  janelaPrincipal.on('query-session-end', () => {
+    sessaoDoWindowsEncerrando = true;
+  });
 
   tabs = new TabManager(janelaPrincipal);
   comunicacao = new GerenciadorComunicacao(janelaPrincipal);
@@ -160,6 +188,38 @@ function criarJanela(): void {
       }
     })();
   }, 15_000);
+}
+
+function mostrarJanela(): void {
+  if (!janelaPrincipal) return;
+  if (janelaPrincipal.isMinimized()) janelaPrincipal.restore();
+  janelaPrincipal.show();
+  janelaPrincipal.focus();
+}
+
+/** Traz a janela e deixa a guia Painel à vista: é o que o atalho, o menu e a bandeja pedem. */
+function mostrarPainel(): void {
+  mostrarJanela();
+  // O painel de comunicação fica por cima das guias e cobriria a busca.
+  comunicacao?.ocultar();
+}
+
+function abrirBuscaRapidaNaJanela(): void {
+  if (!tabs) return;
+  mostrarPainel();
+  void abrirBuscaRapida(tabs);
+}
+
+function criarBandejaDoApp(): void {
+  bandeja = criarBandeja({
+    mostrarJanela,
+    abrirBusca: abrirBuscaRapidaNaJanela,
+    situacaoDoAtalhoGlobal: () => atalhoGlobal.situacao,
+    definirAtalhoGlobalLigado: (ligado) => atalhoGlobal.definirLigado(ligado),
+    inicioAutomaticoLigado,
+    definirInicioAutomatico,
+    sair: () => app.quit(),
+  });
 }
 
 /**
@@ -307,14 +367,19 @@ app.whenReady().then(async () => {
   montarMenu(
     () => janelaPrincipal,
     () => tabs,
+    {
+      abrirBuscaRapida: abrirBuscaRapidaNaJanela,
+      situacaoDoAtalhoGlobal: () => atalhoGlobal.situacao,
+    },
   );
+  criarBandejaDoApp();
+  atalhoGlobal.aplicarEscolhaGravada();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) criarJanela();
   });
 });
 
-let encerrando = false;
 app.on('before-quit', (evento) => {
   // `pararBackend` é assíncrono e o Electron não espera handler nenhum: sem segurar o
   // quit aqui, o processo do backend sobraria órfão segurando a porta 4100, e a próxima
@@ -332,9 +397,7 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-app.on('second-instance', () => {
-  if (janelaPrincipal) {
-    if (janelaPrincipal.isMinimized()) janelaPrincipal.restore();
-    janelaPrincipal.focus();
-  }
-});
+app.on('will-quit', () => globalShortcut.unregisterAll());
+
+// O atalho da área de trabalho com o app escondido na bandeja cai aqui: a janela volta.
+app.on('second-instance', mostrarJanela);

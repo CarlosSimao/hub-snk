@@ -180,6 +180,13 @@ FunctionEnd
 !endif ; BUILD_UNINSTALLER
 
 !macro customUnInstall
+  ; Entrada do "Iniciar HUB SNK automaticamente" (desktop/src/inicioAutomatico.ts). So na
+  ; desinstalacao de verdade: a atualizacao roda este desinstalador antes de instalar a
+  ; versao nova, e apagar aqui desligaria o inicio automatico a cada versao.
+  ${IfNot} ${isUpdated}
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "br.dev.hubsnk.desktop"
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" "br.dev.hubsnk.desktop"
+  ${EndIf}
   ${IfNot} ${Silent}
   ${AndIf} ${FileExists} "$INSTDIR\resources\git-autosync\instalado-pelo-hub.txt"
     MessageBox MB_YESNO|MB_ICONQUESTION "Remover tambem o Git AutoSync (tarefa agendada, bandeja e atalhos)?$\r$\n$\r$\nSeus repositorios cadastrados, o historico e os logs serao preservados." IDNO gas_manter

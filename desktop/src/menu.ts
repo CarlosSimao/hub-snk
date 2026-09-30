@@ -6,11 +6,20 @@
  */
 import { Menu, app, shell, type BrowserWindow, type MenuItem } from 'electron';
 import { HUB_URL } from './config';
+import type { SituacaoDoAtalhoGlobal } from './atalhoGlobal';
+import { abrirJanelaDeAtalhos } from './janelaDeAtalhos';
 import type { TabManager } from './tabs';
+
+/** O que o menu aciona fora dele: a busca rápida e o estado do atalho global. */
+export interface AcoesDoMenu {
+  abrirBuscaRapida(): void;
+  situacaoDoAtalhoGlobal(): SituacaoDoAtalhoGlobal;
+}
 
 export function montarMenu(
   janela: () => BrowserWindow | null,
   tabs: () => TabManager | null,
+  acoes: AcoesDoMenu,
 ): void {
   const gerenciador = tabs();
   const guiaBloqueada = (id: string): boolean => gerenciador?.guiaBloqueada(id) ?? false;
@@ -23,6 +32,13 @@ export function montarMenu(
           label: 'Recarregar a guia atual',
           accelerator: 'CmdOrCtrl+R',
           click: () => tabs()?.recarregar(),
+        },
+        // No menu, e não só no painel: dentro da guia do SankhyaOm ou de uma base, o
+        // Ctrl+K nunca chegaria à página do painel.
+        {
+          label: 'Busca rápida',
+          accelerator: 'CmdOrCtrl+K',
+          click: () => acoes.abrirBuscaRapida(),
         },
         { type: 'separator' },
         { label: 'Sair', role: 'quit' },
@@ -63,7 +79,7 @@ export function montarMenu(
             // O estado real da caixa e' a fonte da visibilidade. Inclusive a ultima
             // guia pode ser ocultada: a view continua carregada em segundo plano.
             const alterou = gerenciador.definirGuiaVisivel(guia.id, itemMenu.checked);
-            if (!alterou) montarMenu(janela, tabs);
+            if (!alterou) montarMenu(janela, tabs, acoes);
           },
         })),
       ],
@@ -89,6 +105,13 @@ export function montarMenu(
     {
       label: 'Ajuda',
       submenu: [
+        {
+          label: 'Atalhos',
+          click: () => {
+            const principal = janela();
+            if (principal) abrirJanelaDeAtalhos(principal, acoes.situacaoDoAtalhoGlobal());
+          },
+        },
         { label: 'Abrir o painel no navegador', click: () => void shell.openExternal(HUB_URL) },
         { label: `Versão ${app.getVersion()}`, enabled: false },
       ],
@@ -97,5 +120,5 @@ export function montarMenu(
 
   Menu.setApplicationMenu(menu);
   // O menu nativo nao e' reativo: abrir ou fechar uma aba exige reconstruir a lista.
-  gerenciador?.aoMudarGuias(() => montarMenu(janela, tabs));
+  gerenciador?.aoMudarGuias(() => montarMenu(janela, tabs, acoes));
 }

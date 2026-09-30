@@ -8,6 +8,12 @@
  */
 
 import { lerCadastrosDoTexto } from './leitorDeArquivoDeCadastros.js';
+import {
+  buscarItens,
+  montarItensDaBusca,
+  registrarUsoRecente,
+  ROTULOS_DOS_TIPOS,
+} from './buscaRapida.js';
 import { lerArvoreDeFavoritos } from './leitorDeFavoritos.js';
 import { separarTipoDoNome } from './tipoDeBaseNoNome.js';
 
@@ -206,6 +212,8 @@ const ICONES = {
   link: 'M15 7h3a5 5 0 0 1 0 10h-3 M9 17H6a5 5 0 0 1 0-10h3 M8 12h8',
   /* Sino: o botão que abre o painel de notificações. */
   sino: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0',
+  /* Lupa: o botão que abre a busca rápida. */
+  lupa: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.35-4.35',
 };
 
 const estado = {
@@ -270,6 +278,13 @@ const estado = {
   situacoesDeBasesDeClientes: {},
   /* Atalhos da barra da direita, relidos a cada gravação da configuração. */
   atalhos: [],
+  /* Com IDE configurada, Enter num repositório da busca rápida abre a IDE; sem ela, a pasta. */
+  ideConfigurada: false,
+  /*
+   * Busca rápida. `itens` é o índice montado ao abrir, `resultados` o que casa
+   * com o texto digitado e `indiceSelecionado` a linha destacada nos resultados.
+   */
+  buscaRapida: { itens: [], resultados: [], indiceSelecionado: 0 },
   /* Painel de notificações: a lista vem do servidor e cresce pelo fluxo SSE. */
   notificacoes: [],
   lembretes: [],
@@ -390,6 +405,11 @@ const elementos = {
   erroContato: document.getElementById('erro-contato'),
   botaoSalvarContato: document.getElementById('btn-salvar-contato'),
   botaoCancelarContato: document.getElementById('btn-cancelar-contato'),
+
+  botaoBuscaRapida: document.getElementById('btn-busca-rapida'),
+  modalBuscaRapida: document.getElementById('modal-busca-rapida'),
+  campoBuscaRapida: document.getElementById('campo-busca-rapida'),
+  listaBuscaRapida: document.getElementById('lista-busca-rapida'),
 
   botaoNotificacoes: document.getElementById('btn-notificacoes'),
   contadorNotificacoes: document.getElementById('contador-notificacoes'),
@@ -5579,6 +5599,7 @@ async function salvarConfiguracao(evento) {
 
     /* A resposta traz os ids gerados: é dela que a barra passa a viver. */
     estado.atalhos = salva.atalhos ?? [];
+    estado.ideConfigurada = Boolean(salva.caminhoDoExecutavelDaIde);
     renderizarListaDeAtalhos();
   } catch (erro) {
     exibirErro(elementos.erroConfiguracao, erro.message);
@@ -8753,6 +8774,320 @@ function registrarEventosDosContatos() {
   });
 }
 
+/* ------------------------------ busca rápida ------------------------------ */
+
+const CHAVE_DOS_RECENTES_DA_BUSCA = 'hub-snk:busca-rapida:recentes';
+
+function lerRecentesDaBusca() {
+  try {
+    const salvos = JSON.parse(localStorage.getItem(CHAVE_DOS_RECENTES_DA_BUSCA) ?? '[]');
+    return Array.isArray(salvos) ? salvos.filter((chave) => typeof chave === 'string') : [];
+  } catch (erro) {
+    // Sem o armazenamento do navegador, a busca só perde o histórico.
+    console.warn('Histórico da busca rápida ilegível:', erro);
+    return [];
+  }
+}
+
+function gravarUsoNaBusca(chave) {
+  try {
+    const recentes = registrarUsoRecente(lerRecentesDaBusca(), chave);
+    localStorage.setItem(CHAVE_DOS_RECENTES_DA_BUSCA, JSON.stringify(recentes));
+  } catch (erro) {
+    console.warn('Não foi possível gravar o histórico da busca rápida:', erro);
+  }
+}
+
+function montarItensDaBuscaRapida() {
+  return montarItensDaBusca({
+    clientes: estado.clientes,
+    contatos: estado.contatos,
+    atalhos: estado.atalhos,
+    basesLocais: estado.basesLocais,
+    visivel: funcionalidadeVisivel,
+    rotulosDeTipoDeBase: ROTULOS_DE_TIPO_DE_BASE,
+    nomeDoRepositorio: nomeDeExibicaoDoRepositorio,
+  });
+}
+
+/*
+ * As bases locais só são lidas quando a visão Local abre. Sem isto, a busca não
+ * as acharia antes da primeira visita a ela.
+ */
+async function carregarBasesLocaisParaABusca() {
+  if (!funcionalidadeVisivel('local') || estado.basesLocais.length > 0) {
+    return;
+  }
+
+  try {
+    estado.basesLocais = await api.listarBasesLocais();
+  } catch (erro) {
+    console.warn('Bases locais fora da busca rápida:', erro);
+    return;
+  }
+
+  if (elementos.modalBuscaRapida.open) {
+    estado.buscaRapida.itens = montarItensDaBuscaRapida();
+    atualizarResultadosDaBuscaRapida();
+  }
+}
+
+function abrirBuscaRapida() {
+  estado.buscaRapida.itens = montarItensDaBuscaRapida();
+
+  if (!elementos.modalBuscaRapida.open) {
+    if (listaDeAtalhosEstaAberta()) {
+      fecharListaDeAtalhos();
+    }
+    elementos.campoBuscaRapida.value = '';
+    elementos.modalBuscaRapida.showModal();
+  }
+
+  atualizarResultadosDaBuscaRapida();
+  elementos.campoBuscaRapida.focus();
+  elementos.campoBuscaRapida.select();
+  void carregarBasesLocaisParaABusca();
+}
+
+function atualizarResultadosDaBuscaRapida() {
+  const busca = estado.buscaRapida;
+  busca.resultados = buscarItens(
+    busca.itens,
+    elementos.campoBuscaRapida.value,
+    lerRecentesDaBusca(),
+  );
+  busca.indiceSelecionado = 0;
+  renderizarResultadosDaBuscaRapida();
+}
+
+function criarAcoesDoRepositorioNaBusca({ cliente, repositorio }) {
+  const acao = (executar) => (evento) => {
+    evento.stopPropagation();
+    elementos.modalBuscaRapida.close();
+    executar().catch((erro) => exibirAviso(erro.message, 'erro'));
+  };
+
+  const acoes = criarElemento('span', 'busca-rapida-acoes');
+  acoes.append(
+    criarBotaoDeIcone(
+      'btn tiny',
+      ICONES.pasta,
+      'Abrir a pasta',
+      acao(() => api.abrirPastaDoRepositorio(cliente.id, repositorio.id)),
+    ),
+    criarBotaoDeIcone(
+      'btn tiny',
+      ICONES.terminal,
+      'Abrir o terminal',
+      acao(() => api.abrirShellDoRepositorio(cliente.id, repositorio.id)),
+    ),
+    criarBotaoDeIcone(
+      'btn tiny',
+      ICONES.ide,
+      'Abrir a IDE',
+      acao(() => api.abrirIdeDoRepositorio(cliente.id, repositorio.id)),
+    ),
+  );
+  return acoes;
+}
+
+function criarLinhaDaBuscaRapida(item, indice, selecionado) {
+  const classe = selecionado ? 'busca-rapida-item selecionado' : 'busca-rapida-item';
+  const linha = criarElemento('li', classe);
+  linha.id = `busca-rapida-item-${indice}`;
+  linha.setAttribute('role', 'option');
+  linha.setAttribute('aria-selected', String(selecionado));
+
+  const texto = criarElemento('span', 'busca-rapida-texto');
+  texto.append(criarElemento('span', 'busca-rapida-titulo', item.titulo));
+  if (item.detalhe) {
+    texto.append(criarElemento('span', 'busca-rapida-detalhe', item.detalhe));
+  }
+
+  linha.append(criarElemento('span', 'busca-rapida-tipo', ROTULOS_DOS_TIPOS[item.tipo]), texto);
+  if (item.tipo === 'repositorio' && item.dados.repositorio.caminhoLocal) {
+    linha.append(criarAcoesDoRepositorioNaBusca(item.dados));
+  }
+
+  linha.addEventListener('click', (evento) =>
+    executarItemDaBuscaRapida(item, { abrirCliente: evento.ctrlKey }),
+  );
+  return linha;
+}
+
+function mensagemDaBuscaRapidaSemResultado() {
+  return elementos.campoBuscaRapida.value.trim()
+    ? 'Nada encontrado.'
+    : 'Digite para buscar. O que você abrir por aqui passa a aparecer nesta lista.';
+}
+
+function renderizarResultadosDaBuscaRapida() {
+  const { resultados, indiceSelecionado } = estado.buscaRapida;
+  const lista = elementos.listaBuscaRapida;
+
+  lista.replaceChildren(
+    ...resultados.map((item, indice) =>
+      criarLinhaDaBuscaRapida(item, indice, indice === indiceSelecionado),
+    ),
+  );
+
+  if (resultados.length === 0) {
+    lista.append(criarElemento('li', 'busca-rapida-vazia', mensagemDaBuscaRapidaSemResultado()));
+    elementos.campoBuscaRapida.removeAttribute('aria-activedescendant');
+    return;
+  }
+
+  const selecionada = lista.children[indiceSelecionado];
+  elementos.campoBuscaRapida.setAttribute('aria-activedescendant', selecionada.id);
+  selecionada.scrollIntoView({ block: 'nearest' });
+}
+
+function moverSelecaoDaBuscaRapida(passo) {
+  const busca = estado.buscaRapida;
+  const total = busca.resultados.length;
+  if (total === 0) {
+    return;
+  }
+
+  busca.indiceSelecionado = (busca.indiceSelecionado + passo + total) % total;
+  renderizarResultadosDaBuscaRapida();
+}
+
+function abrirEnderecoDaBusca(endereco) {
+  if (!ehEnderecoNavegavel(endereco)) {
+    throw new Error(`O endereço não abre no navegador: ${endereco}`);
+  }
+  // No desktop, quem decide entre a guia do HUB e o navegador padrão é o shell.
+  window.open(endereco, '_blank', 'noopener');
+}
+
+function abrirClienteDaBusca(idDoCliente, aba) {
+  alternarVisualizacao('clientes');
+  void selecionarCliente(idDoCliente, aba);
+}
+
+function abrirProjetoDaBusca({ cliente, projeto }) {
+  estado.projetosComInformacoesVisiveis.add(projeto.id);
+  abrirClienteDaBusca(cliente.id, 'projetos');
+}
+
+/* Contato sem cliente (ou com a aba do cliente oculta) abre no menu Contatos, já filtrado. */
+function abrirContatoDaBusca({ contato, cliente }) {
+  if (cliente) {
+    abrirClienteDaBusca(cliente.id, 'contatos');
+    return;
+  }
+
+  estado.filtroDeContatos = { nome: contato.nome, clienteId: '' };
+  elementos.campoFiltroNomeContato.value = contato.nome;
+  alternarVisualizacao('contatos');
+}
+
+/* Sem clone local não há pasta nem IDE: abre o remoto. Sem IDE configurada, a pasta. */
+function abrirRepositorioDaBusca({ cliente, repositorio }) {
+  if (!repositorio.caminhoLocal) {
+    return abrirEnderecoDaBusca(repositorio.url);
+  }
+  if (estado.ideConfigurada) {
+    return api.abrirIdeDoRepositorio(cliente.id, repositorio.id);
+  }
+  return api.abrirPastaDoRepositorio(cliente.id, repositorio.id);
+}
+
+async function abrirAtalhoDaBusca({ atalho }) {
+  await api.abrirAtalho(atalho.id);
+  exibirAviso(`${atalho.nome} iniciado.`);
+}
+
+/* Ação do Enter para cada tipo de item. */
+const ACOES_PRINCIPAIS_DA_BUSCA = {
+  cliente: ({ cliente }) => abrirClienteDaBusca(cliente.id, null),
+  base: ({ base }) => abrirEnderecoDaBusca(base.url),
+  repositorio: abrirRepositorioDaBusca,
+  link: ({ link }) => abrirEnderecoDaBusca(link.url),
+  linkDeProjeto: ({ link }) => abrirEnderecoDaBusca(link.url),
+  projeto: abrirProjetoDaBusca,
+  contato: abrirContatoDaBusca,
+  atalho: abrirAtalhoDaBusca,
+  baseLocal: ({ base }) => abrirEnderecoDaBusca(`http://localhost:${base.porta}/mge`),
+};
+
+/** `abrirCliente` (Ctrl+Enter) troca a ação do item por abrir o cliente dele no painel. */
+async function executarItemDaBuscaRapida(item, { abrirCliente = false } = {}) {
+  elementos.modalBuscaRapida.close();
+  gravarUsoNaBusca(item.chave);
+
+  try {
+    if (abrirCliente && item.clienteId) {
+      abrirClienteDaBusca(item.clienteId, item.abaDoCliente);
+      return;
+    }
+    await ACOES_PRINCIPAIS_DA_BUSCA[item.tipo](item.dados);
+  } catch (erro) {
+    exibirAviso(erro.message, 'erro');
+  }
+}
+
+function tratarTeclaDaBuscaRapida(evento) {
+  if (evento.key === 'ArrowDown' || evento.key === 'ArrowUp') {
+    evento.preventDefault();
+    moverSelecaoDaBuscaRapida(evento.key === 'ArrowDown' ? 1 : -1);
+    return;
+  }
+
+  if (evento.key !== 'Enter') {
+    return;
+  }
+
+  evento.preventDefault();
+  const busca = estado.buscaRapida;
+  const item = busca.resultados[busca.indiceSelecionado];
+  if (item) {
+    void executarItemDaBuscaRapida(item, { abrirCliente: evento.ctrlKey });
+  }
+}
+
+function ehAtalhoDaBuscaRapida(evento) {
+  return (
+    (evento.ctrlKey || evento.metaKey) &&
+    !evento.shiftKey &&
+    !evento.altKey &&
+    evento.key.toLowerCase() === 'k'
+  );
+}
+
+/*
+ * O atalho global, o menu do aplicativo e a bandeja chegam aqui pelo
+ * `executeJavaScript` do shell: o painel é página servida pelo backend e não
+ * recebe o preload, então não há outro canal até ele.
+ */
+function exporBuscaRapidaAoShell() {
+  window.buscaRapidaDoHub = { abrir: abrirBuscaRapida };
+}
+
+function registrarEventosDaBuscaRapida() {
+  elementos.botaoBuscaRapida.append(criarIcone(ICONES.lupa));
+  elementos.botaoBuscaRapida.addEventListener('click', abrirBuscaRapida);
+  elementos.campoBuscaRapida.addEventListener('input', atualizarResultadosDaBuscaRapida);
+  elementos.campoBuscaRapida.addEventListener('keydown', tratarTeclaDaBuscaRapida);
+
+  // Clique no fundo escurecido cai no próprio `<dialog>`, fora do conteúdo.
+  elementos.modalBuscaRapida.addEventListener('click', (evento) => {
+    if (evento.target === elementos.modalBuscaRapida) {
+      elementos.modalBuscaRapida.close();
+    }
+  });
+
+  document.addEventListener('keydown', (evento) => {
+    if (ehAtalhoDaBuscaRapida(evento)) {
+      evento.preventDefault();
+      abrirBuscaRapida();
+    }
+  });
+
+  exporBuscaRapidaAoShell();
+}
+
 /* ----------------------------------- tema --------------------------------- */
 
 function aplicarTema(tema) {
@@ -8889,8 +9224,10 @@ function abaInicialDoCliente(cliente) {
  * Se o usuário trocar de cliente nesse meio-tempo, o resultado atrasado é
  * descartado para não redesenhar por cima da nova seleção.
  */
-async function selecionarCliente(id) {
-  if (estado.idSelecionado !== id) {
+async function selecionarCliente(id, abaInicial = null) {
+  if (abaInicial) {
+    estado.abaDetalheAtiva = abaInicial;
+  } else if (estado.idSelecionado !== id) {
     estado.abaDetalheAtiva = abaInicialDoCliente(
       estado.clientes.find((cliente) => cliente.id === id),
     );
@@ -8963,6 +9300,7 @@ function registrarEventos() {
 
   elementos.botaoAtalhos.append(criarIcone(ICONES.raio));
   elementos.botaoAtalhos.addEventListener('click', alternarListaDeAtalhos);
+  registrarEventosDaBuscaRapida();
 
   /*
    * A lista só fecha por ação: clique em qualquer ponto fora dela ou `Esc`.
@@ -9317,6 +9655,7 @@ async function iniciar() {
         INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S,
     );
     estado.atalhos = configuracao.atalhos ?? [];
+    estado.ideConfigurada = Boolean(configuracao.caminhoDoExecutavelDaIde);
     aplicarAcessos(configuracao);
   } catch {
     // Sem a configuração, vale o padrão — não é motivo para outro aviso na tela.

@@ -71,6 +71,9 @@ já abre com o login preenchido. Detalhes em
 O menu _Guias_ esconde e mostra cada guia, e _Ajuda_ › _Abrir o painel no
 navegador_ abre o painel fora do aplicativo.
 
+Fechar a janela não encerra o aplicativo: ele fica na bandeja do Windows, perto
+do relógio. Para sair, use _Hub_ › _Sair_ ou o botão direito no ícone da bandeja.
+
 ---
 
 ## Configuração
@@ -131,20 +134,21 @@ Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 
 ## Funcionalidades
 
-| O quê                       | Resumo                                                                                                                           |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **Cadastro de clientes**    | Bases do ERP com usuário, senha e banco vinculado, repositórios Git, links avulsos, projetos e anotações livres                  |
-| **Guias do Sankhya**        | SankhyaOm e Experience dentro do aplicativo; cada base de cliente numa guia isolada, com usuário e senha preenchidos             |
-| **Agenda de Recursos**      | Consultada por uma janela oculta que loga no SankhyaOm sozinha, cruzada com a Experience no calendário de cada cliente           |
-| **Notificações**            | Painel no sino do topo, com som e e-mail opcional: agenda de hoje sem OS lançada e lembretes na data ou recorrentes (cron)       |
-| **Importação de favoritos** | Transforma favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, deduzindo Produção ou Teste do nome                     |
-| **Botões do repositório**   | Abrem a pasta, o terminal (rodando o script padrão) e a IDE configurada; e editam o `.sankhya-mcp.env` do MCP Claude             |
-| **Atalhos**                 | Lista de programas da sua máquina, iniciados com um clique pelo botão de raio, com busca a partir de seis cadastrados            |
-| **Bases locais (Local)**    | Ligam, param e reiniciam o WildFly da sua máquina, com a situação do serviço, o log ao vivo e o `.sankhya-mcp.env` da instalação |
-| **Bancos locais (Local)**   | Ligam, param e reiniciam o container Docker do banco, conferindo se ele responde login com as credenciais cadastradas            |
-| **Diagnóstico Git**         | Selo por repositório com a branch e a pendência mais grave — commit faltando, conflito, segredo rastreado —, atualizado sozinho  |
-| **Git AutoSync**            | Opcional, no instalador: commit e push automáticos dos repositórios, com tarefa diária e ícone na bandeja                        |
-| **Backup na nuvem**         | Não é embutido: aponte a pasta de dados para o Drive, o OneDrive ou o Dropbox que você já usa                                    |
+| O quê                       | Resumo                                                                                                                              |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Cadastro de clientes**    | Bases do ERP com usuário, senha e banco vinculado, repositórios Git, links avulsos, projetos e anotações livres                     |
+| **Guias do Sankhya**        | SankhyaOm e Experience dentro do aplicativo; cada base de cliente numa guia isolada, com usuário e senha preenchidos                |
+| **Agenda de Recursos**      | Consultada por uma janela oculta que loga no SankhyaOm sozinha, cruzada com a Experience no calendário de cada cliente              |
+| **Notificações**            | Painel no sino do topo, com som e e-mail opcional: agenda de hoje sem OS lançada e lembretes na data ou recorrentes (cron)          |
+| **Importação de favoritos** | Transforma favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, deduzindo Produção ou Teste do nome                        |
+| **Botões do repositório**   | Abrem a pasta, o terminal (rodando o script padrão) e a IDE configurada; e editam o `.sankhya-mcp.env` do MCP Claude                |
+| **Busca rápida**            | `Ctrl+K` no aplicativo ou `Ctrl+Shift+Espaço` em qualquer programa: acha cliente, base, repositório, link, contato ou atalho e abre |
+| **Atalhos**                 | Lista de programas da sua máquina, iniciados com um clique pelo botão de raio, com busca a partir de seis cadastrados               |
+| **Bases locais (Local)**    | Ligam, param e reiniciam o WildFly da sua máquina, com a situação do serviço, o log ao vivo e o `.sankhya-mcp.env` da instalação    |
+| **Bancos locais (Local)**   | Ligam, param e reiniciam o container Docker do banco, conferindo se ele responde login com as credenciais cadastradas               |
+| **Diagnóstico Git**         | Selo por repositório com a branch e a pendência mais grave — commit faltando, conflito, segredo rastreado —, atualizado sozinho     |
+| **Git AutoSync**            | Opcional, no instalador: commit e push automáticos dos repositórios, com tarefa diária e ícone na bandeja                           |
+| **Backup na nuvem**         | Não é embutido: aponte a pasta de dados para o Drive, o OneDrive ou o Dropbox que você já usa                                       |
 
 As bases e os bancos locais ficam no botão **Local**, no topo do painel, ao lado
 de _Clientes_: é o ambiente de desenvolvimento da sua própria máquina, separado do

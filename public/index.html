@@ -77,6 +77,15 @@
             Contatos
           </button>
         </div>
+        <!-- O ícone de lupa é montado pelo app.js. -->
+        <button
+          class="btn ghost botao-icone"
+          id="btn-busca-rapida"
+          type="button"
+          title="Busca rápida (Ctrl+K)"
+          aria-label="Busca rápida"
+          aria-haspopup="dialog"
+        ></button>
         <!-- O ícone de sino é montado pelo app.js; o contador só aparece com não lidas. -->
         <button
           class="btn ghost botao-icone botao-notificacoes"
@@ -832,6 +841,27 @@
           <button class="btn primario" type="submit" id="btn-salvar-lembrete">Salvar</button>
         </div>
       </form>
+    </dialog>
+
+    <!-- Os resultados são montados pelo app.js a cada tecla. -->
+    <dialog class="modal busca-rapida" id="modal-busca-rapida" aria-label="Busca rápida">
+      <input
+        class="busca-rapida-campo"
+        id="campo-busca-rapida"
+        type="search"
+        role="combobox"
+        aria-expanded="true"
+        aria-autocomplete="list"
+        aria-controls="lista-busca-rapida"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="Buscar cliente, base, repositório, link, projeto, contato ou atalho…"
+      />
+      <ul class="busca-rapida-lista" id="lista-busca-rapida" role="listbox"></ul>
+      <p class="busca-rapida-dica">
+        <kbd>↑</kbd><kbd>↓</kbd> navegar · <kbd>Enter</kbd> abrir · <kbd>Ctrl</kbd>+<kbd>Enter</kbd>
+        abrir o cliente · <kbd>Esc</kbd> fechar
+      </p>
     </dialog>
 
     <dialog class="modal" id="modal-contato">

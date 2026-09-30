@@ -9,6 +9,30 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- **Busca rápida**: `Ctrl+K` (ou a lupa no topo do painel) abre uma caixa única que
+  procura em clientes, bases, repositórios, links, projetos, contatos, atalhos e
+  bases locais, sem ligar para acento nem maiúsculas. `Enter` abre o item — a base
+  na guia com o login preenchido, o repositório na IDE, o atalho no programa — e
+  `Ctrl+Enter` abre o cliente dele no painel. O que você abre por ali passa a
+  aparecer primeiro. Respeita os acessos: o que está oculto não aparece na busca.
+- **Atalho global `Ctrl+Shift+Espaço`**: traz o HUB SNK para a frente já com a busca
+  aberta, com qualquer programa em foco.
+- **Ajuda › Atalhos**, no menu ao lado da guia Painel: janela com todos os atalhos de
+  teclado do aplicativo, da busca rápida e o global. A lista sai do próprio menu, então
+  está sempre em dia com ele.
+- **Ícone na bandeja do Windows**, com a busca rápida e duas caixas: **Atalho global**,
+  que desliga o `Ctrl+Shift+Espaço` quando ele conflita com outro programa, e **Iniciar
+  HUB SNK automaticamente**, que abre o HUB SNK junto com o Windows, escondido na
+  bandeja. As duas escolhas valem para as próximas aberturas.
+
+### Alterado
+
+- **Fechar a janela esconde o HUB SNK na bandeja** em vez de encerrá-lo, para o atalho
+  global e os avisos de mensagem nova continuarem valendo. Para sair, use _Hub_ ›
+  _Sair_ ou o botão direito no ícone da bandeja.
+
 ## [2.0.0] - 2026-09-29
 
 Versão de quebra de compatibilidade (MAJOR): o HUB SNK passa a ser um aplicativo
