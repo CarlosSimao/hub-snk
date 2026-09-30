@@ -46,9 +46,12 @@ número significa aqui.
 - **Resumo do dia**, a nova tela inicial do Painel: os eventos da agenda de hoje (com o
   selo **Sem OS lançada** nos que o alerta da agenda já apontou), os lembretes que
   disparam ou já dispararam hoje, os repositórios com alguma pendência (os que precisam
-  de ação primeiro) e a versão nova do HUB SNK, quando houver. Cada item leva para onde se resolve, e cada seção some junto
-  com a funcionalidade dela em **Configurações › Acessos**. Nada ali consulta a
-  Experience, o ERP ou as bases dos clientes: abrir o Resumo não custa nada.
+  de ação primeiro), as OS do mês atual e do anterior que ainda não estão como
+  **Concluído** e a versão nova do HUB SNK, quando houver. Cada item leva para onde se
+  resolve, e cada seção some junto com a funcionalidade dela em **Configurações ›
+  Acessos**. Só as OS vêm da Experience: a consulta roda ao abrir o Resumo e é
+  reaproveitada até a próxima abertura, e cada seção aparece quando fica pronta, sem
+  esperar as outras. As bases dos clientes ficam de fora.
 
 ### Alterado
 

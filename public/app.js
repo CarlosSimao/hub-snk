@@ -3809,6 +3809,58 @@ async function criarSecaoDaVersaoDoResumo() {
   );
 }
 
+/* Status de aceite da OS terminada na Experience: as demais ainda pedem ação. */
+const STATUS_DE_OS_CONCLUIDA = 'Concluído';
+
+/*
+ * OS do Resumo, consultadas na Experience. A consulta é lenta (uma chamada de detalhe por
+ * OS), então o resultado vale para os redesenhos seguintes e só é buscado de novo quando
+ * alguém abre o Resumo. Falha não fica guardada: a próxima vez tenta de novo.
+ */
+let osDoResumo = null;
+
+function buscarOsDoResumo(renovar) {
+  if (osDoResumo && !renovar) return osDoResumo;
+  const mesAtual = mesAtualIso();
+  const { de } = limitesDoMesCliente(deslocarMes(mesAtual, -1));
+  const { ate } = limitesDoMesCliente(mesAtual);
+  const consulta = api.consultarOsGeral(de, ate).then(({ itens }) => itens);
+  consulta.catch(() => {
+    if (osDoResumo === consulta) osDoResumo = null;
+  });
+  osDoResumo = consulta;
+  return consulta;
+}
+
+function criarLinhaDeOsDoResumo(item, classeDeCor) {
+  const dia = [
+    `Dia: ${formatarDiaDeOs(item.dia)}`,
+    item.horasFeitas && `Horas: ${item.horasFeitas}`,
+  ];
+  return criarLinhaDoResumo({
+    titulo: `OS ${item.numeroSankhya || '(sem número)'} · ${item.tipo}`,
+    detalhes: [item.empresa, dia.filter(Boolean).join(' • '), item.erro],
+    selo: criarElemento('span', `selo-situacao selo-status-os ${classeDeCor}`, statusDaOs(item)),
+    acao: criarBotaoDeIcone('btn tiny', ICONES.seta, 'Abrir na aba OS', () =>
+      alternarVisualizacao('os'),
+    ),
+  });
+}
+
+async function criarSecaoDasOsDoResumo(renovar) {
+  const itens = await buscarOsDoResumo(renovar);
+  const naoConcluidas = ordenarOsDaMaisRecente(
+    itens.filter((item) => item.statusAceite !== STATUS_DE_OS_CONCLUIDA),
+  );
+  // Mesmas cores da aba OS: elas saem dos status do período inteiro.
+  const cores = atribuirCoresAosStatus(contarOsPorStatus(itens).keys());
+  return criarSecaoDoResumo(
+    'OS não concluídas (mês atual e anterior)',
+    naoConcluidas.map((item) => criarLinhaDeOsDoResumo(item, cores.get(statusDaOs(item)))),
+    'Nenhuma OS sem conclusão no mês atual e no anterior.',
+  );
+}
+
 /* Uma seção que falha mostra o motivo no lugar dela, sem derrubar as outras. */
 async function secaoOuErro(titulo, criarSecao) {
   try {
@@ -3818,24 +3870,66 @@ async function secaoOuErro(titulo, criarSecao) {
   }
 }
 
-/* Cada seção some junto com a funcionalidade dela em Configurações › Acessos. */
-function secoesDoResumo(hoje) {
-  const secoes = [];
-  if (funcionalidadeVisivel('agenda')) {
-    secoes.push(secaoOuErro('Agenda de hoje', () => criarSecaoDaAgendaDoResumo(hoje)));
-  }
-  if (funcionalidadeVisivel('lembretes')) {
-    secoes.push(secaoOuErro('Lembretes de hoje', () => criarSecaoDosLembretesDoResumo(hoje)));
-  }
-  if (funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS)) {
-    secoes.push(Promise.resolve(criarSecaoDosRepositoriosDoResumo()));
-  }
-  // A versão nova não é essencial: falha dela (sem internet) não vira aviso.
-  secoes.push(criarSecaoDaVersaoDoResumo().catch(() => null));
-  return secoes;
+/*
+ * Seções na ordem da tela. Cada uma some junto com a funcionalidade dela em
+ * Configurações › Acessos. `titulo` nulo: a seção só aparece quando tem o que mostrar.
+ */
+function secoesDoResumo(hoje, renovarOs) {
+  return [
+    funcionalidadeVisivel('agenda') && {
+      chave: 'agenda',
+      titulo: 'Agenda de hoje',
+      carregar: () => criarSecaoDaAgendaDoResumo(hoje),
+    },
+    funcionalidadeVisivel('lembretes') && {
+      chave: 'lembretes',
+      titulo: 'Lembretes de hoje',
+      carregar: () => criarSecaoDosLembretesDoResumo(hoje),
+    },
+    funcionalidadeVisivel('os') && {
+      chave: 'os',
+      titulo: 'OS não concluídas (mês atual e anterior)',
+      carregar: () => criarSecaoDasOsDoResumo(renovarOs),
+    },
+    funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS) && {
+      chave: 'repositorios',
+      titulo: 'Repositórios com pendência',
+      carregar: async () => criarSecaoDosRepositoriosDoResumo(),
+    },
+    // A versão nova não é essencial: falha dela (sem internet) não vira aviso.
+    {
+      chave: 'versao',
+      titulo: null,
+      carregar: () => criarSecaoDaVersaoDoResumo().catch(() => null),
+    },
+  ].filter(Boolean);
 }
 
-async function renderizarResumo() {
+/* Seção de cada chave que está na tela: o redesenho troca uma por uma, sem piscar. */
+const secoesMontadasDoResumo = new Map();
+
+function lugarDaSecao({ chave, titulo }) {
+  const montada = secoesMontadasDoResumo.get(chave);
+  if (montada) return montada;
+  const lugar = titulo ? criarSecaoDoResumo(titulo, [], 'Carregando…') : criarElemento('div', null);
+  secoesMontadasDoResumo.set(chave, lugar);
+  return lugar;
+}
+
+async function carregarSecaoDoResumo({ chave, titulo, carregar }, geracao) {
+  const secao = (await secaoOuErro(titulo, carregar)) ?? criarElemento('div', null);
+  if (geracao !== geracaoDoResumo) return;
+  secoesMontadasDoResumo.get(chave)?.replaceWith(secao);
+  secoesMontadasDoResumo.set(chave, secao);
+}
+
+/**
+ * Cada seção aparece quando fica pronta: as OS, que vêm da Experience, não seguram o
+ * resto. Enquanto a versão nova de uma seção carrega, a anterior continua na tela.
+ *
+ * `renovarOs`: busca as OS de novo em vez de reaproveitar a última consulta.
+ */
+function renderizarResumo({ renovarOs = false } = {}) {
   const geracao = ++geracaoDoResumo;
   const hoje = dataIsoDeHoje();
   elementos.dataDoResumo.textContent = new Date(`${hoje}T00:00:00`).toLocaleDateString('pt-BR', {
@@ -3843,13 +3937,17 @@ async function renderizarResumo() {
     day: '2-digit',
     month: 'long',
   });
-  const secoes = await Promise.all(secoesDoResumo(hoje));
-  if (geracao !== geracaoDoResumo) return;
-  elementos.mountResumo.replaceChildren(...secoes.filter(Boolean));
+  const secoes = secoesDoResumo(hoje, renovarOs);
+  const chavesVisiveis = new Set(secoes.map(({ chave }) => chave));
+  for (const chave of secoesMontadasDoResumo.keys()) {
+    if (!chavesVisiveis.has(chave)) secoesMontadasDoResumo.delete(chave);
+  }
+  elementos.mountResumo.replaceChildren(...secoes.map(lugarDaSecao));
+  for (const secao of secoes) void carregarSecaoDoResumo(secao, geracao);
 }
 
 function renderizarResumoSeVisivel() {
-  if (estado.visualizacao === 'resumo') void renderizarResumo();
+  if (estado.visualizacao === 'resumo') renderizarResumo();
 }
 
 function alternarVisualizacao(visualizacao) {
@@ -3893,7 +3991,7 @@ function alternarVisualizacao(visualizacao) {
   }
 
   if (visualizacao === 'resumo') {
-    void renderizarResumo();
+    renderizarResumo({ renovarOs: true });
   }
   if (visualizacao === 'local') {
     carregarLocal();
