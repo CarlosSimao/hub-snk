@@ -210,8 +210,8 @@ banco de dados das bases de cliente.
 
 Falam com o Git AutoSync instalado em `GIT_AUTOSYNC_HOME` (padrão `~/.git-autosync`).
 O HUB SNK nunca grava o `config.json` dele: toda mudança é um subcomando do CLI,
-chamado sem shell. Especificação completa em
-[git-autosync-integracao.md](git-autosync-integracao.md).
+chamado sem shell. O que a tela faz com cada rota está em
+[funcionalidades.md](funcionalidades.md#git-autosync).
 
 | Método e rota                                | Corpo / query                                              | O que faz                                                                         |
 | -------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -234,16 +234,29 @@ chamado sem shell. Especificação completa em
 | `POST /api/autosync/push`                    | `{ caminho }`                                              | Push do que já foi commitado                                                      |
 | `POST /api/autosync/sincronizar`             | `{ caminho?, mensagem? }`                                  | Commit e push; sem `caminho`, `sync --all`                                        |
 | `POST /api/autosync/merge-request`           | `{ caminho, titulo?, destino?, origem? }`                  | Merge Request no GitLab                                                           |
+| `POST /api/autosync/terminal`                | `{ caminho }`                                              | `204` — terminal aberto na pasta, com o Script padrão; nenhum comando é rodado    |
 | `GET /api/autosync/historico`                | `?caminho=&limite=20`                                      | `{ commits }`                                                                     |
 | `GET /api/autosync/log`                      | `?limite=200`                                              | `{ linhas }` do `autosync.log`                                                    |
 | `GET /api/autosync/diagnostico`              | `?rede=true`                                               | Saída do `doctor`                                                                 |
+| `GET /api/autosync/gitlab`                   |                                                            | `{ host, tokenDefinido }` — o token nunca volta                                   |
+| `PUT /api/autosync/gitlab`                   | `{ host, token? }`                                         | Grava host e token nas variáveis do usuário; sem `token`, mantém o gravado        |
+| `DELETE /api/autosync/gitlab`                |                                                            | Apaga o token e mantém o host; devolve `{ host, tokenDefinido }`                  |
 
-`caminho` precisa ser absoluto e já conhecido: estar no autosync ou no cadastro de
-um cliente (para `tipo: 'root'`, vale também a pasta-mãe de um repositório de
-cliente). Respostas de ação trazem `{ saida }` com o texto do CLI. Códigos: `400`
-entrada inválida, `404` pasta inexistente, `409` pacote do autosync ausente neste
-build, `502` o CLI rodou e falhou (a mensagem é a saída dele), `503` autosync não
-instalado (`naoInstalado: true`).
+`caminho` precisa ser absoluto, com até 400 caracteres, e já conhecido: estar no
+autosync ou no cadastro de um cliente (para `tipo: 'root'`, vale também a pasta-mãe de
+um repositório de cliente). Respostas de ação trazem `{ saida }` com o texto do CLI.
+Códigos: `400` entrada inválida, `404` pasta inexistente, `409` pacote do autosync
+ausente neste build, `502` o CLI rodou e falhou (a mensagem é a saída dele, e
+`sugestoes` traz, para cada erro reconhecido, `{ explicacao, comandos, acao? }`),
+`503` autosync não instalado (`naoInstalado: true`) ou, no `terminal`, nenhum
+terminal abriu.
+
+As rotas de `gitlab` gravam `GIT_AUTOSYNC_GITLAB_HOST` e `GIT_AUTOSYNC_GITLAB_TOKEN`
+nas variáveis de ambiente do usuário do Windows, de onde o Git AutoSync as lê. O
+`host` vai sem protocolo nem caminho (`gitlab.empresa.com.br`, com porta opcional), e
+o `token` tem até 500 caracteres, sem espaço. `PUT` sem token, e sem nenhum gravado,
+responde `400`. Fora do Windows, a gravação responde `400` pedindo para definir as
+duas variáveis no perfil do shell.
 
 ## Integração com o Sankhya e com o aplicativo desktop
 

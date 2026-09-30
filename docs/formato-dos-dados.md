@@ -54,7 +54,7 @@ cadastro.
     "experiencePersonId": "123456",
     "sankhyaOmCodUsu": "4817",
     "perfil": "consultor",
-    "funcionalidadesOcultas": ["cliente.repositorios"],
+    "funcionalidadesOcultas": ["cliente.repositorios", "autosync", "cliente.autosync"],
     "terceiro": false,
     "smtp": {
       "host": "smtp.office365.com",
@@ -81,10 +81,12 @@ cada repositório, com a pasta como argumento. Vazio desliga o botão.
 `perfil` (`desenvolvedor`, `consultor`, `analista` ou `gerente-de-projeto`) e
 `funcionalidadesOcultas` são os acessos de **Configurações › Acessos**. A lista
 guarda o que está **oculto**: uma funcionalidade criada numa versão futura já
-nasce visível. Os valores aceitos são `local`, `agenda`, `os`, `lembretes` e
-`contatos` (menu principal) e `cliente.bases`, `cliente.repositorios`,
-`cliente.projetos`, `cliente.agenda`, `cliente.os` e `cliente.contatos` (cadastro
-do cliente). Arquivo sem `perfil` recebe o perfil escolhido no instalador, com o
+nasce visível. Os valores aceitos são `local`, `agenda`, `os`, `contatos` e
+`autosync` (abas do menu principal; `autosync` é a aba Git), `lembretes` (o botão
+Lembretes do painel de notificações), `cliente.bases`, `cliente.repositorios` (a aba
+Git do cliente), `cliente.projetos`, `cliente.agenda`, `cliente.os` e
+`cliente.contatos` (abas do cadastro do cliente) e `cliente.autosync` (a seção
+AutoSync da aba Git do cliente). Arquivo sem `perfil` recebe o perfil escolhido no instalador, com o
 preset dele; sem instalador, `desenvolvedor`, com nada oculto. Valor desconhecido
 na lista é descartado na leitura.
 
@@ -103,6 +105,12 @@ vazio, a aba OS não tem de quem buscar as OS.
 `alertaDaAgenda` liga o aviso de evento da agenda de hoje sem OS lançada. Arquivo
 de antes destes campos nasce com o SMTP vazio (porta 587, STARTTLS) e o alerta
 desligado.
+
+Nada do Git AutoSync fica aqui. A configuração dele é o `config.json` da pasta dele
+(`%USERPROFILE%\.git-autosync`), que o HUB SNK só lê e altera pelo CLI, e o host e o
+token do GitLab de **Configurações › Git** vão para as variáveis de ambiente do
+usuário do Windows (`GIT_AUTOSYNC_GITLAB_HOST` e `GIT_AUTOSYNC_GITLAB_TOKEN`), para
+não viajarem com a pasta de dados sincronizada.
 
 ## Lembretes
 

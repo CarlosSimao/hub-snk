@@ -24,6 +24,7 @@ src/
   repositorio/repositorioContatosArquivo.ts contatos em arquivo JSON local
   repositorio/repositorioNotificacoes.ts    contrato do painel de notificações
   repositorio/repositorioNotificacoesArquivo.ts  notificações e chaves emitidas em arquivo JSON
+  repositorio/filaDeOperacoes.ts            uma gravação por vez em cada arquivo, para uma não apagar a outra
   rotas/protecaoDeOrigem.ts                 confere Host e Origin antes de qualquer rota
   rotas/autenticacaoDoPainel.ts             exige o token do shell em toda a API
   rotas/rotasClientes.ts                    rotas HTTP e validação de entrada
@@ -38,6 +39,7 @@ src/
   rotas/rotasNotificacoes.ts                painel de notificações, fluxo SSE e e-mail de teste
   rotas/rotasLembretes.ts                   cadastro dos lembretes e prévia do cron
   rotas/rotasContatos.ts                    cadastro dos contatos
+  rotas/rotasAutosync.ts                    Git AutoSync: visão, repositórios, horários, commit, push, MR e token do GitLab
   rotas/esquemaDeNotificacoes.ts            validação do SMTP e do alerta da agenda
   rotas/esquemaDeConfiguracaoMcp.ts         validação do .sankhya-mcp.env, comum ao repositório e à base local
   rotas/autenticacaoDoShell.ts              confere o token das rotas que só o shell desktop chama
@@ -60,6 +62,14 @@ src/
   git/provedorDeHospedagem.ts               lê a URL do remoto: host, GitHub ou GitLab
   git/situacaoDoRepositorio.ts              diagnóstico de um repositório local
   git/cacheDeSituacao.ts                    cache por tempo e limite de leituras simultâneas
+  autosync/tiposDoAutosync.ts               formatos do config.json e do status.json do Git AutoSync e a visão da tela
+  autosync/cliDoAutosync.ts                 contrato com o CLI do Git AutoSync e erros de domínio
+  autosync/cliDoAutosyncProcesso.ts         acha o git-autosync.exe, roda sem shell e lê config, status, log e Agendador
+  autosync/servicoDoAutosync.ts             cada ação da tela traduzida em subcomando do CLI, com o caminho conferido
+  autosync/visaoDoAutosync.ts               cruza config, status e pastas-raiz numa linha por repositório
+  autosync/sincronizacaoComClientes.ts      situação de cada repositório de cliente no Git AutoSync e sugestão de pasta-raiz
+  autosync/sugestoesDeCorrecao.ts           explicação e comandos para a falha, lidos da saída do CLI
+  autosync/variaveisDoGitlab.ts             host e token do GitLab nas variáveis de ambiente do usuário
   sistema/observadorDeDados.ts              descarta o cache quando a pasta de dados muda no disco
   sistema/pasta.ts                          checagem de existência de diretório
   sistema/abrirPasta.ts                     abre uma pasta no gerenciador do SO
@@ -67,6 +77,8 @@ src/
   sistema/abrirIde.ts                        abre a pasta como projeto na IDE configurada
   sistema/abrirExecutavel.ts                inicia o programa de um atalho
   sistema/lancarProcesso.ts                 lança um programa e confere que ele de fato subiu
+  sistema/linhaDeComandoDoCmd.ts            monta a linha do cmd.exe para .bat e .cmd, recusando % e aspas
+  sistema/mapearComLimite.ts                Promise.all com teto de tarefas simultâneas, para não abrir centenas de git
   sistema/selecionarArquivo.ts              abre o seletor de arquivo do SO
   sistema/selecionarPasta.ts                abre o seletor de pasta do SO
   sistema/arquivoMcp.ts                     lê e grava o .sankhya-mcp.env do repositório
@@ -110,6 +122,11 @@ desktop/                                    shell Electron: o aplicativo que o u
   src/atalhoGlobal.ts                       liga e desliga o atalho global da busca, com a escolha gravada
   src/bandeja.ts                            ícone na bandeja, com a busca, o atalho global e o início automático
   src/inicioAutomatico.ts                   liga e desliga o início do HUB SNK junto com o Windows
+  src/atualizacao.ts                        atualização automática pelas releases do GitHub (electron-updater)
+  src/comunicacao.ts                        painel de comunicação: WhatsApp Web, Gmail e Google Chat por cima das guias
+  src/menuFlutuante.ts  src/preloadMenu.ts  menu.html  menu.js   menu em HTML por cima da janela, que não fecha ao marcar caixa
+  src/ruffle.ts  src/preloadRuffle.ts       compatibilidade com Flash pelo Ruffle, injetado no começo de cada frame
+  src/barraDeBusca.ts  src/preloadBarraDeBusca.ts  barraDeBusca.html  barraDeBusca.js   barra do Ctrl+F na guia ativa
   scripts/preparar-hub.mjs                  monta o backend do pacote, só com as dependências de produção
   scripts/preparar-autosync.mjs             monta os binários do Git AutoSync para o instalador
   instalador/remover-versao-pwa.ps1         remove a instalação PWA antiga, preservando o cadastro
@@ -121,7 +138,9 @@ desktop/                                    shell Electron: o aplicativo que o u
 As rotas dependem só das interfaces de repositório — `RepositorioClientes`,
 `RepositorioConfiguracao`, `RepositorioLocal`, `RepositorioLembretes` e
 `RepositorioContatos`; as de notificações passam pela `CentralDeNotificacoes`, que
-depende de `RepositorioNotificacoes` —, e nunca das implementações em arquivo.
+depende de `RepositorioNotificacoes`, e as do Git AutoSync pelo `ServicoDoAutosync`,
+que depende da interface `CliDoAutosync` —, e nunca das implementações em arquivo ou
+em processo.
 Trocar o armazenamento local por outro — banco, API remota — é implementar essas
 interfaces e injetá-las no `index.ts`.
 

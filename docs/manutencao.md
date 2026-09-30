@@ -68,10 +68,12 @@ npm test
 npm run formatar
 ```
 
-É o que o CI roda em cada pull request e em cada push na `main`, no Linux, no
-Windows e no macOS, nas versões 22.18 e 24 do Node — o backend roda com o Node do
-sistema em desenvolvimento, embora o aplicativo seja distribuído só para Windows. O `typecheck` existe porque o Node apaga os tipos
-sem conferi-los: sem ele, erro de tipo só apareceria rodando.
+É o que o job `verificar` do CI roda em cada pull request e em cada push na `main`,
+no Linux, no Windows e no macOS, nas versões 22.18 e 24 do Node. A matriz é do
+backend, que em desenvolvimento roda com o Node do sistema; não é promessa de
+aplicativo fora do Windows, o único sistema para o qual ele é distribuído. O
+`typecheck` existe porque o Node apaga os tipos sem conferi-los: sem ele, erro de
+tipo só apareceria rodando.
 
 A formatação é do Prettier, configurado no `.prettierrc.json`. O
 `npm run conferir-formato` só aponta; o `npm run formatar` corrige.
@@ -128,6 +130,11 @@ O número da versão diz o que esperar de uma atualização:
 | **MINOR** — 1.`3`.0 | Entra funcionalidade nova e o cadastro continua compatível                   | Um tipo de atalho novo                            |
 | **PATCH** — 1.2.`4` | Correção de comportamento, sem nada novo                                     | A situação do Git deixa de errar o nome da branch |
 
+Tag com hífen — `v2.1.0-beta.1` — é versão de teste: o workflow `Distribuição` a
+publica como pre-release, que o aviso de versão nova do Painel e a atualização
+automática ignoram. Serve para distribuir o instalador a quem vai testar sem que ele
+chegue a mais ninguém; a versão definitiva sai depois com a tag sem hífen.
+
 Toda mudança visível fica registrada no [CHANGELOG](../CHANGELOG.md).
 
 ## Roteiro de teste de release
@@ -152,9 +159,9 @@ que já existe.
   que foi ajustado na aba Acessos não é desfeito.
 - **Página do Git AutoSync**: com as opções marcadas, ele fica em
   `%USERPROFILE%\.git-autosync`, com a tarefa diária, o ícone na bandeja, os
-  atalhos, a skill e a entrada no PATH, e o `resources\git-autosync` do programa
-  ganha a marca `instalado-pelo-hub.txt`. Numa máquina sem Git, o HUB SNK instala do mesmo jeito e só o Git AutoSync fica
-  de fora.
+  atalhos, a skill e a entrada no PATH, e a marca
+  `%LOCALAPPDATA%\HubSnk\git-autosync-instalado-pelo-hub.txt` é criada. Numa máquina
+  sem Git, o HUB SNK instala do mesmo jeito e só o Git AutoSync fica de fora.
 - **Por cima da versão anterior**: o cadastro continua o mesmo (mesmo SHA-256), e
   os atalhos apontam para o `HUB SNK.exe` novo.
 - **Por cima da versão 1 (PWA)**, enquanto houver quem a use: o
@@ -182,6 +189,21 @@ que já existe.
 - Bases e bancos locais (WildFly e Docker) ligam, param e mostram o log ao vivo.
 - Os botões de abrir pasta, terminal e IDE e os atalhos cadastrados abrem o
   programa certo.
+- A busca rápida abre pelo `Ctrl+K` em qualquer guia e pelo `Ctrl+Shift+Espaço` com
+  outro programa em foco, e o `Enter` abre cliente, base, repositório e atalho.
+- O `Ctrl+F` abre a barra no canto da guia ativa no Painel, no SankhyaOm (inclusive
+  numa tela dentro de frame) e numa base de cliente; `Enter` e `Shift+Enter` andam
+  pelas ocorrências, `Esc` fecha, e trocar de guia fecha a barra.
+- Git AutoSync, com um repositório de teste com remoto: a aba **Git** do menu mostra a
+  versão e a tarefa do Agendador; salvar um horário muda a tarefa; **Adicionar ao Git
+  AutoSync** na aba Git do cliente muda o `targets` do
+  `%USERPROFILE%\.git-autosync\config.json`; **Sincronizar** faz commit e push de
+  verdade; o histórico e o log aparecem. Um push rejeitado (commit novo no remoto)
+  mostra o bloco **Como resolver**, e **Abrir terminal na pasta** abre o terminal ali.
+  Com o Git AutoSync desinstalado, a aba oferece **Instalar**, e ele sobe pelo pacote.
+- **Configurações › Git** grava o host e o token do GitLab em
+  `GIT_AUTOSYNC_GITLAB_HOST` e `GIT_AUTOSYNC_GITLAB_TOKEN` do usuário, e o token não
+  aparece de volta na tela.
 - O e-mail de teste do SMTP chega, e um lembrete marcado para dali a um minuto
   dispara a notificação.
 - Com uma release mais nova publicada no GitHub, o aviso de atualização aparece.
@@ -274,7 +296,9 @@ não é o publicado.
 A tag dispara o workflow `Distribuição`, que gera os binários do Git AutoSync (do
 repositório `FlavianoRS/git-autosync`, branch `master`), monta o instalador
 `HUB-SNK-Setup-<versão>.exe`, cria a release se ela ainda não existir e o anexa.
-Não é preciso rodar `gh release create` à mão.
+Não é preciso rodar `gh release create` à mão. Tag com hífen sai como pre-release (veja
+[Regra de versão](#regra-de-versão)); a release que já existia antes da tag mantém o
+que estiver marcado nela.
 
 Para gerar o instalador na sua máquina: `npm run empacotar-desktop`, com o
 repositório do Git AutoSync em `C:\Workspace\scripts\git-autosync` (ou apontado
