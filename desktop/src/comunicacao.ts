@@ -14,6 +14,7 @@ import {
   Menu,
   Notification,
   WebContentsView,
+  type ServiceWorkerMain,
   app,
   session,
   shell,
@@ -37,6 +38,19 @@ export interface EstadoServicoComunicacao {
 }
 
 const SERVICOS = Object.keys(SERVICOS_COMUNICACAO) as ServicoComunicacao[];
+
+/** Precisa ser o mesmo canal que `preloadServiceWorker.ts` envia. */
+const CANAL_DA_NOTIFICACAO_CLICADA = 'comunicacao:notificacaoClicada';
+
+/** Serviço dono de um endereço — o escopo de um service worker, por exemplo — pela origem. */
+function servicoDoEndereco(endereco: string): ServicoComunicacao | undefined {
+  try {
+    const origem = new URL(endereco).origin;
+    return SERVICOS.find((servico) => new URL(SERVICOS_COMUNICACAO[servico].url).origin === origem);
+  } catch {
+    return undefined;
+  }
+}
 
 function ehServicoComunicacao(valor: string): valor is ServicoComunicacao {
   return Object.hasOwn(SERVICOS_COMUNICACAO, valor);
@@ -159,6 +173,8 @@ export class GerenciadorComunicacao {
   readonly #paineis = new Map<ServicoComunicacao, WebContentsView>();
   readonly #naoLidas = new Map<ServicoComunicacao, number>();
   readonly #particoesConfiguradas = new Set<string>();
+  /** Service workers já com o ouvinte do clique na notificação: um por versão iniciada. */
+  readonly #trabalhadoresOuvidos = new WeakSet<ServiceWorkerMain>();
   /** Feed que já falhou: loga a primeira falha, não uma por minuto. */
   readonly #feedsComFalha = new Set<ServicoComunicacao>();
   /** E-mails já conhecidos por serviço: o que não estiver aqui na próxima consulta é novo. */
@@ -454,6 +470,37 @@ export class GerenciadorComunicacao {
       const concedida = PERMISSOES_COMUNICACAO.has(permissao);
       if (!concedida) logEvento('comunicacao-permissao-negada', { particao, permissao });
       responder(concedida);
+    });
+    this.#ouvirCliquesNasNotificacoesDosServiceWorkers(sessao);
+  }
+
+  /**
+   * O WhatsApp Web mostra a notificação de mensagem pelo service worker, e só ele fica
+   * sabendo do clique. O preload (`preloadServiceWorker.ts`) repassa o clique para cá.
+   *
+   * O ouvinte entra já na partida do service worker: o clique numa notificação é
+   * justamente o que acorda um service worker parado, e o aviso chega logo em seguida.
+   */
+  #ouvirCliquesNasNotificacoesDosServiceWorkers(sessao: Electron.Session): void {
+    sessao.registerPreloadScript({
+      type: 'service-worker',
+      filePath: join(__dirname, 'preloadServiceWorker.js'),
+    });
+    sessao.serviceWorkers.on('running-status-changed', ({ versionId, runningStatus }) => {
+      if (runningStatus !== 'starting' && runningStatus !== 'running') return;
+      const trabalhador = sessao.serviceWorkers.getWorkerFromVersionID(versionId);
+      if (trabalhador) this.#ouvirCliqueNaNotificacao(trabalhador);
+    });
+  }
+
+  #ouvirCliqueNaNotificacao(trabalhador: ServiceWorkerMain): void {
+    if (this.#trabalhadoresOuvidos.has(trabalhador)) return;
+    const servico = servicoDoEndereco(trabalhador.scope);
+    if (!servico) return;
+    this.#trabalhadoresOuvidos.add(trabalhador);
+    trabalhador.ipc.on(CANAL_DA_NOTIFICACAO_CLICADA, () => {
+      logEvento('comunicacao-notificacao-do-servico-clicada', { servico });
+      this.#abrirPelaNotificacao(servico);
     });
   }
 
