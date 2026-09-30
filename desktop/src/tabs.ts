@@ -300,6 +300,7 @@ export class TabManager {
    */
   #terceiro = false;
   #aoMudarGuias: (() => void) | null = null;
+  #aoTrocarGuiaAtiva: (() => void) | null = null;
   #painelDeComunicacao: PainelDeComunicacao | null = null;
 
   constructor(janela: BrowserWindow) {
@@ -323,6 +324,11 @@ export class TabManager {
 
   aba(id: TabId): WebContentsView | undefined {
     return this.#abas.get(id);
+  }
+
+  /** A guia que está na tela; nenhuma quando todas foram escondidas. */
+  viewAtiva(): WebContentsView | undefined {
+    return this.#abas.get(this.#abaAtiva);
   }
 
   /**
@@ -620,11 +626,13 @@ export class TabManager {
       this.#gravarGuiasEscondidas();
       this.#emitirGuias();
     }
+    const trocou = this.#abaAtiva !== id;
     this.#abaAtiva = id;
     for (const [outroId, view] of this.#abas.entries()) {
       view.setVisible(outroId === id);
     }
     this.#janela.webContents.send('tabs:ativa', id);
+    if (trocou) this.#aoTrocarGuiaAtiva?.();
     logEvento('aba-ativada', { id });
     return true;
   }
@@ -648,6 +656,11 @@ export class TabManager {
 
   aoMudarGuias(callback: () => void): void {
     this.#aoMudarGuias = callback;
+  }
+
+  /** Outra guia foi para a tela, ou nenhuma ficou: o que estava por cima da anterior sai. */
+  aoTrocarGuiaAtiva(callback: () => void): void {
+    this.#aoTrocarGuiaAtiva = callback;
   }
 
   definirPainelDeComunicacao(painel: PainelDeComunicacao): void {
@@ -702,6 +715,7 @@ export class TabManager {
         this.#abaAtiva = '';
         for (const view of this.#abas.values()) view.setVisible(false);
         this.#janela.webContents.send('tabs:ativa', '');
+        this.#aoTrocarGuiaAtiva?.();
       }
     } else if (visivel && !this.#abaAtiva) {
       this.mostrar(id);
@@ -740,6 +754,7 @@ export class TabManager {
         this.#abaAtiva = '';
         for (const view of this.#abas.values()) view.setVisible(false);
         this.#janela.webContents.send('tabs:ativa', '');
+        this.#aoTrocarGuiaAtiva?.();
       }
     }
     this.#emitirGuias();

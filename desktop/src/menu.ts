@@ -16,9 +16,10 @@ import {
 } from './atualizacao';
 import type { TabManager } from './tabs';
 
-/** O que o menu aciona fora dele: a busca rápida e o estado do atalho global. */
+/** O que o menu aciona fora dele: as duas buscas e o estado do atalho global. */
 export interface AcoesDoMenu {
   abrirBuscaRapida(): void;
+  buscarNaPagina(): void;
   situacaoDoAtalhoGlobal(): SituacaoDoAtalhoGlobal;
 }
 
@@ -46,6 +47,12 @@ export function montarMenu(
           label: 'Busca rápida',
           accelerator: 'CmdOrCtrl+K',
           click: () => acoes.abrirBuscaRapida(),
+        },
+        // Pelo menu, como o Ctrl+K: com o foco na Experience, a tecla nunca sairia da página.
+        {
+          label: 'Buscar na página',
+          accelerator: 'CmdOrCtrl+F',
+          click: () => acoes.buscarNaPagina(),
         },
         { type: 'separator' },
         // Vale para as telas abertas depois: a tela Flex já aberta segue como está até

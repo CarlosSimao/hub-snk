@@ -21,6 +21,8 @@ files:
   - renderer.js
   - menu.html
   - menu.js
+  - barraDeBusca.html
+  - barraDeBusca.js
   - atalhos.html
   - atalhos.js
   - package.json

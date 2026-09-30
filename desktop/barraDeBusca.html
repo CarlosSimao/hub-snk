@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8" />
+    <title>Buscar na página</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      /* A camada é transparente e maior que o cartão: a folga é o espaço da sombra. */
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: transparent;
+        overflow: hidden;
+        font-family: system-ui, sans-serif;
+        color: #e6e6e6;
+      }
+
+      #barra {
+        position: fixed;
+        top: 0;
+        right: 8px;
+        left: 8px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 6px 6px 12px;
+        background: #1b1f27;
+        border: 1px solid #2a2f3a;
+        border-top: none;
+        border-radius: 0 0 10px 10px;
+        box-shadow:
+          0 10px 24px rgba(0, 0, 0, 0.45),
+          0 2px 6px rgba(0, 0, 0, 0.3);
+        font-size: 13px;
+      }
+
+      #campo {
+        flex: 1;
+        min-width: 0;
+        padding: 6px 0;
+        border: none;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        outline: none;
+      }
+      #campo::placeholder {
+        color: #7d8595;
+      }
+
+      #contador {
+        flex: none;
+        padding: 0 8px;
+        color: #7d8595;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+      #contador.sem-resultado {
+        color: #f28b82;
+      }
+
+      .separador {
+        flex: none;
+        width: 1px;
+        height: 20px;
+        background: #2a2f3a;
+      }
+
+      button {
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+      button:hover,
+      button:focus-visible {
+        background: #232833;
+        outline: none;
+      }
+      button svg {
+        width: 14px;
+        height: 14px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="barra" role="search">
+      <input
+        id="campo"
+        type="text"
+        placeholder="Buscar na página"
+        aria-label="Buscar na página"
+        spellcheck="false"
+        autocomplete="off"
+      />
+      <span id="contador" aria-live="polite"></span>
+      <span class="separador"></span>
+      <button id="btn-anterior" type="button" title="Anterior (Shift+Enter)" aria-label="Anterior">
+        <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 9l4-4 4 4" /></svg>
+      </button>
+      <button id="btn-proxima" type="button" title="Próxima (Enter)" aria-label="Próxima">
+        <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" /></svg>
+      </button>
+      <button id="btn-fechar" type="button" title="Fechar (Esc)" aria-label="Fechar">
+        <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 3.5l7 7M10.5 3.5l-7 7" /></svg>
+      </button>
+    </div>
+    <script src="barraDeBusca.js"></script>
+  </body>
+</html>

@@ -29,6 +29,7 @@ import { garantirToken } from './tokenStore';
 import { TabManager } from './tabs';
 import { GerenciadorComunicacao } from './comunicacao';
 import { MenuFlutuante } from './menuFlutuante';
+import { BarraDeBusca } from './barraDeBusca';
 import { JanelaAgendaOculta } from './janelaAgendaOculta';
 import { JanelaExperienceOculta } from './janelaExperienceOculta';
 import { criarBridgeServer } from './bridgeServer';
@@ -62,6 +63,7 @@ let janelaPrincipal: BrowserWindow | null = null;
 let tabs: TabManager | null = null;
 let comunicacao: GerenciadorComunicacao | null = null;
 let menuFlutuante: MenuFlutuante | null = null;
+let barraDeBusca: BarraDeBusca | null = null;
 let agendaOculta: JanelaAgendaOculta | null = null;
 let experienceOculta: JanelaExperienceOculta | null = null;
 let experienceCapturada = false;
@@ -133,6 +135,7 @@ function criarJanela(): void {
     tabs?.reposicionar();
     comunicacao?.reposicionar();
     menuFlutuante?.fechar();
+    barraDeBusca?.reposicionar();
   });
   // Fechar a janela principal encerra o aplicativo mesmo com uma janela filha aberta
   // (log de uma base, pop-up de SSO): sem isto o `window-all-closed` não dispara, e o
@@ -154,6 +157,11 @@ function criarJanela(): void {
   comunicacao = new GerenciadorComunicacao(janelaPrincipal);
   tabs.definirPainelDeComunicacao(comunicacao);
   menuFlutuante = new MenuFlutuante(janelaPrincipal);
+  const gerenciadorDasGuias = tabs;
+  const barra = new BarraDeBusca(janelaPrincipal, () => gerenciadorDasGuias.viewAtiva());
+  // A busca é da guia em que foi aberta: na troca, a barra não pode ficar por cima de outra.
+  tabs.aoTrocarGuiaAtiva(() => barra.fechar());
+  barraDeBusca = barra;
   // `?desktop=1` só na aba Hub: sinal para o painel de que ele roda dentro do shell,
   // e não num navegador comum.
   const hubUrlComFlag = `${HUB_URL}${HUB_URL.includes('?') ? '&' : '?'}desktop=1`;
@@ -299,12 +307,14 @@ function tratarDoMenuFlutuante<A extends unknown[], R>(
 tratarDaBarraDeGuias('layout:definirAlturaTopo', (altura: number) => {
   tabs?.definirAlturaTopo(altura);
   comunicacao?.definirAlturaTopo(altura);
+  barraDeBusca?.reposicionar();
   return { ok: true };
 });
 
 tratarDaBarraDeGuias('layout:definirLarguraLateral', (largura: number) => {
   tabs?.definirLarguraLateral(largura);
   comunicacao?.definirLarguraLateral(largura);
+  barraDeBusca?.reposicionar();
   return { ok: true };
 });
 
@@ -333,6 +343,26 @@ tratarDoMenuFlutuante('menuFlutuante:escolher', (id: string) => ({
 }));
 tratarDoMenuFlutuante('menuFlutuante:fechar', () => {
   menuFlutuante?.fechar();
+  return { ok: true };
+});
+
+function tratarDaBarraDeBusca<A extends unknown[], R>(
+  canal: string,
+  tratar: (...argumentos: A) => R,
+): void {
+  tratarSoDe(
+    'a barra de busca',
+    (e) => barraDeBusca?.ehRemetente(e.sender) ?? false,
+    canal,
+    tratar,
+  );
+}
+
+tratarDaBarraDeBusca('barraDeBusca:buscar', (texto: unknown, paraTras: unknown) => ({
+  ok: barraDeBusca?.buscar(texto, paraTras) ?? false,
+}));
+tratarDaBarraDeBusca('barraDeBusca:fechar', () => {
+  barraDeBusca?.fechar();
   return { ok: true };
 });
 
@@ -412,6 +442,7 @@ app.whenReady().then(async () => {
       () => tabs,
       {
         abrirBuscaRapida: abrirBuscaRapidaNaJanela,
+        buscarNaPagina: () => barraDeBusca?.abrir(),
         situacaoDoAtalhoGlobal: () => atalhoGlobal.situacao,
       },
     );

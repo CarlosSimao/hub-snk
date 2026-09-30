@@ -26,7 +26,7 @@ interface SecaoDeAtalhos {
 const COR_DE_FUNDO = '#1b1f27';
 /* Cabe a lista inteira sem rolagem, com as descrições longas numa linha só. */
 const LARGURA = 520;
-const ALTURA = 700;
+const ALTURA = 840;
 
 const AVISOS_DO_ATALHO_GLOBAL: Record<SituacaoDoAtalhoGlobal, string> = {
   ativo: '',
@@ -52,6 +52,15 @@ const SECAO_DA_BUSCA_RAPIDA: SecaoDeAtalhos = {
     { teclas: '↑ / ↓', descricao: 'Escolher o resultado' },
     { teclas: 'Enter', descricao: 'Abrir o item' },
     { teclas: 'Ctrl+Enter', descricao: 'Abrir o cliente do item no painel' },
+    { teclas: 'Esc', descricao: 'Fechar a busca' },
+  ],
+};
+
+const SECAO_DA_BUSCA_NA_PAGINA: SecaoDeAtalhos = {
+  titulo: 'Na busca na página',
+  atalhos: [
+    { teclas: 'Enter', descricao: 'Próxima ocorrência' },
+    { teclas: 'Shift+Enter', descricao: 'Ocorrência anterior' },
     { teclas: 'Esc', descricao: 'Fechar a busca' },
   ],
 };
@@ -88,6 +97,7 @@ export function abrirJanelaDeAtalhos(
     ...(menu ? secoesDoMenu(menu) : []),
     secaoDoAtalhoGlobal(situacaoDoAtalhoGlobal),
     SECAO_DA_BUSCA_RAPIDA,
+    SECAO_DA_BUSCA_NA_PAGINA,
   ];
 
   const janela = new BrowserWindow({
