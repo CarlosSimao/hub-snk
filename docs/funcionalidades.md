@@ -460,18 +460,19 @@ aparece. Excluir um cliente não apaga os contatos dele: eles passam a sem clien
 
 O HUB SNK atende perfis diferentes, e cada um vê só o que usa. Em
 **Configurações › Acessos** ficam o **Perfil** e uma caixa por funcionalidade:
-as abas **Local**, **Agenda**, **OS**, **Lembretes** e **Contatos** do menu principal e as
-abas **Bases**, **Repositórios**, **Projetos**, **Agenda**, **OS** e **Contatos** do cadastro
-do cliente.
+as abas **Local**, **Agenda**, **OS** e **Contatos** do menu principal, o botão **Lembretes**
+do painel de notificações e as abas **Bases**, **Git**, **Projetos**, **Agenda**, **OS** e
+**Contatos** do cadastro do cliente. A seção **AutoSync** da aba Git tem caixa própria e some
+junto com a aba.
 **Clientes** e a aba **Geral** do cliente não entram na lista: sem elas a tela
 abriria vazia.
 
-| Perfil             | Oculto no preset                          |
-| ------------------ | ----------------------------------------- |
-| Desenvolvedor      | nada                                      |
-| Consultor          | aba Repositórios do cliente               |
-| Analista           | aba Repositórios do cliente               |
-| Gerente de projeto | aba Repositórios do cliente e a aba Local |
+| Perfil             | Oculto no preset                 |
+| ------------------ | -------------------------------- |
+| Desenvolvedor      | nada                             |
+| Consultor          | aba Git do cliente               |
+| Analista           | aba Git do cliente               |
+| Gerente de projeto | aba Git do cliente e a aba Local |
 
 O perfil é perguntado na instalação, e o preset dele vale desde a primeira
 abertura. Trocar o perfil na aba Acessos marca as caixas do preset; depois disso

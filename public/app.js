@@ -1938,7 +1938,7 @@ function criarSecaoDeBases(cliente) {
 
 function criarSecaoDeRepositorios(cliente) {
   return criarSecaoDeRecursos({
-    titulo: null,
+    titulo: 'Repositórios',
     rotuloDoBotao: 'Adicionar repositório',
     aoAdicionar: () => abrirModalDeCadastroDeRepositorio(cliente),
     linhas: cliente.repositorios.map((repositorio) =>
@@ -4346,10 +4346,21 @@ function renderizarDetalhe() {
     criarAbasDeDetalhe([
       { chave: 'geral', rotulo: 'Geral', criarConteudo: () => secaoGeral },
       { chave: 'bases', rotulo: 'Bases', criarConteudo: () => criarSecaoDeBases(cliente) },
+      // Montada só ao abrir: a seção do AutoSync consulta o CLI assim que é criada.
       {
         chave: 'repositorios',
-        rotulo: 'Repositórios',
-        criarConteudo: () => criarSecaoDeRepositorios(cliente),
+        rotulo: 'Git',
+        soAoAbrir: true,
+        criarConteudo: () => {
+          const secoes = criarElemento('div');
+          secoes.append(criarSecaoDeRepositorios(cliente));
+          if (funcionalidadeVisivel('cliente.autosync')) {
+            secoes.append(
+              secaoConsultadaDoCliente(cliente, 'autosync', criarSecaoDoAutosyncDoCliente),
+            );
+          }
+          return secoes;
+        },
       },
       {
         chave: 'projetos',
@@ -4372,13 +4383,6 @@ function renderizarDetalhe() {
         chave: 'contatos',
         rotulo: 'Contatos',
         criarConteudo: () => criarSecaoDeContatosDoCliente(cliente),
-      },
-      {
-        chave: 'autosync',
-        rotulo: 'Git',
-        soAoAbrir: true,
-        criarConteudo: () =>
-          secaoConsultadaDoCliente(cliente, 'autosync', criarSecaoDoAutosyncDoCliente),
       },
     ]),
   );
@@ -10948,14 +10952,16 @@ function criarSecaoDoAutosyncDoCliente(cliente) {
       'Atualizar o Git AutoSync',
       () => recarregarAutosync(),
     );
-    cabecalho.append(
+    const titulo = criarElemento('div', 'detalhe-titulo-com-subtitulo');
+    titulo.append(
+      criarElemento('h3', null, 'AutoSync'),
       criarElemento(
         'p',
         'texto-auxiliar',
         'Commit, push e sincronização dos repositórios deste cliente pelo Git AutoSync.',
       ),
-      botaoRecarregar,
     );
+    cabecalho.append(titulo, botaoRecarregar);
 
     if (!visao || !clientes) {
       secao.replaceChildren(
