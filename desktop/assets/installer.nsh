@@ -27,6 +27,12 @@
 
 !ifdef GAS_PRESENTE
 
+; Marca de quem instalou o Git AutoSync, relativa ao %LOCALAPPDATA%. Fica fora da pasta
+; do programa porque toda atualizacao apaga aquela pasta, e com ela a marca: depois de
+; atualizar, a desinstalacao deixava de oferecer a remocao do Git AutoSync.
+!define GAS_MARCA "HubSnk\git-autosync-instalado-pelo-hub.txt"
+!define GAS_MARCA_ANTIGA "resources\git-autosync\instalado-pelo-hub.txt"
+
 ; O instalador e o desinstalador sao COMPILADOS SEPARADAMENTE, e o segundo define
 ; `BUILD_UNINSTALLER`. A pagina de componentes nao existe la': o electron-builder so'
 ; insere `customPageAfterChangeDir` no passe do instalador, e uma funcao de pagina sem
@@ -170,22 +176,47 @@ FunctionEnd
     ${Else}
       ; Marca de quem instalou: a desinstalacao so' remove o que ELA instalou, nunca uma
       ; instalacao que o usuario ja' tinha antes.
-      FileOpen $R2 "$INSTDIR\resources\git-autosync\instalado-pelo-hub.txt" w
+      ReadEnvStr $R3 LOCALAPPDATA
+      CreateDirectory "$R3\HubSnk"
+      FileOpen $R2 "$R3\${GAS_MARCA}" w
       FileWrite $R2 "${GAS_VERSION}"
       FileClose $R2
     ${EndIf}
   ${EndIf}
 !macroend
 
+; Instalacoes ate a 2.0.0 gravavam a marca dentro da pasta do programa. Aqui o $INSTDIR
+; ja' aponta para a instalacao existente e a versao antiga ainda nao foi removida: e' a
+; ultima chance de levar a marca para o lugar novo.
+!macro customInit
+  ReadEnvStr $R3 LOCALAPPDATA
+  ${If} ${FileExists} "$INSTDIR\${GAS_MARCA_ANTIGA}"
+  ${AndIfNot} ${FileExists} "$R3\${GAS_MARCA}"
+    CreateDirectory "$R3\HubSnk"
+    CopyFiles /SILENT "$INSTDIR\${GAS_MARCA_ANTIGA}" "$R3\${GAS_MARCA}"
+  ${EndIf}
+!macroend
+
 !endif ; BUILD_UNINSTALLER
 
 !macro customUnInstall
+  ; Entrada do "Iniciar HUB SNK automaticamente" (desktop/src/inicioAutomatico.ts). So na
+  ; desinstalacao de verdade: a atualizacao roda este desinstalador antes de instalar a
+  ; versao nova, e apagar aqui desligaria o inicio automatico a cada versao.
+  ${IfNot} ${isUpdated}
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "br.dev.hubsnk.desktop"
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" "br.dev.hubsnk.desktop"
+  ${EndIf}
+  ReadEnvStr $R3 LOCALAPPDATA
   ${IfNot} ${Silent}
-  ${AndIf} ${FileExists} "$INSTDIR\resources\git-autosync\instalado-pelo-hub.txt"
+  ${AndIf} ${FileExists} "$R3\${GAS_MARCA}"
     MessageBox MB_YESNO|MB_ICONQUESTION "Remover tambem o Git AutoSync (tarefa agendada, bandeja e atalhos)?$\r$\n$\r$\nSeus repositorios cadastrados, o historico e os logs serao preservados." IDNO gas_manter
       DetailPrint "Removendo o Git AutoSync..."
       nsExec::ExecToLog 'powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$INSTDIR\resources\git-autosync\install-standalone.ps1" -Uninstall'
       Pop $R1
+      ${If} $R1 == 0
+        Delete "$R3\${GAS_MARCA}"
+      ${EndIf}
     gas_manter:
   ${EndIf}
 !macroend
@@ -300,9 +331,9 @@ Function PerfilPaginaCriar
   ${EndIf}
 
   ; Independente do perfil: qualquer um deles pode ser de um terceiro.
-  ${NSD_CreateCheckbox} 0 100u 100% 12u "Terceiro: sem acesso ao Sankhya Om e a Experience"
+  ${NSD_CreateCheckbox} 0 100u 100% 12u "Terceiro: sem acesso ao SankhyaOm e a Experience"
   Pop $CheckTerceiro
-  ${NSD_CreateLabel} 12u 114u 90% 18u "Oculta Credenciais Sankhya, Agenda, OS e as guias Sankhya Om e Experience."
+  ${NSD_CreateLabel} 12u 114u 90% 18u "Oculta Credenciais Sankhya, Agenda, OS e as guias SankhyaOm e Experience."
   Pop $0
   ${If} $TerceiroEscolhido == "S"
     ${NSD_Check} $CheckTerceiro

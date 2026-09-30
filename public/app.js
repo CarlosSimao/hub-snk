@@ -8,6 +8,12 @@
  */
 
 import { lerCadastrosDoTexto } from './leitorDeArquivoDeCadastros.js';
+import {
+  buscarItens,
+  montarItensDaBusca,
+  registrarUsoRecente,
+  ROTULOS_DOS_TIPOS,
+} from './buscaRapida.js';
 import { lerArvoreDeFavoritos } from './leitorDeFavoritos.js';
 import { separarTipoDoNome } from './tipoDeBaseNoNome.js';
 
@@ -21,6 +27,14 @@ const CAMINHO_DOS_BANCOS_LOCAIS = '/api/local/bancos';
 const CAMINHO_DAS_NOTIFICACOES = '/api/notificacoes';
 const CAMINHO_DOS_LEMBRETES = '/api/lembretes';
 const CAMINHO_DOS_CONTATOS = '/api/contatos';
+/* O WhatsApp Web abre a conversa pelo número completo, com o código do país. */
+const ENDERECO_DE_CONVERSA_DO_WHATSAPP = 'https://web.whatsapp.com/send';
+const CODIGO_DO_BRASIL = '55';
+/* DDD e número, fixo ou celular: o que o cadastro costuma ter, sem o código do país. */
+const DIGITOS_DO_TELEFONE_NACIONAL = new Set([10, 11]);
+const MENOR_TELEFONE_COM_DDD = 10;
+/* Tela de e-mail novo do Gmail, que no desktop abre no painel de comunicação. */
+const ENDERECO_DE_EMAIL_NOVO_DO_GMAIL = 'https://mail.google.com/mail/?view=cm&fs=1';
 const CAMINHO_DA_IMPORTACAO = `${CAMINHO_DA_API}/importacao`;
 const CAMINHO_DA_IMPORTACAO_DE_REPOSITORIOS = `${CAMINHO_DA_API}/importacao-de-repositorios`;
 const CAMINHO_DA_IMPORTACAO_DE_CADASTROS = `${CAMINHO_DA_API}/importacao-de-cadastros`;
@@ -206,6 +220,14 @@ const ICONES = {
   link: 'M15 7h3a5 5 0 0 1 0 10h-3 M9 17H6a5 5 0 0 1 0-10h3 M8 12h8',
   /* Sino: o botão que abre o painel de notificações. */
   sino: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0',
+  /* Lupa: o botão que abre a busca rápida. */
+  lupa: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.35-4.35',
+  /* Mesmo desenho do botão do WhatsApp na barra lateral do aplicativo. */
+  conversa:
+    'M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.3z M9.2 8.6c0 3.4 2.8 6.2 6.2 6.2l1.2-1.4-2-1-1 .8a4.6 4.6 0 0 1-2.8-2.8l.8-1-1-2z',
+  /* Mesmo desenho do botão do Gmail na barra lateral do aplicativo. */
+  envelope:
+    'M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z M3.5 6.5 12 13l8.5-6.5',
 };
 
 const estado = {
@@ -223,7 +245,7 @@ const estado = {
   funcionalidadesOcultas: new Set(),
   /* Perfil em vigor na tela; `null` enquanto a configuração não foi lida. */
   perfil: null,
-  /* Acesso de terceiro: sem Sankhya Om nem Experience, o que depende deles some. */
+  /* Acesso de terceiro: sem SankhyaOm nem Experience, o que depende deles some. */
   terceiro: false,
   clienteEmEdicao: null,
   clienteDaBaseEmEdicao: null,
@@ -241,7 +263,8 @@ const estado = {
   /* Alvo do modal do MCP: repositório de cliente ou base local. */
   alvoDoMcp: null,
   /* 'clientes' ou 'local': qual das duas telas está visível. */
-  visualizacao: 'clientes',
+  /* O painel abre no Resumo do dia. */
+  visualizacao: 'resumo',
   basesLocais: [],
   bancosLocais: [],
   baseLocalEmEdicao: null,
@@ -270,6 +293,13 @@ const estado = {
   situacoesDeBasesDeClientes: {},
   /* Atalhos da barra da direita, relidos a cada gravação da configuração. */
   atalhos: [],
+  /* Com IDE configurada, Enter num repositório da busca rápida abre a IDE; sem ela, a pasta. */
+  ideConfigurada: false,
+  /*
+   * Busca rápida. `itens` é o índice montado ao abrir, `resultados` o que casa
+   * com o texto digitado e `indiceSelecionado` a linha destacada nos resultados.
+   */
+  buscaRapida: { itens: [], resultados: [], indiceSelecionado: 0 },
   /* Painel de notificações: a lista vem do servidor e cresce pelo fluxo SSE. */
   notificacoes: [],
   lembretes: [],
@@ -361,6 +391,10 @@ const elementos = {
   botaoTema: document.getElementById('btn-tema'),
   indicadorGitGlobal: document.getElementById('indicador-git-global'),
 
+  botaoVisualizacaoResumo: document.getElementById('btn-visualizacao-resumo'),
+  visualizacaoResumo: document.getElementById('visualizacao-resumo'),
+  mountResumo: document.getElementById('mount-resumo'),
+  dataDoResumo: document.getElementById('data-do-resumo'),
   botaoVisualizacaoClientes: document.getElementById('btn-visualizacao-clientes'),
   botaoVisualizacaoLocal: document.getElementById('btn-visualizacao-local'),
   botaoVisualizacaoAgenda: document.getElementById('btn-visualizacao-agenda'),
@@ -390,6 +424,11 @@ const elementos = {
   erroContato: document.getElementById('erro-contato'),
   botaoSalvarContato: document.getElementById('btn-salvar-contato'),
   botaoCancelarContato: document.getElementById('btn-cancelar-contato'),
+
+  botaoBuscaRapida: document.getElementById('btn-busca-rapida'),
+  modalBuscaRapida: document.getElementById('modal-busca-rapida'),
+  campoBuscaRapida: document.getElementById('campo-busca-rapida'),
+  listaBuscaRapida: document.getElementById('lista-busca-rapida'),
 
   botaoNotificacoes: document.getElementById('btn-notificacoes'),
   contadorNotificacoes: document.getElementById('contador-notificacoes'),
@@ -3577,10 +3616,349 @@ async function atualizarOsGeral() {
   }
 }
 
+/* ----------------------------- Resumo do dia ------------------------------ */
+
+/*
+ * O que pede atenção hoje, junto numa tela: agenda, lembretes, repositórios com pendência
+ * grave e versão nova. Só lê o que o painel já tem ou consulta barato (snapshot local,
+ * lembretes, situação Git em cache no servidor): nada aqui vai à Experience, ao ERP nem
+ * às bases dos clientes.
+ */
+
+/* Chave das notificações do alerta da agenda: `agenda:<dia>:<nuevento>` (verificadorDaAgendaDoDia.ts). */
+const PREFIXO_DAS_NOTIFICACOES_DA_AGENDA = 'agenda:';
+
+/* Resumo mais recente pedido: um desenho que termina depois de outro mais novo é descartado. */
+let geracaoDoResumo = 0;
+
+function criarSecaoDoResumo(titulo, linhas, mensagemVazia) {
+  const secao = criarElemento('div', 'secao-recursos');
+  const cabecalho = criarElemento('div', 'secao-cabecalho');
+  cabecalho.append(criarElemento('h3', null, titulo));
+  secao.append(cabecalho);
+  if (linhas.length === 0) {
+    secao.append(criarElemento('p', 'secao-vazia', mensagemVazia));
+    return secao;
+  }
+  const lista = criarElemento('div', 'lista-recursos');
+  lista.append(...linhas);
+  secao.append(lista);
+  return secao;
+}
+
+function criarLinhaDoResumo({ titulo, detalhes, selo, acao }) {
+  const informacoes = criarElemento('div', 'recurso-info');
+  const linhaTitulo = criarElemento('div', 'linha-horario-situacao');
+  linhaTitulo.append(criarElemento('p', 'recurso-nome', titulo));
+  if (selo) linhaTitulo.append(selo);
+  informacoes.append(linhaTitulo);
+  for (const detalhe of detalhes.filter(Boolean)) {
+    informacoes.append(criarElemento('p', 'texto-auxiliar', detalhe));
+  }
+  const linha = criarElemento('div', 'linha-recurso');
+  linha.append(informacoes, acao);
+  return linha;
+}
+
+/** Dia local (`YYYY-MM-DD`) de um instante ISO: `toISOString` daria o dia em UTC. */
+function diaLocalDoInstante(iso) {
+  const data = new Date(iso);
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return `${data.getFullYear()}-${mes}-${dia}`;
+}
+
+/**
+ * Eventos de hoje que o alerta da agenda já apontou sem OS lançada. O alerta só confere
+ * evento que já terminou, e só com ele ligado: os outros ficam sem selo, não "com OS".
+ */
+function eventosDeHojeSemOs(hoje) {
+  const prefixo = `${PREFIXO_DAS_NOTIFICACOES_DA_AGENDA}${hoje}:`;
+  return new Set(
+    estado.notificacoes
+      .filter((notificacao) => notificacao.origem === 'agenda')
+      .filter((notificacao) => notificacao.chave.startsWith(prefixo))
+      .map((notificacao) => notificacao.chave.slice(prefixo.length)),
+  );
+}
+
+/* Mesma identificação que o alerta usa na chave da notificação. */
+function identificacaoDoEvento(evento) {
+  return String(evento.nuevento ?? `${evento.codparc}-${evento.inicio}`);
+}
+
+function criarLinhaDeEventoDoResumo(evento, semOs) {
+  const titulo = evento.nomeparc
+    ? `${evento.codparc ?? ''} - ${evento.nomeparc}`
+    : evento.descrlonga || evento.descrabrev || '(sem título)';
+  const horario =
+    evento.allday === 'S'
+      ? 'Dia todo'
+      : `${evento.inicio.slice(11, 16)}–${evento.fim.slice(11, 16)}`;
+  const descricao = evento.descrlonga || evento.descrabrev;
+  return criarLinhaDoResumo({
+    titulo,
+    detalhes: [horario, descricao !== titulo && descricao],
+    selo: semOs ? criarElemento('span', 'selo-situacao erro', 'Sem OS lançada') : null,
+    acao: criarBotaoDeIcone('btn tiny', ICONES.seta, 'Abrir na Agenda', () =>
+      alternarVisualizacao('agenda'),
+    ),
+  });
+}
+
+/* Evento de vários dias (férias, semana de projeto) também é de hoje enquanto durar. */
+async function criarSecaoDaAgendaDoResumo(hoje) {
+  const { eventos } = await api.eventosDaAgenda(hoje, hoje);
+  const semOs = eventosDeHojeSemOs(hoje);
+  const deHoje = eventos
+    .filter((evento) => evento.inicio.slice(0, 10) <= hoje && hoje <= evento.fim.slice(0, 10))
+    .sort((a, b) => a.inicio.localeCompare(b.inicio));
+  return criarSecaoDoResumo(
+    'Agenda de hoje',
+    deHoje.map((evento) =>
+      criarLinhaDeEventoDoResumo(evento, semOs.has(identificacaoDoEvento(evento))),
+    ),
+    'Nenhum evento hoje na agenda.',
+  );
+}
+
+/* Ainda vai disparar hoje, ou já disparou hoje. */
+function lembreteEhDeHoje(lembrete, hoje) {
+  const disparaHoje =
+    lembrete.proximoDisparo && diaLocalDoInstante(lembrete.proximoDisparo) === hoje;
+  const disparouHoje =
+    lembrete.ultimoDisparoEm && diaLocalDoInstante(lembrete.ultimoDisparoEm) === hoje;
+  return lembrete.ativo && Boolean(disparaHoje || disparouHoje);
+}
+
+async function criarSecaoDosLembretesDoResumo(hoje) {
+  const { lembretes } = await api.listarLembretes();
+  const deHoje = lembretesOrdenados(
+    lembretes.filter((lembrete) => lembreteEhDeHoje(lembrete, hoje)),
+  );
+  return criarSecaoDoResumo(
+    'Lembretes de hoje',
+    deHoje.map((lembrete) =>
+      criarLinhaDoResumo({
+        titulo: resumoDoLembrete(lembrete),
+        detalhes: [descreverSituacaoDoLembrete(lembrete), descreverVinculoDoLembrete(lembrete)],
+        selo: null,
+        acao: criarBotaoDeIcone('btn tiny', ICONES.lapis, 'Editar lembrete', () =>
+          abrirModalDeLembrete(lembrete),
+        ),
+      }),
+    ),
+    'Nenhum lembrete para hoje.',
+  );
+}
+
+/* As pendências já vêm do servidor da mais grave para a mais leve. */
+function criarLinhaDeRepositorioDoResumo({ cliente, repositorio, situacao }) {
+  return criarLinhaDoResumo({
+    titulo: `${cliente.nome} › ${nomeDeExibicaoDoRepositorio(repositorio)}`,
+    detalhes: situacao.pendencias.map((pendencia) => pendencia.mensagem),
+    selo: criarElemento(
+      'span',
+      `selo-situacao ${situacao.severidade}`,
+      ROTULOS_DE_SEVERIDADE[situacao.severidade],
+    ),
+    acao: criarBotaoDeIcone('btn tiny', ICONES.seta, 'Abrir no cliente', () =>
+      abrirClienteDaBusca(cliente.id, 'repositorios'),
+    ),
+  });
+}
+
+/* Todo repositório com alguma pendência, os de gravidade `erro` primeiro. */
+function criarSecaoDosRepositoriosDoResumo() {
+  const comPendencia = estado.clientes
+    .flatMap((cliente) =>
+      cliente.repositorios.map((repositorio) => ({
+        cliente,
+        repositorio,
+        situacao: estado.situacoesGit[repositorio.id],
+      })),
+    )
+    .filter(({ situacao }) => situacao?.pendencias.length > 0)
+    .sort(
+      (a, b) =>
+        ORDEM_DE_SEVERIDADE[a.situacao.severidade] - ORDEM_DE_SEVERIDADE[b.situacao.severidade] ||
+        a.cliente.nome.localeCompare(b.cliente.nome, 'pt-BR'),
+    );
+  return criarSecaoDoResumo(
+    'Repositórios com pendência',
+    comPendencia.map(criarLinhaDeRepositorioDoResumo),
+    'Nenhum repositório com pendência.',
+  );
+}
+
+/* Sem versão nova, a seção nem aparece: não é algo a resolver hoje. */
+async function criarSecaoDaVersaoDoResumo() {
+  const { atualizacaoDisponivel, ultimaVersao, url } = await api.lerAtualizacao();
+  if (!atualizacaoDisponivel) return null;
+  return criarSecaoDoResumo(
+    'HUB SNK',
+    [
+      criarLinhaDoResumo({
+        titulo: `Versão ${ultimaVersao} disponível`,
+        detalhes: ['No aplicativo, ela é baixada sozinha e instalada ao reiniciar.'],
+        selo: null,
+        acao: criarLinkDeIcone('btn tiny', ICONES.seta, 'Ver a versão nova', url),
+      }),
+    ],
+    '',
+  );
+}
+
+/* Status de aceite da OS terminada na Experience: as demais ainda pedem ação. */
+const STATUS_DE_OS_CONCLUIDA = 'Concluído';
+
+/*
+ * OS do Resumo, consultadas na Experience. A consulta é lenta (uma chamada de detalhe por
+ * OS), então o resultado vale para os redesenhos seguintes e só é buscado de novo quando
+ * alguém abre o Resumo. Falha não fica guardada: a próxima vez tenta de novo.
+ */
+let osDoResumo = null;
+
+function buscarOsDoResumo(renovar) {
+  if (osDoResumo && !renovar) return osDoResumo;
+  const mesAtual = mesAtualIso();
+  const { de } = limitesDoMesCliente(deslocarMes(mesAtual, -1));
+  const { ate } = limitesDoMesCliente(mesAtual);
+  const consulta = api.consultarOsGeral(de, ate).then(({ itens }) => itens);
+  consulta.catch(() => {
+    if (osDoResumo === consulta) osDoResumo = null;
+  });
+  osDoResumo = consulta;
+  return consulta;
+}
+
+function criarLinhaDeOsDoResumo(item, classeDeCor) {
+  const dia = [
+    `Dia: ${formatarDiaDeOs(item.dia)}`,
+    item.horasFeitas && `Horas: ${item.horasFeitas}`,
+  ];
+  return criarLinhaDoResumo({
+    titulo: `OS ${item.numeroSankhya || '(sem número)'} · ${item.tipo}`,
+    detalhes: [item.empresa, dia.filter(Boolean).join(' • '), item.erro],
+    selo: criarElemento('span', `selo-situacao selo-status-os ${classeDeCor}`, statusDaOs(item)),
+    acao: criarBotaoDeIcone('btn tiny', ICONES.seta, 'Abrir na aba OS', () =>
+      alternarVisualizacao('os'),
+    ),
+  });
+}
+
+async function criarSecaoDasOsDoResumo(renovar) {
+  const itens = await buscarOsDoResumo(renovar);
+  const naoConcluidas = ordenarOsDaMaisRecente(
+    itens.filter((item) => item.statusAceite !== STATUS_DE_OS_CONCLUIDA),
+  );
+  // Mesmas cores da aba OS: elas saem dos status do período inteiro.
+  const cores = atribuirCoresAosStatus(contarOsPorStatus(itens).keys());
+  return criarSecaoDoResumo(
+    'OS não concluídas (mês atual e anterior)',
+    naoConcluidas.map((item) => criarLinhaDeOsDoResumo(item, cores.get(statusDaOs(item)))),
+    'Nenhuma OS sem conclusão no mês atual e no anterior.',
+  );
+}
+
+/* Uma seção que falha mostra o motivo no lugar dela, sem derrubar as outras. */
+async function secaoOuErro(titulo, criarSecao) {
+  try {
+    return await criarSecao();
+  } catch (erro) {
+    return criarSecaoDoResumo(titulo, [], `Não foi possível carregar: ${erro.message}`);
+  }
+}
+
+/*
+ * Seções na ordem da tela. Cada uma some junto com a funcionalidade dela em
+ * Configurações › Acessos. `titulo` nulo: a seção só aparece quando tem o que mostrar.
+ */
+function secoesDoResumo(hoje, renovarOs) {
+  return [
+    funcionalidadeVisivel('agenda') && {
+      chave: 'agenda',
+      titulo: 'Agenda de hoje',
+      carregar: () => criarSecaoDaAgendaDoResumo(hoje),
+    },
+    funcionalidadeVisivel('lembretes') && {
+      chave: 'lembretes',
+      titulo: 'Lembretes de hoje',
+      carregar: () => criarSecaoDosLembretesDoResumo(hoje),
+    },
+    funcionalidadeVisivel('os') && {
+      chave: 'os',
+      titulo: 'OS não concluídas (mês atual e anterior)',
+      carregar: () => criarSecaoDasOsDoResumo(renovarOs),
+    },
+    funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS) && {
+      chave: 'repositorios',
+      titulo: 'Repositórios com pendência',
+      carregar: async () => criarSecaoDosRepositoriosDoResumo(),
+    },
+    // A versão nova não é essencial: falha dela (sem internet) não vira aviso.
+    {
+      chave: 'versao',
+      titulo: null,
+      carregar: () => criarSecaoDaVersaoDoResumo().catch(() => null),
+    },
+  ].filter(Boolean);
+}
+
+/* Seção de cada chave que está na tela: o redesenho troca uma por uma, sem piscar. */
+const secoesMontadasDoResumo = new Map();
+
+function lugarDaSecao({ chave, titulo }) {
+  const montada = secoesMontadasDoResumo.get(chave);
+  if (montada) return montada;
+  const lugar = titulo ? criarSecaoDoResumo(titulo, [], 'Carregando…') : criarElemento('div', null);
+  secoesMontadasDoResumo.set(chave, lugar);
+  return lugar;
+}
+
+async function carregarSecaoDoResumo({ chave, titulo, carregar }, geracao) {
+  const secao = (await secaoOuErro(titulo, carregar)) ?? criarElemento('div', null);
+  if (geracao !== geracaoDoResumo) return;
+  secoesMontadasDoResumo.get(chave)?.replaceWith(secao);
+  secoesMontadasDoResumo.set(chave, secao);
+}
+
+/**
+ * Cada seção aparece quando fica pronta: as OS, que vêm da Experience, não seguram o
+ * resto. Enquanto a versão nova de uma seção carrega, a anterior continua na tela.
+ *
+ * `renovarOs`: busca as OS de novo em vez de reaproveitar a última consulta.
+ */
+function renderizarResumo({ renovarOs = false } = {}) {
+  const geracao = ++geracaoDoResumo;
+  const hoje = dataIsoDeHoje();
+  elementos.dataDoResumo.textContent = new Date(`${hoje}T00:00:00`).toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+  });
+  const secoes = secoesDoResumo(hoje, renovarOs);
+  const chavesVisiveis = new Set(secoes.map(({ chave }) => chave));
+  for (const chave of secoesMontadasDoResumo.keys()) {
+    if (!chavesVisiveis.has(chave)) secoesMontadasDoResumo.delete(chave);
+  }
+  elementos.mountResumo.replaceChildren(...secoes.map(lugarDaSecao));
+  for (const secao of secoes) void carregarSecaoDoResumo(secao, geracao);
+}
+
+function renderizarResumoSeVisivel() {
+  if (estado.visualizacao === 'resumo') renderizarResumo();
+}
+
 function alternarVisualizacao(visualizacao) {
   estado.visualizacao = visualizacao;
 
   const opcoes = [
+    {
+      chave: 'resumo',
+      botao: elementos.botaoVisualizacaoResumo,
+      area: elementos.visualizacaoResumo,
+    },
     {
       chave: 'clientes',
       botao: elementos.botaoVisualizacaoClientes,
@@ -3612,6 +3990,9 @@ function alternarVisualizacao(visualizacao) {
     botao.setAttribute('aria-selected', String(ativa));
   }
 
+  if (visualizacao === 'resumo') {
+    renderizarResumo({ renovarOs: true });
+  }
   if (visualizacao === 'local') {
     carregarLocal();
   }
@@ -3862,6 +4243,8 @@ function renderizar() {
   renderizarLista();
   renderizarDetalhe();
   renderizarIndicadorGitGlobal();
+  // Situação Git nova ou cadastro mudado: a seção de repositórios do Resumo acompanha.
+  renderizarResumoSeVisivel();
 }
 
 /* -------------------------------- formulários ----------------------------- */
@@ -5021,7 +5404,7 @@ async function salvarCodusuSankhyaOm() {
   elementos.botaoSalvarCodusu.disabled = true;
   try {
     await api.salvarSankhyaOmCodUsu(elementos.campoConfigSankhyaOmCodUsu.value.trim());
-    exibirAviso('Código de usuário do Sankhya OM salvo.');
+    exibirAviso('Código de usuário do SankhyaOm salvo.');
   } catch (erro) {
     exibirErro(elementos.erroCodusu, erro.message);
   } finally {
@@ -5579,6 +5962,7 @@ async function salvarConfiguracao(evento) {
 
     /* A resposta traz os ids gerados: é dela que a barra passa a viver. */
     estado.atalhos = salva.atalhos ?? [];
+    estado.ideConfigurada = Boolean(salva.caminhoDoExecutavelDaIde);
     renderizarListaDeAtalhos();
   } catch (erro) {
     exibirErro(elementos.erroConfiguracao, erro.message);
@@ -5599,7 +5983,7 @@ const PERFIL_PADRAO = 'desenvolvedor';
 const FUNCIONALIDADE_REPOSITORIOS = 'cliente.repositorios';
 
 /*
- * O que só funciona com as credenciais do Sankhya Om ou da Experience. Com Terceiro,
+ * O que só funciona com as credenciais do SankhyaOm ou da Experience. Com Terceiro,
  * somem por cima das caixas, sem mexer no que está gravado nelas.
  */
 const FUNCIONALIDADES_QUE_DEPENDEM_DO_SANKHYA = new Set([
@@ -7946,6 +8330,10 @@ function receberNotificacao(notificacao) {
   if (notificacao.origem === 'lembrete' && estado.visualizacao === 'lembretes') {
     void recarregarLembretes();
   }
+  // Lembrete disparado ou evento sem OS: o Resumo aberto mostra na hora.
+  if (notificacao.origem === 'lembrete' || notificacao.origem === 'agenda') {
+    renderizarResumoSeVisivel();
+  }
 }
 
 /**
@@ -8561,6 +8949,19 @@ function contatoPassaNoFiltro(contato) {
   return !clienteId || clienteDoContato(contato)?.id === clienteId;
 }
 
+/**
+ * `null` sem ao menos DDD e número: ramal ou texto solto não abre conversa. Com `+`, o
+ * código do país já veio escrito; com 10 ou 11 dígitos, é um número brasileiro sem ele.
+ */
+function numeroParaWhatsApp(telefone) {
+  const digitos = telefone.replace(/\D/g, '').replace(/^0+/, '');
+  if (digitos.length < MENOR_TELEFONE_COM_DDD) return null;
+  if (telefone.trim().startsWith('+')) return digitos;
+  return DIGITOS_DO_TELEFONE_NACIONAL.has(digitos.length)
+    ? `${CODIGO_DO_BRASIL}${digitos}`
+    : digitos;
+}
+
 function criarLinhaDeContato(contato, { mostrarCliente }) {
   const info = criarElemento('div', 'recurso-info');
   info.append(criarElemento('span', 'recurso-nome', contato.nome));
@@ -8575,6 +8976,17 @@ function criarLinhaDeContato(contato, { mostrarCliente }) {
     info.append(criarElemento('span', 'recurso-url', meios));
   }
 
+  const conversa = [];
+  const numero = numeroParaWhatsApp(contato.telefone);
+  if (numero) {
+    const endereco = `${ENDERECO_DE_CONVERSA_DO_WHATSAPP}?phone=${numero}`;
+    conversa.push(criarLinkDeIcone('btn tiny', ICONES.conversa, 'Conversar no WhatsApp', endereco));
+  }
+  if (contato.email) {
+    const endereco = `${ENDERECO_DE_EMAIL_NOVO_DO_GMAIL}&to=${encodeURIComponent(contato.email)}`;
+    conversa.push(criarLinkDeIcone('btn tiny', ICONES.envelope, 'Escrever e-mail', endereco));
+  }
+
   const linha = criarElemento('div', 'linha-recurso');
   linha.append(
     info,
@@ -8583,6 +8995,7 @@ function criarLinhaDeContato(contato, { mostrarCliente }) {
       aoEditar: () => abrirModalDeContato(contato, mostrarCliente ? null : cliente),
       rotuloDeExclusao: 'Excluir contato',
       aoExcluir: () => pedirExclusaoDeContato(contato),
+      extras: conversa,
     }),
   );
   return linha;
@@ -8753,6 +9166,320 @@ function registrarEventosDosContatos() {
   });
 }
 
+/* ------------------------------ busca rápida ------------------------------ */
+
+const CHAVE_DOS_RECENTES_DA_BUSCA = 'hub-snk:busca-rapida:recentes';
+
+function lerRecentesDaBusca() {
+  try {
+    const salvos = JSON.parse(localStorage.getItem(CHAVE_DOS_RECENTES_DA_BUSCA) ?? '[]');
+    return Array.isArray(salvos) ? salvos.filter((chave) => typeof chave === 'string') : [];
+  } catch (erro) {
+    // Sem o armazenamento do navegador, a busca só perde o histórico.
+    console.warn('Histórico da busca rápida ilegível:', erro);
+    return [];
+  }
+}
+
+function gravarUsoNaBusca(chave) {
+  try {
+    const recentes = registrarUsoRecente(lerRecentesDaBusca(), chave);
+    localStorage.setItem(CHAVE_DOS_RECENTES_DA_BUSCA, JSON.stringify(recentes));
+  } catch (erro) {
+    console.warn('Não foi possível gravar o histórico da busca rápida:', erro);
+  }
+}
+
+function montarItensDaBuscaRapida() {
+  return montarItensDaBusca({
+    clientes: estado.clientes,
+    contatos: estado.contatos,
+    atalhos: estado.atalhos,
+    basesLocais: estado.basesLocais,
+    visivel: funcionalidadeVisivel,
+    rotulosDeTipoDeBase: ROTULOS_DE_TIPO_DE_BASE,
+    nomeDoRepositorio: nomeDeExibicaoDoRepositorio,
+  });
+}
+
+/*
+ * As bases locais só são lidas quando a visão Local abre. Sem isto, a busca não
+ * as acharia antes da primeira visita a ela.
+ */
+async function carregarBasesLocaisParaABusca() {
+  if (!funcionalidadeVisivel('local') || estado.basesLocais.length > 0) {
+    return;
+  }
+
+  try {
+    estado.basesLocais = await api.listarBasesLocais();
+  } catch (erro) {
+    console.warn('Bases locais fora da busca rápida:', erro);
+    return;
+  }
+
+  if (elementos.modalBuscaRapida.open) {
+    estado.buscaRapida.itens = montarItensDaBuscaRapida();
+    atualizarResultadosDaBuscaRapida();
+  }
+}
+
+function abrirBuscaRapida() {
+  estado.buscaRapida.itens = montarItensDaBuscaRapida();
+
+  if (!elementos.modalBuscaRapida.open) {
+    if (listaDeAtalhosEstaAberta()) {
+      fecharListaDeAtalhos();
+    }
+    elementos.campoBuscaRapida.value = '';
+    elementos.modalBuscaRapida.showModal();
+  }
+
+  atualizarResultadosDaBuscaRapida();
+  elementos.campoBuscaRapida.focus();
+  elementos.campoBuscaRapida.select();
+  void carregarBasesLocaisParaABusca();
+}
+
+function atualizarResultadosDaBuscaRapida() {
+  const busca = estado.buscaRapida;
+  busca.resultados = buscarItens(
+    busca.itens,
+    elementos.campoBuscaRapida.value,
+    lerRecentesDaBusca(),
+  );
+  busca.indiceSelecionado = 0;
+  renderizarResultadosDaBuscaRapida();
+}
+
+function criarAcoesDoRepositorioNaBusca({ cliente, repositorio }) {
+  const acao = (executar) => (evento) => {
+    evento.stopPropagation();
+    elementos.modalBuscaRapida.close();
+    executar().catch((erro) => exibirAviso(erro.message, 'erro'));
+  };
+
+  const acoes = criarElemento('span', 'busca-rapida-acoes');
+  acoes.append(
+    criarBotaoDeIcone(
+      'btn tiny',
+      ICONES.pasta,
+      'Abrir a pasta',
+      acao(() => api.abrirPastaDoRepositorio(cliente.id, repositorio.id)),
+    ),
+    criarBotaoDeIcone(
+      'btn tiny',
+      ICONES.terminal,
+      'Abrir o terminal',
+      acao(() => api.abrirShellDoRepositorio(cliente.id, repositorio.id)),
+    ),
+    criarBotaoDeIcone(
+      'btn tiny',
+      ICONES.ide,
+      'Abrir a IDE',
+      acao(() => api.abrirIdeDoRepositorio(cliente.id, repositorio.id)),
+    ),
+  );
+  return acoes;
+}
+
+function criarLinhaDaBuscaRapida(item, indice, selecionado) {
+  const classe = selecionado ? 'busca-rapida-item selecionado' : 'busca-rapida-item';
+  const linha = criarElemento('li', classe);
+  linha.id = `busca-rapida-item-${indice}`;
+  linha.setAttribute('role', 'option');
+  linha.setAttribute('aria-selected', String(selecionado));
+
+  const texto = criarElemento('span', 'busca-rapida-texto');
+  texto.append(criarElemento('span', 'busca-rapida-titulo', item.titulo));
+  if (item.detalhe) {
+    texto.append(criarElemento('span', 'busca-rapida-detalhe', item.detalhe));
+  }
+
+  linha.append(criarElemento('span', 'busca-rapida-tipo', ROTULOS_DOS_TIPOS[item.tipo]), texto);
+  if (item.tipo === 'repositorio' && item.dados.repositorio.caminhoLocal) {
+    linha.append(criarAcoesDoRepositorioNaBusca(item.dados));
+  }
+
+  linha.addEventListener('click', (evento) =>
+    executarItemDaBuscaRapida(item, { abrirCliente: evento.ctrlKey }),
+  );
+  return linha;
+}
+
+function mensagemDaBuscaRapidaSemResultado() {
+  return elementos.campoBuscaRapida.value.trim()
+    ? 'Nada encontrado.'
+    : 'Digite para buscar. O que você abrir por aqui passa a aparecer nesta lista.';
+}
+
+function renderizarResultadosDaBuscaRapida() {
+  const { resultados, indiceSelecionado } = estado.buscaRapida;
+  const lista = elementos.listaBuscaRapida;
+
+  lista.replaceChildren(
+    ...resultados.map((item, indice) =>
+      criarLinhaDaBuscaRapida(item, indice, indice === indiceSelecionado),
+    ),
+  );
+
+  if (resultados.length === 0) {
+    lista.append(criarElemento('li', 'busca-rapida-vazia', mensagemDaBuscaRapidaSemResultado()));
+    elementos.campoBuscaRapida.removeAttribute('aria-activedescendant');
+    return;
+  }
+
+  const selecionada = lista.children[indiceSelecionado];
+  elementos.campoBuscaRapida.setAttribute('aria-activedescendant', selecionada.id);
+  selecionada.scrollIntoView({ block: 'nearest' });
+}
+
+function moverSelecaoDaBuscaRapida(passo) {
+  const busca = estado.buscaRapida;
+  const total = busca.resultados.length;
+  if (total === 0) {
+    return;
+  }
+
+  busca.indiceSelecionado = (busca.indiceSelecionado + passo + total) % total;
+  renderizarResultadosDaBuscaRapida();
+}
+
+function abrirEnderecoDaBusca(endereco) {
+  if (!ehEnderecoNavegavel(endereco)) {
+    throw new Error(`O endereço não abre no navegador: ${endereco}`);
+  }
+  // No desktop, quem decide entre a guia do HUB e o navegador padrão é o shell.
+  window.open(endereco, '_blank', 'noopener');
+}
+
+function abrirClienteDaBusca(idDoCliente, aba) {
+  alternarVisualizacao('clientes');
+  void selecionarCliente(idDoCliente, aba);
+}
+
+function abrirProjetoDaBusca({ cliente, projeto }) {
+  estado.projetosComInformacoesVisiveis.add(projeto.id);
+  abrirClienteDaBusca(cliente.id, 'projetos');
+}
+
+/* Contato sem cliente (ou com a aba do cliente oculta) abre no menu Contatos, já filtrado. */
+function abrirContatoDaBusca({ contato, cliente }) {
+  if (cliente) {
+    abrirClienteDaBusca(cliente.id, 'contatos');
+    return;
+  }
+
+  estado.filtroDeContatos = { nome: contato.nome, clienteId: '' };
+  elementos.campoFiltroNomeContato.value = contato.nome;
+  alternarVisualizacao('contatos');
+}
+
+/* Sem clone local não há pasta nem IDE: abre o remoto. Sem IDE configurada, a pasta. */
+function abrirRepositorioDaBusca({ cliente, repositorio }) {
+  if (!repositorio.caminhoLocal) {
+    return abrirEnderecoDaBusca(repositorio.url);
+  }
+  if (estado.ideConfigurada) {
+    return api.abrirIdeDoRepositorio(cliente.id, repositorio.id);
+  }
+  return api.abrirPastaDoRepositorio(cliente.id, repositorio.id);
+}
+
+async function abrirAtalhoDaBusca({ atalho }) {
+  await api.abrirAtalho(atalho.id);
+  exibirAviso(`${atalho.nome} iniciado.`);
+}
+
+/* Ação do Enter para cada tipo de item. */
+const ACOES_PRINCIPAIS_DA_BUSCA = {
+  cliente: ({ cliente }) => abrirClienteDaBusca(cliente.id, null),
+  base: ({ base }) => abrirEnderecoDaBusca(base.url),
+  repositorio: abrirRepositorioDaBusca,
+  link: ({ link }) => abrirEnderecoDaBusca(link.url),
+  linkDeProjeto: ({ link }) => abrirEnderecoDaBusca(link.url),
+  projeto: abrirProjetoDaBusca,
+  contato: abrirContatoDaBusca,
+  atalho: abrirAtalhoDaBusca,
+  baseLocal: ({ base }) => abrirEnderecoDaBusca(`http://localhost:${base.porta}/mge`),
+};
+
+/** `abrirCliente` (Ctrl+Enter) troca a ação do item por abrir o cliente dele no painel. */
+async function executarItemDaBuscaRapida(item, { abrirCliente = false } = {}) {
+  elementos.modalBuscaRapida.close();
+  gravarUsoNaBusca(item.chave);
+
+  try {
+    if (abrirCliente && item.clienteId) {
+      abrirClienteDaBusca(item.clienteId, item.abaDoCliente);
+      return;
+    }
+    await ACOES_PRINCIPAIS_DA_BUSCA[item.tipo](item.dados);
+  } catch (erro) {
+    exibirAviso(erro.message, 'erro');
+  }
+}
+
+function tratarTeclaDaBuscaRapida(evento) {
+  if (evento.key === 'ArrowDown' || evento.key === 'ArrowUp') {
+    evento.preventDefault();
+    moverSelecaoDaBuscaRapida(evento.key === 'ArrowDown' ? 1 : -1);
+    return;
+  }
+
+  if (evento.key !== 'Enter') {
+    return;
+  }
+
+  evento.preventDefault();
+  const busca = estado.buscaRapida;
+  const item = busca.resultados[busca.indiceSelecionado];
+  if (item) {
+    void executarItemDaBuscaRapida(item, { abrirCliente: evento.ctrlKey });
+  }
+}
+
+function ehAtalhoDaBuscaRapida(evento) {
+  return (
+    (evento.ctrlKey || evento.metaKey) &&
+    !evento.shiftKey &&
+    !evento.altKey &&
+    evento.key.toLowerCase() === 'k'
+  );
+}
+
+/*
+ * O atalho global, o menu do aplicativo e a bandeja chegam aqui pelo
+ * `executeJavaScript` do shell: o painel é página servida pelo backend e não
+ * recebe o preload, então não há outro canal até ele.
+ */
+function exporBuscaRapidaAoShell() {
+  window.buscaRapidaDoHub = { abrir: abrirBuscaRapida };
+}
+
+function registrarEventosDaBuscaRapida() {
+  elementos.botaoBuscaRapida.append(criarIcone(ICONES.lupa));
+  elementos.botaoBuscaRapida.addEventListener('click', abrirBuscaRapida);
+  elementos.campoBuscaRapida.addEventListener('input', atualizarResultadosDaBuscaRapida);
+  elementos.campoBuscaRapida.addEventListener('keydown', tratarTeclaDaBuscaRapida);
+
+  // Clique no fundo escurecido cai no próprio `<dialog>`, fora do conteúdo.
+  elementos.modalBuscaRapida.addEventListener('click', (evento) => {
+    if (evento.target === elementos.modalBuscaRapida) {
+      elementos.modalBuscaRapida.close();
+    }
+  });
+
+  document.addEventListener('keydown', (evento) => {
+    if (ehAtalhoDaBuscaRapida(evento)) {
+      evento.preventDefault();
+      abrirBuscaRapida();
+    }
+  });
+
+  exporBuscaRapidaAoShell();
+}
+
 /* ----------------------------------- tema --------------------------------- */
 
 function aplicarTema(tema) {
@@ -8889,8 +9616,10 @@ function abaInicialDoCliente(cliente) {
  * Se o usuário trocar de cliente nesse meio-tempo, o resultado atrasado é
  * descartado para não redesenhar por cima da nova seleção.
  */
-async function selecionarCliente(id) {
-  if (estado.idSelecionado !== id) {
+async function selecionarCliente(id, abaInicial = null) {
+  if (abaInicial) {
+    estado.abaDetalheAtiva = abaInicial;
+  } else if (estado.idSelecionado !== id) {
     estado.abaDetalheAtiva = abaInicialDoCliente(
       estado.clientes.find((cliente) => cliente.id === id),
     );
@@ -8939,6 +9668,7 @@ function registrarEventos() {
   atualizarIconeDoTema();
   elementos.botaoTema.addEventListener('click', alternarTema);
 
+  elementos.botaoVisualizacaoResumo.addEventListener('click', () => alternarVisualizacao('resumo'));
   elementos.botaoVisualizacaoClientes.addEventListener('click', () =>
     alternarVisualizacao('clientes'),
   );
@@ -8963,6 +9693,7 @@ function registrarEventos() {
 
   elementos.botaoAtalhos.append(criarIcone(ICONES.raio));
   elementos.botaoAtalhos.addEventListener('click', alternarListaDeAtalhos);
+  registrarEventosDaBuscaRapida();
 
   /*
    * A lista só fecha por ação: clique em qualquer ponto fora dela ou `Esc`.
@@ -9317,6 +10048,7 @@ async function iniciar() {
         INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S,
     );
     estado.atalhos = configuracao.atalhos ?? [];
+    estado.ideConfigurada = Boolean(configuracao.caminhoDoExecutavelDaIde);
     aplicarAcessos(configuracao);
   } catch {
     // Sem a configuração, vale o padrão — não é motivo para outro aviso na tela.
@@ -9324,7 +10056,8 @@ async function iniciar() {
   }
 
   renderizarListaDeAtalhos();
-  void carregarNotificacoes();
+  // O selo "sem OS" da agenda do Resumo sai das notificações: redesenha quando elas chegam.
+  void carregarNotificacoes().then(renderizarResumoSeVisivel);
   conectarFluxoDeNotificacoes();
 }
 

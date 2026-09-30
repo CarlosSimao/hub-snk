@@ -45,6 +45,6 @@ export interface RepositorioConfiguracao {
   salvar(configuracao: ConfiguracaoParaSalvar): Promise<ConfiguracaoGlobal>;
   /** Escrita isolada do `person_id` da Experience, fora do fluxo da tela de configuração. */
   definirExperiencePersonId(personId: string): Promise<ConfiguracaoGlobal>;
-  /** Escrita isolada do `CODUSU` do Sankhya OM, digitado em Credenciais Sankhya. */
+  /** Escrita isolada do `CODUSU` do SankhyaOm, digitado em Credenciais Sankhya. */
   definirSankhyaOmCodUsu(codusu: string): Promise<ConfiguracaoGlobal>;
 }

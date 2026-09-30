@@ -109,7 +109,7 @@ export class VerificadorDaAgendaDoDia {
     const codusu = lerCodusuConfigurado({ sankhyaOmCodUsu });
     if (codusu === null) {
       this.#dependencias.registrador.warn(
-        'Alerta da agenda ligado sem o código de usuário do Sankhya OM: nada a verificar.',
+        'Alerta da agenda ligado sem o código de usuário do SankhyaOm: nada a verificar.',
       );
       return;
     }

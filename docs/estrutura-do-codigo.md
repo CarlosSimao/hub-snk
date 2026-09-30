@@ -25,6 +25,7 @@ src/
   repositorio/repositorioNotificacoes.ts    contrato do painel de notificações
   repositorio/repositorioNotificacoesArquivo.ts  notificações e chaves emitidas em arquivo JSON
   rotas/protecaoDeOrigem.ts                 confere Host e Origin antes de qualquer rota
+  rotas/autenticacaoDoPainel.ts             exige o token do shell em toda a API
   rotas/rotasClientes.ts                    rotas HTTP e validação de entrada
   rotas/rotasConfiguracao.ts                rotas da configuração global
   rotas/rotasGit.ts                         rota da situação dos repositórios locais
@@ -81,6 +82,7 @@ src/
   sistema/historicoDeSituacaoDaBaseDoCliente.ts  o mesmo para cada base de cliente
 public/
   index.html  styles.css  app.js            interface, sem framework e sem build
+  buscaRapida.js                            índice e ordenação dos resultados da busca rápida (Ctrl+K)
   leitorDeFavoritos.js                      lê o arquivo de favoritos de qualquer navegador suportado
   leitorDeArquivoDeCadastros.js             lê o .txt de cadastros gerado pelo Exportar e pelo Compartilhar
   tipoDeBaseNoNome.js                       tira Produção/Teste do nome do favorito
@@ -95,7 +97,7 @@ desktop/                                    shell Electron: o aplicativo que o u
   src/tokenStore.ts                         token compartilhado entre a ponte e o backend, gerado no primeiro boot
   src/cofreCredenciais.ts                   cofre das credenciais com o safeStorage do Electron
   src/navegador.ts  src/sessions.ts         abrir as guias do Sankhya e capturar a sessão delas
-  src/autoLoginSankhya.ts                   login automático nas guias Sankhya Om e Experience com a credencial do cofre
+  src/autoLoginSankhya.ts                   login automático nas guias SankhyaOm e Experience com a credencial do cofre
   src/loginOcultoSankhya.ts                 janela invisível e preenchimento do login web, comuns às janelas ocultas
   src/janelaAgendaOculta.ts                 janela oculta que loga no ERP e consulta a Agenda de Recursos e as negociações
   src/janelaExperienceOculta.ts             janela oculta que loga na Experience e mantém o JWT para o backend
@@ -103,6 +105,11 @@ desktop/                                    shell Electron: o aplicativo que o u
   src/backendClient.ts                      empurra a sessão da Experience para o backend
   src/log.ts                                desktop.log, com redação de senha, token, JWT e e-mail
   src/menu.ts  src/preload.ts  index.html  renderer.js   menu e a barra de guias
+  src/buscaRapida.ts                        abre a busca rápida do painel e executa os itens dela, pelo executeJavaScript
+  src/janelaDeAtalhos.ts  atalhos.html  atalhos.js   janela de Ajuda › Atalhos, com as teclas lidas do menu
+  src/atalhoGlobal.ts                       liga e desliga o atalho global da busca, com a escolha gravada
+  src/bandeja.ts                            ícone na bandeja, com a busca, o atalho global e o início automático
+  src/inicioAutomatico.ts                   liga e desliga o início do HUB SNK junto com o Windows
   scripts/preparar-hub.mjs                  monta o backend do pacote, só com as dependências de produção
   scripts/preparar-autosync.mjs             monta os binários do Git AutoSync para o instalador
   instalador/remover-versao-pwa.ps1         remove a instalação PWA antiga, preservando o cadastro

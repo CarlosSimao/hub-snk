@@ -24,10 +24,19 @@
         <div class="abas-modal barra-visualizacao" role="tablist" aria-label="Visualização">
           <button
             class="aba ativa"
-            id="btn-visualizacao-clientes"
+            id="btn-visualizacao-resumo"
             type="button"
             role="tab"
             aria-selected="true"
+          >
+            Resumo
+          </button>
+          <button
+            class="aba"
+            id="btn-visualizacao-clientes"
+            type="button"
+            role="tab"
+            aria-selected="false"
           >
             Clientes
           </button>
@@ -77,6 +86,15 @@
             Contatos
           </button>
         </div>
+        <!-- O ícone de lupa é montado pelo app.js. -->
+        <button
+          class="btn ghost botao-icone"
+          id="btn-busca-rapida"
+          type="button"
+          title="Busca rápida (Ctrl+K)"
+          aria-label="Busca rápida"
+          aria-haspopup="dialog"
+        ></button>
         <!-- O ícone de sino é montado pelo app.js; o contador só aparece com não lidas. -->
         <button
           class="btn ghost botao-icone botao-notificacoes"
@@ -131,7 +149,19 @@
     </header>
 
     <main>
-      <div class="layout" id="visualizacao-clientes">
+      <div class="card" id="visualizacao-resumo">
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Resumo do dia</h2>
+            <!-- A data é preenchida pelo app.js. -->
+            <p class="texto-auxiliar" id="data-do-resumo"></p>
+          </div>
+        </div>
+        <!-- As seções são montadas pelo app.js. -->
+        <div id="mount-resumo"></div>
+      </div>
+
+      <div class="layout" id="visualizacao-clientes" hidden>
         <aside class="coluna-lista">
           <div class="busca-linha">
             <input
@@ -211,7 +241,7 @@
         <div class="secao-recursos">
           <p class="aviso-shell" id="aviso-shell-agenda" hidden>
             A consulta ao Sankhya precisa do aplicativo HUB SNK aberto, com login feito na guia
-            Sankhya Om.
+            SankhyaOm.
           </p>
           <!-- Navegação de mês, calendário e detalhe do dia são montados pelo app.js
                (`criarWidgetDeAgenda`) — o mesmo widget usado na aba Agenda do cadastro
@@ -348,7 +378,7 @@
               <span class="opcional">opcional</span>
               <span class="dica" tabindex="0"
                 >?<span class="dica-texto" role="tooltip"
-                  >Razão social deste cliente no Sankhya OM/Experience — costuma ser diferente do
+                  >Razão social deste cliente no SankhyaOm/Experience — costuma ser diferente do
                   nome digitado acima (abreviado, com sufixo societário, matriz/filial). Usado para
                   achar as OS deste cliente na aba OS. Um cliente pode ter mais de uma. Nenhuma
                   cadastrada usa o nome do cadastro.</span
@@ -832,6 +862,27 @@
           <button class="btn primario" type="submit" id="btn-salvar-lembrete">Salvar</button>
         </div>
       </form>
+    </dialog>
+
+    <!-- Os resultados são montados pelo app.js a cada tecla. -->
+    <dialog class="modal busca-rapida" id="modal-busca-rapida" aria-label="Busca rápida">
+      <input
+        class="busca-rapida-campo"
+        id="campo-busca-rapida"
+        type="search"
+        role="combobox"
+        aria-expanded="true"
+        aria-autocomplete="list"
+        aria-controls="lista-busca-rapida"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="Buscar cliente, base, repositório, link, projeto, contato ou atalho…"
+      />
+      <ul class="busca-rapida-lista" id="lista-busca-rapida" role="listbox"></ul>
+      <p class="busca-rapida-dica">
+        <kbd>↑</kbd><kbd>↓</kbd> navegar · <kbd>Enter</kbd> abrir · <kbd>Ctrl</kbd>+<kbd>Enter</kbd>
+        abrir o cliente · <kbd>Esc</kbd> fechar
+      </p>
     </dialog>
 
     <dialog class="modal" id="modal-contato">
@@ -1373,7 +1424,7 @@
                   >?<span class="dica-texto" role="tooltip"
                     >A cada 15 minutos, confere os eventos de hoje da sua Agenda de Recursos. Evento
                     de cliente que já terminou e não tem OS lançada na Experience gera uma
-                    notificação, uma vez por evento. Precisa do código de usuário do Sankhya OM e do
+                    notificação, uma vez por evento. Precisa do código de usuário do SankhyaOm e do
                     login feito, os dois em Credenciais Sankhya. O e-mail usa o SMTP da aba
                     SMTP.</span
                   ></span
@@ -1430,9 +1481,9 @@
               <input type="checkbox" id="campo-terceiro" /> Terceiro
               <span class="dica" tabindex="0"
                 >?<span class="dica-texto" role="tooltip"
-                  >Para quem não tem acesso ao Sankhya Om nem à Experience. Oculta o que depende
+                  >Para quem não tem acesso ao SankhyaOm nem à Experience. Oculta o que depende
                   deles: Credenciais Sankhya, Agenda e OS, os nomes completos do cliente, o alerta
-                  da agenda e as guias Sankhya Om e Experience do aplicativo.</span
+                  da agenda e as guias SankhyaOm e Experience do aplicativo.</span
                 ></span
               >
             </label>
@@ -1557,7 +1608,7 @@
       <div class="modal-cabecalho">
         <h2>Credenciais Sankhya</h2>
         <p>
-          Login usado pelo HUB SNK para entrar sozinho no Sankhya Om e na Experience, ao abrir o
+          Login usado pelo HUB SNK para entrar sozinho no SankhyaOm e na Experience, ao abrir o
           aplicativo e sempre que a sessão expirar.
         </p>
       </div>
@@ -1566,10 +1617,10 @@
         <section class="cartao-credencial">
           <div class="campo campo-em-linha">
             <label for="campo-sankhya-om-codusu">
-              Meu código de usuário Sankhya OM
+              Meu código de usuário SankhyaOm
               <span class="dica" tabindex="0"
                 >?<span class="dica-texto" role="tooltip"
-                  >Seu <code>CODUSU</code> no Sankhya OM (ERP) — diferente do usuário da Experience,
+                  >Seu <code>CODUSU</code> no SankhyaOm (ERP) — diferente do usuário da Experience,
                   que é capturado sozinho junto com a sessão. Recorta a Agenda de Recursos só para
                   você.</span
                 ></span
@@ -1792,7 +1843,7 @@
               type="text"
               maxlength="120"
               autocomplete="off"
-              placeholder="Ex.: Sankhya OM 4.20"
+              placeholder="Ex.: SankhyaOm 4.20"
               required
             />
           </div>

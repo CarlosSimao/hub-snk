@@ -89,7 +89,7 @@ preset dele; sem instalador, `desenvolvedor`, com nada oculto. Valor desconhecid
 na lista é descartado na leitura.
 
 `terceiro` é a caixa **Terceiro** da aba Acessos: `true` oculta, por cima de
-`funcionalidadesOcultas`, o que depende do Sankhya Om e da Experience, sem alterar
+`funcionalidadesOcultas`, o que depende do SankhyaOm e da Experience, sem alterar
 a lista. Arquivo sem o campo recebe a escolha do instalador; sem instalador,
 `false`.
 

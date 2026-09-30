@@ -45,8 +45,8 @@ configuração — mudar a opção vale no próximo clique, sem reiniciar. As re
 - Só `http` e `https` abrem no navegador do sistema; outro esquema (`file:`,
   `mailto:`) é recusado e fica registrado no log.
 
-Com o painel aberto num navegador comum (_Ajuda_ › _Abrir o painel no navegador_),
-a escolha não se aplica: os links abrem nesse navegador.
+Com o painel aberto num navegador comum (só em desenvolvimento, com
+`HUB_SEM_TOKEN=1`), a escolha não se aplica: os links abrem nesse navegador.
 
 ## Anotações do cliente
 
@@ -238,6 +238,83 @@ ou está incompleto — o `title` do botão distingue os dois casos.
 > ele está no `.gitignore` do projeto — o diagnóstico marca em vermelho o
 > repositório em que ele estiver sendo rastreado pelo Git.
 
+## Busca rápida
+
+`Ctrl+K`, ou a lupa no topo do painel, abre uma caixa única que procura em tudo o
+que está cadastrado: clientes, bases, repositórios, links gerais e de projeto,
+projetos, contatos, atalhos e bases locais. No aplicativo desktop o `Ctrl+K` vale
+em qualquer guia — ele traz o Painel para a frente —, e o **atalho global
+`Ctrl+Shift+Espaço`** faz o mesmo com qualquer outro programa em foco, inclusive
+com o HUB SNK escondido na bandeja. Se outro programa já usa essa combinação, o
+Windows não a entrega ao HUB SNK, e o `Ctrl+K` continua funcionando.
+
+Para devolver a combinação ao outro programa, desmarque **Atalho global** no menu
+do ícone da bandeja: o HUB SNK a libera na hora, e a escolha vale para as próximas
+aberturas. Quando o atalho está marcado mas o Windows não o entregou, o item
+mostra _em uso por outro programa_; desmarcar e marcar de novo tenta outra vez,
+para quando o outro programa já tiver sido fechado. Só o atalho global desliga —
+os de dentro do aplicativo, como o `Ctrl+K`, valem apenas com a janela do HUB SNK
+em foco e não disputam tecla com ninguém.
+
+A busca ignora acento e maiúsculas, e cada palavra digitada precisa aparecer no
+item — `alfa teste` acha a base de teste do cliente Alfa. Além do nome, ela
+procura na URL e no usuário da base, no caminho e na URL do repositório, e no
+cargo, telefone e e-mail do contato. Vem primeiro o que começa com o que foi
+digitado, depois o que tem uma palavra começando assim, depois o resto; entre os
+iguais, o que você abriu por último.
+
+`↑` e `↓` escolhem a linha, `Esc` fecha. O `Enter` faz a ação principal do item:
+
+| Item                   | `Enter`                                                                                      |
+| ---------------------- | -------------------------------------------------------------------------------------------- |
+| Cliente                | Seleciona o cliente no painel                                                                |
+| Base                   | Abre a base como o clique no cadastro: na guia do HUB com o login preenchido ou no navegador |
+| Repositório            | Abre na IDE configurada; sem IDE, abre a pasta; sem clone local, abre a URL do remoto        |
+| Link e link de projeto | Abre como o clique no cadastro                                                               |
+| Projeto                | Abre o cliente na aba Projetos, com o projeto expandido                                      |
+| Contato                | Abre a aba Contatos do cliente dele; sem cliente, o menu Contatos já filtrado pelo nome      |
+| Atalho                 | Inicia o programa                                                                            |
+| Base local             | Abre o SankhyaOm da base (`localhost:<porta>/mge`)                                           |
+
+`Ctrl+Enter` troca a ação pela abertura do cliente dono do item no painel, já na
+aba dele — Bases para uma base, Repositórios para um repositório. Na linha de um
+repositório clonado ficam também os botões de pasta, terminal e IDE.
+
+Aberta sem nada digitado, a busca mostra os itens abertos por ela por último. Esse
+histórico fica no navegador do painel, e não no cadastro: não vai para a pasta de
+dados nem para o backup. O que está oculto em **Configurações › Acessos** fica de
+fora da busca, como fica de fora da tela.
+
+## Lista de atalhos de teclado
+
+No aplicativo desktop, _Ajuda_ › _Atalhos_ — no menu do botão ao lado da guia
+Painel — abre uma janela com todos os atalhos de teclado: os do menu do
+aplicativo (guias, recarregar, busca rápida, ferramentas de desenvolvedor), o
+atalho global da busca e as teclas de dentro da busca rápida. A parte do menu é
+lida dele na hora de abrir, então uma tecla nova no menu já aparece na lista.
+`Esc` fecha a janela.
+
+## Bandeja do Windows
+
+No aplicativo desktop, fechar a janela a esconde na bandeja, perto do relógio, em
+vez de encerrar o HUB SNK: o atalho global da busca e os avisos de mensagem nova
+do WhatsApp, do Gmail e do Google Chat continuam valendo. Na primeira vez, um aviso
+do Windows diz onde ele foi parar.
+
+Clicar no ícone traz a janela de volta, e o botão direito abre o menu com **Abrir o
+HUB SNK**, **Busca rápida**, a caixa **Atalho global**, a caixa **Iniciar HUB SNK
+automaticamente** e **Sair**. Sair também fica em _Hub_ › _Sair_. Desligar o
+computador ou sair da conta do Windows encerra o HUB SNK normalmente.
+
+**Iniciar HUB SNK automaticamente** abre o HUB SNK junto com o Windows, a cada
+login, já escondido na bandeja: o backend, o login automático no Sankhya e o
+atalho global ficam prontos sem janela na frente. Vem desligado. A escolha é
+gravada no próprio Windows, na lista de programas que iniciam com ele — sem pedir
+administrador —, e por isso também aparece em _Gerenciador de Tarefas_ ›
+_Aplicativos de inicialização_; desligar por lá desmarca a caixa, e marcar de novo
+na bandeja religa. Atualizar o HUB SNK mantém a escolha; desinstalar apaga a
+entrada.
+
 ## Atalhos
 
 O botão de raio, à direita do botão de tema, abre a lista dos atalhos
@@ -315,7 +392,7 @@ Ligado em **Configurações › Avisos**, o HUB SNK confere a cada 15 minutos (a
 primeira vez dois minutos depois de abrir) os eventos de hoje da sua Agenda de
 Recursos:
 
-1. traz o dia de novo do Sankhya Om, pela guia já logada — sem conseguir, vale o
+1. traz o dia de novo do SankhyaOm, pela guia já logada — sem conseguir, vale o
    que já estava no snapshot;
 2. pega só os eventos do seu `CODUSU` que têm parceiro (folga e evento interno
    ficam de fora);
@@ -326,7 +403,7 @@ Recursos:
 Sem OS, sai uma notificação — e o e-mail, se marcado — **uma vez por evento por
 dia**. Evento de dia inteiro, ou que continua amanhã, usa as 18h como fim.
 
-Precisa do código de usuário do Sankhya OM (no topo de **Credenciais Sankhya**) e das sessões do Sankhya
+Precisa do código de usuário do SankhyaOm (no topo de **Credenciais Sankhya**) e das sessões do Sankhya
 Om e da Experience ativas no aplicativo. Sessão caída vira uma notificação do
 próprio HUB SNK, uma vez por dia; com o backend rodando sem o aplicativo
 (`npm run dev`), a verificação só registra no log.
@@ -411,7 +488,7 @@ situação do Git, as bolinhas do Git no topo e na lista de clientes e a aba
 ### Terceiro
 
 A caixa **Terceiro**, na aba Acessos e na página do perfil do instalador, é para
-quem não tem acesso ao Sankhya Om nem à Experience. Vale para qualquer perfil e,
+quem não tem acesso ao SankhyaOm nem à Experience. Vale para qualquer perfil e,
 marcada, oculta tudo o que depende das credenciais Sankhya:
 
 - o botão **Credenciais Sankhya** do topo;
@@ -420,7 +497,7 @@ marcada, oculta tudo o que depende das credenciais Sankhya:
 - o campo **Nomes completos no Sankhya** do cliente, que só serve à Agenda e à OS;
 - o grupo **Agenda do dia sem OS lançada** de **Configurações › Avisos**, e a
   verificação a cada 15 minutos deixa de rodar mesmo com o alerta ligado;
-- as guias **Sankhya Om** e **Experience** do aplicativo: saem da barra, do menu
+- as guias **SankhyaOm** e **Experience** do aplicativo: saem da barra, do menu
   **Guias** e dos atalhos Ctrl+2 e Ctrl+3, e o aplicativo deixa de logar sozinho
   nelas.
 

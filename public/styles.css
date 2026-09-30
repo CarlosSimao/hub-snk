@@ -2986,6 +2986,7 @@ button.selo-situacao:focus-visible {
   /* Cada visualização que é filha direta de `main` rola por dentro, ocupando a altura útil
      — sem isso (Agenda e OS ficavam de fora) o conteúdo era cortado por `main:overflow`. */
   .detalhe,
+  #visualizacao-resumo,
   #visualizacao-local,
   #visualizacao-agenda,
   #visualizacao-os,
@@ -3330,4 +3331,105 @@ button.selo-situacao:focus-visible {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ------------------------------ busca rápida ------------------------------ */
+
+/* Presa ao terço de cima da tela, como as paletas de comando: não pula ao filtrar. */
+.modal.busca-rapida[open] {
+  display: flex;
+  flex-direction: column;
+  width: min(640px, 94vw);
+  max-height: min(70vh, 560px);
+  margin-top: 12vh;
+  overflow: hidden;
+}
+
+.busca-rapida-campo {
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+}
+
+.busca-rapida-lista {
+  flex: 1;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.busca-rapida-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.busca-rapida-item:hover {
+  background: color-mix(in srgb, var(--bg-soft) 70%, transparent);
+}
+
+.busca-rapida-item.selecionado {
+  background: color-mix(in srgb, var(--marca) 14%, transparent);
+}
+
+/* Largura fixa: os títulos começam todos na mesma coluna. */
+.busca-rapida-tipo {
+  flex: 0 0 96px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.busca-rapida-texto {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.busca-rapida-titulo,
+.busca-rapida-detalhe {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.busca-rapida-detalhe {
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.busca-rapida-acoes {
+  display: flex;
+  gap: 4px;
+}
+
+.busca-rapida-vazia {
+  padding: 14px 10px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.busca-rapida-dica {
+  margin: 0;
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.busca-rapida-dica kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 10.5px;
 }

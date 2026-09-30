@@ -11,6 +11,8 @@ import { logEvento, origemSemQuery } from './log';
 import { aguardarCampoDeSenha, tentarAutofill } from './autofill';
 import { autoLoginSankhya, podeTentar } from './autoLoginSankhya';
 import * as cofre from './cofreCredenciais';
+import { prepararParticaoParaRuffle } from './ruffle';
+import { garantirToken } from './tokenStore';
 
 export type TabId = 'hub' | 'erp' | 'experience';
 
@@ -66,6 +68,7 @@ interface ConfiguracaoDoHub {
 
 async function lerConfiguracaoDoHub(): Promise<ConfiguracaoDoHub> {
   const resposta = await fetch(`${HUB_URL}/api/configuracao`, {
+    headers: { 'x-hub-token': garantirToken() },
     signal: AbortSignal.timeout(5000),
   });
   if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
@@ -151,7 +154,7 @@ function origemDe(url: string): string {
   }
 }
 
-function ehEnderecoWeb(url: string): boolean {
+export function ehEnderecoWeb(url: string): boolean {
   try {
     const { protocol } = new URL(url);
     return protocol === 'http:' || protocol === 'https:';
@@ -230,7 +233,7 @@ function tituloBase(info: InfoBaseCliente): string {
 /** O que a barra escreve em cada guia de cima — igual ao HTML de `index.html`. */
 const ROTULO_GUIA: Record<TabId, string> = {
   hub: 'Painel',
-  erp: 'Sankhya Om',
+  erp: 'SankhyaOm',
   experience: 'Experience',
 };
 
@@ -261,6 +264,12 @@ function gravarGuiasEscondidas(escondidas: string[]): void {
   }
 }
 
+/** Quem abre no painel de comunicação o link de conversa que o Painel pede. */
+export interface PainelDeComunicacao {
+  /** `false`: o endereço não é de um serviço habilitado, e segue o caminho normal. */
+  abrirEndereco(url: string): boolean;
+}
+
 export class TabManager {
   readonly #janela: BrowserWindow;
   readonly #abas = new Map<string, WebContentsView>();
@@ -275,6 +284,8 @@ export class TabManager {
   #linksPorUrl = new Map<string, LinkCadastrado>();
   #abaAtiva = 'hub';
   #alturaTopo = 96;
+  /** Largura da barra lateral de comunicação, que empurra as guias para a direita. */
+  #larguraLateral = 0;
   /**
    * Guias que o usuario escondeu da barra.
    *
@@ -289,6 +300,7 @@ export class TabManager {
    */
   #terceiro = false;
   #aoMudarGuias: (() => void) | null = null;
+  #painelDeComunicacao: PainelDeComunicacao | null = null;
 
   constructor(janela: BrowserWindow) {
     this.#janela = janela;
@@ -316,7 +328,7 @@ export class TabManager {
   /**
    * Guia erp/experience caiu sozinha numa tela de login (sessão expirada, cookie
    * limpo, primeiro boot) e há credencial salva: tenta logar sem pedir nada ao
-   * usuário. A URL só denuncia o login da Experience; o Sankhya Om pede a senha na
+   * usuário. A URL só denuncia o login da Experience; o SankhyaOm pede a senha na
    * própria `/mge/`, então sem "login" na URL a prova é um campo de senha na tela.
    */
   async #tentarAutoLoginSankhya(id: TabId, view: WebContentsView): Promise<void> {
@@ -365,10 +377,14 @@ export class TabManager {
         // áudio até o primeiro gesto do usuário na guia. Só no Painel: o ERP e a Experience
         // seguem com a política padrão.
         autoplayPolicy: id === 'hub' ? 'no-user-gesture-required' : undefined,
-        // Nenhum preload nas abas remotas: zero bridge para conteúdo de fora.
+        // Nenhum preload nas abas remotas: zero bridge para conteúdo de fora. A exceção é
+        // o do Ruffle, registrado na sessão só quando ligado, que não expõe nada à página;
+        // sem esta opção ele não chegaria aos iframes, onde ficam as telas do Sankhya.
+        nodeIntegrationInSubFrames: true,
       },
     });
     this.#registrarDownloadsDaParticao(particao);
+    prepararParticaoParaRuffle(particao);
     // Diagnóstico das abas remotas: sem isto, um erro de JS dentro da página do Sankhya
     // só aparece como caixa de alerta na tela do usuário, sem rastro nenhum de onde veio.
     // Só `error` (level 3) — `warning` do Sankhya é ruidoso demais para valer log.
@@ -418,6 +434,10 @@ export class TabManager {
         // Janela do próprio painel, como o log ao vivo de uma base local (`log.html`):
         // mesma origem, então mesma partição e nenhum preload.
         return this.#permitirJanelaFilha(id, alvo, particao);
+      }
+      if (id === 'hub' && this.#painelDeComunicacao?.abrirEndereco(alvo)) {
+        // Conversa do WhatsApp ou e-mail novo no Gmail, pedidos pelo contato.
+        return { action: 'deny' };
       }
       if (id === 'hub') {
         // Base, link geral, link de projeto ou link qualquer (repositório no GitHub,
@@ -471,6 +491,8 @@ export class TabManager {
             nodeIntegration: false,
             webSecurity: true,
             preload: undefined,
+            // Tela do Sankhya aberta em janela própria também recebe o Ruffle.
+            nodeIntegrationInSubFrames: true,
           },
         });
         this.#janelasFilhas.add(filha);
@@ -628,11 +650,15 @@ export class TabManager {
     this.#aoMudarGuias = callback;
   }
 
+  definirPainelDeComunicacao(painel: PainelDeComunicacao): void {
+    this.#painelDeComunicacao = painel;
+  }
+
   get terceiro(): boolean {
     return this.#terceiro;
   }
 
-  /** Sankhya Om e Experience, com o acesso de terceiro: fora da barra, do menu e dos atalhos. */
+  /** SankhyaOm e Experience, com o acesso de terceiro: fora da barra, do menu e dos atalhos. */
   guiaBloqueada(id: string): boolean {
     return this.#terceiro && GUIAS_DO_SANKHYA.has(id);
   }
@@ -748,13 +774,18 @@ export class TabManager {
     this.reposicionar();
   }
 
+  definirLarguraLateral(largura: number): void {
+    this.#larguraLateral = Math.max(0, Math.round(largura || 0));
+    this.reposicionar();
+  }
+
   reposicionar(): void {
     const [w, h] = this.#janela.getContentSize();
     for (const view of this.#abas.values()) {
       view.setBounds({
-        x: 0,
+        x: this.#larguraLateral,
         y: this.#alturaTopo,
-        width: w,
+        width: Math.max(0, w - this.#larguraLateral),
         height: Math.max(0, h - this.#alturaTopo),
       });
     }
@@ -794,12 +825,15 @@ export class TabManager {
         sandbox: true,
         nodeIntegration: false,
         webSecurity: true,
+        // Para o preload do Ruffle chegar aos iframes — ver `criarAbaPrincipal`.
+        nodeIntegrationInSubFrames: true,
       },
     });
     // Sem isto, um download servido pela partição isolada do cliente não dispara nada: o
     // listener de `will-download` só existia na sessão padrão e nas partições das abas
     // principais, então baixar de dentro de uma aba de cliente falhava em silêncio.
     this.#registrarDownloadsDaParticao(particao);
+    prepararParticaoParaRuffle(particao);
     manterHttpsDaBase(particao, origin);
     view.webContents.on('did-finish-load', () => {
       logEvento('aba-cliente-carregada', {
@@ -878,6 +912,8 @@ export class TabManager {
             nodeIntegration: false,
             webSecurity: true,
             preload: undefined,
+            // Tela do Sankhya aberta em janela própria também recebe o Ruffle.
+            nodeIntegrationInSubFrames: true,
           },
         });
         this.#janelasFilhas.add(filha);
@@ -913,6 +949,7 @@ export class TabManager {
   async carregarCadastro(): Promise<void> {
     try {
       const resposta = await fetch(`${HUB_URL}/api/clientes`, {
+        headers: { 'x-hub-token': garantirToken() },
         signal: AbortSignal.timeout(5000),
       });
       if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);

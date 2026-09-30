@@ -127,7 +127,7 @@ export interface RepositorioClientes {
   definirAnotacoes(id: string, anotacoes: string): Promise<Cliente>;
 
   /**
-   * Grava as razões sociais deste cliente no Sankhya OM/Experience. Mesmo motivo
+   * Grava as razões sociais deste cliente no SankhyaOm/Experience. Mesmo motivo
    * de `definirAnotacoes`: não é o nome do cadastro, e não deve depender da
    * checagem de nome duplicado.
    */

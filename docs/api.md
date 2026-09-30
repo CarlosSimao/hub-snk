@@ -27,6 +27,32 @@ O que não passa recebe `403` e fica registrado no log do servidor.
 
 O servidor só escuta em loopback: um `HUB_HOST` fora dele é recusado na largada.
 
+## Autenticação
+
+A conferência de origem barra páginas do navegador, mas não outros processos da
+própria máquina — inclusive os de outro usuário do Windows, porque o loopback é
+compartilhado num servidor RDS ou na troca rápida de usuário. Por isso toda rota
+`/api/*`, menos `/api/healthz`, exige o token do shell, o conteúdo de
+`%APPDATA%\sankhya-hub\ipc\desktop-token.txt`. Ele vale de dois jeitos:
+
+- **cabeçalho `x-hub-token`** — o que o shell e qualquer chamada de fora (script,
+  linha de comando) usam;
+- **cookie `hub_token`** — o que o painel usa. O shell o grava na sessão da guia
+  Painel, com `HttpOnly` e `SameSite=Strict`, antes de carregá-la: o JavaScript da
+  página não lê o valor, e as outras guias não fazem chamadas autenticadas.
+
+Sem o arquivo do token, a resposta é `503`; sem token ou com o token errado,
+`401`. A decisão é pela rota encontrada, e não pela escrita da URL. Os arquivos do
+painel (`/`, `*.js`, `*.css`) não exigem token: não têm dado nenhum.
+
+Para desenvolver o painel no navegador sem o aplicativo aberto, `HUB_SEM_TOKEN=1`
+no backend desliga a exigência, e o servidor avisa no log ao subir.
+
+```powershell
+$token = Get-Content "$env:APPDATA\sankhya-hub\ipc\desktop-token.txt"
+Invoke-RestMethod http://127.0.0.1:4100/api/clientes -Headers @{ 'x-hub-token' = $token }
+```
+
 ## Rotas
 
 | Método   | Rota                                                        | Resposta                                                                                   |
@@ -225,10 +251,9 @@ esperado.
 
 ### Rotas que só o aplicativo desktop chama
 
-Estas exigem o cabeçalho `x-hub-token` com o conteúdo de
-`%APPDATA%\sankhya-hub\ipc\desktop-token.txt`, o arquivo que o shell grava ao
-abrir. A tela não tem acesso a ele, então nenhuma página aberta na máquina
-consegue chamá-las. Sem o arquivo, a resposta é `503`; com o token errado, `401`.
+Estas exigem o token no cabeçalho `x-hub-token` — o cookie do painel não basta.
+A tela não tem acesso ao valor, então nem o próprio painel consegue chamá-las.
+Sem o arquivo, a resposta é `503`; com o token errado, `401`.
 
 | Método   | Rota                                             | Resposta                                                                           |
 | -------- | ------------------------------------------------ | ---------------------------------------------------------------------------------- |

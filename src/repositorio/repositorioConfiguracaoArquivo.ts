@@ -275,7 +275,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       caminhoDoExecutavelDaIde: dados.caminhoDoExecutavelDaIde ?? '',
       // Idem: arquivo de antes desta versão não tem o vínculo com a Experience.
       experiencePersonId: dados.experiencePersonId ?? '',
-      // Idem: arquivo de antes desta versão não tem o CODUSU do Sankhya OM.
+      // Idem: arquivo de antes desta versão não tem o CODUSU do SankhyaOm.
       sankhyaOmCodUsu: dados.sankhyaOmCodUsu ?? '',
       smtp: lerSmtp(dados.smtp),
       alertaDaAgenda: lerAlertaDaAgenda(dados.alertaDaAgenda),

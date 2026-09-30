@@ -79,7 +79,11 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: instalador-windows
-          path: release/HUB-SNK-Setup-*.exe
+          # O `latest.yml` e o `.blockmap` são o que a atualização automática lê.
+          path: |
+            release/HUB-SNK-Setup-*.exe
+            release/HUB-SNK-Setup-*.exe.blockmap
+            release/latest.yml
           if-no-files-found: error
 
   publicar:
@@ -101,6 +105,7 @@ jobs:
           # Cópia com nome sem versão: é ela que o link
           # `releases/latest/download/HUB-SNK-Setup.exe` da página do projeto
           # baixa, sem precisar mudar a cada versão.
+          # O `latest.yml` aponta para o nome com versão, que continua subindo.
           cp artefatos/HUB-SNK-Setup-*.exe artefatos/HUB-SNK-Setup.exe
           ls -lh artefatos
 
