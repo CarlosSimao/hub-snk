@@ -31,6 +31,12 @@ número significa aqui.
   aplicativo, os dois abrem no painel de comunicação: a conversa do número no WhatsApp
   Web e um e-mail novo no Gmail, já endereçado. Telefone sem código do país vale como
   brasileiro. Com o serviço desligado na engrenagem da barra, o botão abre no navegador.
+- **Compatibilidade com Flash (Ruffle)**, no menu **Hub**: abre as telas Flex legadas do
+  Sankhya Om, que pedem o Flash Player, no SankhyaOm e nas bases de cliente. Vem
+  desligada: ligada, cada página do Sankhya carrega um script de 465 KB, e o motor
+  (cerca de 14 MB) só é baixado pela tela que tiver conteúdo Flash. Desligada, nada é
+  carregado. A troca vale para as telas abertas depois: a que já está aberta muda ao
+  recarregar a guia.
 
 ### Alterado
 

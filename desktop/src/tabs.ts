@@ -11,6 +11,7 @@ import { logEvento, origemSemQuery } from './log';
 import { aguardarCampoDeSenha, tentarAutofill } from './autofill';
 import { autoLoginSankhya, podeTentar } from './autoLoginSankhya';
 import * as cofre from './cofreCredenciais';
+import { prepararParticaoParaRuffle } from './ruffle';
 
 export type TabId = 'hub' | 'erp' | 'experience';
 
@@ -374,10 +375,14 @@ export class TabManager {
         // áudio até o primeiro gesto do usuário na guia. Só no Painel: o ERP e a Experience
         // seguem com a política padrão.
         autoplayPolicy: id === 'hub' ? 'no-user-gesture-required' : undefined,
-        // Nenhum preload nas abas remotas: zero bridge para conteúdo de fora.
+        // Nenhum preload nas abas remotas: zero bridge para conteúdo de fora. A exceção é
+        // o do Ruffle, registrado na sessão só quando ligado, que não expõe nada à página;
+        // sem esta opção ele não chegaria aos iframes, onde ficam as telas do Sankhya.
+        nodeIntegrationInSubFrames: true,
       },
     });
     this.#registrarDownloadsDaParticao(particao);
+    prepararParticaoParaRuffle(particao);
     // Diagnóstico das abas remotas: sem isto, um erro de JS dentro da página do Sankhya
     // só aparece como caixa de alerta na tela do usuário, sem rastro nenhum de onde veio.
     // Só `error` (level 3) — `warning` do Sankhya é ruidoso demais para valer log.
@@ -484,6 +489,8 @@ export class TabManager {
             nodeIntegration: false,
             webSecurity: true,
             preload: undefined,
+            // Tela do Sankhya aberta em janela própria também recebe o Ruffle.
+            nodeIntegrationInSubFrames: true,
           },
         });
         this.#janelasFilhas.add(filha);
@@ -816,12 +823,15 @@ export class TabManager {
         sandbox: true,
         nodeIntegration: false,
         webSecurity: true,
+        // Para o preload do Ruffle chegar aos iframes — ver `criarAbaPrincipal`.
+        nodeIntegrationInSubFrames: true,
       },
     });
     // Sem isto, um download servido pela partição isolada do cliente não dispara nada: o
     // listener de `will-download` só existia na sessão padrão e nas partições das abas
     // principais, então baixar de dentro de uma aba de cliente falhava em silêncio.
     this.#registrarDownloadsDaParticao(particao);
+    prepararParticaoParaRuffle(particao);
     manterHttpsDaBase(particao, origin);
     view.webContents.on('did-finish-load', () => {
       logEvento('aba-cliente-carregada', {
@@ -900,6 +910,8 @@ export class TabManager {
             nodeIntegration: false,
             webSecurity: true,
             preload: undefined,
+            // Tela do Sankhya aberta em janela própria também recebe o Ruffle.
+            nodeIntegrationInSubFrames: true,
           },
         });
         this.#janelasFilhas.add(filha);

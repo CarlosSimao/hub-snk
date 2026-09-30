@@ -8,6 +8,7 @@ import { Menu, app, shell, type BrowserWindow, type MenuItem } from 'electron';
 import { HUB_URL } from './config';
 import type { SituacaoDoAtalhoGlobal } from './atalhoGlobal';
 import { abrirJanelaDeAtalhos } from './janelaDeAtalhos';
+import { alternarRuffle, ruffleLigado } from './ruffle';
 import type { TabManager } from './tabs';
 
 /** O que o menu aciona fora dele: a busca rápida e o estado do atalho global. */
@@ -39,6 +40,15 @@ export function montarMenu(
           label: 'Busca rápida',
           accelerator: 'CmdOrCtrl+K',
           click: () => acoes.abrirBuscaRapida(),
+        },
+        { type: 'separator' },
+        // Vale para as telas abertas depois: a tela Flex já aberta segue como está até
+        // recarregar a guia.
+        {
+          label: 'Compatibilidade com Flash (Ruffle)',
+          type: 'checkbox',
+          checked: ruffleLigado(),
+          click: () => alternarRuffle(),
         },
         { type: 'separator' },
         { label: 'Sair', role: 'quit' },

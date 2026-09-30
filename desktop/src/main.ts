@@ -30,6 +30,7 @@ import { montarMenu } from './menu';
 import { avisarQueContinuaNaBandeja, criarBandeja } from './bandeja';
 import { AtalhoGlobalDaBusca } from './atalhoGlobal';
 import { abrirBuscaRapida } from './buscaRapida';
+import { registrarEsquemaDoRuffle } from './ruffle';
 import {
   definirInicioAutomatico,
   foiIniciadoPeloWindows,
@@ -43,6 +44,8 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
   process.exit(0);
 }
+
+registrarEsquemaDoRuffle();
 
 let janelaPrincipal: BrowserWindow | null = null;
 let tabs: TabManager | null = null;
