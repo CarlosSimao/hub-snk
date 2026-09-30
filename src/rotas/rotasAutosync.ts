@@ -18,7 +18,10 @@ import {
   TAMANHO_MAXIMO_DO_CAMINHO,
   type ServicoDoAutosync,
 } from '../autosync/servicoDoAutosync.ts';
+import { sugerirCorrecoes } from '../autosync/sugestoesDeCorrecao.ts';
 import { AGENTES_DE_IA, FORMATO_DE_HORARIO } from '../autosync/tiposDoAutosync.ts';
+import { PastaNaoEncontradaError } from '../sistema/pasta.ts';
+import { TerminalIndisponivelError } from '../sistema/abrirShell.ts';
 import {
   criarVariaveisDeAmbienteDoUsuario,
   definirGitlab,
@@ -212,7 +215,15 @@ function responderErroDoAutosync(resposta: FastifyReply, erro: unknown): Fastify
     return resposta.status(409).send({ mensagem: erro.message });
   }
   if (erro instanceof GitAutosyncFalhouError) {
-    return resposta.status(502).send({ mensagem: erro.message });
+    return resposta
+      .status(502)
+      .send({ mensagem: erro.message, sugestoes: sugerirCorrecoes(erro.message) });
+  }
+  if (erro instanceof PastaNaoEncontradaError) {
+    return resposta.status(404).send({ mensagem: erro.message });
+  }
+  if (erro instanceof TerminalIndisponivelError) {
+    return resposta.status(503).send({ mensagem: erro.message });
   }
   if (erro instanceof GitAutosyncNaoInstaladoError) {
     return resposta.status(503).send({ mensagem: erro.message, naoInstalado: true });
@@ -349,6 +360,17 @@ export function registrarRotasDeAutosync(
     if (!dados.success) return responderErroDeValidacao(resposta, dados.error);
     const { caminho, ...opcoes } = dados.data;
     return responder(resposta, () => autosync.mergeRequest(caminho, opcoes));
+  });
+
+  servidor.post('/api/autosync/terminal', async (requisicao, resposta) => {
+    const dados = esquemaDeCaminho.safeParse(requisicao.body);
+    if (!dados.success) return responderErroDeValidacao(resposta, dados.error);
+    try {
+      await autosync.abrirTerminal(dados.data.caminho);
+      return resposta.status(204).send();
+    } catch (erro) {
+      return responderErroDoAutosync(resposta, erro);
+    }
   });
 
   servidor.get('/api/autosync/historico', async (requisicao, resposta) => {

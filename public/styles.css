@@ -3504,3 +3504,71 @@ button.selo-situacao:focus-visible {
 .linha-do-token-gitlab .btn[hidden] {
   display: none;
 }
+
+/* Como resolver uma falha do Git AutoSync: mesma linguagem das pendências do Git. */
+.correcao-do-autosync {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--aviso) 40%, transparent);
+  background: color-mix(in srgb, var(--aviso) 7%, transparent);
+}
+
+.correcao-titulo {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: color-mix(in srgb, var(--aviso) 75%, var(--text));
+}
+
+.sugestao-de-correcao {
+  display: grid;
+  gap: 5px;
+}
+
+.sugestao-de-correcao-texto {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.sugestao-de-correcao-texto .ponto-situacao {
+  transform: translateY(-1px);
+}
+
+.comando-de-correcao {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 15px;
+}
+
+.comando-de-correcao code {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11px;
+  color: var(--text);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--text-faint) 14%, transparent);
+  overflow-wrap: anywhere;
+}
+
+.correcao-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.saida-do-autosync > summary {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}

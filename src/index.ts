@@ -37,6 +37,7 @@ import { Credenciais } from './sankhya/credenciais.ts';
 import { Experience } from './sankhya/experience.ts';
 import { PonteDoDesktop } from './sankhya/ponteDoDesktop.ts';
 import { SessaoDoDesktop } from './sankhya/sessaoDoDesktop.ts';
+import { abrirShellNaPasta } from './sistema/abrirShell.ts';
 import { observarAlteracoesNosDados, type CacheDescartavel } from './sistema/observadorDeDados.ts';
 
 async function iniciarServidor(): Promise<void> {
@@ -143,6 +144,10 @@ async function iniciarServidor(): Promise<void> {
         pacote: configuracao.pacoteDoAutosync,
       }),
       listarClientes: () => repositorioDeClientes.listar(),
+      abrirTerminal: async (caminho) => {
+        const { scriptPadrao } = await repositorioDeConfiguracao.ler();
+        await abrirShellNaPasta(caminho, scriptPadrao);
+      },
     }),
   );
   let observadorDosDados: FSWatcher | null = null;

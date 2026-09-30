@@ -802,6 +802,8 @@ async function requisitar(caminho, opcoes = {}) {
     const erro = new Error(conteudo?.mensagem ?? `Falha na requisição (HTTP ${resposta.status}).`);
     // Repassado pra quem chama decidir, ex.: mostrar "app desktop fora do ar" em vez do erro genérico.
     erro.shellIndisponivel = Boolean(conteudo?.shellIndisponivel);
+    // O Git AutoSync manda junto o que fazer quando o commit ou o push falha.
+    erro.sugestoes = Array.isArray(conteudo?.sugestoes) ? conteudo.sugestoes : [];
     throw erro;
   }
 
@@ -1093,6 +1095,8 @@ const api = {
   historicoNoAutosync: (caminho) =>
     requisitar(`${CAMINHO_DO_AUTOSYNC}/historico?caminho=${encodeURIComponent(caminho)}`),
   logDoAutosync: (limite) => requisitar(`${CAMINHO_DO_AUTOSYNC}/log?limite=${limite}`),
+  abrirTerminalNoAutosync: (caminho) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/terminal`, { metodo: 'POST', corpo: { caminho } }),
   lerGitlab: () => requisitar(`${CAMINHO_DO_AUTOSYNC}/gitlab`),
   definirGitlab: (host, token) =>
     requisitar(`${CAMINHO_DO_AUTOSYNC}/gitlab`, { metodo: 'PUT', corpo: { host, token } }),
@@ -9293,7 +9297,10 @@ async function executarNoRepositorioDoAutosync(caminho, rotulo, acao) {
     estado.autosync.errosPorCaminho.delete(chave);
     exibirAviso(resposta?.saida ? resumirSaidaDoAutosync(resposta.saida) : `${rotulo}: concluído.`);
   } catch (erro) {
-    estado.autosync.errosPorCaminho.set(chave, erro.message);
+    estado.autosync.errosPorCaminho.set(chave, {
+      mensagem: erro.message,
+      sugestoes: erro.sugestoes ?? [],
+    });
     exibirAviso(`${rotulo} falhou em ${nomeDaPasta(caminho)}.`, 'erro');
   } finally {
     estado.autosync.emAndamento.delete(chave);
@@ -9452,7 +9459,7 @@ function criarLinhaDoAutosync({
     informacoes.append(andamento);
   }
   if (erro) {
-    informacoes.append(criarElemento('pre', 'erro-do-autosync', erro));
+    informacoes.append(criarBlocoDeCorrecaoDoAutosync(caminho, erro));
   }
 
   const acoes = criarElemento('div', 'recurso-acoes');
@@ -9474,6 +9481,115 @@ function criarLinhaDoAutosync({
   const linha = criarElemento('div', 'linha-recurso');
   linha.append(informacoes, acoes);
   return linha;
+}
+
+/** Política gravada do repositório, para abrir o modal a partir da sugestão. */
+function politicaDoRepositorioNoAutosync(caminho) {
+  const chave = chaveDoCaminhoNoAutosync(caminho);
+  return (
+    estado.autosync.visao?.repositorios.find(
+      (repositorio) => chaveDoCaminhoNoAutosync(repositorio.caminho) === chave,
+    )?.politica ?? null
+  );
+}
+
+async function abrirTerminalDoAutosync(caminho, botao) {
+  botao.disabled = true;
+  try {
+    await api.abrirTerminalNoAutosync(caminho);
+  } catch (erro) {
+    exibirAviso(erro.message, 'erro');
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+async function abrirConfiguracoesDoGitlab() {
+  await abrirModalDeConfiguracao();
+  selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGit);
+  elementos.campoGitlabHost.focus();
+}
+
+function criarComandoDeCorrecao(comando) {
+  const linha = criarElemento('div', 'comando-de-correcao');
+  linha.append(
+    criarElemento('code', null, comando),
+    criarBotaoDeIcone('btn tiny ghost', ICONES.copiar, 'Copiar comando', () =>
+      copiarParaAreaDeTransferencia(comando, 'Comando copiado. Cole no terminal.'),
+    ),
+  );
+  return linha;
+}
+
+/**
+ * O que fazer depois de uma falha: a explicação, os comandos para copiar e o terminal
+ * já na pasta. Nada é executado pela tela — `pull --rebase` reescreve commits locais e
+ * pode parar em conflito, e quem decide é a pessoa, vendo o terminal. A saída do CLI
+ * continua inteira, recolhida, para quando a sugestão não bastar.
+ */
+function criarBlocoDeCorrecaoDoAutosync(caminho, { mensagem, sugestoes }) {
+  const bloco = criarElemento('div', 'correcao-do-autosync');
+  bloco.append(criarElemento('p', 'correcao-titulo', 'Como resolver'));
+
+  const acoesExtras = [];
+  if (sugestoes.length === 0) {
+    bloco.append(
+      criarElemento(
+        'p',
+        'texto-auxiliar',
+        'O HUB SNK não reconhece este erro. Veja a saída completa abaixo e resolva pelo terminal.',
+      ),
+    );
+  }
+  for (const sugestao of sugestoes) {
+    const item = criarElemento('div', 'sugestao-de-correcao');
+    const explicacao = criarElemento('p', 'sugestao-de-correcao-texto');
+    explicacao.append(
+      criarPontoDeSituacao('atencao'),
+      criarElemento('span', null, sugestao.explicacao),
+    );
+    item.append(explicacao, ...sugestao.comandos.map(criarComandoDeCorrecao));
+    bloco.append(item);
+
+    if (sugestao.acao === 'configurar-gitlab') {
+      acoesExtras.push(
+        criarBotao('btn tiny', 'Abrir Configurações › Git', abrirConfiguracoesDoGitlab),
+      );
+    }
+    if (sugestao.acao === 'politica') {
+      acoesExtras.push(
+        criarBotao('btn tiny', 'Política do repositório', () =>
+          abrirModalDaPoliticaDoAutosync(caminho, politicaDoRepositorioNoAutosync(caminho)),
+        ),
+      );
+    }
+  }
+
+  const botaoTerminal = criarBotao('btn tiny botao-com-icone', undefined, () =>
+    abrirTerminalDoAutosync(caminho, botaoTerminal),
+  );
+  botaoTerminal.append(
+    criarIcone(ICONES.terminal),
+    criarElemento('span', null, 'Abrir terminal na pasta'),
+  );
+  botaoTerminal.title = `Abrir o terminal em ${caminho}`;
+
+  const botaoDispensar = criarBotao('btn tiny ghost', 'Dispensar', () => {
+    estado.autosync.errosPorCaminho.delete(chaveDoCaminhoNoAutosync(caminho));
+    redesenharAutosync();
+  });
+
+  const acoes = criarElemento('div', 'correcao-acoes');
+  acoes.append(botaoTerminal, ...acoesExtras, botaoDispensar);
+  bloco.append(acoes);
+
+  const saida = criarElemento('details', 'saida-do-autosync');
+  saida.append(
+    criarElemento('summary', null, 'Saída completa do Git AutoSync'),
+    criarElemento('pre', 'erro-do-autosync', mensagem),
+  );
+  bloco.append(saida);
+  return bloco;
 }
 
 function criarBotaoDeHistoricoDoAutosync(caminho) {
@@ -9884,7 +10000,10 @@ async function adicionarTodosOsRepositoriosDosClientes(botao) {
   try {
     const resultado = await api.adicionarRepositoriosDosClientesNoAutosync();
     for (const { caminho, erro } of resultado.falhas) {
-      estado.autosync.errosPorCaminho.set(chaveDoCaminhoNoAutosync(caminho), erro);
+      estado.autosync.errosPorCaminho.set(chaveDoCaminhoNoAutosync(caminho), {
+        mensagem: erro,
+        sugestoes: [],
+      });
     }
     const partes = [
       `${resultado.adicionados.length} adicionado(s)`,

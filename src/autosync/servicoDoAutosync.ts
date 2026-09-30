@@ -62,6 +62,8 @@ export interface DependenciasDoServicoDoAutosync {
   listarClientes: () => Promise<Cliente[]>;
   listarDaRaiz?: (raiz: string) => Promise<string[]>;
   inspecionar?: (caminho: string) => SituacaoDaPasta;
+  /** Abre o terminal preferido na pasta, com o script padrão das configurações. */
+  abrirTerminal?: (caminho: string) => Promise<void>;
 }
 
 /*
@@ -114,12 +116,14 @@ export class ServicoDoAutosync {
   readonly #listarClientes: () => Promise<Cliente[]>;
   readonly #listarDaRaiz: (raiz: string) => Promise<string[]>;
   readonly #inspecionar: (caminho: string) => SituacaoDaPasta;
+  readonly #abrirTerminal: ((caminho: string) => Promise<void>) | null;
 
   constructor(dependencias: DependenciasDoServicoDoAutosync) {
     this.#cli = dependencias.cli;
     this.#listarClientes = dependencias.listarClientes;
     this.#listarDaRaiz = dependencias.listarDaRaiz ?? listarRepositoriosDaRaiz;
     this.#inspecionar = dependencias.inspecionar ?? inspecionarPasta;
+    this.#abrirTerminal = dependencias.abrirTerminal ?? null;
   }
 
   instalado(): boolean {
@@ -431,6 +435,21 @@ export class ServicoDoAutosync {
     /* Uma chave só, mas o CLI pode devolvê-la com barras diferentes das enviadas. */
     const dados = extrairJson(saida) as Record<string, CommitDoAutosync[]>;
     return Object.values(dados)[0] ?? [];
+  }
+
+  /**
+   * Terminal na pasta do repositório, para resolver o que o autosync não resolve
+   * sozinho (push rejeitado, conflito, credencial). Não roda comando nenhum.
+   */
+  async abrirTerminal(caminho: string): Promise<void> {
+    await this.#visaoComCaminhoPermitido(caminho);
+    if (!this.#abrirTerminal) {
+      throw new GitAutosyncUsoError('Abrir o terminal não está disponível aqui.');
+    }
+    if (this.#inspecionar(caminho) === 'ausente') {
+      throw new PastaDoAutosyncNaoEncontradaError(caminho);
+    }
+    await this.#abrirTerminal(caminho);
   }
 
   log(limite: number): Promise<string[]> {

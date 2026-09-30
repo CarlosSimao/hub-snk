@@ -655,3 +655,54 @@ describe('/api/autosync/gitlab', () => {
     assert.equal(gravadas.has('GIT_AUTOSYNC_GITLAB_TOKEN'), false);
   });
 });
+
+describe('sugestões e terminal', () => {
+  it('o 502 traz as sugestões de correção', async () => {
+    cli.respostas.set('push', () => ({
+      codigo: 1,
+      saida: ' ! [rejected]  main -> main (non-fast-forward)',
+    }));
+
+    const resposta = await servidor.inject({
+      method: 'POST',
+      url: '/api/autosync/push',
+      payload: { caminho: PROPRIO },
+    });
+
+    assert.equal(resposta.statusCode, 502);
+    assert.deepEqual(resposta.json().sugestoes[0].comandos, ['git pull --rebase', 'git push']);
+  });
+
+  it('abre o terminal só em caminho conhecido', async () => {
+    const abertos: string[] = [];
+    const servidorComTerminal = Fastify();
+    registrarRotasDeAutosync(
+      servidorComTerminal,
+      new ServicoDoAutosync({
+        cli,
+        listarClientes: async () => [],
+        listarDaRaiz: async () => [],
+        inspecionar: () => 'repositorio',
+        abrirTerminal: async (caminho) => {
+          abertos.push(caminho);
+        },
+      }),
+    );
+
+    const conhecido = await servidorComTerminal.inject({
+      method: 'POST',
+      url: '/api/autosync/terminal',
+      payload: { caminho: PROPRIO },
+    });
+    const desconhecido = await servidorComTerminal.inject({
+      method: 'POST',
+      url: '/api/autosync/terminal',
+      payload: { caminho: join(BASE, 'qualquer') },
+    });
+
+    assert.equal(conhecido.statusCode, 204);
+    assert.equal(desconhecido.statusCode, 400);
+    assert.deepEqual(abertos, [PROPRIO]);
+    assert.deepEqual(cli.chamadas, []);
+  });
+});
