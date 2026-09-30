@@ -336,7 +336,7 @@ const estado = {
     alvoDoMr: null,
     alvoDaPolitica: null,
     confirmacaoPendente: null,
-    /* Redesenho da aba Git AutoSync do cliente aberto, quando montada. */
+    /* Redesenho da seção AutoSync do cliente aberto, quando montada. */
     redesenharDoCliente: null,
   },
   /*
@@ -1889,10 +1889,10 @@ function criarLinhaDeRepositorio(cliente, repositorio) {
   return linha;
 }
 
-/** Bloco de "Bases" ou "Repositórios": cabeçalho, botão de adicionar e as linhas. */
 /**
+ * Bloco de "Bases" ou "Repositórios": cabeçalho, botão de adicionar e as linhas.
  * `titulo` nulo omite o `h3`: usado quando o título repetiria o rótulo da aba
- * ativa (Projetos, Bases, Repositórios), redundante logo abaixo dela.
+ * ativa (Projetos, Bases), redundante logo abaixo dela.
  */
 function criarSecaoDeRecursos({ titulo, rotuloDoBotao, aoAdicionar, linhas, mensagemVazia }) {
   const cabecalho = criarElemento('div', 'secao-cabecalho');
@@ -6224,8 +6224,8 @@ async function removerTokenDoGitlab() {
 const PERFIL_PADRAO = 'desenvolvedor';
 
 /*
- * Ocultar Repositórios leva junto o que só existe por causa deles: filtro e
- * indicadores do Git e a aba MCP da configuração.
+ * Ocultar a aba Git do cliente leva junto o que só existe por causa dos repositórios:
+ * filtro e indicadores do Git, a aba MCP da configuração e a seção AutoSync.
  */
 const FUNCIONALIDADE_REPOSITORIOS = 'cliente.repositorios';
 
@@ -9943,7 +9943,7 @@ const AGENTES_DO_AUTOSYNC = [
 const TEXTO_DA_CONFIRMACAO_DA_IA =
   'O diff das alterações será enviado ao agente escolhido (Claude, Codex ou OpenCode) para escrever a mensagem do commit.';
 
-/* Selo da situação de um repositório de cliente, na aba Git AutoSync do cliente. */
+/* Selo da situação de um repositório de cliente, na seção AutoSync do cliente. */
 const SITUACOES_DO_CLIENTE_NO_AUTOSYNC = {
   fora: { severidade: 'desconhecido', rotulo: 'Fora do Git AutoSync' },
   ativo: {
@@ -10936,7 +10936,7 @@ function criarLinhaDoAutosyncDoCliente(item) {
 }
 
 /**
- * Aba Git AutoSync do cliente: só os repositórios dele com pasta local. É montada uma
+ * Seção AutoSync da aba Git do cliente: só os repositórios dele com pasta local. É montada uma
  * vez por cliente (ver `secaoConsultadaDoCliente`) e se redesenha sozinha quando uma
  * ação termina, sem esperar o detalhe inteiro ser refeito.
  */
@@ -10989,7 +10989,7 @@ function criarSecaoDoAutosyncDoCliente(cliente) {
         criarElemento(
           'p',
           'secao-vazia',
-          'Nenhum repositório deste cliente tem pasta local. Informe o caminho local na aba Repositórios.',
+          'Nenhum repositório deste cliente tem pasta local. Informe o caminho local na seção Repositórios, acima.',
         ),
       );
     } else {
