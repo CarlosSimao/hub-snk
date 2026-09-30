@@ -18,7 +18,7 @@ export const EXPERIENCE_URL =
   process.env['SANKHYA_EXPERIENCE_URL'] ?? 'https://experience.sankhya.com.br/';
 
 /**
- * Workspace do Sankhya Om: é para onde o login aceito leva. A senha é pedida na própria
+ * Workspace do SankhyaOm: é para onde o login aceito leva. A senha é pedida na própria
  * `/mge/`, então sair da tela de login não aparece na URL de outro jeito.
  */
 export const URL_WORKSPACE_ERP = new URL('system.jsp', ERP_URL).href;
@@ -27,7 +27,7 @@ export const URL_WORKSPACE_ERP = new URL('system.jsp', ERP_URL).href;
 export const DOMINIOS_ERP = ['sankhya.com.br'];
 
 /**
- * Onde o login do Sankhya Om e da Experience acontece (skw, login e experience, todos sob
+ * Onde o login do SankhyaOm e da Experience acontece (skw, login e experience, todos sob
  * `sankhya.com.br`), mais os hosts de `ERP_URL` e `EXPERIENCE_URL` quando sobrescritos.
  * O preenchimento automático só entrega a credencial do cofre a uma página desses hosts.
  */
@@ -47,6 +47,69 @@ export const DOMINIOS_POPUP_PERMITIDOS = [
 
 /** Partição isolada e persistente do shell — nunca o perfil pessoal do usuário. */
 export const PARTICAO = 'persist:sankhya-hub-desktop';
+
+// --- painel de comunicação ---------------------------------------------------------
+
+export type ServicoComunicacao = 'whatsapp' | 'gmail' | 'chat';
+
+interface DefinicaoServicoComunicacao {
+  /** Nome no menu de escolha dos botões da barra lateral. */
+  rotulo: string;
+  url: string;
+  particao: string;
+  /**
+   * Onde o título da página traz a quantidade de conversas não lidas — só o serviço que
+   * tem este campo avisa mensagem nova (som, ícone piscando, contador).
+   */
+  padraoNaoLidas?: RegExp;
+}
+
+/**
+ * Gmail e Google Chat dividem a partição: é a mesma conta Google, então um login só serve
+ * os dois. Nenhuma delas é a `PARTICAO` das guias — o cookie pessoal do Google não chega
+ * ao Sankhya, e o do Sankhya não chega ao Google.
+ */
+const PARTICAO_GOOGLE = 'persist:hub-google';
+
+export const SERVICOS_COMUNICACAO: Record<ServicoComunicacao, DefinicaoServicoComunicacao> = {
+  whatsapp: {
+    rotulo: 'WhatsApp',
+    url: 'https://web.whatsapp.com/',
+    particao: 'persist:hub-whatsapp',
+    // O WhatsApp Web escreve `(3) WhatsApp` no título: 3 conversas, não 3 mensagens.
+    padraoNaoLidas: /^\((\d+)\)/,
+  },
+  gmail: { rotulo: 'Gmail', url: 'https://mail.google.com/', particao: PARTICAO_GOOGLE },
+  chat: { rotulo: 'Google Chat', url: 'https://chat.google.com/', particao: PARTICAO_GOOGLE },
+};
+
+/**
+ * Hosts que abrem dentro do próprio painel quando a página pede uma janela nova: o login
+ * do Google (o "Fazer login" da página de apresentação do Gmail abre em outra janela) e
+ * os próprios serviços. O resto vai para o navegador padrão.
+ */
+export const HOSTS_INTERNOS_COMUNICACAO: ReadonlySet<string> = new Set([
+  'accounts.google.com',
+  'mail.google.com',
+  'chat.google.com',
+  'web.whatsapp.com',
+]);
+
+/** O painel ocupa a maior parte da janela, sem ficar estreito demais para o WhatsApp Web. */
+export const FRACAO_LARGURA_PAINEL_COMUNICACAO = 0.8;
+export const LARGURA_MINIMA_PAINEL_COMUNICACAO = 480;
+
+/**
+ * Sem handler, o Electron concede qualquer permissão pedida. Só o que os três serviços
+ * usam: notificação de mensagem, microfone/câmera (áudio do WhatsApp, chamada do Chat),
+ * cópia para a área de transferência e tela cheia de vídeo.
+ */
+export const PERMISSOES_COMUNICACAO: ReadonlySet<string> = new Set([
+  'notifications',
+  'media',
+  'clipboard-sanitized-write',
+  'fullscreen',
+]);
 
 export const BRIDGE_PORT = Number(process.env['SANKHYA_DESKTOP_BRIDGE_PORT'] ?? 4103);
 export const BRIDGE_HOST = '127.0.0.1';

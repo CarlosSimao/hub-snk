@@ -32,7 +32,27 @@ contextBridge.exposeInMainWorld('hub', {
     /** Abre o menu do aplicativo na posição informada (coordenadas da janela). */
     abrir: (x: number, y: number) => ipcRenderer.invoke('menu:abrir', x, y),
   },
+  comunicacao: {
+    /** Abre o serviço no painel de meia tela, ou o esconde se já estiver aberto. */
+    alternar: (servico: string) => ipcRenderer.invoke('comunicacao:alternar', servico),
+    ocultar: () => ipcRenderer.invoke('comunicacao:ocultar'),
+    /** Serviço aberto no painel, ou `null` quando ele some — a barra destaca o botão. */
+    aoMudarAtivo: (cb: (servico: string | null) => void) =>
+      ipcRenderer.on('comunicacao:ativo', (_e, servico) => cb(servico)),
+    /** Quais botões aparecem na barra — escolha feita no menu da engrenagem. */
+    estado: () => ipcRenderer.invoke('comunicacao:estado'),
+    aoMudarServicos: (cb: (servicos: Array<{ servico: string; habilitado: boolean }>) => void) =>
+      ipcRenderer.on('comunicacao:servicos', (_e, servicos) => cb(servicos)),
+    abrirMenu: (x: number, y: number) => ipcRenderer.invoke('comunicacao:abrirMenu', x, y),
+    aoMudarNaoLidas: (cb: (dados: { servico: string; quantidade: number }) => void) =>
+      ipcRenderer.on('comunicacao:naoLidas', (_e, dados) => cb(dados)),
+    /** Só chega quando você não está vendo o serviço: é a hora de tocar o som. */
+    aoMensagemNova: (cb: (servico: string) => void) =>
+      ipcRenderer.on('comunicacao:mensagemNova', (_e, servico) => cb(servico)),
+  },
   layout: {
     definirAlturaTopo: (altura: number) => ipcRenderer.invoke('layout:definirAlturaTopo', altura),
+    definirLarguraLateral: (largura: number) =>
+      ipcRenderer.invoke('layout:definirLarguraLateral', largura),
   },
 });

@@ -151,7 +151,7 @@ function origemDe(url: string): string {
   }
 }
 
-function ehEnderecoWeb(url: string): boolean {
+export function ehEnderecoWeb(url: string): boolean {
   try {
     const { protocol } = new URL(url);
     return protocol === 'http:' || protocol === 'https:';
@@ -230,7 +230,7 @@ function tituloBase(info: InfoBaseCliente): string {
 /** O que a barra escreve em cada guia de cima — igual ao HTML de `index.html`. */
 const ROTULO_GUIA: Record<TabId, string> = {
   hub: 'Painel',
-  erp: 'Sankhya Om',
+  erp: 'SankhyaOm',
   experience: 'Experience',
 };
 
@@ -275,6 +275,8 @@ export class TabManager {
   #linksPorUrl = new Map<string, LinkCadastrado>();
   #abaAtiva = 'hub';
   #alturaTopo = 96;
+  /** Largura da barra lateral de comunicação, que empurra as guias para a direita. */
+  #larguraLateral = 0;
   /**
    * Guias que o usuario escondeu da barra.
    *
@@ -316,7 +318,7 @@ export class TabManager {
   /**
    * Guia erp/experience caiu sozinha numa tela de login (sessão expirada, cookie
    * limpo, primeiro boot) e há credencial salva: tenta logar sem pedir nada ao
-   * usuário. A URL só denuncia o login da Experience; o Sankhya Om pede a senha na
+   * usuário. A URL só denuncia o login da Experience; o SankhyaOm pede a senha na
    * própria `/mge/`, então sem "login" na URL a prova é um campo de senha na tela.
    */
   async #tentarAutoLoginSankhya(id: TabId, view: WebContentsView): Promise<void> {
@@ -632,7 +634,7 @@ export class TabManager {
     return this.#terceiro;
   }
 
-  /** Sankhya Om e Experience, com o acesso de terceiro: fora da barra, do menu e dos atalhos. */
+  /** SankhyaOm e Experience, com o acesso de terceiro: fora da barra, do menu e dos atalhos. */
   guiaBloqueada(id: string): boolean {
     return this.#terceiro && GUIAS_DO_SANKHYA.has(id);
   }
@@ -748,13 +750,18 @@ export class TabManager {
     this.reposicionar();
   }
 
+  definirLarguraLateral(largura: number): void {
+    this.#larguraLateral = Math.max(0, Math.round(largura || 0));
+    this.reposicionar();
+  }
+
   reposicionar(): void {
     const [w, h] = this.#janela.getContentSize();
     for (const view of this.#abas.values()) {
       view.setBounds({
-        x: 0,
+        x: this.#larguraLateral,
         y: this.#alturaTopo,
-        width: w,
+        width: Math.max(0, w - this.#larguraLateral),
         height: Math.max(0, h - this.#alturaTopo),
       });
     }

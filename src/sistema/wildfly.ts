@@ -201,7 +201,7 @@ function portaEstaAberta(porta: number, tempoLimiteMs: number): Promise<boolean>
  * O `:shutdown` do jboss-cli retorna assim que o comando é aceito, não quando
  * o processo de fato termina — management e HTTP continuam ocupados por um
  * tempo enquanto o WildFly termina de desfazer o deploy das aplicações (pode
- * levar bem mais que alguns segundos com o Sankhya OM). Sem esperar as duas
+ * levar bem mais que alguns segundos com o SankhyaOm). Sem esperar as duas
  * portas caírem, o `standalone.bat` seguinte tenta subir em cima do processo
  * antigo ainda morrendo e falha ao bindar.
  */

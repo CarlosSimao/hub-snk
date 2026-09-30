@@ -4,7 +4,7 @@
 [![Licença](https://img.shields.io/github/license/CarlosSimao/hub-snk)](LICENSE)
 
 Hub local de cadastro de clientes, das bases e dos repositórios Git de cada
-um, com o Sankhya Om e a Experience abertos em guias do próprio aplicativo. Roda
+um, com o SankhyaOm e a Experience abertos em guias do próprio aplicativo. Roda
 na sua máquina, sem Docker, sem banco de dados e sem autenticação.
 
 É um aplicativo desktop (Electron) só para Windows: a partir da versão 2 não há
@@ -30,7 +30,7 @@ Baixe o `HUB-SNK-Setup-<versão>.exe` na
   Gerente de projeto —, que define as abas visíveis no painel. Consultor e
   Analista não veem os repositórios do cliente, e Gerente de projeto também não
   vê a aba Local. A caixa **Terceiro**, independente do perfil, é para quem não
-  tem acesso ao Sankhya Om nem à Experience: oculta Credenciais Sankhya, Agenda,
+  tem acesso ao SankhyaOm nem à Experience: oculta Credenciais Sankhya, Agenda,
   OS e as guias dos dois sistemas. A escolha vale só como ponto de partida: depois
   da instalação, ajuste em _Configurações_ › _Acessos_, e reinstalar não desfaz o
   que você ajustou.
@@ -58,7 +58,7 @@ A janela tem guias no topo:
 | Guia                | O que é                                                                                      |
 | ------------------- | -------------------------------------------------------------------------------------------- |
 | **Painel**          | O HUB SNK: clientes, bases, repositórios, ambiente local e agenda                            |
-| **Sankhya Om**      | O ERP, que loga sozinho com a credencial salva em Credenciais Sankhya                        |
+| **SankhyaOm**       | O ERP, que loga sozinho com a credencial salva em Credenciais Sankhya                        |
 | **Experience**      | A Experience, com o mesmo login automático                                                   |
 | Uma por base aberta | Cada base de cliente abre na sua própria guia, isolada das outras, com o login já preenchido |
 
@@ -85,7 +85,7 @@ ambiente valem antes de abrir o aplicativo:
 | `SANKHYA_HUB_URL`             | `http://127.0.0.1:4100`              | Endereço do backend. A porta daqui é a porta em que o aplicativo o sobe        |
 | `SANKHYA_DESKTOP_BRIDGE_PORT` | `4103`                               | Porta da ponte que o backend chama no aplicativo (cofre, agenda)               |
 | `SANKHYA_HUB_BACKEND`         | `gerenciado`                         | `externo` faz o aplicativo usar um backend que já esteja no ar (`npm run dev`) |
-| `SANKHYA_ERP_URL`             | `https://skw.sankhya.com.br/mge/`    | Endereço da guia Sankhya Om                                                    |
+| `SANKHYA_ERP_URL`             | `https://skw.sankhya.com.br/mge/`    | Endereço da guia SankhyaOm                                                     |
 | `SANKHYA_EXPERIENCE_URL`      | `https://experience.sankhya.com.br/` | Endereço da guia Experience                                                    |
 
 Rodando só o backend (`npm run dev`, veja [Manutenção](docs/manutencao.md)),
@@ -134,8 +134,8 @@ Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 | O quê                       | Resumo                                                                                                                           |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Cadastro de clientes**    | Bases do ERP com usuário, senha e banco vinculado, repositórios Git, links avulsos, projetos e anotações livres                  |
-| **Guias do Sankhya**        | Sankhya Om e Experience dentro do aplicativo; cada base de cliente numa guia isolada, com usuário e senha preenchidos            |
-| **Agenda de Recursos**      | Consultada por uma janela oculta que loga no Sankhya Om sozinha, cruzada com a Experience no calendário de cada cliente          |
+| **Guias do Sankhya**        | SankhyaOm e Experience dentro do aplicativo; cada base de cliente numa guia isolada, com usuário e senha preenchidos             |
+| **Agenda de Recursos**      | Consultada por uma janela oculta que loga no SankhyaOm sozinha, cruzada com a Experience no calendário de cada cliente           |
 | **Notificações**            | Painel no sino do topo, com som e e-mail opcional: agenda de hoje sem OS lançada e lembretes na data ou recorrentes (cron)       |
 | **Importação de favoritos** | Transforma favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, deduzindo Produção ou Teste do nome                     |
 | **Botões do repositório**   | Abrem a pasta, o terminal (rodando o script padrão) e a IDE configurada; e editam o `.sankhya-mcp.env` do MCP Claude             |
@@ -168,7 +168,7 @@ Cada uma em detalhe, com as regras, em
 | _"HUB SNK — o backend não subiu"_ ao abrir                                                          | Com _"A porta 4100 já está em uso por outro programa, que não é o backend do HUB SNK"_, feche esse programa e abra o HUB SNK de novo: o aplicativo não usa um backend que não é dele. Sem essa frase, o backend falhou, e as últimas linhas estão na mensagem e em `backend.log` |
 | _"HUB SNK — a ponte com o backend não abriu"_ ao abrir                                              | A porta 4103 está ocupada por outro programa. Credenciais Sankhya, Agenda e login automático ficam indisponíveis até você fechar esse programa e abrir o HUB SNK de novo                                                                                                         |
 | O painel avisa que o aplicativo HUB SNK não está respondendo                                        | O painel foi aberto fora do aplicativo (_Abrir o painel no navegador_). Credenciais, agenda e guias só funcionam dentro dele                                                                                                                                                     |
-| A agenda diz que o login automático falhou ou que não há usuário e senha salvos                     | Confira o usuário e a senha do Sankhya Om em Credenciais Sankhya e tente de novo                                                                                                                                                                                                 |
+| A agenda diz que o login automático falhou ou que não há usuário e senha salvos                     | Confira o usuário e a senha do SankhyaOm em Credenciais Sankhya e tente de novo                                                                                                                                                                                                  |
 | A agenda diz _"login automático suspenso: ..."_, ou as guias pararam de logar sozinhas              | O Sankhya recusou a senha salva duas vezes seguidas, e o login automático parou para não bloquear a conta. Salve usuário e senha de novo em Credenciais Sankhya (ou reabra o aplicativo)                                                                                         |
 | Os botões de Git não fazem nada                                                                     | O `git` precisa estar no PATH. Confira com `git --version` num terminal novo                                                                                                                                                                                                     |
 | Mensagem sobre esquema mais novo ao iniciar                                                         | O cadastro foi gravado por uma versão mais nova do HUB SNK. Instale a versão mais recente                                                                                                                                                                                        |

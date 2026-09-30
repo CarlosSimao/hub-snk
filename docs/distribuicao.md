@@ -112,7 +112,7 @@ Aparece em toda instalação, antes da do Git AutoSync. O perfil (Desenvolvedor,
 Consultor, Analista ou Gerente de projeto) define o preset de funcionalidades
 ocultas, o mesmo de **Configurações › Acessos** (`src/acessos.ts`). A caixa
 **Terceiro**, independente do perfil, oculta por cima do preset o que depende das
-credenciais do Sankhya Om e da Experience: Credenciais Sankhya, as abas Agenda e
+credenciais do SankhyaOm e da Experience: Credenciais Sankhya, as abas Agenda e
 OS e as guias dos dois sistemas.
 
 A escolha vai para `%LOCALAPPDATA%\HubSnk\perfil-inicial.txt` e

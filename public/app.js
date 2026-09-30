@@ -223,7 +223,7 @@ const estado = {
   funcionalidadesOcultas: new Set(),
   /* Perfil em vigor na tela; `null` enquanto a configuração não foi lida. */
   perfil: null,
-  /* Acesso de terceiro: sem Sankhya Om nem Experience, o que depende deles some. */
+  /* Acesso de terceiro: sem SankhyaOm nem Experience, o que depende deles some. */
   terceiro: false,
   clienteEmEdicao: null,
   clienteDaBaseEmEdicao: null,
@@ -5021,7 +5021,7 @@ async function salvarCodusuSankhyaOm() {
   elementos.botaoSalvarCodusu.disabled = true;
   try {
     await api.salvarSankhyaOmCodUsu(elementos.campoConfigSankhyaOmCodUsu.value.trim());
-    exibirAviso('Código de usuário do Sankhya OM salvo.');
+    exibirAviso('Código de usuário do SankhyaOm salvo.');
   } catch (erro) {
     exibirErro(elementos.erroCodusu, erro.message);
   } finally {
@@ -5599,7 +5599,7 @@ const PERFIL_PADRAO = 'desenvolvedor';
 const FUNCIONALIDADE_REPOSITORIOS = 'cliente.repositorios';
 
 /*
- * O que só funciona com as credenciais do Sankhya Om ou da Experience. Com Terceiro,
+ * O que só funciona com as credenciais do SankhyaOm ou da Experience. Com Terceiro,
  * somem por cima das caixas, sem mexer no que está gravado nelas.
  */
 const FUNCIONALIDADES_QUE_DEPENDEM_DO_SANKHYA = new Set([

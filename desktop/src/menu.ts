@@ -38,7 +38,7 @@ export function montarMenu(
         },
         // Com o acesso de terceiro, as duas guias nem existem para o usuário.
         {
-          label: 'Ir para o Sankhya Om',
+          label: 'Ir para o SankhyaOm',
           accelerator: 'CmdOrCtrl+2',
           visible: !guiaBloqueada('erp'),
           click: () => tabs()?.mostrar('erp'),

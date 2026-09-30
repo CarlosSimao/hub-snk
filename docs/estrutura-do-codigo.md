@@ -95,7 +95,7 @@ desktop/                                    shell Electron: o aplicativo que o u
   src/tokenStore.ts                         token compartilhado entre a ponte e o backend, gerado no primeiro boot
   src/cofreCredenciais.ts                   cofre das credenciais com o safeStorage do Electron
   src/navegador.ts  src/sessions.ts         abrir as guias do Sankhya e capturar a sessão delas
-  src/autoLoginSankhya.ts                   login automático nas guias Sankhya Om e Experience com a credencial do cofre
+  src/autoLoginSankhya.ts                   login automático nas guias SankhyaOm e Experience com a credencial do cofre
   src/loginOcultoSankhya.ts                 janela invisível e preenchimento do login web, comuns às janelas ocultas
   src/janelaAgendaOculta.ts                 janela oculta que loga no ERP e consulta a Agenda de Recursos e as negociações
   src/janelaExperienceOculta.ts             janela oculta que loga na Experience e mantém o JWT para o backend

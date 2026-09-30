@@ -2,7 +2,7 @@
  * Preenche usuário/senha na tela de login de uma base de cliente, quando já guardados
  * no cadastro do HUB SNK (`clientes.json`), e clica em entrar.
  *
- * O login do Sankhya Om é em DUAS etapas (usuário, "Prosseguir", só então aparece o
+ * O login do SankhyaOm é em DUAS etapas (usuário, "Prosseguir", só então aparece o
  * campo de senha) — confirmado testando de verdade com uma base real. Por isso, depois
  * de preencher o usuário, o próprio autofill clica no botão que avança para a etapa 2 —
  * do contrário a senha ficaria esperando um clique manual. O clique só acontece uma vez,
@@ -44,7 +44,7 @@ async function revelarSenhaBase(clienteId: string, baseId: string): Promise<stri
 /**
  * Roda a cada tick do observador. Duas situações reconhecidas, cada uma tolerante a
  * marcações diferentes entre bases (não existe um seletor único confirmado para todas
- * as instâncias de Sankhya Om):
+ * as instâncias de SankhyaOm):
  *  - Só campo de senha visível (etapa 2 do login em duas etapas, ou formulário de uma
  *    etapa só com senha): preenche senha e, se ainda houver um campo de texto vazio
  *    antes dela no DOM, preenche usuário também.
@@ -191,7 +191,7 @@ const SCRIPT_TEM_CAMPO_DE_SENHA = `(() => {
 
 /**
  * A página mostra um campo de senha visível dentro do prazo? É o sinal de tela de login
- * quando a URL não denuncia — o Sankhya Om pede a senha na própria `/mge/`.
+ * quando a URL não denuncia — o SankhyaOm pede a senha na própria `/mge/`.
  */
 export async function aguardarCampoDeSenha(wc: WebContents): Promise<boolean> {
   const inicio = Date.now();

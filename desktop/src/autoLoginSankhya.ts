@@ -21,7 +21,7 @@ import type { TabManager } from './tabs';
 /** Tempo para o POST de login terminar e a página redirecionar antes de ler cookie/token. */
 const PAUSA_APOS_SENHA_MS = 2_000;
 const TENTATIVAS_DE_CAPTURA = 5;
-/** Tempo para o Sankhya Om sair da tela de login e abrir o workspace. */
+/** Tempo para o SankhyaOm sair da tela de login e abrir o workspace. */
 const ESPERA_WORKSPACE_MS = 30_000;
 const INTERVALO_MS = 1_000;
 /** Evita reentrar a cada `did-finish-load` da própria navegação que este módulo dispara. */
@@ -41,7 +41,7 @@ function pausa(ms: number): Promise<void> {
 }
 
 /**
- * O Sankhya Om pede a senha na própria `/mge/` e deixa cookie antes do login: nem a URL
+ * O SankhyaOm pede a senha na própria `/mge/` e deixa cookie antes do login: nem a URL
  * nem a captura dizem se a senha foi aceita. Só a chegada ao workspace diz.
  */
 async function chegouAoWorkspaceDoErp(wc: WebContents): Promise<boolean> {
@@ -104,7 +104,7 @@ export async function autoLoginSankhya(
       return {
         ok: false,
         cookies: 0,
-        erro: 'o Sankhya Om não aceitou o login automático — confira usuário e senha salvos',
+        erro: 'o SankhyaOm não aceitou o login automático — confira usuário e senha salvos',
       };
     }
 

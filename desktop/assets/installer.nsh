@@ -300,9 +300,9 @@ Function PerfilPaginaCriar
   ${EndIf}
 
   ; Independente do perfil: qualquer um deles pode ser de um terceiro.
-  ${NSD_CreateCheckbox} 0 100u 100% 12u "Terceiro: sem acesso ao Sankhya Om e a Experience"
+  ${NSD_CreateCheckbox} 0 100u 100% 12u "Terceiro: sem acesso ao SankhyaOm e a Experience"
   Pop $CheckTerceiro
-  ${NSD_CreateLabel} 12u 114u 90% 18u "Oculta Credenciais Sankhya, Agenda, OS e as guias Sankhya Om e Experience."
+  ${NSD_CreateLabel} 12u 114u 90% 18u "Oculta Credenciais Sankhya, Agenda, OS e as guias SankhyaOm e Experience."
   Pop $0
   ${If} $TerceiroEscolhido == "S"
     ${NSD_Check} $CheckTerceiro

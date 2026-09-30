@@ -315,7 +315,7 @@ Ligado em **Configurações › Avisos**, o HUB SNK confere a cada 15 minutos (a
 primeira vez dois minutos depois de abrir) os eventos de hoje da sua Agenda de
 Recursos:
 
-1. traz o dia de novo do Sankhya Om, pela guia já logada — sem conseguir, vale o
+1. traz o dia de novo do SankhyaOm, pela guia já logada — sem conseguir, vale o
    que já estava no snapshot;
 2. pega só os eventos do seu `CODUSU` que têm parceiro (folga e evento interno
    ficam de fora);
@@ -326,7 +326,7 @@ Recursos:
 Sem OS, sai uma notificação — e o e-mail, se marcado — **uma vez por evento por
 dia**. Evento de dia inteiro, ou que continua amanhã, usa as 18h como fim.
 
-Precisa do código de usuário do Sankhya OM (no topo de **Credenciais Sankhya**) e das sessões do Sankhya
+Precisa do código de usuário do SankhyaOm (no topo de **Credenciais Sankhya**) e das sessões do Sankhya
 Om e da Experience ativas no aplicativo. Sessão caída vira uma notificação do
 próprio HUB SNK, uma vez por dia; com o backend rodando sem o aplicativo
 (`npm run dev`), a verificação só registra no log.
@@ -411,7 +411,7 @@ situação do Git, as bolinhas do Git no topo e na lista de clientes e a aba
 ### Terceiro
 
 A caixa **Terceiro**, na aba Acessos e na página do perfil do instalador, é para
-quem não tem acesso ao Sankhya Om nem à Experience. Vale para qualquer perfil e,
+quem não tem acesso ao SankhyaOm nem à Experience. Vale para qualquer perfil e,
 marcada, oculta tudo o que depende das credenciais Sankhya:
 
 - o botão **Credenciais Sankhya** do topo;
@@ -420,7 +420,7 @@ marcada, oculta tudo o que depende das credenciais Sankhya:
 - o campo **Nomes completos no Sankhya** do cliente, que só serve à Agenda e à OS;
 - o grupo **Agenda do dia sem OS lançada** de **Configurações › Avisos**, e a
   verificação a cada 15 minutos deixa de rodar mesmo com o alerta ligado;
-- as guias **Sankhya Om** e **Experience** do aplicativo: saem da barra, do menu
+- as guias **SankhyaOm** e **Experience** do aplicativo: saem da barra, do menu
   **Guias** e dos atalhos Ctrl+2 e Ctrl+3, e o aplicativo deixa de logar sozinho
   nelas.
 

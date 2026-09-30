@@ -8,6 +8,8 @@ import { existsSync } from 'node:fs';
 import { HUB_URL, ERP_URL, EXPERIENCE_URL, ICONE, PARTICAO, userAgentLimpo } from './config';
 import { logEvento } from './log';
 import { TabManager } from './tabs';
+import { GerenciadorComunicacao } from './comunicacao';
+import { MenuFlutuante } from './menuFlutuante';
 import { JanelaAgendaOculta } from './janelaAgendaOculta';
 import { JanelaExperienceOculta } from './janelaExperienceOculta';
 import { criarBridgeServer } from './bridgeServer';
@@ -27,6 +29,8 @@ if (!app.requestSingleInstanceLock()) {
 
 let janelaPrincipal: BrowserWindow | null = null;
 let tabs: TabManager | null = null;
+let comunicacao: GerenciadorComunicacao | null = null;
+let menuFlutuante: MenuFlutuante | null = null;
 let agendaOculta: JanelaAgendaOculta | null = null;
 let experienceOculta: JanelaExperienceOculta | null = null;
 let experienceCapturada = false;
@@ -46,6 +50,9 @@ function criarJanela(): void {
       sandbox: true,
       nodeIntegration: false,
       webSecurity: true,
+      // O aviso de mensagem nova do WhatsApp toca som sem clique nenhum antes; sem isto, o
+      // Chromium pode calar o áudio da barra até o primeiro gesto do usuário.
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
   // A barra nativa ocupava uma linha inteira só para o menu: ele passa a abrir pelo botão
@@ -56,13 +63,19 @@ function criarJanela(): void {
   janelaPrincipal.webContents.on('will-navigate', (evento) => evento.preventDefault());
   janelaPrincipal.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   janelaPrincipal.loadFile(join(__dirname, '..', 'index.html'));
-  janelaPrincipal.on('resize', () => tabs?.reposicionar());
+  janelaPrincipal.on('resize', () => {
+    tabs?.reposicionar();
+    comunicacao?.reposicionar();
+    menuFlutuante?.fechar();
+  });
   // Fechar a janela principal encerra o aplicativo mesmo com uma janela filha aberta
   // (log de uma base, pop-up de SSO): sem isto o `window-all-closed` não dispara, e o
   // app e o backend continuam de pé sem a janela que os controla.
   janelaPrincipal.on('closed', () => app.quit());
 
   tabs = new TabManager(janelaPrincipal);
+  comunicacao = new GerenciadorComunicacao(janelaPrincipal);
+  menuFlutuante = new MenuFlutuante(janelaPrincipal);
   // `?desktop=1` só na aba Hub: sinal para o painel de que ele roda dentro do shell,
   // e não num navegador comum.
   const hubUrlComFlag = `${HUB_URL}${HUB_URL.includes('?') ? '&' : '?'}desktop=1`;
@@ -141,34 +154,75 @@ function criarJanela(): void {
 }
 
 /**
- * Canal que só a barra de guias chama. O preload só existe nela, mas conferir o remetente
- * custa uma linha e não depende de nenhuma outra página nunca ganhar o preload.
+ * Canal que só uma página local atende. O preload só existe nela, mas conferir o
+ * remetente custa uma linha e não depende de nenhuma outra página nunca ganhar o preload.
  */
-function tratarDaBarraDeGuias<A extends unknown[], R>(
+function tratarSoDe<A extends unknown[], R>(
+  pagina: string,
+  ehRemetente: (evento: Electron.IpcMainInvokeEvent) => boolean,
   canal: string,
   tratar: (...argumentos: A) => R,
 ): void {
   ipcMain.handle(canal, (evento, ...argumentos) => {
-    const daBarra =
-      evento.sender === janelaPrincipal?.webContents &&
-      evento.senderFrame === evento.sender.mainFrame;
-    if (!daBarra) {
+    if (!ehRemetente(evento) || evento.senderFrame !== evento.sender.mainFrame) {
       logEvento('ipc-recusado', { canal });
-      throw new Error(`o canal ${canal} só atende a barra de guias`);
+      throw new Error(`o canal ${canal} só atende ${pagina}`);
     }
     return tratar(...(argumentos as A));
   });
 }
 
+function tratarDaBarraDeGuias<A extends unknown[], R>(
+  canal: string,
+  tratar: (...argumentos: A) => R,
+): void {
+  tratarSoDe('a barra de guias', (e) => e.sender === janelaPrincipal?.webContents, canal, tratar);
+}
+
+function tratarDoMenuFlutuante<A extends unknown[], R>(
+  canal: string,
+  tratar: (...argumentos: A) => R,
+): void {
+  tratarSoDe('o menu', (e) => menuFlutuante?.ehRemetente(e.sender) ?? false, canal, tratar);
+}
+
 tratarDaBarraDeGuias('layout:definirAlturaTopo', (altura: number) => {
   tabs?.definirAlturaTopo(altura);
+  comunicacao?.definirAlturaTopo(altura);
   return { ok: true };
 });
 
+tratarDaBarraDeGuias('layout:definirLarguraLateral', (largura: number) => {
+  tabs?.definirLarguraLateral(largura);
+  comunicacao?.definirLarguraLateral(largura);
+  return { ok: true };
+});
+
+tratarDaBarraDeGuias('comunicacao:alternar', (servico: string) => ({
+  ok: comunicacao?.alternar(servico) ?? false,
+}));
+tratarDaBarraDeGuias('comunicacao:ocultar', () => {
+  comunicacao?.ocultar();
+  return { ok: true };
+});
+tratarDaBarraDeGuias('comunicacao:estado', () => comunicacao?.estadoDosServicos() ?? []);
+tratarDaBarraDeGuias('comunicacao:abrirMenu', (x: number, y: number) => {
+  menuFlutuante?.abrir(() => comunicacao?.menuDeServicos() ?? null, x, y);
+  return { ok: true };
+});
+
+// O menu do aplicativo continua registrado pelos atalhos; o botão só o desenha em HTML,
+// para marcar várias guias sem que ele feche a cada clique.
 tratarDaBarraDeGuias('menu:abrir', (x: number, y: number) => {
-  const menu = Menu.getApplicationMenu();
-  if (!menu || !janelaPrincipal) return { ok: false };
-  menu.popup({ window: janelaPrincipal, x: Math.round(x), y: Math.round(y) });
+  menuFlutuante?.abrir(() => Menu.getApplicationMenu(), x, y);
+  return { ok: true };
+});
+
+tratarDoMenuFlutuante('menuFlutuante:escolher', (id: string) => ({
+  ok: menuFlutuante?.escolher(id) ?? false,
+}));
+tratarDoMenuFlutuante('menuFlutuante:fechar', () => {
+  menuFlutuante?.fechar();
   return { ok: true };
 });
 

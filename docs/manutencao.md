@@ -146,7 +146,7 @@ que já existe.
   `%LOCALAPPDATA%\HubSnk\perfil-inicial.txt`, e a caixa Terceiro, para o
   `terceiro-inicial.txt`. Na primeira abertura, **Configurações › Acessos** mostra
   o preset do perfil, e com Terceiro marcado somem Credenciais Sankhya, Agenda, OS
-  e as guias Sankhya Om e Experience.
+  e as guias SankhyaOm e Experience.
 - **Reinstalação**: a página de perfil abre com a escolha anterior marcada, e o
   que foi ajustado na aba Acessos não é desfeito.
 - **Página do Git AutoSync**: com as opções marcadas, ele fica em
@@ -171,7 +171,7 @@ que já existe.
   varredura do antivírus.
 - O cadastro existente aparece, e criar, editar e remover funcionam em clientes,
   bases, repositórios, links, projetos, contatos e lembretes.
-- Com credencial salva, as guias Sankhya Om e Experience logam sozinhas, e a
+- Com credencial salva, as guias SankhyaOm e Experience logam sozinhas, e a
   sessão continua depois de reiniciar o aplicativo. A janela de Credenciais
   Sankhya mostra a senha salva.
 - A Agenda de Recursos e as negociações (FAP) do parceiro chegam pela janela

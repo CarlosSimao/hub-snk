@@ -80,7 +80,7 @@ export function registrarRotasDeAgenda(
     if (codusuAlvo === null) {
       return resposta.status(400).send({
         mensagem:
-          'Informe o "Meu código de usuário Sankhya OM" em Credenciais Sankhya para consultar a agenda.',
+          'Informe o "Meu código de usuário SankhyaOm" em Credenciais Sankhya para consultar a agenda.',
         cadastroIncompleto: true,
       });
     }
