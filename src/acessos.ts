@@ -11,9 +11,9 @@ export const FUNCIONALIDADES_OCULTAS_POR_PERFIL: Readonly<
   Record<PerfilProfissional, readonly Funcionalidade[]>
 > = {
   desenvolvedor: [],
-  consultor: ['cliente.repositorios'],
-  analista: ['cliente.repositorios'],
-  'gerente-de-projeto': ['cliente.repositorios', 'local'],
+  consultor: ['cliente.repositorios', 'autosync', 'cliente.autosync'],
+  analista: ['cliente.repositorios', 'autosync', 'cliente.autosync'],
+  'gerente-de-projeto': ['cliente.repositorios', 'local', 'autosync', 'cliente.autosync'],
 };
 
 export function ehPerfilProfissional(valor: unknown): valor is PerfilProfissional {

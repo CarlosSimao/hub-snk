@@ -27,6 +27,32 @@ O que não passa recebe `403` e fica registrado no log do servidor.
 
 O servidor só escuta em loopback: um `HUB_HOST` fora dele é recusado na largada.
 
+## Autenticação
+
+A conferência de origem barra páginas do navegador, mas não outros processos da
+própria máquina — inclusive os de outro usuário do Windows, porque o loopback é
+compartilhado num servidor RDS ou na troca rápida de usuário. Por isso toda rota
+`/api/*`, menos `/api/healthz`, exige o token do shell, o conteúdo de
+`%APPDATA%\sankhya-hub\ipc\desktop-token.txt`. Ele vale de dois jeitos:
+
+- **cabeçalho `x-hub-token`** — o que o shell e qualquer chamada de fora (script,
+  linha de comando) usam;
+- **cookie `hub_token`** — o que o painel usa. O shell o grava na sessão da guia
+  Painel, com `HttpOnly` e `SameSite=Strict`, antes de carregá-la: o JavaScript da
+  página não lê o valor, e as outras guias não fazem chamadas autenticadas.
+
+Sem o arquivo do token, a resposta é `503`; sem token ou com o token errado,
+`401`. A decisão é pela rota encontrada, e não pela escrita da URL. Os arquivos do
+painel (`/`, `*.js`, `*.css`) não exigem token: não têm dado nenhum.
+
+Para desenvolver o painel no navegador sem o aplicativo aberto, `HUB_SEM_TOKEN=1`
+no backend desliga a exigência, e o servidor avisa no log ao subir.
+
+```powershell
+$token = Get-Content "$env:APPDATA\sankhya-hub\ipc\desktop-token.txt"
+Invoke-RestMethod http://127.0.0.1:4100/api/clientes -Headers @{ 'x-hub-token' = $token }
+```
+
 ## Rotas
 
 | Método   | Rota                                                        | Resposta                                                                                   |
@@ -180,6 +206,58 @@ Banco local:
 Todos os campos são obrigatórios nos dois cadastros, e `porta` segue a regra do
 banco de dados das bases de cliente.
 
+## Git AutoSync
+
+Falam com o Git AutoSync instalado em `GIT_AUTOSYNC_HOME` (padrão `~/.git-autosync`).
+O HUB SNK nunca grava o `config.json` dele: toda mudança é um subcomando do CLI,
+chamado sem shell. O que a tela faz com cada rota está em
+[funcionalidades.md](funcionalidades.md#git-autosync).
+
+| Método e rota                                | Corpo / query                                              | O que faz                                                                         |
+| -------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `GET /api/autosync`                          | `?clientes=true` marca o cliente dono de cada repositório  | Estado, horários, tarefas, IA, alvos e repositórios                               |
+| `GET /api/autosync/clientes`                 |                                                            | Repositórios dos clientes com a situação no autosync e as sugestões de pasta-raiz |
+| `POST /api/autosync/instalar`                | `{ horario?, bandeja?, atalhos?, skills?, path? }`         | Roda o `install-standalone.ps1` do pacote do instalador                           |
+| `POST /api/autosync/repositorios`            | `{ caminho, tipo: 'repo' \| 'root' }`                      | Põe no autosync (`add`, `include` ou religa o alvo desligado)                     |
+| `DELETE /api/autosync/repositorios`          | `{ caminho }`                                              | Tira do autosync (`remove` no alvo próprio, `exclude` na raiz)                    |
+| `POST /api/autosync/repositorios/lote`       | `{ origem: 'clientes' }`                                   | Adiciona um a um os repositórios de clientes que estão fora                       |
+| `POST /api/autosync/repositorios/excluir`    | `{ caminho }`                                              | `exclude` de um repositório de pasta-raiz                                         |
+| `POST /api/autosync/repositorios/incluir`    | `{ caminho }`                                              | `include` de um repositório de pasta-raiz                                         |
+| `PUT /api/autosync/agendamento`              | `{ horarios: ['HH:MM'] }`, de 1 a 6, sem repetir           | `set-schedule`, que reinstala a tarefa                                            |
+| `POST /api/autosync/agendamento/instalar`    |                                                            | `install`                                                                         |
+| `POST /api/autosync/agendamento/desinstalar` |                                                            | `uninstall` (desliga também a bandeja no login)                                   |
+| `PUT /api/autosync/bandeja`                  | `{ ligada }`                                               | `enable-tray` / `disable-tray`                                                    |
+| `PUT /api/autosync/ia`                       | `{ ligada, agente?: auto \| claude \| codex \| opencode }` | `set-ai` e `set-agent`                                                            |
+| `PUT /api/autosync/politica`                 | `{ caminho, include?, exclude?, ramos?, maxBytes?, ia? }`  | `set-policy`; devolve a política gravada                                          |
+| `GET /api/autosync/previa`                   | `?caminho=`                                                | `{ caminho, mensagem }` ou `{ semAlteracoes: true }`                              |
+| `POST /api/autosync/commit`                  | `{ caminho, mensagem? }`                                   | Commit sem push                                                                   |
+| `POST /api/autosync/push`                    | `{ caminho }`                                              | Push do que já foi commitado                                                      |
+| `POST /api/autosync/sincronizar`             | `{ caminho?, mensagem? }`                                  | Commit e push; sem `caminho`, `sync --all`                                        |
+| `POST /api/autosync/merge-request`           | `{ caminho, titulo?, destino?, origem? }`                  | Merge Request no GitLab                                                           |
+| `POST /api/autosync/terminal`                | `{ caminho }`                                              | `204` — terminal aberto na pasta, com o Script padrão; nenhum comando é rodado    |
+| `GET /api/autosync/historico`                | `?caminho=&limite=20`                                      | `{ commits }`                                                                     |
+| `GET /api/autosync/log`                      | `?limite=200`                                              | `{ linhas }` do `autosync.log`                                                    |
+| `GET /api/autosync/diagnostico`              | `?rede=true`                                               | Saída do `doctor`                                                                 |
+| `GET /api/autosync/gitlab`                   |                                                            | `{ host, tokenDefinido }` — o token nunca volta                                   |
+| `PUT /api/autosync/gitlab`                   | `{ host, token? }`                                         | Grava host e token nas variáveis do usuário; sem `token`, mantém o gravado        |
+| `DELETE /api/autosync/gitlab`                |                                                            | Apaga o token e mantém o host; devolve `{ host, tokenDefinido }`                  |
+
+`caminho` precisa ser absoluto, com até 400 caracteres, e já conhecido: estar no
+autosync ou no cadastro de um cliente (para `tipo: 'root'`, vale também a pasta-mãe de
+um repositório de cliente). Respostas de ação trazem `{ saida }` com o texto do CLI.
+Códigos: `400` entrada inválida, `404` pasta inexistente, `409` pacote do autosync
+ausente neste build, `502` o CLI rodou e falhou (a mensagem é a saída dele, e
+`sugestoes` traz, para cada erro reconhecido, `{ explicacao, comandos, acao? }`),
+`503` autosync não instalado (`naoInstalado: true`) ou, no `terminal`, nenhum
+terminal abriu.
+
+As rotas de `gitlab` gravam `GIT_AUTOSYNC_GITLAB_HOST` e `GIT_AUTOSYNC_GITLAB_TOKEN`
+nas variáveis de ambiente do usuário do Windows, de onde o Git AutoSync as lê. O
+`host` vai sem protocolo nem caminho (`gitlab.empresa.com.br`, com porta opcional), e
+o `token` tem até 500 caracteres, sem espaço. `PUT` sem token, e sem nenhum gravado,
+responde `400`. Fora do Windows, a gravação responde `400` pedindo para definir as
+duas variáveis no perfil do shell.
+
 ## Integração com o Sankhya e com o aplicativo desktop
 
 Estas rotas dependem do shell desktop (Electron): quem tem a sessão do Sankhya e o
@@ -225,10 +303,9 @@ esperado.
 
 ### Rotas que só o aplicativo desktop chama
 
-Estas exigem o cabeçalho `x-hub-token` com o conteúdo de
-`%APPDATA%\sankhya-hub\ipc\desktop-token.txt`, o arquivo que o shell grava ao
-abrir. A tela não tem acesso a ele, então nenhuma página aberta na máquina
-consegue chamá-las. Sem o arquivo, a resposta é `503`; com o token errado, `401`.
+Estas exigem o token no cabeçalho `x-hub-token` — o cookie do painel não basta.
+A tela não tem acesso ao valor, então nem o próprio painel consegue chamá-las.
+Sem o arquivo, a resposta é `503`; com o token errado, `401`.
 
 | Método   | Rota                                             | Resposta                                                                           |
 | -------- | ------------------------------------------------ | ---------------------------------------------------------------------------------- |

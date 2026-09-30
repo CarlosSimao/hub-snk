@@ -2,12 +2,34 @@
  * Bootstrap do shell desktop do HUB SNK — ver docs/distribuicao.md.
  */
 import './nomeDoApp';
-import { app, BrowserWindow, Menu, dialog, ipcMain } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  Menu,
+  dialog,
+  globalShortcut,
+  ipcMain,
+  session,
+  type Tray,
+} from 'electron';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
-import { HUB_URL, ERP_URL, EXPERIENCE_URL, ICONE, PARTICAO, userAgentLimpo } from './config';
+import { execFile } from 'node:child_process';
+import {
+  HUB_URL,
+  ERP_URL,
+  EXPERIENCE_URL,
+  ICONE,
+  ID_DO_APP_WINDOWS,
+  PARTICAO,
+  userAgentLimpo,
+} from './config';
 import { logEvento } from './log';
+import { garantirToken } from './tokenStore';
 import { TabManager } from './tabs';
+import { GerenciadorComunicacao } from './comunicacao';
+import { MenuFlutuante } from './menuFlutuante';
+import { BarraDeBusca } from './barraDeBusca';
 import { JanelaAgendaOculta } from './janelaAgendaOculta';
 import { JanelaExperienceOculta } from './janelaExperienceOculta';
 import { criarBridgeServer } from './bridgeServer';
@@ -16,6 +38,16 @@ import { iniciarBackend, pararBackend } from './backendProcess';
 import { autoLoginSankhya } from './autoLoginSankhya';
 import * as cofre from './cofreCredenciais';
 import { montarMenu } from './menu';
+import { avisarQueContinuaNaBandeja, criarBandeja } from './bandeja';
+import { AtalhoGlobalDaBusca } from './atalhoGlobal';
+import { abrirBuscaRapida } from './buscaRapida';
+import { registrarEsquemaDoRuffle } from './ruffle';
+import { iniciarAtualizacaoAutomatica } from './atualizacao';
+import {
+  definirInicioAutomatico,
+  foiIniciadoPeloWindows,
+  inicioAutomaticoLigado,
+} from './inicioAutomatico';
 
 if (!app.requestSingleInstanceLock()) {
   // app.quit() só agenda o encerramento — sem process.exit aqui, o resto do módulo
@@ -25,14 +57,52 @@ if (!app.requestSingleInstanceLock()) {
   process.exit(0);
 }
 
+registrarEsquemaDoRuffle();
+
 let janelaPrincipal: BrowserWindow | null = null;
 let tabs: TabManager | null = null;
+let comunicacao: GerenciadorComunicacao | null = null;
+let menuFlutuante: MenuFlutuante | null = null;
+let barraDeBusca: BarraDeBusca | null = null;
 let agendaOculta: JanelaAgendaOculta | null = null;
 let experienceOculta: JanelaExperienceOculta | null = null;
 let experienceCapturada = false;
 /** `expIso` do que já foi confirmado empurrado — dispara push de novo se mudar (relogin
  * sem passar por "ausente" no meio, ex.: trocar de conta sem sair primeiro). */
 let ultimoExpEmpurrado = '';
+/** Referência mantida só para o coletor de lixo não levar o ícone da bandeja embora. */
+let bandeja: Tray | null = null;
+/** Encerramento pedido (Sair): a partir daqui o X fecha a janela em vez de escondê-la. */
+let encerrando = false;
+/** Windows desligando ou saindo da conta: segurar o fechamento travaria o desligamento. */
+let sessaoDoWindowsEncerrando = false;
+const atalhoGlobal = new AtalhoGlobalDaBusca(() => abrirBuscaRapidaNaJanela());
+/** Mesmo nome que o backend lê — ver `src/rotas/autenticacaoDoPainel.ts`. */
+const NOME_DO_COOKIE_DO_TOKEN = 'hub_token';
+
+/**
+ * O backend exige o token em toda a API. O painel não o conhece: vai como cookie da
+ * sessão da guia, e `fetch`, `EventSource` e a janela de log passam a levá-lo sozinhos.
+ * `HttpOnly` esconde o valor do JavaScript da página; `SameSite=Strict` impede que o
+ * ERP e a Experience, que dividem a partição, façam chamadas autenticadas ao backend.
+ */
+async function gravarTokenParaOPainel(): Promise<void> {
+  try {
+    await session.fromPartition(PARTICAO).cookies.set({
+      url: HUB_URL,
+      name: NOME_DO_COOKIE_DO_TOKEN,
+      value: garantirToken(),
+      httpOnly: true,
+      sameSite: 'strict',
+    });
+  } catch (err) {
+    logEvento('painel-token-falhou', { erro: String(err) });
+    dialog.showErrorBox(
+      'HUB SNK — o painel não vai carregar os dados',
+      `Não foi possível entregar o token do shell ao painel: ${String(err)}`,
+    );
+  }
+}
 
 function criarJanela(): void {
   janelaPrincipal = new BrowserWindow({
@@ -40,12 +110,17 @@ function criarJanela(): void {
     height: 860,
     title: 'HUB SNK',
     icon: ICONE,
+    // Aberto pelo Windows no login, o app sobe escondido na bandeja, sem janela na frente.
+    show: !foiIniciadoPeloWindows(),
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
       webSecurity: true,
+      // O aviso de mensagem nova do WhatsApp toca som sem clique nenhum antes; sem isto, o
+      // Chromium pode calar o áudio da barra até o primeiro gesto do usuário.
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
   // A barra nativa ocupava uma linha inteira só para o menu: ele passa a abrir pelo botão
@@ -56,13 +131,37 @@ function criarJanela(): void {
   janelaPrincipal.webContents.on('will-navigate', (evento) => evento.preventDefault());
   janelaPrincipal.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   janelaPrincipal.loadFile(join(__dirname, '..', 'index.html'));
-  janelaPrincipal.on('resize', () => tabs?.reposicionar());
+  janelaPrincipal.on('resize', () => {
+    tabs?.reposicionar();
+    comunicacao?.reposicionar();
+    menuFlutuante?.fechar();
+    barraDeBusca?.reposicionar();
+  });
   // Fechar a janela principal encerra o aplicativo mesmo com uma janela filha aberta
   // (log de uma base, pop-up de SSO): sem isto o `window-all-closed` não dispara, e o
   // app e o backend continuam de pé sem a janela que os controla.
   janelaPrincipal.on('closed', () => app.quit());
+  // Com a bandeja, o X só esconde: o atalho global e os avisos de mensagem nova seguem
+  // valendo. Sair de verdade é por Hub › Sair ou pela bandeja.
+  janelaPrincipal.on('close', (evento) => {
+    if (encerrando || sessaoDoWindowsEncerrando) return;
+    evento.preventDefault();
+    janelaPrincipal?.hide();
+    avisarQueContinuaNaBandeja();
+  });
+  janelaPrincipal.on('query-session-end', () => {
+    sessaoDoWindowsEncerrando = true;
+  });
 
   tabs = new TabManager(janelaPrincipal);
+  comunicacao = new GerenciadorComunicacao(janelaPrincipal);
+  tabs.definirPainelDeComunicacao(comunicacao);
+  menuFlutuante = new MenuFlutuante(janelaPrincipal);
+  const gerenciadorDasGuias = tabs;
+  const barra = new BarraDeBusca(janelaPrincipal, () => gerenciadorDasGuias.viewAtiva());
+  // A busca é da guia em que foi aberta: na troca, a barra não pode ficar por cima de outra.
+  tabs.aoTrocarGuiaAtiva(() => barra.fechar());
+  barraDeBusca = barra;
   // `?desktop=1` só na aba Hub: sinal para o painel de que ele roda dentro do shell,
   // e não num navegador comum.
   const hubUrlComFlag = `${HUB_URL}${HUB_URL.includes('?') ? '&' : '?'}desktop=1`;
@@ -140,35 +239,130 @@ function criarJanela(): void {
   }, 15_000);
 }
 
+function mostrarJanela(): void {
+  if (!janelaPrincipal) return;
+  if (janelaPrincipal.isMinimized()) janelaPrincipal.restore();
+  janelaPrincipal.show();
+  janelaPrincipal.focus();
+}
+
+/** Traz a janela e deixa a guia Painel à vista: é o que o atalho, o menu e a bandeja pedem. */
+function mostrarPainel(): void {
+  mostrarJanela();
+  // O painel de comunicação fica por cima das guias e cobriria a busca.
+  comunicacao?.ocultar();
+}
+
+function abrirBuscaRapidaNaJanela(): void {
+  if (!tabs) return;
+  mostrarPainel();
+  void abrirBuscaRapida(tabs);
+}
+
+function criarBandejaDoApp(): void {
+  bandeja = criarBandeja({
+    mostrarJanela,
+    abrirBusca: abrirBuscaRapidaNaJanela,
+    situacaoDoAtalhoGlobal: () => atalhoGlobal.situacao,
+    definirAtalhoGlobalLigado: (ligado) => atalhoGlobal.definirLigado(ligado),
+    inicioAutomaticoLigado,
+    definirInicioAutomatico,
+    sair: () => app.quit(),
+  });
+}
+
 /**
- * Canal que só a barra de guias chama. O preload só existe nela, mas conferir o remetente
- * custa uma linha e não depende de nenhuma outra página nunca ganhar o preload.
+ * Canal que só uma página local atende. O preload só existe nela, mas conferir o
+ * remetente custa uma linha e não depende de nenhuma outra página nunca ganhar o preload.
  */
-function tratarDaBarraDeGuias<A extends unknown[], R>(
+function tratarSoDe<A extends unknown[], R>(
+  pagina: string,
+  ehRemetente: (evento: Electron.IpcMainInvokeEvent) => boolean,
   canal: string,
   tratar: (...argumentos: A) => R,
 ): void {
   ipcMain.handle(canal, (evento, ...argumentos) => {
-    const daBarra =
-      evento.sender === janelaPrincipal?.webContents &&
-      evento.senderFrame === evento.sender.mainFrame;
-    if (!daBarra) {
+    if (!ehRemetente(evento) || evento.senderFrame !== evento.sender.mainFrame) {
       logEvento('ipc-recusado', { canal });
-      throw new Error(`o canal ${canal} só atende a barra de guias`);
+      throw new Error(`o canal ${canal} só atende ${pagina}`);
     }
     return tratar(...(argumentos as A));
   });
 }
 
+function tratarDaBarraDeGuias<A extends unknown[], R>(
+  canal: string,
+  tratar: (...argumentos: A) => R,
+): void {
+  tratarSoDe('a barra de guias', (e) => e.sender === janelaPrincipal?.webContents, canal, tratar);
+}
+
+function tratarDoMenuFlutuante<A extends unknown[], R>(
+  canal: string,
+  tratar: (...argumentos: A) => R,
+): void {
+  tratarSoDe('o menu', (e) => menuFlutuante?.ehRemetente(e.sender) ?? false, canal, tratar);
+}
+
 tratarDaBarraDeGuias('layout:definirAlturaTopo', (altura: number) => {
   tabs?.definirAlturaTopo(altura);
+  comunicacao?.definirAlturaTopo(altura);
+  barraDeBusca?.reposicionar();
   return { ok: true };
 });
 
+tratarDaBarraDeGuias('layout:definirLarguraLateral', (largura: number) => {
+  tabs?.definirLarguraLateral(largura);
+  comunicacao?.definirLarguraLateral(largura);
+  barraDeBusca?.reposicionar();
+  return { ok: true };
+});
+
+tratarDaBarraDeGuias('comunicacao:alternar', (servico: string) => ({
+  ok: comunicacao?.alternar(servico) ?? false,
+}));
+tratarDaBarraDeGuias('comunicacao:ocultar', () => {
+  comunicacao?.ocultar();
+  return { ok: true };
+});
+tratarDaBarraDeGuias('comunicacao:estado', () => comunicacao?.estadoDosServicos() ?? []);
+tratarDaBarraDeGuias('comunicacao:abrirMenu', (x: number, y: number) => {
+  menuFlutuante?.abrir(() => comunicacao?.menuDeServicos() ?? null, x, y);
+  return { ok: true };
+});
+
+// O menu do aplicativo continua registrado pelos atalhos; o botão só o desenha em HTML,
+// para marcar várias guias sem que ele feche a cada clique.
 tratarDaBarraDeGuias('menu:abrir', (x: number, y: number) => {
-  const menu = Menu.getApplicationMenu();
-  if (!menu || !janelaPrincipal) return { ok: false };
-  menu.popup({ window: janelaPrincipal, x: Math.round(x), y: Math.round(y) });
+  menuFlutuante?.abrir(() => Menu.getApplicationMenu(), x, y);
+  return { ok: true };
+});
+
+tratarDoMenuFlutuante('menuFlutuante:escolher', (id: string) => ({
+  ok: menuFlutuante?.escolher(id) ?? false,
+}));
+tratarDoMenuFlutuante('menuFlutuante:fechar', () => {
+  menuFlutuante?.fechar();
+  return { ok: true };
+});
+
+function tratarDaBarraDeBusca<A extends unknown[], R>(
+  canal: string,
+  tratar: (...argumentos: A) => R,
+): void {
+  tratarSoDe(
+    'a barra de busca',
+    (e) => barraDeBusca?.ehRemetente(e.sender) ?? false,
+    canal,
+    tratar,
+  );
+}
+
+tratarDaBarraDeBusca('barraDeBusca:buscar', (texto: unknown, paraTras: unknown) => ({
+  ok: barraDeBusca?.buscar(texto, paraTras) ?? false,
+}));
+tratarDaBarraDeBusca('barraDeBusca:fechar', () => {
+  barraDeBusca?.fechar();
   return { ok: true };
 });
 
@@ -180,8 +374,34 @@ tratarDaBarraDeGuias('links:fechar', (origin: string) => ({
 }));
 tratarDaBarraDeGuias('links:lista', () => tabs?.abasClientesAbertas() ?? []);
 
+/**
+ * Sem isto o Windows escreve "Electron" no topo de toda notificação (WhatsApp, Chat,
+ * Gmail). A identidade vale para o processo inteiro: não há como cada serviço aparecer
+ * com o próprio nome ali.
+ *
+ * Empacotado, o atalho do instalador já liga o id ao nome e ao ícone. Em desenvolvimento
+ * não há atalho: o nome vai para o registro do usuário (`HKCU`, sem administrador), que o
+ * Windows aceita no lugar do atalho para apps Win32.
+ */
+function definirIdentidadeNasNotificacoes(): void {
+  if (process.platform !== 'win32') return;
+  app.setAppUserModelId(ID_DO_APP_WINDOWS);
+  if (app.isPackaged) return;
+  const chave = `HKCU\\Software\\Classes\\AppUserModelId\\${ID_DO_APP_WINDOWS}`;
+  const valores: Array<[string, string]> = [
+    ['DisplayName', app.getName()],
+    ['IconUri', ICONE],
+  ];
+  for (const [nome, valor] of valores) {
+    execFile('reg', ['add', chave, '/v', nome, '/t', 'REG_SZ', '/d', valor, '/f'], (erro) => {
+      if (erro) logEvento('identidade-notificacao-nao-registrada', { nome, erro: erro.message });
+    });
+  }
+}
+
 app.whenReady().then(async () => {
   logEvento('app-pronto');
+  definirIdentidadeNasNotificacoes();
 
   // Antes de qualquer janela: o user agent vale para todas as requisições, e páginas do
   // Sankhya que detectam Electron tentam `require(...)` e quebram com um alert.
@@ -214,18 +434,30 @@ app.whenReady().then(async () => {
     dialog.showErrorBox('HUB SNK — o backend não subiu', backend.erro);
   }
 
+  await gravarTokenParaOPainel();
   criarJanela();
-  montarMenu(
-    () => janelaPrincipal,
-    () => tabs,
-  );
+  const reconstruirMenu = () =>
+    montarMenu(
+      () => janelaPrincipal,
+      () => tabs,
+      {
+        abrirBuscaRapida: abrirBuscaRapidaNaJanela,
+        buscarNaPagina: () => barraDeBusca?.abrir(),
+        situacaoDoAtalhoGlobal: () => atalhoGlobal.situacao,
+      },
+    );
+  reconstruirMenu();
+  // Versão baixada ou atualização desligada: o item "Reiniciar para atualizar" muda.
+  iniciarAtualizacaoAutomatica(reconstruirMenu);
+  criarBandejaDoApp();
+  atalhoGlobal.aplicarEscolhaGravada();
+  comunicacao?.carregarAoAbrirSeEscolhido();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) criarJanela();
   });
 });
 
-let encerrando = false;
 app.on('before-quit', (evento) => {
   // `pararBackend` é assíncrono e o Electron não espera handler nenhum: sem segurar o
   // quit aqui, o processo do backend sobraria órfão segurando a porta 4100, e a próxima
@@ -243,9 +475,7 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-app.on('second-instance', () => {
-  if (janelaPrincipal) {
-    if (janelaPrincipal.isMinimized()) janelaPrincipal.restore();
-    janelaPrincipal.focus();
-  }
-});
+app.on('will-quit', () => globalShortcut.unregisterAll());
+
+// O atalho da área de trabalho com o app escondido na bandeja cai aqui: a janela volta.
+app.on('second-instance', mostrarJanela);

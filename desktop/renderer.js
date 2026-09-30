@@ -102,3 +102,162 @@ function aplicarEstadoDasGuias(guias) {
 
 window.hub.guias.aoAtualizar(aplicarEstadoDasGuias);
 window.hub.guias.estado().then(aplicarEstadoDasGuias);
+
+/**
+ * Barra lateral de comunicação: cada botão abre o serviço no painel por cima das guias, ou o
+ * esconde se ele já estiver aberto — quem decide é o shell (src/comunicacao.ts).
+ */
+const barraLateral = document.getElementById('lateral');
+const botoesComunicacao = document.querySelectorAll('#servicos button[data-servico]');
+const botaoAlternarLateral = document.getElementById('alternarLateral');
+/** Preferência só desta tela: nada no shell depende dela, então não vai para o `userData`. */
+const CHAVE_LATERAL_OCULTA = 'hub.lateralOculta';
+let servicoAtivo = null;
+/** Conversas não lidas por serviço, pelo título da página (só o WhatsApp informa). */
+const naoLidasPorServico = new Map();
+const LIMITE_DO_CONTADOR = 99;
+
+function marcarServicoAtivo(servico) {
+  servicoAtivo = servico;
+  for (const botao of botoesComunicacao) {
+    botao.classList.toggle('ativa', botao.dataset.servico === servico);
+  }
+  atualizarPiscar();
+}
+
+/** Pisca quem tem não lidas e não está aberto: aberto, você já está vendo. */
+function atualizarPiscar() {
+  for (const botao of botoesComunicacao) {
+    const servico = botao.dataset.servico;
+    const temNaoLidas = (naoLidasPorServico.get(servico) ?? 0) > 0;
+    botao.classList.toggle('piscando', temNaoLidas && servico !== servicoAtivo);
+  }
+}
+
+function botaoDoServico(servico) {
+  return document.querySelector(`#servicos button[data-servico="${CSS.escape(servico)}"]`);
+}
+
+function textoDoContador(quantidade, exata) {
+  if (!exata) return '';
+  return quantidade > LIMITE_DO_CONTADOR ? `${LIMITE_DO_CONTADOR}+` : String(quantidade);
+}
+
+function mostrarNaoLidas({ servico, quantidade, exata }) {
+  naoLidasPorServico.set(servico, quantidade);
+  const contador = botaoDoServico(servico)?.querySelector('.contador');
+  if (contador) {
+    contador.hidden = quantidade === 0;
+    contador.classList.toggle('ponto', !exata);
+    contador.textContent = textoDoContador(quantidade, exata);
+  }
+  atualizarPiscar();
+}
+
+/** Botão de serviço desabilitado no menu da engrenagem some da barra. */
+function aplicarServicosHabilitados(servicos) {
+  for (const { servico, habilitado } of servicos) {
+    const botao = botaoDoServico(servico);
+    if (botao) botao.hidden = !habilitado;
+  }
+}
+
+for (const botao of botoesComunicacao) {
+  botao.addEventListener('click', () => window.hub.comunicacao.alternar(botao.dataset.servico));
+}
+window.hub.comunicacao.aoMudarAtivo(marcarServicoAtivo);
+window.hub.comunicacao.aoMudarNaoLidas(mostrarNaoLidas);
+window.hub.comunicacao.aoMensagemNova(tocarSomDeMensagemNova);
+window.hub.comunicacao.aoMudarServicos(aplicarServicosHabilitados);
+window.hub.comunicacao.estado().then(aplicarServicosHabilitados);
+
+document.getElementById('configurarServicos').addEventListener('click', (evento) => {
+  const { right, top } = evento.currentTarget.getBoundingClientRect();
+  window.hub.comunicacao.abrirMenu(right, top);
+});
+
+/*
+ * Som sintetizado com Web Audio, como o das notificações do Painel (public/app.js), mas
+ * com duas notas subindo — dá para distinguir de ouvido uma mensagem de um aviso do HUB.
+ */
+const NOTAS_DA_MENSAGEM_HZ = [784, 1175];
+const DURACAO_DA_NOTA_S = 0.18;
+const INTERVALO_ENTRE_NOTAS_S = 0.12;
+const VOLUME_DA_MENSAGEM = 0.2;
+const VOLUME_SILENCIOSO = 0.0001;
+const SUBIDA_DO_VOLUME_S = 0.02;
+/* Criado no primeiro som: o navegador pode recusar um contexto de áudio antes disso. */
+let contextoDeAudio = null;
+
+function tocarSomDeMensagemNova() {
+  try {
+    contextoDeAudio ??= new AudioContext();
+    void contextoDeAudio.resume();
+    const inicio = contextoDeAudio.currentTime;
+    NOTAS_DA_MENSAGEM_HZ.forEach((frequencia, indice) => {
+      const comeco = inicio + indice * INTERVALO_ENTRE_NOTAS_S;
+      const oscilador = contextoDeAudio.createOscillator();
+      const volume = contextoDeAudio.createGain();
+      oscilador.type = 'sine';
+      oscilador.frequency.value = frequencia;
+      volume.gain.setValueAtTime(VOLUME_SILENCIOSO, comeco);
+      volume.gain.exponentialRampToValueAtTime(VOLUME_DA_MENSAGEM, comeco + SUBIDA_DO_VOLUME_S);
+      volume.gain.exponentialRampToValueAtTime(VOLUME_SILENCIOSO, comeco + DURACAO_DA_NOTA_S);
+      oscilador.connect(volume).connect(contextoDeAudio.destination);
+      oscilador.start(comeco);
+      oscilador.stop(comeco + DURACAO_DA_NOTA_S);
+    });
+  } catch (erro) {
+    // Sem áudio (sem saída de som): o ícone pisca mesmo assim.
+    console.warn('Som de mensagem nova indisponível:', erro);
+  }
+}
+
+// Clique fora do painel que cai nesta página (a barra de guias): esconde o painel. Clique
+// numa guia o shell já percebe pela troca de foco.
+document.addEventListener('mousedown', (evento) => {
+  if (!servicoAtivo || barraLateral.contains(evento.target)) return;
+  window.hub.comunicacao.ocultar();
+});
+
+function informarLarguraLateral() {
+  window.hub.layout.definirLarguraLateral(barraLateral.offsetWidth);
+}
+
+function lerLateralOculta() {
+  try {
+    return localStorage.getItem(CHAVE_LATERAL_OCULTA) === 'S';
+  } catch {
+    // Armazenamento indisponível: abre com a barra visível, que é o padrão.
+    return false;
+  }
+}
+
+function gravarLateralOculta(oculta) {
+  try {
+    localStorage.setItem(CHAVE_LATERAL_OCULTA, oculta ? 'S' : 'N');
+  } catch (err) {
+    console.error('preferência da barra lateral não gravada', err);
+  }
+}
+
+function aplicarLateralOculta(oculta) {
+  document.body.classList.toggle('lateral-oculta', oculta);
+  const rotulo = oculta ? 'Exibir barra de comunicação' : 'Ocultar barra de comunicação';
+  botaoAlternarLateral.title = rotulo;
+  botaoAlternarLateral.setAttribute('aria-label', rotulo);
+  botaoAlternarLateral.setAttribute('aria-expanded', String(!oculta));
+  // Sem os botões à vista, o painel aberto ficaria sem como ser fechado pela barra.
+  if (oculta && servicoAtivo) window.hub.comunicacao.ocultar();
+  informarLarguraLateral();
+  // A barra de guias perde ou ganha largura e pode quebrar linha, mudando de altura.
+  setTimeout(informarAlturaTopo, 0);
+}
+
+botaoAlternarLateral.addEventListener('click', () => {
+  const oculta = !document.body.classList.contains('lateral-oculta');
+  gravarLateralOculta(oculta);
+  aplicarLateralOculta(oculta);
+});
+
+aplicarLateralOculta(lerLateralOculta());

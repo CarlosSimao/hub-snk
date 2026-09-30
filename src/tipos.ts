@@ -37,7 +37,7 @@
  * interno, sem tela própria: é preenchido sozinho ao capturar a sessão do Sankhya
  * Experience (`descobrirPersonId`), nunca digitado pelo usuário.
  *
- * `sankhyaOmCodUsu` é o `CODUSU` do usuário logado no Sankhya OM (ERP) — diferente
+ * `sankhyaOmCodUsu` é o `CODUSU` do usuário logado no SankhyaOm (ERP) — diferente
  * do `person_id` da Experience, e sem forma automática de descobrir a partir da
  * sessão capturada (só cookies e nenhum deles carrega o valor). Por isso, ao
  * contrário de `experiencePersonId`, é digitado à mão no topo de Credenciais Sankhya.
@@ -64,7 +64,7 @@ export interface ConfiguracaoGlobal {
   sankhyaOmCodUsu: string;
   perfil: PerfilProfissional;
   funcionalidadesOcultas: Funcionalidade[];
-  /** Terceiro não tem acesso ao Sankhya Om nem à Experience: o que depende deles some. */
+  /** Terceiro não tem acesso ao SankhyaOm nem à Experience: o que depende deles some. */
   terceiro: boolean;
   smtp: ConfiguracaoSmtp;
   alertaDaAgenda: AlertaDaAgenda;
@@ -136,6 +136,8 @@ export const FUNCIONALIDADES = [
   'cliente.agenda',
   'cliente.os',
   'cliente.contatos',
+  'autosync',
+  'cliente.autosync',
 ] as const;
 
 export type Funcionalidade = (typeof FUNCIONALIDADES)[number];
@@ -293,7 +295,7 @@ export interface Cliente {
   links: LinkDoCliente[];
   projetos: Projeto[];
   /**
-   * Razões sociais deste cliente no Sankhya OM/Experience — o nome do cadastro
+   * Razões sociais deste cliente no SankhyaOm/Experience — o nome do cadastro
    * do hub raramente bate com o nome de lá (abreviado, com sufixo societário,
    * de matriz/filial diferente). É o ÚNICO vínculo com o Sankhya: casa a empresa
    * da OS (`aba OS do cliente`) e o parceiro da Agenda (`aba Agenda do cliente`),

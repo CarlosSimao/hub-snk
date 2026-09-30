@@ -9,6 +9,106 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.1.0] - 2026-09-30
+
+### Adicionado
+
+- **Git AutoSync no painel**: a aba **Git** do menu principal mostra e controla o commit
+  e o push automáticos dos repositórios — situação da tarefa agendada, horários, rodar
+  agora, mensagem do commit escrita por IA (com confirmação antes de ligar), pastas-raiz,
+  histórico, log e, em cada repositório, **Commit**, **Push**, **Sincronizar** e
+  **Merge Request**. **Adicionar todos os repositórios dos clientes** põe no AutoSync, de
+  uma vez, os que têm pasta local. Quando uma ação falha, o bloco **Como resolver**
+  explica o erro, traz os comandos para copiar e abre o terminal na pasta; nada é
+  executado sozinho. Sem o Git AutoSync instalado, a aba oferece a instalação pelo
+  pacote que veio com o HUB SNK. O HUB SNK nunca grava a configuração do AutoSync: tudo
+  passa pelo próprio `git-autosync`.
+- **Configurações › Git**: host e token do GitLab usados pelo Merge Request. O token vai
+  para as variáveis de ambiente do seu usuário do Windows e não volta para a tela.
+- **Buscar na página (`Ctrl+F`)**, em qualquer guia — Painel, SankhyaOm, Experience e
+  bases de cliente —, como no Chrome: a barra abre no canto superior direito, busca
+  enquanto você digita, também dentro dos frames, e mostra quantas ocorrências achou.
+  `Enter` vai para a próxima, `Shift+Enter` para a anterior e `Esc` fecha. Não encontra
+  texto dentro das telas Flash.
+- **Painel de comunicação**: barra lateral com **WhatsApp Web**, **Gmail** e **Google
+  Chat**, cada um aberto num painel por cima das guias, com login próprio que fica salvo.
+  Mensagem nova gera aviso com contador no botão, som e notificação do Windows, e
+  clicar na notificação abre o painel do serviço. A engrenagem da barra escolhe os
+  botões que aparecem e se o WhatsApp e o Chat carregam escondidos ao abrir o HUB SNK
+  (vem desligado: juntos, eles ocupam perto de 900 MB).
+- **Busca rápida**: `Ctrl+K` (ou a lupa no topo do painel) abre uma caixa única que
+  procura em clientes, bases, repositórios, links, projetos, contatos, atalhos e
+  bases locais, sem ligar para acento nem maiúsculas. `Enter` abre o item — a base
+  na guia com o login preenchido, o repositório na IDE, o atalho no programa — e
+  `Ctrl+Enter` abre o cliente dele no painel. O que você abre por ali passa a
+  aparecer primeiro. Respeita os acessos: o que está oculto não aparece na busca.
+- **Atalho global `Ctrl+Shift+Espaço`**: traz o HUB SNK para a frente já com a busca
+  aberta, com qualquer programa em foco.
+- **Ajuda › Atalhos**, no menu ao lado da guia Painel: janela com todos os atalhos de
+  teclado do aplicativo, da busca rápida e o global. A lista sai do próprio menu, então
+  está sempre em dia com ele.
+- **Ícone na bandeja do Windows**, com a busca rápida e duas caixas: **Atalho global**,
+  que desliga o `Ctrl+Shift+Espaço` quando ele conflita com outro programa, e **Iniciar
+  HUB SNK automaticamente**, que abre o HUB SNK junto com o Windows, escondido na
+  bandeja. As duas escolhas valem para as próximas aberturas.
+- **Conversar com o contato**: na aba Contatos e na do cliente, o contato com telefone
+  ganha o botão **Conversar no WhatsApp**, e o com e-mail, **Escrever e-mail**. No
+  aplicativo, os dois abrem no painel de comunicação: a conversa do número no WhatsApp
+  Web e um e-mail novo no Gmail, já endereçado. Telefone sem código do país vale como
+  brasileiro. Com o serviço desligado na engrenagem da barra, o botão abre no navegador.
+- **Compatibilidade com Flash (Ruffle)**, no menu **Hub**: abre as telas Flex legadas do
+  Sankhya Om, que pedem o Flash Player, no SankhyaOm e nas bases de cliente. Vem
+  desligada: ligada, cada página do Sankhya carrega um script de 465 KB, e o motor
+  (cerca de 14 MB) só é baixado pela tela que tiver conteúdo Flash. Desligada, nada é
+  carregado. A troca vale para as telas abertas depois: a que já está aberta muda ao
+  recarregar a guia.
+- **Atualização automática**: o HUB SNK procura versão nova ao abrir e a cada 6 horas,
+  baixa em segundo plano e avisa por notificação quando ela está pronta. Clique nela, ou
+  em **Ajuda › Reiniciar para atualizar**, para instalar sem perder cadastro, perfil nem
+  login; quem sai do programa sem reiniciar recebe a versão nova na saída. A caixa
+  **Ajuda › Atualizar automaticamente** desliga tudo isso, e fica só o aviso do Painel.
+  O Git AutoSync instalado não muda com a atualização automática.
+- **Resumo do dia**, a nova tela inicial do Painel: os eventos da agenda de hoje (com o
+  selo **Sem OS lançada** nos que o alerta da agenda já apontou), os lembretes que
+  disparam ou já dispararam hoje, os repositórios com alguma pendência (os que precisam
+  de ação primeiro), as OS do mês atual e do anterior que ainda não estão como
+  **Concluído** e a versão nova do HUB SNK, quando houver. Cada item leva para onde se
+  resolve, e cada seção some junto com a funcionalidade dela em **Configurações ›
+  Acessos**. Só as OS vêm da Experience: a consulta roda ao abrir o Resumo e é
+  reaproveitada até a próxima abertura, e cada seção aparece quando fica pronta, sem
+  esperar as outras. As bases dos clientes ficam de fora.
+
+### Alterado
+
+- **A aba Repositórios do cliente passa a se chamar Git** e traz, no fim, a seção
+  **AutoSync** com a situação e as ações do Git AutoSync para os repositórios dele. Em
+  **Configurações › Acessos**, a caixa **Git** controla a aba e a caixa **AutoSync (na aba
+  Git)**, só a seção.
+- **Os lembretes saem do menu principal**: o botão **Lembretes** fica no painel de
+  notificações (o sino) e abre a janela com a lista, o **Novo lembrete** e as ações de
+  editar e excluir.
+- **Fechar a janela esconde o HUB SNK na bandeja** em vez de encerrá-lo, para o atalho
+  global e os avisos de mensagem nova continuarem valendo. Para sair, use _Hub_ ›
+  _Sair_ ou o botão direito no ícone da bandeja.
+- **A API passa a exigir o token do aplicativo** em todas as rotas, menos a
+  `/api/healthz`. Antes, qualquer programa da máquina — inclusive de outro usuário
+  do Windows no mesmo computador — lia o cadastro com as senhas das bases, dos
+  bancos e do SMTP. O painel recebe o token do aplicativo por cookie e continua
+  igual; chamadas de fora (scripts) precisam do cabeçalho `x-hub-token` — veja
+  [Autenticação](docs/api.md#autenticação).
+
+### Removido
+
+- **Ajuda › Abrir o painel no navegador**: fora do aplicativo o painel não tem o
+  token da API. Para desenvolver no navegador, o backend aceita `HUB_SEM_TOKEN=1`.
+
+### Corrigido
+
+- Depois de atualizar o HUB SNK, a desinstalação deixava de perguntar se removia o Git
+  AutoSync: a marca de que foi o instalador quem o instalou ficava na pasta do programa,
+  que toda atualização substitui. Ela passa a morar em `%LOCALAPPDATA%\HubSnk`, e a de
+  uma instalação anterior é levada para lá na próxima atualização.
+
 ## [2.0.0] - 2026-09-29
 
 Versão de quebra de compatibilidade (MAJOR): o HUB SNK passa a ser um aplicativo
@@ -338,7 +438,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.0.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/CarlosSimao/hub-snk/releases/tag/v1.0.0

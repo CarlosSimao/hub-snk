@@ -6,14 +6,14 @@
     <title>HUB SNK</title>
     <meta
       name="description"
-      content="Cadastro de clientes, bases e repositórios, com o Sankhya Om e a Experience abertos em guias do próprio aplicativo. Para Windows."
+      content="Cadastro de clientes, bases e repositórios, com o SankhyaOm e a Experience abertos em guias do próprio aplicativo. Para Windows."
     />
     <meta property="og:title" content="HUB SNK" />
     <meta
       property="og:description"
-      content="Clientes, bases, agenda e OS num aplicativo só, com login automático no Sankhya Om e na Experience."
+      content="Clientes, bases, agenda e OS num aplicativo só, com login automático no SankhyaOm e na Experience e o WhatsApp, o Gmail e o Google Chat ao lado."
     />
-    <meta property="og:image" content="https://carlossimao.github.io/hub-snk/img/screenshot.png" />
+    <meta property="og:image" content="https://carlossimao.github.io/hub-snk/img/resumo.png" />
     <meta property="og:url" content="https://carlossimao.github.io/hub-snk/" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="img/icone.png" />
@@ -170,6 +170,11 @@
         margin: 0 0 72px;
       }
 
+      /* O print dentro de uma seção fica colado ao conteúdo dela. */
+      section .print {
+        margin-bottom: 24px;
+      }
+
       .print img {
         display: block;
         width: 100%;
@@ -198,6 +203,15 @@
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 16px;
+      }
+
+      .funcionalidade code {
+        padding: 1px 6px;
+        border: 1px solid var(--border-strong);
+        border-radius: 5px;
+        background: var(--bg-soft);
+        font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+        font-size: 0.9em;
       }
 
       .funcionalidade {
@@ -341,7 +355,7 @@
       <div class="abertura">
         <h1>Seus clientes, bases e o Sankhya num aplicativo só</h1>
         <p class="resumo">
-          Cadastre os clientes com as bases e os repositórios de cada um, e abra o Sankhya Om, a
+          Cadastre os clientes com as bases e os repositórios de cada um, e abra o SankhyaOm, a
           Experience e as bases dos clientes em guias do próprio HUB SNK, com o login feito sozinho.
         </p>
         <a
@@ -364,17 +378,17 @@
           Baixar para Windows
         </a>
         <div class="sob-o-botao">
-          Windows 10 ou 11 · instala sem pedir administrador ·
+          Windows 10 ou 11 · instala sem pedir administrador · atualiza sozinho ·
           <a href="https://github.com/CarlosSimao/hub-snk/releases">versões e novidades</a>
         </div>
       </div>
 
       <div class="print">
         <img
-          src="img/screenshot.png"
+          src="img/resumo.png"
           width="1600"
-          height="901"
-          alt="Tela do HUB SNK com a lista de clientes à esquerda e as bases de um cliente à direita"
+          height="1000"
+          alt="Resumo do dia do HUB SNK, com a agenda de hoje, os lembretes do dia e os repositórios com pendência"
         />
       </div>
 
@@ -384,6 +398,15 @@
           O que aparece no painel depende do seu perfil, escolhido na instalação e ajustável depois
           em Configurações › Acessos.
         </p>
+        <div class="print">
+          <img
+            src="img/cliente.png"
+            width="1600"
+            height="1000"
+            loading="lazy"
+            alt="Cadastro de um cliente no HUB SNK, com a lista de clientes à esquerda e as bases de Produção e Teste à direita"
+          />
+        </div>
         <div class="funcionalidades">
           <article class="funcionalidade">
             <h3>Cadastro de clientes</h3>
@@ -393,24 +416,45 @@
             </p>
           </article>
           <article class="funcionalidade">
-            <h3>Sankhya Om e Experience em guias</h3>
+            <h3>SankhyaOm e Experience em guias</h3>
             <p>
               Os dois sistemas abertos dentro do aplicativo, com login automático. Cada base de
               cliente abre na sua própria guia, isolada das outras, já logada.
             </p>
           </article>
           <article class="funcionalidade">
+            <h3>Resumo do dia</h3>
+            <p>
+              A primeira tela do painel: a agenda de hoje, os lembretes do dia, os repositórios com
+              pendência e as OS ainda não concluídas, cada item com o atalho para resolver.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Busca rápida e Ctrl+F</h3>
+            <p>
+              <code>Ctrl+K</code> acha e abre qualquer cliente, base, repositório ou contato.
+              <code>Ctrl+F</code> busca um texto na guia aberta, inclusive na Experience.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>WhatsApp, Gmail e Google Chat</h3>
+            <p>
+              Na barra lateral, cada um com o seu login salvo e aviso de mensagem nova. O contato do
+              cliente abre a conversa ou um e-mail já endereçado.
+            </p>
+          </article>
+          <article class="funcionalidade">
             <h3>Credenciais protegidas</h3>
             <p>
-              Usuário e senha do Sankhya Om e da Experience ficam no cofre do Windows, cifrados, e
-              só são preenchidos na página de login esperada.
+              Usuário e senha do SankhyaOm e da Experience ficam no cofre do Windows, cifrados, e só
+              são preenchidos na página de login esperada.
             </p>
           </article>
           <article class="funcionalidade">
             <h3>Agenda de Recursos</h3>
             <p>
               Os seus eventos da agenda num calendário, também separados por cliente, sem abrir o
-              Sankhya Om.
+              SankhyaOm.
             </p>
           </article>
           <article class="funcionalidade">
@@ -435,10 +479,25 @@
             </p>
           </article>
           <article class="funcionalidade">
-            <h3>Ambiente local</h3>
+            <h3>Git AutoSync (opcional)</h3>
+            <p>
+              Commit e push automáticos dos seus repositórios, com tarefa diária. Oferecido no
+              instalador e controlado pela aba Git: rodar agora, sincronizar, merge request e
+              histórico.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Ambiente local e atalhos</h3>
             <p>
               Ligue, pare e reinicie o WildFly e o banco Docker da sua máquina, com a situação do
-              serviço e o log ao vivo.
+              serviço e o log ao vivo. E os programas que você mais usa, abertos com um clique.
+            </p>
+          </article>
+          <article class="funcionalidade">
+            <h3>Telas Flash</h3>
+            <p>
+              As telas Flex legadas do SankhyaOm, que pedem o Flash Player, abrem dentro do
+              aplicativo com a compatibilidade do Ruffle.
             </p>
           </article>
           <article class="funcionalidade">
@@ -446,17 +505,6 @@
             <p>
               Transforme os favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, com
               Produção ou Teste deduzido do nome.
-            </p>
-          </article>
-          <article class="funcionalidade">
-            <h3>Atalhos</h3>
-            <p>Os programas que você mais usa, abertos com um clique a partir do painel.</p>
-          </article>
-          <article class="funcionalidade">
-            <h3>Git AutoSync (opcional)</h3>
-            <p>
-              Oferecido no instalador: commit e push automáticos dos seus repositórios, com tarefa
-              diária e ícone na bandeja.
             </p>
           </article>
           <article class="funcionalidade">
@@ -513,7 +561,7 @@
             <p>
               Abra o HUB SNK pelo atalho na área de trabalho e salve usuário e senha em
               <em class="caminho">Credenciais Sankhya</em>, no cadeado do topo, junto com o seu
-              código de usuário Sankhya OM, que filtra a agenda. A partir daí, as guias logam
+              código de usuário SankhyaOm, que filtra a agenda. A partir daí, as guias logam
               sozinhas.
             </p>
           </li>
@@ -525,7 +573,10 @@
         <div class="requisitos">
           <article class="funcionalidade">
             <h3>Atualizar</h3>
-            <p>Baixe e rode o instalador de novo, por cima. O cadastro continua onde está.</p>
+            <p>
+              O HUB SNK baixa a versão nova sozinho e avisa quando ela está pronta; é só reiniciar.
+              O cadastro continua onde está.
+            </p>
           </article>
           <article class="funcionalidade">
             <h3>Desinstalar</h3>

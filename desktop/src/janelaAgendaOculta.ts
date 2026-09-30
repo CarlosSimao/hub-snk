@@ -1,5 +1,5 @@
 /**
- * Janela invisível dedicada à Agenda de Recursos do Sankhya OM.
+ * Janela invisível dedicada à Agenda de Recursos do SankhyaOm.
  *
  * Por que existe: provado em teste que o login por API (`MobileLoginSP.login`) cria uma
  * sessão com ACL restrito — `AgendaRecursosSP.carregarAgendas` responde "Acesso negado ao
@@ -208,7 +208,7 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
     if (!segredo.usuario || !segredo.senha) {
       return {
         ok: false,
-        erro: 'sem usuário/senha do Sankhya OM salvos — configure o login do ERP',
+        erro: 'sem usuário/senha do SankhyaOm salvos — configure o login do ERP',
       };
     }
     if (cofre.loginAutomaticoSuspenso('sankhya-erp')) {
@@ -221,7 +221,7 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
     try {
       await wc.loadURL(ERP_URL);
     } catch (erro) {
-      return { ok: false, erro: `não consegui abrir o Sankhya OM: ${String(erro)}` };
+      return { ok: false, erro: `não consegui abrir o SankhyaOm: ${String(erro)}` };
     }
 
     const logou = await this.#logar(wc, segredo.usuario, segredo.senha);

@@ -3,6 +3,8 @@ import Fastify from 'fastify';
 import type { FSWatcher } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { CliDoAutosyncProcesso } from './autosync/cliDoAutosyncProcesso.ts';
+import { ServicoDoAutosync } from './autosync/servicoDoAutosync.ts';
 import { configuracao } from './configuracao.ts';
 import { ArquivoDeDadosInvalidoError, EsquemaMaisNovoError } from './repositorio/arquivoDeDados.ts';
 import { RepositorioClientesArquivo } from './repositorio/repositorioClientesArquivo.ts';
@@ -15,8 +17,10 @@ import { AgendadorDeLembretes } from './notificacoes/agendadorDeLembretes.ts';
 import { CentralDeNotificacoes } from './notificacoes/centralDeNotificacoes.ts';
 import { EnviadorDeEmail } from './notificacoes/enviadorDeEmail.ts';
 import { VerificadorDaAgendaDoDia } from './notificacoes/verificadorDaAgendaDoDia.ts';
+import { registrarAutenticacaoDoPainel } from './rotas/autenticacaoDoPainel.ts';
 import { registrarProtecaoDeOrigem } from './rotas/protecaoDeOrigem.ts';
 import { registrarRotasDeAtalhos } from './rotas/rotasAtalhos.ts';
+import { registrarRotasDeAutosync } from './rotas/rotasAutosync.ts';
 import { registrarRotasDeClientes } from './rotas/rotasClientes.ts';
 import { registrarRotasDeConfiguracao } from './rotas/rotasConfiguracao.ts';
 import { registrarRotasDeContatos } from './rotas/rotasContatos.ts';
@@ -34,6 +38,7 @@ import { Credenciais } from './sankhya/credenciais.ts';
 import { Experience } from './sankhya/experience.ts';
 import { PonteDoDesktop } from './sankhya/ponteDoDesktop.ts';
 import { SessaoDoDesktop } from './sankhya/sessaoDoDesktop.ts';
+import { abrirShellNaPasta } from './sistema/abrirShell.ts';
 import { observarAlteracoesNosDados, type CacheDescartavel } from './sistema/observadorDeDados.ts';
 
 async function iniciarServidor(): Promise<void> {
@@ -57,6 +62,10 @@ async function iniciarServidor(): Promise<void> {
 
   /* Antes de qualquer rota: vale também para os arquivos estáticos. */
   registrarProtecaoDeOrigem(servidor);
+  registrarAutenticacaoDoPainel(servidor, {
+    arquivoTokenDoDesktop: configuracao.ponteDoDesktopTokenFile,
+    desligada: configuracao.autenticacaoDoPainelDesligada,
+  });
 
   await servidor.register(fastifyStatic, { root: configuracao.diretorioPublico });
 
@@ -132,6 +141,20 @@ async function iniciarServidor(): Promise<void> {
   registrarRotasDeGit(servidor, repositorioDeClientes, repositorioDeConfiguracao);
   registrarRotasDeLocal(servidor, repositorioLocal, repositorioDeConfiguracao);
   registrarRotasDeAtalhos(servidor, repositorioDeConfiguracao);
+  registrarRotasDeAutosync(
+    servidor,
+    new ServicoDoAutosync({
+      cli: new CliDoAutosyncProcesso({
+        pasta: configuracao.pastaDoAutosync,
+        pacote: configuracao.pacoteDoAutosync,
+      }),
+      listarClientes: () => repositorioDeClientes.listar(),
+      abrirTerminal: async (caminho) => {
+        const { scriptPadrao } = await repositorioDeConfiguracao.ler();
+        await abrirShellNaPasta(caminho, scriptPadrao);
+      },
+    }),
+  );
   let observadorDosDados: FSWatcher | null = null;
   const encerrarOHub = criarEncerramento(async () => {
     agendadorDeLembretes.parar();

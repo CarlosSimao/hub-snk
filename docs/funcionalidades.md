@@ -45,8 +45,8 @@ configuração — mudar a opção vale no próximo clique, sem reiniciar. As re
 - Só `http` e `https` abrem no navegador do sistema; outro esquema (`file:`,
   `mailto:`) é recusado e fica registrado no log.
 
-Com o painel aberto num navegador comum (_Ajuda_ › _Abrir o painel no navegador_),
-a escolha não se aplica: os links abrem nesse navegador.
+Com o painel aberto num navegador comum (só em desenvolvimento, com
+`HUB_SEM_TOKEN=1`), a escolha não se aplica: os links abrem nesse navegador.
 
 ## Anotações do cliente
 
@@ -238,6 +238,97 @@ ou está incompleto — o `title` do botão distingue os dois casos.
 > ele está no `.gitignore` do projeto — o diagnóstico marca em vermelho o
 > repositório em que ele estiver sendo rastreado pelo Git.
 
+## Busca rápida
+
+`Ctrl+K`, ou a lupa no topo do painel, abre uma caixa única que procura em tudo o
+que está cadastrado: clientes, bases, repositórios, links gerais e de projeto,
+projetos, contatos, atalhos e bases locais. No aplicativo desktop o `Ctrl+K` vale
+em qualquer guia — ele traz o Painel para a frente —, e o **atalho global
+`Ctrl+Shift+Espaço`** faz o mesmo com qualquer outro programa em foco, inclusive
+com o HUB SNK escondido na bandeja. Se outro programa já usa essa combinação, o
+Windows não a entrega ao HUB SNK, e o `Ctrl+K` continua funcionando.
+
+Para devolver a combinação ao outro programa, desmarque **Atalho global** no menu
+do ícone da bandeja: o HUB SNK a libera na hora, e a escolha vale para as próximas
+aberturas. Quando o atalho está marcado mas o Windows não o entregou, o item
+mostra _em uso por outro programa_; desmarcar e marcar de novo tenta outra vez,
+para quando o outro programa já tiver sido fechado. Só o atalho global desliga —
+os de dentro do aplicativo, como o `Ctrl+K`, valem apenas com a janela do HUB SNK
+em foco e não disputam tecla com ninguém.
+
+A busca ignora acento e maiúsculas, e cada palavra digitada precisa aparecer no
+item — `alfa teste` acha a base de teste do cliente Alfa. Além do nome, ela
+procura na URL e no usuário da base, no caminho e na URL do repositório, e no
+cargo, telefone e e-mail do contato. Vem primeiro o que começa com o que foi
+digitado, depois o que tem uma palavra começando assim, depois o resto; entre os
+iguais, o que você abriu por último.
+
+`↑` e `↓` escolhem a linha, `Esc` fecha. O `Enter` faz a ação principal do item:
+
+| Item                   | `Enter`                                                                                      |
+| ---------------------- | -------------------------------------------------------------------------------------------- |
+| Cliente                | Seleciona o cliente no painel                                                                |
+| Base                   | Abre a base como o clique no cadastro: na guia do HUB com o login preenchido ou no navegador |
+| Repositório            | Abre na IDE configurada; sem IDE, abre a pasta; sem clone local, abre a URL do remoto        |
+| Link e link de projeto | Abre como o clique no cadastro                                                               |
+| Projeto                | Abre o cliente na aba Projetos, com o projeto expandido                                      |
+| Contato                | Abre a aba Contatos do cliente dele; sem cliente, o menu Contatos já filtrado pelo nome      |
+| Atalho                 | Inicia o programa                                                                            |
+| Base local             | Abre o SankhyaOm da base (`localhost:<porta>/mge`)                                           |
+
+`Ctrl+Enter` troca a ação pela abertura do cliente dono do item no painel, já na
+aba dele — Bases para uma base, Git para um repositório. Na linha de um
+repositório clonado ficam também os botões de pasta, terminal e IDE.
+
+Aberta sem nada digitado, a busca mostra os itens abertos por ela por último. Esse
+histórico fica no navegador do painel, e não no cadastro: não vai para a pasta de
+dados nem para o backup. O que está oculto em **Configurações › Acessos** fica de
+fora da busca, como fica de fora da tela.
+
+## Buscar na página
+
+No aplicativo desktop, `Ctrl+F` — ou _Hub_ › _Buscar na página_ — abre uma barra no
+canto superior direito da guia ativa, como a do Chrome, em qualquer guia: Painel,
+SankhyaOm, Experience e bases de cliente. A busca acontece enquanto você digita e
+mostra a ocorrência atual e o total. `Enter` vai para a próxima, `Shift+Enter` para
+a anterior e `Esc` fecha; fechar deixa selecionada a ocorrência em que parou, e
+reabrir traz o último texto já destacado.
+
+O texto dentro dos frames da página também é encontrado — é neles que ficam as
+telas do Sankhya. O de uma tela Flash aberta pelo Ruffle, não: ali tudo é desenho,
+e não texto da página. A busca é da guia em que foi aberta: trocar de guia fecha a
+barra.
+
+## Lista de atalhos de teclado
+
+No aplicativo desktop, _Ajuda_ › _Atalhos_ — no menu do botão ao lado da guia
+Painel — abre uma janela com todos os atalhos de teclado: os do menu do
+aplicativo (guias, recarregar, busca rápida, buscar na página, ferramentas de
+desenvolvedor), o atalho global da busca e as teclas de dentro da busca rápida e
+da barra do `Ctrl+F`. A parte do menu é lida dele na hora de abrir, então uma
+tecla nova no menu já aparece na lista. `Esc` fecha a janela.
+
+## Bandeja do Windows
+
+No aplicativo desktop, fechar a janela a esconde na bandeja, perto do relógio, em
+vez de encerrar o HUB SNK: o atalho global da busca e os avisos de mensagem nova
+do WhatsApp, do Gmail e do Google Chat continuam valendo. Na primeira vez, um aviso
+do Windows diz onde ele foi parar.
+
+Clicar no ícone traz a janela de volta, e o botão direito abre o menu com **Abrir o
+HUB SNK**, **Busca rápida**, a caixa **Atalho global**, a caixa **Iniciar HUB SNK
+automaticamente** e **Sair**. Sair também fica em _Hub_ › _Sair_. Desligar o
+computador ou sair da conta do Windows encerra o HUB SNK normalmente.
+
+**Iniciar HUB SNK automaticamente** abre o HUB SNK junto com o Windows, a cada
+login, já escondido na bandeja: o backend, o login automático no Sankhya e o
+atalho global ficam prontos sem janela na frente. Vem desligado. A escolha é
+gravada no próprio Windows, na lista de programas que iniciam com ele — sem pedir
+administrador —, e por isso também aparece em _Gerenciador de Tarefas_ ›
+_Aplicativos de inicialização_; desligar por lá desmarca a caixa, e marcar de novo
+na bandeja religa. Atualizar o HUB SNK mantém a escolha; desinstalar apaga a
+entrada.
+
 ## Atalhos
 
 O botão de raio, à direita do botão de tema, abre a lista dos atalhos
@@ -315,7 +406,7 @@ Ligado em **Configurações › Avisos**, o HUB SNK confere a cada 15 minutos (a
 primeira vez dois minutos depois de abrir) os eventos de hoje da sua Agenda de
 Recursos:
 
-1. traz o dia de novo do Sankhya Om, pela guia já logada — sem conseguir, vale o
+1. traz o dia de novo do SankhyaOm, pela guia já logada — sem conseguir, vale o
    que já estava no snapshot;
 2. pega só os eventos do seu `CODUSU` que têm parceiro (folga e evento interno
    ficam de fora);
@@ -326,14 +417,16 @@ Recursos:
 Sem OS, sai uma notificação — e o e-mail, se marcado — **uma vez por evento por
 dia**. Evento de dia inteiro, ou que continua amanhã, usa as 18h como fim.
 
-Precisa do código de usuário do Sankhya OM (no topo de **Credenciais Sankhya**) e das sessões do Sankhya
+Precisa do código de usuário do SankhyaOm (no topo de **Credenciais Sankhya**) e das sessões do Sankhya
 Om e da Experience ativas no aplicativo. Sessão caída vira uma notificação do
 próprio HUB SNK, uma vez por dia; com o backend rodando sem o aplicativo
 (`npm run dev`), a verificação só registra no log.
 
 ## Lembretes
 
-A aba **Lembretes** do menu principal cadastra avisos com um **resumo**
+O botão **Lembretes**, na barra logo abaixo do título do painel de notificações
+(sino), abre a janela **Lembretes**: a lista dos cadastrados, com **Novo lembrete**,
+editar e excluir. Cada lembrete é um aviso com um **resumo**
 obrigatório (até 120 caracteres, o destaque da notificação e o assunto do e-mail)
 e um texto livre, opcionalmente ligados a um cliente e a um projeto dele. Cada um
 pode mandar também e-mail e pode ser desligado sem ser apagado. Lembrete
@@ -383,18 +476,19 @@ aparece. Excluir um cliente não apaga os contatos dele: eles passam a sem clien
 
 O HUB SNK atende perfis diferentes, e cada um vê só o que usa. Em
 **Configurações › Acessos** ficam o **Perfil** e uma caixa por funcionalidade:
-as abas **Local**, **Agenda**, **OS**, **Lembretes** e **Contatos** do menu principal e as
-abas **Bases**, **Repositórios**, **Projetos**, **Agenda**, **OS** e **Contatos** do cadastro
-do cliente.
+as abas **Local**, **Agenda**, **OS**, **Contatos** e **Git** (o Git AutoSync) do menu
+principal, o botão **Lembretes** do painel de notificações e as abas **Bases**, **Git**,
+**Projetos**, **Agenda**, **OS** e **Contatos** do cadastro do cliente. A seção
+**AutoSync** da aba Git do cliente tem caixa própria e some junto com a aba.
 **Clientes** e a aba **Geral** do cliente não entram na lista: sem elas a tela
 abriria vazia.
 
-| Perfil             | Oculto no preset                          |
-| ------------------ | ----------------------------------------- |
-| Desenvolvedor      | nada                                      |
-| Consultor          | aba Repositórios do cliente               |
-| Analista           | aba Repositórios do cliente               |
-| Gerente de projeto | aba Repositórios do cliente e a aba Local |
+| Perfil             | Oculto no preset                                  |
+| ------------------ | ------------------------------------------------- |
+| Desenvolvedor      | nada                                              |
+| Consultor          | aba Git do cliente e aba Git do menu              |
+| Analista           | aba Git do cliente e aba Git do menu              |
+| Gerente de projeto | aba Git do cliente, aba Git do menu e a aba Local |
 
 O perfil é perguntado na instalação, e o preset dele vale desde a primeira
 abertura. Trocar o perfil na aba Acessos marca as caixas do preset; depois disso
@@ -404,14 +498,16 @@ Sankhya e das bases continuam abertas. Reinstalar ou atualizar não desfaz o aju
 perfil do instalador só é aplicado enquanto a configuração ainda não tem acessos
 gravados — inclusive quando a pasta de dados vem sincronizada de outra máquina.
 
-Ocultar **Repositórios** leva junto o que só existe por causa deles: o filtro por
-situação do Git, as bolinhas do Git no topo e na lista de clientes e a aba
-**MCP** das configurações.
+Ocultar a aba **Git** do cliente leva junto o que só existe por causa dos
+repositórios: o filtro por situação do Git, as bolinhas do Git no topo e na lista
+de clientes, a aba **MCP** das configurações e a seção AutoSync da própria aba. A
+aba **Git** das configurações some quando as duas caixas do Git AutoSync — a aba
+Git do menu e a seção AutoSync do cliente — estão desmarcadas.
 
 ### Terceiro
 
 A caixa **Terceiro**, na aba Acessos e na página do perfil do instalador, é para
-quem não tem acesso ao Sankhya Om nem à Experience. Vale para qualquer perfil e,
+quem não tem acesso ao SankhyaOm nem à Experience. Vale para qualquer perfil e,
 marcada, oculta tudo o que depende das credenciais Sankhya:
 
 - o botão **Credenciais Sankhya** do topo;
@@ -420,7 +516,7 @@ marcada, oculta tudo o que depende das credenciais Sankhya:
 - o campo **Nomes completos no Sankhya** do cliente, que só serve à Agenda e à OS;
 - o grupo **Agenda do dia sem OS lançada** de **Configurações › Avisos**, e a
   verificação a cada 15 minutos deixa de rodar mesmo com o alerta ligado;
-- as guias **Sankhya Om** e **Experience** do aplicativo: saem da barra, do menu
+- as guias **SankhyaOm** e **Experience** do aplicativo: saem da barra, do menu
   **Guias** e dos atalhos Ctrl+2 e Ctrl+3, e o aplicativo deixa de logar sozinho
   nelas.
 
@@ -499,6 +595,156 @@ Em **Configurações**, o campo **Atualizar a situação Git automaticamente**
 (ligado por padrão) refaz o diagnóstico local a cada minuto enquanto a aba está
 em primeiro plano — mesma leitura do botão de recarregar, só que sem precisar
 clicar. Para de rodar sozinho quando a aba perde o foco ou é minimizada.
+
+## Git AutoSync
+
+O Git AutoSync é um programa à parte, oferecido como opcional no instalador (veja
+[Distribuição](distribuicao.md#o-git-autosync)), que faz commit e push dos
+repositórios cadastrados nele nos horários de uma tarefa do Agendador do Windows. O
+HUB SNK mostra e controla esse trabalho em três lugares: a aba **Git** do menu
+principal, a seção **AutoSync** no fim da aba **Git** do cliente e a aba **Git** das
+configurações.
+
+**O HUB SNK nunca grava o `config.json` do Git AutoSync.** Os arquivos da pasta dele
+(`%USERPROFILE%\.git-autosync`, ou o que estiver em `GIT_AUTOSYNC_HOME`) são lidos só
+para montar a tela; toda mudança é um subcomando do `git-autosync.exe`, chamado com
+os argumentos em lista e sem shell. O CLI toma a trava `state.lock` e grava de forma
+atômica: uma escrita por fora perderia o que a bandeja ou a tarefa agendada
+gravassem ao mesmo tempo, e mudar os horários só no arquivo deixaria o Agendador
+dizendo outra coisa.
+
+### A aba Git do menu
+
+- **Estado**: versão instalada, última rodada geral e as tarefas do Agendador. Horário
+  configurado sem tarefa no Agendador — agendamento que parece ligado e nunca roda —
+  aparece em vermelho, com o botão **Criar tarefa**. **Ligar bandeja** e **Desligar
+  bandeja** decidem se o ícone do Git AutoSync abre junto com o login; ligar com um
+  ícone já aberto abre um segundo.
+- **Quando roda**: os horários da rodada automática, de um a seis, que valem para
+  todo dia. **Salvar horários** reinstala a tarefa junto. Sem horário não existe: para
+  parar a rodada, **Desativar agendamento**, que tira a tarefa do Agendador e a
+  bandeja do login e mantém horários e repositórios. **Rodar agora** faz commit e push
+  em todos os repositórios ativos, depois de confirmar.
+- **Mensagem do commit**: desligada, o commit sai com a mensagem fixa
+  `chore: auto-commit AAAA-MM-DD HH:MM` e nada sai da máquina. Ligar a caixa **Escrever
+  a mensagem com IA** pede confirmação, porque o diff de cada commit passa a ir para o
+  agente escolhido — o primeiro instalado entre Claude, Codex e OpenCode, ou um deles
+  fixo. Se o agente falhar, vale a mensagem fixa.
+- **Repositórios**: as pastas-raiz e cada repositório, com a origem (alvo próprio ou
+  pasta-raiz), o cliente dono quando há um e o último resultado — o texto do Git
+  AutoSync sem reescrever, que é onde aparece o motivo de um commit recusado.
+  **Adicionar todos os repositórios dos clientes** põe, um a um, os que têm pasta local
+  e estão fora; um que falha não interrompe os seguintes.
+- **Log**: as últimas 200 linhas do `autosync.log`, carregadas ao abrir o grupo.
+
+Uma pasta com três ou mais repositórios de clientes ainda fora do Git AutoSync ganha a
+sugestão de **Cadastrar a pasta**: como pasta-raiz, ela cobre esses e os que forem
+clonados nela depois — inclusive o que você não quiser sincronizar, que dá para
+desativar em seguida. O Git AutoSync só olha as subpastas diretas da raiz.
+
+Sem o Git AutoSync instalado, a aba mostra só o aviso e o botão **Instalar**, que roda o
+`install-standalone.ps1` do pacote que veio com o HUB SNK, com o horário, a bandeja, os
+atalhos, a skill e o PATH escolhidos. Ele exige o Git no PATH, e é esse o motivo mais
+comum de a instalação falhar. Com o backend em desenvolvimento não há pacote, e o botão
+responde que o build não o tem.
+
+### A seção AutoSync do cliente
+
+No fim da aba **Git** do cliente, cada repositório dele com pasta local aparece com a
+situação no Git AutoSync e o botão que ela pede. Repositório sem pasta local fica de
+fora. Nada entra no Git AutoSync sozinho: cadastrar um repositório no cliente não o
+põe na rodada automática, e excluir o repositório ou o cliente do cadastro não o tira
+de lá.
+
+A comparação de caminhos unifica as barras, ignora a barra final e não diferencia
+maiúsculas: o `config.json` mistura `C:/...` e `C:\...`, e o Windows não distingue
+caixa. O caminho mandado ao CLI é sempre o original.
+
+| Situação                                    | Selo                                                  | Botão                                                |
+| ------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------- |
+| Fora do Git AutoSync                        | Fora do Git AutoSync                                  | **Adicionar**: entra como alvo próprio               |
+| Alvo próprio ativo                          | No Git AutoSync                                       | **Tirar**: sai do `config.json`                      |
+| Dentro de uma pasta-raiz, ativo             | No Git AutoSync pela pasta `<raiz>`                   | **Tirar**: vai para a lista de exclusão da raiz      |
+| Dentro de uma pasta-raiz, excluído          | Excluído da pasta `<raiz>`                            | **Reativar**: sai da lista de exclusão               |
+| Alvo próprio desligado (`enabled: false`)   | Desligado no Git AutoSync                             | **Reativar**: sai e entra de novo, como alvo próprio |
+| A pasta não existe ou não é repositório Git | A pasta não existe / A pasta não é um repositório Git | Nenhum, ou **Tirar** se ele for alvo próprio         |
+
+Tirar um repositório de pasta-raiz nunca remove a raiz, que levaria junto todos os
+outros repositórios dela. E repositório dentro de uma raiz já cadastrada não vira alvo
+próprio: ele já roda por ela.
+
+### As ações de cada repositório
+
+- **Commit** (sem push) e **Sincronizar** (commit e push) abrem a mensagem do commit.
+  Em branco, quem escreve é o Git AutoSync, com IA ou a mensagem fixa; **Gerar prévia**
+  mostra o que ele escreveria, sem gravar nada. **Push** envia o que já foi commitado.
+- **Merge Request** cria o MR no GitLab, com título, branch de destino (em branco, a
+  padrão do Git AutoSync) e de origem. Precisa do token da aba **Git** das
+  configurações.
+- **Histórico** lista os últimos 20 commits do repositório.
+- **Política do repositório**: os arquivos permitidos (arquivo fora da lista bloqueia
+  o commit inteiro, e não é ignorado), os proibidos além dos de sempre, as branches em
+  que ele sincroniza, o tamanho máximo de arquivo (5 MB por padrão) e a IA ligada ou
+  desligada só nele. Cada lista gravada é substituída inteira ao salvar.
+- **Ativar** e **Desativar**, na aba do menu, fazem o mesmo que **Adicionar** e
+  **Tirar**. O histórico e o último resultado continuam visíveis.
+
+O Git AutoSync commita tudo o que não está no `.gitignore`, e por isso recusa o commit
+inteiro quando encontra arquivo sensível pelo nome (`.env`, `*.pem`, `*.key`,
+`id_rsa`…), arquivo acima do tamanho máximo ou padrão de segredo no conteúdo (chave
+privada, token do GitLab ou do GitHub, chave da AWS). Também recusa sem branch (HEAD
+destacado), com merge, rebase, cherry-pick ou revert pela metade e com conflito
+pendente.
+
+### Quando uma ação falha
+
+A linha do repositório ganha o bloco **Como resolver**: a explicação, os comandos para
+copiar, um por linha, e **Abrir terminal na pasta**, que abre o terminal como o botão
+Shell do repositório, com o Script padrão. **Nada é executado pela tela**: um
+`git pull --rebase` reescreve commits locais e pode parar em conflito, e quem decide é
+você, vendo o terminal. A saída completa do Git AutoSync fica recolhida no fim do
+bloco, e **Dispensar** o esconde.
+
+| Erro reconhecido                                       | O que o bloco sugere                                                   |
+| ------------------------------------------------------ | ---------------------------------------------------------------------- |
+| Push rejeitado, com a sugestão do próprio Git AutoSync | O comando que ele sugeriu, que já sabe o remoto e a branch certos      |
+| Branch local sem upstream                              | `git push -u origin HEAD`                                              |
+| O remoto tem commits que você não tem                  | `git pull --rebase` e depois `git push`                                |
+| Falta o token do GitLab                                | O botão **Abrir Configurações › Git**                                  |
+| Remoto inacessível                                     | Conferir rede ou VPN: `git remote -v` e `git fetch`                    |
+| Credencial do Git recusada pelo servidor               | `git fetch` no terminal, para entrar de novo                           |
+| HEAD destacado                                         | `git branch` e `git switch -`                                          |
+| Operação Git em andamento ou conflito pendente         | `git status`                                                           |
+| Branch fora da política ou arquivo recusado no commit  | O botão **Política do repositório**, além de `git branch`/`git status` |
+| Branch sem remoto de push                              | `git remote -v`                                                        |
+
+Erro que nenhuma regra reconhece aparece só com a saída completa e o terminal.
+
+### Token do GitLab
+
+Em **Configurações › Git** ficam o host do GitLab (sem protocolo nem caminho, como
+`gitlab.empresa.com.br`) e o token, com escopo `api`, que o Git AutoSync usa no Merge
+Request. Os dois vão para as variáveis de ambiente do seu usuário do Windows,
+`GIT_AUTOSYNC_GITLAB_HOST` e `GIT_AUTOSYNC_GITLAB_TOKEN` — não para o
+`configuracao.json`, que pode estar sincronizado com a nuvem. É delas que o Git
+AutoSync lê, na bandeja, na tarefa agendada e no CLI, e ele só usa o token quando o
+host casa com o do remoto.
+
+O token gravado nunca volta para a tela: deixar o campo em branco mantém o atual, e
+**Remover token** apaga o token e mantém o host. A bandeja do Git AutoSync que já
+estava aberta só enxerga o token novo depois de reaberta.
+
+### O que o Git AutoSync não permite
+
+A tela oferece o que o CLI aceita, e só isso. Na versão 4.0.0 do Git AutoSync, não há
+como:
+
+- editar o texto que pede a mensagem do commit à IA, nem o formato da mensagem fixa;
+- escolher dias da semana: os horários valem para todo dia;
+- ter commit automático sem push: a rodada agendada sempre faz os dois;
+- desligar um alvo sem tirá-lo, nem trocar a branch de destino padrão do Merge Request
+  (que dá para mudar a cada MR);
+- esvaziar uma lista já gravada da política do repositório: deixe ao menos um item.
 
 ## Backup na nuvem
 

@@ -29,6 +29,7 @@ import {
   ENTRYPOINT_BACKEND,
   HUB_URL,
   MODO_BACKEND,
+  PACOTE_DO_AUTOSYNC,
   PERFIL_INICIAL,
   PORTA_HUB,
   RAIZ_PROJETO,
@@ -106,6 +107,9 @@ function montarAmbiente(): NodeJS.ProcessEnv {
     SANKHYA_DESKTOP_BRIDGE_URL: `http://${BRIDGE_HOST}:${BRIDGE_PORT}`,
     DESKTOP_BRIDGE_TOKEN_FILE: ARQUIVO_TOKEN_BRIDGE,
   };
+  if (PACOTE_DO_AUTOSYNC) {
+    ambiente['HUB_AUTOSYNC_PACOTE'] = PACOTE_DO_AUTOSYNC;
+  }
 
   return ambiente;
 }

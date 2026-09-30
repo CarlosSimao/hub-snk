@@ -4,17 +4,34 @@
  * Substitui o menu padrão do Electron (File/Edit/View/Window, em inglês e cheio de itens
  * que não significam nada aqui) por um menu que fala das guias do hub.
  */
-import { Menu, app, shell, type BrowserWindow, type MenuItem } from 'electron';
-import { HUB_URL } from './config';
+import { Menu, app, type BrowserWindow, type MenuItem } from 'electron';
+import type { SituacaoDoAtalhoGlobal } from './atalhoGlobal';
+import { abrirJanelaDeAtalhos } from './janelaDeAtalhos';
+import { alternarRuffle, ruffleLigado } from './ruffle';
+import {
+  alternarAtualizacaoAutomatica,
+  atualizacaoAutomaticaLigada,
+  reiniciarParaAtualizar,
+  versaoProntaParaInstalar,
+} from './atualizacao';
 import type { TabManager } from './tabs';
+
+/** O que o menu aciona fora dele: as duas buscas e o estado do atalho global. */
+export interface AcoesDoMenu {
+  abrirBuscaRapida(): void;
+  buscarNaPagina(): void;
+  situacaoDoAtalhoGlobal(): SituacaoDoAtalhoGlobal;
+}
 
 export function montarMenu(
   janela: () => BrowserWindow | null,
   tabs: () => TabManager | null,
+  acoes: AcoesDoMenu,
 ): void {
   const gerenciador = tabs();
   const guiaBloqueada = (id: string): boolean => gerenciador?.guiaBloqueada(id) ?? false;
   const guias = (gerenciador?.guiasAbertas() ?? []).filter((guia) => !guiaBloqueada(guia.id));
+  const versaoPronta = versaoProntaParaInstalar();
   const menu = Menu.buildFromTemplate([
     {
       label: 'Hub',
@@ -23,6 +40,28 @@ export function montarMenu(
           label: 'Recarregar a guia atual',
           accelerator: 'CmdOrCtrl+R',
           click: () => tabs()?.recarregar(),
+        },
+        // No menu, e não só no painel: dentro da guia do SankhyaOm ou de uma base, o
+        // Ctrl+K nunca chegaria à página do painel.
+        {
+          label: 'Busca rápida',
+          accelerator: 'CmdOrCtrl+K',
+          click: () => acoes.abrirBuscaRapida(),
+        },
+        // Pelo menu, como o Ctrl+K: com o foco na Experience, a tecla nunca sairia da página.
+        {
+          label: 'Buscar na página',
+          accelerator: 'CmdOrCtrl+F',
+          click: () => acoes.buscarNaPagina(),
+        },
+        { type: 'separator' },
+        // Vale para as telas abertas depois: a tela Flex já aberta segue como está até
+        // recarregar a guia.
+        {
+          label: 'Compatibilidade com Flash (Ruffle)',
+          type: 'checkbox',
+          checked: ruffleLigado(),
+          click: () => alternarRuffle(),
         },
         { type: 'separator' },
         { label: 'Sair', role: 'quit' },
@@ -38,7 +77,7 @@ export function montarMenu(
         },
         // Com o acesso de terceiro, as duas guias nem existem para o usuário.
         {
-          label: 'Ir para o Sankhya Om',
+          label: 'Ir para o SankhyaOm',
           accelerator: 'CmdOrCtrl+2',
           visible: !guiaBloqueada('erp'),
           click: () => tabs()?.mostrar('erp'),
@@ -63,7 +102,7 @@ export function montarMenu(
             // O estado real da caixa e' a fonte da visibilidade. Inclusive a ultima
             // guia pode ser ocultada: a view continua carregada em segundo plano.
             const alterou = gerenciador.definirGuiaVisivel(guia.id, itemMenu.checked);
-            if (!alterou) montarMenu(janela, tabs);
+            if (!alterou) montarMenu(janela, tabs, acoes);
           },
         })),
       ],
@@ -89,7 +128,25 @@ export function montarMenu(
     {
       label: 'Ajuda',
       submenu: [
-        { label: 'Abrir o painel no navegador', click: () => void shell.openExternal(HUB_URL) },
+        {
+          label: 'Atalhos',
+          click: () => {
+            const principal = janela();
+            if (principal) abrirJanelaDeAtalhos(principal, acoes.situacaoDoAtalhoGlobal());
+          },
+        },
+        { type: 'separator' },
+        {
+          label: `Reiniciar para atualizar para a versão ${versaoPronta ?? ''}`,
+          visible: versaoPronta !== null,
+          click: () => reiniciarParaAtualizar(),
+        },
+        {
+          label: 'Atualizar automaticamente',
+          type: 'checkbox',
+          checked: atualizacaoAutomaticaLigada(),
+          click: () => alternarAtualizacaoAutomatica(),
+        },
         { label: `Versão ${app.getVersion()}`, enabled: false },
       ],
     },
@@ -97,5 +154,5 @@ export function montarMenu(
 
   Menu.setApplicationMenu(menu);
   // O menu nativo nao e' reativo: abrir ou fechar uma aba exige reconstruir a lista.
-  gerenciador?.aoMudarGuias(() => montarMenu(janela, tabs));
+  gerenciador?.aoMudarGuias(() => montarMenu(janela, tabs, acoes));
 }

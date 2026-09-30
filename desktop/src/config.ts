@@ -18,7 +18,7 @@ export const EXPERIENCE_URL =
   process.env['SANKHYA_EXPERIENCE_URL'] ?? 'https://experience.sankhya.com.br/';
 
 /**
- * Workspace do Sankhya Om: é para onde o login aceito leva. A senha é pedida na própria
+ * Workspace do SankhyaOm: é para onde o login aceito leva. A senha é pedida na própria
  * `/mge/`, então sair da tela de login não aparece na URL de outro jeito.
  */
 export const URL_WORKSPACE_ERP = new URL('system.jsp', ERP_URL).href;
@@ -27,7 +27,7 @@ export const URL_WORKSPACE_ERP = new URL('system.jsp', ERP_URL).href;
 export const DOMINIOS_ERP = ['sankhya.com.br'];
 
 /**
- * Onde o login do Sankhya Om e da Experience acontece (skw, login e experience, todos sob
+ * Onde o login do SankhyaOm e da Experience acontece (skw, login e experience, todos sob
  * `sankhya.com.br`), mais os hosts de `ERP_URL` e `EXPERIENCE_URL` quando sobrescritos.
  * O preenchimento automático só entrega a credencial do cofre a uma página desses hosts.
  */
@@ -47,6 +47,120 @@ export const DOMINIOS_POPUP_PERMITIDOS = [
 
 /** Partição isolada e persistente do shell — nunca o perfil pessoal do usuário. */
 export const PARTICAO = 'persist:sankhya-hub-desktop';
+
+// --- painel de comunicação ---------------------------------------------------------
+
+export type ServicoComunicacao = 'whatsapp' | 'gmail' | 'chat';
+
+/**
+ * De onde sai o aviso de mensagem nova (som, ícone piscando, contador). Cada serviço
+ * expõe uma coisa diferente:
+ * - `titulo`: a quantidade está no título da página (`padrao` captura o número);
+ * - `favicon`: o ícone da aba muda quando há não lidas, sem dizer quantas;
+ * - `feed`: um endereço que devolve a contagem, consultado de tempos em tempos com os
+ *   cookies da sessão — funciona sem a página do serviço carregada.
+ */
+export type SinalDeMensagem =
+  | { origem: 'titulo'; padrao: RegExp }
+  | { origem: 'favicon'; padrao: RegExp }
+  | { origem: 'feed'; url: string; padrao: RegExp; intervaloMs: number };
+
+interface DefinicaoServicoComunicacao {
+  /** Nome no menu de escolha dos botões da barra lateral. */
+  rotulo: string;
+  url: string;
+  particao: string;
+  sinal: SinalDeMensagem;
+  /**
+   * Se o HUB toca o próprio som na mensagem nova. Falso quando a página do serviço já
+   * toca o dela — os dois juntos soam como duas mensagens.
+   */
+  tocarSom: boolean;
+}
+
+/** O feed do Gmail é leve (um XML pequeno), mas não precisa ser mais que por minuto. */
+const INTERVALO_FEED_GMAIL_MS = 60_000;
+
+/**
+ * Gmail e Google Chat dividem a partição: é a mesma conta Google, então um login só serve
+ * os dois. Nenhuma delas é a `PARTICAO` das guias — o cookie pessoal do Google não chega
+ * ao Sankhya, e o do Sankhya não chega ao Google.
+ */
+const PARTICAO_GOOGLE = 'persist:hub-google';
+
+export const SERVICOS_COMUNICACAO: Record<ServicoComunicacao, DefinicaoServicoComunicacao> = {
+  whatsapp: {
+    rotulo: 'WhatsApp',
+    url: 'https://web.whatsapp.com/',
+    particao: 'persist:hub-whatsapp',
+    // O WhatsApp Web escreve `(3) WhatsApp` no título: 3 conversas, não 3 mensagens.
+    sinal: { origem: 'titulo', padrao: /^\((\d+)\)/ },
+    // O WhatsApp Web toca o som dele junto com a notificação do Windows.
+    tocarSom: false,
+  },
+  gmail: {
+    rotulo: 'Gmail',
+    url: 'https://mail.google.com/',
+    particao: PARTICAO_GOOGLE,
+    // O título do Gmail perde a contagem ao abrir um e-mail; o feed Atom da caixa de
+    // entrada sempre traz `<fullcount>`, com a página aberta ou não.
+    sinal: {
+      origem: 'feed',
+      url: 'https://mail.google.com/mail/u/0/feed/atom',
+      padrao: /<fullcount>(\d+)<\/fullcount>/,
+      intervaloMs: INTERVALO_FEED_GMAIL_MS,
+    },
+    // A notificação do e-mail é do HUB e sai muda: o som é este.
+    tocarSom: true,
+  },
+  chat: {
+    rotulo: 'Google Chat',
+    url: 'https://chat.google.com/',
+    particao: PARTICAO_GOOGLE,
+    // O título do Chat nunca tem contagem. O favicon sem não lidas é o
+    // `..._favicon_no_dot_64px.png`; com não lidas, a variante com o ponto.
+    sinal: { origem: 'favicon', padrao: /(?<!no)_dot_/ },
+    tocarSom: true,
+  },
+};
+
+/**
+ * Hosts que abrem dentro do próprio painel quando a página pede uma janela nova: o login
+ * do Google (o "Fazer login" da página de apresentação do Gmail abre em outra janela) e
+ * os próprios serviços. O resto vai para o navegador padrão.
+ */
+export const HOSTS_INTERNOS_COMUNICACAO: ReadonlySet<string> = new Set([
+  'accounts.google.com',
+  'mail.google.com',
+  'chat.google.com',
+  'web.whatsapp.com',
+]);
+
+/** O painel ocupa a maior parte da janela, sem ficar estreito demais para o WhatsApp Web. */
+export const FRACAO_LARGURA_PAINEL_COMUNICACAO = 0.8;
+export const LARGURA_MINIMA_PAINEL_COMUNICACAO = 480;
+
+/**
+ * Sem handler, o Electron concede qualquer permissão pedida. Só o que os três serviços
+ * usam: notificação de mensagem, microfone/câmera (áudio do WhatsApp, chamada do Chat),
+ * cópia para a área de transferência e tela cheia de vídeo.
+ */
+export const PERMISSOES_COMUNICACAO: ReadonlySet<string> = new Set([
+  'notifications',
+  'media',
+  'clipboard-sanitized-write',
+  'fullscreen',
+]);
+
+/**
+ * Identidade do app no Windows (AppUserModelID): é ela que dá o nome e o ícone no topo
+ * das notificações. Empacotado, precisa ser o `appId` de `electron-builder.yml`, que o
+ * instalador grava no atalho. Em desenvolvimento não há atalho, então o id é outro e o
+ * nome é registrado à parte — ver `definirIdentidadeNasNotificacoes` no `main.ts`.
+ */
+export const ID_DO_APP_WINDOWS = app.isPackaged
+  ? 'br.dev.hubsnk.desktop'
+  : 'br.dev.hubsnk.desktop.desenvolvimento';
 
 export const BRIDGE_PORT = Number(process.env['SANKHYA_DESKTOP_BRIDGE_PORT'] ?? 4103);
 export const BRIDGE_HOST = '127.0.0.1';
@@ -86,6 +200,15 @@ export const RAIZ_PROJETO =
  * type stripping sozinho.
  */
 export const ENTRYPOINT_BACKEND = join(RAIZ_PROJETO, 'src', 'index.ts');
+
+/**
+ * Pacote do Git AutoSync que viaja no instalador (`extraResources` para
+ * `resources/git-autosync`). O backend o usa para instalar o autosync depois, quando a
+ * pessoa desmarcou o componente no instalador. Vazio em desenvolvimento: não há pacote.
+ */
+export const PACOTE_DO_AUTOSYNC =
+  process.env['HUB_AUTOSYNC_PACOTE'] ??
+  (app.isPackaged ? join(process.resourcesPath, 'git-autosync') : '');
 
 /**
  * Caminho que o instalador deixa em `HubSnk\pasta-de-dados.txt` quando a instalação PWA

@@ -49,14 +49,15 @@ repositório em desenvolvimento, `resources\hub` no instalado); no backend,
 o token dela — o shell passa as duas ao backend que sobe, e só o `npm run dev` com
 o shell fora do padrão precisa defini-las à mão.
 
-Sem o aplicativo aberto, as rotas que dependem dele (credenciais, guias do
-Sankhya, agenda) respondem `503` com `shellIndisponivel`; o resto do painel
-funciona no navegador, em `http://127.0.0.1:4100`.
+Sem o aplicativo aberto, a API exige o token que só ele entrega ao painel. Para
+usar o painel no navegador, em `http://127.0.0.1:4100`, suba o backend com
+`HUB_SEM_TOKEN=1`. As rotas que dependem do aplicativo (credenciais, guias do
+Sankhya, agenda) respondem `503` com `shellIndisponivel`.
 
 Use uma pasta de dados separada, para não mexer no cadastro de verdade:
 
 ```powershell
-$env:HUB_DADOS_DIR = "$env:TEMP\hub-snk-dev"; npm run dev
+$env:HUB_DADOS_DIR = "$env:TEMP\hub-snk-dev"; $env:HUB_SEM_TOKEN = '1'; npm run dev
 ```
 
 ## Antes de commitar
@@ -67,10 +68,12 @@ npm test
 npm run formatar
 ```
 
-É o que o CI roda em cada pull request e em cada push na `main`, no Linux, no
-Windows e no macOS, nas versões 22.18 e 24 do Node — o backend roda com o Node do
-sistema em desenvolvimento, embora o aplicativo seja distribuído só para Windows. O `typecheck` existe porque o Node apaga os tipos
-sem conferi-los: sem ele, erro de tipo só apareceria rodando.
+É o que o job `verificar` do CI roda em cada pull request e em cada push na `main`,
+no Linux, no Windows e no macOS, nas versões 22.18 e 24 do Node. A matriz é do
+backend, que em desenvolvimento roda com o Node do sistema; não é promessa de
+aplicativo fora do Windows, o único sistema para o qual ele é distribuído. O
+`typecheck` existe porque o Node apaga os tipos sem conferi-los: sem ele, erro de
+tipo só apareceria rodando.
 
 A formatação é do Prettier, configurado no `.prettierrc.json`. O
 `npm run conferir-formato` só aponta; o `npm run formatar` corrige.
@@ -127,6 +130,11 @@ O número da versão diz o que esperar de uma atualização:
 | **MINOR** — 1.`3`.0 | Entra funcionalidade nova e o cadastro continua compatível                   | Um tipo de atalho novo                            |
 | **PATCH** — 1.2.`4` | Correção de comportamento, sem nada novo                                     | A situação do Git deixa de errar o nome da branch |
 
+Tag com hífen — `v2.1.0-beta.1` — é versão de teste: o workflow `Distribuição` a
+publica como pre-release, que o aviso de versão nova do Painel e a atualização
+automática ignoram. Serve para distribuir o instalador a quem vai testar sem que ele
+chegue a mais ninguém; a versão definitiva sai depois com a tag sem hífen.
+
 Toda mudança visível fica registrada no [CHANGELOG](../CHANGELOG.md).
 
 ## Roteiro de teste de release
@@ -146,14 +154,14 @@ que já existe.
   `%LOCALAPPDATA%\HubSnk\perfil-inicial.txt`, e a caixa Terceiro, para o
   `terceiro-inicial.txt`. Na primeira abertura, **Configurações › Acessos** mostra
   o preset do perfil, e com Terceiro marcado somem Credenciais Sankhya, Agenda, OS
-  e as guias Sankhya Om e Experience.
+  e as guias SankhyaOm e Experience.
 - **Reinstalação**: a página de perfil abre com a escolha anterior marcada, e o
   que foi ajustado na aba Acessos não é desfeito.
 - **Página do Git AutoSync**: com as opções marcadas, ele fica em
   `%USERPROFILE%\.git-autosync`, com a tarefa diária, o ícone na bandeja, os
-  atalhos, a skill e a entrada no PATH, e o `resources\git-autosync` do programa
-  ganha a marca `instalado-pelo-hub.txt`. Numa máquina sem Git, o HUB SNK instala do mesmo jeito e só o Git AutoSync fica
-  de fora.
+  atalhos, a skill e a entrada no PATH, e a marca
+  `%LOCALAPPDATA%\HubSnk\git-autosync-instalado-pelo-hub.txt` é criada. Numa máquina
+  sem Git, o HUB SNK instala do mesmo jeito e só o Git AutoSync fica de fora.
 - **Por cima da versão anterior**: o cadastro continua o mesmo (mesmo SHA-256), e
   os atalhos apontam para o `HUB SNK.exe` novo.
 - **Por cima da versão 1 (PWA)**, enquanto houver quem a use: o
@@ -171,7 +179,7 @@ que já existe.
   varredura do antivírus.
 - O cadastro existente aparece, e criar, editar e remover funcionam em clientes,
   bases, repositórios, links, projetos, contatos e lembretes.
-- Com credencial salva, as guias Sankhya Om e Experience logam sozinhas, e a
+- Com credencial salva, as guias SankhyaOm e Experience logam sozinhas, e a
   sessão continua depois de reiniciar o aplicativo. A janela de Credenciais
   Sankhya mostra a senha salva.
 - A Agenda de Recursos e as negociações (FAP) do parceiro chegam pela janela
@@ -181,13 +189,59 @@ que já existe.
 - Bases e bancos locais (WildFly e Docker) ligam, param e mostram o log ao vivo.
 - Os botões de abrir pasta, terminal e IDE e os atalhos cadastrados abrem o
   programa certo.
+- A busca rápida abre pelo `Ctrl+K` em qualquer guia e pelo `Ctrl+Shift+Espaço` com
+  outro programa em foco, e o `Enter` abre cliente, base, repositório e atalho.
+- O `Ctrl+F` abre a barra no canto da guia ativa no Painel, no SankhyaOm (inclusive
+  numa tela dentro de frame) e numa base de cliente; `Enter` e `Shift+Enter` andam
+  pelas ocorrências, `Esc` fecha, e trocar de guia fecha a barra.
+- Git AutoSync, com um repositório de teste com remoto: a aba **Git** do menu mostra a
+  versão e a tarefa do Agendador; salvar um horário muda a tarefa; **Adicionar ao Git
+  AutoSync** na aba Git do cliente muda o `targets` do
+  `%USERPROFILE%\.git-autosync\config.json`; **Sincronizar** faz commit e push de
+  verdade; o histórico e o log aparecem. Um push rejeitado (commit novo no remoto)
+  mostra o bloco **Como resolver**, e **Abrir terminal na pasta** abre o terminal ali.
+  Com o Git AutoSync desinstalado, a aba oferece **Instalar**, e ele sobe pelo pacote.
+- **Configurações › Git** grava o host e o token do GitLab em
+  `GIT_AUTOSYNC_GITLAB_HOST` e `GIT_AUTOSYNC_GITLAB_TOKEN` do usuário, e o token não
+  aparece de volta na tela.
 - O e-mail de teste do SMTP chega, e um lembrete marcado para dali a um minuto
   dispara a notificação.
 - Com uma release mais nova publicada no GitHub, o aviso de atualização aparece.
+- A atualização automática, testada na VM contra um servidor local (veja
+  [Testando a atualização automática](#testando-a-atualização-automática)): a
+  versão nova baixa sozinha, a notificação e **Ajuda › Reiniciar para atualizar**
+  aparecem, e depois de reiniciar o cadastro, o perfil e o login continuam lá.
 - Ao fechar o aplicativo, o backend encerra: nenhum `HUB SNK.exe` sobra no
   Gerenciador de Tarefas, e o `sankhya.db` fica sem `-wal` na pasta de dados.
 - O `backend.log` e o `desktop.log`, em `%APPDATA%\HUB SNK\log`, não trazem erro
   nem senha, token ou cookie em texto puro.
+
+### Testando a atualização automática
+
+A atualização automática lê o `latest.yml` da release mais recente, e testar contra o
+GitHub seria publicar uma versão. Em vez disso, gere duas versões de teste apontando
+para um servidor HTTP na sua máquina, sem commitar nada disso:
+
+1. Copie o `desktop/electron-builder.yml` para um arquivo temporário e troque o
+   `publish` por `provider: generic` com `url: http://<IP>:8765/`, onde `<IP>` é o
+   do adaptador `vEthernet (Default Switch)` da sua máquina.
+2. Gere as duas versões com esse arquivo, mudando só a versão:
+
+   ```bash
+   npx electron-builder --config <arquivo temporário> --publish never \
+     -c.extraMetadata.version=2.0.1 -c.directories.output=../release/teste-atualizacao/2.0.1
+   ```
+
+   e de novo com `2.0.2`.
+
+3. Sirva a pasta da `2.0.2` nesse IP e porta (um servidor estático qualquer), instale a
+   `2.0.1` na VM e abra o HUB SNK. Uns 30 segundos depois ele baixa a `2.0.2`, avisa
+   por notificação e oferece **Ajuda › Reiniciar para atualizar**.
+
+Para testar também a migração da marca do Git AutoSync, instale antes a última versão
+oficial com o Git AutoSync marcado e rode a `2.0.1` por cima com ele desmarcado: a marca
+tem de aparecer em `%LOCALAPPDATA%\HubSnk\git-autosync-instalado-pelo-hub.txt`, e a
+desinstalação no fim tem de perguntar se remove o Git AutoSync.
 
 ## Publicando uma versão
 
@@ -242,13 +296,19 @@ não é o publicado.
 A tag dispara o workflow `Distribuição`, que gera os binários do Git AutoSync (do
 repositório `FlavianoRS/git-autosync`, branch `master`), monta o instalador
 `HUB-SNK-Setup-<versão>.exe`, cria a release se ela ainda não existir e o anexa.
-Não é preciso rodar `gh release create` à mão.
+Não é preciso rodar `gh release create` à mão. Tag com hífen sai como pre-release (veja
+[Regra de versão](#regra-de-versão)); a release que já existia antes da tag mantém o
+que estiver marcado nela.
 
 Para gerar o instalador na sua máquina: `npm run empacotar-desktop`, com o
 repositório do Git AutoSync em `C:\Workspace\scripts\git-autosync` (ou apontado
 por `GIT_AUTOSYNC_DIR`) e os binários dele já gerados pelo
 `python\build_windows.ps1`. Sem o Git AutoSync, use
 `npm --prefix desktop run empacotar:sem-autosync`. O resultado sai em `release/`.
+
+O `latest.yml` e o `.blockmap` sobem para a release junto do instalador: é o que
+a atualização automática do aplicativo (`desktop/src/atualizacao.ts`) lê. Release
+sem eles não chega a quem já tem o HUB SNK instalado, só o aviso do Painel.
 
 O aviso de atualização dentro do programa vem da release do GitHub, lida por
 `src/sistema/ultimaVersaoPublicada.ts`. Enquanto a tag não sobe, quem já usa o

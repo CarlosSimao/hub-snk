@@ -139,9 +139,9 @@ const esquemaDoCorpoDaConfiguracao = esquemaDeConfiguracao.extend({
  */
 const esquemaDoCodusu = z.object({
   sankhyaOmCodUsu: z
-    .string({ error: 'Informe o código de usuário do Sankhya OM.' })
+    .string({ error: 'Informe o código de usuário do SankhyaOm.' })
     .trim()
-    .regex(/^\d*$/, 'O código de usuário do Sankhya OM deve ter só números.'),
+    .regex(/^\d*$/, 'O código de usuário do SankhyaOm deve ter só números.'),
 });
 
 function responderErroDeValidacao(resposta: FastifyReply, erro: z.ZodError): FastifyReply {

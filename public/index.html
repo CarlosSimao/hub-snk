@@ -24,10 +24,19 @@
         <div class="abas-modal barra-visualizacao" role="tablist" aria-label="Visualização">
           <button
             class="aba ativa"
-            id="btn-visualizacao-clientes"
+            id="btn-visualizacao-resumo"
             type="button"
             role="tab"
             aria-selected="true"
+          >
+            Resumo
+          </button>
+          <button
+            class="aba"
+            id="btn-visualizacao-clientes"
+            type="button"
+            role="tab"
+            aria-selected="false"
           >
             Clientes
           </button>
@@ -60,15 +69,6 @@
           </button>
           <button
             class="aba"
-            id="btn-visualizacao-lembretes"
-            type="button"
-            role="tab"
-            aria-selected="false"
-          >
-            Lembretes
-          </button>
-          <button
-            class="aba"
             id="btn-visualizacao-contatos"
             type="button"
             role="tab"
@@ -76,7 +76,25 @@
           >
             Contatos
           </button>
+          <button
+            class="aba"
+            id="btn-visualizacao-autosync"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Git
+          </button>
         </div>
+        <!-- O ícone de lupa é montado pelo app.js. -->
+        <button
+          class="btn ghost botao-icone"
+          id="btn-busca-rapida"
+          type="button"
+          title="Busca rápida (Ctrl+K)"
+          aria-label="Busca rápida"
+          aria-haspopup="dialog"
+        ></button>
         <!-- O ícone de sino é montado pelo app.js; o contador só aparece com não lidas. -->
         <button
           class="btn ghost botao-icone botao-notificacoes"
@@ -131,7 +149,19 @@
     </header>
 
     <main>
-      <div class="layout" id="visualizacao-clientes">
+      <div class="card" id="visualizacao-resumo">
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Resumo do dia</h2>
+            <!-- A data é preenchida pelo app.js. -->
+            <p class="texto-auxiliar" id="data-do-resumo"></p>
+          </div>
+        </div>
+        <!-- As seções são montadas pelo app.js. -->
+        <div id="mount-resumo"></div>
+      </div>
+
+      <div class="layout" id="visualizacao-clientes" hidden>
         <aside class="coluna-lista">
           <div class="busca-linha">
             <input
@@ -211,7 +241,7 @@
         <div class="secao-recursos">
           <p class="aviso-shell" id="aviso-shell-agenda" hidden>
             A consulta ao Sankhya precisa do aplicativo HUB SNK aberto, com login feito na guia
-            Sankhya Om.
+            SankhyaOm.
           </p>
           <!-- Navegação de mês, calendário e detalhe do dia são montados pelo app.js
                (`criarWidgetDeAgenda`) — o mesmo widget usado na aba Agenda do cadastro
@@ -253,19 +283,6 @@
         </div>
       </div>
 
-      <div class="card" id="visualizacao-lembretes" hidden>
-        <div class="detalhe-cabecalho">
-          <div class="detalhe-titulo-com-subtitulo">
-            <h2>Lembretes</h2>
-            <p class="texto-auxiliar">
-              Avisos no painel de notificações, com som e, se quiser, por e-mail.
-            </p>
-          </div>
-        </div>
-        <!-- A lista é montada pelo app.js. -->
-        <div id="mount-lembretes"></div>
-      </div>
-
       <div class="card" id="visualizacao-contatos" hidden>
         <div class="detalhe-cabecalho">
           <div class="detalhe-titulo-com-subtitulo">
@@ -293,25 +310,53 @@
         <!-- A lista é montada pelo app.js. -->
         <div id="mount-contatos"></div>
       </div>
+
+      <div class="card" id="visualizacao-autosync" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Git AutoSync</h2>
+            <p class="texto-auxiliar">
+              Commit e push automáticos dos repositórios cadastrados no Git AutoSync.
+            </p>
+          </div>
+          <div class="detalhe-acoes">
+            <span class="texto-auxiliar" id="ultima-atualizacao-autosync"></span>
+            <!-- O ícone de recarregar é montado pelo app.js. -->
+            <button
+              class="btn ghost botao-icone"
+              type="button"
+              id="btn-atualizar-autosync"
+              title="Atualizar"
+              aria-label="Atualizar"
+            ></button>
+          </div>
+        </div>
+        <!-- Estado, horários, mensagem do commit, repositórios e log: montados pelo app.js. -->
+        <div id="mount-autosync"></div>
+      </div>
     </main>
 
     <aside class="painel-notificacoes" id="painel-notificacoes" aria-label="Notificações" hidden>
       <div class="painel-notificacoes-cabecalho">
         <h2>Notificações</h2>
+        <button
+          class="btn tiny ghost"
+          id="btn-fechar-notificacoes"
+          type="button"
+          aria-label="Fechar notificações"
+          title="Fechar"
+        >
+          ✕
+        </button>
+      </div>
+      <!-- Lembretes à esquerda; à direita, o que age sobre a lista abaixo. -->
+      <div class="painel-notificacoes-barra">
+        <button class="btn tiny" id="btn-abrir-lembretes" type="button">Lembretes</button>
         <div class="painel-notificacoes-acoes">
           <button class="btn tiny ghost" id="btn-marcar-notificacoes-lidas" type="button">
             Marcar todas como lidas
           </button>
           <button class="btn tiny ghost" id="btn-limpar-notificacoes" type="button">Limpar</button>
-          <button
-            class="btn tiny ghost"
-            id="btn-fechar-notificacoes"
-            type="button"
-            aria-label="Fechar notificações"
-            title="Fechar"
-          >
-            ✕
-          </button>
         </div>
       </div>
       <!-- Os itens são montados pelo app.js. -->
@@ -348,7 +393,7 @@
               <span class="opcional">opcional</span>
               <span class="dica" tabindex="0"
                 >?<span class="dica-texto" role="tooltip"
-                  >Razão social deste cliente no Sankhya OM/Experience — costuma ser diferente do
+                  >Razão social deste cliente no SankhyaOm/Experience — costuma ser diferente do
                   nome digitado acima (abreviado, com sufixo societário, matriz/filial). Usado para
                   achar as OS deste cliente na aba OS. Um cliente pode ter mais de uma. Nenhuma
                   cadastrada usa o nome do cadastro.</span
@@ -696,6 +741,18 @@
       </form>
     </dialog>
 
+    <dialog class="modal largo" id="modal-lista-lembretes">
+      <div class="modal-cabecalho">
+        <h2>Lembretes</h2>
+        <p>Avisos no painel de notificações, com som e, se quiser, por e-mail.</p>
+      </div>
+      <!-- A lista é montada pelo app.js. -->
+      <div class="modal-corpo" id="mount-lembretes"></div>
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-fechar-lista-lembretes">Fechar</button>
+      </div>
+    </dialog>
+
     <dialog class="modal" id="modal-lembrete">
       <form method="dialog" id="formulario-lembrete" novalidate>
         <div class="modal-cabecalho">
@@ -834,6 +891,27 @@
       </form>
     </dialog>
 
+    <!-- Os resultados são montados pelo app.js a cada tecla. -->
+    <dialog class="modal busca-rapida" id="modal-busca-rapida" aria-label="Busca rápida">
+      <input
+        class="busca-rapida-campo"
+        id="campo-busca-rapida"
+        type="search"
+        role="combobox"
+        aria-expanded="true"
+        aria-autocomplete="list"
+        aria-controls="lista-busca-rapida"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="Buscar cliente, base, repositório, link, projeto, contato ou atalho…"
+      />
+      <ul class="busca-rapida-lista" id="lista-busca-rapida" role="listbox"></ul>
+      <p class="busca-rapida-dica">
+        <kbd>↑</kbd><kbd>↓</kbd> navegar · <kbd>Enter</kbd> abrir · <kbd>Ctrl</kbd>+<kbd>Enter</kbd>
+        abrir o cliente · <kbd>Esc</kbd> fechar
+      </p>
+    </dialog>
+
     <dialog class="modal" id="modal-contato">
       <form method="dialog" id="formulario-contato" novalidate>
         <div class="modal-cabecalho">
@@ -963,6 +1041,16 @@
             aria-controls="painel-configuracao-atalhos"
           >
             Atalhos
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-git"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-git"
+          >
+            Git
           </button>
           <button
             class="aba"
@@ -1373,7 +1461,7 @@
                   >?<span class="dica-texto" role="tooltip"
                     >A cada 15 minutos, confere os eventos de hoje da sua Agenda de Recursos. Evento
                     de cliente que já terminou e não tem OS lançada na Experience gera uma
-                    notificação, uma vez por evento. Precisa do código de usuário do Sankhya OM e do
+                    notificação, uma vez por evento. Precisa do código de usuário do SankhyaOm e do
                     login feito, os dois em Credenciais Sankhya. O e-mail usa o SMTP da aba
                     SMTP.</span
                   ></span
@@ -1393,6 +1481,73 @@
                   </label>
                 </div>
               </div>
+            </fieldset>
+          </div>
+
+          <div
+            class="painel-aba"
+            id="painel-configuracao-git"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-git"
+            hidden
+          >
+            <fieldset class="grupo-de-acessos">
+              <legend>
+                Token do GitLab
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Usado pelo Git AutoSync para criar Merge Request. Fica nas variáveis de
+                    ambiente do seu usuário do Windows (GIT_AUTOSYNC_GITLAB_TOKEN e
+                    GIT_AUTOSYNC_GITLAB_HOST), não no arquivo de dados do HUB SNK.</span
+                  ></span
+                >
+              </legend>
+
+              <div class="campo">
+                <label for="campo-gitlab-host">Host do GitLab</label>
+                <input
+                  id="campo-gitlab-host"
+                  type="text"
+                  maxlength="255"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="Ex.: gitlab.empresa.com.br"
+                />
+              </div>
+
+              <div class="campo">
+                <label for="campo-gitlab-token">
+                  Token <span class="opcional">escopo api</span>
+                </label>
+                <div class="campo-com-botao">
+                  <input
+                    id="campo-gitlab-token"
+                    type="password"
+                    maxlength="500"
+                    autocomplete="new-password"
+                    spellcheck="false"
+                  />
+                  <!-- O ícone de olho é montado pelo app.js. -->
+                  <button
+                    class="btn ghost botao-icone"
+                    id="btn-ver-token-gitlab"
+                    type="button"
+                    title="Mostrar token"
+                    aria-label="Mostrar token"
+                  ></button>
+                </div>
+              </div>
+
+              <div class="linha-do-token-gitlab">
+                <p class="texto-auxiliar" id="situacao-token-gitlab"></p>
+                <button class="btn tiny danger" type="button" id="btn-remover-token-gitlab">
+                  Remover token
+                </button>
+              </div>
+              <p class="texto-auxiliar">
+                O token gravado nunca é mostrado: deixe o campo em branco para manter o atual. A
+                bandeja do Git AutoSync já aberta só enxerga o token novo depois de reaberta.
+              </p>
             </fieldset>
           </div>
 
@@ -1430,9 +1585,9 @@
               <input type="checkbox" id="campo-terceiro" /> Terceiro
               <span class="dica" tabindex="0"
                 >?<span class="dica-texto" role="tooltip"
-                  >Para quem não tem acesso ao Sankhya Om nem à Experience. Oculta o que depende
+                  >Para quem não tem acesso ao SankhyaOm nem à Experience. Oculta o que depende
                   deles: Credenciais Sankhya, Agenda e OS, os nomes completos do cliente, o alerta
-                  da agenda e as guias Sankhya Om e Experience do aplicativo.</span
+                  da agenda e as guias SankhyaOm e Experience do aplicativo.</span
                 ></span
               >
             </label>
@@ -1450,10 +1605,13 @@
                 <input type="checkbox" data-funcionalidade="os" /> OS
               </label>
               <label class="campo-checkbox">
-                <input type="checkbox" data-funcionalidade="lembretes" /> Lembretes
+                <input type="checkbox" data-funcionalidade="lembretes" /> Lembretes (no sino)
               </label>
               <label class="campo-checkbox">
                 <input type="checkbox" data-funcionalidade="contatos" /> Contatos
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="autosync" /> Git
               </label>
             </fieldset>
 
@@ -1463,11 +1621,12 @@
                 <input type="checkbox" data-funcionalidade="cliente.bases" /> Bases
               </label>
               <label class="campo-checkbox">
-                <input type="checkbox" data-funcionalidade="cliente.repositorios" /> Repositórios
+                <input type="checkbox" data-funcionalidade="cliente.repositorios" /> Git
                 <span class="dica" tabindex="0"
                   >?<span class="dica-texto" role="tooltip"
                     >Leva junto o que só faz sentido com repositórios: o filtro por situação do Git,
-                    o indicador do Git no topo e na lista e a aba MCP destas configurações.</span
+                    o indicador do Git no topo e na lista, a aba MCP destas configurações e a seção
+                    AutoSync da aba.</span
                   ></span
                 >
               </label>
@@ -1482,6 +1641,10 @@
               </label>
               <label class="campo-checkbox">
                 <input type="checkbox" data-funcionalidade="cliente.contatos" /> Contatos
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="cliente.autosync" /> AutoSync (na aba
+                Git)
               </label>
             </fieldset>
           </div>
@@ -1557,7 +1720,7 @@
       <div class="modal-cabecalho">
         <h2>Credenciais Sankhya</h2>
         <p>
-          Login usado pelo HUB SNK para entrar sozinho no Sankhya Om e na Experience, ao abrir o
+          Login usado pelo HUB SNK para entrar sozinho no SankhyaOm e na Experience, ao abrir o
           aplicativo e sempre que a sessão expirar.
         </p>
       </div>
@@ -1566,10 +1729,10 @@
         <section class="cartao-credencial">
           <div class="campo campo-em-linha">
             <label for="campo-sankhya-om-codusu">
-              Meu código de usuário Sankhya OM
+              Meu código de usuário SankhyaOm
               <span class="dica" tabindex="0"
                 >?<span class="dica-texto" role="tooltip"
-                  >Seu <code>CODUSU</code> no Sankhya OM (ERP) — diferente do usuário da Experience,
+                  >Seu <code>CODUSU</code> no SankhyaOm (ERP) — diferente do usuário da Experience,
                   que é capturado sozinho junto com a sessão. Recorta a Agenda de Recursos só para
                   você.</span
                 ></span
@@ -1792,7 +1955,7 @@
               type="text"
               maxlength="120"
               autocomplete="off"
-              placeholder="Ex.: Sankhya OM 4.20"
+              placeholder="Ex.: SankhyaOm 4.20"
               required
             />
           </div>
@@ -2172,6 +2335,269 @@
       <div class="modal-rodape">
         <button class="btn ghost" type="button" id="btn-cancelar-exclusao">Cancelar</button>
         <button class="btn danger" type="button" id="btn-confirmar-exclusao">Excluir</button>
+      </div>
+    </dialog>
+
+    <!-- Commit e Sincronizar usam o mesmo modal: só muda o título e o botão de confirmar. -->
+    <dialog class="modal" id="modal-autosync-commit">
+      <form method="dialog" id="formulario-autosync-commit" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-autosync-commit-titulo">Commit</h2>
+          <p id="modal-autosync-commit-subtitulo"></p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-autosync-mensagem"
+              >Mensagem do commit <span class="opcional">(opcional)</span></label
+            >
+            <textarea
+              class="campo-anotacoes"
+              id="campo-autosync-mensagem"
+              rows="4"
+              maxlength="2000"
+              spellcheck="false"
+              placeholder="Em branco, o Git AutoSync escreve a mensagem: por IA, se ligada, ou a mensagem fixa."
+            ></textarea>
+          </div>
+          <div class="linha-do-link-sobre">
+            <button class="btn tiny" type="button" id="btn-autosync-previa">Gerar prévia</button>
+          </div>
+
+          <p class="erro-formulario" id="erro-autosync-commit" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-autosync-commit">
+            Cancelar
+          </button>
+          <button class="btn primario" type="submit" id="btn-confirmar-autosync-commit">
+            Commit
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-autosync-mr">
+      <form method="dialog" id="formulario-autosync-mr" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Merge Request</h2>
+          <p id="modal-autosync-mr-subtitulo"></p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-autosync-mr-titulo"
+              >Título <span class="opcional">(opcional)</span></label
+            >
+            <input
+              id="campo-autosync-mr-titulo"
+              type="text"
+              maxlength="255"
+              autocomplete="off"
+              placeholder="Em branco: origem -> destino"
+            />
+          </div>
+          <div class="campo-duplo">
+            <div class="campo">
+              <label for="campo-autosync-mr-destino"
+                >Branch de destino <span class="opcional">(opcional)</span></label
+              >
+              <input
+                id="campo-autosync-mr-destino"
+                type="text"
+                maxlength="255"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </div>
+            <div class="campo">
+              <label for="campo-autosync-mr-origem"
+                >Branch de origem <span class="opcional">(opcional)</span></label
+              >
+              <input
+                id="campo-autosync-mr-origem"
+                type="text"
+                maxlength="255"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Em branco: branch atual"
+              />
+            </div>
+          </div>
+          <p class="texto-auxiliar">Só GitLab. O host e o token ficam em Configurações › Git.</p>
+
+          <p class="erro-formulario" id="erro-autosync-mr" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-autosync-mr">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-confirmar-autosync-mr">
+            Criar Merge Request
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-autosync-politica">
+      <form method="dialog" id="formulario-autosync-politica" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Política do repositório</h2>
+          <p id="modal-autosync-politica-subtitulo"></p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-autosync-include"
+              >Só estes arquivos <span class="opcional">(um padrão por linha)</span></label
+            >
+            <textarea
+              class="campo-anotacoes"
+              id="campo-autosync-include"
+              rows="3"
+              spellcheck="false"
+              placeholder="Ex.: src/**"
+            ></textarea>
+            <p class="texto-auxiliar">
+              Arquivo fora da lista bloqueia o commit inteiro, não é ignorado.
+            </p>
+          </div>
+          <div class="campo">
+            <label for="campo-autosync-exclude"
+              >Arquivos proibidos <span class="opcional">(um padrão por linha)</span></label
+            >
+            <textarea
+              class="campo-anotacoes"
+              id="campo-autosync-exclude"
+              rows="3"
+              spellcheck="false"
+              placeholder="Ex.: *.log"
+            ></textarea>
+          </div>
+          <div class="campo">
+            <label for="campo-autosync-ramos"
+              >Branches permitidas <span class="opcional">(um padrão por linha)</span></label
+            >
+            <textarea
+              class="campo-anotacoes"
+              id="campo-autosync-ramos"
+              rows="2"
+              spellcheck="false"
+              placeholder="Ex.: feature/*"
+            ></textarea>
+          </div>
+          <div class="campo-duplo">
+            <div class="campo">
+              <label for="campo-autosync-max-bytes"
+                >Tamanho máximo por arquivo, em bytes
+                <span class="opcional">(opcional)</span></label
+              >
+              <input
+                id="campo-autosync-max-bytes"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="Padrão: 5242880 (5 MB)"
+              />
+            </div>
+            <div class="campo">
+              <label for="campo-autosync-ia-repositorio">Mensagem por IA</label>
+              <select id="campo-autosync-ia-repositorio">
+                <option value="">Igual à configuração geral</option>
+                <option value="on">Ligada neste repositório</option>
+                <option value="off">Desligada neste repositório</option>
+              </select>
+            </div>
+          </div>
+          <p class="texto-auxiliar">
+            O Git AutoSync ainda não permite esvaziar uma lista já gravada: deixe ao menos um
+            padrão.
+          </p>
+
+          <p class="erro-formulario" id="erro-autosync-politica" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-autosync-politica">
+            Cancelar
+          </button>
+          <button class="btn primario" type="submit" id="btn-salvar-autosync-politica">
+            Salvar
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal largo" id="modal-autosync-historico">
+      <div class="modal-cabecalho">
+        <h2>Histórico de commits</h2>
+        <p id="modal-autosync-historico-subtitulo"></p>
+      </div>
+      <!-- A lista é montada pelo app.js. -->
+      <div class="modal-corpo" id="mount-autosync-historico"></div>
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-fechar-autosync-historico">Fechar</button>
+      </div>
+    </dialog>
+
+    <dialog class="modal" id="modal-autosync-instalacao">
+      <form method="dialog" id="formulario-autosync-instalacao" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Instalar o Git AutoSync</h2>
+          <p>Usa o pacote que veio com o HUB SNK. Exige o Git instalado na máquina.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-autosync-horario-instalacao"
+              >Horário da rodada automática <span class="opcional">(opcional)</span></label
+            >
+            <input id="campo-autosync-horario-instalacao" type="time" />
+          </div>
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-autosync-bandeja-instalacao" /> Ícone na bandeja ao
+            entrar no Windows
+          </label>
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-autosync-atalhos-instalacao" /> Atalhos na área de
+            trabalho e no menu Iniciar
+          </label>
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-autosync-skills-instalacao" /> Skill para Claude Code e
+            Codex
+          </label>
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-autosync-path-instalacao" /> Adicionar ao PATH do
+            usuário
+          </label>
+
+          <p class="erro-formulario" id="erro-autosync-instalacao" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-autosync-instalacao">
+            Cancelar
+          </button>
+          <button class="btn primario" type="submit" id="btn-confirmar-autosync-instalacao">
+            Instalar
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Confirmação do Git AutoSync: ligar a IA, desativar o agendamento, tirar uma pasta. -->
+    <dialog class="modal" id="modal-autosync-confirmacao">
+      <div class="modal-cabecalho">
+        <h2 id="titulo-autosync-confirmacao">Confirmar</h2>
+        <p id="texto-autosync-confirmacao"></p>
+      </div>
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-cancelar-autosync-confirmacao">
+          Cancelar
+        </button>
+        <button class="btn primario" type="button" id="btn-confirmar-autosync-confirmacao">
+          Confirmar
+        </button>
       </div>
     </dialog>
 
