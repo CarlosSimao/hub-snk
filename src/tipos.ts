@@ -136,6 +136,8 @@ export const FUNCIONALIDADES = [
   'cliente.agenda',
   'cliente.os',
   'cliente.contatos',
+  'autosync',
+  'cliente.autosync',
 ] as const;
 
 export type Funcionalidade = (typeof FUNCIONALIDADES)[number];

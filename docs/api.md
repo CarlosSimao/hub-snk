@@ -206,6 +206,45 @@ Banco local:
 Todos os campos são obrigatórios nos dois cadastros, e `porta` segue a regra do
 banco de dados das bases de cliente.
 
+## Git AutoSync
+
+Falam com o Git AutoSync instalado em `GIT_AUTOSYNC_HOME` (padrão `~/.git-autosync`).
+O HUB SNK nunca grava o `config.json` dele: toda mudança é um subcomando do CLI,
+chamado sem shell. Especificação completa em
+[git-autosync-integracao.md](git-autosync-integracao.md).
+
+| Método e rota                                | Corpo / query                                              | O que faz                                                                         |
+| -------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `GET /api/autosync`                          | `?clientes=true` marca o cliente dono de cada repositório  | Estado, horários, tarefas, IA, alvos e repositórios                               |
+| `GET /api/autosync/clientes`                 |                                                            | Repositórios dos clientes com a situação no autosync e as sugestões de pasta-raiz |
+| `POST /api/autosync/instalar`                | `{ horario?, bandeja?, atalhos?, skills?, path? }`         | Roda o `install-standalone.ps1` do pacote do instalador                           |
+| `POST /api/autosync/repositorios`            | `{ caminho, tipo: 'repo' \| 'root' }`                      | Põe no autosync (`add`, `include` ou religa o alvo desligado)                     |
+| `DELETE /api/autosync/repositorios`          | `{ caminho }`                                              | Tira do autosync (`remove` no alvo próprio, `exclude` na raiz)                    |
+| `POST /api/autosync/repositorios/lote`       | `{ origem: 'clientes' }`                                   | Adiciona um a um os repositórios de clientes que estão fora                       |
+| `POST /api/autosync/repositorios/excluir`    | `{ caminho }`                                              | `exclude` de um repositório de pasta-raiz                                         |
+| `POST /api/autosync/repositorios/incluir`    | `{ caminho }`                                              | `include` de um repositório de pasta-raiz                                         |
+| `PUT /api/autosync/agendamento`              | `{ horarios: ['HH:MM'] }`, de 1 a 6, sem repetir           | `set-schedule`, que reinstala a tarefa                                            |
+| `POST /api/autosync/agendamento/instalar`    |                                                            | `install`                                                                         |
+| `POST /api/autosync/agendamento/desinstalar` |                                                            | `uninstall` (desliga também a bandeja no login)                                   |
+| `PUT /api/autosync/bandeja`                  | `{ ligada }`                                               | `enable-tray` / `disable-tray`                                                    |
+| `PUT /api/autosync/ia`                       | `{ ligada, agente?: auto \| claude \| codex \| opencode }` | `set-ai` e `set-agent`                                                            |
+| `PUT /api/autosync/politica`                 | `{ caminho, include?, exclude?, ramos?, maxBytes?, ia? }`  | `set-policy`; devolve a política gravada                                          |
+| `GET /api/autosync/previa`                   | `?caminho=`                                                | `{ caminho, mensagem }` ou `{ semAlteracoes: true }`                              |
+| `POST /api/autosync/commit`                  | `{ caminho, mensagem? }`                                   | Commit sem push                                                                   |
+| `POST /api/autosync/push`                    | `{ caminho }`                                              | Push do que já foi commitado                                                      |
+| `POST /api/autosync/sincronizar`             | `{ caminho?, mensagem? }`                                  | Commit e push; sem `caminho`, `sync --all`                                        |
+| `POST /api/autosync/merge-request`           | `{ caminho, titulo?, destino?, origem? }`                  | Merge Request no GitLab                                                           |
+| `GET /api/autosync/historico`                | `?caminho=&limite=20`                                      | `{ commits }`                                                                     |
+| `GET /api/autosync/log`                      | `?limite=200`                                              | `{ linhas }` do `autosync.log`                                                    |
+| `GET /api/autosync/diagnostico`              | `?rede=true`                                               | Saída do `doctor`                                                                 |
+
+`caminho` precisa ser absoluto e já conhecido: estar no autosync ou no cadastro de
+um cliente (para `tipo: 'root'`, vale também a pasta-mãe de um repositório de
+cliente). Respostas de ação trazem `{ saida }` com o texto do CLI. Códigos: `400`
+entrada inválida, `404` pasta inexistente, `409` pacote do autosync ausente neste
+build, `502` o CLI rodou e falhou (a mensagem é a saída dele), `503` autosync não
+instalado (`naoInstalado: true`).
+
 ## Integração com o Sankhya e com o aplicativo desktop
 
 Estas rotas dependem do shell desktop (Electron): quem tem a sessão do Sankhya e o

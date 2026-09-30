@@ -27,6 +27,7 @@ const CAMINHO_DOS_BANCOS_LOCAIS = '/api/local/bancos';
 const CAMINHO_DAS_NOTIFICACOES = '/api/notificacoes';
 const CAMINHO_DOS_LEMBRETES = '/api/lembretes';
 const CAMINHO_DOS_CONTATOS = '/api/contatos';
+const CAMINHO_DO_AUTOSYNC = '/api/autosync';
 /* O WhatsApp Web abre a conversa pelo número completo, com o código do país. */
 const ENDERECO_DE_CONVERSA_DO_WHATSAPP = 'https://web.whatsapp.com/send';
 const CODIGO_DO_BRASIL = '55';
@@ -317,6 +318,28 @@ const estado = {
   /* Filtros da aba Contatos do menu principal. */
   filtroDeContatos: { nome: '', clienteId: '' },
   /*
+   * Git AutoSync. `visao` e `clientes` vêm do servidor; `emAndamento` e
+   * `errosPorCaminho` são indexados pela chave normalizada do caminho e guardam a
+   * ação que está rodando e o último erro do CLI de cada repositório.
+   */
+  autosync: {
+    visao: null,
+    clientes: null,
+    erroDeCarga: null,
+    erroGeral: null,
+    atualizadoEm: null,
+    emAndamento: new Map(),
+    errosPorCaminho: new Map(),
+    /* Horários editados nos chips e ainda não salvos; `null` mostra os gravados. */
+    horariosEmEdicao: null,
+    alvoDoCommit: null,
+    alvoDoMr: null,
+    alvoDaPolitica: null,
+    confirmacaoPendente: null,
+    /* Redesenho da aba Git AutoSync do cliente aberto, quando montada. */
+    redesenharDoCliente: null,
+  },
+  /*
    * Assistente de importação de favoritos. `pastas` é a árvore lida do arquivo,
    * `selecionados` guarda as chaves marcadas na etapa da árvore e `linhas` são
    * as bases em edição na etapa final, uma por favorito escolhido.
@@ -409,6 +432,58 @@ const elementos = {
   botaoVisualizacaoContatos: document.getElementById('btn-visualizacao-contatos'),
   visualizacaoContatos: document.getElementById('visualizacao-contatos'),
   mountContatos: document.getElementById('mount-contatos'),
+  botaoVisualizacaoAutosync: document.getElementById('btn-visualizacao-autosync'),
+  visualizacaoAutosync: document.getElementById('visualizacao-autosync'),
+  mountAutosync: document.getElementById('mount-autosync'),
+  ultimaAtualizacaoAutosync: document.getElementById('ultima-atualizacao-autosync'),
+  botaoAtualizarAutosync: document.getElementById('btn-atualizar-autosync'),
+  modalCommitAutosync: document.getElementById('modal-autosync-commit'),
+  formularioCommitAutosync: document.getElementById('formulario-autosync-commit'),
+  tituloModalCommitAutosync: document.getElementById('modal-autosync-commit-titulo'),
+  subtituloModalCommitAutosync: document.getElementById('modal-autosync-commit-subtitulo'),
+  campoMensagemAutosync: document.getElementById('campo-autosync-mensagem'),
+  botaoPreviaAutosync: document.getElementById('btn-autosync-previa'),
+  erroCommitAutosync: document.getElementById('erro-autosync-commit'),
+  botaoCancelarCommitAutosync: document.getElementById('btn-cancelar-autosync-commit'),
+  botaoConfirmarCommitAutosync: document.getElementById('btn-confirmar-autosync-commit'),
+  modalMrAutosync: document.getElementById('modal-autosync-mr'),
+  formularioMrAutosync: document.getElementById('formulario-autosync-mr'),
+  subtituloModalMrAutosync: document.getElementById('modal-autosync-mr-subtitulo'),
+  campoTituloMrAutosync: document.getElementById('campo-autosync-mr-titulo'),
+  campoDestinoMrAutosync: document.getElementById('campo-autosync-mr-destino'),
+  campoOrigemMrAutosync: document.getElementById('campo-autosync-mr-origem'),
+  erroMrAutosync: document.getElementById('erro-autosync-mr'),
+  botaoCancelarMrAutosync: document.getElementById('btn-cancelar-autosync-mr'),
+  modalPoliticaAutosync: document.getElementById('modal-autosync-politica'),
+  formularioPoliticaAutosync: document.getElementById('formulario-autosync-politica'),
+  subtituloModalPoliticaAutosync: document.getElementById('modal-autosync-politica-subtitulo'),
+  campoIncludeAutosync: document.getElementById('campo-autosync-include'),
+  campoExcludeAutosync: document.getElementById('campo-autosync-exclude'),
+  campoRamosAutosync: document.getElementById('campo-autosync-ramos'),
+  campoMaxBytesAutosync: document.getElementById('campo-autosync-max-bytes'),
+  campoIaRepositorioAutosync: document.getElementById('campo-autosync-ia-repositorio'),
+  erroPoliticaAutosync: document.getElementById('erro-autosync-politica'),
+  botaoCancelarPoliticaAutosync: document.getElementById('btn-cancelar-autosync-politica'),
+  botaoSalvarPoliticaAutosync: document.getElementById('btn-salvar-autosync-politica'),
+  modalHistoricoAutosync: document.getElementById('modal-autosync-historico'),
+  subtituloModalHistoricoAutosync: document.getElementById('modal-autosync-historico-subtitulo'),
+  mountHistoricoAutosync: document.getElementById('mount-autosync-historico'),
+  botaoFecharHistoricoAutosync: document.getElementById('btn-fechar-autosync-historico'),
+  modalInstalacaoAutosync: document.getElementById('modal-autosync-instalacao'),
+  formularioInstalacaoAutosync: document.getElementById('formulario-autosync-instalacao'),
+  campoHorarioInstalacaoAutosync: document.getElementById('campo-autosync-horario-instalacao'),
+  campoBandejaInstalacaoAutosync: document.getElementById('campo-autosync-bandeja-instalacao'),
+  campoAtalhosInstalacaoAutosync: document.getElementById('campo-autosync-atalhos-instalacao'),
+  campoSkillsInstalacaoAutosync: document.getElementById('campo-autosync-skills-instalacao'),
+  campoPathInstalacaoAutosync: document.getElementById('campo-autosync-path-instalacao'),
+  erroInstalacaoAutosync: document.getElementById('erro-autosync-instalacao'),
+  botaoCancelarInstalacaoAutosync: document.getElementById('btn-cancelar-autosync-instalacao'),
+  botaoConfirmarInstalacaoAutosync: document.getElementById('btn-confirmar-autosync-instalacao'),
+  modalConfirmacaoAutosync: document.getElementById('modal-autosync-confirmacao'),
+  tituloConfirmacaoAutosync: document.getElementById('titulo-autosync-confirmacao'),
+  textoConfirmacaoAutosync: document.getElementById('texto-autosync-confirmacao'),
+  botaoCancelarConfirmacaoAutosync: document.getElementById('btn-cancelar-autosync-confirmacao'),
+  botaoConfirmarConfirmacaoAutosync: document.getElementById('btn-confirmar-autosync-confirmacao'),
   campoFiltroNomeContato: document.getElementById('campo-filtro-nome-contato'),
   campoFiltroClienteContato: document.getElementById('campo-filtro-cliente-contato'),
   modalContato: document.getElementById('modal-contato'),
@@ -511,6 +586,13 @@ const elementos = {
   abaConfiguracaoSmtp: document.getElementById('aba-configuracao-smtp'),
   abaConfiguracaoAvisos: document.getElementById('aba-configuracao-avisos'),
   abaConfiguracaoAcessos: document.getElementById('aba-configuracao-acessos'),
+  abaConfiguracaoGit: document.getElementById('aba-configuracao-git'),
+  painelConfiguracaoGit: document.getElementById('painel-configuracao-git'),
+  campoGitlabHost: document.getElementById('campo-gitlab-host'),
+  campoGitlabToken: document.getElementById('campo-gitlab-token'),
+  botaoVerTokenGitlab: document.getElementById('btn-ver-token-gitlab'),
+  situacaoTokenGitlab: document.getElementById('situacao-token-gitlab'),
+  botaoRemoverTokenGitlab: document.getElementById('btn-remover-token-gitlab'),
   abaConfiguracaoSobre: document.getElementById('aba-configuracao-sobre'),
   painelConfiguracaoGeral: document.getElementById('painel-configuracao-geral'),
   painelConfiguracaoMcp: document.getElementById('painel-configuracao-mcp'),
@@ -759,6 +841,8 @@ async function requisitar(caminho, opcoes = {}) {
     const erro = new Error(conteudo?.mensagem ?? `Falha na requisição (HTTP ${resposta.status}).`);
     // Repassado pra quem chama decidir, ex.: mostrar "app desktop fora do ar" em vez do erro genérico.
     erro.shellIndisponivel = Boolean(conteudo?.shellIndisponivel);
+    // O Git AutoSync manda junto o que fazer quando o commit ou o push falha.
+    erro.sugestoes = Array.isArray(conteudo?.sugestoes) ? conteudo.sugestoes : [];
     throw erro;
   }
 
@@ -1001,6 +1085,61 @@ const api = {
     requisitar(`${CAMINHO_DOS_BANCOS_LOCAIS}/${id}/parar`, { metodo: 'POST' }),
   situacaoDoBancoLocal: (id) => requisitar(`${CAMINHO_DOS_BANCOS_LOCAIS}/${id}/situacao`),
   situacaoDaBaseLocal: (id) => requisitar(`${CAMINHO_DAS_BASES_LOCAIS}/${id}/situacao`),
+
+  visaoDoAutosync: () => requisitar(`${CAMINHO_DO_AUTOSYNC}?clientes=true`),
+  repositoriosDosClientesNoAutosync: () => requisitar(`${CAMINHO_DO_AUTOSYNC}/clientes`),
+  instalarAutosync: (opcoes) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/instalar`, { metodo: 'POST', corpo: opcoes }),
+  adicionarAoAutosync: (caminho, tipo) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/repositorios`, {
+      metodo: 'POST',
+      corpo: { caminho, tipo },
+    }),
+  adicionarRepositoriosDosClientesNoAutosync: () =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/repositorios/lote`, {
+      metodo: 'POST',
+      corpo: { origem: 'clientes' },
+    }),
+  tirarDoAutosync: (caminho) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/repositorios`, { metodo: 'DELETE', corpo: { caminho } }),
+  definirHorariosDoAutosync: (horarios) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/agendamento`, { metodo: 'PUT', corpo: { horarios } }),
+  instalarTarefaDoAutosync: () =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/agendamento/instalar`, { metodo: 'POST' }),
+  desinstalarTarefaDoAutosync: () =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/agendamento/desinstalar`, { metodo: 'POST' }),
+  definirBandejaDoAutosync: (ligada) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/bandeja`, { metodo: 'PUT', corpo: { ligada } }),
+  definirIaDoAutosync: (ligada, agente) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/ia`, { metodo: 'PUT', corpo: { ligada, agente } }),
+  definirPoliticaNoAutosync: (dados) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/politica`, { metodo: 'PUT', corpo: dados }),
+  previaNoAutosync: (caminho) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/previa?caminho=${encodeURIComponent(caminho)}`),
+  commitNoAutosync: (caminho, mensagem) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/commit`, { metodo: 'POST', corpo: { caminho, mensagem } }),
+  pushNoAutosync: (caminho) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/push`, { metodo: 'POST', corpo: { caminho } }),
+  /* Sem caminho: todos os repositórios ativos (`sync --all`), que não aceita mensagem. */
+  sincronizarNoAutosync: (caminho, mensagem) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/sincronizar`, {
+      metodo: 'POST',
+      corpo: caminho ? { caminho, mensagem } : {},
+    }),
+  mergeRequestNoAutosync: (caminho, dados) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/merge-request`, {
+      metodo: 'POST',
+      corpo: { caminho, ...dados },
+    }),
+  historicoNoAutosync: (caminho) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/historico?caminho=${encodeURIComponent(caminho)}`),
+  logDoAutosync: (limite) => requisitar(`${CAMINHO_DO_AUTOSYNC}/log?limite=${limite}`),
+  abrirTerminalNoAutosync: (caminho) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/terminal`, { metodo: 'POST', corpo: { caminho } }),
+  lerGitlab: () => requisitar(`${CAMINHO_DO_AUTOSYNC}/gitlab`),
+  definirGitlab: (host, token) =>
+    requisitar(`${CAMINHO_DO_AUTOSYNC}/gitlab`, { metodo: 'PUT', corpo: { host, token } }),
+  removerTokenDoGitlab: () => requisitar(`${CAMINHO_DO_AUTOSYNC}/gitlab`, { metodo: 'DELETE' }),
 };
 
 /* -------------------------------- auxiliares ----------------------------- */
@@ -3981,6 +4120,11 @@ function alternarVisualizacao(visualizacao) {
       botao: elementos.botaoVisualizacaoContatos,
       area: elementos.visualizacaoContatos,
     },
+    {
+      chave: 'autosync',
+      botao: elementos.botaoVisualizacaoAutosync,
+      area: elementos.visualizacaoAutosync,
+    },
   ];
 
   for (const { chave, botao, area } of opcoes) {
@@ -4008,6 +4152,9 @@ function alternarVisualizacao(visualizacao) {
   }
   if (visualizacao === 'contatos') {
     void recarregarContatos();
+  }
+  if (visualizacao === 'autosync') {
+    void abrirVisualizacaoDoAutosync();
   }
 }
 
@@ -4232,6 +4379,13 @@ function renderizarDetalhe() {
         chave: 'contatos',
         rotulo: 'Contatos',
         criarConteudo: () => criarSecaoDeContatosDoCliente(cliente),
+      },
+      {
+        chave: 'autosync',
+        rotulo: 'Git',
+        soAoAbrir: true,
+        criarConteudo: () =>
+          secaoConsultadaDoCliente(cliente, 'autosync', criarSecaoDoAutosyncDoCliente),
       },
     ]),
   );
@@ -5534,6 +5688,7 @@ function selecionarAbaDaConfiguracao(abaEscolhida) {
     { aba: elementos.abaConfiguracaoAtalhos, painel: elementos.painelConfiguracaoAtalhos },
     { aba: elementos.abaConfiguracaoSmtp, painel: elementos.painelConfiguracaoSmtp },
     { aba: elementos.abaConfiguracaoAvisos, painel: elementos.painelConfiguracaoAvisos },
+    { aba: elementos.abaConfiguracaoGit, painel: elementos.painelConfiguracaoGit },
     { aba: elementos.abaConfiguracaoAcessos, painel: elementos.painelConfiguracaoAcessos },
     { aba: elementos.abaConfiguracaoSobre, painel: elementos.painelConfiguracaoSobre },
   ];
@@ -5844,6 +5999,7 @@ async function abrirModalDeConfiguracao() {
   preencherNotificacoesDaConfiguracao(SMTP_PADRAO, ALERTA_DA_AGENDA_PADRAO);
   exibirResultadoDoTesteDoSmtp(null);
   definirVisibilidadeDoCampo(elementos.campoSmtpSenha, elementos.botaoVerSenhaSmtp, false);
+  preencherGitlabDaConfiguracao({ host: '', tokenDefinido: false });
 
   try {
     const configuracao = await api.lerConfiguracao();
@@ -5879,6 +6035,13 @@ async function abrirModalDeConfiguracao() {
     preencherCamposDoMcpGlobal(arquivo.configuracao);
   } catch (erro) {
     exibirAviso(`Não foi possível ler o .env do sankhya-schema-mcp: ${erro.message}`, 'erro');
+  }
+
+  /* Variáveis do Windows lidas à parte: falhar não impede de mexer no resto. */
+  try {
+    preencherGitlabDaConfiguracao(await api.lerGitlab());
+  } catch (erro) {
+    exibirAviso(`Não foi possível ler o token do GitLab: ${erro.message}`, 'erro');
   }
 
   // Recolhido a cada abertura: o que ficou expandido da última vez não conta.
@@ -5930,8 +6093,30 @@ async function salvarConfiguracao(evento) {
     return;
   }
 
+  const gitlab = lerGitlabDaConfiguracao();
+  if (gitlab && gitlab.host === '') {
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGit);
+    exibirErro(elementos.erroConfiguracao, 'Informe o host do GitLab junto com o token.');
+    return;
+  }
+
   limparErro(elementos.erroConfiguracao);
   elementos.botaoSalvarConfiguracao.disabled = true;
+
+  /*
+   * O token vai antes do resto: se o Windows recusar a variável, nada é gravado e a
+   * aba Git fica aberta com o motivo.
+   */
+  if (gitlab) {
+    try {
+      preencherGitlabDaConfiguracao(await api.definirGitlab(gitlab.host, gitlab.token));
+    } catch (erro) {
+      selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGit);
+      exibirErro(elementos.erroConfiguracao, erro.message);
+      elementos.botaoSalvarConfiguracao.disabled = false;
+      return;
+    }
+  }
 
   try {
     const salva = await api.salvarConfiguracao({
@@ -5968,6 +6153,71 @@ async function salvarConfiguracao(evento) {
     exibirErro(elementos.erroConfiguracao, erro.message);
   } finally {
     elementos.botaoSalvarConfiguracao.disabled = false;
+  }
+}
+
+/* ----------------------------- token do GitLab ---------------------------- */
+
+/* Host e token gravados quando o modal abriu: decide se o Salvar precisa regravá-los. */
+let gitlabDaConfiguracao = { host: '', tokenDefinido: false };
+
+/** Primeiro host GitLab entre os repositórios cadastrados: vira a sugestão do campo. */
+function hostDoGitlabSugerido() {
+  for (const cliente of estado.clientes) {
+    for (const repositorio of cliente.repositorios) {
+      try {
+        const { hostname } = new URL(repositorio.url);
+        if (hostname.includes('gitlab')) {
+          return hostname;
+        }
+      } catch {
+        // URL em outro formato (SSH curto): só não serve de sugestão.
+      }
+    }
+  }
+  return null;
+}
+
+function preencherGitlabDaConfiguracao(situacao) {
+  gitlabDaConfiguracao = situacao;
+  elementos.campoGitlabHost.value = situacao.host;
+  const sugerido = hostDoGitlabSugerido();
+  elementos.campoGitlabHost.placeholder = sugerido
+    ? `Ex.: ${sugerido}`
+    : 'Ex.: gitlab.empresa.com.br';
+  elementos.campoGitlabToken.value = '';
+  elementos.campoGitlabToken.placeholder = situacao.tokenDefinido
+    ? 'Token gravado: digite outro para trocar'
+    : 'Cole o Personal Access Token';
+  definirVisibilidadeDoCampo(elementos.campoGitlabToken, elementos.botaoVerTokenGitlab, false);
+  elementos.situacaoTokenGitlab.textContent = situacao.tokenDefinido
+    ? 'Há um token gravado nas variáveis de ambiente do usuário.'
+    : 'Nenhum token gravado.';
+  elementos.botaoRemoverTokenGitlab.hidden = !situacao.tokenDefinido;
+}
+
+/** `null` quando nada mudou: sem token novo e com o mesmo host, não há o que gravar. */
+function lerGitlabDaConfiguracao() {
+  const host = elementos.campoGitlabHost.value.trim().toLowerCase();
+  const token = elementos.campoGitlabToken.value.trim();
+  if (token === '' && host === gitlabDaConfiguracao.host) {
+    return null;
+  }
+  if (token === '' && !gitlabDaConfiguracao.tokenDefinido) {
+    return host === '' ? null : { host, token: undefined };
+  }
+  return { host, token: token === '' ? undefined : token };
+}
+
+async function removerTokenDoGitlab() {
+  elementos.botaoRemoverTokenGitlab.disabled = true;
+  try {
+    preencherGitlabDaConfiguracao(await api.removerTokenDoGitlab());
+    exibirAviso('Token do GitLab removido.');
+  } catch (erro) {
+    exibirErro(elementos.erroConfiguracao, erro.message);
+  } finally {
+    elementos.botaoRemoverTokenGitlab.disabled = false;
   }
 }
 
@@ -6058,6 +6308,10 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false 
   elementos.botaoVisualizacaoOs.hidden = !funcionalidadeVisivel('os');
   elementos.botaoVisualizacaoLembretes.hidden = !funcionalidadeVisivel('lembretes');
   elementos.botaoVisualizacaoContatos.hidden = !funcionalidadeVisivel('contatos');
+  elementos.botaoVisualizacaoAutosync.hidden = !funcionalidadeVisivel('autosync');
+
+  elementos.abaConfiguracaoGit.hidden =
+    !funcionalidadeVisivel('autosync') && !funcionalidadeVisivel('cliente.autosync');
 
   const repositoriosVisiveis = funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS);
   elementos.botaoFiltros.hidden = !repositoriosVisiveis;
@@ -9662,6 +9916,1378 @@ async function recarregarDetalhe(id) {
   exibirAviso('Informações recarregadas.');
 }
 
+/* ------------------------------ Git AutoSync ------------------------------ */
+
+/*
+ * A tela nunca escreve o `config.json` do autosync: toda mudança é um pedido ao
+ * backend, que chama o CLI. Depois de qualquer ação as duas telas (a aba do menu e a
+ * aba do cliente aberto) são relidas, porque o autosync pode ter mudado mais do que a
+ * linha clicada — um `sync` grava o status de todos.
+ */
+
+const AGENTES_DO_AUTOSYNC = [
+  { valor: 'auto', rotulo: 'Automático (o primeiro instalado)' },
+  { valor: 'claude', rotulo: 'Claude' },
+  { valor: 'codex', rotulo: 'Codex' },
+  { valor: 'opencode', rotulo: 'OpenCode' },
+];
+
+const TEXTO_DA_CONFIRMACAO_DA_IA =
+  'O diff das alterações será enviado ao agente escolhido (Claude, Codex ou OpenCode) para escrever a mensagem do commit.';
+
+/* Selo da situação de um repositório de cliente, na aba Git AutoSync do cliente. */
+const SITUACOES_DO_CLIENTE_NO_AUTOSYNC = {
+  fora: { severidade: 'desconhecido', rotulo: 'Fora do Git AutoSync' },
+  ativo: {
+    severidade: 'ok',
+    rotulo: 'No Git AutoSync',
+    rotuloPelaRaiz: (pasta) => `No Git AutoSync pela pasta ${pasta}`,
+  },
+  excluido: {
+    severidade: 'atencao',
+    rotulo: 'Excluído da pasta-raiz',
+    rotuloPelaRaiz: (pasta) => `Excluído da pasta ${pasta}`,
+  },
+  desligado: {
+    severidade: 'atencao',
+    rotulo: 'Desligado no Git AutoSync',
+    rotuloPelaRaiz: (pasta) => `Pasta ${pasta} desligada no Git AutoSync`,
+  },
+  'pasta-ausente': { severidade: 'erro', rotulo: 'A pasta não existe' },
+  'nao-e-repositorio': { severidade: 'erro', rotulo: 'A pasta não é um repositório Git' },
+};
+
+/* Até onde a saída do CLI cabe num aviso; o texto inteiro fica na linha, se for erro. */
+const TAMANHO_MAXIMO_DO_RESUMO_DA_SAIDA = 220;
+const LINHAS_DO_LOG_DO_AUTOSYNC = 200;
+
+/** Mesma chave do backend: barras unificadas, sem barra final, minúsculas. */
+function chaveDoCaminhoNoAutosync(caminho) {
+  return caminho.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+}
+
+/** Última linha com texto da saída do CLI: é onde ele diz o resultado (`[OK] ...: ...`). */
+function resumirSaidaDoAutosync(saida) {
+  const linhas = (saida ?? '')
+    .split(/\r?\n/)
+    .map((linha) => linha.trim())
+    .filter(Boolean);
+  const ultima = linhas.at(-1) ?? 'Concluído.';
+  return ultima.length > TAMANHO_MAXIMO_DO_RESUMO_DA_SAIDA
+    ? `${ultima.slice(0, TAMANHO_MAXIMO_DO_RESUMO_DA_SAIDA)}…`
+    : ultima;
+}
+
+/** Carrega a visão e os repositórios dos clientes. Falha fica no estado, e a tela a mostra. */
+async function carregarAutosync() {
+  try {
+    const [visao, clientes] = await Promise.all([
+      api.visaoDoAutosync(),
+      api.repositoriosDosClientesNoAutosync(),
+    ]);
+    estado.autosync.visao = visao;
+    estado.autosync.clientes = clientes;
+    estado.autosync.erroDeCarga = null;
+    estado.autosync.atualizadoEm = new Date();
+  } catch (erro) {
+    estado.autosync.erroDeCarga = erro.message;
+  }
+}
+
+/** Redesenha o que estiver montado, sem consultar o servidor de novo. */
+function redesenharAutosync() {
+  if (estado.visualizacao === 'autosync') {
+    renderizarAutosync();
+  }
+  estado.autosync.redesenharDoCliente?.();
+}
+
+async function recarregarAutosync() {
+  await carregarAutosync();
+  redesenharAutosync();
+}
+
+/**
+ * Roda uma ação num repositório. A linha fica bloqueada e diz o que está em andamento
+ * (um `sync` pode levar minutos); o erro do CLI fica ao pé da linha, com o texto
+ * original, até a próxima ação dar certo.
+ */
+async function executarNoRepositorioDoAutosync(caminho, rotulo, acao) {
+  const chave = chaveDoCaminhoNoAutosync(caminho);
+  if (estado.autosync.emAndamento.has(chave)) {
+    return;
+  }
+
+  estado.autosync.emAndamento.set(chave, rotulo);
+  redesenharAutosync();
+
+  try {
+    const resposta = await acao();
+    estado.autosync.errosPorCaminho.delete(chave);
+    exibirAviso(resposta?.saida ? resumirSaidaDoAutosync(resposta.saida) : `${rotulo}: concluído.`);
+  } catch (erro) {
+    estado.autosync.errosPorCaminho.set(chave, {
+      mensagem: erro.message,
+      sugestoes: erro.sugestoes ?? [],
+    });
+    exibirAviso(`${rotulo} falhou em ${nomeDaPasta(caminho)}.`, 'erro');
+  } finally {
+    estado.autosync.emAndamento.delete(chave);
+    await recarregarAutosync();
+  }
+}
+
+/** Ação que vale para o autosync inteiro: horários, bandeja, IA, rodar agora. */
+async function executarNoAutosync(botao, rotulo, acao) {
+  // O seletor de agente também passa por aqui, e trocar o texto dele apagaria as opções.
+  const trocarTexto = botao.tagName === 'BUTTON' && !botao.classList.contains('botao-icone');
+  const textoOriginal = botao.textContent;
+  botao.disabled = true;
+  if (trocarTexto) {
+    botao.textContent = `${rotulo}…`;
+  }
+
+  try {
+    const resposta = await acao();
+    estado.autosync.erroGeral = null;
+    estado.autosync.horariosEmEdicao = null;
+    exibirAviso(resposta?.saida ? resumirSaidaDoAutosync(resposta.saida) : `${rotulo}: concluído.`);
+  } catch (erro) {
+    estado.autosync.erroGeral = erro.message;
+    exibirAviso(`${rotulo} falhou.`, 'erro');
+  } finally {
+    botao.disabled = false;
+    if (trocarTexto) {
+      botao.textContent = textoOriginal;
+    }
+    await recarregarAutosync();
+  }
+}
+
+function abrirConfirmacaoDoAutosync({ titulo, texto, rotulo, perigo = false, aoConfirmar }) {
+  elementos.tituloConfirmacaoAutosync.textContent = titulo;
+  elementos.textoConfirmacaoAutosync.textContent = texto;
+  elementos.botaoConfirmarConfirmacaoAutosync.textContent = rotulo;
+  elementos.botaoConfirmarConfirmacaoAutosync.className = perigo ? 'btn danger' : 'btn primario';
+  estado.autosync.confirmacaoPendente = aoConfirmar;
+  elementos.modalConfirmacaoAutosync.showModal();
+}
+
+function confirmarNoAutosync() {
+  const aoConfirmar = estado.autosync.confirmacaoPendente;
+  estado.autosync.confirmacaoPendente = null;
+  elementos.modalConfirmacaoAutosync.close();
+  aoConfirmar?.();
+}
+
+/* ---- linha de repositório, comum à aba do menu e à aba do cliente ---- */
+
+function severidadeDoEstadoNoAutosync(estadoDoRepositorio) {
+  if (!estadoDoRepositorio) {
+    return 'desconhecido';
+  }
+  if (estadoDoRepositorio.state === 'pending_push') {
+    return 'atencao';
+  }
+  if (estadoDoRepositorio.success === false || estadoDoRepositorio.state === 'failed') {
+    return 'erro';
+  }
+  return 'ok';
+}
+
+/**
+ * Último resultado do repositório, com o texto do autosync sem reescrever: é ali que
+ * aparece o motivo de um commit recusado (arquivo sensível, branch fora da política).
+ */
+function criarSeloDoUltimoResultado(estadoDoRepositorio) {
+  const severidade = severidadeDoEstadoNoAutosync(estadoDoRepositorio);
+  const selo = criarElemento('div', `selo-situacao ${severidade}`);
+  selo.append(criarPontoDeSituacao(severidade));
+
+  if (!estadoDoRepositorio) {
+    selo.append(criarElemento('span', 'situacao-resumo', 'Ainda não rodou no Git AutoSync'));
+    return selo;
+  }
+
+  const quando = estadoDoRepositorio.lastRun ? `${estadoDoRepositorio.lastRun} · ` : '';
+  selo.append(
+    criarElemento('span', 'situacao-resumo', `${quando}${estadoDoRepositorio.message ?? ''}`),
+  );
+  selo.title = estadoDoRepositorio.lastPush
+    ? `Último push: ${estadoDoRepositorio.lastPush}`
+    : 'Nenhum push registrado';
+  return selo;
+}
+
+function criarSeloDoAutosync(severidade, texto) {
+  const selo = criarElemento('div', `selo-situacao ${severidade}`);
+  selo.append(criarPontoDeSituacao(severidade), criarElemento('span', 'situacao-resumo', texto));
+  return selo;
+}
+
+/**
+ * Os quatro botões do dia a dia. Commit e Sincronizar abrem o modal da mensagem;
+ * Push vai direto, porque não há nada a escrever; Merge Request abre o modal do MR.
+ */
+function criarBotoesDoRepositorioNoAutosync(caminho, habilitados) {
+  const botoes = [
+    criarBotao('btn tiny', 'Commit', () => abrirModalDoCommitDoAutosync(caminho, 'commit')),
+    criarBotao('btn tiny', 'Push', () =>
+      executarNoRepositorioDoAutosync(caminho, 'Push', () => api.pushNoAutosync(caminho)),
+    ),
+    criarBotao('btn tiny primario', 'Sincronizar', () =>
+      abrirModalDoCommitDoAutosync(caminho, 'sincronizar'),
+    ),
+    criarBotao('btn tiny', 'Merge Request', () => abrirModalDoMrDoAutosync(caminho)),
+  ];
+  botoes[0].title = 'Commit sem push';
+  botoes[1].title = 'Push do que já foi commitado';
+  botoes[2].title = 'Commit e push';
+  botoes[3].title = 'Criar Merge Request no GitLab';
+  for (const botao of botoes) {
+    botao.disabled = !habilitados;
+  }
+  return botoes;
+}
+
+/**
+ * Uma linha de repositório no Git AutoSync.
+ *
+ * `selos` descrevem onde o repositório está no autosync; `extras` são as ações da
+ * segunda linha (histórico, política, ativar/tirar), que variam por aba.
+ */
+function criarLinhaDoAutosync({
+  caminho,
+  titulo,
+  detalhe,
+  selos,
+  estadoDoRepositorio,
+  acoesHabilitadas,
+  extras,
+}) {
+  const chave = chaveDoCaminhoNoAutosync(caminho);
+  const emAndamento = estado.autosync.emAndamento.get(chave);
+  const erro = estado.autosync.errosPorCaminho.get(chave);
+
+  const informacoes = criarElemento('div', 'recurso-info');
+  informacoes.append(
+    criarElemento('p', 'recurso-nome', titulo),
+    criarElemento('p', 'recurso-caminho', caminho),
+  );
+  if (detalhe) {
+    informacoes.append(criarElemento('span', 'recurso-url secundaria', detalhe));
+  }
+
+  const linhaDeSelos = criarElemento('div', 'selos-do-autosync');
+  linhaDeSelos.append(...selos, criarSeloDoUltimoResultado(estadoDoRepositorio));
+  informacoes.append(linhaDeSelos);
+
+  if (emAndamento) {
+    const andamento = criarElemento('p', 'andamento-do-autosync', `${emAndamento} em andamento…`);
+    andamento.setAttribute('role', 'status');
+    informacoes.append(andamento);
+  }
+  if (erro) {
+    informacoes.append(criarBlocoDeCorrecaoDoAutosync(caminho, erro));
+  }
+
+  const acoes = criarElemento('div', 'recurso-acoes');
+  const principais = criarElemento('div', 'recurso-acoes-linha');
+  principais.append(
+    ...criarBotoesDoRepositorioNoAutosync(caminho, acoesHabilitadas && !emAndamento),
+  );
+  acoes.append(principais);
+
+  if (extras.length > 0) {
+    const secundarias = criarElemento('div', 'recurso-acoes-linha recurso-acoes-extras');
+    for (const botao of extras) {
+      botao.disabled = botao.disabled || Boolean(emAndamento);
+    }
+    secundarias.append(...extras);
+    acoes.append(secundarias);
+  }
+
+  const linha = criarElemento('div', 'linha-recurso');
+  linha.append(informacoes, acoes);
+  return linha;
+}
+
+/** Política gravada do repositório, para abrir o modal a partir da sugestão. */
+function politicaDoRepositorioNoAutosync(caminho) {
+  const chave = chaveDoCaminhoNoAutosync(caminho);
+  return (
+    estado.autosync.visao?.repositorios.find(
+      (repositorio) => chaveDoCaminhoNoAutosync(repositorio.caminho) === chave,
+    )?.politica ?? null
+  );
+}
+
+async function abrirTerminalDoAutosync(caminho, botao) {
+  botao.disabled = true;
+  try {
+    await api.abrirTerminalNoAutosync(caminho);
+  } catch (erro) {
+    exibirAviso(erro.message, 'erro');
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+async function abrirConfiguracoesDoGitlab() {
+  await abrirModalDeConfiguracao();
+  selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGit);
+  elementos.campoGitlabHost.focus();
+}
+
+function criarComandoDeCorrecao(comando) {
+  const linha = criarElemento('div', 'comando-de-correcao');
+  linha.append(
+    criarElemento('code', null, comando),
+    criarBotaoDeIcone('btn tiny ghost', ICONES.copiar, 'Copiar comando', () =>
+      copiarParaAreaDeTransferencia(comando, 'Comando copiado. Cole no terminal.'),
+    ),
+  );
+  return linha;
+}
+
+/**
+ * O que fazer depois de uma falha: a explicação, os comandos para copiar e o terminal
+ * já na pasta. Nada é executado pela tela — `pull --rebase` reescreve commits locais e
+ * pode parar em conflito, e quem decide é a pessoa, vendo o terminal. A saída do CLI
+ * continua inteira, recolhida, para quando a sugestão não bastar.
+ */
+function criarBlocoDeCorrecaoDoAutosync(caminho, { mensagem, sugestoes }) {
+  const bloco = criarElemento('div', 'correcao-do-autosync');
+  bloco.append(criarElemento('p', 'correcao-titulo', 'Como resolver'));
+
+  const acoesExtras = [];
+  if (sugestoes.length === 0) {
+    bloco.append(
+      criarElemento(
+        'p',
+        'texto-auxiliar',
+        'O HUB SNK não reconhece este erro. Veja a saída completa abaixo e resolva pelo terminal.',
+      ),
+    );
+  }
+  for (const sugestao of sugestoes) {
+    const item = criarElemento('div', 'sugestao-de-correcao');
+    const explicacao = criarElemento('p', 'sugestao-de-correcao-texto');
+    explicacao.append(
+      criarPontoDeSituacao('atencao'),
+      criarElemento('span', null, sugestao.explicacao),
+    );
+    item.append(explicacao, ...sugestao.comandos.map(criarComandoDeCorrecao));
+    bloco.append(item);
+
+    if (sugestao.acao === 'configurar-gitlab') {
+      acoesExtras.push(
+        criarBotao('btn tiny', 'Abrir Configurações › Git', abrirConfiguracoesDoGitlab),
+      );
+    }
+    if (sugestao.acao === 'politica') {
+      acoesExtras.push(
+        criarBotao('btn tiny', 'Política do repositório', () =>
+          abrirModalDaPoliticaDoAutosync(caminho, politicaDoRepositorioNoAutosync(caminho)),
+        ),
+      );
+    }
+  }
+
+  const botaoTerminal = criarBotao('btn tiny botao-com-icone', undefined, () =>
+    abrirTerminalDoAutosync(caminho, botaoTerminal),
+  );
+  botaoTerminal.append(
+    criarIcone(ICONES.terminal),
+    criarElemento('span', null, 'Abrir terminal na pasta'),
+  );
+  botaoTerminal.title = `Abrir o terminal em ${caminho}`;
+
+  const botaoDispensar = criarBotao('btn tiny ghost', 'Dispensar', () => {
+    estado.autosync.errosPorCaminho.delete(chaveDoCaminhoNoAutosync(caminho));
+    redesenharAutosync();
+  });
+
+  const acoes = criarElemento('div', 'correcao-acoes');
+  acoes.append(botaoTerminal, ...acoesExtras, botaoDispensar);
+  bloco.append(acoes);
+
+  const saida = criarElemento('details', 'saida-do-autosync');
+  saida.append(
+    criarElemento('summary', null, 'Saída completa do Git AutoSync'),
+    criarElemento('pre', 'erro-do-autosync', mensagem),
+  );
+  bloco.append(saida);
+  return bloco;
+}
+
+function criarBotaoDeHistoricoDoAutosync(caminho) {
+  return criarBotaoDeIcone('btn tiny', ICONES.log, 'Histórico de commits', () =>
+    abrirHistoricoDoAutosync(caminho),
+  );
+}
+
+function criarBotaoDePoliticaDoAutosync(caminho, politica) {
+  return criarBotaoDeIcone('btn tiny', ICONES.engrenagem, 'Política do repositório', () =>
+    abrirModalDaPoliticaDoAutosync(caminho, politica),
+  );
+}
+
+/* Adicionar resolve sozinho o caso: `add`, `include` ou tirar e pôr de novo o alvo desligado. */
+function adicionarAoAutosync(caminho, tipo = 'repo') {
+  return executarNoRepositorioDoAutosync(caminho, 'Adicionar ao Git AutoSync', () =>
+    api.adicionarAoAutosync(caminho, tipo),
+  );
+}
+
+/* Tirar também: alvo próprio sai com `remove`, repositório de pasta-raiz sai com `exclude`. */
+function tirarDoAutosync(caminho) {
+  return executarNoRepositorioDoAutosync(caminho, 'Tirar do Git AutoSync', () =>
+    api.tirarDoAutosync(caminho),
+  );
+}
+
+/* ---------------------------- aba do menu ---------------------------------- */
+
+function criarAvisoDeAutosyncNaoInstalado(comBotao) {
+  const aviso = criarElemento('div', 'aviso-shell aviso-do-autosync');
+  aviso.append(
+    criarElemento(
+      'p',
+      null,
+      'O Git AutoSync não está instalado nesta máquina. Ele exige o Git no PATH: se a instalação falhar, é o motivo mais comum.',
+    ),
+  );
+  if (comBotao) {
+    aviso.append(criarBotao('btn tiny primario', 'Instalar', abrirModalDeInstalacaoDoAutosync));
+  }
+  return aviso;
+}
+
+function severidadeDaTarefaDoAgendador(tarefa) {
+  if (tarefa.estado === 'Disabled') {
+    return 'atencao';
+  }
+  return tarefa.ultimoResultado && tarefa.ultimoResultado !== 0 ? 'atencao' : 'ok';
+}
+
+function descreverTarefaDoAgendador(tarefa) {
+  const partes = [tarefa.nome, tarefa.estado === 'Disabled' ? 'desativada' : tarefa.estado];
+  if (tarefa.proximaExecucao) {
+    partes.push(`próxima ${tarefa.proximaExecucao}`);
+  }
+  if (tarefa.ultimoResultado) {
+    partes.push(`último resultado ${tarefa.ultimoResultado}`);
+  }
+  return partes.join(' · ');
+}
+
+function criarCabecalhoDaSecaoDoAutosync(titulo, ...botoes) {
+  const cabecalho = criarElemento('div', 'secao-cabecalho');
+  cabecalho.append(criarElemento('h3', null, titulo));
+  if (botoes.length > 0) {
+    const acoes = criarElemento('div', 'acoes-da-secao-do-autosync');
+    acoes.append(...botoes);
+    cabecalho.append(acoes);
+  }
+  return cabecalho;
+}
+
+function criarSecaoDeEstadoDoAutosync(visao) {
+  const secao = criarElemento('div', 'secao-recursos');
+  secao.append(criarCabecalhoDaSecaoDoAutosync('Estado'));
+
+  const linha = criarElemento('div', 'linha-recurso');
+  const informacoes = criarElemento('div', 'recurso-info');
+  informacoes.append(
+    criarElemento('p', 'recurso-nome', `Git AutoSync ${visao.versao ?? ''}`.trim()),
+    criarElemento(
+      'span',
+      'recurso-url secundaria',
+      `Última rodada geral: ${visao.ultimaExecucao ?? 'nunca'}`,
+    ),
+  );
+
+  const selos = criarElemento('div', 'selos-do-autosync');
+  if (visao.horarios.length > 0 && visao.tarefas.length === 0) {
+    selos.append(criarSeloDoAutosync('erro', 'Horário configurado, tarefa não instalada'));
+  } else if (visao.tarefas.length === 0) {
+    selos.append(criarSeloDoAutosync('desconhecido', 'Sem tarefa no Agendador'));
+  }
+  for (const tarefa of visao.tarefas) {
+    selos.append(
+      criarSeloDoAutosync(
+        severidadeDaTarefaDoAgendador(tarefa),
+        descreverTarefaDoAgendador(tarefa),
+      ),
+    );
+  }
+  informacoes.append(selos);
+
+  if (estado.autosync.erroGeral) {
+    informacoes.append(criarElemento('pre', 'erro-do-autosync', estado.autosync.erroGeral));
+  }
+
+  const acoes = criarElemento('div', 'recurso-acoes');
+  const linhaDeAcoes = criarElemento('div', 'recurso-acoes-linha');
+  if (visao.horarios.length > 0 && visao.tarefas.length === 0) {
+    const botaoCriar = criarBotao('btn tiny primario', 'Criar tarefa', () =>
+      executarNoAutosync(botaoCriar, 'Criar tarefa', () => api.instalarTarefaDoAutosync()),
+    );
+    linhaDeAcoes.append(botaoCriar);
+  }
+  const botaoBandeja = criarBotao(
+    'btn tiny',
+    visao.bandeja ? 'Desligar bandeja' : 'Ligar bandeja',
+    () => {
+      if (visao.bandeja) {
+        executarNoAutosync(botaoBandeja, 'Desligar bandeja', () =>
+          api.definirBandejaDoAutosync(false),
+        );
+        return;
+      }
+      abrirConfirmacaoDoAutosync({
+        titulo: 'Ligar a bandeja',
+        texto:
+          'O ícone do Git AutoSync passa a abrir junto com o login. Se já houver um ícone aberto, o Git AutoSync abre outro: feche o antigo.',
+        rotulo: 'Ligar',
+        aoConfirmar: () =>
+          executarNoAutosync(botaoBandeja, 'Ligar bandeja', () =>
+            api.definirBandejaDoAutosync(true),
+          ),
+      });
+    },
+  );
+  botaoBandeja.title = visao.bandeja
+    ? 'A bandeja abre junto com o login'
+    : 'A bandeja não abre no login';
+  linhaDeAcoes.append(botaoBandeja);
+  acoes.append(linhaDeAcoes);
+
+  linha.append(informacoes, acoes);
+  secao.append(linha);
+  return secao;
+}
+
+function horariosDoAutosyncEmExibicao(visao) {
+  return estado.autosync.horariosEmEdicao ?? visao.horarios;
+}
+
+function criarSecaoDeAgendamentoDoAutosync(visao) {
+  const horarios = horariosDoAutosyncEmExibicao(visao);
+  const alterados =
+    estado.autosync.horariosEmEdicao !== null &&
+    [...horarios].sort().join(',') !== [...visao.horarios].sort().join(',');
+
+  const botaoRodar = criarBotao('btn tiny primario', 'Rodar agora', () =>
+    abrirConfirmacaoDoAutosync({
+      titulo: 'Rodar agora',
+      texto:
+        'Commit e push em todos os repositórios ativos do Git AutoSync, com a mensagem que ele escrever. Pode levar alguns minutos.',
+      rotulo: 'Rodar agora',
+      aoConfirmar: () =>
+        executarNoAutosync(botaoRodar, 'Rodando', () => api.sincronizarNoAutosync()),
+    }),
+  );
+
+  const temTarefa = visao.tarefas.length > 0;
+  const botaoAgendamento = criarBotao(
+    'btn tiny',
+    temTarefa ? 'Desativar agendamento' : 'Ativar agendamento',
+    () => {
+      if (!temTarefa) {
+        executarNoAutosync(botaoAgendamento, 'Ativar agendamento', () =>
+          api.instalarTarefaDoAutosync(),
+        );
+        return;
+      }
+      abrirConfirmacaoDoAutosync({
+        titulo: 'Desativar o agendamento',
+        texto:
+          'A tarefa sai do Agendador e a bandeja deixa de abrir no login. Os horários e os repositórios continuam gravados.',
+        rotulo: 'Desativar',
+        perigo: true,
+        aoConfirmar: () =>
+          executarNoAutosync(botaoAgendamento, 'Desativar agendamento', () =>
+            api.desinstalarTarefaDoAutosync(),
+          ),
+      });
+    },
+  );
+  botaoAgendamento.disabled = !temTarefa && visao.horarios.length === 0;
+
+  const secao = criarElemento('div', 'secao-recursos');
+  secao.append(criarCabecalhoDaSecaoDoAutosync('Quando roda', botaoAgendamento, botaoRodar));
+
+  const chips = criarElemento('div', 'horarios-do-autosync');
+  for (const horario of horarios) {
+    const chip = criarElemento('span', 'chip-do-autosync');
+    chip.append(
+      criarElemento('span', null, horario),
+      criarBotao('btn tiny ghost', '✕', () => {
+        estado.autosync.horariosEmEdicao = horarios.filter((outro) => outro !== horario);
+        renderizarAutosync();
+      }),
+    );
+    chip.lastChild.setAttribute('aria-label', `Tirar o horário ${horario}`);
+    chips.append(chip);
+  }
+  if (horarios.length === 0) {
+    chips.append(criarElemento('span', 'texto-auxiliar', 'Nenhum horário.'));
+  }
+
+  const campo = criarElemento('input', 'campo-horario-do-autosync');
+  campo.type = 'time';
+  campo.setAttribute('aria-label', 'Novo horário');
+  const botaoIncluir = criarBotao('btn tiny', 'Incluir', () => {
+    const valor = campo.value;
+    if (!valor || horarios.includes(valor)) {
+      return;
+    }
+    estado.autosync.horariosEmEdicao = [...horarios, valor].sort();
+    renderizarAutosync();
+  });
+
+  const botaoSalvar = criarBotao('btn tiny primario', 'Salvar horários', () =>
+    executarNoAutosync(botaoSalvar, 'Salvar horários', () =>
+      api.definirHorariosDoAutosync(horarios),
+    ),
+  );
+  botaoSalvar.disabled = !alterados || horarios.length === 0;
+
+  const edicao = criarElemento('div', 'edicao-de-horarios-do-autosync');
+  edicao.append(chips, campo, botaoIncluir, botaoSalvar);
+  secao.append(
+    edicao,
+    criarElemento(
+      'p',
+      'texto-auxiliar',
+      'Os horários valem para todo dia. Salvar reinstala a tarefa do Agendador junto. Para parar a rodada automática, desative o agendamento.',
+    ),
+  );
+  return secao;
+}
+
+function criarSecaoDaMensagemDoAutosync(visao) {
+  const secao = criarElemento('div', 'secao-recursos');
+  secao.append(criarCabecalhoDaSecaoDoAutosync('Mensagem do commit'));
+
+  const caixa = criarElemento('input');
+  caixa.type = 'checkbox';
+  caixa.checked = visao.ia.ligada;
+  const rotuloDaCaixa = criarElemento('label', 'campo-checkbox');
+  rotuloDaCaixa.append(caixa, ' Escrever a mensagem com IA');
+
+  const agente = criarElemento('select', 'busca seletor-do-autosync');
+  agente.setAttribute('aria-label', 'Agente de IA');
+  agente.append(...AGENTES_DO_AUTOSYNC.map(({ valor, rotulo }) => criarOpcao(valor, rotulo)));
+  agente.value = visao.ia.agente;
+  agente.disabled = !visao.ia.ligada;
+
+  const salvar = (ligada) =>
+    executarNoAutosync(agente, 'Mensagem do commit', () =>
+      api.definirIaDoAutosync(ligada, agente.value),
+    );
+
+  caixa.addEventListener('change', () => {
+    if (!caixa.checked) {
+      salvar(false);
+      return;
+    }
+    // Ligar não é decisão do sistema: volta desmarcada até a pessoa confirmar.
+    caixa.checked = false;
+    abrirConfirmacaoDoAutosync({
+      titulo: 'Escrever a mensagem com IA',
+      texto: TEXTO_DA_CONFIRMACAO_DA_IA,
+      rotulo: 'Ligar',
+      aoConfirmar: () => salvar(true),
+    });
+  });
+  agente.addEventListener('change', () => salvar(true));
+
+  const linha = criarElemento('div', 'edicao-de-horarios-do-autosync');
+  linha.append(rotuloDaCaixa, agente);
+  secao.append(
+    linha,
+    criarElemento(
+      'p',
+      'texto-auxiliar',
+      visao.ia.ligada
+        ? 'O diff de cada commit vai para o agente escolhido. Se o agente falhar, o commit sai com a mensagem fixa.'
+        : 'Desligada, o commit sai com a mensagem fixa "chore: auto-commit AAAA-MM-DD HH:MM" e nada sai da máquina.',
+    ),
+  );
+  if (visao.agenteDaTarefa) {
+    secao.append(
+      criarElemento(
+        'p',
+        'texto-auxiliar',
+        `A rodada agendada usa o agente ${visao.agenteDaTarefa}, fixado pelo próprio Git AutoSync.`,
+      ),
+    );
+  }
+  return secao;
+}
+
+function descreverOrigemNoAutosync(repositorio) {
+  if (repositorio.alvoProprio) {
+    return repositorio.ativo
+      ? criarSeloDoAutosync('ok', 'Ativo')
+      : criarSeloDoAutosync('atencao', 'Desligado');
+  }
+  if (repositorio.alvo) {
+    return repositorio.ativo
+      ? criarSeloDoAutosync('ok', `Ativo pela pasta ${nomeDaPasta(repositorio.alvo)}`)
+      : criarSeloDoAutosync('atencao', `Excluído da pasta ${nomeDaPasta(repositorio.alvo)}`);
+  }
+  return criarSeloDoAutosync('desconhecido', 'Fora do Git AutoSync');
+}
+
+function criarLinhaDoAutosyncGeral(repositorio) {
+  const botaoAtivo = repositorio.ativo
+    ? criarBotao('btn tiny danger', 'Desativar', () => tirarDoAutosync(repositorio.caminho))
+    : criarBotao('btn tiny', 'Ativar', () => adicionarAoAutosync(repositorio.caminho));
+  botaoAtivo.title = repositorio.ativo
+    ? 'Tirar da rodada automática (o histórico fica)'
+    : 'Pôr de volta na rodada automática';
+
+  return criarLinhaDoAutosync({
+    caminho: repositorio.caminho,
+    titulo: nomeDaPasta(repositorio.caminho),
+    detalhe: repositorio.clienteNome ? `Cliente ${repositorio.clienteNome}` : null,
+    selos: [descreverOrigemNoAutosync(repositorio)],
+    estadoDoRepositorio: repositorio.estado,
+    acoesHabilitadas: true,
+    extras: [
+      criarBotaoDeHistoricoDoAutosync(repositorio.caminho),
+      criarBotaoDePoliticaDoAutosync(repositorio.caminho, repositorio.politica),
+      botaoAtivo,
+    ],
+  });
+}
+
+function criarLinhaDePastaRaizDoAutosync(alvo, repositorios) {
+  const chave = chaveDoCaminhoNoAutosync(alvo.path);
+  const cobertos = repositorios.filter(
+    (repositorio) => chaveDoCaminhoNoAutosync(repositorio.alvo) === chave,
+  );
+  const ativos = cobertos.filter((repositorio) => repositorio.ativo).length;
+
+  const informacoes = criarElemento('div', 'recurso-info');
+  informacoes.append(
+    criarElemento('p', 'recurso-nome', `Pasta-raiz ${nomeDaPasta(alvo.path)}`),
+    criarElemento('p', 'recurso-caminho', alvo.path),
+    criarElemento(
+      'span',
+      'recurso-url secundaria',
+      `${cobertos.length} repositório(s), ${ativos} ativo(s). Repositório novo nesta pasta entra sozinho.`,
+    ),
+  );
+
+  const botaoTirar = criarBotao('btn tiny danger', 'Tirar a pasta', () =>
+    abrirConfirmacaoDoAutosync({
+      titulo: 'Tirar a pasta-raiz',
+      texto: `Todos os ${cobertos.length} repositório(s) de ${alvo.path} saem da rodada automática. Os repositórios e o histórico ficam.`,
+      rotulo: 'Tirar a pasta',
+      perigo: true,
+      aoConfirmar: () => tirarDoAutosync(alvo.path),
+    }),
+  );
+
+  const acoes = criarElemento('div', 'recurso-acoes');
+  const linhaDeAcoes = criarElemento('div', 'recurso-acoes-linha');
+  linhaDeAcoes.append(botaoTirar);
+  acoes.append(linhaDeAcoes);
+
+  const linha = criarElemento('div', 'linha-recurso');
+  linha.append(informacoes, acoes);
+  return linha;
+}
+
+function criarSugestoesDeRaizDoAutosync() {
+  const sugestoes = estado.autosync.clientes?.sugestoesDeRaiz ?? [];
+  return sugestoes.map((sugestao) => {
+    const aviso = criarElemento('div', 'sugestao-do-autosync');
+    aviso.append(
+      criarElemento(
+        'p',
+        null,
+        `${sugestao.quantidade} repositórios de clientes estão em ${sugestao.pasta}. Cadastrar a pasta cobre todos e os futuros — inclusive os que você não quiser sincronizar, que dá para excluir depois.`,
+      ),
+      criarBotao('btn tiny', 'Cadastrar a pasta', () =>
+        adicionarAoAutosync(sugestao.pasta, 'root'),
+      ),
+    );
+    return aviso;
+  });
+}
+
+async function adicionarTodosOsRepositoriosDosClientes(botao) {
+  botao.disabled = true;
+  botao.textContent = 'Adicionando…';
+
+  try {
+    const resultado = await api.adicionarRepositoriosDosClientesNoAutosync();
+    for (const { caminho, erro } of resultado.falhas) {
+      estado.autosync.errosPorCaminho.set(chaveDoCaminhoNoAutosync(caminho), {
+        mensagem: erro,
+        sugestoes: [],
+      });
+    }
+    const partes = [
+      `${resultado.adicionados.length} adicionado(s)`,
+      `${resultado.jaEstavam.length} já estava(m)`,
+      `${resultado.ignorados.length} ignorado(s)`,
+      `${resultado.falhas.length} com falha`,
+    ];
+    exibirAviso(
+      `${partes.join(', ')}. Revise a política de cada repositório: o Git AutoSync commita tudo o que não está no .gitignore.`,
+      resultado.falhas.length > 0 ? 'erro' : 'sucesso',
+    );
+  } catch (erro) {
+    estado.autosync.erroGeral = erro.message;
+    exibirAviso('Não foi possível adicionar os repositórios dos clientes.', 'erro');
+  } finally {
+    await recarregarAutosync();
+  }
+}
+
+function criarSecaoDeRepositoriosDoAutosync(visao) {
+  const foraDoAutosync = (estado.autosync.clientes?.repositorios ?? []).filter(
+    (repositorio) => repositorio.situacao === 'fora',
+  ).length;
+
+  const botaoLote = criarBotao(
+    'btn tiny',
+    `Adicionar todos os repositórios dos clientes (${foraDoAutosync})`,
+    () => adicionarTodosOsRepositoriosDosClientes(botaoLote),
+  );
+  botaoLote.disabled = foraDoAutosync === 0;
+  botaoLote.title =
+    foraDoAutosync === 0
+      ? 'Todo repositório de cliente com pasta local já está no Git AutoSync'
+      : 'Adiciona, um a um, os repositórios de clientes com pasta local que estão fora';
+
+  const secao = criarElemento('div', 'secao-recursos');
+  secao.append(criarCabecalhoDaSecaoDoAutosync('Repositórios', botaoLote));
+  secao.append(...criarSugestoesDeRaizDoAutosync());
+
+  const raizes = visao.alvos.filter((alvo) => alvo.type === 'root');
+  const linhas = [
+    ...raizes.map((alvo) => criarLinhaDePastaRaizDoAutosync(alvo, visao.repositorios)),
+    ...visao.repositorios.map(criarLinhaDoAutosyncGeral),
+  ];
+
+  if (linhas.length === 0) {
+    secao.append(
+      criarElemento(
+        'p',
+        'secao-vazia',
+        'Nenhum repositório no Git AutoSync. Adicione pela aba Git de cada cliente ou com o botão acima.',
+      ),
+    );
+    return secao;
+  }
+
+  const lista = criarElemento('div', 'lista-recursos');
+  lista.append(...linhas);
+  secao.append(lista);
+  return secao;
+}
+
+async function carregarLogDoAutosync(destino) {
+  destino.textContent = 'Carregando…';
+  try {
+    const { linhas } = await api.logDoAutosync(LINHAS_DO_LOG_DO_AUTOSYNC);
+    destino.textContent = linhas.length > 0 ? linhas.join('\n') : 'O log está vazio.';
+    destino.scrollTop = destino.scrollHeight;
+  } catch (erro) {
+    destino.textContent = erro.message;
+  }
+}
+
+function criarSecaoDoLogDoAutosync() {
+  const grupo = criarElemento('details', 'grupo-recolhivel');
+  grupo.append(
+    criarElemento(
+      'summary',
+      null,
+      `Log do Git AutoSync (últimas ${LINHAS_DO_LOG_DO_AUTOSYNC} linhas)`,
+    ),
+  );
+
+  const corpo = criarElemento('div', 'grupo-recolhivel-corpo');
+  const texto = criarElemento('pre', 'log-do-autosync');
+  const botaoAtualizar = criarBotao('btn tiny', 'Atualizar o log', () =>
+    carregarLogDoAutosync(texto),
+  );
+  const barra = criarElemento('div', 'linha-do-link-sobre');
+  barra.append(botaoAtualizar);
+  corpo.append(barra, texto);
+  grupo.append(corpo);
+
+  grupo.addEventListener('toggle', () => {
+    if (grupo.open) {
+      carregarLogDoAutosync(texto);
+    }
+  });
+
+  const secao = criarElemento('div', 'secao-recursos');
+  secao.append(grupo);
+  return secao;
+}
+
+function renderizarUltimaAtualizacaoDoAutosync() {
+  const quando = estado.autosync.atualizadoEm;
+  elementos.ultimaAtualizacaoAutosync.textContent = quando
+    ? `Atualizado às ${quando.toLocaleTimeString('pt-BR')}`
+    : '';
+}
+
+function renderizarAutosync() {
+  renderizarUltimaAtualizacaoDoAutosync();
+  const { visao, erroDeCarga } = estado.autosync;
+
+  if (!visao) {
+    elementos.mountAutosync.replaceChildren(
+      erroDeCarga
+        ? criarElemento('p', 'aviso-shell', erroDeCarga)
+        : criarElemento('p', 'secao-vazia', 'Carregando…'),
+    );
+    return;
+  }
+
+  const partes = [];
+  if (erroDeCarga) {
+    partes.push(criarElemento('p', 'aviso-shell', erroDeCarga));
+  }
+
+  if (!visao.instalado) {
+    partes.push(criarAvisoDeAutosyncNaoInstalado(true));
+    elementos.mountAutosync.replaceChildren(...partes);
+    return;
+  }
+
+  partes.push(
+    criarSecaoDeEstadoDoAutosync(visao),
+    criarSecaoDeAgendamentoDoAutosync(visao),
+    criarSecaoDaMensagemDoAutosync(visao),
+    criarSecaoDeRepositoriosDoAutosync(visao),
+    criarSecaoDoLogDoAutosync(),
+  );
+  elementos.mountAutosync.replaceChildren(...partes);
+}
+
+async function abrirVisualizacaoDoAutosync() {
+  renderizarAutosync();
+  await recarregarAutosync();
+}
+
+/* ---------------------------- aba do cliente ------------------------------- */
+
+function criarLinhaDoAutosyncDoCliente(item) {
+  const situacao = SITUACOES_DO_CLIENTE_NO_AUTOSYNC[item.situacao];
+  const rotulo = item.raiz ? situacao.rotuloPelaRaiz(nomeDaPasta(item.raiz)) : situacao.rotulo;
+  const pastaUtilizavel =
+    item.situacao !== 'pasta-ausente' && item.situacao !== 'nao-e-repositorio';
+
+  const extras = [];
+  if (pastaUtilizavel) {
+    extras.push(
+      criarBotaoDeHistoricoDoAutosync(item.caminho),
+      criarBotaoDePoliticaDoAutosync(item.caminho, item.repositorio?.politica ?? null),
+    );
+  }
+  if (item.situacao === 'ativo') {
+    extras.push(
+      criarBotao('btn tiny danger', 'Tirar do Git AutoSync', () => tirarDoAutosync(item.caminho)),
+    );
+  } else if (pastaUtilizavel) {
+    extras.push(
+      criarBotao(
+        'btn tiny primario',
+        item.situacao === 'fora' ? 'Adicionar ao Git AutoSync' : 'Reativar no Git AutoSync',
+        () => adicionarAoAutosync(item.caminho),
+      ),
+    );
+  } else if (item.repositorio?.alvoProprio) {
+    extras.push(
+      criarBotao('btn tiny danger', 'Tirar do Git AutoSync', () => tirarDoAutosync(item.caminho)),
+    );
+  }
+
+  return criarLinhaDoAutosync({
+    caminho: item.caminho,
+    titulo: nomeDaPasta(item.caminho),
+    detalhe: item.url,
+    selos: [criarSeloDoAutosync(situacao.severidade, rotulo)],
+    estadoDoRepositorio: item.repositorio?.estado ?? null,
+    acoesHabilitadas: pastaUtilizavel,
+    extras,
+  });
+}
+
+/**
+ * Aba Git AutoSync do cliente: só os repositórios dele com pasta local. É montada uma
+ * vez por cliente (ver `secaoConsultadaDoCliente`) e se redesenha sozinha quando uma
+ * ação termina, sem esperar o detalhe inteiro ser refeito.
+ */
+function criarSecaoDoAutosyncDoCliente(cliente) {
+  const secao = criarElemento('div', 'secao-recursos');
+
+  const desenhar = () => {
+    const { visao, clientes, erroDeCarga } = estado.autosync;
+    const cabecalho = criarElemento('div', 'secao-cabecalho');
+    const botaoRecarregar = criarBotaoDeIcone(
+      'btn tiny',
+      ICONES.recarregar,
+      'Atualizar o Git AutoSync',
+      () => recarregarAutosync(),
+    );
+    cabecalho.append(
+      criarElemento(
+        'p',
+        'texto-auxiliar',
+        'Commit, push e sincronização dos repositórios deste cliente pelo Git AutoSync.',
+      ),
+      botaoRecarregar,
+    );
+
+    if (!visao || !clientes) {
+      secao.replaceChildren(
+        cabecalho,
+        erroDeCarga
+          ? criarElemento('p', 'aviso-shell', erroDeCarga)
+          : criarElemento('p', 'secao-vazia', 'Carregando…'),
+      );
+      return;
+    }
+
+    if (!visao.instalado) {
+      const aviso = criarAvisoDeAutosyncNaoInstalado(false);
+      aviso.append(criarElemento('p', null, 'Instale pela aba Git do menu principal.'));
+      secao.replaceChildren(cabecalho, aviso);
+      return;
+    }
+
+    const doCliente = clientes.repositorios.filter((item) => item.clienteId === cliente.id);
+    const semPasta = cliente.repositorios.filter((repositorio) => !repositorio.caminhoLocal);
+    const partes = [cabecalho];
+
+    if (doCliente.length === 0) {
+      partes.push(
+        criarElemento(
+          'p',
+          'secao-vazia',
+          'Nenhum repositório deste cliente tem pasta local. Informe o caminho local na aba Repositórios.',
+        ),
+      );
+    } else {
+      const lista = criarElemento('div', 'lista-recursos');
+      lista.append(...doCliente.map(criarLinhaDoAutosyncDoCliente));
+      partes.push(lista);
+    }
+
+    if (semPasta.length > 0 && doCliente.length > 0) {
+      partes.push(
+        criarElemento(
+          'p',
+          'texto-auxiliar',
+          `${semPasta.length} repositório(s) sem pasta local ficam de fora.`,
+        ),
+      );
+    }
+    secao.replaceChildren(...partes);
+  };
+
+  estado.autosync.redesenharDoCliente = () => {
+    // A seção de outro cliente fica guardada em memória, mas fora da tela.
+    if (secao.isConnected) {
+      desenhar();
+    }
+  };
+  desenhar();
+  void recarregarAutosync();
+  return secao;
+}
+
+/* ----------------------------- modais ------------------------------------ */
+
+function abrirModalDoCommitDoAutosync(caminho, modo) {
+  estado.autosync.alvoDoCommit = { caminho, modo };
+  const sincronizar = modo === 'sincronizar';
+  elementos.tituloModalCommitAutosync.textContent = sincronizar ? 'Sincronizar' : 'Commit';
+  elementos.subtituloModalCommitAutosync.textContent = sincronizar
+    ? `Commit e push em ${caminho}.`
+    : `Commit, sem push, em ${caminho}.`;
+  elementos.botaoConfirmarCommitAutosync.textContent = sincronizar ? 'Sincronizar' : 'Commit';
+  elementos.campoMensagemAutosync.value = '';
+  limparErro(elementos.erroCommitAutosync);
+  elementos.modalCommitAutosync.showModal();
+  elementos.campoMensagemAutosync.focus();
+}
+
+async function gerarPreviaDoCommitDoAutosync() {
+  const alvo = estado.autosync.alvoDoCommit;
+  if (!alvo) {
+    return;
+  }
+
+  limparErro(elementos.erroCommitAutosync);
+  elementos.botaoPreviaAutosync.disabled = true;
+  elementos.botaoPreviaAutosync.textContent = 'Gerando…';
+  try {
+    const previa = await api.previaNoAutosync(alvo.caminho);
+    if (previa.semAlteracoes) {
+      exibirErro(elementos.erroCommitAutosync, 'Não há alteração para commitar neste repositório.');
+      return;
+    }
+    elementos.campoMensagemAutosync.value = previa.mensagem;
+  } catch (erro) {
+    exibirErro(elementos.erroCommitAutosync, erro.message);
+  } finally {
+    elementos.botaoPreviaAutosync.disabled = false;
+    elementos.botaoPreviaAutosync.textContent = 'Gerar prévia';
+  }
+}
+
+function confirmarCommitDoAutosync(evento) {
+  evento.preventDefault();
+  const alvo = estado.autosync.alvoDoCommit;
+  if (!alvo) {
+    return;
+  }
+
+  const mensagem = elementos.campoMensagemAutosync.value.trim();
+  elementos.modalCommitAutosync.close();
+
+  if (alvo.modo === 'sincronizar') {
+    executarNoRepositorioDoAutosync(alvo.caminho, 'Sincronizar', () =>
+      api.sincronizarNoAutosync(alvo.caminho, mensagem),
+    );
+  } else {
+    executarNoRepositorioDoAutosync(alvo.caminho, 'Commit', () =>
+      api.commitNoAutosync(alvo.caminho, mensagem),
+    );
+  }
+}
+
+function abrirModalDoMrDoAutosync(caminho) {
+  estado.autosync.alvoDoMr = caminho;
+  const ramoPadrao = estado.autosync.visao?.ramoDoMr ?? 'main';
+  elementos.subtituloModalMrAutosync.textContent = caminho;
+  elementos.campoTituloMrAutosync.value = '';
+  elementos.campoDestinoMrAutosync.value = '';
+  elementos.campoDestinoMrAutosync.placeholder = `Em branco: ${ramoPadrao}`;
+  elementos.campoOrigemMrAutosync.value = '';
+  limparErro(elementos.erroMrAutosync);
+  elementos.modalMrAutosync.showModal();
+}
+
+function confirmarMrDoAutosync(evento) {
+  evento.preventDefault();
+  const caminho = estado.autosync.alvoDoMr;
+  if (!caminho) {
+    return;
+  }
+
+  const dados = {
+    titulo: elementos.campoTituloMrAutosync.value.trim(),
+    destino: elementos.campoDestinoMrAutosync.value.trim(),
+    origem: elementos.campoOrigemMrAutosync.value.trim(),
+  };
+  elementos.modalMrAutosync.close();
+  executarNoRepositorioDoAutosync(caminho, 'Merge Request', () =>
+    api.mergeRequestNoAutosync(caminho, dados),
+  );
+}
+
+function linhasDoCampo(campo) {
+  return campo.value
+    .split(/\r?\n/)
+    .map((linha) => linha.trim())
+    .filter(Boolean);
+}
+
+function abrirModalDaPoliticaDoAutosync(caminho, politica) {
+  estado.autosync.alvoDaPolitica = { caminho, politica: politica ?? {} };
+  const atual = politica ?? {};
+  elementos.subtituloModalPoliticaAutosync.textContent = caminho;
+  elementos.campoIncludeAutosync.value = (atual.include ?? []).join('\n');
+  elementos.campoExcludeAutosync.value = (atual.exclude ?? []).join('\n');
+  elementos.campoRamosAutosync.value = (atual.allowedBranches ?? []).join('\n');
+  elementos.campoMaxBytesAutosync.value = atual.maxFileBytes ?? '';
+  elementos.campoIaRepositorioAutosync.value =
+    atual.aiEnabled === undefined ? '' : atual.aiEnabled ? 'on' : 'off';
+  limparErro(elementos.erroPoliticaAutosync);
+  elementos.modalPoliticaAutosync.showModal();
+}
+
+/*
+ * Só manda o que mudou: cada flag do `set-policy` substitui o campo inteiro, e uma
+ * lista que ficou igual não precisa ser regravada.
+ */
+async function salvarPoliticaDoAutosync(evento) {
+  evento.preventDefault();
+  const alvo = estado.autosync.alvoDaPolitica;
+  if (!alvo) {
+    return;
+  }
+
+  const atual = alvo.politica;
+  const iguais = (uma, outra) => (uma ?? []).join('\n') === (outra ?? []).join('\n');
+  const dados = { caminho: alvo.caminho };
+
+  const include = linhasDoCampo(elementos.campoIncludeAutosync);
+  const exclude = linhasDoCampo(elementos.campoExcludeAutosync);
+  const ramos = linhasDoCampo(elementos.campoRamosAutosync);
+  if (!iguais(include, atual.include)) dados.include = include;
+  if (!iguais(exclude, atual.exclude)) dados.exclude = exclude;
+  if (!iguais(ramos, atual.allowedBranches)) dados.ramos = ramos;
+
+  const maxBytes = elementos.campoMaxBytesAutosync.value.trim();
+  if (maxBytes !== '' && Number(maxBytes) !== atual.maxFileBytes) {
+    const numero = Number(maxBytes);
+    if (!Number.isInteger(numero) || numero < 1) {
+      exibirErro(elementos.erroPoliticaAutosync, 'O tamanho máximo deve ser um inteiro positivo.');
+      return;
+    }
+    dados.maxBytes = numero;
+  }
+
+  const ia = elementos.campoIaRepositorioAutosync.value;
+  const iaAtual = atual.aiEnabled === undefined ? '' : atual.aiEnabled ? 'on' : 'off';
+  if (ia !== '' && ia !== iaAtual) dados.ia = ia;
+
+  limparErro(elementos.erroPoliticaAutosync);
+  elementos.botaoSalvarPoliticaAutosync.disabled = true;
+  try {
+    await api.definirPoliticaNoAutosync(dados);
+    elementos.modalPoliticaAutosync.close();
+    exibirAviso('Política gravada.');
+    await recarregarAutosync();
+  } catch (erro) {
+    exibirErro(elementos.erroPoliticaAutosync, erro.message);
+  } finally {
+    elementos.botaoSalvarPoliticaAutosync.disabled = false;
+  }
+}
+
+function formatarDataDoCommit(data) {
+  const convertida = new Date(data);
+  return Number.isNaN(convertida.getTime()) ? data : convertida.toLocaleString('pt-BR');
+}
+
+async function abrirHistoricoDoAutosync(caminho) {
+  elementos.subtituloModalHistoricoAutosync.textContent = caminho;
+  elementos.mountHistoricoAutosync.replaceChildren(
+    criarElemento('p', 'secao-vazia', 'Carregando…'),
+  );
+  elementos.modalHistoricoAutosync.showModal();
+
+  try {
+    const { commits } = await api.historicoNoAutosync(caminho);
+    if (commits.length === 0) {
+      elementos.mountHistoricoAutosync.replaceChildren(
+        criarElemento('p', 'secao-vazia', 'Nenhum commit neste repositório.'),
+      );
+      return;
+    }
+
+    const lista = criarElemento('ul', 'historico-do-autosync');
+    for (const commit of commits) {
+      const item = criarElemento('li');
+      item.append(
+        criarElemento('code', null, commit.hash.slice(0, 8)),
+        criarElemento('span', 'texto-auxiliar', formatarDataDoCommit(commit.date)),
+        criarElemento('span', null, commit.message),
+      );
+      lista.append(item);
+    }
+    elementos.mountHistoricoAutosync.replaceChildren(lista);
+  } catch (erro) {
+    elementos.mountHistoricoAutosync.replaceChildren(
+      criarElemento('p', 'aviso-shell', erro.message),
+    );
+  }
+}
+
+function abrirModalDeInstalacaoDoAutosync() {
+  elementos.campoHorarioInstalacaoAutosync.value = '17:30';
+  elementos.campoBandejaInstalacaoAutosync.checked = false;
+  elementos.campoAtalhosInstalacaoAutosync.checked = true;
+  elementos.campoSkillsInstalacaoAutosync.checked = false;
+  elementos.campoPathInstalacaoAutosync.checked = false;
+  limparErro(elementos.erroInstalacaoAutosync);
+  elementos.modalInstalacaoAutosync.showModal();
+}
+
+async function instalarAutosync(evento) {
+  evento.preventDefault();
+  const horario = elementos.campoHorarioInstalacaoAutosync.value;
+  const dados = {
+    ...(horario ? { horario } : {}),
+    bandeja: elementos.campoBandejaInstalacaoAutosync.checked,
+    atalhos: elementos.campoAtalhosInstalacaoAutosync.checked,
+    skills: elementos.campoSkillsInstalacaoAutosync.checked,
+    path: elementos.campoPathInstalacaoAutosync.checked,
+  };
+
+  limparErro(elementos.erroInstalacaoAutosync);
+  elementos.botaoConfirmarInstalacaoAutosync.disabled = true;
+  elementos.botaoConfirmarInstalacaoAutosync.textContent = 'Instalando…';
+  try {
+    await api.instalarAutosync(dados);
+    elementos.modalInstalacaoAutosync.close();
+    exibirAviso('Git AutoSync instalado.');
+    await recarregarAutosync();
+  } catch (erro) {
+    exibirErro(elementos.erroInstalacaoAutosync, erro.message);
+  } finally {
+    elementos.botaoConfirmarInstalacaoAutosync.disabled = false;
+    elementos.botaoConfirmarInstalacaoAutosync.textContent = 'Instalar';
+  }
+}
+
+function registrarEventosDoAutosync() {
+  elementos.botaoVisualizacaoAutosync.addEventListener('click', () =>
+    alternarVisualizacao('autosync'),
+  );
+  elementos.botaoAtualizarAutosync.append(criarIcone(ICONES.recarregar));
+  elementos.botaoAtualizarAutosync.addEventListener('click', () => recarregarAutosync());
+
+  elementos.formularioCommitAutosync.addEventListener('submit', confirmarCommitDoAutosync);
+  elementos.botaoPreviaAutosync.addEventListener('click', gerarPreviaDoCommitDoAutosync);
+  elementos.botaoCancelarCommitAutosync.addEventListener('click', () =>
+    elementos.modalCommitAutosync.close(),
+  );
+
+  elementos.formularioMrAutosync.addEventListener('submit', confirmarMrDoAutosync);
+  elementos.botaoCancelarMrAutosync.addEventListener('click', () =>
+    elementos.modalMrAutosync.close(),
+  );
+
+  elementos.formularioPoliticaAutosync.addEventListener('submit', salvarPoliticaDoAutosync);
+  elementos.botaoCancelarPoliticaAutosync.addEventListener('click', () =>
+    elementos.modalPoliticaAutosync.close(),
+  );
+
+  elementos.botaoFecharHistoricoAutosync.addEventListener('click', () =>
+    elementos.modalHistoricoAutosync.close(),
+  );
+
+  elementos.formularioInstalacaoAutosync.addEventListener('submit', instalarAutosync);
+  elementos.botaoCancelarInstalacaoAutosync.addEventListener('click', () =>
+    elementos.modalInstalacaoAutosync.close(),
+  );
+
+  elementos.botaoConfirmarConfirmacaoAutosync.addEventListener('click', confirmarNoAutosync);
+  elementos.botaoCancelarConfirmacaoAutosync.addEventListener('click', () => {
+    estado.autosync.confirmacaoPendente = null;
+    elementos.modalConfirmacaoAutosync.close();
+  });
+}
+
 function registrarEventos() {
   elementos.botaoNovoCliente.append(criarIcone(ICONES.mais));
   elementos.botaoNovoCliente.addEventListener('click', abrirModalDeCadastro);
@@ -9682,6 +11308,7 @@ function registrarEventos() {
     alternarVisualizacao('contatos'),
   );
   registrarEventosDasNotificacoes();
+  registrarEventosDoAutosync();
   registrarEventosDoLembrete();
   registrarEventosDosContatos();
   elementos.botaoAtualizarAgenda.append(criarIcone(ICONES.recarregar));
@@ -9751,6 +11378,17 @@ function registrarEventos() {
     ),
   );
   elementos.botaoTestarSmtp.addEventListener('click', testarSmtp);
+  elementos.abaConfiguracaoGit.addEventListener('click', () =>
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGit),
+  );
+  elementos.botaoVerTokenGitlab.addEventListener('click', () =>
+    definirVisibilidadeDoCampo(
+      elementos.campoGitlabToken,
+      elementos.botaoVerTokenGitlab,
+      elementos.campoGitlabToken.type === 'password',
+    ),
+  );
+  elementos.botaoRemoverTokenGitlab.addEventListener('click', removerTokenDoGitlab);
   elementos.campoPerfil.addEventListener('change', aplicarPresetDoPerfil);
   elementos.campoTerceiro.addEventListener('change', bloquearCaixasQueDependemDoSankhya);
   elementos.abaConfiguracaoSobre.addEventListener('click', () =>

@@ -204,7 +204,12 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     const configuracao = await doGerente.ler();
 
     assert.equal(configuracao.perfil, 'gerente-de-projeto');
-    assert.deepEqual(configuracao.funcionalidadesOcultas, ['cliente.repositorios', 'local']);
+    assert.deepEqual(configuracao.funcionalidadesOcultas, [
+      'cliente.repositorios',
+      'local',
+      'autosync',
+      'cliente.autosync',
+    ]);
   });
 
   it('ignora o perfil do instalador quando o arquivo já tem acessos', async () => {

@@ -110,8 +110,12 @@ jobs:
           ls -lh artefatos
 
           # A tag pode chegar antes de a release existir — nesse caso, cria.
+          # Tag com hífen (v2.1.0-beta.1) é versão de teste: sai como pre-release,
+          # que o `releases/latest` e o aviso de versão nova do aplicativo ignoram.
           if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
+            PRE_RELEASE=""
+            case "$TAG" in *-*) PRE_RELEASE="--prerelease" ;; esac
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes $PRE_RELEASE
           fi
 
           gh release upload "$TAG" artefatos/* --repo "$GITHUB_REPOSITORY" --clobber
