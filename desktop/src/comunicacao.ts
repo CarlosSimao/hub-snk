@@ -175,8 +175,11 @@ export class GerenciadorComunicacao {
 
   constructor(janela: BrowserWindow) {
     this.#janela = janela;
-    // O Windows pisca o ícone na barra de tarefas até alguém mandar parar.
-    janela.on('focus', () => janela.flashFrame(false));
+    janela.on('focus', () => {
+      // O Windows pisca o ícone na barra de tarefas até alguém mandar parar.
+      janela.flashFrame(false);
+      this.#retomarFocoDoPainel();
+    });
     this.#iniciarConsultaDosFeeds();
   }
 
@@ -489,10 +492,32 @@ export class GerenciadorComunicacao {
     // quem ficou com ele.
     setImmediate(() => {
       if (!this.#ativo || this.#paineis.get(this.#ativo) !== painel) return;
-      if (!this.#janela.isFocused()) return;
-      const focado = webContents.getFocusedWebContents();
-      if (!focado || focado === painel.webContents || focado === this.#janela.webContents) return;
-      this.ocultar();
+      if (this.#focoEstaNumaGuia(painel)) this.ocultar();
+    });
+  }
+
+  /** Foco dentro da janela, mas fora do painel e da barra: está numa guia. */
+  #focoEstaNumaGuia(painel: WebContentsView): boolean {
+    if (!this.#janela.isFocused()) return false;
+    const focado = webContents.getFocusedWebContents();
+    return Boolean(focado) && focado !== painel.webContents && focado !== this.#janela.webContents;
+  }
+
+  /**
+   * Volta ao HUB SNK vindo de outro programa. O Windows devolve o foco à barra de guias, e
+   * não ao painel: sem o foco nele, o clique seguinte numa guia não dispararia o `blur` que
+   * o recolhe. Se o clique que reativou a janela já caiu numa guia, recolhe aqui mesmo.
+   */
+  #retomarFocoDoPainel(): void {
+    // A janela avisa que ganhou o foco antes de ele chegar a uma das páginas dela.
+    setImmediate(() => {
+      const painel = this.#ativo ? this.#paineis.get(this.#ativo) : undefined;
+      if (!painel) return;
+      if (this.#focoEstaNumaGuia(painel)) {
+        this.ocultar();
+        return;
+      }
+      painel.webContents.focus();
     });
   }
 
