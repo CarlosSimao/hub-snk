@@ -263,7 +263,8 @@ const estado = {
   /* Alvo do modal do MCP: repositório de cliente ou base local. */
   alvoDoMcp: null,
   /* 'clientes' ou 'local': qual das duas telas está visível. */
-  visualizacao: 'clientes',
+  /* O painel abre no Resumo do dia. */
+  visualizacao: 'resumo',
   basesLocais: [],
   bancosLocais: [],
   baseLocalEmEdicao: null,
@@ -390,6 +391,10 @@ const elementos = {
   botaoTema: document.getElementById('btn-tema'),
   indicadorGitGlobal: document.getElementById('indicador-git-global'),
 
+  botaoVisualizacaoResumo: document.getElementById('btn-visualizacao-resumo'),
+  visualizacaoResumo: document.getElementById('visualizacao-resumo'),
+  mountResumo: document.getElementById('mount-resumo'),
+  dataDoResumo: document.getElementById('data-do-resumo'),
   botaoVisualizacaoClientes: document.getElementById('btn-visualizacao-clientes'),
   botaoVisualizacaoLocal: document.getElementById('btn-visualizacao-local'),
   botaoVisualizacaoAgenda: document.getElementById('btn-visualizacao-agenda'),
@@ -3611,10 +3616,251 @@ async function atualizarOsGeral() {
   }
 }
 
+/* ----------------------------- Resumo do dia ------------------------------ */
+
+/*
+ * O que pede atenção hoje, junto numa tela: agenda, lembretes, repositórios com pendência
+ * grave e versão nova. Só lê o que o painel já tem ou consulta barato (snapshot local,
+ * lembretes, situação Git em cache no servidor): nada aqui vai à Experience, ao ERP nem
+ * às bases dos clientes.
+ */
+
+/* Chave das notificações do alerta da agenda: `agenda:<dia>:<nuevento>` (verificadorDaAgendaDoDia.ts). */
+const PREFIXO_DAS_NOTIFICACOES_DA_AGENDA = 'agenda:';
+
+/* Resumo mais recente pedido: um desenho que termina depois de outro mais novo é descartado. */
+let geracaoDoResumo = 0;
+
+function criarSecaoDoResumo(titulo, linhas, mensagemVazia) {
+  const secao = criarElemento('div', 'secao-recursos');
+  const cabecalho = criarElemento('div', 'secao-cabecalho');
+  cabecalho.append(criarElemento('h3', null, titulo));
+  secao.append(cabecalho);
+  if (linhas.length === 0) {
+    secao.append(criarElemento('p', 'secao-vazia', mensagemVazia));
+    return secao;
+  }
+  const lista = criarElemento('div', 'lista-recursos');
+  lista.append(...linhas);
+  secao.append(lista);
+  return secao;
+}
+
+function criarLinhaDoResumo({ titulo, detalhes, selo, acao }) {
+  const informacoes = criarElemento('div', 'recurso-info');
+  const linhaTitulo = criarElemento('div', 'linha-horario-situacao');
+  linhaTitulo.append(criarElemento('p', 'recurso-nome', titulo));
+  if (selo) linhaTitulo.append(selo);
+  informacoes.append(linhaTitulo);
+  for (const detalhe of detalhes.filter(Boolean)) {
+    informacoes.append(criarElemento('p', 'texto-auxiliar', detalhe));
+  }
+  const linha = criarElemento('div', 'linha-recurso');
+  linha.append(informacoes, acao);
+  return linha;
+}
+
+/** Dia local (`YYYY-MM-DD`) de um instante ISO: `toISOString` daria o dia em UTC. */
+function diaLocalDoInstante(iso) {
+  const data = new Date(iso);
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return `${data.getFullYear()}-${mes}-${dia}`;
+}
+
+/**
+ * Eventos de hoje que o alerta da agenda já apontou sem OS lançada. O alerta só confere
+ * evento que já terminou, e só com ele ligado: os outros ficam sem selo, não "com OS".
+ */
+function eventosDeHojeSemOs(hoje) {
+  const prefixo = `${PREFIXO_DAS_NOTIFICACOES_DA_AGENDA}${hoje}:`;
+  return new Set(
+    estado.notificacoes
+      .filter((notificacao) => notificacao.origem === 'agenda')
+      .filter((notificacao) => notificacao.chave.startsWith(prefixo))
+      .map((notificacao) => notificacao.chave.slice(prefixo.length)),
+  );
+}
+
+/* Mesma identificação que o alerta usa na chave da notificação. */
+function identificacaoDoEvento(evento) {
+  return String(evento.nuevento ?? `${evento.codparc}-${evento.inicio}`);
+}
+
+function criarLinhaDeEventoDoResumo(evento, semOs) {
+  const titulo = evento.nomeparc
+    ? `${evento.codparc ?? ''} - ${evento.nomeparc}`
+    : evento.descrlonga || evento.descrabrev || '(sem título)';
+  const horario =
+    evento.allday === 'S'
+      ? 'Dia todo'
+      : `${evento.inicio.slice(11, 16)}–${evento.fim.slice(11, 16)}`;
+  const descricao = evento.descrlonga || evento.descrabrev;
+  return criarLinhaDoResumo({
+    titulo,
+    detalhes: [horario, descricao !== titulo && descricao],
+    selo: semOs ? criarElemento('span', 'selo-situacao erro', 'Sem OS lançada') : null,
+    acao: criarBotaoDeIcone('btn tiny', ICONES.seta, 'Abrir na Agenda', () =>
+      alternarVisualizacao('agenda'),
+    ),
+  });
+}
+
+/* Evento de vários dias (férias, semana de projeto) também é de hoje enquanto durar. */
+async function criarSecaoDaAgendaDoResumo(hoje) {
+  const { eventos } = await api.eventosDaAgenda(hoje, hoje);
+  const semOs = eventosDeHojeSemOs(hoje);
+  const deHoje = eventos
+    .filter((evento) => evento.inicio.slice(0, 10) <= hoje && hoje <= evento.fim.slice(0, 10))
+    .sort((a, b) => a.inicio.localeCompare(b.inicio));
+  return criarSecaoDoResumo(
+    'Agenda de hoje',
+    deHoje.map((evento) =>
+      criarLinhaDeEventoDoResumo(evento, semOs.has(identificacaoDoEvento(evento))),
+    ),
+    'Nenhum evento hoje na agenda.',
+  );
+}
+
+/* Ainda vai disparar hoje, ou já disparou hoje. */
+function lembreteEhDeHoje(lembrete, hoje) {
+  const disparaHoje =
+    lembrete.proximoDisparo && diaLocalDoInstante(lembrete.proximoDisparo) === hoje;
+  const disparouHoje =
+    lembrete.ultimoDisparoEm && diaLocalDoInstante(lembrete.ultimoDisparoEm) === hoje;
+  return lembrete.ativo && Boolean(disparaHoje || disparouHoje);
+}
+
+async function criarSecaoDosLembretesDoResumo(hoje) {
+  const { lembretes } = await api.listarLembretes();
+  const deHoje = lembretesOrdenados(
+    lembretes.filter((lembrete) => lembreteEhDeHoje(lembrete, hoje)),
+  );
+  return criarSecaoDoResumo(
+    'Lembretes de hoje',
+    deHoje.map((lembrete) =>
+      criarLinhaDoResumo({
+        titulo: resumoDoLembrete(lembrete),
+        detalhes: [descreverSituacaoDoLembrete(lembrete), descreverVinculoDoLembrete(lembrete)],
+        selo: null,
+        acao: criarBotaoDeIcone('btn tiny', ICONES.lapis, 'Editar lembrete', () =>
+          abrirModalDeLembrete(lembrete),
+        ),
+      }),
+    ),
+    'Nenhum lembrete para hoje.',
+  );
+}
+
+/* As pendências já vêm do servidor da mais grave para a mais leve. */
+function criarLinhaDeRepositorioDoResumo({ cliente, repositorio, situacao }) {
+  return criarLinhaDoResumo({
+    titulo: `${cliente.nome} › ${nomeDeExibicaoDoRepositorio(repositorio)}`,
+    detalhes: situacao.pendencias.map((pendencia) => pendencia.mensagem),
+    selo: criarElemento(
+      'span',
+      `selo-situacao ${situacao.severidade}`,
+      ROTULOS_DE_SEVERIDADE[situacao.severidade],
+    ),
+    acao: criarBotaoDeIcone('btn tiny', ICONES.seta, 'Abrir no cliente', () =>
+      abrirClienteDaBusca(cliente.id, 'repositorios'),
+    ),
+  });
+}
+
+/* Todo repositório com alguma pendência, os de gravidade `erro` primeiro. */
+function criarSecaoDosRepositoriosDoResumo() {
+  const comPendencia = estado.clientes
+    .flatMap((cliente) =>
+      cliente.repositorios.map((repositorio) => ({
+        cliente,
+        repositorio,
+        situacao: estado.situacoesGit[repositorio.id],
+      })),
+    )
+    .filter(({ situacao }) => situacao?.pendencias.length > 0)
+    .sort(
+      (a, b) =>
+        ORDEM_DE_SEVERIDADE[a.situacao.severidade] - ORDEM_DE_SEVERIDADE[b.situacao.severidade] ||
+        a.cliente.nome.localeCompare(b.cliente.nome, 'pt-BR'),
+    );
+  return criarSecaoDoResumo(
+    'Repositórios com pendência',
+    comPendencia.map(criarLinhaDeRepositorioDoResumo),
+    'Nenhum repositório com pendência.',
+  );
+}
+
+/* Sem versão nova, a seção nem aparece: não é algo a resolver hoje. */
+async function criarSecaoDaVersaoDoResumo() {
+  const { atualizacaoDisponivel, ultimaVersao, url } = await api.lerAtualizacao();
+  if (!atualizacaoDisponivel) return null;
+  return criarSecaoDoResumo(
+    'HUB SNK',
+    [
+      criarLinhaDoResumo({
+        titulo: `Versão ${ultimaVersao} disponível`,
+        detalhes: ['No aplicativo, ela é baixada sozinha e instalada ao reiniciar.'],
+        selo: null,
+        acao: criarLinkDeIcone('btn tiny', ICONES.seta, 'Ver a versão nova', url),
+      }),
+    ],
+    '',
+  );
+}
+
+/* Uma seção que falha mostra o motivo no lugar dela, sem derrubar as outras. */
+async function secaoOuErro(titulo, criarSecao) {
+  try {
+    return await criarSecao();
+  } catch (erro) {
+    return criarSecaoDoResumo(titulo, [], `Não foi possível carregar: ${erro.message}`);
+  }
+}
+
+/* Cada seção some junto com a funcionalidade dela em Configurações › Acessos. */
+function secoesDoResumo(hoje) {
+  const secoes = [];
+  if (funcionalidadeVisivel('agenda')) {
+    secoes.push(secaoOuErro('Agenda de hoje', () => criarSecaoDaAgendaDoResumo(hoje)));
+  }
+  if (funcionalidadeVisivel('lembretes')) {
+    secoes.push(secaoOuErro('Lembretes de hoje', () => criarSecaoDosLembretesDoResumo(hoje)));
+  }
+  if (funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS)) {
+    secoes.push(Promise.resolve(criarSecaoDosRepositoriosDoResumo()));
+  }
+  // A versão nova não é essencial: falha dela (sem internet) não vira aviso.
+  secoes.push(criarSecaoDaVersaoDoResumo().catch(() => null));
+  return secoes;
+}
+
+async function renderizarResumo() {
+  const geracao = ++geracaoDoResumo;
+  const hoje = dataIsoDeHoje();
+  elementos.dataDoResumo.textContent = new Date(`${hoje}T00:00:00`).toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+  });
+  const secoes = await Promise.all(secoesDoResumo(hoje));
+  if (geracao !== geracaoDoResumo) return;
+  elementos.mountResumo.replaceChildren(...secoes.filter(Boolean));
+}
+
+function renderizarResumoSeVisivel() {
+  if (estado.visualizacao === 'resumo') void renderizarResumo();
+}
+
 function alternarVisualizacao(visualizacao) {
   estado.visualizacao = visualizacao;
 
   const opcoes = [
+    {
+      chave: 'resumo',
+      botao: elementos.botaoVisualizacaoResumo,
+      area: elementos.visualizacaoResumo,
+    },
     {
       chave: 'clientes',
       botao: elementos.botaoVisualizacaoClientes,
@@ -3646,6 +3892,9 @@ function alternarVisualizacao(visualizacao) {
     botao.setAttribute('aria-selected', String(ativa));
   }
 
+  if (visualizacao === 'resumo') {
+    void renderizarResumo();
+  }
   if (visualizacao === 'local') {
     carregarLocal();
   }
@@ -3896,6 +4145,8 @@ function renderizar() {
   renderizarLista();
   renderizarDetalhe();
   renderizarIndicadorGitGlobal();
+  // Situação Git nova ou cadastro mudado: a seção de repositórios do Resumo acompanha.
+  renderizarResumoSeVisivel();
 }
 
 /* -------------------------------- formulários ----------------------------- */
@@ -7981,6 +8232,10 @@ function receberNotificacao(notificacao) {
   if (notificacao.origem === 'lembrete' && estado.visualizacao === 'lembretes') {
     void recarregarLembretes();
   }
+  // Lembrete disparado ou evento sem OS: o Resumo aberto mostra na hora.
+  if (notificacao.origem === 'lembrete' || notificacao.origem === 'agenda') {
+    renderizarResumoSeVisivel();
+  }
 }
 
 /**
@@ -9315,6 +9570,7 @@ function registrarEventos() {
   atualizarIconeDoTema();
   elementos.botaoTema.addEventListener('click', alternarTema);
 
+  elementos.botaoVisualizacaoResumo.addEventListener('click', () => alternarVisualizacao('resumo'));
   elementos.botaoVisualizacaoClientes.addEventListener('click', () =>
     alternarVisualizacao('clientes'),
   );
@@ -9702,7 +9958,8 @@ async function iniciar() {
   }
 
   renderizarListaDeAtalhos();
-  void carregarNotificacoes();
+  // O selo "sem OS" da agenda do Resumo sai das notificações: redesenha quando elas chegam.
+  void carregarNotificacoes().then(renderizarResumoSeVisivel);
   conectarFluxoDeNotificacoes();
 }
 

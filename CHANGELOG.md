@@ -43,6 +43,12 @@ número significa aqui.
   login; quem sai do programa sem reiniciar recebe a versão nova na saída. A caixa
   **Ajuda › Atualizar automaticamente** desliga tudo isso, e fica só o aviso do Painel.
   O Git AutoSync instalado não muda com a atualização automática.
+- **Resumo do dia**, a nova tela inicial do Painel: os eventos da agenda de hoje (com o
+  selo **Sem OS lançada** nos que o alerta da agenda já apontou), os lembretes que
+  disparam ou já dispararam hoje, os repositórios com alguma pendência (os que precisam
+  de ação primeiro) e a versão nova do HUB SNK, quando houver. Cada item leva para onde se resolve, e cada seção some junto
+  com a funcionalidade dela em **Configurações › Acessos**. Nada ali consulta a
+  Experience, o ERP ou as bases dos clientes: abrir o Resumo não custa nada.
 
 ### Alterado
 

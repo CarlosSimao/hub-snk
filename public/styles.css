@@ -2986,6 +2986,7 @@ button.selo-situacao:focus-visible {
   /* Cada visualização que é filha direta de `main` rola por dentro, ocupando a altura útil
      — sem isso (Agenda e OS ficavam de fora) o conteúdo era cortado por `main:overflow`. */
   .detalhe,
+  #visualizacao-resumo,
   #visualizacao-local,
   #visualizacao-agenda,
   #visualizacao-os,

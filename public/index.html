@@ -24,10 +24,19 @@
         <div class="abas-modal barra-visualizacao" role="tablist" aria-label="Visualização">
           <button
             class="aba ativa"
-            id="btn-visualizacao-clientes"
+            id="btn-visualizacao-resumo"
             type="button"
             role="tab"
             aria-selected="true"
+          >
+            Resumo
+          </button>
+          <button
+            class="aba"
+            id="btn-visualizacao-clientes"
+            type="button"
+            role="tab"
+            aria-selected="false"
           >
             Clientes
           </button>
@@ -140,7 +149,19 @@
     </header>
 
     <main>
-      <div class="layout" id="visualizacao-clientes">
+      <div class="card" id="visualizacao-resumo">
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Resumo do dia</h2>
+            <!-- A data é preenchida pelo app.js. -->
+            <p class="texto-auxiliar" id="data-do-resumo"></p>
+          </div>
+        </div>
+        <!-- As seções são montadas pelo app.js. -->
+        <div id="mount-resumo"></div>
+      </div>
+
+      <div class="layout" id="visualizacao-clientes" hidden>
         <aside class="coluna-lista">
           <div class="busca-linha">
             <input
