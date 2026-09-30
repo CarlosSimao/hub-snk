@@ -9,8 +9,33 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.1.0] - 2026-09-30
+
 ### Adicionado
 
+- **Git AutoSync no painel**: a aba **Git** do menu principal mostra e controla o commit
+  e o push automáticos dos repositórios — situação da tarefa agendada, horários, rodar
+  agora, mensagem do commit escrita por IA (com confirmação antes de ligar), pastas-raiz,
+  histórico, log e, em cada repositório, **Commit**, **Push**, **Sincronizar** e
+  **Merge Request**. **Adicionar todos os repositórios dos clientes** põe no AutoSync, de
+  uma vez, os que têm pasta local. Quando uma ação falha, o bloco **Como resolver**
+  explica o erro, traz os comandos para copiar e abre o terminal na pasta; nada é
+  executado sozinho. Sem o Git AutoSync instalado, a aba oferece a instalação pelo
+  pacote que veio com o HUB SNK. O HUB SNK nunca grava a configuração do AutoSync: tudo
+  passa pelo próprio `git-autosync`.
+- **Configurações › Git**: host e token do GitLab usados pelo Merge Request. O token vai
+  para as variáveis de ambiente do seu usuário do Windows e não volta para a tela.
+- **Buscar na página (`Ctrl+F`)**, em qualquer guia — Painel, SankhyaOm, Experience e
+  bases de cliente —, como no Chrome: a barra abre no canto superior direito, busca
+  enquanto você digita, também dentro dos frames, e mostra quantas ocorrências achou.
+  `Enter` vai para a próxima, `Shift+Enter` para a anterior e `Esc` fecha. Não encontra
+  texto dentro das telas Flash.
+- **Painel de comunicação**: barra lateral com **WhatsApp Web**, **Gmail** e **Google
+  Chat**, cada um aberto num painel por cima das guias, com login próprio que fica salvo.
+  Mensagem nova gera aviso com contador no botão, som e notificação do Windows, e
+  clicar na notificação abre o painel do serviço. A engrenagem da barra escolhe os
+  botões que aparecem e se o WhatsApp e o Chat carregam escondidos ao abrir o HUB SNK
+  (vem desligado: juntos, eles ocupam perto de 900 MB).
 - **Busca rápida**: `Ctrl+K` (ou a lupa no topo do painel) abre uma caixa única que
   procura em clientes, bases, repositórios, links, projetos, contatos, atalhos e
   bases locais, sem ligar para acento nem maiúsculas. `Enter` abre o item — a base
@@ -55,6 +80,13 @@ número significa aqui.
 
 ### Alterado
 
+- **A aba Repositórios do cliente passa a se chamar Git** e traz, no fim, a seção
+  **AutoSync** com a situação e as ações do Git AutoSync para os repositórios dele. Em
+  **Configurações › Acessos**, a caixa **Git** controla a aba e a caixa **AutoSync (na aba
+  Git)**, só a seção.
+- **Os lembretes saem do menu principal**: o botão **Lembretes** fica no painel de
+  notificações (o sino) e abre a janela com a lista, o **Novo lembrete** e as ações de
+  editar e excluir.
 - **Fechar a janela esconde o HUB SNK na bandeja** em vez de encerrá-lo, para o atalho
   global e os avisos de mensagem nova continuarem valendo. Para sair, use _Hub_ ›
   _Sair_ ou o botão direito no ícone da bandeja.
@@ -406,7 +438,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.0.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/CarlosSimao/hub-snk/releases/tag/v1.0.0
