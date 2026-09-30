@@ -52,17 +52,29 @@ export const PARTICAO = 'persist:sankhya-hub-desktop';
 
 export type ServicoComunicacao = 'whatsapp' | 'gmail' | 'chat';
 
+/**
+ * De onde sai o aviso de mensagem nova (som, ícone piscando, contador). Cada serviço
+ * expõe uma coisa diferente:
+ * - `titulo`: a quantidade está no título da página (`padrao` captura o número);
+ * - `favicon`: o ícone da aba muda quando há não lidas, sem dizer quantas;
+ * - `feed`: um endereço que devolve a contagem, consultado de tempos em tempos com os
+ *   cookies da sessão — funciona sem a página do serviço carregada.
+ */
+export type SinalDeMensagem =
+  | { origem: 'titulo'; padrao: RegExp }
+  | { origem: 'favicon'; padrao: RegExp }
+  | { origem: 'feed'; url: string; padrao: RegExp; intervaloMs: number };
+
 interface DefinicaoServicoComunicacao {
   /** Nome no menu de escolha dos botões da barra lateral. */
   rotulo: string;
   url: string;
   particao: string;
-  /**
-   * Onde o título da página traz a quantidade de conversas não lidas — só o serviço que
-   * tem este campo avisa mensagem nova (som, ícone piscando, contador).
-   */
-  padraoNaoLidas?: RegExp;
+  sinal: SinalDeMensagem;
 }
+
+/** O feed do Gmail é leve (um XML pequeno), mas não precisa ser mais que por minuto. */
+const INTERVALO_FEED_GMAIL_MS = 60_000;
 
 /**
  * Gmail e Google Chat dividem a partição: é a mesma conta Google, então um login só serve
@@ -77,10 +89,29 @@ export const SERVICOS_COMUNICACAO: Record<ServicoComunicacao, DefinicaoServicoCo
     url: 'https://web.whatsapp.com/',
     particao: 'persist:hub-whatsapp',
     // O WhatsApp Web escreve `(3) WhatsApp` no título: 3 conversas, não 3 mensagens.
-    padraoNaoLidas: /^\((\d+)\)/,
+    sinal: { origem: 'titulo', padrao: /^\((\d+)\)/ },
   },
-  gmail: { rotulo: 'Gmail', url: 'https://mail.google.com/', particao: PARTICAO_GOOGLE },
-  chat: { rotulo: 'Google Chat', url: 'https://chat.google.com/', particao: PARTICAO_GOOGLE },
+  gmail: {
+    rotulo: 'Gmail',
+    url: 'https://mail.google.com/',
+    particao: PARTICAO_GOOGLE,
+    // O título do Gmail perde a contagem ao abrir um e-mail; o feed Atom da caixa de
+    // entrada sempre traz `<fullcount>`, com a página aberta ou não.
+    sinal: {
+      origem: 'feed',
+      url: 'https://mail.google.com/mail/u/0/feed/atom',
+      padrao: /<fullcount>(\d+)<\/fullcount>/,
+      intervaloMs: INTERVALO_FEED_GMAIL_MS,
+    },
+  },
+  chat: {
+    rotulo: 'Google Chat',
+    url: 'https://chat.google.com/',
+    particao: PARTICAO_GOOGLE,
+    // O título do Chat nunca tem contagem. O favicon sem não lidas é o
+    // `..._favicon_no_dot_64px.png`; com não lidas, a variante com o ponto.
+    sinal: { origem: 'favicon', padrao: /(?<!no)_dot_/ },
+  },
 };
 
 /**

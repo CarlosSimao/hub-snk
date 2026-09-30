@@ -138,12 +138,18 @@ function botaoDoServico(servico) {
   return document.querySelector(`#servicos button[data-servico="${CSS.escape(servico)}"]`);
 }
 
-function mostrarNaoLidas({ servico, quantidade }) {
+function textoDoContador(quantidade, exata) {
+  if (!exata) return '';
+  return quantidade > LIMITE_DO_CONTADOR ? `${LIMITE_DO_CONTADOR}+` : String(quantidade);
+}
+
+function mostrarNaoLidas({ servico, quantidade, exata }) {
   naoLidasPorServico.set(servico, quantidade);
   const contador = botaoDoServico(servico)?.querySelector('.contador');
   if (contador) {
     contador.hidden = quantidade === 0;
-    contador.textContent = quantidade > LIMITE_DO_CONTADOR ? `${LIMITE_DO_CONTADOR}+` : quantidade;
+    contador.classList.toggle('ponto', !exata);
+    contador.textContent = textoDoContador(quantidade, exata);
   }
   atualizarPiscar();
 }

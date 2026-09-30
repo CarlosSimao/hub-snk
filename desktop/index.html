@@ -92,6 +92,14 @@
         line-height: 15px;
         text-align: center;
       }
+      /* Serviço que só avisa que há não lidas, sem dizer quantas (o Chat). */
+      #servicos .contador.ponto {
+        top: 5px;
+        right: 5px;
+        min-width: 9px;
+        height: 9px;
+        padding: 0;
+      }
       /* Mensagem nova com o serviço fechado: pisca até você abrir e ler. */
       #servicos button.piscando {
         animation: piscar 1s ease-in-out infinite;
@@ -330,6 +338,7 @@
           </svg>
         </button>
         <button data-servico="gmail" title="Gmail" aria-label="Gmail">
+          <span class="contador" hidden></span>
           <svg
             width="20"
             height="20"
@@ -346,6 +355,7 @@
           </svg>
         </button>
         <button data-servico="chat" title="Google Chat" aria-label="Google Chat">
+          <span class="contador" hidden></span>
           <svg
             width="20"
             height="20"
