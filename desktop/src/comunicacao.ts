@@ -14,7 +14,6 @@ import {
   Menu,
   Notification,
   WebContentsView,
-  type ServiceWorkerMain,
   app,
   session,
   shell,
@@ -39,18 +38,43 @@ export interface EstadoServicoComunicacao {
 
 const SERVICOS = Object.keys(SERVICOS_COMUNICACAO) as ServicoComunicacao[];
 
-/** Precisa ser o mesmo canal que `preloadServiceWorker.ts` envia. */
-const CANAL_DA_NOTIFICACAO_CLICADA = 'comunicacao:notificacaoClicada';
+/** O que a página escreve no console quando uma notificação dela é clicada. */
+const MARCADOR_DA_NOTIFICACAO_CLICADA = 'hub-snk:notificacao-clicada';
 
-/** Serviço dono de um endereço — o escopo de um service worker, por exemplo — pela origem. */
-function servicoDoEndereco(endereco: string): ServicoComunicacao | undefined {
-  try {
-    const origem = new URL(endereco).origin;
-    return SERVICOS.find((servico) => new URL(SERVICOS_COMUNICACAO[servico].url).origin === origem);
-  } catch {
-    return undefined;
-  }
-}
+/**
+ * Injetado em cada página do painel, no contexto dela.
+ *
+ * O WhatsApp Web mostra a notificação de mensagem com `registration.showNotification`, e o
+ * clique numa notificação de service worker o Electron não entrega a ninguém. Aqui ela vira
+ * uma notificação comum da página, cujo clique chega, e toda notificação da página avisa o
+ * shell do clique pelo console — a página não tem ponte nenhuma com o shell.
+ *
+ * Os botões (`actions`) saem porque a notificação comum não os aceita. Se ainda assim a
+ * conversão falhar, vale a notificação original, sem o clique.
+ */
+const SCRIPT_DAS_NOTIFICACOES = `(() => {
+  if (window.__hubSnkNotificacoes) return;
+  window.__hubSnkNotificacoes = true;
+  const avisarClique = console.info.bind(console, ${JSON.stringify(MARCADOR_DA_NOTIFICACAO_CLICADA)});
+  const Original = window.Notification;
+  window.Notification = class extends Original {
+    constructor(titulo, opcoes) {
+      super(titulo, opcoes);
+      this.addEventListener('click', () => avisarClique());
+    }
+  };
+  const mostrarOriginal = ServiceWorkerRegistration.prototype.showNotification;
+  ServiceWorkerRegistration.prototype.showNotification = function (titulo, opcoes = {}) {
+    try {
+      const { actions, ...semBotoes } = opcoes;
+      const notificacao = new window.Notification(titulo, semBotoes);
+      notificacao.addEventListener('click', () => notificacao.close());
+      return Promise.resolve();
+    } catch {
+      return mostrarOriginal.call(this, titulo, opcoes);
+    }
+  };
+})();`;
 
 function ehServicoComunicacao(valor: string): valor is ServicoComunicacao {
   return Object.hasOwn(SERVICOS_COMUNICACAO, valor);
@@ -173,8 +197,6 @@ export class GerenciadorComunicacao {
   readonly #paineis = new Map<ServicoComunicacao, WebContentsView>();
   readonly #naoLidas = new Map<ServicoComunicacao, number>();
   readonly #particoesConfiguradas = new Set<string>();
-  /** Service workers já com o ouvinte do clique na notificação: um por versão iniciada. */
-  readonly #trabalhadoresOuvidos = new WeakSet<ServiceWorkerMain>();
   /** Feed que já falhou: loga a primeira falha, não uma por minuto. */
   readonly #feedsComFalha = new Set<ServicoComunicacao>();
   /** E-mails já conhecidos por serviço: o que não estiver aqui na próxima consulta é novo. */
@@ -263,10 +285,6 @@ export class GerenciadorComunicacao {
     this.#janela.webContents.send('comunicacao:servicos', this.estadoDosServicos());
   }
 
-  /**
-   * Fecha a página do serviço: sem ela, nada dele roda nem ocupa memória. O feed também
-   * para — a consulta periódica pula serviço desabilitado.
-   */
   #descarregar(servico: ServicoComunicacao): void {
     if (this.#ativo === servico) this.ocultar();
     this.#esquecerNaoLidas(servico);
@@ -308,6 +326,7 @@ export class GerenciadorComunicacao {
     );
     painel.webContents.on('blur', () => this.#ocultarSeOFocoFoiParaUmaGuia(painel));
     this.#observarSinalDaPagina(servico, painel);
+    this.#ouvirCliquesNasNotificacoes(servico, painel);
     painel.webContents.on('did-fail-load', (_e, codigo, descricao, alvo) => {
       logEvento('comunicacao-falha-carregar', {
         servico,
@@ -471,35 +490,18 @@ export class GerenciadorComunicacao {
       if (!concedida) logEvento('comunicacao-permissao-negada', { particao, permissao });
       responder(concedida);
     });
-    this.#ouvirCliquesNasNotificacoesDosServiceWorkers(sessao);
   }
 
-  /**
-   * O WhatsApp Web mostra a notificação de mensagem pelo service worker, e só ele fica
-   * sabendo do clique. O preload (`preloadServiceWorker.ts`) repassa o clique para cá.
-   *
-   * O ouvinte entra já na partida do service worker: o clique numa notificação é
-   * justamente o que acorda um service worker parado, e o aviso chega logo em seguida.
-   */
-  #ouvirCliquesNasNotificacoesDosServiceWorkers(sessao: Electron.Session): void {
-    sessao.registerPreloadScript({
-      type: 'service-worker',
-      filePath: join(__dirname, 'preloadServiceWorker.js'),
+  /** A cada página carregada, converte as notificações e escuta o clique nelas. */
+  #ouvirCliquesNasNotificacoes(servico: ServicoComunicacao, painel: WebContentsView): void {
+    painel.webContents.on('dom-ready', () => {
+      painel.webContents.executeJavaScript(SCRIPT_DAS_NOTIFICACOES).catch((erro: Error) => {
+        logEvento('comunicacao-notificacoes-nao-convertidas', { servico, erro: erro.message });
+      });
     });
-    sessao.serviceWorkers.on('running-status-changed', ({ versionId, runningStatus }) => {
-      if (runningStatus !== 'starting' && runningStatus !== 'running') return;
-      const trabalhador = sessao.serviceWorkers.getWorkerFromVersionID(versionId);
-      if (trabalhador) this.#ouvirCliqueNaNotificacao(trabalhador);
-    });
-  }
-
-  #ouvirCliqueNaNotificacao(trabalhador: ServiceWorkerMain): void {
-    if (this.#trabalhadoresOuvidos.has(trabalhador)) return;
-    const servico = servicoDoEndereco(trabalhador.scope);
-    if (!servico) return;
-    this.#trabalhadoresOuvidos.add(trabalhador);
-    trabalhador.ipc.on(CANAL_DA_NOTIFICACAO_CLICADA, () => {
-      logEvento('comunicacao-notificacao-do-servico-clicada', { servico });
+    painel.webContents.on('console-message', (evento) => {
+      if (evento.message !== MARCADOR_DA_NOTIFICACAO_CLICADA) return;
+      logEvento('comunicacao-notificacao-da-pagina-clicada', { servico });
       this.#abrirPelaNotificacao(servico);
     });
   }
