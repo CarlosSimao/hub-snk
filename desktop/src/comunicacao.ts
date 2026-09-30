@@ -76,8 +76,36 @@ const SCRIPT_DAS_NOTIFICACOES = `(() => {
   };
 })();`;
 
+/**
+ * Injetado em cada página do painel, no contexto dela.
+ *
+ * O Gmail aberto direto na tela de e-mail novo (o botão do contato) se fecha com
+ * `window.close()` ao enviar ou descartar o rascunho, e isso destrói a página do painel.
+ * Em vez de fechar, a página volta para o início do serviço.
+ */
+function scriptQueTrocaOFechamento(inicioDoServico: string): string {
+  // Em função, para o script não devolver nada: o `executeJavaScript` recusa devolver uma.
+  return `(() => {
+    window.close = () => location.assign(${JSON.stringify(inicioDoServico)});
+  })();`;
+}
+
 function ehServicoComunicacao(valor: string): valor is ServicoComunicacao {
   return Object.hasOwn(SERVICOS_COMUNICACAO, valor);
+}
+
+/** O serviço é achado pelo host do endereço dele: `web.whatsapp.com`, `mail.google.com`. */
+function servicoDoEndereco(url: string): ServicoComunicacao | null {
+  let endereco: URL;
+  try {
+    endereco = new URL(url);
+  } catch {
+    return null;
+  }
+  if (endereco.protocol !== 'https:') return null;
+  const mesmoHost = (servico: ServicoComunicacao) =>
+    new URL(SERVICOS_COMUNICACAO[servico].url).hostname === endereco.hostname;
+  return SERVICOS.find(mesmoHost) ?? null;
 }
 
 function ehHostInterno(url: string): boolean {
@@ -255,6 +283,19 @@ export class GerenciadorComunicacao {
     return true;
   }
 
+  /**
+   * Link do Painel que é de um serviço (a conversa do WhatsApp pelo número, o e-mail novo
+   * no Gmail) abre no painel dele. Serviço desabilitado fica de fora: o botão do contato
+   * não carrega de volta o que foi desligado para poupar memória.
+   */
+  abrirEndereco(url: string): boolean {
+    const servico = servicoDoEndereco(url);
+    if (!servico || this.#desabilitados.has(servico)) return false;
+    logEvento('comunicacao-endereco-aberto', { servico, url: origemSemQuery(url) });
+    this.#mostrar(servico, url);
+    return true;
+  }
+
   ocultar(): void {
     if (!this.#ativo) return;
     this.#paineis.get(this.#ativo)?.setVisible(false);
@@ -372,9 +413,26 @@ export class GerenciadorComunicacao {
     painel.webContents.close();
   }
 
-  #mostrar(servico: ServicoComunicacao): void {
+  /** `endereco`: página a abrir no serviço; sem ele, o painel volta como estava. */
+  /**
+   * Página destruída por fora (ela mesma se fechou, o processo caiu): sem esquecê-la, o
+   * botão da barra tentaria mostrar a página morta e nada apareceria. O próximo clique
+   * cria o painel de novo. O `#descarregar` já tira o painel do mapa antes de fechá-lo.
+   */
+  #esquecerPainel(servico: ServicoComunicacao, painel: WebContentsView): void {
+    if (this.#paineis.get(servico) !== painel) return;
+    this.#paineis.delete(servico);
+    this.#janela.contentView.removeChildView(painel);
+    this.#esquecerNaoLidas(servico);
+    if (this.#ativo === servico) this.#definirAtivo(null);
+    logEvento('comunicacao-painel-destruido', { servico });
+  }
+
+  #mostrar(servico: ServicoComunicacao, endereco?: string): void {
     if (this.#ativo) this.#paineis.get(this.#ativo)?.setVisible(false);
-    const painel = this.#paineis.get(servico) ?? this.#criarPainel(servico);
+    const existente = this.#paineis.get(servico);
+    if (existente && endereco) void existente.webContents.loadURL(endereco);
+    const painel = existente ?? this.#criarPainel(servico, endereco);
     // Readicionar leva a view para o topo: uma guia de cliente aberta depois do painel
     // ficaria por cima dele.
     this.#janela.contentView.addChildView(painel);
@@ -385,8 +443,11 @@ export class GerenciadorComunicacao {
     this.#definirAtivo(servico);
   }
 
-  #criarPainel(servico: ServicoComunicacao): WebContentsView {
-    const { url, particao } = SERVICOS_COMUNICACAO[servico];
+  #criarPainel(
+    servico: ServicoComunicacao,
+    endereco = SERVICOS_COMUNICACAO[servico].url,
+  ): WebContentsView {
+    const { particao } = SERVICOS_COMUNICACAO[servico];
     this.#prepararParticao(particao);
     const painel = new WebContentsView({
       webPreferences: {
@@ -404,6 +465,8 @@ export class GerenciadorComunicacao {
     painel.webContents.on('blur', () => this.#ocultarSeOFocoFoiParaUmaGuia(painel));
     this.#observarSinalDaPagina(servico, painel);
     this.#ouvirCliquesNasNotificacoes(servico, painel);
+    this.#trocarFechamentoDaPagina(servico, painel);
+    painel.webContents.on('destroyed', () => this.#esquecerPainel(servico, painel));
     painel.webContents.on('did-fail-load', (_e, codigo, descricao, alvo) => {
       logEvento('comunicacao-falha-carregar', {
         servico,
@@ -412,7 +475,7 @@ export class GerenciadorComunicacao {
         url: origemSemQuery(alvo),
       });
     });
-    painel.webContents.loadURL(url);
+    painel.webContents.loadURL(endereco);
     this.#paineis.set(servico, painel);
     logEvento('comunicacao-painel-criado', { servico });
     return painel;
@@ -566,6 +629,15 @@ export class GerenciadorComunicacao {
       const concedida = PERMISSOES_COMUNICACAO.has(permissao);
       if (!concedida) logEvento('comunicacao-permissao-negada', { particao, permissao });
       responder(concedida);
+    });
+  }
+
+  #trocarFechamentoDaPagina(servico: ServicoComunicacao, painel: WebContentsView): void {
+    const script = scriptQueTrocaOFechamento(SERVICOS_COMUNICACAO[servico].url);
+    painel.webContents.on('dom-ready', () => {
+      painel.webContents.executeJavaScript(script).catch((erro: Error) => {
+        logEvento('comunicacao-fechamento-nao-trocado', { servico, erro: erro.message });
+      });
     });
   }
 

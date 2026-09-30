@@ -112,6 +112,7 @@ function criarJanela(): void {
 
   tabs = new TabManager(janelaPrincipal);
   comunicacao = new GerenciadorComunicacao(janelaPrincipal);
+  tabs.definirPainelDeComunicacao(comunicacao);
   menuFlutuante = new MenuFlutuante(janelaPrincipal);
   // `?desktop=1` só na aba Hub: sinal para o painel de que ele roda dentro do shell,
   // e não num navegador comum.

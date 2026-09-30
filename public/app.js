@@ -27,6 +27,14 @@ const CAMINHO_DOS_BANCOS_LOCAIS = '/api/local/bancos';
 const CAMINHO_DAS_NOTIFICACOES = '/api/notificacoes';
 const CAMINHO_DOS_LEMBRETES = '/api/lembretes';
 const CAMINHO_DOS_CONTATOS = '/api/contatos';
+/* O WhatsApp Web abre a conversa pelo número completo, com o código do país. */
+const ENDERECO_DE_CONVERSA_DO_WHATSAPP = 'https://web.whatsapp.com/send';
+const CODIGO_DO_BRASIL = '55';
+/* DDD e número, fixo ou celular: o que o cadastro costuma ter, sem o código do país. */
+const DIGITOS_DO_TELEFONE_NACIONAL = new Set([10, 11]);
+const MENOR_TELEFONE_COM_DDD = 10;
+/* Tela de e-mail novo do Gmail, que no desktop abre no painel de comunicação. */
+const ENDERECO_DE_EMAIL_NOVO_DO_GMAIL = 'https://mail.google.com/mail/?view=cm&fs=1';
 const CAMINHO_DA_IMPORTACAO = `${CAMINHO_DA_API}/importacao`;
 const CAMINHO_DA_IMPORTACAO_DE_REPOSITORIOS = `${CAMINHO_DA_API}/importacao-de-repositorios`;
 const CAMINHO_DA_IMPORTACAO_DE_CADASTROS = `${CAMINHO_DA_API}/importacao-de-cadastros`;
@@ -214,6 +222,12 @@ const ICONES = {
   sino: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0',
   /* Lupa: o botão que abre a busca rápida. */
   lupa: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.35-4.35',
+  /* Mesmo desenho do botão do WhatsApp na barra lateral do aplicativo. */
+  conversa:
+    'M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.3z M9.2 8.6c0 3.4 2.8 6.2 6.2 6.2l1.2-1.4-2-1-1 .8a4.6 4.6 0 0 1-2.8-2.8l.8-1-1-2z',
+  /* Mesmo desenho do botão do Gmail na barra lateral do aplicativo. */
+  envelope:
+    'M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z M3.5 6.5 12 13l8.5-6.5',
 };
 
 const estado = {
@@ -8582,6 +8596,19 @@ function contatoPassaNoFiltro(contato) {
   return !clienteId || clienteDoContato(contato)?.id === clienteId;
 }
 
+/**
+ * `null` sem ao menos DDD e número: ramal ou texto solto não abre conversa. Com `+`, o
+ * código do país já veio escrito; com 10 ou 11 dígitos, é um número brasileiro sem ele.
+ */
+function numeroParaWhatsApp(telefone) {
+  const digitos = telefone.replace(/\D/g, '').replace(/^0+/, '');
+  if (digitos.length < MENOR_TELEFONE_COM_DDD) return null;
+  if (telefone.trim().startsWith('+')) return digitos;
+  return DIGITOS_DO_TELEFONE_NACIONAL.has(digitos.length)
+    ? `${CODIGO_DO_BRASIL}${digitos}`
+    : digitos;
+}
+
 function criarLinhaDeContato(contato, { mostrarCliente }) {
   const info = criarElemento('div', 'recurso-info');
   info.append(criarElemento('span', 'recurso-nome', contato.nome));
@@ -8596,6 +8623,17 @@ function criarLinhaDeContato(contato, { mostrarCliente }) {
     info.append(criarElemento('span', 'recurso-url', meios));
   }
 
+  const conversa = [];
+  const numero = numeroParaWhatsApp(contato.telefone);
+  if (numero) {
+    const endereco = `${ENDERECO_DE_CONVERSA_DO_WHATSAPP}?phone=${numero}`;
+    conversa.push(criarLinkDeIcone('btn tiny', ICONES.conversa, 'Conversar no WhatsApp', endereco));
+  }
+  if (contato.email) {
+    const endereco = `${ENDERECO_DE_EMAIL_NOVO_DO_GMAIL}&to=${encodeURIComponent(contato.email)}`;
+    conversa.push(criarLinkDeIcone('btn tiny', ICONES.envelope, 'Escrever e-mail', endereco));
+  }
+
   const linha = criarElemento('div', 'linha-recurso');
   linha.append(
     info,
@@ -8604,6 +8642,7 @@ function criarLinhaDeContato(contato, { mostrarCliente }) {
       aoEditar: () => abrirModalDeContato(contato, mostrarCliente ? null : cliente),
       rotuloDeExclusao: 'Excluir contato',
       aoExcluir: () => pedirExclusaoDeContato(contato),
+      extras: conversa,
     }),
   );
   return linha;

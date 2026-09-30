@@ -261,6 +261,12 @@ function gravarGuiasEscondidas(escondidas: string[]): void {
   }
 }
 
+/** Quem abre no painel de comunicação o link de conversa que o Painel pede. */
+export interface PainelDeComunicacao {
+  /** `false`: o endereço não é de um serviço habilitado, e segue o caminho normal. */
+  abrirEndereco(url: string): boolean;
+}
+
 export class TabManager {
   readonly #janela: BrowserWindow;
   readonly #abas = new Map<string, WebContentsView>();
@@ -291,6 +297,7 @@ export class TabManager {
    */
   #terceiro = false;
   #aoMudarGuias: (() => void) | null = null;
+  #painelDeComunicacao: PainelDeComunicacao | null = null;
 
   constructor(janela: BrowserWindow) {
     this.#janela = janela;
@@ -420,6 +427,10 @@ export class TabManager {
         // Janela do próprio painel, como o log ao vivo de uma base local (`log.html`):
         // mesma origem, então mesma partição e nenhum preload.
         return this.#permitirJanelaFilha(id, alvo, particao);
+      }
+      if (id === 'hub' && this.#painelDeComunicacao?.abrirEndereco(alvo)) {
+        // Conversa do WhatsApp ou e-mail novo no Gmail, pedidos pelo contato.
+        return { action: 'deny' };
       }
       if (id === 'hub') {
         // Base, link geral, link de projeto ou link qualquer (repositório no GitHub,
@@ -628,6 +639,10 @@ export class TabManager {
 
   aoMudarGuias(callback: () => void): void {
     this.#aoMudarGuias = callback;
+  }
+
+  definirPainelDeComunicacao(painel: PainelDeComunicacao): void {
+    this.#painelDeComunicacao = painel;
   }
 
   get terceiro(): boolean {

@@ -26,6 +26,11 @@ número significa aqui.
   que desliga o `Ctrl+Shift+Espaço` quando ele conflita com outro programa, e **Iniciar
   HUB SNK automaticamente**, que abre o HUB SNK junto com o Windows, escondido na
   bandeja. As duas escolhas valem para as próximas aberturas.
+- **Conversar com o contato**: na aba Contatos e na do cliente, o contato com telefone
+  ganha o botão **Conversar no WhatsApp**, e o com e-mail, **Escrever e-mail**. No
+  aplicativo, os dois abrem no painel de comunicação: a conversa do número no WhatsApp
+  Web e um e-mail novo no Gmail, já endereçado. Telefone sem código do país vale como
+  brasileiro. Com o serviço desligado na engrenagem da barra, o botão abre no navegador.
 
 ### Alterado
 
