@@ -2989,7 +2989,8 @@ button.selo-situacao:focus-visible {
   #visualizacao-local,
   #visualizacao-agenda,
   #visualizacao-os,
-  #visualizacao-lembretes {
+  #visualizacao-lembretes,
+  #visualizacao-autosync {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
@@ -3330,4 +3331,176 @@ button.selo-situacao:focus-visible {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ------------------------------ Git AutoSync ------------------------------ */
+
+/* Onde o repositório está no autosync e o último resultado, lado a lado. */
+.selos-do-autosync {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.acoes-da-secao-do-autosync {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.andamento-do-autosync {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--accent);
+}
+
+/* Saída do CLI sem reescrever: quebra de linha de verdade e rolagem se for longa. */
+.erro-do-autosync {
+  margin: 4px 0 0;
+  max-height: 160px;
+  overflow: auto;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: color-mix(in srgb, var(--perigo) 75%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent);
+  background: color-mix(in srgb, var(--perigo) 8%, transparent);
+}
+
+.aviso-do-autosync {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.aviso-do-autosync p {
+  margin: 0;
+}
+
+.edicao-de-horarios-do-autosync {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.horarios-do-autosync {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip-do-autosync {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 2px 2px 10px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid color-mix(in srgb, var(--marca) 40%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--marca) 10%, transparent);
+}
+
+.chip-do-autosync .btn.tiny {
+  padding: 1px 6px;
+  border: none;
+  border-radius: 999px;
+}
+
+.campo-horario-do-autosync,
+.seletor-do-autosync {
+  height: 28px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-solid);
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+}
+
+.seletor-do-autosync {
+  width: auto;
+}
+
+.sugestao-do-autosync {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 9px 12px;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.sugestao-do-autosync p {
+  margin: 0;
+  flex: 1;
+  min-width: 220px;
+}
+
+.log-do-autosync {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-soft) 55%, transparent);
+}
+
+.historico-do-autosync {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  max-height: 60vh;
+  overflow: auto;
+  list-style: none;
+}
+
+.historico-do-autosync li {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.historico-do-autosync code {
+  font-size: 11px;
+  color: var(--accent);
+}
+
+/* Situação do token e o botão de remover, na mesma linha da aba Git das configurações. */
+.linha-do-token-gitlab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.linha-do-token-gitlab .btn[hidden] {
+  display: none;
 }

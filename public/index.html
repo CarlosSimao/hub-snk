@@ -76,6 +76,15 @@
           >
             Contatos
           </button>
+          <button
+            class="aba"
+            id="btn-visualizacao-autosync"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Git
+          </button>
         </div>
         <!-- O ícone de sino é montado pelo app.js; o contador só aparece com não lidas. -->
         <button
@@ -292,6 +301,30 @@
         </div>
         <!-- A lista é montada pelo app.js. -->
         <div id="mount-contatos"></div>
+      </div>
+
+      <div class="card" id="visualizacao-autosync" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Git AutoSync</h2>
+            <p class="texto-auxiliar">
+              Commit e push automáticos dos repositórios cadastrados no Git AutoSync.
+            </p>
+          </div>
+          <div class="detalhe-acoes">
+            <span class="texto-auxiliar" id="ultima-atualizacao-autosync"></span>
+            <!-- O ícone de recarregar é montado pelo app.js. -->
+            <button
+              class="btn ghost botao-icone"
+              type="button"
+              id="btn-atualizar-autosync"
+              title="Atualizar"
+              aria-label="Atualizar"
+            ></button>
+          </div>
+        </div>
+        <!-- Estado, horários, mensagem do commit, repositórios e log: montados pelo app.js. -->
+        <div id="mount-autosync"></div>
       </div>
     </main>
 
@@ -966,6 +999,16 @@
           </button>
           <button
             class="aba"
+            id="aba-configuracao-git"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-git"
+          >
+            Git
+          </button>
+          <button
+            class="aba"
             id="aba-configuracao-acessos"
             type="button"
             role="tab"
@@ -1398,6 +1441,73 @@
 
           <div
             class="painel-aba"
+            id="painel-configuracao-git"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-git"
+            hidden
+          >
+            <fieldset class="grupo-de-acessos">
+              <legend>
+                Token do GitLab
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >Usado pelo Git AutoSync para criar Merge Request. Fica nas variáveis de
+                    ambiente do seu usuário do Windows (GIT_AUTOSYNC_GITLAB_TOKEN e
+                    GIT_AUTOSYNC_GITLAB_HOST), não no arquivo de dados do HUB SNK.</span
+                  ></span
+                >
+              </legend>
+
+              <div class="campo">
+                <label for="campo-gitlab-host">Host do GitLab</label>
+                <input
+                  id="campo-gitlab-host"
+                  type="text"
+                  maxlength="255"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="Ex.: gitlab.empresa.com.br"
+                />
+              </div>
+
+              <div class="campo">
+                <label for="campo-gitlab-token">
+                  Token <span class="opcional">escopo api</span>
+                </label>
+                <div class="campo-com-botao">
+                  <input
+                    id="campo-gitlab-token"
+                    type="password"
+                    maxlength="500"
+                    autocomplete="new-password"
+                    spellcheck="false"
+                  />
+                  <!-- O ícone de olho é montado pelo app.js. -->
+                  <button
+                    class="btn ghost botao-icone"
+                    id="btn-ver-token-gitlab"
+                    type="button"
+                    title="Mostrar token"
+                    aria-label="Mostrar token"
+                  ></button>
+                </div>
+              </div>
+
+              <div class="linha-do-token-gitlab">
+                <p class="texto-auxiliar" id="situacao-token-gitlab"></p>
+                <button class="btn tiny danger" type="button" id="btn-remover-token-gitlab">
+                  Remover token
+                </button>
+              </div>
+              <p class="texto-auxiliar">
+                O token gravado nunca é mostrado: deixe o campo em branco para manter o atual. A
+                bandeja do Git AutoSync já aberta só enxerga o token novo depois de reaberta.
+              </p>
+            </fieldset>
+          </div>
+
+          <div
+            class="painel-aba"
             id="painel-configuracao-acessos"
             role="tabpanel"
             aria-labelledby="aba-configuracao-acessos"
@@ -1455,6 +1565,9 @@
               <label class="campo-checkbox">
                 <input type="checkbox" data-funcionalidade="contatos" /> Contatos
               </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="autosync" /> Git
+              </label>
             </fieldset>
 
             <fieldset class="grupo-de-acessos">
@@ -1482,6 +1595,9 @@
               </label>
               <label class="campo-checkbox">
                 <input type="checkbox" data-funcionalidade="cliente.contatos" /> Contatos
+              </label>
+              <label class="campo-checkbox">
+                <input type="checkbox" data-funcionalidade="cliente.autosync" /> Git
               </label>
             </fieldset>
           </div>
@@ -2172,6 +2288,271 @@
       <div class="modal-rodape">
         <button class="btn ghost" type="button" id="btn-cancelar-exclusao">Cancelar</button>
         <button class="btn danger" type="button" id="btn-confirmar-exclusao">Excluir</button>
+      </div>
+    </dialog>
+
+    <!-- Commit e Sincronizar usam o mesmo modal: só muda o título e o botão de confirmar. -->
+    <dialog class="modal" id="modal-autosync-commit">
+      <form method="dialog" id="formulario-autosync-commit" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="modal-autosync-commit-titulo">Commit</h2>
+          <p id="modal-autosync-commit-subtitulo"></p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-autosync-mensagem"
+              >Mensagem do commit <span class="opcional">(opcional)</span></label
+            >
+            <textarea
+              class="campo-anotacoes"
+              id="campo-autosync-mensagem"
+              rows="4"
+              maxlength="2000"
+              spellcheck="false"
+              placeholder="Em branco, o Git AutoSync escreve a mensagem: por IA, se ligada, ou a mensagem fixa."
+            ></textarea>
+          </div>
+          <div class="linha-do-link-sobre">
+            <button class="btn tiny" type="button" id="btn-autosync-previa">Gerar prévia</button>
+          </div>
+
+          <p class="erro-formulario" id="erro-autosync-commit" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-autosync-commit">
+            Cancelar
+          </button>
+          <button class="btn primario" type="submit" id="btn-confirmar-autosync-commit">
+            Commit
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-autosync-mr">
+      <form method="dialog" id="formulario-autosync-mr" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Merge Request</h2>
+          <p id="modal-autosync-mr-subtitulo"></p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-autosync-mr-titulo"
+              >Título <span class="opcional">(opcional)</span></label
+            >
+            <input
+              id="campo-autosync-mr-titulo"
+              type="text"
+              maxlength="255"
+              autocomplete="off"
+              placeholder="Em branco: origem -> destino"
+            />
+          </div>
+          <div class="campo-duplo">
+            <div class="campo">
+              <label for="campo-autosync-mr-destino"
+                >Branch de destino <span class="opcional">(opcional)</span></label
+              >
+              <input
+                id="campo-autosync-mr-destino"
+                type="text"
+                maxlength="255"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </div>
+            <div class="campo">
+              <label for="campo-autosync-mr-origem"
+                >Branch de origem <span class="opcional">(opcional)</span></label
+              >
+              <input
+                id="campo-autosync-mr-origem"
+                type="text"
+                maxlength="255"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Em branco: branch atual"
+              />
+            </div>
+          </div>
+          <p class="texto-auxiliar">
+            Só GitLab. O token é gravado pelo próprio Git AutoSync (git-autosync set-gitlab-token).
+          </p>
+
+          <p class="erro-formulario" id="erro-autosync-mr" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-autosync-mr">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-confirmar-autosync-mr">
+            Criar Merge Request
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-autosync-politica">
+      <form method="dialog" id="formulario-autosync-politica" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Política do repositório</h2>
+          <p id="modal-autosync-politica-subtitulo"></p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-autosync-include"
+              >Só estes arquivos <span class="opcional">(um padrão por linha)</span></label
+            >
+            <textarea
+              class="campo-anotacoes"
+              id="campo-autosync-include"
+              rows="3"
+              spellcheck="false"
+              placeholder="Ex.: src/**"
+            ></textarea>
+            <p class="texto-auxiliar">
+              Arquivo fora da lista bloqueia o commit inteiro, não é ignorado.
+            </p>
+          </div>
+          <div class="campo">
+            <label for="campo-autosync-exclude"
+              >Arquivos proibidos <span class="opcional">(um padrão por linha)</span></label
+            >
+            <textarea
+              class="campo-anotacoes"
+              id="campo-autosync-exclude"
+              rows="3"
+              spellcheck="false"
+              placeholder="Ex.: *.log"
+            ></textarea>
+          </div>
+          <div class="campo">
+            <label for="campo-autosync-ramos"
+              >Branches permitidas <span class="opcional">(um padrão por linha)</span></label
+            >
+            <textarea
+              class="campo-anotacoes"
+              id="campo-autosync-ramos"
+              rows="2"
+              spellcheck="false"
+              placeholder="Ex.: feature/*"
+            ></textarea>
+          </div>
+          <div class="campo-duplo">
+            <div class="campo">
+              <label for="campo-autosync-max-bytes"
+                >Tamanho máximo por arquivo, em bytes
+                <span class="opcional">(opcional)</span></label
+              >
+              <input
+                id="campo-autosync-max-bytes"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="Padrão: 5242880 (5 MB)"
+              />
+            </div>
+            <div class="campo">
+              <label for="campo-autosync-ia-repositorio">Mensagem por IA</label>
+              <select id="campo-autosync-ia-repositorio">
+                <option value="">Igual à configuração geral</option>
+                <option value="on">Ligada neste repositório</option>
+                <option value="off">Desligada neste repositório</option>
+              </select>
+            </div>
+          </div>
+          <p class="texto-auxiliar">
+            O Git AutoSync ainda não permite esvaziar uma lista já gravada: deixe ao menos um
+            padrão.
+          </p>
+
+          <p class="erro-formulario" id="erro-autosync-politica" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-autosync-politica">
+            Cancelar
+          </button>
+          <button class="btn primario" type="submit" id="btn-salvar-autosync-politica">
+            Salvar
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal largo" id="modal-autosync-historico">
+      <div class="modal-cabecalho">
+        <h2>Histórico de commits</h2>
+        <p id="modal-autosync-historico-subtitulo"></p>
+      </div>
+      <!-- A lista é montada pelo app.js. -->
+      <div class="modal-corpo" id="mount-autosync-historico"></div>
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-fechar-autosync-historico">Fechar</button>
+      </div>
+    </dialog>
+
+    <dialog class="modal" id="modal-autosync-instalacao">
+      <form method="dialog" id="formulario-autosync-instalacao" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Instalar o Git AutoSync</h2>
+          <p>Usa o pacote que veio com o HUB SNK. Exige o Git instalado na máquina.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-autosync-horario-instalacao"
+              >Horário da rodada automática <span class="opcional">(opcional)</span></label
+            >
+            <input id="campo-autosync-horario-instalacao" type="time" />
+          </div>
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-autosync-bandeja-instalacao" /> Ícone na bandeja ao
+            entrar no Windows
+          </label>
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-autosync-atalhos-instalacao" /> Atalhos na área de
+            trabalho e no menu Iniciar
+          </label>
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-autosync-skills-instalacao" /> Skill para Claude Code e
+            Codex
+          </label>
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-autosync-path-instalacao" /> Adicionar ao PATH do
+            usuário
+          </label>
+
+          <p class="erro-formulario" id="erro-autosync-instalacao" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-autosync-instalacao">
+            Cancelar
+          </button>
+          <button class="btn primario" type="submit" id="btn-confirmar-autosync-instalacao">
+            Instalar
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Confirmação do Git AutoSync: ligar a IA, desativar o agendamento, tirar uma pasta. -->
+    <dialog class="modal" id="modal-autosync-confirmacao">
+      <div class="modal-cabecalho">
+        <h2 id="titulo-autosync-confirmacao">Confirmar</h2>
+        <p id="texto-autosync-confirmacao"></p>
+      </div>
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-cancelar-autosync-confirmacao">
+          Cancelar
+        </button>
+        <button class="btn primario" type="button" id="btn-confirmar-autosync-confirmacao">
+          Confirmar
+        </button>
       </div>
     </dialog>
 
