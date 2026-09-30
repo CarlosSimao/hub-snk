@@ -25,6 +25,7 @@ src/
   repositorio/repositorioNotificacoes.ts    contrato do painel de notificações
   repositorio/repositorioNotificacoesArquivo.ts  notificações e chaves emitidas em arquivo JSON
   rotas/protecaoDeOrigem.ts                 confere Host e Origin antes de qualquer rota
+  rotas/autenticacaoDoPainel.ts             exige o token do shell em toda a API
   rotas/rotasClientes.ts                    rotas HTTP e validação de entrada
   rotas/rotasConfiguracao.ts                rotas da configuração global
   rotas/rotasGit.ts                         rota da situação dos repositórios locais

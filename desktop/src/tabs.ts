@@ -12,6 +12,7 @@ import { aguardarCampoDeSenha, tentarAutofill } from './autofill';
 import { autoLoginSankhya, podeTentar } from './autoLoginSankhya';
 import * as cofre from './cofreCredenciais';
 import { prepararParticaoParaRuffle } from './ruffle';
+import { garantirToken } from './tokenStore';
 
 export type TabId = 'hub' | 'erp' | 'experience';
 
@@ -67,6 +68,7 @@ interface ConfiguracaoDoHub {
 
 async function lerConfiguracaoDoHub(): Promise<ConfiguracaoDoHub> {
   const resposta = await fetch(`${HUB_URL}/api/configuracao`, {
+    headers: { 'x-hub-token': garantirToken() },
     signal: AbortSignal.timeout(5000),
   });
   if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
@@ -947,6 +949,7 @@ export class TabManager {
   async carregarCadastro(): Promise<void> {
     try {
       const resposta = await fetch(`${HUB_URL}/api/clientes`, {
+        headers: { 'x-hub-token': garantirToken() },
         signal: AbortSignal.timeout(5000),
       });
       if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);

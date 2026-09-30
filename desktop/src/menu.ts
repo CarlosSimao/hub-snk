@@ -4,8 +4,7 @@
  * Substitui o menu padrão do Electron (File/Edit/View/Window, em inglês e cheio de itens
  * que não significam nada aqui) por um menu que fala das guias do hub.
  */
-import { Menu, app, shell, type BrowserWindow, type MenuItem } from 'electron';
-import { HUB_URL } from './config';
+import { Menu, app, type BrowserWindow, type MenuItem } from 'electron';
 import type { SituacaoDoAtalhoGlobal } from './atalhoGlobal';
 import { abrirJanelaDeAtalhos } from './janelaDeAtalhos';
 import { alternarRuffle, ruffleLigado } from './ruffle';
@@ -129,7 +128,6 @@ export function montarMenu(
             if (principal) abrirJanelaDeAtalhos(principal, acoes.situacaoDoAtalhoGlobal());
           },
         },
-        { label: 'Abrir o painel no navegador', click: () => void shell.openExternal(HUB_URL) },
         { type: 'separator' },
         {
           label: `Reiniciar para atualizar para a versão ${versaoPronta ?? ''}`,

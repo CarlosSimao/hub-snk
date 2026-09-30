@@ -49,14 +49,15 @@ repositório em desenvolvimento, `resources\hub` no instalado); no backend,
 o token dela — o shell passa as duas ao backend que sobe, e só o `npm run dev` com
 o shell fora do padrão precisa defini-las à mão.
 
-Sem o aplicativo aberto, as rotas que dependem dele (credenciais, guias do
-Sankhya, agenda) respondem `503` com `shellIndisponivel`; o resto do painel
-funciona no navegador, em `http://127.0.0.1:4100`.
+Sem o aplicativo aberto, a API exige o token que só ele entrega ao painel. Para
+usar o painel no navegador, em `http://127.0.0.1:4100`, suba o backend com
+`HUB_SEM_TOKEN=1`. As rotas que dependem do aplicativo (credenciais, guias do
+Sankhya, agenda) respondem `503` com `shellIndisponivel`.
 
 Use uma pasta de dados separada, para não mexer no cadastro de verdade:
 
 ```powershell
-$env:HUB_DADOS_DIR = "$env:TEMP\hub-snk-dev"; npm run dev
+$env:HUB_DADOS_DIR = "$env:TEMP\hub-snk-dev"; $env:HUB_SEM_TOKEN = '1'; npm run dev
 ```
 
 ## Antes de commitar

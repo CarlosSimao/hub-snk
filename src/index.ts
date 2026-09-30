@@ -15,6 +15,7 @@ import { AgendadorDeLembretes } from './notificacoes/agendadorDeLembretes.ts';
 import { CentralDeNotificacoes } from './notificacoes/centralDeNotificacoes.ts';
 import { EnviadorDeEmail } from './notificacoes/enviadorDeEmail.ts';
 import { VerificadorDaAgendaDoDia } from './notificacoes/verificadorDaAgendaDoDia.ts';
+import { registrarAutenticacaoDoPainel } from './rotas/autenticacaoDoPainel.ts';
 import { registrarProtecaoDeOrigem } from './rotas/protecaoDeOrigem.ts';
 import { registrarRotasDeAtalhos } from './rotas/rotasAtalhos.ts';
 import { registrarRotasDeClientes } from './rotas/rotasClientes.ts';
@@ -57,6 +58,10 @@ async function iniciarServidor(): Promise<void> {
 
   /* Antes de qualquer rota: vale também para os arquivos estáticos. */
   registrarProtecaoDeOrigem(servidor);
+  registrarAutenticacaoDoPainel(servidor, {
+    arquivoTokenDoDesktop: configuracao.ponteDoDesktopTokenFile,
+    desligada: configuracao.autenticacaoDoPainelDesligada,
+  });
 
   await servidor.register(fastifyStatic, { root: configuracao.diretorioPublico });
 

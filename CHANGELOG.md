@@ -58,6 +58,17 @@ número significa aqui.
 - **Fechar a janela esconde o HUB SNK na bandeja** em vez de encerrá-lo, para o atalho
   global e os avisos de mensagem nova continuarem valendo. Para sair, use _Hub_ ›
   _Sair_ ou o botão direito no ícone da bandeja.
+- **A API passa a exigir o token do aplicativo** em todas as rotas, menos a
+  `/api/healthz`. Antes, qualquer programa da máquina — inclusive de outro usuário
+  do Windows no mesmo computador — lia o cadastro com as senhas das bases, dos
+  bancos e do SMTP. O painel recebe o token do aplicativo por cookie e continua
+  igual; chamadas de fora (scripts) precisam do cabeçalho `x-hub-token` — veja
+  [Autenticação](docs/api.md#autenticação).
+
+### Removido
+
+- **Ajuda › Abrir o painel no navegador**: fora do aplicativo o painel não tem o
+  token da API. Para desenvolver no navegador, o backend aceita `HUB_SEM_TOKEN=1`.
 
 ### Corrigido
 

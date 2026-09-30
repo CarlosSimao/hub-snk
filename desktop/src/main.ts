@@ -2,7 +2,16 @@
  * Bootstrap do shell desktop do HUB SNK — ver docs/distribuicao.md.
  */
 import './nomeDoApp';
-import { app, BrowserWindow, Menu, dialog, globalShortcut, ipcMain, type Tray } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  Menu,
+  dialog,
+  globalShortcut,
+  ipcMain,
+  session,
+  type Tray,
+} from 'electron';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { execFile } from 'node:child_process';
@@ -16,6 +25,7 @@ import {
   userAgentLimpo,
 } from './config';
 import { logEvento } from './log';
+import { garantirToken } from './tokenStore';
 import { TabManager } from './tabs';
 import { GerenciadorComunicacao } from './comunicacao';
 import { MenuFlutuante } from './menuFlutuante';
@@ -65,6 +75,32 @@ let encerrando = false;
 /** Windows desligando ou saindo da conta: segurar o fechamento travaria o desligamento. */
 let sessaoDoWindowsEncerrando = false;
 const atalhoGlobal = new AtalhoGlobalDaBusca(() => abrirBuscaRapidaNaJanela());
+/** Mesmo nome que o backend lê — ver `src/rotas/autenticacaoDoPainel.ts`. */
+const NOME_DO_COOKIE_DO_TOKEN = 'hub_token';
+
+/**
+ * O backend exige o token em toda a API. O painel não o conhece: vai como cookie da
+ * sessão da guia, e `fetch`, `EventSource` e a janela de log passam a levá-lo sozinhos.
+ * `HttpOnly` esconde o valor do JavaScript da página; `SameSite=Strict` impede que o
+ * ERP e a Experience, que dividem a partição, façam chamadas autenticadas ao backend.
+ */
+async function gravarTokenParaOPainel(): Promise<void> {
+  try {
+    await session.fromPartition(PARTICAO).cookies.set({
+      url: HUB_URL,
+      name: NOME_DO_COOKIE_DO_TOKEN,
+      value: garantirToken(),
+      httpOnly: true,
+      sameSite: 'strict',
+    });
+  } catch (err) {
+    logEvento('painel-token-falhou', { erro: String(err) });
+    dialog.showErrorBox(
+      'HUB SNK — o painel não vai carregar os dados',
+      `Não foi possível entregar o token do shell ao painel: ${String(err)}`,
+    );
+  }
+}
 
 function criarJanela(): void {
   janelaPrincipal = new BrowserWindow({
@@ -368,6 +404,7 @@ app.whenReady().then(async () => {
     dialog.showErrorBox('HUB SNK — o backend não subiu', backend.erro);
   }
 
+  await gravarTokenParaOPainel();
   criarJanela();
   const reconstruirMenu = () =>
     montarMenu(

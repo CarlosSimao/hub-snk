@@ -26,10 +26,10 @@ function lerPorta(): number {
 }
 
 /**
- * O HUB SNK não tem autenticação: quem alcança a porta lê o cadastro inteiro,
- * senhas incluídas, e dispara a abertura de executáveis da máquina. Escutar fora
- * do loopback transformaria isso em execução de comando remota, e o aplicativo
- * desktop não tem uso para isso: só o loopback é aceito.
+ * A única autenticação do HUB SNK é o token do shell, um arquivo local, trafegando
+ * em HTTP puro. Escutar fora do loopback exporia o token, o cadastro com as senhas e
+ * a abertura de executáveis da máquina à rede, e o aplicativo desktop não tem uso
+ * para isso: só o loopback é aceito.
  */
 function lerHost(): string {
   const bruto = process.env.HUB_HOST;
@@ -40,7 +40,7 @@ function lerHost(): string {
   if (!HOSTS_DE_LOOPBACK.has(bruto)) {
     throw new Error(
       `HUB_HOST="${bruto}" exporia o HUB SNK para outras máquinas da rede. ` +
-        'O servidor não tem autenticação, devolve as senhas do cadastro pela API e ' +
+        'O servidor fala HTTP puro, devolve as senhas do cadastro pela API e ' +
         `abre programas do sistema operacional. Use ${[...HOSTS_DE_LOOPBACK].join(', ')}.`,
     );
   }
@@ -95,6 +95,15 @@ function lerPerfilInicial(): PerfilProfissional {
   return bruto;
 }
 
+/**
+ * Desliga a exigência do token do shell na API, para desenvolver o painel no
+ * navegador com `npm run dev` sem o shell aberto. Precisa ser explícito: com o
+ * shell aberto (`SANKHYA_HUB_BACKEND=externo`) o token já chega por cookie.
+ */
+function lerAutenticacaoDoPainelDesligada(): boolean {
+  return process.env.HUB_SEM_TOKEN?.trim() === '1';
+}
+
 /** Valor que o shell desktop grava quando a caixa Terceiro do instalador vem marcada. */
 const TERCEIRO_MARCADO = 'S';
 
@@ -110,5 +119,6 @@ export const configuracao = {
   diretorioDeDados: lerDiretorioDeDados(),
   ponteDoDesktopUrl: process.env.SANKHYA_DESKTOP_BRIDGE_URL ?? PONTE_DO_DESKTOP_URL_PADRAO,
   ponteDoDesktopTokenFile: lerArquivoDeTokenDoDesktop(),
+  autenticacaoDoPainelDesligada: lerAutenticacaoDoPainelDesligada(),
   acessosIniciais: { perfil: lerPerfilInicial(), terceiro: lerTerceiroInicial() },
 } as const;

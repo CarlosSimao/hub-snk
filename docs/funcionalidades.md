@@ -45,8 +45,8 @@ configuração — mudar a opção vale no próximo clique, sem reiniciar. As re
 - Só `http` e `https` abrem no navegador do sistema; outro esquema (`file:`,
   `mailto:`) é recusado e fica registrado no log.
 
-Com o painel aberto num navegador comum (_Ajuda_ › _Abrir o painel no navegador_),
-a escolha não se aplica: os links abrem nesse navegador.
+Com o painel aberto num navegador comum (só em desenvolvimento, com
+`HUB_SEM_TOKEN=1`), a escolha não se aplica: os links abrem nesse navegador.
 
 ## Anotações do cliente
 
