@@ -426,8 +426,9 @@ const elementos = {
   visualizacaoLocal: document.getElementById('visualizacao-local'),
   visualizacaoAgenda: document.getElementById('visualizacao-agenda'),
   visualizacaoOs: document.getElementById('visualizacao-os'),
-  botaoVisualizacaoLembretes: document.getElementById('btn-visualizacao-lembretes'),
-  visualizacaoLembretes: document.getElementById('visualizacao-lembretes'),
+  botaoAbrirLembretes: document.getElementById('btn-abrir-lembretes'),
+  modalListaLembretes: document.getElementById('modal-lista-lembretes'),
+  botaoFecharListaLembretes: document.getElementById('btn-fechar-lista-lembretes'),
   mountLembretes: document.getElementById('mount-lembretes'),
   botaoVisualizacaoContatos: document.getElementById('btn-visualizacao-contatos'),
   visualizacaoContatos: document.getElementById('visualizacao-contatos'),
@@ -4111,11 +4112,6 @@ function alternarVisualizacao(visualizacao) {
     },
     { chave: 'os', botao: elementos.botaoVisualizacaoOs, area: elementos.visualizacaoOs },
     {
-      chave: 'lembretes',
-      botao: elementos.botaoVisualizacaoLembretes,
-      area: elementos.visualizacaoLembretes,
-    },
-    {
       chave: 'contatos',
       botao: elementos.botaoVisualizacaoContatos,
       area: elementos.visualizacaoContatos,
@@ -4146,9 +4142,6 @@ function alternarVisualizacao(visualizacao) {
   }
   if (visualizacao === 'os') {
     void widgetOsGeral.carregar();
-  }
-  if (visualizacao === 'lembretes') {
-    void recarregarLembretes();
   }
   if (visualizacao === 'contatos') {
     void recarregarContatos();
@@ -6306,7 +6299,7 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false 
   elementos.botaoVisualizacaoLocal.hidden = !funcionalidadeVisivel('local');
   elementos.botaoVisualizacaoAgenda.hidden = !funcionalidadeVisivel('agenda');
   elementos.botaoVisualizacaoOs.hidden = !funcionalidadeVisivel('os');
-  elementos.botaoVisualizacaoLembretes.hidden = !funcionalidadeVisivel('lembretes');
+  elementos.botaoAbrirLembretes.hidden = !funcionalidadeVisivel('lembretes');
   elementos.botaoVisualizacaoContatos.hidden = !funcionalidadeVisivel('contatos');
   elementos.botaoVisualizacaoAutosync.hidden = !funcionalidadeVisivel('autosync');
 
@@ -8581,7 +8574,7 @@ function receberNotificacao(notificacao) {
   tocarSomDeNotificacao();
 
   // O disparo muda o "próximo" do lembrete: a lista aberta não pode ficar desatualizada.
-  if (notificacao.origem === 'lembrete' && estado.visualizacao === 'lembretes') {
+  if (notificacao.origem === 'lembrete' && elementos.modalListaLembretes.open) {
     void recarregarLembretes();
   }
   // Lembrete disparado ou evento sem OS: o Resumo aberto mostra na hora.
@@ -8841,6 +8834,13 @@ async function recarregarLembretes() {
   }
 }
 
+/* O painel fecha antes: aberto, ficaria por baixo da janela e fecharia no primeiro clique nela. */
+function abrirJanelaDeLembretes() {
+  definirPainelDeNotificacoes(false);
+  elementos.modalListaLembretes.showModal();
+  void recarregarLembretes();
+}
+
 function criarOpcao(valor, texto) {
   const opcao = criarElemento('option', null, texto);
   opcao.value = valor;
@@ -9009,6 +9009,10 @@ function pedirExclusaoDeLembrete(lembrete) {
 }
 
 function registrarEventosDoLembrete() {
+  elementos.botaoAbrirLembretes.addEventListener('click', abrirJanelaDeLembretes);
+  elementos.botaoFecharListaLembretes.addEventListener('click', () =>
+    elementos.modalListaLembretes.close(),
+  );
   elementos.formularioLembrete.addEventListener('submit', salvarLembrete);
   elementos.botaoCancelarLembrete.addEventListener('click', () => elementos.modalLembrete.close());
   for (const opcao of elementos.opcoesTipoLembrete) {
@@ -11301,9 +11305,6 @@ function registrarEventos() {
   elementos.botaoVisualizacaoLocal.addEventListener('click', () => alternarVisualizacao('local'));
   elementos.botaoVisualizacaoAgenda.addEventListener('click', () => alternarVisualizacao('agenda'));
   elementos.botaoVisualizacaoOs.addEventListener('click', () => alternarVisualizacao('os'));
-  elementos.botaoVisualizacaoLembretes.addEventListener('click', () =>
-    alternarVisualizacao('lembretes'),
-  );
   elementos.botaoVisualizacaoContatos.addEventListener('click', () =>
     alternarVisualizacao('contatos'),
   );

@@ -2990,7 +2990,6 @@ button.selo-situacao:focus-visible {
   #visualizacao-local,
   #visualizacao-agenda,
   #visualizacao-os,
-  #visualizacao-lembretes,
   #visualizacao-autosync {
     flex: 1;
     min-height: 0;
@@ -3064,9 +3063,20 @@ button.selo-situacao:focus-visible {
   font-size: 14px;
 }
 
+.painel-notificacoes-barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Sem o botão Lembretes (desligado em Acessos), as ações continuam à direita. */
 .painel-notificacoes-acoes {
   display: flex;
   gap: 4px;
+  margin-left: auto;
 }
 
 .lista-notificacoes {

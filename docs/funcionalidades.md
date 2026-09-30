@@ -410,7 +410,7 @@ próprio HUB SNK, uma vez por dia; com o backend rodando sem o aplicativo
 
 ## Lembretes
 
-A aba **Lembretes** do menu principal cadastra avisos com um **resumo**
+O botão **Lembretes** do painel de notificações (sino) abre a janela que cadastra avisos com um **resumo**
 obrigatório (até 120 caracteres, o destaque da notificação e o assunto do e-mail)
 e um texto livre, opcionalmente ligados a um cliente e a um projeto dele. Cada um
 pode mandar também e-mail e pode ser desligado sem ser apagado. Lembrete

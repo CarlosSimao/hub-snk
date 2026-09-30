@@ -69,15 +69,6 @@
           </button>
           <button
             class="aba"
-            id="btn-visualizacao-lembretes"
-            type="button"
-            role="tab"
-            aria-selected="false"
-          >
-            Lembretes
-          </button>
-          <button
-            class="aba"
             id="btn-visualizacao-contatos"
             type="button"
             role="tab"
@@ -292,19 +283,6 @@
         </div>
       </div>
 
-      <div class="card" id="visualizacao-lembretes" hidden>
-        <div class="detalhe-cabecalho">
-          <div class="detalhe-titulo-com-subtitulo">
-            <h2>Lembretes</h2>
-            <p class="texto-auxiliar">
-              Avisos no painel de notificações, com som e, se quiser, por e-mail.
-            </p>
-          </div>
-        </div>
-        <!-- A lista é montada pelo app.js. -->
-        <div id="mount-lembretes"></div>
-      </div>
-
       <div class="card" id="visualizacao-contatos" hidden>
         <div class="detalhe-cabecalho">
           <div class="detalhe-titulo-com-subtitulo">
@@ -361,20 +339,24 @@
     <aside class="painel-notificacoes" id="painel-notificacoes" aria-label="Notificações" hidden>
       <div class="painel-notificacoes-cabecalho">
         <h2>Notificações</h2>
+        <button
+          class="btn tiny ghost"
+          id="btn-fechar-notificacoes"
+          type="button"
+          aria-label="Fechar notificações"
+          title="Fechar"
+        >
+          ✕
+        </button>
+      </div>
+      <!-- Lembretes à esquerda; à direita, o que age sobre a lista abaixo. -->
+      <div class="painel-notificacoes-barra">
+        <button class="btn tiny" id="btn-abrir-lembretes" type="button">Lembretes</button>
         <div class="painel-notificacoes-acoes">
           <button class="btn tiny ghost" id="btn-marcar-notificacoes-lidas" type="button">
             Marcar todas como lidas
           </button>
           <button class="btn tiny ghost" id="btn-limpar-notificacoes" type="button">Limpar</button>
-          <button
-            class="btn tiny ghost"
-            id="btn-fechar-notificacoes"
-            type="button"
-            aria-label="Fechar notificações"
-            title="Fechar"
-          >
-            ✕
-          </button>
         </div>
       </div>
       <!-- Os itens são montados pelo app.js. -->
@@ -757,6 +739,18 @@
           <button class="btn primario" type="submit" id="btn-salvar-link">Salvar</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog class="modal largo" id="modal-lista-lembretes">
+      <div class="modal-cabecalho">
+        <h2>Lembretes</h2>
+        <p>Avisos no painel de notificações, com som e, se quiser, por e-mail.</p>
+      </div>
+      <!-- A lista é montada pelo app.js. -->
+      <div class="modal-corpo" id="mount-lembretes"></div>
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-fechar-lista-lembretes">Fechar</button>
+      </div>
     </dialog>
 
     <dialog class="modal" id="modal-lembrete">
