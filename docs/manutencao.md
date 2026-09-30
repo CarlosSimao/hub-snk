@@ -184,10 +184,41 @@ que já existe.
 - O e-mail de teste do SMTP chega, e um lembrete marcado para dali a um minuto
   dispara a notificação.
 - Com uma release mais nova publicada no GitHub, o aviso de atualização aparece.
+- A atualização automática, testada na VM contra um servidor local (veja
+  [Testando a atualização automática](#testando-a-atualização-automática)): a
+  versão nova baixa sozinha, a notificação e **Ajuda › Reiniciar para atualizar**
+  aparecem, e depois de reiniciar o cadastro, o perfil e o login continuam lá.
 - Ao fechar o aplicativo, o backend encerra: nenhum `HUB SNK.exe` sobra no
   Gerenciador de Tarefas, e o `sankhya.db` fica sem `-wal` na pasta de dados.
 - O `backend.log` e o `desktop.log`, em `%APPDATA%\HUB SNK\log`, não trazem erro
   nem senha, token ou cookie em texto puro.
+
+### Testando a atualização automática
+
+A atualização automática lê o `latest.yml` da release mais recente, e testar contra o
+GitHub seria publicar uma versão. Em vez disso, gere duas versões de teste apontando
+para um servidor HTTP na sua máquina, sem commitar nada disso:
+
+1. Copie o `desktop/electron-builder.yml` para um arquivo temporário e troque o
+   `publish` por `provider: generic` com `url: http://<IP>:8765/`, onde `<IP>` é o
+   do adaptador `vEthernet (Default Switch)` da sua máquina.
+2. Gere as duas versões com esse arquivo, mudando só a versão:
+
+   ```bash
+   npx electron-builder --config <arquivo temporário> --publish never \
+     -c.extraMetadata.version=2.0.1 -c.directories.output=../release/teste-atualizacao/2.0.1
+   ```
+
+   e de novo com `2.0.2`.
+
+3. Sirva a pasta da `2.0.2` nesse IP e porta (um servidor estático qualquer), instale a
+   `2.0.1` na VM e abra o HUB SNK. Uns 30 segundos depois ele baixa a `2.0.2`, avisa
+   por notificação e oferece **Ajuda › Reiniciar para atualizar**.
+
+Para testar também a migração da marca do Git AutoSync, instale antes a última versão
+oficial com o Git AutoSync marcado e rode a `2.0.1` por cima com ele desmarcado: a marca
+tem de aparecer em `%LOCALAPPDATA%\HubSnk\git-autosync-instalado-pelo-hub.txt`, e a
+desinstalação no fim tem de perguntar se remove o Git AutoSync.
 
 ## Publicando uma versão
 
@@ -249,6 +280,10 @@ repositório do Git AutoSync em `C:\Workspace\scripts\git-autosync` (ou apontado
 por `GIT_AUTOSYNC_DIR`) e os binários dele já gerados pelo
 `python\build_windows.ps1`. Sem o Git AutoSync, use
 `npm --prefix desktop run empacotar:sem-autosync`. O resultado sai em `release/`.
+
+O `latest.yml` e o `.blockmap` sobem para a release junto do instalador: é o que
+a atualização automática do aplicativo (`desktop/src/atualizacao.ts`) lê. Release
+sem eles não chega a quem já tem o HUB SNK instalado, só o aviso do Painel.
 
 O aviso de atualização dentro do programa vem da release do GitHub, lida por
 `src/sistema/ultimaVersaoPublicada.ts`. Enquanto a tag não sobe, quem já usa o

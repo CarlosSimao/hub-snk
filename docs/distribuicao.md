@@ -53,7 +53,8 @@ cria ao abrir, e o backend o lê a cada chamada.
 | Git AutoSync, se instalado | `%USERPROFILE%\.git-autosync`                                   |
 
 A pasta de instalação é substituída a cada atualização, e por isso nada do
-usuário mora nela. A desinstalação não apaga nem o cadastro nem o perfil do
+usuário mora nela — nem a marca de que foi o instalador do HUB SNK que instalou o
+Git AutoSync, que fica em `%LOCALAPPDATA%\HubSnk\git-autosync-instalado-pelo-hub.txt`. A desinstalação não apaga nem o cadastro nem o perfil do
 Electron (`deleteAppDataOnUninstall: false`): apagar dados de quem só está
 reinstalando seria irreversível.
 

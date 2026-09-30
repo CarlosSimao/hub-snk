@@ -37,12 +37,25 @@ número significa aqui.
   (cerca de 14 MB) só é baixado pela tela que tiver conteúdo Flash. Desligada, nada é
   carregado. A troca vale para as telas abertas depois: a que já está aberta muda ao
   recarregar a guia.
+- **Atualização automática**: o HUB SNK procura versão nova ao abrir e a cada 6 horas,
+  baixa em segundo plano e avisa por notificação quando ela está pronta. Clique nela, ou
+  em **Ajuda › Reiniciar para atualizar**, para instalar sem perder cadastro, perfil nem
+  login; quem sai do programa sem reiniciar recebe a versão nova na saída. A caixa
+  **Ajuda › Atualizar automaticamente** desliga tudo isso, e fica só o aviso do Painel.
+  O Git AutoSync instalado não muda com a atualização automática.
 
 ### Alterado
 
 - **Fechar a janela esconde o HUB SNK na bandeja** em vez de encerrá-lo, para o atalho
   global e os avisos de mensagem nova continuarem valendo. Para sair, use _Hub_ ›
   _Sair_ ou o botão direito no ícone da bandeja.
+
+### Corrigido
+
+- Depois de atualizar o HUB SNK, a desinstalação deixava de perguntar se removia o Git
+  AutoSync: a marca de que foi o instalador quem o instalou ficava na pasta do programa,
+  que toda atualização substitui. Ela passa a morar em `%LOCALAPPDATA%\HubSnk`, e a de
+  uma instalação anterior é levada para lá na próxima atualização.
 
 ## [2.0.0] - 2026-09-29
 

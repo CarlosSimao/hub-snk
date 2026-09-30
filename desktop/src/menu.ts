@@ -9,6 +9,12 @@ import { HUB_URL } from './config';
 import type { SituacaoDoAtalhoGlobal } from './atalhoGlobal';
 import { abrirJanelaDeAtalhos } from './janelaDeAtalhos';
 import { alternarRuffle, ruffleLigado } from './ruffle';
+import {
+  alternarAtualizacaoAutomatica,
+  atualizacaoAutomaticaLigada,
+  reiniciarParaAtualizar,
+  versaoProntaParaInstalar,
+} from './atualizacao';
 import type { TabManager } from './tabs';
 
 /** O que o menu aciona fora dele: a busca rápida e o estado do atalho global. */
@@ -25,6 +31,7 @@ export function montarMenu(
   const gerenciador = tabs();
   const guiaBloqueada = (id: string): boolean => gerenciador?.guiaBloqueada(id) ?? false;
   const guias = (gerenciador?.guiasAbertas() ?? []).filter((guia) => !guiaBloqueada(guia.id));
+  const versaoPronta = versaoProntaParaInstalar();
   const menu = Menu.buildFromTemplate([
     {
       label: 'Hub',
@@ -123,6 +130,18 @@ export function montarMenu(
           },
         },
         { label: 'Abrir o painel no navegador', click: () => void shell.openExternal(HUB_URL) },
+        { type: 'separator' },
+        {
+          label: `Reiniciar para atualizar para a versão ${versaoPronta ?? ''}`,
+          visible: versaoPronta !== null,
+          click: () => reiniciarParaAtualizar(),
+        },
+        {
+          label: 'Atualizar automaticamente',
+          type: 'checkbox',
+          checked: atualizacaoAutomaticaLigada(),
+          click: () => alternarAtualizacaoAutomatica(),
+        },
         { label: `Versão ${app.getVersion()}`, enabled: false },
       ],
     },

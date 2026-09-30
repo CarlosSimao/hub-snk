@@ -12,9 +12,9 @@
     "dev": "tsc -p tsconfig.json --watch",
     "preparar-hub": "node scripts/preparar-hub.mjs",
     "preparar-autosync": "node scripts/preparar-autosync.mjs",
-    "empacotar": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs && electron-builder --config electron-builder.yml",
-    "empacotar:sem-autosync": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs --sem-autosync && electron-builder --config electron-builder.yml",
-    "empacotar:rapido": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs && electron-builder --config electron-builder.yml --dir"
+    "empacotar": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs && electron-builder --config electron-builder.yml --publish never",
+    "empacotar:sem-autosync": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs --sem-autosync && electron-builder --config electron-builder.yml --publish never",
+    "empacotar:rapido": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs && electron-builder --config electron-builder.yml --publish never --dir"
   },
   "devDependencies": {
     "@types/node": "^24.3.0",
@@ -26,6 +26,7 @@
     "electron@44.4.1": true
   },
   "dependencies": {
-    "@ruffle-rs/ruffle": "^0.6.0"
+    "@ruffle-rs/ruffle": "^0.6.0",
+    "electron-updater": "^6.8.9"
   }
 }

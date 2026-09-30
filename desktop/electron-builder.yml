@@ -121,6 +121,12 @@ deb:
     - gnome-keyring
     - git
 
-# Nada de auto-update por enquanto : sem servidor de publicação, um `latest.yml`
-# solto no release só confunde quem for verificar.
-publish: null
+# Atualização automática (desktop/src/atualizacao.ts): o `electron-updater` lê o
+# `latest.yml` da release mais recente deste repositório, público, sem token. Com isto o
+# electron-builder grava o `app-update.yml` dentro do app e gera o `latest.yml` e o
+# `.blockmap` junto do instalador. Quem sobe os três para a release é o workflow
+# `distribuicao.yml`: os scripts de empacotamento rodam com `--publish never`.
+publish:
+  provider: github
+  owner: CarlosSimao
+  repo: hub-snk

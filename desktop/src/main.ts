@@ -31,6 +31,7 @@ import { avisarQueContinuaNaBandeja, criarBandeja } from './bandeja';
 import { AtalhoGlobalDaBusca } from './atalhoGlobal';
 import { abrirBuscaRapida } from './buscaRapida';
 import { registrarEsquemaDoRuffle } from './ruffle';
+import { iniciarAtualizacaoAutomatica } from './atualizacao';
 import {
   definirInicioAutomatico,
   foiIniciadoPeloWindows,
@@ -368,14 +369,18 @@ app.whenReady().then(async () => {
   }
 
   criarJanela();
-  montarMenu(
-    () => janelaPrincipal,
-    () => tabs,
-    {
-      abrirBuscaRapida: abrirBuscaRapidaNaJanela,
-      situacaoDoAtalhoGlobal: () => atalhoGlobal.situacao,
-    },
-  );
+  const reconstruirMenu = () =>
+    montarMenu(
+      () => janelaPrincipal,
+      () => tabs,
+      {
+        abrirBuscaRapida: abrirBuscaRapidaNaJanela,
+        situacaoDoAtalhoGlobal: () => atalhoGlobal.situacao,
+      },
+    );
+  reconstruirMenu();
+  // Versão baixada ou atualização desligada: o item "Reiniciar para atualizar" muda.
+  iniciarAtualizacaoAutomatica(reconstruirMenu);
   criarBandejaDoApp();
   atalhoGlobal.aplicarEscolhaGravada();
   comunicacao?.carregarAoAbrirSeEscolhido();
