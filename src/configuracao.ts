@@ -103,6 +103,24 @@ function lerTerceiroInicial(): boolean {
   return process.env.HUB_TERCEIRO_INICIAL?.trim().toUpperCase() === TERCEIRO_MARCADO;
 }
 
+/**
+ * Pasta do Git AutoSync: `config.json`, `status.json`, log e `bin/`. A mesma variável
+ * que o próprio autosync respeita, para os dois olharem o mesmo lugar.
+ */
+function lerPastaDoAutosync(): string {
+  const bruto = process.env.GIT_AUTOSYNC_HOME?.trim();
+  return bruto ? resolve(bruto) : join(homedir(), '.git-autosync');
+}
+
+/**
+ * Pacote do autosync que veio com o instalador, repassado pelo shell desktop. Ausente
+ * em desenvolvimento: a instalação pela tela responde que o build não tem o pacote.
+ */
+function lerPacoteDoAutosync(): string | null {
+  const bruto = process.env.HUB_AUTOSYNC_PACOTE?.trim();
+  return bruto ? resolve(bruto) : null;
+}
+
 export const configuracao = {
   porta: lerPorta(),
   host: lerHost(),
@@ -111,4 +129,6 @@ export const configuracao = {
   ponteDoDesktopUrl: process.env.SANKHYA_DESKTOP_BRIDGE_URL ?? PONTE_DO_DESKTOP_URL_PADRAO,
   ponteDoDesktopTokenFile: lerArquivoDeTokenDoDesktop(),
   acessosIniciais: { perfil: lerPerfilInicial(), terceiro: lerTerceiroInicial() },
+  pastaDoAutosync: lerPastaDoAutosync(),
+  pacoteDoAutosync: lerPacoteDoAutosync(),
 } as const;

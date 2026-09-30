@@ -88,6 +88,15 @@ export const RAIZ_PROJETO =
 export const ENTRYPOINT_BACKEND = join(RAIZ_PROJETO, 'src', 'index.ts');
 
 /**
+ * Pacote do Git AutoSync que viaja no instalador (`extraResources` para
+ * `resources/git-autosync`). O backend o usa para instalar o autosync depois, quando a
+ * pessoa desmarcou o componente no instalador. Vazio em desenvolvimento: não há pacote.
+ */
+export const PACOTE_DO_AUTOSYNC =
+  process.env['HUB_AUTOSYNC_PACOTE'] ??
+  (app.isPackaged ? join(process.resourcesPath, 'git-autosync') : '');
+
+/**
  * Caminho que o instalador deixa em `HubSnk\pasta-de-dados.txt` quando a instalação PWA
  * antiga guardava o cadastro fora do padrão (`desktop/instalador/remover-versao-pwa.ps1`).
  * O `trim()` também descarta o BOM que o PowerShell 5.1 grava no início do arquivo.
