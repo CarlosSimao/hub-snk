@@ -123,7 +123,8 @@ export interface VisaoDoAutosync {
 }
 
 /**
- * Estado de um repositório de cliente diante do autosync (§4.1 da especificação).
+ * Estado de um repositório de cliente diante do autosync — tabela em
+ * docs/funcionalidades.md, seção Git AutoSync.
  *
  * - `fora`: tem pasta local e é repositório, mas o autosync não o cobre.
  * - `ativo`: alvo próprio ou coberto por raiz, e roda na rodada agendada.
@@ -157,7 +158,7 @@ export interface RepositorioDeClienteNoAutosync {
 
 /**
  * Pasta que guarda 3 ou mais repositórios de clientes: cadastrá-la como `root`
- * cobre todos eles e os futuros (§4.3). Só sugestão.
+ * cobre todos eles e os futuros. Só sugestão.
  */
 export interface SugestaoDeRaiz {
   pasta: string;

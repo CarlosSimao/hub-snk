@@ -410,7 +410,7 @@ export class ServicoDoAutosync {
     return { saida: await this.#executar(argumentos) };
   }
 
-  /** Só GitLab. O token é gravado pelo `set-gitlab-token` do CLI, fora do HUB SNK. */
+  /** Só GitLab. O token vem das variáveis de ambiente que Configurações › Git grava. */
   async mergeRequest(caminho: string, opcoes: OpcoesDoMr): Promise<Saida> {
     await this.#visaoComCaminhoPermitido(caminho);
     const argumentos = ['mr', '--repo', caminho];
@@ -497,7 +497,7 @@ export class ServicoDoAutosync {
    * A API não é uma porta para o CLI operar em qualquer pasta do disco: o caminho
    * precisa ser absoluto e já conhecido — no autosync ou no cadastro de um cliente.
    * Para adicionar, vale também a pasta-mãe de um repositório de cliente (a raiz
-   * sugerida pela §4.3).
+   * sugerida por `SugestaoDeRaiz`).
    */
   async #visaoComCaminhoPermitido(
     caminho: string,
