@@ -374,6 +374,7 @@ app.whenReady().then(async () => {
   );
   criarBandejaDoApp();
   atalhoGlobal.aplicarEscolhaGravada();
+  comunicacao?.carregarAoAbrirSeEscolhido();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) criarJanela();

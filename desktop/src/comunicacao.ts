@@ -160,34 +160,53 @@ function temContagemExata(servico: ServicoComunicacao): boolean {
   return SERVICOS_COMUNICACAO[servico].sinal.origem !== 'favicon';
 }
 
-/** Onde a escolha de botões da barra lateral sobrevive ao fechamento do aplicativo. */
+/**
+ * Espera entre a janela abrir e os serviços carregarem sozinhos: o Painel e o login
+ * automático no Sankhya vêm primeiro, sem disputar rede e processador com o WhatsApp.
+ */
+const ESPERA_PARA_CARREGAR_AO_ABRIR_MS = 5_000;
+
+/**
+ * Escolhas do menu da engrenagem da barra lateral.
+ *
+ * `carregarAoAbrir` vem desligado: o WhatsApp Web logado passa de 600 MB, e ninguém deve
+ * pagar isso sem pedir.
+ */
+interface PreferenciasDaComunicacao {
+  desabilitados: ServicoComunicacao[];
+  carregarAoAbrir: boolean;
+}
+
+/** Onde as escolhas do menu da barra lateral sobrevivem ao fechamento do aplicativo. */
 function arquivoServicos(): string {
   return join(app.getPath('userData'), 'comunicacao.json');
 }
 
-function lerServicosDesabilitados(): ServicoComunicacao[] {
+function lerPreferencias(): PreferenciasDaComunicacao {
   try {
     const dados = JSON.parse(readFileSync(arquivoServicos(), 'utf8')) as {
       desabilitados?: unknown;
+      carregarAoAbrir?: unknown;
     };
-    return Array.isArray(dados.desabilitados)
+    const desabilitados = Array.isArray(dados.desabilitados)
       ? dados.desabilitados.filter(
           (servico): servico is ServicoComunicacao =>
             typeof servico === 'string' && ehServicoComunicacao(servico),
         )
       : [];
+    return { desabilitados, carregarAoAbrir: dados.carregarAoAbrir === true };
   } catch {
     // Primeira execução, ou arquivo corrompido: todos os serviços habilitados.
-    return [];
+    return { desabilitados: [], carregarAoAbrir: false };
   }
 }
 
-function gravarServicosDesabilitados(desabilitados: ServicoComunicacao[]): void {
+function gravarPreferencias(preferencias: PreferenciasDaComunicacao): void {
   try {
-    writeFileSync(arquivoServicos(), JSON.stringify({ desabilitados }, null, 2), 'utf8');
+    writeFileSync(arquivoServicos(), JSON.stringify(preferencias, null, 2), 'utf8');
   } catch (err) {
     // Preferência de tela não vale travar o aplicativo: a sessão atual respeita a escolha,
-    // a próxima abre com todos os serviços.
+    // a próxima abre com o padrão.
     logEvento('comunicacao-servicos-nao-gravados', { erro: (err as Error).message });
   }
 }
@@ -206,13 +225,17 @@ export class GerenciadorComunicacao {
    * objeto e, com ele, o clique que abre o painel.
    */
   readonly #notificacoes = new Set<Notification>();
-  readonly #desabilitados = new Set<ServicoComunicacao>(lerServicosDesabilitados());
+  readonly #desabilitados: Set<ServicoComunicacao>;
+  #carregarAoAbrir: boolean;
   #ativo: ServicoComunicacao | null = null;
   #larguraLateral = 0;
   #alturaTopo = 0;
 
   constructor(janela: BrowserWindow) {
     this.#janela = janela;
+    const preferencias = lerPreferencias();
+    this.#desabilitados = new Set(preferencias.desabilitados);
+    this.#carregarAoAbrir = preferencias.carregarAoAbrir;
     janela.on('focus', () => {
       // O Windows pisca o ícone na barra de tarefas até alguém mandar parar.
       janela.flashFrame(false);
@@ -254,7 +277,25 @@ export class GerenciadorComunicacao {
           click: () => this.#alternarHabilitado(servico),
         })),
       },
+      // Submenu só para ganhar título próprio: solta, a caixa pareceria mais um serviço.
+      {
+        label: 'Ao abrir o HUB SNK',
+        submenu: [
+          {
+            label: 'Carregar WhatsApp e Google Chat',
+            type: 'checkbox',
+            checked: this.#carregarAoAbrir,
+            click: () => this.#alternarCarregarAoAbrir(),
+          },
+        ],
+      },
     ]);
+  }
+
+  /** Chamado uma vez, com a janela aberta: carrega os serviços se a escolha estiver ligada. */
+  carregarAoAbrirSeEscolhido(): void {
+    if (!this.#carregarAoAbrir) return;
+    setTimeout(() => this.#carregarEmSegundoPlano(), ESPERA_PARA_CARREGAR_AO_ABRIR_MS);
   }
 
   definirLarguraLateral(largura: number): void {
@@ -281,10 +322,46 @@ export class GerenciadorComunicacao {
       this.#descarregar(servico);
       logEvento('comunicacao-servico-desabilitado', { servico });
     }
-    gravarServicosDesabilitados([...this.#desabilitados]);
+    this.#gravarPreferencias();
     this.#janela.webContents.send('comunicacao:servicos', this.estadoDosServicos());
   }
 
+  /** Ligar já carrega, sem esperar a próxima abertura. Desligar não descarrega nada. */
+  #alternarCarregarAoAbrir(): void {
+    this.#carregarAoAbrir = !this.#carregarAoAbrir;
+    this.#gravarPreferencias();
+    logEvento('comunicacao-carregar-ao-abrir', { ligado: this.#carregarAoAbrir });
+    if (this.#carregarAoAbrir) this.#carregarEmSegundoPlano();
+  }
+
+  #gravarPreferencias(): void {
+    gravarPreferencias({
+      desabilitados: [...this.#desabilitados],
+      carregarAoAbrir: this.#carregarAoAbrir,
+    });
+  }
+
+  /**
+   * Carrega escondidos os serviços habilitados que avisam pela página, como o painel fica
+   * depois de aberto e fechado uma vez. O Gmail fica de fora: o feed já avisa do e-mail
+   * novo sem a página, e carregá-la só gastaria memória.
+   */
+  #carregarEmSegundoPlano(): void {
+    for (const servico of SERVICOS) {
+      if (this.#desabilitados.has(servico) || this.#paineis.has(servico)) continue;
+      if (SERVICOS_COMUNICACAO[servico].sinal.origem === 'feed') continue;
+      const painel = this.#criarPainel(servico);
+      this.#janela.contentView.addChildView(painel);
+      painel.setBounds(this.#limitesDoPainel());
+      painel.setVisible(false);
+      logEvento('comunicacao-carregado-em-segundo-plano', { servico });
+    }
+  }
+
+  /**
+   * Fecha a página do serviço: sem ela, nada dele roda nem ocupa memória. O feed também
+   * para — a consulta periódica pula serviço desabilitado.
+   */
   #descarregar(servico: ServicoComunicacao): void {
     if (this.#ativo === servico) this.ocultar();
     this.#esquecerNaoLidas(servico);
