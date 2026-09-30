@@ -71,6 +71,11 @@ interface DefinicaoServicoComunicacao {
   url: string;
   particao: string;
   sinal: SinalDeMensagem;
+  /**
+   * Se o HUB toca o próprio som na mensagem nova. Falso quando a página do serviço já
+   * toca o dela — os dois juntos soam como duas mensagens.
+   */
+  tocarSom: boolean;
 }
 
 /** O feed do Gmail é leve (um XML pequeno), mas não precisa ser mais que por minuto. */
@@ -90,6 +95,8 @@ export const SERVICOS_COMUNICACAO: Record<ServicoComunicacao, DefinicaoServicoCo
     particao: 'persist:hub-whatsapp',
     // O WhatsApp Web escreve `(3) WhatsApp` no título: 3 conversas, não 3 mensagens.
     sinal: { origem: 'titulo', padrao: /^\((\d+)\)/ },
+    // O WhatsApp Web toca o som dele junto com a notificação do Windows.
+    tocarSom: false,
   },
   gmail: {
     rotulo: 'Gmail',
@@ -103,6 +110,8 @@ export const SERVICOS_COMUNICACAO: Record<ServicoComunicacao, DefinicaoServicoCo
       padrao: /<fullcount>(\d+)<\/fullcount>/,
       intervaloMs: INTERVALO_FEED_GMAIL_MS,
     },
+    // A notificação do e-mail é do HUB e sai muda: o som é este.
+    tocarSom: true,
   },
   chat: {
     rotulo: 'Google Chat',
@@ -111,6 +120,7 @@ export const SERVICOS_COMUNICACAO: Record<ServicoComunicacao, DefinicaoServicoCo
     // O título do Chat nunca tem contagem. O favicon sem não lidas é o
     // `..._favicon_no_dot_64px.png`; com não lidas, a variante com o ponto.
     sinal: { origem: 'favicon', padrao: /(?<!no)_dot_/ },
+    tocarSom: true,
   },
 };
 

@@ -434,7 +434,9 @@ export class GerenciadorComunicacao {
   }
 
   #avisarMensagemNova(servico: ServicoComunicacao): void {
-    this.#janela.webContents.send('comunicacao:mensagemNova', servico);
+    if (SERVICOS_COMUNICACAO[servico].tocarSom) {
+      this.#janela.webContents.send('comunicacao:mensagemNova', servico);
+    }
     if (!this.#janela.isFocused()) this.#janela.flashFrame(true);
     logEvento('comunicacao-mensagem-nova', { servico });
   }
