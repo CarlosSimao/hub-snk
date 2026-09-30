@@ -107,19 +107,24 @@ function instalarCliDeMentira(pasta: string): void {
 }
 
 describe('CliDoAutosyncProcesso', () => {
-  it('passa caminho com & | ^ % e espaços como um argumento literal', async () => {
-    const pasta = criarPasta();
-    instalarCliDeMentira(pasta);
-    const cli = new CliDoAutosyncProcesso({ pasta, pacote: null, plataforma: process.platform });
-    const perigoso = 'C:\\Clientes\\a & b | c ^ d %PATH% "e"';
+  // O CLI de mentira é um `.cmd`, e o que se prova é o escape do cmd.exe: só no Windows.
+  it(
+    'passa caminho com & | ^ % e espaços como um argumento literal',
+    { skip: process.platform !== 'win32' },
+    async () => {
+      const pasta = criarPasta();
+      instalarCliDeMentira(pasta);
+      const cli = new CliDoAutosyncProcesso({ pasta, pacote: null, plataforma: process.platform });
+      const perigoso = 'C:\\Clientes\\a & b | c ^ d %PATH% "e"';
 
-    const { codigo, saida } = await cli.executar(['add', perigoso, '--type', 'repo']);
+      const { codigo, saida } = await cli.executar(['add', perigoso, '--type', 'repo']);
 
-    assert.equal(codigo, 0);
-    const dados = JSON.parse(saida) as { argumentos: string[]; home: string };
-    assert.deepEqual(dados.argumentos, ['add', perigoso, '--type', 'repo']);
-    assert.equal(dados.home, pasta);
-  });
+      assert.equal(codigo, 0);
+      const dados = JSON.parse(saida) as { argumentos: string[]; home: string };
+      assert.deepEqual(dados.argumentos, ['add', perigoso, '--type', 'repo']);
+      assert.equal(dados.home, pasta);
+    },
+  );
 
   it('não usa shell em nenhum spawn', () => {
     const fonte = readFileSync(new URL('./cliDoAutosyncProcesso.ts', import.meta.url), 'utf8');

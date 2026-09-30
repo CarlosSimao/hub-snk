@@ -85,22 +85,27 @@ describe('classificarRepositoriosDosClientes', () => {
 });
 
 describe('sugerirRaizes', () => {
-  it('sugere o pai com três ou mais repositórios fora do autosync', () => {
-    const repositorios = classificarRepositoriosDosClientes(
-      [
-        criarCliente('a', ['C:\\Demandas\\a', 'C:\\Demandas\\b']),
-        criarCliente('b', ['C:\\demandas\\c', 'C:\\Outro\\d']),
-      ],
-      visaoCom([]),
-      SEMPRE_REPOSITORIO,
-    );
+  // Caminhos `C:\...`: o `dirname` de outro sistema não os reconhece como pasta.
+  it(
+    'sugere o pai com três ou mais repositórios fora do autosync',
+    { skip: process.platform !== 'win32' },
+    () => {
+      const repositorios = classificarRepositoriosDosClientes(
+        [
+          criarCliente('a', ['C:\\Demandas\\a', 'C:\\Demandas\\b']),
+          criarCliente('b', ['C:\\demandas\\c', 'C:\\Outro\\d']),
+        ],
+        visaoCom([]),
+        SEMPRE_REPOSITORIO,
+      );
 
-    const sugestoes = sugerirRaizes(repositorios);
+      const sugestoes = sugerirRaizes(repositorios);
 
-    assert.equal(sugestoes.length, 1);
-    assert.equal(sugestoes[0]?.quantidade, 3);
-    assert.equal(sugestoes[0]?.pasta, 'C:\\Demandas');
-  });
+      assert.equal(sugestoes.length, 1);
+      assert.equal(sugestoes[0]?.quantidade, 3);
+      assert.equal(sugestoes[0]?.pasta, 'C:\\Demandas');
+    },
+  );
 });
 
 describe('vincularClientes', () => {
