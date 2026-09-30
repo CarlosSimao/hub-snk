@@ -3,14 +3,15 @@ name: Site
 # Publica a página do projeto (pasta `site/`) no GitHub Pages, em
 # https://carlossimao.github.io/hub-snk/.
 #
-# O print e o ícone não são copiados para `site/`: vêm de `docs/img` e
+# Os prints e o ícone não são copiados para `site/`: vêm de `docs/img` e
 # `desktop/assets` na hora da publicação, para existir um arquivo só de cada.
 on:
   push:
     branches: [main]
     paths:
       - 'site/**'
-      - 'docs/img/screenshot.png'
+      - 'docs/img/resumo.png'
+      - 'docs/img/cliente.png'
       - 'desktop/assets/hub-snk.png'
       - '.github/workflows/site.yml'
   workflow_dispatch:
@@ -38,7 +39,7 @@ jobs:
       - name: Montar o site
         run: |
           mkdir -p site/img
-          cp docs/img/screenshot.png site/img/screenshot.png
+          cp docs/img/resumo.png docs/img/cliente.png site/img/
           cp desktop/assets/hub-snk.png site/img/icone.png
 
       - uses: actions/configure-pages@v5

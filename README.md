@@ -13,7 +13,7 @@ distribuição para Linux nem para macOS.
 Funcionalidades e download também em
 **[carlossimao.github.io/hub-snk](https://carlossimao.github.io/hub-snk/)**.
 
-![Tela do HUB SNK com a lista de clientes cadastrados](docs/img/screenshot.png)
+![Resumo do dia do HUB SNK, com a agenda de hoje, os lembretes e os repositórios com pendência](docs/img/resumo.png)
 
 ---
 
@@ -55,6 +55,8 @@ apagado; na desinstalação, o instalador pergunta se o Git AutoSync sai junto.
 ---
 
 ## Como é o aplicativo
+
+![Cadastro de um cliente, com a lista de clientes à esquerda e as bases de Produção e Teste](docs/img/cliente.png)
 
 A janela tem guias no topo:
 

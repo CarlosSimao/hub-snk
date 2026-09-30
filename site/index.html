@@ -13,7 +13,7 @@
       property="og:description"
       content="Clientes, bases, agenda e OS num aplicativo só, com login automático no SankhyaOm e na Experience e o WhatsApp, o Gmail e o Google Chat ao lado."
     />
-    <meta property="og:image" content="https://carlossimao.github.io/hub-snk/img/screenshot.png" />
+    <meta property="og:image" content="https://carlossimao.github.io/hub-snk/img/resumo.png" />
     <meta property="og:url" content="https://carlossimao.github.io/hub-snk/" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="img/icone.png" />
@@ -168,6 +168,11 @@
 
       .print {
         margin: 0 0 72px;
+      }
+
+      /* O print dentro de uma seção fica colado ao conteúdo dela. */
+      section .print {
+        margin-bottom: 24px;
       }
 
       .print img {
@@ -380,10 +385,10 @@
 
       <div class="print">
         <img
-          src="img/screenshot.png"
+          src="img/resumo.png"
           width="1600"
-          height="901"
-          alt="Tela do HUB SNK com a lista de clientes à esquerda e as bases de um cliente à direita"
+          height="1000"
+          alt="Resumo do dia do HUB SNK, com a agenda de hoje, os lembretes do dia e os repositórios com pendência"
         />
       </div>
 
@@ -393,6 +398,15 @@
           O que aparece no painel depende do seu perfil, escolhido na instalação e ajustável depois
           em Configurações › Acessos.
         </p>
+        <div class="print">
+          <img
+            src="img/cliente.png"
+            width="1600"
+            height="1000"
+            loading="lazy"
+            alt="Cadastro de um cliente no HUB SNK, com a lista de clientes à esquerda e as bases de Produção e Teste à direita"
+          />
+        </div>
         <div class="funcionalidades">
           <article class="funcionalidade">
             <h3>Cadastro de clientes</h3>
