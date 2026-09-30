@@ -5,7 +5,16 @@ import './nomeDoApp';
 import { app, BrowserWindow, Menu, dialog, ipcMain } from 'electron';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
-import { HUB_URL, ERP_URL, EXPERIENCE_URL, ICONE, PARTICAO, userAgentLimpo } from './config';
+import { execFile } from 'node:child_process';
+import {
+  HUB_URL,
+  ERP_URL,
+  EXPERIENCE_URL,
+  ICONE,
+  ID_DO_APP_WINDOWS,
+  PARTICAO,
+  userAgentLimpo,
+} from './config';
 import { logEvento } from './log';
 import { TabManager } from './tabs';
 import { GerenciadorComunicacao } from './comunicacao';
@@ -234,8 +243,34 @@ tratarDaBarraDeGuias('links:fechar', (origin: string) => ({
 }));
 tratarDaBarraDeGuias('links:lista', () => tabs?.abasClientesAbertas() ?? []);
 
+/**
+ * Sem isto o Windows escreve "Electron" no topo de toda notificação (WhatsApp, Chat,
+ * Gmail). A identidade vale para o processo inteiro: não há como cada serviço aparecer
+ * com o próprio nome ali.
+ *
+ * Empacotado, o atalho do instalador já liga o id ao nome e ao ícone. Em desenvolvimento
+ * não há atalho: o nome vai para o registro do usuário (`HKCU`, sem administrador), que o
+ * Windows aceita no lugar do atalho para apps Win32.
+ */
+function definirIdentidadeNasNotificacoes(): void {
+  if (process.platform !== 'win32') return;
+  app.setAppUserModelId(ID_DO_APP_WINDOWS);
+  if (app.isPackaged) return;
+  const chave = `HKCU\\Software\\Classes\\AppUserModelId\\${ID_DO_APP_WINDOWS}`;
+  const valores: Array<[string, string]> = [
+    ['DisplayName', app.getName()],
+    ['IconUri', ICONE],
+  ];
+  for (const [nome, valor] of valores) {
+    execFile('reg', ['add', chave, '/v', nome, '/t', 'REG_SZ', '/d', valor, '/f'], (erro) => {
+      if (erro) logEvento('identidade-notificacao-nao-registrada', { nome, erro: erro.message });
+    });
+  }
+}
+
 app.whenReady().then(async () => {
   logEvento('app-pronto');
+  definirIdentidadeNasNotificacoes();
 
   // Antes de qualquer janela: o user agent vale para todas as requisições, e páginas do
   // Sankhya que detectam Electron tentam `require(...)` e quebram com um alert.

@@ -362,7 +362,9 @@ export class GerenciadorComunicacao {
     const novas = mensagens.filter((mensagem) => !conhecidas.has(mensagem.id));
     const { rotulo } = SERVICOS_COMUNICACAO[servico];
     for (const { autor, assunto } of novas.slice(0, LIMITE_DE_NOTIFICACOES_POR_CONSULTA)) {
-      this.#mostrarNotificacao(servico, autor || rotulo, assunto || '(sem assunto)');
+      // O topo da notificação é o nome do app (HUB SNK): o serviço vai no título.
+      const titulo = autor ? `${rotulo} · ${autor}` : rotulo;
+      this.#mostrarNotificacao(servico, titulo, assunto || '(sem assunto)');
     }
     const restantes = novas.length - LIMITE_DE_NOTIFICACOES_POR_CONSULTA;
     if (restantes > 0) {

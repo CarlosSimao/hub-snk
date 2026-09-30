@@ -142,6 +142,16 @@ export const PERMISSOES_COMUNICACAO: ReadonlySet<string> = new Set([
   'fullscreen',
 ]);
 
+/**
+ * Identidade do app no Windows (AppUserModelID): é ela que dá o nome e o ícone no topo
+ * das notificações. Empacotado, precisa ser o `appId` de `electron-builder.yml`, que o
+ * instalador grava no atalho. Em desenvolvimento não há atalho, então o id é outro e o
+ * nome é registrado à parte — ver `definirIdentidadeNasNotificacoes` no `main.ts`.
+ */
+export const ID_DO_APP_WINDOWS = app.isPackaged
+  ? 'br.dev.hubsnk.desktop'
+  : 'br.dev.hubsnk.desktop.desenvolvimento';
+
 export const BRIDGE_PORT = Number(process.env['SANKHYA_DESKTOP_BRIDGE_PORT'] ?? 4103);
 export const BRIDGE_HOST = '127.0.0.1';
 
