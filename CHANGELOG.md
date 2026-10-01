@@ -9,6 +9,31 @@ número significa aqui.
 
 ## [Não publicado]
 
+Em teste como `v2.3.0-beta.1`.
+
+### Adicionado
+
+- **Kanban de tarefas nos projetos do cliente.** Com o documento de escopo (`.docx`,
+  `.pdf`, `.md` ou `.txt`), o assistente de IA escolhido em **Configurações › IA**
+  (Claude Code, Codex, OpenCode, Gemini CLI ou Cursor Agent) decompõe o escopo em
+  tarefas; sem documento, o quadro começa vazio. Cinco colunas, arrastar e soltar,
+  vários kanbans por projeto e lista de verificação em cada tarefa.
+- As tarefas ficam também num arquivo JSON na pasta do projeto, que o HUB SNK vigia e
+  importa de volta, e num servidor MCP para agentes de IA. O quadro se atualiza sozinho
+  quando o arquivo, o MCP ou a IA o mudam.
+- A aba **Git** ganha o ícone de informação, com o que é o Git AutoSync e o link do
+  repositório dele.
+
+### Alterado
+
+- **O Git AutoSync não vem mais no instalador**: tem licença própria. Sem ele, a aba
+  **Git** aparece acinzentada, com o botão **Instalar o Git AutoSync**, que confere se
+  o Git está na máquina (sem ele, mostra onde baixá-lo) e baixa a versão mais recente
+  do repositório do Git AutoSync. Instalado pelo HUB SNK, ele continua podendo sair
+  junto na desinstalação.
+- A aba **Git** não fica mais oculta por causa da escolha do Git AutoSync no
+  instalador.
+
 ## [2.2.1] - 2026-10-01
 
 ### Corrigido
