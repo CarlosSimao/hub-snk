@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
-import { AgendaRecursos } from './agenda.ts';
+import { AgendaRecursos, chaveNome, nomesCorrespondem } from './agenda.ts';
 import type { AgendaImportada } from './agendaParser.ts';
 import type { EventoAgenda, RecursoAgenda } from '../tipos.ts';
 
@@ -61,6 +61,26 @@ function mes(anoMes: string) {
     ate: `${anoMes}-${String(ultimoDia).padStart(2, '0')} 23:59:59`,
   };
 }
+
+describe('nomesCorrespondem', () => {
+  it('casa o nome curto do cadastro com o nome completo do parceiro', () => {
+    const cadastro = chaveNome('Konica');
+    const parceiro = chaveNome('KONICA MINOLTA BUSINESS SOLUTIONS DO BRASIL LTDA');
+
+    assert.equal(nomesCorrespondem(cadastro, parceiro), true);
+    assert.equal(nomesCorrespondem(parceiro, cadastro), true);
+  });
+
+  it('não casa nomes que não começam um com o outro', () => {
+    assert.equal(nomesCorrespondem(chaveNome('Konica'), chaveNome('Minolta Konica')), false);
+  });
+
+  it('chave vazia não casa com nada', () => {
+    assert.equal(nomesCorrespondem('', chaveNome('Konica')), false);
+    assert.equal(nomesCorrespondem(chaveNome('Konica'), ''), false);
+    assert.equal(nomesCorrespondem('', ''), false);
+  });
+});
 
 describe('AgendaRecursos.importar (incremental por período e CODUSU)', () => {
   let dir: string;

@@ -78,6 +78,15 @@
           </button>
           <button
             class="aba"
+            id="btn-visualizacao-lembretes"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Lembretes
+          </button>
+          <button
+            class="aba"
             id="btn-visualizacao-autosync"
             type="button"
             role="tab"
@@ -311,6 +320,19 @@
         <div id="mount-contatos"></div>
       </div>
 
+      <div class="card" id="visualizacao-lembretes" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Lembretes</h2>
+            <p class="texto-auxiliar">
+              Avisos no painel de notificações, com som e, se quiser, por e-mail.
+            </p>
+          </div>
+        </div>
+        <!-- A lista é montada pelo app.js. -->
+        <div id="mount-lembretes"></div>
+      </div>
+
       <div class="card" id="visualizacao-autosync" hidden>
         <div class="detalhe-cabecalho">
           <div class="detalhe-titulo-com-subtitulo">
@@ -349,9 +371,8 @@
           ✕
         </button>
       </div>
-      <!-- Lembretes à esquerda; à direita, o que age sobre a lista abaixo. -->
+      <!-- O que age sobre a lista abaixo. -->
       <div class="painel-notificacoes-barra">
-        <button class="btn tiny" id="btn-abrir-lembretes" type="button">Lembretes</button>
         <div class="painel-notificacoes-acoes">
           <button class="btn tiny ghost" id="btn-marcar-notificacoes-lidas" type="button">
             Marcar todas como lidas
@@ -741,18 +762,6 @@
       </form>
     </dialog>
 
-    <dialog class="modal largo" id="modal-lista-lembretes">
-      <div class="modal-cabecalho">
-        <h2>Lembretes</h2>
-        <p>Avisos no painel de notificações, com som e, se quiser, por e-mail.</p>
-      </div>
-      <!-- A lista é montada pelo app.js. -->
-      <div class="modal-corpo" id="mount-lembretes"></div>
-      <div class="modal-rodape">
-        <button class="btn ghost" type="button" id="btn-fechar-lista-lembretes">Fechar</button>
-      </div>
-    </dialog>
-
     <dialog class="modal" id="modal-lembrete">
       <form method="dialog" id="formulario-lembrete" novalidate>
         <div class="modal-cabecalho">
@@ -856,6 +865,8 @@
           <label class="campo-checkbox">
             <input type="checkbox" id="campo-email-lembrete" /> Enviar também por e-mail
           </label>
+          <!-- Texto e link montados pelo app.js quando o SMTP não está configurado. -->
+          <p class="aviso-configuracao" id="aviso-smtp-lembrete" hidden></p>
 
           <div class="campo" id="grupo-contatos-lembrete" hidden>
             <label>
@@ -1574,10 +1585,10 @@
                 >
               </label>
               <select id="campo-perfil">
-                <option value="desenvolvedor">Desenvolvedor</option>
                 <option value="consultor">Consultor</option>
                 <option value="analista">Analista</option>
-                <option value="gerente-de-projeto">Gerente de projeto</option>
+                <option value="gerente-de-projeto">Gerente de Projetos</option>
+                <option value="desenvolvedor">Desenvolvedor</option>
               </select>
             </div>
 
@@ -1605,7 +1616,7 @@
                 <input type="checkbox" data-funcionalidade="os" /> OS
               </label>
               <label class="campo-checkbox">
-                <input type="checkbox" data-funcionalidade="lembretes" /> Lembretes (no sino)
+                <input type="checkbox" data-funcionalidade="lembretes" /> Lembretes
               </label>
               <label class="campo-checkbox">
                 <input type="checkbox" data-funcionalidade="contatos" /> Contatos

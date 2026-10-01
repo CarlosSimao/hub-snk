@@ -9,6 +9,55 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- **Link para a configuração que falta**: quando a Agenda, a OS ou o Resumo não carregam
+  por falta de configuração — código de usuário do SankhyaOm, login do Sankhya ERP ou
+  sessão da Experience —, a mensagem ganha o link **Abrir configuração**. O mesmo vale
+  para a IDE não configurada (ou com caminho errado), o menu de atalhos vazio, o lembrete
+  com e-mail marcado e SMTP incompleto e o e-mail não enviado no sino. Antes de abrir, o
+  botão do topo onde a configuração fica — o cadeado de Credenciais Sankhya ou a
+  engrenagem de Configurações — pisca, para você achá-lo da próxima vez; o modal abre já
+  na aba e no campo certos. O **Abrir Configurações › Git** do AutoSync também pisca.
+- **Carregamento da Agenda e da OS mais visível**: enquanto a consulta ao Sankhya roda,
+  um indicador grande com **Atualizando da Sankhya…** cobre o calendário ou a lista de
+  OS, no topo e no cadastro do cliente, e o conteúdo fica bloqueado até ela terminar. O
+  cabeçalho da aba e a navegação entre abas continuam livres.
+
+### Alterado
+
+- **Lembretes ganham aba própria**, no menu principal, entre **Contatos** e **Git**: a
+  lista dos lembretes cadastrados, com **Novo lembrete**, editar e excluir, sai do botão
+  **Lembretes** do sino e passa a ficar nela. As notificações dos lembretes continuam
+  chegando no sino. Em **Configurações › Acessos**, a caixa **Lembretes** controla a aba
+  e a seção do Resumo.
+- **Cliente do contato criado pelo lembrete**: o **Adicionar contato** dos contatos em
+  cópia do lembrete passa a mostrar o campo **Cliente**. Em lembrete de um cliente, ele
+  oferece **Sem cliente** ou esse cliente, que já vem marcado; em lembrete sem cliente,
+  qualquer cliente. Contato de outro cliente continua sem poder entrar em cópia de
+  lembrete de um cliente. No cadastro de contato, a opção **Nenhum** passa a se chamar
+  **Sem cliente**, como no filtro da aba Contatos.
+- **Página de perfil do instalador igual à aba Acessos**: o perfil vem numa lista, sem a
+  descrição na frente de cada um, e logo abaixo ficam a caixa **Terceiro** e uma caixa
+  por funcionalidade, do menu principal e do cadastro do cliente. Trocar o perfil marca o
+  preset dele, e as caixas podem ser ajustadas antes de seguir; o que for desmarcado já
+  nasce oculto no HUB SNK. Reinstalar abre a página com as escolhas da instalação
+  anterior, e, como antes, nunca desfaz o que você ajustou depois em **Configurações ›
+  Acessos**.
+- Os perfis aparecem na ordem **Consultor**, **Analista**, **Gerente de Projetos** e
+  **Desenvolvedor**, no instalador e na aba Acessos. O instalador novo começa em
+  Consultor. O perfil **Gerente de projeto** passa a se chamar **Gerente de Projetos**.
+
+### Corrigido
+
+- No cadastro do cliente, clicar várias vezes em **Adicionar nome completo** empilhava
+  campos em branco: agora o botão leva ao campo em branco que já existe e para no limite
+  de 20 nomes ([#86](https://github.com/CarlosSimao/hub-snk/issues/86)).
+- A aba **OS** do cliente só achava a OS quando o nome da empresa na Experience era igual
+  ao do cadastro, enquanto a aba **Agenda** aceitava um nome que começa com o outro: um
+  cliente "Konica" via na Agenda os eventos da "KONICA MINOLTA BUSINESS SOLUTIONS DO
+  BRASIL LTDA", mas não as OS dela. As duas abas passam a usar o mesmo critério.
+
 ## [2.2.1] - 2026-10-01
 
 ### Corrigido

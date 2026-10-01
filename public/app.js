@@ -426,13 +426,12 @@ const elementos = {
   visualizacaoLocal: document.getElementById('visualizacao-local'),
   visualizacaoAgenda: document.getElementById('visualizacao-agenda'),
   visualizacaoOs: document.getElementById('visualizacao-os'),
-  botaoAbrirLembretes: document.getElementById('btn-abrir-lembretes'),
-  modalListaLembretes: document.getElementById('modal-lista-lembretes'),
-  botaoFecharListaLembretes: document.getElementById('btn-fechar-lista-lembretes'),
   mountLembretes: document.getElementById('mount-lembretes'),
   botaoVisualizacaoContatos: document.getElementById('btn-visualizacao-contatos'),
   visualizacaoContatos: document.getElementById('visualizacao-contatos'),
   mountContatos: document.getElementById('mount-contatos'),
+  botaoVisualizacaoLembretes: document.getElementById('btn-visualizacao-lembretes'),
+  visualizacaoLembretes: document.getElementById('visualizacao-lembretes'),
   botaoVisualizacaoAutosync: document.getElementById('btn-visualizacao-autosync'),
   visualizacaoAutosync: document.getElementById('visualizacao-autosync'),
   mountAutosync: document.getElementById('mount-autosync'),
@@ -530,6 +529,7 @@ const elementos = {
   campoClienteLembrete: document.getElementById('campo-cliente-lembrete'),
   campoProjetoLembrete: document.getElementById('campo-projeto-lembrete'),
   campoEmailLembrete: document.getElementById('campo-email-lembrete'),
+  avisoSmtpLembrete: document.getElementById('aviso-smtp-lembrete'),
   campoAtivoLembrete: document.getElementById('campo-ativo-lembrete'),
   grupoContatosLembrete: document.getElementById('grupo-contatos-lembrete'),
   listaContatosLembrete: document.getElementById('lista-contatos-lembrete'),
@@ -844,6 +844,8 @@ async function requisitar(caminho, opcoes = {}) {
     erro.shellIndisponivel = Boolean(conteudo?.shellIndisponivel);
     // O Git AutoSync manda junto o que fazer quando o commit ou o push falha.
     erro.sugestoes = Array.isArray(conteudo?.sugestoes) ? conteudo.sugestoes : [];
+    // Chave de DESTINOS_DE_CONFIGURACAO_PENDENTE: o erro ganha o link para a configuração.
+    erro.configuracaoPendente = conteudo?.configuracaoPendente ?? null;
     throw erro;
   }
 
@@ -1229,8 +1231,12 @@ function trazerAvisosParaFrente() {
   elementos.avisos.showPopover();
 }
 
-function exibirAviso(mensagem, tipo = 'sucesso') {
+/** `acao`, quando vem, entra depois da mensagem — ex.: o link para a configuração que falta. */
+function exibirAviso(mensagem, tipo = 'sucesso', acao = null) {
   const aviso = criarElemento('div', `aviso ${tipo}`, mensagem);
+  if (acao) {
+    aviso.append(' ', acao);
+  }
   elementos.avisos.append(aviso);
   trazerAvisosParaFrente();
   setTimeout(() => {
@@ -1608,7 +1614,7 @@ async function executarAcaoDoSistema(acao, botao) {
   try {
     await acao();
   } catch (erro) {
-    exibirAviso(erro.message, 'erro');
+    exibirAviso(erro.message, 'erro', criarLinkDaConfiguracaoDoErro(erro));
   } finally {
     botao.disabled = false;
   }
@@ -2187,10 +2193,12 @@ function criarSecaoDeAgenda(cliente) {
 async function refrescarAgendaDoClienteEmSegundoPlano(widget) {
   const { de, ate } = limitesDoMesCliente(widget.mes);
   try {
-    await api.consultarAgenda(de, ate);
-    await widget.carregar();
+    await comCarregamentoNaArea(widget.elemento, async () => {
+      await api.consultarAgenda(de, ate);
+      await widget.carregar();
+    });
   } catch (erro) {
-    exibirErro(widget.elementoErro, erro.message);
+    exibirErroComConfiguracao(widget.elementoErro, erro);
   }
 }
 
@@ -3246,6 +3254,57 @@ function criarBotaoDeVinculoDeCliente(evento) {
  * troca de mês só recarrega local — é o que a aba do cliente quer; a aba do
  * topo passa isso pra disparar a consulta ao vivo na Sankhya).
  */
+/* ------------------------ carregamento da consulta ----------------------- */
+
+/* Camada de cada área coberta e quantas consultas ainda a seguram. */
+const carregamentosEmAndamento = new WeakMap();
+
+function criarCamadaDeCarregamento() {
+  const camada = criarElemento('div', 'camada-carregando');
+  camada.append(
+    criarElemento('span', 'indicador-carregando'),
+    criarElemento('strong', null, 'Atualizando da Sankhya…'),
+  );
+  return camada;
+}
+
+function cobrirAreaComCarregamento(area) {
+  const emAndamento = carregamentosEmAndamento.get(area) ?? { quantidade: 0, camada: null };
+  if (emAndamento.quantidade === 0) {
+    emAndamento.camada = criarCamadaDeCarregamento();
+    area.append(emAndamento.camada);
+    area.inert = true;
+    area.setAttribute('aria-busy', 'true');
+  }
+  emAndamento.quantidade += 1;
+  carregamentosEmAndamento.set(area, emAndamento);
+}
+
+function descobrirArea(area) {
+  const emAndamento = carregamentosEmAndamento.get(area);
+  emAndamento.quantidade -= 1;
+  if (emAndamento.quantidade > 0) {
+    return;
+  }
+  emAndamento.camada.remove();
+  area.inert = false;
+  area.removeAttribute('aria-busy');
+}
+
+/**
+ * Cobre `area` enquanto a consulta ao Sankhya roda: indicador grande por cima e o
+ * conteúdo inerte, para ninguém clicar num dia nem trocar o mês com dados prestes a
+ * mudar. Consultas sobrepostas na mesma área dividem a camada até a última terminar.
+ */
+async function comCarregamentoNaArea(area, tarefa) {
+  cobrirAreaComCarregamento(area);
+  try {
+    return await tarefa();
+  } finally {
+    descobrirArea(area);
+  }
+}
+
 function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualIso() }) {
   const estadoWidget = {
     mes: mesInicial,
@@ -3461,13 +3520,15 @@ async function atualizarAgendaGeral() {
 
   const { de, ate } = limitesDoMesCliente(widgetAgendaGeral.mes);
   try {
-    await api.consultarAgenda(de, ate);
-    await widgetAgendaGeral.carregar();
+    await comCarregamentoNaArea(widgetAgendaGeral.elemento, async () => {
+      await api.consultarAgenda(de, ate);
+      await widgetAgendaGeral.carregar();
+    });
   } catch (erro) {
     if (erro.shellIndisponivel) {
       elementos.avisoShellAgenda.hidden = false;
     }
-    exibirErro(widgetAgendaGeral.elementoErro, erro.message);
+    exibirErroComConfiguracao(widgetAgendaGeral.elementoErro, erro);
     widgetAgendaGeral.elementoStatus.textContent = statusAntes ?? '';
   } finally {
     elementos.botaoAtualizarAgenda.disabled = false;
@@ -3699,7 +3760,8 @@ function criarWidgetDeOs({ buscarOs, aoErro, mesInicial = mesAtualIso() }) {
 
     const { de, ate } = limitesDoMesCliente(estadoWidget.mes);
     try {
-      estadoWidget.itens = ordenarOsDaMaisRecente(await buscarOs(de, ate));
+      const itens = await comCarregamentoNaArea(elemento, () => buscarOs(de, ate));
+      estadoWidget.itens = ordenarOsDaMaisRecente(itens);
       descartarStatusAusentes();
       renderizarItens();
     } catch (erroDeCarga) {
@@ -3707,7 +3769,7 @@ function criarWidgetDeOs({ buscarOs, aoErro, mesInicial = mesAtualIso() }) {
       agrupadores.replaceChildren();
       lista.replaceChildren();
       status.textContent = '';
-      exibirErro(erro, erroDeCarga.message);
+      exibirErroComConfiguracao(erro, erroDeCarga);
       aoErro?.(erroDeCarga);
     }
   }
@@ -4006,7 +4068,12 @@ async function secaoOuErro(titulo, criarSecao) {
   try {
     return await criarSecao();
   } catch (erro) {
-    return criarSecaoDoResumo(titulo, [], `Não foi possível carregar: ${erro.message}`);
+    const secao = criarSecaoDoResumo(titulo, [], `Não foi possível carregar: ${erro.message}`);
+    const link = criarLinkDaConfiguracaoDoErro(erro);
+    if (link) {
+      secao.querySelector('.secao-vazia').append(' ', link);
+    }
+    return secao;
   }
 }
 
@@ -4117,6 +4184,11 @@ function alternarVisualizacao(visualizacao) {
       area: elementos.visualizacaoContatos,
     },
     {
+      chave: 'lembretes',
+      botao: elementos.botaoVisualizacaoLembretes,
+      area: elementos.visualizacaoLembretes,
+    },
+    {
       chave: 'autosync',
       botao: elementos.botaoVisualizacaoAutosync,
       area: elementos.visualizacaoAutosync,
@@ -4145,6 +4217,9 @@ function alternarVisualizacao(visualizacao) {
   }
   if (visualizacao === 'contatos') {
     void recarregarContatos();
+  }
+  if (visualizacao === 'lembretes') {
+    void recarregarLembretes();
   }
   if (visualizacao === 'autosync') {
     void abrirVisualizacaoDoAutosync();
@@ -5930,9 +6005,11 @@ function renderizarListaDeAtalhos() {
   buscaDeAtalhos = null;
 
   if (estado.atalhos.length === 0) {
-    elementos.listaDeAtalhos.append(
-      criarElemento('p', 'lista-atalhos-vazia', 'Cadastre em Configurações › Atalhos.'),
-    );
+    const vazia = criarElemento('p', 'lista-atalhos-vazia', 'Cadastre em Configurações › Atalhos.');
+    const link = criarLinkDeConfiguracaoPendente('atalhos');
+    link.addEventListener('click', fecharListaDeAtalhos);
+    vazia.append(' ', link);
+    elementos.listaDeAtalhos.append(vazia);
     return;
   }
 
@@ -6051,6 +6128,147 @@ async function abrirModalDeConfiguracao() {
   elementos.grupoSankhyaSchema.open = false;
   elementos.modalConfiguracao.showModal();
   elementos.campoScriptPadrao.focus();
+}
+
+/* ------------------------ configuração inicial pendente ------------------- */
+
+/* Quanto o botão do topo pisca antes de a configuração abrir. */
+const DURACAO_DO_DESTAQUE_DA_CONFIGURACAO_MS = 450;
+
+/* `abrirModalDeConfiguracao` desiste sem abrir quando não consegue ler a configuração. */
+async function abrirConfiguracaoNaAba(aba, campo) {
+  await abrirModalDeConfiguracao();
+  if (!elementos.modalConfiguracao.open) {
+    return;
+  }
+  selecionarAbaDaConfiguracao(aba);
+  campo.focus();
+}
+
+function abrirCredenciaisSankhyaNoCampo(campo) {
+  abrirModalDeCredenciaisSankhya();
+  campo?.focus();
+}
+
+function cartaoDeCredencialSankhya(sistema) {
+  return cartoesDeCredenciaisSankhya().find((cartao) => cartao.sistema === sistema);
+}
+
+/**
+ * Para onde leva cada configuração que falta: o botão do topo que a abre e o campo que
+ * recebe o foco. As chaves `codusu`, `login-erp`, `sessao-experience` e `ide` são as do
+ * `configuracaoPendente` que o backend manda junto do erro.
+ */
+const DESTINOS_DE_CONFIGURACAO_PENDENTE = {
+  codusu: {
+    botao: () => elementos.botaoCredenciaisSankhya,
+    abrir: () => abrirCredenciaisSankhyaNoCampo(elementos.campoConfigSankhyaOmCodUsu),
+  },
+  'login-erp': {
+    botao: () => elementos.botaoCredenciaisSankhya,
+    abrir: () =>
+      abrirCredenciaisSankhyaNoCampo(cartaoDeCredencialSankhya('sankhya-erp')?.campoUsuario),
+  },
+  'sessao-experience': {
+    botao: () => elementos.botaoCredenciaisSankhya,
+    abrir: () =>
+      abrirCredenciaisSankhyaNoCampo(
+        cartaoDeCredencialSankhya('sankhya-experience')?.botaoCapturarSessao,
+      ),
+  },
+  ide: {
+    botao: () => elementos.botaoConfiguracao,
+    abrir: () =>
+      abrirConfiguracaoNaAba(elementos.abaConfiguracaoGeral, elementos.campoCaminhoExecutavelDaIde),
+  },
+  atalhos: {
+    botao: () => elementos.botaoConfiguracao,
+    abrir: () =>
+      abrirConfiguracaoNaAba(elementos.abaConfiguracaoAtalhos, elementos.botaoAdicionarAtalho),
+  },
+  smtp: {
+    botao: () => elementos.botaoConfiguracao,
+    abrir: () => abrirConfiguracaoNaAba(elementos.abaConfiguracaoSmtp, elementos.campoSmtpHost),
+  },
+  gitlab: {
+    botao: () => elementos.botaoConfiguracao,
+    abrir: () => abrirConfiguracaoNaAba(elementos.abaConfiguracaoGit, elementos.campoGitlabHost),
+  },
+};
+
+function destacarBotaoDoTopo(botao) {
+  botao.classList.add('destaque-configuracao');
+  return new Promise((resolver) => {
+    setTimeout(() => {
+      botao.classList.remove('destaque-configuracao');
+      resolver();
+    }, DURACAO_DO_DESTAQUE_DA_CONFIGURACAO_MS);
+  });
+}
+
+/** O botão do topo pisca antes de abrir: é onde a pessoa acha a configuração da próxima vez. */
+async function abrirConfiguracaoPendente(chave) {
+  const destino = DESTINOS_DE_CONFIGURACAO_PENDENTE[chave];
+  const botao = destino.botao();
+  // Segundo clique durante a piscada não enfileira outra abertura.
+  if (botao.classList.contains('destaque-configuracao')) {
+    return;
+  }
+  await destacarBotaoDoTopo(botao);
+  await destino.abrir();
+}
+
+function criarLinkDeConfiguracaoPendente(chave) {
+  const link = criarElemento('button', 'link-configuracao', 'Abrir configuração');
+  link.type = 'button';
+  link.addEventListener('click', () => void abrirConfiguracaoPendente(chave));
+  return link;
+}
+
+/** `null` quando o erro não é de configuração que falta. */
+function criarLinkDaConfiguracaoDoErro(erro) {
+  if (!Object.hasOwn(DESTINOS_DE_CONFIGURACAO_PENDENTE, erro.configuracaoPendente ?? '')) {
+    return null;
+  }
+  return criarLinkDeConfiguracaoPendente(erro.configuracaoPendente);
+}
+
+function exibirErroComConfiguracao(elementoDeErro, erro) {
+  exibirErro(elementoDeErro, erro.message);
+  const link = criarLinkDaConfiguracaoDoErro(erro);
+  if (link) {
+    elementoDeErro.append(' ', link);
+  }
+}
+
+/* Mesma regra do `smtpConfigurado` do backend (src/notificacoes/enviadorDeEmail.ts). */
+function smtpConfigurado(smtp) {
+  return Boolean(smtp?.host && smtp.remetente && smtp.destinatario);
+}
+
+/* Lembrete com e-mail e sem SMTP seria gravado sem nunca chegar a ninguém. */
+async function avisarSmtpPendenteDoLembrete(enviaEmail) {
+  const aviso = elementos.avisoSmtpLembrete;
+  aviso.hidden = true;
+  if (!enviaEmail) {
+    return;
+  }
+
+  try {
+    const configuracao = await api.lerConfiguracao();
+    if (smtpConfigurado(configuracao.smtp)) {
+      return;
+    }
+    aviso.replaceChildren(
+      'Configure o SMTP (host, remetente e destinatário) para o e-mail sair.',
+      ' ',
+      criarLinkDeConfiguracaoPendente('smtp'),
+    );
+  } catch (erro) {
+    aviso.replaceChildren(`Não foi possível conferir o SMTP: ${erro.message}`);
+  }
+  // A caixa pode ter sido desmarcada enquanto a configuração era lida.
+  aviso.hidden = !elementos.campoEmailLembrete.checked;
 }
 
 /*
@@ -6309,7 +6527,7 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false 
   elementos.botaoVisualizacaoLocal.hidden = !funcionalidadeVisivel('local');
   elementos.botaoVisualizacaoAgenda.hidden = !funcionalidadeVisivel('agenda');
   elementos.botaoVisualizacaoOs.hidden = !funcionalidadeVisivel('os');
-  elementos.botaoAbrirLembretes.hidden = !funcionalidadeVisivel('lembretes');
+  elementos.botaoVisualizacaoLembretes.hidden = !funcionalidadeVisivel('lembretes');
   elementos.botaoVisualizacaoContatos.hidden = !funcionalidadeVisivel('contatos');
   elementos.botaoVisualizacaoAutosync.hidden = !funcionalidadeVisivel('autosync');
 
@@ -8483,13 +8701,13 @@ function criarConteudoDaNotificacao(notificacao) {
     conteudo.append(criarElemento('p', 'notificacao-mensagem', mensagem));
   }
   if (notificacao.erroDoEmail) {
-    conteudo.append(
-      criarElemento(
-        'p',
-        'notificacao-erro-email',
-        `O e-mail não foi enviado: ${notificacao.erroDoEmail}`,
-      ),
+    const erroDoEmail = criarElemento(
+      'p',
+      'notificacao-erro-email',
+      `O e-mail não foi enviado: ${notificacao.erroDoEmail}`,
     );
+    erroDoEmail.append(' ', criarLinkDeConfiguracaoPendente('smtp'));
+    conteudo.append(erroDoEmail);
   }
   return conteudo;
 }
@@ -8584,7 +8802,7 @@ function receberNotificacao(notificacao) {
   tocarSomDeNotificacao();
 
   // O disparo muda o "próximo" do lembrete: a lista aberta não pode ficar desatualizada.
-  if (notificacao.origem === 'lembrete' && elementos.modalListaLembretes.open) {
+  if (notificacao.origem === 'lembrete' && estado.visualizacao === 'lembretes') {
     void recarregarLembretes();
   }
   // Lembrete disparado ou evento sem OS: o Resumo aberto mostra na hora.
@@ -8844,13 +9062,6 @@ async function recarregarLembretes() {
   }
 }
 
-/* O painel fecha antes: aberto, ficaria por baixo da janela e fecharia no primeiro clique nela. */
-function abrirJanelaDeLembretes() {
-  definirPainelDeNotificacoes(false);
-  elementos.modalListaLembretes.showModal();
-  void recarregarLembretes();
-}
-
 function criarOpcao(valor, texto) {
   const opcao = criarElemento('option', null, texto);
   opcao.value = valor;
@@ -9019,10 +9230,6 @@ function pedirExclusaoDeLembrete(lembrete) {
 }
 
 function registrarEventosDoLembrete() {
-  elementos.botaoAbrirLembretes.addEventListener('click', abrirJanelaDeLembretes);
-  elementos.botaoFecharListaLembretes.addEventListener('click', () =>
-    elementos.modalListaLembretes.close(),
-  );
   elementos.formularioLembrete.addEventListener('submit', salvarLembrete);
   elementos.botaoCancelarLembrete.addEventListener('click', () => elementos.modalLembrete.close());
   for (const opcao of elementos.opcoesTipoLembrete) {
@@ -9078,6 +9285,7 @@ function contatosDisponiveisParaOLembrete() {
 function aplicarEnvioPorEmailDoLembrete() {
   const enviaEmail = elementos.campoEmailLembrete.checked;
   elementos.grupoContatosLembrete.hidden = !enviaEmail;
+  void avisarSmtpPendenteDoLembrete(enviaEmail);
   if (!enviaEmail) {
     estado.contatosDoLembrete = [];
   }
@@ -9316,10 +9524,11 @@ function criarSecaoDeContatosDoCliente(cliente) {
   });
 }
 
-function preencherClientesDoContato(clienteId) {
-  const clientes = [...estado.clientes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+/** `clientesPermitidos`: os que o campo oferece além de "Sem cliente"; padrão, todos. */
+function preencherClientesDoContato(clienteId, clientesPermitidos = estado.clientes) {
+  const clientes = [...clientesPermitidos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   elementos.campoClienteContato.replaceChildren(
-    criarOpcao(SEM_CLIENTE, 'Nenhum'),
+    criarOpcao(SEM_CLIENTE, 'Sem cliente'),
     ...clientes.map((cliente) => criarOpcao(cliente.id, cliente.nome)),
   );
   elementos.campoClienteContato.value = clientes.some((cliente) => cliente.id === clienteId)
@@ -9329,8 +9538,9 @@ function preencherClientesDoContato(clienteId) {
 
 /**
  * `clienteFixo`: aberto pela aba do cliente, o campo Cliente some e vale esse cliente.
- * `paraOLembrete`: aberto pelo modal do lembrete, o campo some e vale o cliente do
- * lembrete — sem cliente nele, o contato também fica sem. E o e-mail passa a ser exigido.
+ * `paraOLembrete`: aberto pelo modal do lembrete, o e-mail passa a ser exigido e o campo
+ * segue a regra da cópia do lembrete (`contatoPodeIrNoLembrete`): lembrete do cliente Y
+ * oferece só "Sem cliente" e Y, já marcado; lembrete sem cliente oferece todos.
  */
 function abrirModalDeContato(contato, clienteFixo, { paraOLembrete = false } = {}) {
   const clienteDoLembrete = paraOLembrete
@@ -9338,7 +9548,7 @@ function abrirModalDeContato(contato, clienteFixo, { paraOLembrete = false } = {
       null)
     : null;
   estado.contatoEmEdicao = contato;
-  estado.clienteFixoDoContato = clienteFixo ?? clienteDoLembrete;
+  estado.clienteFixoDoContato = clienteFixo;
   estado.contatoParaOLembrete = paraOLembrete;
   limparErro(elementos.erroContato);
   elementos.tituloModalContato.textContent = contato ? 'Editar contato' : 'Novo contato';
@@ -9347,8 +9557,11 @@ function abrirModalDeContato(contato, clienteFixo, { paraOLembrete = false } = {
   elementos.campoTelefoneContato.value = contato?.telefone ?? '';
   elementos.campoEmailContato.value = contato?.email ?? '';
   elementos.opcionalEmailContato.hidden = paraOLembrete;
-  elementos.grupoClienteContato.hidden = clienteFixo !== null || paraOLembrete;
-  preencherClientesDoContato(estado.clienteFixoDoContato?.id ?? contato?.clienteId ?? null);
+  elementos.grupoClienteContato.hidden = clienteFixo !== null;
+  preencherClientesDoContato(
+    clienteFixo?.id ?? clienteDoLembrete?.id ?? contato?.clienteId ?? null,
+    clienteDoLembrete ? [clienteDoLembrete] : estado.clientes,
+  );
 
   elementos.modalContato.showModal();
   elementos.campoNomeContato.focus();
@@ -9684,7 +9897,7 @@ async function executarItemDaBuscaRapida(item, { abrirCliente = false } = {}) {
     }
     await ACOES_PRINCIPAIS_DA_BUSCA[item.tipo](item.dados);
   } catch (erro) {
-    exibirAviso(erro.message, 'erro');
+    exibirAviso(erro.message, 'erro', criarLinkDaConfiguracaoDoErro(erro));
   }
 }
 
@@ -10247,12 +10460,6 @@ async function abrirTerminalDoAutosync(caminho, botao) {
   }
 }
 
-async function abrirConfiguracoesDoGitlab() {
-  await abrirModalDeConfiguracao();
-  selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGit);
-  elementos.campoGitlabHost.focus();
-}
-
 function criarComandoDeCorrecao(comando) {
   const linha = criarElemento('div', 'comando-de-correcao');
   linha.append(
@@ -10296,7 +10503,9 @@ function criarBlocoDeCorrecaoDoAutosync(caminho, { mensagem, sugestoes }) {
 
     if (sugestao.acao === 'configurar-gitlab') {
       acoesExtras.push(
-        criarBotao('btn tiny', 'Abrir Configurações › Git', abrirConfiguracoesDoGitlab),
+        criarBotao('btn tiny', 'Abrir Configurações › Git', () =>
+          abrirConfiguracaoPendente('gitlab'),
+        ),
       );
     }
     if (sugestao.acao === 'politica') {
@@ -11319,6 +11528,9 @@ function registrarEventos() {
   elementos.botaoVisualizacaoOs.addEventListener('click', () => alternarVisualizacao('os'));
   elementos.botaoVisualizacaoContatos.addEventListener('click', () =>
     alternarVisualizacao('contatos'),
+  );
+  elementos.botaoVisualizacaoLembretes.addEventListener('click', () =>
+    alternarVisualizacao('lembretes'),
   );
   registrarEventosDasNotificacoes();
   registrarEventosDoAutosync();

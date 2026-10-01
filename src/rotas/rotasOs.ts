@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
-import { chaveNome } from '../sankhya/agenda.ts';
+import { chaveNome, nomesCorrespondem } from '../sankhya/agenda.ts';
 import { SessaoExpiradaError, type Experience } from '../sankhya/experience.ts';
 import { responderErroDoShell } from './respostasDoShell.ts';
 
@@ -41,6 +41,7 @@ export function registrarRotasDeOs(
       return resposta.status(400).send({
         mensagem: 'Capture a sessão do Sankhya Experience em Credenciais Sankhya.',
         codigoDeUsuarioAusente: true,
+        configuracaoPendente: 'sessao-experience',
       });
     }
 
@@ -49,7 +50,11 @@ export function registrarRotasDeOs(
       return { itens, buscadoEm: new Date().toISOString() };
     } catch (erro) {
       if (erro instanceof SessaoExpiradaError) {
-        return resposta.status(409).send({ mensagem: erro.message, sessaoExpirada: true });
+        return resposta.status(409).send({
+          mensagem: erro.message,
+          sessaoExpirada: true,
+          configuracaoPendente: 'sessao-experience',
+        });
       }
       return responderErroDoShell(resposta, erro);
     }
@@ -85,10 +90,12 @@ export function registrarRotasDeOs(
       }
 
       const nomes = cliente.nomesCompletos.length ? cliente.nomesCompletos : [cliente.nome];
-      const chavesDoCliente = new Set(nomes.map(chaveNome));
-      const itensFiltrados = resultado.itens.filter((item) =>
-        chavesDoCliente.has(chaveNome(item.empresa)),
-      );
+      // Mesmo critério da aba Agenda do cliente (`codparcsPorNomes`).
+      const chavesDoCliente = nomes.map(chaveNome);
+      const itensFiltrados = resultado.itens.filter((item) => {
+        const chaveDaEmpresa = chaveNome(item.empresa);
+        return chavesDoCliente.some((chave) => nomesCorrespondem(chave, chaveDaEmpresa));
+      });
       return { ...resultado, itens: itensFiltrados };
     },
   );

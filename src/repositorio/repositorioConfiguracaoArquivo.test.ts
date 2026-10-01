@@ -241,6 +241,84 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     ]);
   });
 
+  it('aplica as caixas desmarcadas no instalador no lugar do preset do perfil', async () => {
+    const consultorAjustado = new RepositorioConfiguracaoArquivo(diretorio, {
+      perfil: 'consultor',
+      terceiro: false,
+      autosyncInstalado: true,
+      funcionalidadesOcultas: ['os', 'cliente.projetos'],
+    });
+
+    const configuracao = await consultorAjustado.ler();
+
+    assert.equal(configuracao.perfil, 'consultor');
+    assert.deepEqual(configuracao.funcionalidadesOcultas, ['os', 'cliente.projetos']);
+  });
+
+  it('lista vazia do instalador deixa tudo visível, mesmo com preset', async () => {
+    const gerenteComTudo = new RepositorioConfiguracaoArquivo(diretorio, {
+      perfil: 'gerente-de-projeto',
+      terceiro: false,
+      autosyncInstalado: true,
+      funcionalidadesOcultas: [],
+    });
+
+    const configuracao = await gerenteComTudo.ler();
+
+    assert.deepEqual(configuracao.funcionalidadesOcultas, []);
+  });
+
+  it('descarta funcionalidade desconhecida vinda do instalador', async () => {
+    const comChaveAntiga = new RepositorioConfiguracaoArquivo(diretorio, {
+      perfil: 'consultor',
+      terceiro: false,
+      autosyncInstalado: true,
+      funcionalidadesOcultas: ['os', 'nao-existe-mais'],
+    });
+
+    const configuracao = await comChaveAntiga.ler();
+
+    assert.deepEqual(configuracao.funcionalidadesOcultas, ['os']);
+  });
+
+  it('sem o Git AutoSync, oculta a aba Git por cima das caixas do instalador', async () => {
+    const semAutosync = new RepositorioConfiguracaoArquivo(diretorio, {
+      perfil: 'desenvolvedor',
+      terceiro: false,
+      autosyncInstalado: false,
+      funcionalidadesOcultas: ['os'],
+    });
+
+    const configuracao = await semAutosync.ler();
+
+    assert.deepEqual(configuracao.funcionalidadesOcultas, ['os', 'autosync', 'cliente.autosync']);
+  });
+
+  it('com outro perfil gravado, ignora as caixas do instalador e usa o preset dele', async () => {
+    await writeFile(
+      caminhoDoArquivo(),
+      JSON.stringify({
+        versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+        configuracao: { perfil: 'analista' },
+      }),
+      'utf8',
+    );
+
+    const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, {
+      perfil: 'desenvolvedor',
+      terceiro: false,
+      autosyncInstalado: true,
+      funcionalidadesOcultas: ['os'],
+    }).ler();
+
+    assert.equal(configuracao.perfil, 'analista');
+    assert.deepEqual(configuracao.funcionalidadesOcultas, [
+      'cliente.repositorios',
+      'autosync',
+      'cliente.autosync',
+    ]);
+  });
+
   it('ignora o Git AutoSync do instalador quando o arquivo já tem acessos', async () => {
     await repositorio.salvar({
       ...CONFIGURACAO_SEM_ACESSOS,

@@ -48,6 +48,19 @@ export function chaveNome(nome: string): string {
     .replace(/[^A-Z0-9]/g, '');
 }
 
+/**
+ * Duas chaves de `chaveNome` são do mesmo parceiro quando uma começa com a outra: o
+ * cadastro costuma ter só o começo ("Konica") do nome do ERP ou da Experience ("KONICA
+ * MINOLTA BUSINESS SOLUTIONS DO BRASIL LTDA"). Chave vazia não casa com nada — sem a
+ * guarda, `startsWith('')` casaria com todos.
+ */
+export function nomesCorrespondem(chaveA: string, chaveB: string): boolean {
+  if (!chaveA || !chaveB) {
+    return false;
+  }
+  return chaveA.startsWith(chaveB) || chaveB.startsWith(chaveA);
+}
+
 export class AgendaRecursos {
   readonly #db: DatabaseSync;
 
@@ -357,10 +370,7 @@ export class AgendaRecursos {
     for (const parceiro of this.parceiros()) {
       if (parceiro.codparc === null) continue;
       const chave = chaveNome(parceiro.nomeparc);
-      const casa = alvos.some(
-        (alvo) => chave === alvo || chave.startsWith(alvo) || alvo.startsWith(chave),
-      );
-      if (casa) codparcs.add(parceiro.codparc);
+      if (alvos.some((alvo) => nomesCorrespondem(chave, alvo))) codparcs.add(parceiro.codparc);
     }
     return [...codparcs];
   }

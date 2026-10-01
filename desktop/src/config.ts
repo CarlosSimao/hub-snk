@@ -259,11 +259,16 @@ export const DIRETORIO_DE_DADOS =
  * vazio e o backend aplica o padrão. Quem valida o valor é o backend.
  */
 function escolhaDoInstalador(nomeDoArquivo: string): string {
-  if (!app.isPackaged || process.platform !== 'win32') return '';
+  return escolhaOpcionalDoInstalador(nomeDoArquivo) ?? '';
+}
+
+/** Como `escolhaDoInstalador`, mas sem o arquivo volta `undefined`: vazio também é escolha. */
+function escolhaOpcionalDoInstalador(nomeDoArquivo: string): string | undefined {
+  if (!app.isPackaged || process.platform !== 'win32') return undefined;
   try {
     return readFileSync(join(pastaDeEstadoDoInstalador(), nomeDoArquivo), 'utf8').trim();
   } catch {
-    return '';
+    return undefined;
   }
 }
 
@@ -273,6 +278,14 @@ export const PERFIL_INICIAL =
 /** Caixa Terceiro do instalador: `S` marcada, `N` ou vazio desmarcada. */
 export const TERCEIRO_INICIAL =
   process.env['HUB_TERCEIRO_INICIAL'] ?? escolhaDoInstalador('terceiro-inicial.txt');
+
+/**
+ * Caixas desmarcadas na página do perfil do instalador, separadas por vírgula. Vazio
+ * é "nenhuma oculta"; `undefined` (instalação anterior à página) deixa valer o preset.
+ */
+export const FUNCIONALIDADES_OCULTAS_INICIAIS =
+  process.env['HUB_FUNCIONALIDADES_OCULTAS_INICIAIS'] ??
+  escolhaOpcionalDoInstalador('funcionalidades-ocultas-inicial.txt');
 
 /** Caixa do Git AutoSync do instalador: `S` marcada, `N` desmarcada, vazio sem a página. */
 export const AUTOSYNC_INICIAL =

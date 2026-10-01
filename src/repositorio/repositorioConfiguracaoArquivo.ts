@@ -120,6 +120,8 @@ export interface AcessosIniciais {
   terceiro: boolean;
   /** Falso quando a caixa do Git AutoSync ficou desmarcada no instalador. */
   autosyncInstalado: boolean;
+  /** Caixas desmarcadas na página do perfil; ausente, vale o preset do perfil. */
+  funcionalidadesOcultas?: readonly unknown[];
 }
 
 const ACESSOS_INICIAIS_PADRAO: AcessosIniciais = {
@@ -131,14 +133,18 @@ const ACESSOS_INICIAIS_PADRAO: AcessosIniciais = {
 /** Sem o Git AutoSync instalado, a aba Git do menu e a seção do cliente não teriam o que mostrar. */
 const FUNCIONALIDADES_DO_AUTOSYNC: readonly Funcionalidade[] = ['autosync', 'cliente.autosync'];
 
-function presetInicial(perfil: PerfilProfissional, iniciais: AcessosIniciais): Funcionalidade[] {
-  const preset = FUNCIONALIDADES_OCULTAS_POR_PERFIL[perfil];
+/** As caixas do instalador só valem para o perfil escolhido junto com elas. */
+function presetInicial(perfil: PerfilProfissional, iniciais: AcessosIniciais): unknown[] {
+  const escolhidasNoInstalador =
+    perfil === iniciais.perfil ? iniciais.funcionalidadesOcultas : undefined;
+  const preset = escolhidasNoInstalador ?? FUNCIONALIDADES_OCULTAS_POR_PERFIL[perfil];
   return iniciais.autosyncInstalado ? [...preset] : [...preset, ...FUNCIONALIDADES_DO_AUTOSYNC];
 }
 
 /**
  * Arquivo sem os acessos — instalação nova ou anterior a eles — recebe o perfil
- * escolhido no instalador com o seu preset. Com o perfil gravado e sem a lista,
+ * escolhido no instalador com as caixas marcadas lá ou, sem elas, com o preset do
+ * perfil. Com o perfil gravado e sem a lista,
  * vale o preset desse perfil. Terceiro segue a mesma regra, campo a campo: uma
  * instalação atualizada, que já tem perfil mas ainda não tem o campo, recebe o
  * que foi marcado no instalador. O Git AutoSync desmarcado no instalador oculta, por

@@ -207,6 +207,49 @@ body {
   }
 }
 
+/*
+ * Botão do topo que leva à configuração que falta: pisca antes de ela abrir. Mesma
+ * exceção ao `prefers-reduced-motion` do indicador do Git: sem a piscada, o contorno
+ * parado some no meio dos outros botões e a pessoa não vê onde a configuração fica.
+ */
+.destaque-configuracao {
+  outline: 2px solid var(--marca);
+  outline-offset: 2px;
+  animation: piscar-destaque-configuracao 0.15s ease-in-out 3 !important;
+}
+
+@keyframes piscar-destaque-configuracao {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    background: color-mix(in srgb, var(--marca) 25%, transparent);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--marca) 45%, transparent);
+  }
+}
+
+/* Link "Abrir configuração" no meio de um texto de erro ou aviso. */
+.link-configuracao {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--marca);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.aviso-configuracao {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  border: 1px solid color-mix(in srgb, var(--aviso) 40%, transparent);
+  background: color-mix(in srgb, var(--aviso) 10%, transparent);
+}
+
 /* ------------------------------- botões -------------------------------- */
 
 .btn {
@@ -725,9 +768,52 @@ main {
 /* ------------------------------- agenda geral ------------------------------ */
 
 .secao-agenda-geral {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* Altura mínima para o indicador caber enquanto a área ainda está vazia. */
+.secao-agenda-geral[aria-busy='true'] {
+  min-height: 240px;
+}
+
+/* Cobre a Agenda ou a OS enquanto a consulta ao Sankhya roda (`comCarregamentoNaArea`). */
+.camada-carregando {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  border-radius: 10px;
+  font-size: 15px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+/*
+ * Mesma exceção ao `prefers-reduced-motion` do indicador do Git: com a animação zerada
+ * pela regra global, o anel parado não diz que a consulta ainda está rodando. A
+ * especificidade da classe vence o `*` da regra global.
+ */
+.indicador-carregando {
+  width: 56px;
+  height: 56px;
+  border: 5px solid color-mix(in srgb, var(--marca) 25%, transparent);
+  border-top-color: var(--marca);
+  border-radius: 50%;
+  animation: girar-indicador-carregando 0.9s linear infinite !important;
+}
+
+@keyframes girar-indicador-carregando {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .secao-agenda-geral .calendario-sankhya {
@@ -3072,7 +3158,7 @@ button.selo-situacao:focus-visible {
 .painel-notificacoes-barra {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
   padding: 8px 14px;
   border-bottom: 1px solid var(--border);

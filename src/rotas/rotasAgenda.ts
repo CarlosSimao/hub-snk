@@ -30,7 +30,11 @@ function responderErroDaConsulta(resposta: FastifyReply, erro: unknown): Fastify
     return resposta.status(400).send({ mensagem: erro.message });
   }
   if (erro instanceof SessaoExpiradaError) {
-    return resposta.status(409).send({ mensagem: erro.message, sessaoExpirada: true });
+    return resposta.status(409).send({
+      mensagem: erro.message,
+      sessaoExpirada: true,
+      configuracaoPendente: 'sessao-experience',
+    });
   }
   return responderErroDoShell(resposta, erro);
 }
@@ -82,12 +86,21 @@ export function registrarRotasDeAgenda(
         mensagem:
           'Informe o "Meu código de usuário SankhyaOm" em Credenciais Sankhya para consultar a agenda.',
         cadastroIncompleto: true,
+        configuracaoPendente: 'codusu',
       });
     }
 
     // A janela oculta reloga sozinha quando a sessão cai, então aqui não há mais o
     // relogin por texto de erro que existia no fluxo da aba visível.
     try {
+      // Sem o login salvo, a janela oculta não entra no ERP e o erro chegaria genérico.
+      if (!(await credenciais.status('sankhya-erp')).definido) {
+        return resposta.status(400).send({
+          mensagem:
+            'Salve o usuário e a senha do Sankhya ERP em Credenciais Sankhya para consultar a agenda.',
+          configuracaoPendente: 'login-erp',
+        });
+      }
       return await importarAgendaDoPeriodo({
         agenda,
         credenciais,

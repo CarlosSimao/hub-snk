@@ -112,6 +112,26 @@ function lerTerceiroInicial(): boolean {
   return process.env.HUB_TERCEIRO_INICIAL?.trim().toUpperCase() === TERCEIRO_MARCADO;
 }
 
+/** Separador da lista de funcionalidades ocultas gravada pelo instalador. */
+const SEPARADOR_DE_FUNCIONALIDADES = ',';
+
+/**
+ * Caixas desmarcadas no instalador, repassadas pelo shell. Sem a variável (instalação
+ * anterior à página, `npm run dev`) volta `undefined` e vale o preset do perfil; vazia
+ * é "nenhuma oculta". Quem descarta chave desconhecida é `RepositorioConfiguracaoArquivo`.
+ */
+function lerFuncionalidadesOcultasIniciais(): string[] | undefined {
+  const bruto = process.env.HUB_FUNCIONALIDADES_OCULTAS_INICIAIS;
+  if (bruto === undefined) {
+    return undefined;
+  }
+
+  return bruto
+    .split(SEPARADOR_DE_FUNCIONALIDADES)
+    .map((chave) => chave.trim())
+    .filter(Boolean);
+}
+
 /** Valor que o shell desktop grava quando a caixa do Git AutoSync do instalador vem desmarcada. */
 const AUTOSYNC_DESMARCADO = 'N';
 
@@ -154,6 +174,7 @@ export const configuracao = {
     perfil: lerPerfilInicial(),
     terceiro: lerTerceiroInicial(),
     autosyncInstalado: lerAutosyncInstaladoInicial(),
+    funcionalidadesOcultas: lerFuncionalidadesOcultasIniciais(),
   },
   pastaDoAutosync: lerPastaDoAutosync(),
   pacoteDoAutosync: lerPacoteDoAutosync(),

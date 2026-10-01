@@ -1,7 +1,7 @@
 ; Personalizacoes do instalador NSIS do HUB SNK desktop:
 ;
 ;  1. Remocao da instalacao PWA antiga, sempre (resources\instalador\remover-versao-pwa.ps1).
-;  2. Pagina do perfil profissional, sempre: define o preset de Configuracoes > Acessos.
+;  2. Pagina do perfil profissional, sempre: perfil e funcionalidades de Configuracoes > Acessos.
 ;  3. Pagina de componentes do Git AutoSync, quando o pacote foi montado com ele.
 ;
 ; Os binarios do Git AutoSync viajam SEMPRE dentro do pacote (resources\git-autosync).
@@ -264,36 +264,99 @@ FunctionEnd
 
 ; --- perfil profissional ------------------------------------------------------------
 ;
-; A escolha vai para %LOCALAPPDATA%\HubSnk\perfil-inicial.txt, ao lado do
-; pasta-de-dados.txt. O aplicativo (desktop/src/config.ts) repassa o valor ao backend,
-; que so' aplica o preset enquanto o configuracao.json ainda nao tem acessos: reinstalar
-; ou atualizar nunca desfaz o que o usuario ajustou na aba Acessos.
+; Mesmo desenho da aba Configuracoes > Acessos: o perfil numa lista, a caixa Terceiro e
+; uma caixa por funcionalidade. Trocar o perfil marca o preset dele; depois o usuario
+; ajusta as caixas como quiser.
 ;
-; A caixa Terceiro vai para terceiro-inicial.txt ("S" ou "N"), com a mesma regra: so'
-; vale enquanto o configuracao.json nao tem o campo `terceiro`.
+; A escolha vai para %LOCALAPPDATA%\HubSnk, ao lado do pasta-de-dados.txt:
+;   perfil-inicial.txt                  valor interno do perfil (ex.: gerente-de-projeto)
+;   terceiro-inicial.txt                "S" ou "N"
+;   funcionalidades-ocultas-inicial.txt as desmarcadas, separadas por virgula; vazio e'
+;                                       "nenhuma oculta", e nao "sem escolha"
+; O aplicativo (desktop/src/config.ts) repassa os valores ao backend, que so' os aplica
+; enquanto o configuracao.json ainda nao tem acessos: reinstalar ou atualizar nunca
+; desfaz o que o usuario ajustou na aba Acessos.
 ;
 ; LOCALAPPDATA vem do ambiente, e nao de $LOCALAPPDATA: numa instalacao para todos os
 ; usuarios o NSIS troca o contexto e $LOCALAPPDATA passaria a apontar para o ProgramData,
 ; que o aplicativo nao le.
 
+; Copia de FUNCIONALIDADES_OCULTAS_POR_PERFIL (src/acessos.ts): o NSIS nao le o TS.
+; Mudou la', muda aqui.
+!define OCULTAS_CONSULTOR "cliente.repositorios,autosync,cliente.autosync"
+!define OCULTAS_ANALISTA "cliente.repositorios,autosync,cliente.autosync"
+!define OCULTAS_GERENTE "cliente.repositorios,local,autosync,cliente.autosync"
+!define OCULTAS_DESENVOLVEDOR ""
+
+!define ARQUIVO_OCULTAS_INICIAIS "funcionalidades-ocultas-inicial.txt"
+
+; Posicao de cada perfil na lista da pagina, na ordem em que aparecem.
+!define INDICE_CONSULTOR 0
+!define INDICE_ANALISTA 1
+!define INDICE_GERENTE 2
+!define INDICE_DESENVOLVEDOR 3
+
 Var DialogoPerfil
-Var RadioDesenvolvedor
-Var RadioConsultor
-Var RadioAnalista
-Var RadioGerente
+Var ListaPerfil
 Var PerfilEscolhido
 Var CheckTerceiro
 ; "S" ou "N"; vazio enquanto a pagina nao foi mostrada (instalacao silenciosa).
 Var TerceiroEscolhido
+Var OcultasEscolhidas
+
+; Caixas do menu principal.
+Var CheckLocal
+Var CheckAgenda
+Var CheckOs
+Var CheckLembretes
+Var CheckContatos
+Var CheckGit
+; Caixas do cadastro do cliente.
+Var CheckClienteBases
+Var CheckClienteGit
+Var CheckClienteProjetos
+Var CheckClienteAgenda
+Var CheckClienteOs
+Var CheckClienteContatos
+Var CheckClienteAutosync
 
 Function PerfilArquivo
   ReadEnvStr $R9 LOCALAPPDATA
   StrCpy $R9 "$R9\HubSnk"
 FunctionEnd
 
-; Reinstalacao abre com o perfil da instalacao anterior marcado.
+; Entrada: $R0 = lista entre virgulas (",a,b,"), $R1 = chave entre virgulas (",a,").
+; Saida: $R2 = 1 quando a lista contem a chave, 0 quando nao.
+Function AcessosListaContem
+  StrLen $R3 $R1
+  StrLen $R4 $R0
+  StrCpy $R5 0
+  StrCpy $R2 0
+  ${DoWhile} $R5 < $R4
+    StrCpy $R6 $R0 $R3 $R5
+    ${If} $R6 == $R1
+      StrCpy $R2 1
+      ${Break}
+    ${EndIf}
+    IntOp $R5 $R5 + 1
+  ${Loop}
+FunctionEnd
+
+Function PerfilPresetDoEscolhido
+  ${If} $PerfilEscolhido == "consultor"
+    StrCpy $OcultasEscolhidas "${OCULTAS_CONSULTOR}"
+  ${ElseIf} $PerfilEscolhido == "analista"
+    StrCpy $OcultasEscolhidas "${OCULTAS_ANALISTA}"
+  ${ElseIf} $PerfilEscolhido == "gerente-de-projeto"
+    StrCpy $OcultasEscolhidas "${OCULTAS_GERENTE}"
+  ${Else}
+    StrCpy $OcultasEscolhidas "${OCULTAS_DESENVOLVEDOR}"
+  ${EndIf}
+FunctionEnd
+
+; Reinstalacao abre com o perfil, o Terceiro e as caixas da instalacao anterior.
 Function PerfilLerAnterior
-  StrCpy $PerfilEscolhido "desenvolvedor"
+  StrCpy $PerfilEscolhido "consultor"
   Call PerfilArquivo
   ${If} ${FileExists} "$R9\perfil-inicial.txt"
     FileOpen $R8 "$R9\perfil-inicial.txt" r
@@ -313,6 +376,95 @@ Function PerfilLerAnterior
       StrCpy $TerceiroEscolhido "S"
     ${EndIf}
   ${EndIf}
+
+  ; Instalacao anterior a esta pagina nao tem o arquivo: vale o preset do perfil.
+  Call PerfilPresetDoEscolhido
+  ${If} ${FileExists} "$R9\${ARQUIVO_OCULTAS_INICIAIS}"
+    StrCpy $R7 ""
+    FileOpen $R8 "$R9\${ARQUIVO_OCULTAS_INICIAIS}" r
+    FileRead $R8 $R7
+    FileClose $R8
+    StrCpy $OcultasEscolhidas $R7
+  ${EndIf}
+FunctionEnd
+
+!macro PerfilMarcarCaixa CONTROLE CHAVE
+  StrCpy $R1 ",${CHAVE},"
+  Call AcessosListaContem
+  ${If} $R2 == 1
+    ${NSD_Uncheck} ${CONTROLE}
+  ${Else}
+    ${NSD_Check} ${CONTROLE}
+  ${EndIf}
+!macroend
+
+; Caixa marcada e' funcionalidade visivel, como na aba Acessos.
+Function PerfilMarcarCaixas
+  StrCpy $R0 ",$OcultasEscolhidas,"
+  !insertmacro PerfilMarcarCaixa $CheckLocal "local"
+  !insertmacro PerfilMarcarCaixa $CheckAgenda "agenda"
+  !insertmacro PerfilMarcarCaixa $CheckOs "os"
+  !insertmacro PerfilMarcarCaixa $CheckLembretes "lembretes"
+  !insertmacro PerfilMarcarCaixa $CheckContatos "contatos"
+  !insertmacro PerfilMarcarCaixa $CheckGit "autosync"
+  !insertmacro PerfilMarcarCaixa $CheckClienteBases "cliente.bases"
+  !insertmacro PerfilMarcarCaixa $CheckClienteGit "cliente.repositorios"
+  !insertmacro PerfilMarcarCaixa $CheckClienteProjetos "cliente.projetos"
+  !insertmacro PerfilMarcarCaixa $CheckClienteAgenda "cliente.agenda"
+  !insertmacro PerfilMarcarCaixa $CheckClienteOs "cliente.os"
+  !insertmacro PerfilMarcarCaixa $CheckClienteContatos "cliente.contatos"
+  !insertmacro PerfilMarcarCaixa $CheckClienteAutosync "cliente.autosync"
+FunctionEnd
+
+Function PerfilLerDaLista
+  ${NSD_CB_GetSelectionIndex} $ListaPerfil $R0
+  ${If} $R0 == ${INDICE_ANALISTA}
+    StrCpy $PerfilEscolhido "analista"
+  ${ElseIf} $R0 == ${INDICE_GERENTE}
+    StrCpy $PerfilEscolhido "gerente-de-projeto"
+  ${ElseIf} $R0 == ${INDICE_DESENVOLVEDOR}
+    StrCpy $PerfilEscolhido "desenvolvedor"
+  ${Else}
+    StrCpy $PerfilEscolhido "consultor"
+  ${EndIf}
+FunctionEnd
+
+Function PerfilSelecionarNaLista
+  ${If} $PerfilEscolhido == "analista"
+    ${NSD_CB_SetSelectionIndex} $ListaPerfil ${INDICE_ANALISTA}
+  ${ElseIf} $PerfilEscolhido == "gerente-de-projeto"
+    ${NSD_CB_SetSelectionIndex} $ListaPerfil ${INDICE_GERENTE}
+  ${ElseIf} $PerfilEscolhido == "desenvolvedor"
+    ${NSD_CB_SetSelectionIndex} $ListaPerfil ${INDICE_DESENVOLVEDOR}
+  ${Else}
+    ${NSD_CB_SetSelectionIndex} $ListaPerfil ${INDICE_CONSULTOR}
+  ${EndIf}
+FunctionEnd
+
+Function PerfilAoTrocar
+  Pop $0
+  Call PerfilLerDaLista
+  Call PerfilPresetDoEscolhido
+  Call PerfilMarcarCaixas
+FunctionEnd
+
+; Desabilitada, a caixa mantem a marcacao: desmarcar Terceiro devolve o que era.
+Function PerfilBloquearCaixasDoSankhya
+  ${NSD_GetState} $CheckTerceiro $R0
+  ${If} $R0 == ${BST_CHECKED}
+    StrCpy $R1 0
+  ${Else}
+    StrCpy $R1 1
+  ${EndIf}
+  EnableWindow $CheckAgenda $R1
+  EnableWindow $CheckOs $R1
+  EnableWindow $CheckClienteAgenda $R1
+  EnableWindow $CheckClienteOs $R1
+FunctionEnd
+
+Function PerfilAoClicarTerceiro
+  Pop $0
+  Call PerfilBloquearCaixasDoSankhya
 FunctionEnd
 
 Function PerfilPaginaCriar
@@ -326,72 +478,114 @@ Function PerfilPaginaCriar
     Call PerfilLerAnterior
   ${EndIf}
 
-  ${NSD_CreateLabel} 0 0 100% 24u "Qual o seu perfil? Ele define as funcionalidades visiveis no HUB SNK. Depois da instalacao, ajuste em Configuracoes > Acessos."
+  ${NSD_CreateLabel} 0 0 100% 18u "Escolha o seu perfil e ajuste as funcionalidades visiveis no HUB SNK. Depois da instalacao, mude em Configuracoes > Acessos."
   Pop $0
 
-  ${NSD_CreateRadioButton} 0 30u 100% 12u "Desenvolvedor: acesso a tudo"
-  Pop $RadioDesenvolvedor
-  ; Abre o grupo: os botoes seguintes sao mutuamente exclusivos com este.
-  ${NSD_AddStyle} $RadioDesenvolvedor ${WS_GROUP}
-  ${NSD_CreateRadioButton} 0 46u 100% 12u "Consultor: tudo, menos Repositorios do cliente"
-  Pop $RadioConsultor
-  ${NSD_CreateRadioButton} 0 62u 100% 12u "Analista: tudo, menos Repositorios do cliente"
-  Pop $RadioAnalista
-  ${NSD_CreateRadioButton} 0 78u 100% 12u "Gerente de projeto: tudo, menos Repositorios do cliente e a aba Local"
-  Pop $RadioGerente
+  ${NSD_CreateLabel} 0 23u 28u 10u "Perfil"
+  Pop $0
+  ${NSD_CreateDropList} 30u 21u 110u 60u ""
+  Pop $ListaPerfil
+  ; Mesma ordem dos INDICE_*.
+  ${NSD_CB_AddString} $ListaPerfil "Consultor"
+  ${NSD_CB_AddString} $ListaPerfil "Analista"
+  ${NSD_CB_AddString} $ListaPerfil "Gerente de Projetos"
+  ${NSD_CB_AddString} $ListaPerfil "Desenvolvedor"
+  Call PerfilSelecionarNaLista
+  ${NSD_OnChange} $ListaPerfil PerfilAoTrocar
 
-  ${If} $PerfilEscolhido == "consultor"
-    ${NSD_Check} $RadioConsultor
-  ${ElseIf} $PerfilEscolhido == "analista"
-    ${NSD_Check} $RadioAnalista
-  ${ElseIf} $PerfilEscolhido == "gerente-de-projeto"
-    ${NSD_Check} $RadioGerente
-  ${Else}
-    ${NSD_Check} $RadioDesenvolvedor
-  ${EndIf}
-
-  ; Independente do perfil: qualquer um deles pode ser de um terceiro.
-  ${NSD_CreateCheckbox} 0 100u 100% 12u "Terceiro: sem acesso ao SankhyaOm e a Experience"
+  ${NSD_CreateCheckbox} 0 37u 100% 10u "Terceiro: sem acesso ao SankhyaOm e a Experience"
   Pop $CheckTerceiro
-  ${NSD_CreateLabel} 12u 114u 90% 18u "Oculta Credenciais Sankhya, Agenda, OS e as guias SankhyaOm e Experience."
-  Pop $0
   ${If} $TerceiroEscolhido == "S"
     ${NSD_Check} $CheckTerceiro
   ${EndIf}
+  ${NSD_OnClick} $CheckTerceiro PerfilAoClicarTerceiro
+
+  ${NSD_CreateGroupBox} 0 50u 48% 90u "Menu principal"
+  Pop $0
+  ${NSD_CreateCheckbox} 6u 61u 40% 10u "Local"
+  Pop $CheckLocal
+  ${NSD_CreateCheckbox} 6u 72u 40% 10u "Agenda"
+  Pop $CheckAgenda
+  ${NSD_CreateCheckbox} 6u 83u 40% 10u "OS"
+  Pop $CheckOs
+  ${NSD_CreateCheckbox} 6u 94u 40% 10u "Lembretes (no sino)"
+  Pop $CheckLembretes
+  ${NSD_CreateCheckbox} 6u 105u 40% 10u "Contatos"
+  Pop $CheckContatos
+  ${NSD_CreateCheckbox} 6u 116u 40% 10u "Git"
+  Pop $CheckGit
+
+  ${NSD_CreateGroupBox} 52% 50u 48% 90u "Cadastro do cliente"
+  Pop $0
+  ${NSD_CreateCheckbox} 55% 61u 40% 10u "Bases"
+  Pop $CheckClienteBases
+  ${NSD_CreateCheckbox} 55% 72u 40% 10u "Git"
+  Pop $CheckClienteGit
+  ${NSD_CreateCheckbox} 55% 83u 40% 10u "Projetos"
+  Pop $CheckClienteProjetos
+  ${NSD_CreateCheckbox} 55% 94u 40% 10u "Agenda"
+  Pop $CheckClienteAgenda
+  ${NSD_CreateCheckbox} 55% 105u 40% 10u "OS"
+  Pop $CheckClienteOs
+  ${NSD_CreateCheckbox} 55% 116u 40% 10u "Contatos"
+  Pop $CheckClienteContatos
+  ${NSD_CreateCheckbox} 55% 127u 40% 10u "AutoSync (na aba Git)"
+  Pop $CheckClienteAutosync
+
+  Call PerfilMarcarCaixas
+  Call PerfilBloquearCaixasDoSankhya
 
   nsDialogs::Show
 FunctionEnd
 
-Function PerfilPaginaSair
-  ${NSD_GetState} $RadioConsultor $0
-  ${NSD_GetState} $RadioAnalista $1
-  ${NSD_GetState} $RadioGerente $2
-  ${If} $0 == ${BST_CHECKED}
-    StrCpy $PerfilEscolhido "consultor"
-  ${ElseIf} $1 == ${BST_CHECKED}
-    StrCpy $PerfilEscolhido "analista"
-  ${ElseIf} $2 == ${BST_CHECKED}
-    StrCpy $PerfilEscolhido "gerente-de-projeto"
-  ${Else}
-    StrCpy $PerfilEscolhido "desenvolvedor"
+!macro PerfilLerCaixa CONTROLE CHAVE
+  ${NSD_GetState} ${CONTROLE} $R0
+  ${If} $R0 != ${BST_CHECKED}
+    ${If} $OcultasEscolhidas == ""
+      StrCpy $OcultasEscolhidas "${CHAVE}"
+    ${Else}
+      StrCpy $OcultasEscolhidas "$OcultasEscolhidas,${CHAVE}"
+    ${EndIf}
   ${EndIf}
+!macroend
 
-  ${NSD_GetState} $CheckTerceiro $3
-  ${If} $3 == ${BST_CHECKED}
+Function PerfilPaginaSair
+  Call PerfilLerDaLista
+
+  ${NSD_GetState} $CheckTerceiro $R0
+  ${If} $R0 == ${BST_CHECKED}
     StrCpy $TerceiroEscolhido "S"
   ${Else}
     StrCpy $TerceiroEscolhido "N"
   ${EndIf}
+
+  StrCpy $OcultasEscolhidas ""
+  !insertmacro PerfilLerCaixa $CheckLocal "local"
+  !insertmacro PerfilLerCaixa $CheckAgenda "agenda"
+  !insertmacro PerfilLerCaixa $CheckOs "os"
+  !insertmacro PerfilLerCaixa $CheckLembretes "lembretes"
+  !insertmacro PerfilLerCaixa $CheckContatos "contatos"
+  !insertmacro PerfilLerCaixa $CheckGit "autosync"
+  !insertmacro PerfilLerCaixa $CheckClienteBases "cliente.bases"
+  !insertmacro PerfilLerCaixa $CheckClienteGit "cliente.repositorios"
+  !insertmacro PerfilLerCaixa $CheckClienteProjetos "cliente.projetos"
+  !insertmacro PerfilLerCaixa $CheckClienteAgenda "cliente.agenda"
+  !insertmacro PerfilLerCaixa $CheckClienteOs "cliente.os"
+  !insertmacro PerfilLerCaixa $CheckClienteContatos "cliente.contatos"
+  !insertmacro PerfilLerCaixa $CheckClienteAutosync "cliente.autosync"
 FunctionEnd
 
-; Instalacao silenciosa nao mostra a pagina: $PerfilEscolhido fica vazio e o arquivo da
-; instalacao anterior, se houver, e' preservado.
+; Instalacao silenciosa nao mostra a pagina: $PerfilEscolhido fica vazio e os arquivos da
+; instalacao anterior, se houver, sao preservados.
 !macro HubSnkGravarPerfil
   ${If} $PerfilEscolhido != ""
     Call PerfilArquivo
     CreateDirectory "$R9"
     FileOpen $R8 "$R9\perfil-inicial.txt" w
     FileWrite $R8 "$PerfilEscolhido"
+    FileClose $R8
+    FileOpen $R8 "$R9\${ARQUIVO_OCULTAS_INICIAIS}" w
+    FileWrite $R8 "$OcultasEscolhidas"
     FileClose $R8
   ${EndIf}
   ${If} $TerceiroEscolhido != ""

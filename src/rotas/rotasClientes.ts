@@ -1059,8 +1059,9 @@ export function registrarRotasDeClientes(
         if (erro instanceof PastaNaoEncontradaError) {
           return resposta.status(404).send({ mensagem: `Pasta não encontrada: ${caminhoLocal}` });
         }
+        // Executável ausente ou que não abre: nos dois casos o conserto é o caminho da IDE.
         if (erro instanceof IdeNaoConfiguradaError || erro instanceof IdeIndisponivelError) {
-          return resposta.status(503).send({ mensagem: erro.message });
+          return resposta.status(503).send({ mensagem: erro.message, configuracaoPendente: 'ide' });
         }
         throw erro;
       }
