@@ -9,6 +9,11 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- O e-mail do lembrete ganha, no rodapé, uma linha discreta avisando que é um e-mail
+  automático enviado pelo HUB SNK, com o link da página do projeto.
+
 ### Removido
 
 - Os atalhos `Ctrl+1`, `Ctrl+2` e `Ctrl+3`, que alternavam entre o Painel, o SankhyaOm e

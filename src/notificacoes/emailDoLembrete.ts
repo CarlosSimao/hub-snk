@@ -18,6 +18,10 @@ const COR_DO_TEXTO = '#1e293b';
 const COR_DO_TEXTO_SUTIL = '#64748b';
 const COR_DO_ATRASO = '#b45309';
 
+/* Quem recebe em cópia pode não conhecer o HUB SNK: o rodapé diz de onde veio o e-mail. */
+const PAGINA_DO_HUB_SNK = 'https://carlossimao.github.io/hub-snk/';
+const AVISO_DE_EMAIL_AUTOMATICO = 'Este é um e-mail automático enviado pela ferramenta';
+
 export interface DadosDoEmailDoLembrete {
   resumo: string;
   /** Vazio no lembrete antigo, em que o texto já é o resumo. */
@@ -84,6 +88,7 @@ function montarHtml(dados: DadosDoEmailDoLembrete): string {
         </td></tr>
         <tr><td style="padding:14px 24px;border-top:1px solid #e2e8f0;font-size:12px;color:${COR_DO_TEXTO_SUTIL};">${linhaDoRodape(dados)}</td></tr>
       </table>
+      <p style="margin:12px 0 0;font-size:11px;color:${COR_DO_TEXTO_SUTIL};">${AVISO_DE_EMAIL_AUTOMATICO} <a href="${PAGINA_DO_HUB_SNK}" style="color:${COR_DO_TEXTO_SUTIL};text-decoration:underline;">HUB SNK</a>.</p>
     </td></tr>
   </table>
 </body>
@@ -95,6 +100,7 @@ function montarTexto(dados: DadosDoEmailDoLembrete): string {
   if (dados.texto) linhas.push('', dados.texto);
   if (dados.atrasado) linhas.push('', 'Disparou depois do horário previsto.');
   linhas.push('', ...[dados.vinculo, `Previsto para ${dados.previstoPara}`].filter(Boolean));
+  linhas.push('', '--', `${AVISO_DE_EMAIL_AUTOMATICO} HUB SNK: ${PAGINA_DO_HUB_SNK}`);
   return linhas.join('\n');
 }
 
