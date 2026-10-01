@@ -9,6 +9,11 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Removido
+
+- Os atalhos `Ctrl+1`, `Ctrl+2` e `Ctrl+3`, que alternavam entre o Painel, o SankhyaOm e
+  a Experience. O menu **Guias** continua levando a cada uma pelo clique.
+
 ### Corrigido
 
 - Sair do HUB SNK pela bandeja com o WhatsApp ou o Google Chat carregados não mostra

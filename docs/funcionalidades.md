@@ -303,7 +303,7 @@ barra.
 
 No aplicativo desktop, _Ajuda_ › _Atalhos_ — no menu do botão ao lado da guia
 Painel — abre uma janela com todos os atalhos de teclado: os do menu do
-aplicativo (guias, recarregar, busca rápida, buscar na página, ferramentas de
+aplicativo (recarregar, busca rápida, buscar na página, ferramentas de
 desenvolvedor), o atalho global da busca e as teclas de dentro da busca rápida e
 da barra do `Ctrl+F`. A parte do menu é lida dele na hora de abrir, então uma
 tecla nova no menu já aparece na lista. `Esc` fecha a janela.
@@ -518,8 +518,7 @@ marcada, oculta tudo o que depende das credenciais Sankhya:
 - o grupo **Agenda do dia sem OS lançada** de **Configurações › Avisos**, e a
   verificação a cada 15 minutos deixa de rodar mesmo com o alerta ligado;
 - as guias **SankhyaOm** e **Experience** do aplicativo: saem da barra, do menu
-  **Guias** e dos atalhos Ctrl+2 e Ctrl+3, e o aplicativo deixa de logar sozinho
-  nelas.
+  **Guias**, e o aplicativo deixa de logar sozinho nelas.
 
 Terceiro não altera as caixas gravadas: desmarcá-lo devolve a tela ao que era.
 A caixa do instalador segue a regra do perfil, só é aplicada enquanto a
