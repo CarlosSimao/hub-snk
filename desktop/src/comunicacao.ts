@@ -420,6 +420,8 @@ export class GerenciadorComunicacao {
    * cria o painel de novo. O `#descarregar` já tira o painel do mapa antes de fechá-lo.
    */
   #esquecerPainel(servico: ServicoComunicacao, painel: WebContentsView): void {
+    // No fechamento do HUB a janela morre antes dos painéis: não há mais o que atualizar.
+    if (this.#janela.isDestroyed()) return;
     if (this.#paineis.get(servico) !== painel) return;
     this.#paineis.delete(servico);
     this.#janela.contentView.removeChildView(painel);

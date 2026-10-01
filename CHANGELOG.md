@@ -9,6 +9,11 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Corrigido
+
+- Sair do HUB SNK pela bandeja com o WhatsApp ou o Google Chat carregados não mostra
+  mais o erro `Object has been destroyed`.
+
 ## [2.1.2] - 2026-09-30
 
 ### Alterado
