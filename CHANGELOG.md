@@ -37,6 +37,19 @@ número significa aqui.
   qualquer cliente. Contato de outro cliente continua sem poder entrar em cópia de
   lembrete de um cliente. No cadastro de contato, a opção **Nenhum** passa a se chamar
   **Sem cliente**, como no filtro da aba Contatos.
+- **Alerta da agenda passa a cobrar a tarefa, e não a OS**: em **Configurações › Avisos**,
+  o alerta confere todos os eventos de hoje, e não só os que já terminaram, e avisa o
+  evento de cliente cujo dia não tem tarefa nem OS na Experience. Tarefa aberta já conta
+  como encaminhado. Novas opções:
+  - **Periodicidade (minutos)**: de quanto em quanto tempo a rotina roda, no lugar dos 15
+    minutos fixos. Padrão de fábrica: 120. A mudança vale em até um minuto.
+  - **Monitorar também o próximo dia útil**: confere junto os eventos do próximo dia útil
+    — numa sexta, os da segunda. Pula sábado e domingo, mas não feriados.
+  - **Repetir o aviso a cada execução enquanto a pendência existir**: desmarcado, como
+    vem, avisa uma vez por evento.
+
+  O campo **Minutos após o fim do evento** deixa de existir, e o selo do Resumo passa de
+  **Sem OS lançada** para **Sem tarefa na Experience**.
 - **Página de perfil do instalador igual à aba Acessos**: o perfil vem numa lista, sem a
   descrição na frente de cada um, e logo abaixo ficam a caixa **Terceiro** e uma caixa
   por funcionalidade, do menu principal e do cadastro do cliente. Trocar o perfil marca o

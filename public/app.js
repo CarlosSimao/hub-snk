@@ -612,7 +612,9 @@ const elementos = {
   botaoTestarSmtp: document.getElementById('btn-testar-smtp'),
   resultadoTesteSmtp: document.getElementById('resultado-teste-smtp'),
   campoAlertaAgendaAtivo: document.getElementById('campo-alerta-agenda-ativo'),
-  campoAlertaAgendaTolerancia: document.getElementById('campo-alerta-agenda-tolerancia'),
+  campoAlertaAgendaIntervalo: document.getElementById('campo-alerta-agenda-intervalo'),
+  campoAlertaAgendaProximoDiaUtil: document.getElementById('campo-alerta-agenda-proximo-dia-util'),
+  campoAlertaAgendaRepetir: document.getElementById('campo-alerta-agenda-repetir'),
   campoAlertaAgendaEmail: document.getElementById('campo-alerta-agenda-email'),
   painelConfiguracaoSobre: document.getElementById('painel-configuracao-sobre'),
   campoPerfil: document.getElementById('campo-perfil'),
@@ -3827,8 +3829,12 @@ async function atualizarOsGeral() {
  * às bases dos clientes.
  */
 
-/* Chave das notificações do alerta da agenda: `agenda:<dia>:<nuevento>` (verificadorDaAgendaDoDia.ts). */
+/*
+ * Chave das notificações do alerta da agenda: `agenda:<dia>:<nuevento>`, mais `#<momento>`
+ * quando o alerta repete o aviso (verificadorDaAgendaDoDia.ts).
+ */
 const PREFIXO_DAS_NOTIFICACOES_DA_AGENDA = 'agenda:';
+const SEPARADOR_DA_REPETICAO_DO_ALERTA = '#';
 
 /* Resumo mais recente pedido: um desenho que termina depois de outro mais novo é descartado. */
 let geracaoDoResumo = 0;
@@ -3871,16 +3877,19 @@ function diaLocalDoInstante(iso) {
 }
 
 /**
- * Eventos de hoje que o alerta da agenda já apontou sem OS lançada. O alerta só confere
- * evento que já terminou, e só com ele ligado: os outros ficam sem selo, não "com OS".
+ * Eventos de hoje que o alerta da agenda já apontou sem tarefa na Experience. Só com o
+ * alerta ligado: sem ele, os eventos ficam sem selo, não "com tarefa".
  */
-function eventosDeHojeSemOs(hoje) {
+function eventosDeHojeSemTarefa(hoje) {
   const prefixo = `${PREFIXO_DAS_NOTIFICACOES_DA_AGENDA}${hoje}:`;
   return new Set(
     estado.notificacoes
       .filter((notificacao) => notificacao.origem === 'agenda')
       .filter((notificacao) => notificacao.chave.startsWith(prefixo))
-      .map((notificacao) => notificacao.chave.slice(prefixo.length)),
+      .map(
+        (notificacao) =>
+          notificacao.chave.slice(prefixo.length).split(SEPARADOR_DA_REPETICAO_DO_ALERTA)[0],
+      ),
   );
 }
 
@@ -3889,7 +3898,7 @@ function identificacaoDoEvento(evento) {
   return String(evento.nuevento ?? `${evento.codparc}-${evento.inicio}`);
 }
 
-function criarLinhaDeEventoDoResumo(evento, semOs) {
+function criarLinhaDeEventoDoResumo(evento, semTarefa) {
   const titulo = evento.nomeparc
     ? `${evento.codparc ?? ''} - ${evento.nomeparc}`
     : evento.descrlonga || evento.descrabrev || '(sem título)';
@@ -3901,7 +3910,9 @@ function criarLinhaDeEventoDoResumo(evento, semOs) {
   return criarLinhaDoResumo({
     titulo,
     detalhes: [horario, descricao !== titulo && descricao],
-    selo: semOs ? criarElemento('span', 'selo-situacao erro', 'Sem OS lançada') : null,
+    selo: semTarefa
+      ? criarElemento('span', 'selo-situacao erro', 'Sem tarefa na Experience')
+      : null,
     acao: criarBotaoDeIcone('btn tiny', ICONES.seta, 'Abrir na Agenda', () =>
       alternarVisualizacao('agenda'),
     ),
@@ -3911,14 +3922,14 @@ function criarLinhaDeEventoDoResumo(evento, semOs) {
 /* Evento de vários dias (férias, semana de projeto) também é de hoje enquanto durar. */
 async function criarSecaoDaAgendaDoResumo(hoje) {
   const { eventos } = await api.eventosDaAgenda(hoje, hoje);
-  const semOs = eventosDeHojeSemOs(hoje);
+  const semTarefa = eventosDeHojeSemTarefa(hoje);
   const deHoje = eventos
     .filter((evento) => evento.inicio.slice(0, 10) <= hoje && hoje <= evento.fim.slice(0, 10))
     .sort((a, b) => a.inicio.localeCompare(b.inicio));
   return criarSecaoDoResumo(
     'Agenda de hoje',
     deHoje.map((evento) =>
-      criarLinhaDeEventoDoResumo(evento, semOs.has(identificacaoDoEvento(evento))),
+      criarLinhaDeEventoDoResumo(evento, semTarefa.has(identificacaoDoEvento(evento))),
     ),
     'Nenhum evento hoje na agenda.',
   );
@@ -8589,7 +8600,14 @@ const SMTP_PADRAO = {
   remetente: '',
   destinatario: '',
 };
-const ALERTA_DA_AGENDA_PADRAO = { ativo: false, toleranciaMinutos: 30, enviarEmail: true };
+/* Mesmo padrão de fábrica do backend (repositorioConfiguracaoArquivo.ts). */
+const ALERTA_DA_AGENDA_PADRAO = {
+  ativo: false,
+  intervaloMinutos: 120,
+  incluirProximoDiaUtil: false,
+  repetirAteResolver: false,
+  enviarEmail: true,
+};
 
 const DURACAO_DO_CARTAO_DE_NOTIFICACAO_MS = 15_000;
 const LIMITE_DO_CONTADOR_DE_NOTIFICACOES = 99;
@@ -8884,7 +8902,9 @@ function preencherNotificacoesDaConfiguracao(smtp, alertaDaAgenda) {
   elementos.campoSmtpRemetente.value = smtp.remetente;
   elementos.campoSmtpDestinatario.value = smtp.destinatario;
   elementos.campoAlertaAgendaAtivo.checked = alertaDaAgenda.ativo;
-  elementos.campoAlertaAgendaTolerancia.value = alertaDaAgenda.toleranciaMinutos;
+  elementos.campoAlertaAgendaIntervalo.value = alertaDaAgenda.intervaloMinutos;
+  elementos.campoAlertaAgendaProximoDiaUtil.checked = alertaDaAgenda.incluirProximoDiaUtil;
+  elementos.campoAlertaAgendaRepetir.checked = alertaDaAgenda.repetirAteResolver;
   elementos.campoAlertaAgendaEmail.checked = alertaDaAgenda.enviarEmail;
 }
 
@@ -8903,7 +8923,9 @@ function lerSmtpDaConfiguracao() {
 function lerAlertaDaAgendaDaConfiguracao() {
   return {
     ativo: elementos.campoAlertaAgendaAtivo.checked,
-    toleranciaMinutos: Number(elementos.campoAlertaAgendaTolerancia.value),
+    intervaloMinutos: Number(elementos.campoAlertaAgendaIntervalo.value),
+    incluirProximoDiaUtil: elementos.campoAlertaAgendaProximoDiaUtil.checked,
+    repetirAteResolver: elementos.campoAlertaAgendaRepetir.checked,
     enviarEmail: elementos.campoAlertaAgendaEmail.checked,
   };
 }

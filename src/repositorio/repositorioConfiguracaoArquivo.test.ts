@@ -440,7 +440,32 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     assert.equal(configuracao.smtp.porta, 587);
     assert.equal(configuracao.smtp.seguranca, 'starttls');
     assert.equal(configuracao.alertaDaAgenda.ativo, false);
-    assert.equal(configuracao.alertaDaAgenda.toleranciaMinutos, 30);
+    assert.equal(configuracao.alertaDaAgenda.intervaloMinutos, 120);
+    assert.equal(configuracao.alertaDaAgenda.incluirProximoDiaUtil, false);
+    assert.equal(configuracao.alertaDaAgenda.repetirAteResolver, false);
+  });
+
+  it('lê o alerta da agenda gravado com a tolerância das versões anteriores', async () => {
+    await writeFile(
+      caminhoDoArquivo(),
+      JSON.stringify({
+        versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+        configuracao: {
+          alertaDaAgenda: { ativo: true, toleranciaMinutos: 30, enviarEmail: false },
+        },
+      }),
+      'utf8',
+    );
+
+    const { alertaDaAgenda } = await repositorio.ler();
+
+    assert.deepEqual(alertaDaAgenda, {
+      ativo: true,
+      intervaloMinutos: 120,
+      incluirProximoDiaUtil: false,
+      repetirAteResolver: false,
+      enviarEmail: false,
+    });
   });
 
   it('preserva o SMTP gravado quando a tela não o manda', async () => {
@@ -464,7 +489,13 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
         remetente: 'eu@empresa.com.br',
         destinatario: 'eu@empresa.com.br',
       },
-      alertaDaAgenda: { ativo: true, toleranciaMinutos: 10, enviarEmail: false },
+      alertaDaAgenda: {
+        ativo: true,
+        intervaloMinutos: 10,
+        incluirProximoDiaUtil: true,
+        repetirAteResolver: false,
+        enviarEmail: false,
+      },
     });
 
     await repositorio.salvar(base);
@@ -474,7 +505,8 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     assert.equal(configuracao.smtp.host, 'smtp.empresa.com.br');
     assert.equal(configuracao.smtp.senha, ' segredo ');
     assert.equal(configuracao.alertaDaAgenda.ativo, true);
-    assert.equal(configuracao.alertaDaAgenda.toleranciaMinutos, 10);
+    assert.equal(configuracao.alertaDaAgenda.intervaloMinutos, 10);
+    assert.equal(configuracao.alertaDaAgenda.incluirProximoDiaUtil, true);
   });
 
   it('descarta a segurança do SMTP editada à mão com valor desconhecido', async () => {

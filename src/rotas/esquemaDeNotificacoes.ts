@@ -13,8 +13,8 @@ const TAMANHO_MAXIMO_DA_SENHA = 200;
 const TAMANHO_MAXIMO_DO_ENDERECO = 320;
 const PORTA_MINIMA = 1;
 const PORTA_MAXIMA = 65535;
-const TOLERANCIA_MINIMA_MIN = 0;
-const TOLERANCIA_MAXIMA_MIN = 720;
+const INTERVALO_MINIMO_DO_ALERTA_MIN = 1;
+const INTERVALO_MAXIMO_DO_ALERTA_MIN = 1440;
 
 /* Vazio é aceito: SMTP sem host é o e-mail desligado, e não um erro de cadastro. */
 const esquemaDeEnderecoOpcional = z
@@ -42,13 +42,20 @@ export const esquemaDeSmtp = z.object({
 
 export const esquemaDeAlertaDaAgenda = z.object({
   ativo: z.boolean({ error: 'Informe se o alerta da agenda está ligado.' }),
-  toleranciaMinutos: z.coerce
-    .number({ error: 'A tolerância deve ser um número.' })
-    .int('A tolerância deve ser um número inteiro de minutos.')
-    .min(TOLERANCIA_MINIMA_MIN, 'A tolerância não pode ser negativa.')
+  intervaloMinutos: z.coerce
+    .number({ error: 'A periodicidade deve ser um número.' })
+    .int('A periodicidade deve ser um número inteiro de minutos.')
+    .min(
+      INTERVALO_MINIMO_DO_ALERTA_MIN,
+      `A periodicidade deve ser de pelo menos ${INTERVALO_MINIMO_DO_ALERTA_MIN} minuto.`,
+    )
     .max(
-      TOLERANCIA_MAXIMA_MIN,
-      `A tolerância deve ser de no máximo ${TOLERANCIA_MAXIMA_MIN} minutos.`,
+      INTERVALO_MAXIMO_DO_ALERTA_MIN,
+      `A periodicidade deve ser de no máximo ${INTERVALO_MAXIMO_DO_ALERTA_MIN} minutos.`,
     ),
+  incluirProximoDiaUtil: z.boolean({
+    error: 'Informe se o alerta monitora o próximo dia útil.',
+  }),
+  repetirAteResolver: z.boolean({ error: 'Informe se o alerta repete o aviso.' }),
   enviarEmail: z.boolean({ error: 'Informe se o alerta da agenda envia e-mail.' }),
 });

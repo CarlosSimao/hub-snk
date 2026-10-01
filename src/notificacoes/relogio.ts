@@ -27,3 +27,18 @@ export function dataHoraLocal(data: Date): string {
 export function lerDataHoraDaAgenda(texto: string): Date {
   return new Date(texto.replace(' ', 'T'));
 }
+
+const DOMINGO = 0;
+const SABADO = 6;
+
+/**
+ * Dia útil seguinte a `dia` (`YYYY-MM-DD`): pula só sábado e domingo — o HUB SNK não tem
+ * calendário de feriados. Meio-dia local evita que a troca do horário de verão mude a data.
+ */
+export function proximoDiaUtil(dia: string): string {
+  const data = new Date(`${dia}T12:00:00`);
+  do {
+    data.setDate(data.getDate() + 1);
+  } while (data.getDay() === DOMINGO || data.getDay() === SABADO);
+  return dataIsoLocal(data);
+}

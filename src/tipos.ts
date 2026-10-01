@@ -49,7 +49,7 @@
  * respondendo.
  *
  * `smtp` é o servidor que envia os e-mails das notificações, e `alertaDaAgenda` liga o
- * aviso de agenda do dia sem OS lançada. A senha do SMTP fica em texto puro neste
+ * aviso de agenda sem tarefa na Experience. A senha do SMTP fica em texto puro neste
  * arquivo, como as senhas das bases no `clientes.json`.
  */
 export interface ConfiguracaoGlobal {
@@ -91,12 +91,15 @@ export interface ConfiguracaoSmtp {
 }
 
 /**
- * Aviso de evento da agenda de hoje sem OS lançada na Experience. Dispara quando o
- * evento terminou há `toleranciaMinutos` e ainda não há OS no dia para o parceiro.
+ * Aviso de evento da agenda sem tarefa nem OS na Experience. Roda a cada
+ * `intervaloMinutos`, olha o dia atual e, com `incluirProximoDiaUtil`, também o próximo
+ * dia útil. `repetirAteResolver` avisa em toda execução, e não uma vez por evento.
  */
 export interface AlertaDaAgenda {
   ativo: boolean;
-  toleranciaMinutos: number;
+  intervaloMinutos: number;
+  incluirProximoDiaUtil: boolean;
+  repetirAteResolver: boolean;
   enviarEmail: boolean;
 }
 

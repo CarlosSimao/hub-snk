@@ -39,7 +39,7 @@ const MILISSEGUNDOS_POR_SEGUNDO = 1000;
 const DESTINO_DOS_LINKS_PADRAO: DestinoDeLink = 'hub';
 
 const PORTA_SMTP_PADRAO = 587;
-const TOLERANCIA_DO_ALERTA_DA_AGENDA_PADRAO_MIN = 30;
+const INTERVALO_DO_ALERTA_DA_AGENDA_PADRAO_MIN = 120;
 
 const SMTP_INICIAL: ConfiguracaoSmtp = {
   host: '',
@@ -54,7 +54,9 @@ const SMTP_INICIAL: ConfiguracaoSmtp = {
 /* Nasce desligado: sem SMTP e sem saber se o usuário lança OS, ligar sozinho só faria barulho. */
 const ALERTA_DA_AGENDA_INICIAL: AlertaDaAgenda = {
   ativo: false,
-  toleranciaMinutos: TOLERANCIA_DO_ALERTA_DA_AGENDA_PADRAO_MIN,
+  intervaloMinutos: INTERVALO_DO_ALERTA_DA_AGENDA_PADRAO_MIN,
+  incluirProximoDiaUtil: false,
+  repetirAteResolver: false,
   enviarEmail: true,
 };
 
@@ -203,19 +205,25 @@ function lerSmtp(valor: unknown): ConfiguracaoSmtp {
   };
 }
 
-/** Mesmo motivo do `lerSmtp`: arquivo de antes do alerta nasce com ele desligado. */
+/**
+ * Mesmo motivo do `lerSmtp`: arquivo de antes do alerta nasce com ele desligado. O
+ * `toleranciaMinutos` das versões anteriores não é lido: a regra nova não tem tolerância.
+ */
 function lerAlertaDaAgenda(valor: unknown): AlertaDaAgenda {
   if (!ehObjeto(valor)) {
     return { ...ALERTA_DA_AGENDA_INICIAL };
   }
 
+  const padrao = ALERTA_DA_AGENDA_INICIAL;
   return {
-    ativo: booleanoOuPadrao(valor.ativo, ALERTA_DA_AGENDA_INICIAL.ativo),
-    toleranciaMinutos: numeroOuPadrao(
-      valor.toleranciaMinutos,
-      ALERTA_DA_AGENDA_INICIAL.toleranciaMinutos,
+    ativo: booleanoOuPadrao(valor.ativo, padrao.ativo),
+    intervaloMinutos: numeroOuPadrao(valor.intervaloMinutos, padrao.intervaloMinutos),
+    incluirProximoDiaUtil: booleanoOuPadrao(
+      valor.incluirProximoDiaUtil,
+      padrao.incluirProximoDiaUtil,
     ),
-    enviarEmail: booleanoOuPadrao(valor.enviarEmail, ALERTA_DA_AGENDA_INICIAL.enviarEmail),
+    repetirAteResolver: booleanoOuPadrao(valor.repetirAteResolver, padrao.repetirAteResolver),
+    enviarEmail: booleanoOuPadrao(valor.enviarEmail, padrao.enviarEmail),
   };
 }
 

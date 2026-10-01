@@ -1130,7 +1130,7 @@
                 maxlength="500"
                 autocomplete="off"
                 spellcheck="false"
-                placeholder="Ex.: git fetch --all"
+                placeholder="Ex.: claude (para já executar o claude code)"
               />
             </div>
 
@@ -1467,25 +1467,33 @@
           >
             <fieldset class="grupo-de-acessos" id="grupo-alerta-agenda">
               <legend>
-                Agenda do dia sem OS lançada
+                Agenda sem tarefa na Experience
                 <span class="dica" tabindex="0"
                   >?<span class="dica-texto" role="tooltip"
-                    >A cada 15 minutos, confere os eventos de hoje da sua Agenda de Recursos. Evento
-                    de cliente que já terminou e não tem OS lançada na Experience gera uma
-                    notificação, uma vez por evento. Precisa do código de usuário do SankhyaOm e do
-                    login feito, os dois em Credenciais Sankhya. O e-mail usa o SMTP da aba
-                    SMTP.</span
+                    >Na periodicidade escolhida, confere os eventos de hoje da sua Agenda de
+                    Recursos — e, se marcado, os do próximo dia útil, que pula sábado e domingo, mas
+                    não feriados. Evento de cliente cujo dia não tem tarefa nem OS na Experience
+                    gera uma notificação. Precisa do código de usuário do SankhyaOm e do login
+                    feito, os dois em Credenciais Sankhya. O e-mail usa o SMTP da aba SMTP.</span
                   ></span
                 >
               </legend>
               <div class="grade-duas-colunas">
                 <div class="campo">
-                  <label for="campo-alerta-agenda-tolerancia">Minutos após o fim do evento</label>
-                  <input id="campo-alerta-agenda-tolerancia" type="number" min="0" max="720" />
+                  <label for="campo-alerta-agenda-intervalo">Periodicidade (minutos)</label>
+                  <input id="campo-alerta-agenda-intervalo" type="number" min="1" max="1440" />
                 </div>
                 <div class="opcoes-do-alerta">
                   <label class="campo-checkbox">
                     <input type="checkbox" id="campo-alerta-agenda-ativo" /> Ligado
+                  </label>
+                  <label class="campo-checkbox">
+                    <input type="checkbox" id="campo-alerta-agenda-proximo-dia-util" /> Monitorar
+                    também o próximo dia útil
+                  </label>
+                  <label class="campo-checkbox">
+                    <input type="checkbox" id="campo-alerta-agenda-repetir" /> Repetir o aviso a
+                    cada execução enquanto a pendência existir
                   </label>
                   <label class="campo-checkbox">
                     <input type="checkbox" id="campo-alerta-agenda-email" /> Enviar por e-mail
