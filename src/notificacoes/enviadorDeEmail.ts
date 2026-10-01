@@ -5,6 +5,18 @@ import type { ConfiguracaoSmtp } from '../tipos.ts';
 /* Servidor que não responde não pode segurar a verificação da agenda por minutos. */
 const TEMPO_LIMITE_DO_SMTP_MS = 15_000;
 
+/*
+ * Todo e-mail do HUB SNK diz de onde veio: quem recebe em cópia pode não conhecer a
+ * ferramenta. No texto puro o envio acrescenta a linha; o HTML, que tem layout próprio,
+ * a desenha com estas mesmas constantes.
+ */
+export const PAGINA_DO_HUB_SNK = 'https://carlossimao.github.io/hub-snk/';
+export const AVISO_DE_EMAIL_AUTOMATICO = 'Este é um e-mail automático enviado pela ferramenta';
+
+export function textoComRodape(texto: string): string {
+  return `${texto}\n\n--\n${AVISO_DE_EMAIL_AUTOMATICO} HUB SNK: ${PAGINA_DO_HUB_SNK}`;
+}
+
 /** O SMTP está sem host, remetente ou destinatário: não há como enviar. */
 export class SmtpNaoConfiguradoError extends Error {
   constructor() {
@@ -75,7 +87,7 @@ export class EnviadorDeEmail {
         to: smtp.destinatario,
         cc: mensagem.copia?.length ? mensagem.copia : undefined,
         subject: mensagem.assunto,
-        text: mensagem.texto,
+        text: textoComRodape(mensagem.texto),
         html: mensagem.html,
         attachments: mensagem.imagensEmbutidas?.map((imagem) => ({
           cid: imagem.cid,

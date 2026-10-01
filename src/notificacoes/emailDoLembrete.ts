@@ -2,7 +2,11 @@
  * O e-mail de um lembrete: assunto, corpo em HTML com a logo do HUB SNK e a versão em
  * texto puro, para o cliente de e-mail que não mostra HTML. Regras puras, sem SMTP.
  */
-import type { MensagemDeEmail } from './enviadorDeEmail.ts';
+import {
+  AVISO_DE_EMAIL_AUTOMATICO,
+  PAGINA_DO_HUB_SNK,
+  type MensagemDeEmail,
+} from './enviadorDeEmail.ts';
 
 /* O `cid` liga a imagem anexada ao `<img>` do corpo: a logo não depende de internet. */
 const CID_DA_LOGO = 'logo-hub-snk';
@@ -84,6 +88,7 @@ function montarHtml(dados: DadosDoEmailDoLembrete): string {
         </td></tr>
         <tr><td style="padding:14px 24px;border-top:1px solid #e2e8f0;font-size:12px;color:${COR_DO_TEXTO_SUTIL};">${linhaDoRodape(dados)}</td></tr>
       </table>
+      <p style="margin:12px 0 0;font-size:11px;color:${COR_DO_TEXTO_SUTIL};">${AVISO_DE_EMAIL_AUTOMATICO} <a href="${PAGINA_DO_HUB_SNK}" style="color:${COR_DO_TEXTO_SUTIL};text-decoration:underline;">HUB SNK</a>.</p>
     </td></tr>
   </table>
 </body>

@@ -27,7 +27,7 @@ type ObterMenu = () => Menu | null;
 /** Transparente: só o cartão do menu aparece, e o resto da camada é "clique fora". */
 const FUNDO_TRANSPARENTE = '#00000000';
 
-/** `CmdOrCtrl+1` → `Ctrl+1`: o shell só é distribuído para Windows e Linux. */
+/** `CmdOrCtrl+K` → `Ctrl+K`: o shell só é distribuído para Windows e Linux. */
 export function atalhoLegivel(acelerador: string | null | undefined): string {
   return (acelerador ?? '').replace(/^(CmdOrCtrl|CommandOrControl)\+/, 'Ctrl+');
 }

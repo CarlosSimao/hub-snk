@@ -222,7 +222,3 @@ Nada disto é necessário para usar o HUB SNK.
 ## Licença
 
 [MIT](LICENSE) — use, altere e distribua à vontade, sem garantia nenhuma.
-
-## Autor
-
-Feito por [Carlos Nascimento](https://github.com/CarlosSimao).

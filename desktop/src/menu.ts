@@ -72,19 +72,16 @@ export function montarMenu(
       submenu: [
         {
           label: 'Ir para o Painel',
-          accelerator: 'CmdOrCtrl+1',
           click: () => tabs()?.mostrar('hub'),
         },
         // Com o acesso de terceiro, as duas guias nem existem para o usuário.
         {
           label: 'Ir para o SankhyaOm',
-          accelerator: 'CmdOrCtrl+2',
           visible: !guiaBloqueada('erp'),
           click: () => tabs()?.mostrar('erp'),
         },
         {
           label: 'Ir para a Experience',
-          accelerator: 'CmdOrCtrl+3',
           visible: !guiaBloqueada('experience'),
           click: () => tabs()?.mostrar('experience'),
         },
