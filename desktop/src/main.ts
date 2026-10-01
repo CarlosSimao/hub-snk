@@ -12,6 +12,7 @@ import {
   session,
   type Tray,
 } from 'electron';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { execFile } from 'node:child_process';
@@ -56,6 +57,11 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
   process.exit(0);
 }
+
+// O atalho abre o HUB SNK com a pasta de trabalho na instalação. O navegador e o que
+// mais o shell abrir herdariam essa pasta e travariam a próxima atualização, que precisa
+// mover a pasta inteira.
+process.chdir(homedir());
 
 registrarEsquemaDoRuffle();
 

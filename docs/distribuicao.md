@@ -19,6 +19,10 @@ um aplicativo Electron com instalador NSIS, e o instalador remove a versão anti
 
 O shell sobe o backend como processo filho com o próprio executável do Electron
 (`ELECTRON_RUN_AS_NODE=1`), espera o `GET /api/healthz` e só então abre a janela.
+Os dois rodam com a pasta do usuário como pasta de trabalho, nunca a da instalação:
+o que eles abrem (WildFly, atalhos, IDE, navegador) herda essa pasta e continua vivo
+depois do HUB SNK, e uma pasta de trabalho dentro da instalação impedia a atualização
+de movê-la — o erro "Falha ao desinstalar os arquivos do aplicativo antigo: 2".
 Ao fechar, pede `POST /api/sistema/encerrar`, para o backend fechar o SQLite e as
 conexões, e só recorre ao `kill()` se ele não sair em 5 segundos. No Windows o
 `kill()` não entrega sinal nenhum: sem a rota, o backend morreria no meio de uma
