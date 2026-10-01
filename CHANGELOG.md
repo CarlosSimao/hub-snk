@@ -9,6 +9,13 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.1.2] - 2026-09-30
+
+### Alterado
+
+- Aba **Sobre** das configurações: sai o card **Desenvolvido por**, e **Ajuda e Sugestões**
+  mostra um item por linha — a issue no GitHub e o e-mail de contato.
+
 ## [2.1.1] - 2026-09-30
 
 ### Alterado
@@ -447,7 +454,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.1...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.2...HEAD
+[2.1.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.1...v2.1.2
 [2.1.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.0...v2.0.0
