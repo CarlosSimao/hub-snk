@@ -199,7 +199,6 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     const doGerente = new RepositorioConfiguracaoArquivo(diretorio, {
       perfil: 'gerente-de-projeto',
       terceiro: false,
-      autosyncInstalado: true,
     });
 
     const configuracao = await doGerente.ler();
@@ -213,39 +212,10 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     ]);
   });
 
-  it('sem o Git AutoSync no instalador, oculta a aba Git e a seção do cliente', async () => {
-    const semAutosync = new RepositorioConfiguracaoArquivo(diretorio, {
-      perfil: 'desenvolvedor',
-      terceiro: false,
-      autosyncInstalado: false,
-    });
-
-    const configuracao = await semAutosync.ler();
-
-    assert.deepEqual(configuracao.funcionalidadesOcultas, ['autosync', 'cliente.autosync']);
-  });
-
-  it('sem o Git AutoSync no instalador, não repete o que o preset já oculta', async () => {
-    const consultorSemAutosync = new RepositorioConfiguracaoArquivo(diretorio, {
-      perfil: 'consultor',
-      terceiro: false,
-      autosyncInstalado: false,
-    });
-
-    const configuracao = await consultorSemAutosync.ler();
-
-    assert.deepEqual(configuracao.funcionalidadesOcultas, [
-      'cliente.repositorios',
-      'autosync',
-      'cliente.autosync',
-    ]);
-  });
-
   it('aplica as caixas desmarcadas no instalador no lugar do preset do perfil', async () => {
     const consultorAjustado = new RepositorioConfiguracaoArquivo(diretorio, {
       perfil: 'consultor',
       terceiro: false,
-      autosyncInstalado: true,
       funcionalidadesOcultas: ['os', 'cliente.projetos'],
     });
 
@@ -259,7 +229,6 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     const gerenteComTudo = new RepositorioConfiguracaoArquivo(diretorio, {
       perfil: 'gerente-de-projeto',
       terceiro: false,
-      autosyncInstalado: true,
       funcionalidadesOcultas: [],
     });
 
@@ -272,26 +241,12 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     const comChaveAntiga = new RepositorioConfiguracaoArquivo(diretorio, {
       perfil: 'consultor',
       terceiro: false,
-      autosyncInstalado: true,
       funcionalidadesOcultas: ['os', 'nao-existe-mais'],
     });
 
     const configuracao = await comChaveAntiga.ler();
 
     assert.deepEqual(configuracao.funcionalidadesOcultas, ['os']);
-  });
-
-  it('sem o Git AutoSync, oculta a aba Git por cima das caixas do instalador', async () => {
-    const semAutosync = new RepositorioConfiguracaoArquivo(diretorio, {
-      perfil: 'desenvolvedor',
-      terceiro: false,
-      autosyncInstalado: false,
-      funcionalidadesOcultas: ['os'],
-    });
-
-    const configuracao = await semAutosync.ler();
-
-    assert.deepEqual(configuracao.funcionalidadesOcultas, ['os', 'autosync', 'cliente.autosync']);
   });
 
   it('com outro perfil gravado, ignora as caixas do instalador e usa o preset dele', async () => {
@@ -307,7 +262,6 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, {
       perfil: 'desenvolvedor',
       terceiro: false,
-      autosyncInstalado: true,
       funcionalidadesOcultas: ['os'],
     }).ler();
 
@@ -318,23 +272,6 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
       'cliente.autosync',
     ]);
   });
-
-  it('ignora o Git AutoSync do instalador quando o arquivo já tem acessos', async () => {
-    await repositorio.salvar({
-      ...CONFIGURACAO_SEM_ACESSOS,
-      perfil: 'desenvolvedor',
-      funcionalidadesOcultas: [],
-    });
-
-    const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, {
-      perfil: 'desenvolvedor',
-      terceiro: false,
-      autosyncInstalado: false,
-    }).ler();
-
-    assert.deepEqual(configuracao.funcionalidadesOcultas, []);
-  });
-
   it('ignora o perfil do instalador quando o arquivo já tem acessos', async () => {
     await repositorio.salvar({
       ...CONFIGURACAO_SEM_ACESSOS,
@@ -345,7 +282,6 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, {
       perfil: 'consultor',
       terceiro: false,
-      autosyncInstalado: true,
     }).ler();
 
     assert.equal(configuracao.perfil, 'desenvolvedor');
@@ -386,7 +322,6 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, {
       perfil: 'desenvolvedor',
       terceiro: true,
-      autosyncInstalado: true,
     }).ler();
 
     assert.equal(configuracao.terceiro, true);
@@ -399,7 +334,6 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, {
       perfil: 'desenvolvedor',
       terceiro: true,
-      autosyncInstalado: true,
     }).ler();
 
     assert.equal(configuracao.terceiro, false);

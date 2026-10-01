@@ -1,3 +1,5 @@
+import type { ConfiguracaoDoAssistenteDeIa } from './kanban/tiposDoKanban.ts';
+
 /**
  * Ajustes que valem para o HUB SNK inteiro, não para um cliente específico.
  *
@@ -68,6 +70,8 @@ export interface ConfiguracaoGlobal {
   terceiro: boolean;
   smtp: ConfiguracaoSmtp;
   alertaDaAgenda: AlertaDaAgenda;
+  /** Quem gera as tarefas do kanban a partir do documento de escopo. */
+  assistenteDeIa: ConfiguracaoDoAssistenteDeIa;
 }
 
 /**

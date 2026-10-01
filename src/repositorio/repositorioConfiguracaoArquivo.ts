@@ -6,6 +6,11 @@ import {
   PERFIL_PADRAO,
 } from '../acessos.ts';
 import {
+  ESCOLHAS_DE_ASSISTENTE,
+  type ConfiguracaoDoAssistenteDeIa,
+  type EscolhaDeAssistente,
+} from '../kanban/tiposDoKanban.ts';
+import {
   DESTINOS_DE_LINK,
   FUNCIONALIDADES,
   SEGURANCAS_SMTP,
@@ -60,6 +65,13 @@ const ALERTA_DA_AGENDA_INICIAL: AlertaDaAgenda = {
   enviarEmail: true,
 };
 
+/* `auto` funciona em qualquer máquina com algum assistente instalado, sem escolha prévia. */
+const ASSISTENTE_DE_IA_INICIAL: ConfiguracaoDoAssistenteDeIa = {
+  assistente: 'auto',
+  modelo: '',
+  raciocinio: '',
+};
+
 const CONFIGURACAO_INICIAL: Omit<
   ConfiguracaoGlobal,
   'perfil' | 'funcionalidadesOcultas' | 'terceiro'
@@ -75,6 +87,7 @@ const CONFIGURACAO_INICIAL: Omit<
   sankhyaOmCodUsu: '',
   smtp: SMTP_INICIAL,
   alertaDaAgenda: ALERTA_DA_AGENDA_INICIAL,
+  assistenteDeIa: ASSISTENTE_DE_IA_INICIAL,
 };
 
 /**
@@ -120,8 +133,6 @@ function normalizarFuncionalidadesOcultas(valores: readonly unknown[]): Funciona
 export interface AcessosIniciais {
   perfil: PerfilProfissional;
   terceiro: boolean;
-  /** Falso quando a caixa do Git AutoSync ficou desmarcada no instalador. */
-  autosyncInstalado: boolean;
   /** Caixas desmarcadas na página do perfil; ausente, vale o preset do perfil. */
   funcionalidadesOcultas?: readonly unknown[];
 }
@@ -129,18 +140,17 @@ export interface AcessosIniciais {
 const ACESSOS_INICIAIS_PADRAO: AcessosIniciais = {
   perfil: PERFIL_PADRAO,
   terceiro: false,
-  autosyncInstalado: true,
 };
 
-/** Sem o Git AutoSync instalado, a aba Git do menu e a seção do cliente não teriam o que mostrar. */
-const FUNCIONALIDADES_DO_AUTOSYNC: readonly Funcionalidade[] = ['autosync', 'cliente.autosync'];
-
-/** As caixas do instalador só valem para o perfil escolhido junto com elas. */
+/*
+ * O Git AutoSync não decide mais o preset: ele saiu do instalador, e a aba Git aparece
+ * acinzentada, com o botão de instalar, enquanto ele não está na máquina. As caixas do
+ * instalador só valem para o perfil escolhido junto com elas.
+ */
 function presetInicial(perfil: PerfilProfissional, iniciais: AcessosIniciais): unknown[] {
   const escolhidasNoInstalador =
     perfil === iniciais.perfil ? iniciais.funcionalidadesOcultas : undefined;
-  const preset = escolhidasNoInstalador ?? FUNCIONALIDADES_OCULTAS_POR_PERFIL[perfil];
-  return iniciais.autosyncInstalado ? [...preset] : [...preset, ...FUNCIONALIDADES_DO_AUTOSYNC];
+  return [...(escolhidasNoInstalador ?? FUNCIONALIDADES_OCULTAS_POR_PERFIL[perfil])];
 }
 
 /**
@@ -149,8 +159,7 @@ function presetInicial(perfil: PerfilProfissional, iniciais: AcessosIniciais): u
  * perfil. Com o perfil gravado e sem a lista,
  * vale o preset desse perfil. Terceiro segue a mesma regra, campo a campo: uma
  * instalação atualizada, que já tem perfil mas ainda não tem o campo, recebe o
- * que foi marcado no instalador. O Git AutoSync desmarcado no instalador oculta, por
- * cima do preset, a aba Git e a seção AutoSync do cliente.
+ * que foi marcado no instalador.
  */
 function lerAcessos(
   dados: Partial<Record<keyof ConfiguracaoGlobal, unknown>>,
@@ -224,6 +233,23 @@ function lerAlertaDaAgenda(valor: unknown): AlertaDaAgenda {
     ),
     repetirAteResolver: booleanoOuPadrao(valor.repetirAteResolver, padrao.repetirAteResolver),
     enviarEmail: booleanoOuPadrao(valor.enviarEmail, padrao.enviarEmail),
+  };
+}
+
+/** Arquivo de antes do kanban não tem a chave; assistente desconhecido volta ao `auto`. */
+function lerAssistenteDeIa(valor: unknown): ConfiguracaoDoAssistenteDeIa {
+  if (!ehObjeto(valor)) {
+    return { ...ASSISTENTE_DE_IA_INICIAL };
+  }
+
+  const assistente = (ESCOLHAS_DE_ASSISTENTE as readonly unknown[]).includes(valor.assistente)
+    ? (valor.assistente as EscolhaDeAssistente)
+    : ASSISTENTE_DE_IA_INICIAL.assistente;
+
+  return {
+    assistente,
+    modelo: textoOuPadrao(valor.modelo, '').trim(),
+    raciocinio: textoOuPadrao(valor.raciocinio, '').trim(),
   };
 }
 
@@ -308,6 +334,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       sankhyaOmCodUsu: dados.sankhyaOmCodUsu ?? '',
       smtp: lerSmtp(dados.smtp),
       alertaDaAgenda: lerAlertaDaAgenda(dados.alertaDaAgenda),
+      assistenteDeIa: lerAssistenteDeIa(dados.assistenteDeIa),
       ...lerAcessos(dados, this.#acessosIniciais),
     };
 
@@ -348,6 +375,9 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       terceiro: configuracao.terceiro ?? atual.terceiro,
       smtp: configuracao.smtp ? normalizarSmtp(configuracao.smtp) : atual.smtp,
       alertaDaAgenda: configuracao.alertaDaAgenda ?? atual.alertaDaAgenda,
+      assistenteDeIa: configuracao.assistenteDeIa
+        ? lerAssistenteDeIa(configuracao.assistenteDeIa)
+        : atual.assistenteDeIa,
     };
 
     await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);

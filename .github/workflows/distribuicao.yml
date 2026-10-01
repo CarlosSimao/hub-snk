@@ -14,13 +14,6 @@ on:
 permissions:
   contents: write
 
-env:
-  # O Git AutoSync é oferecido no instalador, como opcional, e mora em outro
-  # repositório. A branch é a `master`: só ela tem o `install-standalone.ps1`
-  # que o `installer.nsh` chama.
-  REPOSITORIO_GIT_AUTOSYNC: FlavianoRS/git-autosync
-  BRANCH_GIT_AUTOSYNC: master
-
 jobs:
   windows:
     runs-on: windows-latest
@@ -40,22 +33,6 @@ jobs:
             if ($versao -ne $esperada) { throw "$arquivo está na versão $versao, e a tag é $esperada." }
           }
 
-      - uses: actions/checkout@v7
-        with:
-          repository: ${{ env.REPOSITORIO_GIT_AUTOSYNC }}
-          ref: ${{ env.BRANCH_GIT_AUTOSYNC }}
-          path: git-autosync
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.13'
-
-      - name: Gerar os binários do Git AutoSync
-        shell: pwsh
-        run: |
-          python -m pip install -r git-autosync\python\requirements-dev.txt
-          & git-autosync\python\build_windows.ps1
-
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -71,9 +48,9 @@ jobs:
           npm run typecheck
           npm test
 
+      # Só o HUB SNK: o Git AutoSync tem licença própria e é instalado pela aba Git,
+      # que baixa da Release do repositório dele.
       - name: Gerar o instalador
-        env:
-          GIT_AUTOSYNC_DIR: ${{ github.workspace }}\git-autosync
         run: npm run empacotar-desktop
 
       - uses: actions/upload-artifact@v7

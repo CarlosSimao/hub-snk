@@ -132,18 +132,6 @@ function lerFuncionalidadesOcultasIniciais(): string[] | undefined {
     .filter(Boolean);
 }
 
-/** Valor que o shell desktop grava quando a caixa do Git AutoSync do instalador vem desmarcada. */
-const AUTOSYNC_DESMARCADO = 'N';
-
-/**
- * Caixa do Git AutoSync do instalador, repassada pelo shell. Só o `N` explícito conta
- * como não instalado: fora do instalador (`npm run dev`, pacote sem o Git AutoSync,
- * instalação silenciosa) não há escolha, e nada fica oculto.
- */
-function lerAutosyncInstaladoInicial(): boolean {
-  return process.env.HUB_AUTOSYNC_INICIAL?.trim().toUpperCase() !== AUTOSYNC_DESMARCADO;
-}
-
 /**
  * Pasta do Git AutoSync: `config.json`, `status.json`, log e `bin/`. A mesma variável
  * que o próprio autosync respeita, para os dois olharem o mesmo lugar.
@@ -154,11 +142,21 @@ function lerPastaDoAutosync(): string {
 }
 
 /**
- * Pacote do autosync que veio com o instalador, repassado pelo shell desktop. Ausente
- * em desenvolvimento: a instalação pela tela responde que o build não tem o pacote.
+ * Pasta com um pacote do autosync já extraído, para testar um build antes de publicar
+ * a Release. Ausente, o normal: a instalação pela tela baixa da Release mais recente.
  */
 function lerPacoteDoAutosync(): string | null {
   const bruto = process.env.HUB_AUTOSYNC_PACOTE?.trim();
+  return bruto ? resolve(bruto) : null;
+}
+
+/**
+ * `%LOCALAPPDATA%\HubSnk` do app instalado, repassado pelo shell desktop só quando
+ * empacotado: é onde a instalação pela aba Git deixa o que a desinstalação do HUB SNK
+ * usa para remover o Git AutoSync junto.
+ */
+function lerPastaDoInstalador(): string | null {
+  const bruto = process.env.HUB_PASTA_DO_INSTALADOR?.trim();
   return bruto ? resolve(bruto) : null;
 }
 
@@ -173,9 +171,9 @@ export const configuracao = {
   acessosIniciais: {
     perfil: lerPerfilInicial(),
     terceiro: lerTerceiroInicial(),
-    autosyncInstalado: lerAutosyncInstaladoInicial(),
     funcionalidadesOcultas: lerFuncionalidadesOcultasIniciais(),
   },
   pastaDoAutosync: lerPastaDoAutosync(),
   pacoteDoAutosync: lerPacoteDoAutosync(),
+  pastaDoInstalador: lerPastaDoInstalador(),
 } as const;

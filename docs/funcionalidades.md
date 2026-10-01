@@ -530,6 +530,62 @@ No cadastro do cliente, a aba **Contatos** mostra só os dele, sem filtro, e o
 **Novo contato** dali já nasce vinculado ao cliente — o campo Cliente nem
 aparece. Excluir um cliente não apaga os contatos dele: eles passam a sem cliente.
 
+## Kanban dos projetos
+
+Cada projeto da aba **Projetos** do cliente tem a seção **Kanbans**, com quantos
+quadros o projeto precisar:
+
+- **Inserir documento**: envia o escopo (`.docx`, `.pdf`, `.md` ou `.txt`, até 20
+  MB). O projeto vem escolhido e pode ser trocado na hora. Com **Gerar as tarefas com
+  a IA** marcado, o assistente de **Configurações › IA** decompõe o escopo em tarefas
+  no Backlog, com resumo e pontos a esclarecer com o cliente. A linha mostra
+  "Analisando com a IA…" e se atualiza sozinha quando termina.
+- **Kanban sem documento**: pede o nome (em branco, o do projeto) e a pasta onde o
+  arquivo de tarefas será criado. O quadro abre vazio.
+
+O quadro tem as colunas Backlog, A fazer, Em andamento, Em revisão e Concluído. As
+tarefas mudam de coluna arrastando o cartão ou na janela da tarefa, que guarda
+título, descrição, grupo, tipo, prioridade, estimativa, critérios de aceite, notas e a
+**lista de verificação**: passos para marcar conforme a tarefa avança, com o texto
+editável no lugar. O cartão mostra quantos itens estão marcados (`✓ 2/5`). O quadro se
+atualiza sozinho quando um agente, o arquivo de tarefas ou a IA mudam alguma coisa,
+sem recarregar o painel.
+Com mais de um kanban no projeto, o quadro mostra todos juntos (cada cartão com o nome
+do seu) ou um de cada vez. **Analisar de novo** troca só as tarefas que continuam no
+Backlog. **Ver documento** mostra o texto extraído e, no PDF, o original.
+
+Excluir um projeto com kanban pergunta o que fazer com eles: excluir junto ou manter
+no cliente, com um nome novo para cada. Os mantidos vão para **Kanbans sem projeto**,
+no fim da aba, até serem vinculados a outro projeto em **Editar o kanban**.
+
+**Editar o kanban** liga duas formas de agentes de IA trabalharem no quadro:
+
+- **Pasta do arquivo de tarefas**: o HUB SNK cria nela a subpasta `Tarefas` com um
+  JSON das tarefas, no nome do projeto. Qualquer agente que edite arquivo muda
+  `estado` e `notas`, e o quadro acompanha em poucos segundos, mesmo que a mudança
+  tenha sido feita com o HUB SNK fechado. Se a pasta estiver num repositório Git, a
+  `Tarefas` entra no `.gitignore`; sem Git, ela só é criada. O selo **Arquivo** na
+  linha do kanban mostra onde ele está e se houve erro.
+- **Disponível para agentes de IA por MCP**: o kanban aparece no servidor MCP do HUB
+  SNK, com as ferramentas `listar_kanbans`, `ler_kanban`, `mudancas_desde`,
+  `mover_tarefa`, `anotar_tarefa`, `criar_tarefa` (sempre no Backlog) e, para a lista
+  de verificação, `adicionar_item_da_lista`, `alterar_item_da_lista` (texto e marcação),
+  `marcar_item_da_lista` e `remover_item_da_lista`. Em
+  **Configurações › MCP › Kanban por MCP** ficam o bloco `mcpServers` para colar na
+  configuração do agente e a lista dos kanbans liberados, com **Tirar do MCP**. O HUB
+  SNK precisa estar aberto.
+
+Em **Configurações › IA** fica o assistente que gera as tarefas — Claude Code, Codex,
+OpenCode, Gemini CLI, Cursor Agent ou o primeiro instalado — e o modelo dele, escolhido numa lista
+lida do próprio assistente — no Claude Code, o catálogo atual, os modelos já usados na
+máquina e os apelidos — ou digitado em **Outro modelo…**. Quando o modelo tem a opção, aparece também o
+**Nível de raciocínio**, com os níveis que ele aceita: no Claude Code de Baixo a
+Máximo (menos no Haiku), no Codex os níveis de cada modelo do catálogo e no OpenCode as
+variantes do modelo. O Gemini CLI e o Cursor não têm a opção. O kanban registra o nível
+usado junto do modelo, em "Gerado por". O Codex e o Cursor não leem PDF: para eles o
+HUB SNK extrai o texto do PDF e o manda junto. PDF digitalizado, sem texto, precisa de
+um assistente que leia o arquivo.
+
 ## Acessos por perfil
 
 O HUB SNK atende perfis diferentes, e cada um vê só o que usa. Em
@@ -549,8 +605,7 @@ abriria vazia.
 | Gerente de projeto | aba Git do cliente, aba Git do menu e a aba Local |
 
 O perfil é perguntado na instalação, e o preset dele vale desde a primeira
-abertura. O Git AutoSync deixado desmarcado no instalador oculta, por cima do preset,
-a aba **Git** do menu e a seção **AutoSync** do cliente. Trocar o perfil na aba Acessos marca as caixas do preset; depois disso
+abertura. Trocar o perfil na aba Acessos marca as caixas do preset; depois disso
 elas seguem editáveis, uma a uma. Salvar com o perfil ou as caixas alterados
 recarrega o Painel, que volta montado do zero com os acessos novos; as guias do
 Sankhya e das bases continuam abertas. Reinstalar ou atualizar não desfaz o ajuste: o
@@ -656,8 +711,9 @@ clicar. Para de rodar sozinho quando a aba perde o foco ou é minimizada.
 
 ## Git AutoSync
 
-O Git AutoSync é um programa à parte, oferecido como opcional no instalador (veja
-[Distribuição](distribuicao.md#o-git-autosync)), que faz commit e push dos
+O Git AutoSync é um programa à parte, com licença própria, que não vem no instalador
+do HUB SNK e é instalado pela própria aba **Git** (veja
+[Distribuição](distribuicao.md#o-git-autosync)). Ele faz commit e push dos
 repositórios cadastrados nele nos horários de uma tarefa do Agendador do Windows. O
 HUB SNK mostra e controla esse trabalho em três lugares: a aba **Git** do menu
 principal, a seção **AutoSync** no fim da aba **Git** do cliente e a aba **Git** das
@@ -672,6 +728,14 @@ gravassem ao mesmo tempo, e mudar os horários só no arquivo deixaria o Agendad
 dizendo outra coisa.
 
 ### A aba Git do menu
+
+O cabeçalho tem sempre o ícone de informação, que explica o que é o Git AutoSync e
+abre o repositório dele. Sem o Git AutoSync instalado, as seções abaixo aparecem
+acinzentadas e sem resposta ao clique, e o cabeçalho ganha o botão **Instalar o Git
+AutoSync**: ele confere se o Git está na máquina (sem ele, mostra o endereço
+`https://git-scm.com/` e o botão **Verificar de novo**) e, com o Git, abre as opções
+da instalação, que baixa a versão mais recente da Release do repositório. Instalado,
+o botão some.
 
 - **Estado**: versão instalada, última rodada geral e as tarefas do Agendador. Horário
   configurado sem tarefa no Agendador — agendamento que parece ligado e nunca roda —

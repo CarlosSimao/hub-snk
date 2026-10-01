@@ -40,6 +40,9 @@ src/
   rotas/rotasLembretes.ts                   cadastro dos lembretes e prévia do cron
   rotas/rotasContatos.ts                    cadastro dos contatos
   rotas/rotasAutosync.ts                    Git AutoSync: visão, repositórios, horários, commit, push, MR e token do GitLab
+  rotas/rotasKanban.ts                      kanban dos projetos: documento de escopo, análise pela IA e tarefas
+  rotas/rotasMcp.ts                         o lado do HUB SNK do servidor MCP do kanban, com a trava dos liberados
+  mcp/servidorMcp.ts                        servidor MCP por stdio que os agentes rodam; fala só com /api/mcp/*
   rotas/esquemaDeNotificacoes.ts            validação do SMTP e do alerta da agenda
   rotas/esquemaDeConfiguracaoMcp.ts         validação do .sankhya-mcp.env, comum ao repositório e à base local
   rotas/autenticacaoDoShell.ts              confere o token das rotas que só o shell desktop chama
@@ -70,6 +73,13 @@ src/
   autosync/sincronizacaoComClientes.ts      situação de cada repositório de cliente no Git AutoSync e sugestão de pasta-raiz
   autosync/sugestoesDeCorrecao.ts           explicação e comandos para a falha, lidos da saída do CLI
   autosync/variaveisDoGitlab.ts             host e token do GitLab nas variáveis de ambiente do usuário
+  kanban/tiposDoKanban.ts                   colunas, tipos e prioridades das tarefas, demandas e assistentes de IA
+  kanban/kanbanDosProjetos.ts               demandas, tarefas e transições do kanban em SQLite, e os documentos em disco
+  kanban/textoDoDocx.ts                     texto corrido de um .docx, sem dependência nova
+  kanban/textoDoPdf.ts                      texto corrido de um PDF, sem dependência nova, para quem não lê PDF
+  kanban/assistentesDeIa.ts                 claude, codex, opencode, gemini e cursor-agent: detecção, modelos e execução isolada
+  kanban/arquivoDeTarefas.ts                arquivo JSON de tarefas em <pasta>/Tarefas, gravado e vigiado
+  kanban/analiseDeEscopo.ts                 prompt do escopo e leitura do JSON de tarefas devolvido pela IA
   sistema/observadorDeDados.ts              descarta o cache quando a pasta de dados muda no disco
   sistema/pasta.ts                          checagem de existência de diretório
   sistema/abrirPasta.ts                     abre uma pasta no gerenciador do SO
@@ -95,6 +105,7 @@ src/
 public/
   index.html  styles.css  app.js            interface, sem framework e sem build
   buscaRapida.js                            índice e ordenação dos resultados da busca rápida (Ctrl+K)
+  kanban.js                                 kanban da aba Projetos: seção do projeto, órfãs, quadro e janelas
   leitorDeFavoritos.js                      lê o arquivo de favoritos de qualquer navegador suportado
   leitorDeArquivoDeCadastros.js             lê o .txt de cadastros gerado pelo Exportar e pelo Compartilhar
   tipoDeBaseNoNome.js                       tira Produção/Teste do nome do favorito
@@ -128,10 +139,9 @@ desktop/                                    shell Electron: o aplicativo que o u
   src/ruffle.ts  src/preloadRuffle.ts       compatibilidade com Flash pelo Ruffle, injetado no começo de cada frame
   src/barraDeBusca.ts  src/preloadBarraDeBusca.ts  barraDeBusca.html  barraDeBusca.js   barra do Ctrl+F na guia ativa
   scripts/preparar-hub.mjs                  monta o backend do pacote, só com as dependências de produção
-  scripts/preparar-autosync.mjs             monta os binários do Git AutoSync para o instalador
   instalador/remover-versao-pwa.ps1         remove a instalação PWA antiga, preservando o cadastro
   assets/installer.nsh                      personalização do NSIS: remoção da PWA, página de perfil (com a caixa
-                                            Terceiro) e página do Git AutoSync
+                                            Terceiro)
   electron-builder.yml                      identidade, recursos e alvos do instalador
 ```
 

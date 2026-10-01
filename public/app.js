@@ -14,6 +14,7 @@ import {
   registrarUsoRecente,
   ROTULOS_DOS_TIPOS,
 } from './buscaRapida.js';
+import { iniciarKanban } from './kanban.js';
 import { lerArvoreDeFavoritos } from './leitorDeFavoritos.js';
 import { separarTipoDoNome } from './tipoDeBaseNoNome.js';
 
@@ -219,6 +220,8 @@ const ICONES = {
   exportar: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 8l5-5 5 5 M12 3v12',
   /* Elos de corrente: o botão que vincula o parceiro do evento a um cliente do HUB. */
   link: 'M15 7h3a5 5 0 0 1 0 10h-3 M9 17H6a5 5 0 0 1 0-10h3 M8 12h8',
+  /* Círculo com "i": o botão que explica o que é o Git AutoSync. */
+  info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 16v-4 M12 8h.01',
   /* Sino: o botão que abre o painel de notificações. */
   sino: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0',
   /* Lupa: o botão que abre a busca rápida. */
@@ -437,6 +440,14 @@ const elementos = {
   mountAutosync: document.getElementById('mount-autosync'),
   ultimaAtualizacaoAutosync: document.getElementById('ultima-atualizacao-autosync'),
   botaoAtualizarAutosync: document.getElementById('btn-atualizar-autosync'),
+  botaoInstalarAutosync: document.getElementById('btn-instalar-autosync'),
+  botaoSobreAutosync: document.getElementById('btn-sobre-autosync'),
+  modalSobreAutosync: document.getElementById('modal-autosync-sobre'),
+  botaoFecharSobreAutosync: document.getElementById('btn-fechar-autosync-sobre'),
+  modalSemGitAutosync: document.getElementById('modal-autosync-sem-git'),
+  erroSemGitAutosync: document.getElementById('erro-autosync-sem-git'),
+  botaoFecharSemGitAutosync: document.getElementById('btn-fechar-autosync-sem-git'),
+  botaoVerificarGitAutosync: document.getElementById('btn-verificar-git-autosync'),
   modalCommitAutosync: document.getElementById('modal-autosync-commit'),
   formularioCommitAutosync: document.getElementById('formulario-autosync-commit'),
   tituloModalCommitAutosync: document.getElementById('modal-autosync-commit-titulo'),
@@ -587,6 +598,16 @@ const elementos = {
   abaConfiguracaoAvisos: document.getElementById('aba-configuracao-avisos'),
   abaConfiguracaoAcessos: document.getElementById('aba-configuracao-acessos'),
   abaConfiguracaoGit: document.getElementById('aba-configuracao-git'),
+  abaConfiguracaoIa: document.getElementById('aba-configuracao-ia'),
+  painelConfiguracaoIa: document.getElementById('painel-configuracao-ia'),
+  campoAssistenteIa: document.getElementById('campo-assistente-ia'),
+  campoModeloIa: document.getElementById('campo-modelo-ia'),
+  campoModeloIaOutro: document.getElementById('campo-modelo-ia-outro'),
+  blocoModeloIaOutro: document.getElementById('bloco-modelo-ia-outro'),
+  campoRaciocinioIa: document.getElementById('campo-raciocinio-ia'),
+  blocoRaciocinioIa: document.getElementById('bloco-raciocinio-ia'),
+  situacaoAssistenteIa: document.getElementById('situacao-assistente-ia'),
+  botaoAtualizarAssistentesIa: document.getElementById('btn-atualizar-assistentes-ia'),
   painelConfiguracaoGit: document.getElementById('painel-configuracao-git'),
   campoGitlabHost: document.getElementById('campo-gitlab-host'),
   campoGitlabToken: document.getElementById('campo-gitlab-token'),
@@ -645,6 +666,7 @@ const elementos = {
   botaoVerSenhaConfigMcp: document.getElementById('btn-ver-senha-config-mcp'),
   botaoImportarEnvMcp: document.getElementById('btn-importar-env-mcp'),
   grupoSankhyaSchema: document.getElementById('grupo-sankhya-schema'),
+  grupoKanbanMcp: document.getElementById('grupo-kanban-mcp'),
   erroConfiguracao: document.getElementById('erro-configuracao'),
   botaoSalvarConfiguracao: document.getElementById('btn-salvar-configuracao'),
   botaoCancelarConfiguracao: document.getElementById('btn-cancelar-configuracao'),
@@ -847,6 +869,8 @@ async function requisitar(caminho, opcoes = {}) {
     erro.sugestoes = Array.isArray(conteudo?.sugestoes) ? conteudo.sugestoes : [];
     // Chave de DESTINOS_DE_CONFIGURACAO_PENDENTE: o erro ganha o link para a configuração.
     erro.configuracaoPendente = conteudo?.configuracaoPendente ?? null;
+    // A instalação do Git AutoSync recusa sem o Git: a tela manda baixá-lo.
+    erro.gitAusente = Boolean(conteudo?.gitAusente);
     throw erro;
   }
 
@@ -1041,6 +1065,7 @@ const api = {
     requisitar(forcar ? `${CAMINHO_DA_SITUACAO_GIT}?forcar=true` : CAMINHO_DA_SITUACAO_GIT),
 
   lerConfiguracao: () => requisitar(CAMINHO_DA_CONFIGURACAO),
+  assistentesDeIa: () => requisitar(`${CAMINHO_DA_CONFIGURACAO}/assistentes-de-ia`),
   salvarConfiguracao: (configuracao) =>
     requisitar(CAMINHO_DA_CONFIGURACAO, { metodo: 'PUT', corpo: configuracao }),
   lerConfiguracaoMcpGlobal: () => requisitar(`${CAMINHO_DA_CONFIGURACAO}/mcp`),
@@ -1092,6 +1117,7 @@ const api = {
 
   visaoDoAutosync: () => requisitar(`${CAMINHO_DO_AUTOSYNC}?clientes=true`),
   repositoriosDosClientesNoAutosync: () => requisitar(`${CAMINHO_DO_AUTOSYNC}/clientes`),
+  gitDaMaquina: () => requisitar(`${CAMINHO_DO_AUTOSYNC}/git`),
   instalarAutosync: (opcoes) =>
     requisitar(`${CAMINHO_DO_AUTOSYNC}/instalar`, { metodo: 'POST', corpo: opcoes }),
   adicionarAoAutosync: (caminho, tipo) =>
@@ -2084,6 +2110,7 @@ function criarCardDeProjeto(cliente, projeto) {
   corpo.append(
     criarCampoDeAnotacoesDoProjeto(cliente, projeto),
     criarSecaoDeLinksDoProjeto(cliente, projeto),
+    kanban.criarSecaoDoProjeto(cliente, projeto),
   );
 
   const card = criarElemento('div', 'card card-projeto');
@@ -2091,14 +2118,17 @@ function criarCardDeProjeto(cliente, projeto) {
   return card;
 }
 
+/* Os kanbans cujo projeto foi excluído ficam no fim da aba, até serem vinculados a outro. */
 function criarSecaoDeProjetos(cliente) {
-  return criarSecaoDeRecursos({
+  const secao = criarSecaoDeRecursos({
     titulo: null,
     rotuloDoBotao: 'Adicionar projeto',
     aoAdicionar: () => abrirModalDeCadastroDeProjeto(cliente),
     linhas: cliente.projetos.map((projeto) => criarCardDeProjeto(cliente, projeto)),
     mensagemVazia: 'Nenhum projeto cadastrado para este cliente.',
   });
+  secao.append(kanban.criarSecaoDeOrfaos(cliente));
+  return secao;
 }
 
 /** O rascunho tem precedência sobre o gravado: é o que o usuário acabou de digitar. */
@@ -5777,6 +5807,7 @@ function selecionarAbaDaConfiguracao(abaEscolhida) {
     { aba: elementos.abaConfiguracaoSmtp, painel: elementos.painelConfiguracaoSmtp },
     { aba: elementos.abaConfiguracaoAvisos, painel: elementos.painelConfiguracaoAvisos },
     { aba: elementos.abaConfiguracaoGit, painel: elementos.painelConfiguracaoGit },
+    { aba: elementos.abaConfiguracaoIa, painel: elementos.painelConfiguracaoIa },
     { aba: elementos.abaConfiguracaoAcessos, painel: elementos.painelConfiguracaoAcessos },
     { aba: elementos.abaConfiguracaoSobre, painel: elementos.painelConfiguracaoSobre },
   ];
@@ -6090,6 +6121,7 @@ async function abrirModalDeConfiguracao() {
   exibirResultadoDoTesteDoSmtp(null);
   definirVisibilidadeDoCampo(elementos.campoSmtpSenha, elementos.botaoVerSenhaSmtp, false);
   preencherGitlabDaConfiguracao({ host: '', tokenDefinido: false });
+  preencherAssistenteDeIaDaConfiguracao(ASSISTENTE_DE_IA_PADRAO);
 
   try {
     const configuracao = await api.lerConfiguracao();
@@ -6111,6 +6143,7 @@ async function abrirModalDeConfiguracao() {
       configuracao.smtp ?? SMTP_PADRAO,
       configuracao.alertaDaAgenda ?? ALERTA_DA_AGENDA_PADRAO,
     );
+    preencherAssistenteDeIaDaConfiguracao(configuracao.assistenteDeIa ?? ASSISTENTE_DE_IA_PADRAO);
   } catch (erro) {
     exibirAviso(`Não foi possível carregar as configurações: ${erro.message}`, 'erro');
     return;
@@ -6366,6 +6399,7 @@ async function salvarConfiguracao(evento) {
       terceiro: elementos.campoTerceiro.checked,
       smtp: lerSmtpDaConfiguracao(),
       alertaDaAgenda: lerAlertaDaAgendaDaConfiguracao(),
+      assistenteDeIa: lerAssistenteDeIaDaConfiguracao(),
     });
     elementos.modalConfiguracao.close();
     if (acessosMudaram(salva)) {
@@ -6384,6 +6418,223 @@ async function salvarConfiguracao(evento) {
     exibirErro(elementos.erroConfiguracao, erro.message);
   } finally {
     elementos.botaoSalvarConfiguracao.disabled = false;
+  }
+}
+
+/* ------------------------- assistente de IA do kanban ---------------------- */
+
+const ASSISTENTE_DE_IA_PADRAO = { assistente: 'auto', modelo: '' };
+
+const NOMES_DOS_ASSISTENTES_DE_IA = {
+  auto: 'Automático (o primeiro instalado)',
+  claude: 'Claude Code',
+  codex: 'Codex',
+  opencode: 'OpenCode',
+  gemini: 'Gemini CLI',
+  cursor: 'Cursor Agent',
+};
+
+/*
+ * Os assistentes da máquina, lidos ao abrir a aba IA: listar os modelos roda o CLI de
+ * cada um e leva alguns segundos, o que não pode atrasar a abertura das configurações.
+ */
+let assistentesDeIaDaMaquina = null;
+let consultaDosAssistentesDeIa = null;
+
+function preencherOpcoesDosAssistentesDeIa(selecionado) {
+  const opcoes = Object.entries(NOMES_DOS_ASSISTENTES_DE_IA).map(([id, nome]) => {
+    const situacao = assistentesDeIaDaMaquina?.find((assistente) => assistente.id === id);
+    const naoInstalado = situacao && !situacao.instalado;
+    const opcao = new Option(naoInstalado ? `${nome} (não instalado)` : nome, id);
+    // O gravado continua escolhível mesmo sumido da máquina: senão o Salvar o trocaria calado.
+    opcao.disabled = Boolean(naoInstalado) && id !== selecionado;
+    return opcao;
+  });
+  elementos.campoAssistenteIa.replaceChildren(...opcoes);
+  elementos.campoAssistenteIa.value = selecionado;
+}
+
+/* Valor da opção que abre o campo para digitar um modelo fora da lista. */
+const OUTRO_MODELO_DE_IA = '__outro__';
+
+/*
+ * O modelo escolhido, guardado à parte do campo: a lista de modelos só chega depois que
+ * a aba IA abre, e redesenhar o `<select>` antes disso perderia o que estava gravado.
+ */
+let modeloDeIaEscolhido = '';
+let raciocinioDeIaEscolhido = '';
+
+const ROTULOS_DOS_NIVEIS_DE_RACIOCINIO = {
+  minimal: 'Mínimo',
+  low: 'Baixo',
+  medium: 'Médio',
+  high: 'Alto',
+  xhigh: 'Muito alto',
+  max: 'Máximo',
+  ultra: 'Ultra',
+};
+
+function preencherAssistenteDeIaDaConfiguracao(configuracao) {
+  preencherOpcoesDosAssistentesDeIa(configuracao.assistente);
+  modeloDeIaEscolhido = configuracao.modelo;
+  raciocinioDeIaEscolhido = configuracao.raciocinio ?? '';
+  aplicarAssistenteEscolhido();
+}
+
+function lerAssistenteDeIaDaConfiguracao() {
+  const assistente = elementos.campoAssistenteIa.value;
+  const automatico = assistente === 'auto';
+  return {
+    assistente,
+    modelo: automatico ? '' : modeloDeIaEscolhido.trim(),
+    raciocinio: automatico || elementos.blocoRaciocinioIa.hidden ? '' : raciocinioDeIaEscolhido,
+  };
+}
+
+/* Os apelidos do Claude Code apontam sempre para o mais novo da família: o rótulo diz isso. */
+function rotuloDoModeloDeIa(modelo) {
+  return /^(opus|sonnet|haiku|fable)$/.test(modelo)
+    ? `${modelo} (sempre o ${modelo.charAt(0).toUpperCase()}${modelo.slice(1)} mais novo)`
+    : modelo;
+}
+
+/* Lista do assistente, mais "Padrão" e "Outro modelo…"; o gravado fora da lista vai para o Outro. */
+function desenharModelosDeIa(situacao, automatico) {
+  const modelos = situacao?.modelos ?? [];
+  const padrao = situacao?.modeloPadrao
+    ? `Padrão do assistente (${situacao.modeloPadrao})`
+    : 'Padrão do assistente';
+  const opcoes = [new Option(automatico ? 'Padrão do assistente escolhido' : padrao, '')];
+  for (const modelo of modelos) {
+    opcoes.push(new Option(rotuloDoModeloDeIa(modelo), modelo));
+  }
+  if (!automatico) {
+    opcoes.push(new Option('Outro modelo…', OUTRO_MODELO_DE_IA));
+  }
+  elementos.campoModeloIa.replaceChildren(...opcoes);
+
+  const naLista = modeloDeIaEscolhido === '' || modelos.includes(modeloDeIaEscolhido);
+  elementos.campoModeloIa.value = naLista ? modeloDeIaEscolhido : OUTRO_MODELO_DE_IA;
+  elementos.campoModeloIaOutro.value = naLista ? '' : modeloDeIaEscolhido;
+  elementos.blocoModeloIaOutro.hidden = naLista;
+}
+
+/*
+ * Os níveis do modelo escolhido. Modelo digitado em "Outro" fica com os níveis gerais do
+ * assistente, quando ele tem (o Claude Code aceita o `--effort` em qualquer modelo).
+ */
+function niveisDoModeloDeIa(situacao) {
+  const porModelo = situacao?.raciocinio ?? {};
+  const modelo = modeloDeIaEscolhido.trim();
+  // Modelo da lista sem níveis (o Haiku) não tem a opção; só o digitado herda os gerais.
+  const digitado = modelo !== '' && !(situacao?.modelos ?? []).includes(modelo);
+  return porModelo[modelo] ?? (digitado && situacao?.id === 'claude' ? porModelo[''] : null);
+}
+
+function desenharRaciocinioDeIa(situacao, automatico) {
+  const niveis = automatico ? null : niveisDoModeloDeIa(situacao);
+  elementos.blocoRaciocinioIa.hidden = !niveis?.niveis.length;
+  if (!niveis?.niveis.length) {
+    return;
+  }
+  if (!niveis.niveis.includes(raciocinioDeIaEscolhido)) {
+    raciocinioDeIaEscolhido = '';
+  }
+  const rotulo = (nivel) =>
+    ROTULOS_DOS_NIVEIS_DE_RACIOCINIO[nivel]
+      ? `${ROTULOS_DOS_NIVEIS_DE_RACIOCINIO[nivel]} (${nivel})`
+      : nivel;
+  const padrao = niveis.padrao ? `Padrão do modelo: ${rotulo(niveis.padrao)}` : 'Padrão do modelo';
+  elementos.campoRaciocinioIa.replaceChildren(
+    new Option(padrao, ''),
+    ...niveis.niveis.map((nivel) => new Option(rotulo(nivel), nivel)),
+  );
+  elementos.campoRaciocinioIa.value = raciocinioDeIaEscolhido;
+}
+
+function situacaoDoAssistenteDeIaEscolhido() {
+  const id = elementos.campoAssistenteIa.value;
+  return assistentesDeIaDaMaquina?.find((assistente) => assistente.id === id);
+}
+
+/* Troca de assistente esvazia o modelo: o nome de um não vale para outro. */
+function aplicarAssistenteEscolhido({ trocouDeAssistente = false } = {}) {
+  const id = elementos.campoAssistenteIa.value;
+  const automatico = id === 'auto';
+  if (automatico || trocouDeAssistente) {
+    modeloDeIaEscolhido = '';
+    raciocinioDeIaEscolhido = '';
+  }
+  const situacao = assistentesDeIaDaMaquina?.find((assistente) => assistente.id === id);
+  desenharModelosDeIa(situacao, automatico);
+  desenharRaciocinioDeIa(situacao, automatico);
+  elementos.campoModeloIa.disabled = automatico;
+  elementos.situacaoAssistenteIa.textContent = assistentesDeIaDaMaquina
+    ? descreverAssistenteDeIa(id)
+    : 'Abrindo a lista de assistentes instalados…';
+}
+
+function aplicarModeloEscolhido() {
+  const outro = elementos.campoModeloIa.value === OUTRO_MODELO_DE_IA;
+  elementos.blocoModeloIaOutro.hidden = !outro;
+  modeloDeIaEscolhido = outro ? elementos.campoModeloIaOutro.value : elementos.campoModeloIa.value;
+  desenharRaciocinioDeIa(situacaoDoAssistenteDeIaEscolhido(), false);
+  if (outro) {
+    elementos.campoModeloIaOutro.focus();
+  }
+}
+
+function descreverAssistenteDeIa(id) {
+  if (!assistentesDeIaDaMaquina) {
+    return '';
+  }
+  if (id === 'auto') {
+    const primeiro = assistentesDeIaDaMaquina.find((assistente) => assistente.instalado);
+    return primeiro
+      ? `Usa o ${primeiro.nome}, o primeiro instalado, com o modelo padrão dele.`
+      : 'Nenhum assistente encontrado nesta máquina.';
+  }
+  const assistente = assistentesDeIaDaMaquina.find((item) => item.id === id);
+  if (!assistente?.instalado) {
+    return 'Não encontrado nesta máquina: a análise vai falhar até ele ser instalado.';
+  }
+  const partes = [`Instalado em ${assistente.caminho}.`];
+  if (assistente.modeloPadrao) {
+    partes.push(`Modelo padrão: ${assistente.modeloPadrao}.`);
+  }
+  partes.push(
+    assistente.lePdf
+      ? 'Lê o PDF do escopo sozinho.'
+      : 'Não lê PDF: o HUB SNK extrai o texto do PDF e manda junto.',
+  );
+  return partes.join(' ');
+}
+
+async function carregarAssistentesDeIa(forcar = false) {
+  if (assistentesDeIaDaMaquina && !forcar) {
+    aplicarAssistenteEscolhido();
+    return;
+  }
+  if (!consultaDosAssistentesDeIa) {
+    elementos.botaoAtualizarAssistentesIa.disabled = true;
+    elementos.situacaoAssistenteIa.textContent = 'Procurando os assistentes instalados…';
+    consultaDosAssistentesDeIa = api
+      .assistentesDeIa()
+      .then(({ assistentes }) => {
+        assistentesDeIaDaMaquina = assistentes;
+      })
+      .catch((erro) => {
+        elementos.situacaoAssistenteIa.textContent = `Não foi possível procurar os assistentes: ${erro.message}`;
+      })
+      .finally(() => {
+        consultaDosAssistentesDeIa = null;
+        elementos.botaoAtualizarAssistentesIa.disabled = false;
+      });
+  }
+  await consultaDosAssistentesDeIa;
+  if (assistentesDeIaDaMaquina) {
+    preencherOpcoesDosAssistentesDeIa(elementos.campoAssistenteIa.value);
+    aplicarAssistenteEscolhido();
   }
 }
 
@@ -6546,7 +6797,11 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false 
 
   const repositoriosVisiveis = funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS);
   elementos.botaoFiltros.hidden = !repositoriosVisiveis;
-  elementos.abaConfiguracaoMcp.hidden = !repositoriosVisiveis;
+  // A aba MCP também guarda o MCP do kanban, que mora em Projetos: some só sem os dois.
+  const projetosVisiveis = funcionalidadeVisivel('cliente.projetos');
+  elementos.abaConfiguracaoMcp.hidden = !repositoriosVisiveis && !projetosVisiveis;
+  elementos.grupoSankhyaSchema.hidden = !repositoriosVisiveis;
+  elementos.grupoKanbanMcp.hidden = !projetosVisiveis;
   if (!repositoriosVisiveis) {
     // Filtro marcado e escondido sumiria com clientes sem o usuário ter como desfazer.
     estado.situacoesFiltradas.clear();
@@ -8548,7 +8803,12 @@ function pedirExclusaoDeLink(cliente, link) {
   );
 }
 
+/* Com kanban, quem pergunta o que fazer com eles é o `kanban.js`. */
 function pedirExclusaoDeProjeto(cliente, projeto) {
+  void kanban.pedirExclusaoDeProjeto(cliente, projeto);
+}
+
+function pedirExclusaoDeProjetoSemKanban(cliente, projeto) {
   pedirExclusao(
     'Excluir projeto',
     `Excluir o projeto "${projeto.nome}" de ${cliente.nome}? Esta ação não pode ser desfeita.`,
@@ -10578,18 +10838,15 @@ function tirarDoAutosync(caminho) {
 
 /* ---------------------------- aba do menu ---------------------------------- */
 
-function criarAvisoDeAutosyncNaoInstalado(comBotao) {
+function criarAvisoDeAutosyncNaoInstalado() {
   const aviso = criarElemento('div', 'aviso-shell aviso-do-autosync');
   aviso.append(
     criarElemento(
       'p',
       null,
-      'O Git AutoSync não está instalado nesta máquina. Ele exige o Git no PATH: se a instalação falhar, é o motivo mais comum.',
+      'O Git AutoSync não está instalado nesta máquina. Instale pela aba Git do menu principal.',
     ),
   );
-  if (comBotao) {
-    aviso.append(criarBotao('btn tiny primario', 'Instalar', abrirModalDeInstalacaoDoAutosync));
-  }
   return aviso;
 }
 
@@ -11073,9 +11330,30 @@ function renderizarUltimaAtualizacaoDoAutosync() {
     : '';
 }
 
+/**
+ * Sem o Git AutoSync, a aba mostra as mesmas seções acinzentadas e inertes: dá para ver
+ * o que ele oferece, e só o cabeçalho (instalar e saber mais) responde ao clique.
+ */
+function criarPreviaDoAutosyncIndisponivel(visaoLida) {
+  /* Tarefas do Agendador sobram de uma instalação antiga e dariam a prévia como ativa. */
+  const visao = { ...visaoLida, tarefas: [] };
+  const previa = criarElemento('div', 'autosync-indisponivel');
+  previa.inert = true;
+  previa.setAttribute('aria-hidden', 'true');
+  previa.append(
+    criarSecaoDeEstadoDoAutosync(visao),
+    criarSecaoDeAgendamentoDoAutosync(visao),
+    criarSecaoDaMensagemDoAutosync(visao),
+    criarSecaoDeRepositoriosDoAutosync(visao),
+    criarSecaoDoLogDoAutosync(),
+  );
+  return previa;
+}
+
 function renderizarAutosync() {
   renderizarUltimaAtualizacaoDoAutosync();
   const { visao, erroDeCarga } = estado.autosync;
+  elementos.botaoInstalarAutosync.hidden = !visao || visao.instalado;
 
   if (!visao) {
     elementos.mountAutosync.replaceChildren(
@@ -11092,7 +11370,7 @@ function renderizarAutosync() {
   }
 
   if (!visao.instalado) {
-    partes.push(criarAvisoDeAutosyncNaoInstalado(true));
+    partes.push(criarPreviaDoAutosyncIndisponivel(visao));
     elementos.mountAutosync.replaceChildren(...partes);
     return;
   }
@@ -11195,9 +11473,7 @@ function criarSecaoDoAutosyncDoCliente(cliente) {
     }
 
     if (!visao.instalado) {
-      const aviso = criarAvisoDeAutosyncNaoInstalado(false);
-      aviso.append(criarElemento('p', null, 'Instale pela aba Git do menu principal.'));
-      secao.replaceChildren(cabecalho, aviso);
+      secao.replaceChildren(cabecalho, criarAvisoDeAutosyncNaoInstalado());
       return;
     }
 
@@ -11443,6 +11719,58 @@ async function abrirHistoricoDoAutosync(caminho) {
   }
 }
 
+/**
+ * O botão Instalar pergunta pelo Git antes de abrir o diálogo: sem ele a instalação seria
+ * recusada só depois de a pessoa escolher as opções.
+ */
+async function iniciarInstalacaoDoAutosync() {
+  const botao = elementos.botaoInstalarAutosync;
+  botao.disabled = true;
+  try {
+    const git = await api.gitDaMaquina();
+    if (git.instalado) {
+      abrirModalDeInstalacaoDoAutosync();
+    } else {
+      abrirModalSemGitDoAutosync();
+    }
+  } catch (erro) {
+    exibirAviso(erro.message, 'erro');
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+function abrirModalSemGitDoAutosync() {
+  limparErro(elementos.erroSemGitAutosync);
+  if (!elementos.modalSemGitAutosync.open) {
+    elementos.modalSemGitAutosync.showModal();
+  }
+}
+
+async function verificarGitDeNovoParaOAutosync() {
+  const botao = elementos.botaoVerificarGitAutosync;
+  limparErro(elementos.erroSemGitAutosync);
+  botao.disabled = true;
+  botao.textContent = 'Verificando…';
+  try {
+    const git = await api.gitDaMaquina();
+    if (git.instalado) {
+      elementos.modalSemGitAutosync.close();
+      abrirModalDeInstalacaoDoAutosync();
+      return;
+    }
+    exibirErro(
+      elementos.erroSemGitAutosync,
+      'O Git ainda não foi encontrado. Se acabou de instalá-lo, reinicie o HUB SNK.',
+    );
+  } catch (erro) {
+    exibirErro(elementos.erroSemGitAutosync, erro.message);
+  } finally {
+    botao.disabled = false;
+    botao.textContent = 'Verificar de novo';
+  }
+}
+
 function abrirModalDeInstalacaoDoAutosync() {
   elementos.campoHorarioInstalacaoAutosync.value = '17:30';
   elementos.campoBandejaInstalacaoAutosync.checked = false;
@@ -11473,6 +11801,11 @@ async function instalarAutosync(evento) {
     exibirAviso('Git AutoSync instalado.');
     await recarregarAutosync();
   } catch (erro) {
+    if (erro.gitAusente) {
+      elementos.modalInstalacaoAutosync.close();
+      abrirModalSemGitDoAutosync();
+      return;
+    }
     exibirErro(elementos.erroInstalacaoAutosync, erro.message);
   } finally {
     elementos.botaoConfirmarInstalacaoAutosync.disabled = false;
@@ -11486,6 +11819,18 @@ function registrarEventosDoAutosync() {
   );
   elementos.botaoAtualizarAutosync.append(criarIcone(ICONES.recarregar));
   elementos.botaoAtualizarAutosync.addEventListener('click', () => recarregarAutosync());
+  elementos.botaoSobreAutosync.append(criarIcone(ICONES.info));
+  elementos.botaoSobreAutosync.addEventListener('click', () =>
+    elementos.modalSobreAutosync.showModal(),
+  );
+  elementos.botaoFecharSobreAutosync.addEventListener('click', () =>
+    elementos.modalSobreAutosync.close(),
+  );
+  elementos.botaoInstalarAutosync.addEventListener('click', iniciarInstalacaoDoAutosync);
+  elementos.botaoVerificarGitAutosync.addEventListener('click', verificarGitDeNovoParaOAutosync);
+  elementos.botaoFecharSemGitAutosync.addEventListener('click', () =>
+    elementos.modalSemGitAutosync.close(),
+  );
 
   elementos.formularioCommitAutosync.addEventListener('submit', confirmarCommitDoAutosync);
   elementos.botaoPreviaAutosync.addEventListener('click', gerarPreviaDoCommitDoAutosync);
@@ -11586,9 +11931,12 @@ function registrarEventos() {
   elementos.abaConfiguracaoGeral.addEventListener('click', () =>
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGeral),
   );
-  elementos.abaConfiguracaoMcp.addEventListener('click', () =>
-    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoMcp),
-  );
+  elementos.abaConfiguracaoMcp.addEventListener('click', () => {
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoMcp);
+    if (funcionalidadeVisivel('cliente.projetos')) {
+      void kanban.carregarMcpDaConfiguracao();
+    }
+  });
   elementos.abaConfiguracaoAtalhos.addEventListener('click', () =>
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoAtalhos),
   );
@@ -11611,6 +11959,24 @@ function registrarEventos() {
   elementos.botaoTestarSmtp.addEventListener('click', testarSmtp);
   elementos.abaConfiguracaoGit.addEventListener('click', () =>
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGit),
+  );
+  elementos.abaConfiguracaoIa.addEventListener('click', () => {
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoIa);
+    void carregarAssistentesDeIa();
+  });
+  elementos.campoAssistenteIa.addEventListener('change', () =>
+    aplicarAssistenteEscolhido({ trocouDeAssistente: true }),
+  );
+  elementos.campoModeloIa.addEventListener('change', aplicarModeloEscolhido);
+  elementos.campoModeloIaOutro.addEventListener('input', () => {
+    modeloDeIaEscolhido = elementos.campoModeloIaOutro.value;
+    desenharRaciocinioDeIa(situacaoDoAssistenteDeIaEscolhido(), false);
+  });
+  elementos.campoRaciocinioIa.addEventListener('change', () => {
+    raciocinioDeIaEscolhido = elementos.campoRaciocinioIa.value;
+  });
+  elementos.botaoAtualizarAssistentesIa.addEventListener('click', () =>
+    carregarAssistentesDeIa(true),
   );
   elementos.botaoVerTokenGitlab.addEventListener('click', () =>
     definirVisibilidadeDoCampo(
@@ -11944,5 +12310,21 @@ async function iniciar() {
   void carregarNotificacoes().then(renderizarResumoSeVisivel);
   conectarFluxoDeNotificacoes();
 }
+
+const kanban = iniciarKanban({
+  requisitar,
+  criarElemento,
+  criarBotao,
+  criarBotaoDeIcone,
+  ICONES,
+  exibirAviso,
+  exibirErro,
+  limparErro,
+  pedirExclusao,
+  recarregarClientes,
+  selecionarPasta: () => api.selecionarPasta(),
+  clienteSelecionado,
+  excluirProjetoSemKanban: pedirExclusaoDeProjetoSemKanban,
+});
 
 iniciar();

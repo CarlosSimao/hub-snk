@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
@@ -158,7 +158,7 @@ describe('CliDoAutosyncProcesso', () => {
     assert.deepEqual(await cli.lerLog(2), ['dois', 'três']);
   });
 
-  it('recusa instalar quando o build não tem o pacote', async () => {
+  it('recusa instalar sem pacote local nem download', async () => {
     const cli = new CliDoAutosyncProcesso({
       pasta: criarPasta(),
       pacote: null,
@@ -166,5 +166,68 @@ describe('CliDoAutosyncProcesso', () => {
     });
 
     await assert.rejects(cli.instalarPacote({}), PacoteDoAutosyncAusenteError);
+  });
+
+  it(
+    'instalado, deixa o script e a marca para a desinstalação do HUB SNK',
+    { skip: process.platform !== 'win32' },
+    async () => {
+      const pacote = criarPasta();
+      writeFileSync(join(pacote, 'install-standalone.ps1'), 'exit 0');
+      const pastaDoInstalador = criarPasta();
+      const cli = new CliDoAutosyncProcesso({
+        pasta: criarPasta(),
+        pacote,
+        pastaDoInstalador,
+        plataforma: 'win32',
+      });
+
+      const resultado = await cli.instalarPacote({});
+
+      assert.equal(resultado.codigo, 0);
+      assert.equal(
+        readFileSync(join(pastaDoInstalador, 'git-autosync', 'install-standalone.ps1'), 'utf8'),
+        'exit 0',
+      );
+      assert.ok(existsSync(join(pastaDoInstalador, 'git-autosync-instalado-pelo-hub.txt')));
+    },
+  );
+
+  it(
+    'instalação que falhou não deixa marca de desinstalação',
+    { skip: process.platform !== 'win32' },
+    async () => {
+      const pacote = criarPasta();
+      writeFileSync(join(pacote, 'install-standalone.ps1'), 'exit 3');
+      const pastaDoInstalador = criarPasta();
+      const cli = new CliDoAutosyncProcesso({
+        pasta: criarPasta(),
+        pacote,
+        pastaDoInstalador,
+        plataforma: 'win32',
+      });
+
+      assert.equal((await cli.instalarPacote({})).codigo, 3);
+      assert.equal(
+        existsSync(join(pastaDoInstalador, 'git-autosync-instalado-pelo-hub.txt')),
+        false,
+      );
+    },
+  );
+
+  it('recusa instalar fora do Windows sem tentar baixar', async () => {
+    let baixou = false;
+    const cli = new CliDoAutosyncProcesso({
+      pasta: criarPasta(),
+      pacote: null,
+      plataforma: 'linux',
+      baixarPacote: async () => {
+        baixou = true;
+        throw new Error('não deveria baixar');
+      },
+    });
+
+    await assert.rejects(cli.instalarPacote({}), PacoteDoAutosyncAusenteError);
+    assert.equal(baixou, false);
   });
 });

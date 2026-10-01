@@ -18,7 +18,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import {
   GitAutosyncFalhouError,
   GitAutosyncNaoInstaladoError,
@@ -26,6 +26,8 @@ import {
   type CliDoAutosync,
   type ResultadoDoCli,
 } from './cliDoAutosync.ts';
+import { registrarDesinstalacaoJuntoDoHub } from './desinstalacaoJuntoDoHub.ts';
+import type { PacoteBaixado } from './pacoteDoGithub.ts';
 import type {
   ConfiguracaoDoAutosync,
   OpcoesDeInstalacao,
@@ -38,6 +40,9 @@ const TEMPO_LIMITE_DO_CLI_MS = 180_000;
 const TEMPO_LIMITE_DO_AGENDADOR_MS = 20_000;
 /** A instalação copia binários e cria a tarefa; o Defender escaneando o `.exe` atrasa. */
 const TEMPO_LIMITE_DA_INSTALACAO_MS = 300_000;
+
+/** `git --version` é instantâneo; o prazo só cobre um PATH com unidade de rede lenta. */
+const TEMPO_LIMITE_DO_GIT_MS = 15_000;
 
 const ARQUIVO_DO_INSTALADOR = 'install-standalone.ps1';
 
@@ -160,19 +165,33 @@ const ARGUMENTOS_DO_POWERSHELL = ['-NoProfile', '-NonInteractive', '-ExecutionPo
 export interface OpcoesDoCliDoAutosyncProcesso {
   /** `GIT_AUTOSYNC_HOME`, ou `~/.git-autosync`. */
   pasta: string;
-  /** `<resourcesPath>/git-autosync` no app empacotado; `null` em desenvolvimento. */
+  /**
+   * Pasta com um pacote já extraído (`HUB_AUTOSYNC_PACOTE`), para testar um build do
+   * autosync antes de publicá-lo. `null` é o normal: o pacote vem da Release.
+   */
   pacote: string | null;
+  /** Baixa e extrai o pacote da Release. Sem ele, só o `pacote` local serve. */
+  baixarPacote?: () => Promise<PacoteBaixado>;
+  /**
+   * `%LOCALAPPDATA%\HubSnk` do app instalado, onde fica o que a desinstalação do HUB SNK
+   * usa para remover o Git AutoSync junto. `null` em desenvolvimento: nada é registrado.
+   */
+  pastaDoInstalador?: string | null;
   plataforma?: NodeJS.Platform;
 }
 
 export class CliDoAutosyncProcesso implements CliDoAutosync {
   readonly #pasta: string;
   readonly #pacote: string | null;
+  readonly #baixarPacote: (() => Promise<PacoteBaixado>) | null;
+  readonly #pastaDoInstalador: string | null;
   readonly #plataforma: NodeJS.Platform;
 
   constructor(opcoes: OpcoesDoCliDoAutosyncProcesso) {
     this.#pasta = opcoes.pasta;
     this.#pacote = opcoes.pacote;
+    this.#baixarPacote = opcoes.baixarPacote ?? null;
+    this.#pastaDoInstalador = opcoes.pastaDoInstalador ?? null;
     this.#plataforma = opcoes.plataforma ?? process.platform;
   }
 
@@ -258,30 +277,66 @@ export class CliDoAutosyncProcesso implements CliDoAutosync {
   }
 
   async instalarPacote(opcoes: OpcoesDeInstalacao): Promise<ResultadoDoCli> {
-    const instalador = this.#pacote ? join(this.#pacote, ARQUIVO_DO_INSTALADOR) : null;
-    if (this.#plataforma !== 'win32' || !instalador || !existsSync(instalador)) {
-      throw new PacoteDoAutosyncAusenteError();
+    if (this.#plataforma !== 'win32') {
+      throw new PacoteDoAutosyncAusenteError(
+        'A instalação pelo HUB SNK é só para Windows. Instale o Git AutoSync pelo repositório dele.',
+      );
     }
 
-    const argumentos = [
-      ...ARGUMENTOS_DO_POWERSHELL,
-      '-File',
-      instalador,
-      '-Source',
-      dirname(instalador),
-    ];
-    if (opcoes.horario) argumentos.push('-TaskTime', opcoes.horario);
-    if (opcoes.bandeja) argumentos.push('-EnableTray');
-    if (opcoes.atalhos) argumentos.push('-Shortcut');
-    if (opcoes.skills) argumentos.push('-Skills');
-    if (opcoes.path) argumentos.push('-AddToPath');
+    const pacote = await this.#obterPacote();
+    try {
+      const argumentos = [
+        ...ARGUMENTOS_DO_POWERSHELL,
+        '-File',
+        join(pacote.pasta, ARQUIVO_DO_INSTALADOR),
+        '-Source',
+        pacote.pasta,
+      ];
+      if (opcoes.horario) argumentos.push('-TaskTime', opcoes.horario);
+      if (opcoes.bandeja) argumentos.push('-EnableTray');
+      if (opcoes.atalhos) argumentos.push('-Shortcut');
+      if (opcoes.skills) argumentos.push('-Skills');
+      if (opcoes.path) argumentos.push('-AddToPath');
 
-    return executarProcesso(
-      'powershell.exe',
-      argumentos,
-      TEMPO_LIMITE_DA_INSTALACAO_MS,
-      this.#ambiente,
+      const resultado = await executarProcesso(
+        'powershell.exe',
+        argumentos,
+        TEMPO_LIMITE_DA_INSTALACAO_MS,
+        this.#ambiente,
+      );
+      if (resultado.codigo === 0 && this.#pastaDoInstalador) {
+        /* Melhor esforço: sem o registro, o autosync funciona; só não sai junto do Hub. */
+        await registrarDesinstalacaoJuntoDoHub(
+          this.#pastaDoInstalador,
+          pacote.pasta,
+          pacote.versao,
+        ).catch(() => {});
+      }
+      return resultado;
+    } finally {
+      await pacote.descartar();
+    }
+  }
+
+  async versaoDoGit(): Promise<string | null> {
+    const resultado = await executarProcesso(
+      'git',
+      ['--version'],
+      TEMPO_LIMITE_DO_GIT_MS,
+      process.env,
     );
+    return resultado.codigo === 0 ? resultado.saida.trim() : null;
+  }
+
+  /* O pacote local, quando apontado, vence a Release: é o build que se quer testar. */
+  async #obterPacote(): Promise<PacoteBaixado> {
+    if (this.#pacote && existsSync(join(this.#pacote, ARQUIVO_DO_INSTALADOR))) {
+      return { pasta: this.#pacote, versao: null, descartar: async () => {} };
+    }
+    if (!this.#baixarPacote) {
+      throw new PacoteDoAutosyncAusenteError();
+    }
+    return this.#baixarPacote();
   }
 
   async #lerJson<T>(nome: string): Promise<T | null> {

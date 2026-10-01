@@ -1,7 +1,7 @@
 {
   "name": "hub-snk-desktop",
   "productName": "HUB SNK",
-  "version": "2.2.1",
+  "version": "2.3.0-beta.1",
   "private": true,
   "description": "Shell desktop (Electron) do HUB SNK — ver docs/distribuicao.md.",
   "main": "dist/main.js",
@@ -11,10 +11,8 @@
     "start": "npm run build && electron .",
     "dev": "tsc -p tsconfig.json --watch",
     "preparar-hub": "node scripts/preparar-hub.mjs",
-    "preparar-autosync": "node scripts/preparar-autosync.mjs",
-    "empacotar": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs && electron-builder --config electron-builder.yml --publish never",
-    "empacotar:sem-autosync": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs --sem-autosync && electron-builder --config electron-builder.yml --publish never",
-    "empacotar:rapido": "npm run build && node scripts/preparar-hub.mjs && node scripts/preparar-autosync.mjs && electron-builder --config electron-builder.yml --publish never --dir"
+    "empacotar": "npm run build && node scripts/preparar-hub.mjs && electron-builder --config electron-builder.yml --publish never",
+    "empacotar:rapido": "npm run build && node scripts/preparar-hub.mjs && electron-builder --config electron-builder.yml --publish never --dir"
   },
   "devDependencies": {
     "@types/node": "^24.3.0",
