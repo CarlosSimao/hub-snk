@@ -9,6 +9,13 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Alterado
+
+- **Git AutoSync desmarcado no instalador**: a caixa agora vem desmarcada. Quem não a
+  marcar começa com a aba **Git** do menu e a seção **AutoSync** do cliente desligadas em
+  **Configurações › Acessos**; dá para religá-las ali e instalar o Git AutoSync pela
+  própria aba Git. Quem já usa o HUB SNK e atualiza mantém os acessos que tinha.
+
 ## [2.1.0] - 2026-09-30
 
 ### Adicionado

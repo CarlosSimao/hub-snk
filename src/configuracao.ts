@@ -112,6 +112,18 @@ function lerTerceiroInicial(): boolean {
   return process.env.HUB_TERCEIRO_INICIAL?.trim().toUpperCase() === TERCEIRO_MARCADO;
 }
 
+/** Valor que o shell desktop grava quando a caixa do Git AutoSync do instalador vem desmarcada. */
+const AUTOSYNC_DESMARCADO = 'N';
+
+/**
+ * Caixa do Git AutoSync do instalador, repassada pelo shell. Só o `N` explícito conta
+ * como não instalado: fora do instalador (`npm run dev`, pacote sem o Git AutoSync,
+ * instalação silenciosa) não há escolha, e nada fica oculto.
+ */
+function lerAutosyncInstaladoInicial(): boolean {
+  return process.env.HUB_AUTOSYNC_INICIAL?.trim().toUpperCase() !== AUTOSYNC_DESMARCADO;
+}
+
 /**
  * Pasta do Git AutoSync: `config.json`, `status.json`, log e `bin/`. A mesma variável
  * que o próprio autosync respeita, para os dois olharem o mesmo lugar.
@@ -138,7 +150,11 @@ export const configuracao = {
   ponteDoDesktopUrl: process.env.SANKHYA_DESKTOP_BRIDGE_URL ?? PONTE_DO_DESKTOP_URL_PADRAO,
   ponteDoDesktopTokenFile: lerArquivoDeTokenDoDesktop(),
   autenticacaoDoPainelDesligada: lerAutenticacaoDoPainelDesligada(),
-  acessosIniciais: { perfil: lerPerfilInicial(), terceiro: lerTerceiroInicial() },
+  acessosIniciais: {
+    perfil: lerPerfilInicial(),
+    terceiro: lerTerceiroInicial(),
+    autosyncInstalado: lerAutosyncInstaladoInicial(),
+  },
   pastaDoAutosync: lerPastaDoAutosync(),
   pacoteDoAutosync: lerPacoteDoAutosync(),
 } as const;

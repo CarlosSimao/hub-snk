@@ -171,9 +171,14 @@ Regras que não se quebram:
 - Cria os atalhos "HUB SNK" no menu Iniciar e na área de trabalho.
 - Roda o `resources\instalador\remover-versao-pwa.ps1` (a seguir).
 - Mostra a página de perfil profissional (a seguir).
-- Mostra a página do Git AutoSync e, se marcado, chama o `install-standalone.ps1`
-  com as opções escolhidas. Falha do Git AutoSync (o motivo mais comum é não haver
-  Git na máquina) não aborta a instalação do HUB SNK. Instalado por ele, o Git
+- Mostra a página do Git AutoSync, com a caixa principal desmarcada, e, se marcada,
+  chama o `install-standalone.ps1` com as opções escolhidas. A escolha vai para
+  `%LOCALAPPDATA%\HubSnk\autosync-inicial.txt` (`S` ou `N`), que o shell repassa ao
+  backend em `HUB_AUTOSYNC_INICIAL`. Com `N`, o backend oculta as funcionalidades
+  `autosync` e `cliente.autosync` por cima do preset do perfil, com a mesma regra dele:
+  só enquanto o `configuracao.json` não tem acessos gravados. A instalação silenciosa
+  não mostra a página e preserva o arquivo. Falha do Git AutoSync (o motivo mais
+  comum é não haver Git na máquina) não aborta a instalação do HUB SNK. Instalado por ele, o Git
   AutoSync ganha a marca `%LOCALAPPDATA%\HubSnk\git-autosync-instalado-pelo-hub.txt`,
   e só nesse caso a desinstalação pergunta se ele sai junto — nunca remove um Git
   AutoSync que a pessoa já tinha. Instalações até a 2.0.0 gravavam a marca dentro da

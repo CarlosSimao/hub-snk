@@ -92,7 +92,8 @@ Function GasPaginaCriar
 
   ${NSD_CreateCheckbox} 0 0 100% 12u "Instalar o Git AutoSync (versao ${GAS_VERSION})"
   Pop $CheckInstalar
-  ${NSD_SetState} $CheckInstalar ${BST_CHECKED}
+  ; Desmarcada por padrao: o Git AutoSync so' interessa a quem versiona os repositorios
+  ; dos clientes, e poe tarefa agendada e bandeja no login.
   ${NSD_OnClick} $CheckInstalar GasAtualizarEstado
 
   ${NSD_CreateLabel} 12u 15u 90% 18u "Os arquivos vao para %USERPROFILE%\.git-autosync. Requer o Git instalado; sem ele a instalacao do Git AutoSync e' recusada e o HUB SNK e' instalado do mesmo jeito."
@@ -146,8 +147,27 @@ Function GasPaginaSair
   ${EndIf}
 FunctionEnd
 
+; A escolha vai para %LOCALAPPDATA%\HubSnk\autosync-inicial.txt ("S" ou "N"). Com "N", o
+; backend oculta em Configuracoes > Acessos a aba Git do menu e a secao AutoSync do
+; cliente, com a mesma regra do perfil: so' enquanto o configuracao.json nao tem acessos.
+; Instalacao silenciosa nao mostra a pagina, deixa $GasInstalar vazio e preserva o arquivo.
+!macro GasGravarEscolha
+  ${If} $GasInstalar != ""
+    ReadEnvStr $R3 LOCALAPPDATA
+    CreateDirectory "$R3\HubSnk"
+    FileOpen $R2 "$R3\HubSnk\autosync-inicial.txt" w
+    ${If} $GasInstalar == ${BST_CHECKED}
+      FileWrite $R2 "S"
+    ${Else}
+      FileWrite $R2 "N"
+    ${EndIf}
+    FileClose $R2
+  ${EndIf}
+!macroend
+
 ; Roda depois de os arquivos estarem no lugar — `resources\git-autosync` ja' existe aqui.
 !macro GasInstalar
+  !insertmacro GasGravarEscolha
   ${If} $GasInstalar == ${BST_CHECKED}
     StrCpy $R0 ""
     ${If} $GasTarefa == ${BST_CHECKED}
