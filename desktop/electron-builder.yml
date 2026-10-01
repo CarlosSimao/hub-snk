@@ -1,9 +1,11 @@
 # Empacotamento do HUB SNK desktop — ver docs/distribuicao.md.
 #
 # Antes de rodar: `node scripts/preparar-hub.mjs`, que monta `build/hub` com o backend e
-# só as dependências de produção, e `node scripts/preparar-autosync.mjs`, que monta
-# `build/git-autosync`. `npm run empacotar` faz os dois. `build/hub` vira `resources/hub`,
-# o caminho que `desktop/src/config.ts` procura quando `app.isPackaged`.
+# só as dependências de produção. `npm run empacotar` faz isso. `build/hub` vira
+# `resources/hub`, o caminho que `desktop/src/config.ts` procura quando `app.isPackaged`.
+#
+# O Git AutoSync NÃO entra no pacote: tem licença própria, e a aba Git o instala
+# baixando da Release do repositório dele (src/autosync/pacoteDoGithub.ts).
 appId: br.dev.hubsnk.desktop
 productName: HUB SNK
 copyright: Carlos Nascimento
@@ -45,14 +47,6 @@ extraResources:
     to: hub/node_modules
     filter:
       - '**/*'
-  # Git AutoSync: binários, o instalador silencioso, a skill e o VERSION. Montado por
-  # `scripts/preparar-autosync.mjs`, que recusa binário mais antigo que os fontes. A
-  # pasta existe mesmo no pacote sem autosync (vazia), porque origem inexistente derruba
-  # o empacotamento.
-  - from: build/git-autosync
-    to: git-autosync
-    filter:
-      - '**/*'
   # Fora do `app.asar` porque quem o executa é o PowerShell, chamado pelo `installer.nsh`,
   # e o PowerShell não enxerga dentro do asar.
   - from: instalador
@@ -87,8 +81,7 @@ nsis:
   # guias e logs) fica. Apagar dados de quem só está reinstalando seria irreversível.
   deleteAppDataOnUninstall: false
   artifactName: HUB-SNK-Setup-${version}.${ext}
-  # Página de componentes do Git AutoSync e as chamadas de instalação/desinstalação dele.
-  # O arquivo se desliga sozinho quando o pacote é montado sem o autosync.
+  # Página do perfil profissional e remoção da versão PWA antiga.
   include: installer.nsh
 
 linux:

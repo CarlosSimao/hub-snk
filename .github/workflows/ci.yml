@@ -112,10 +112,8 @@ jobs:
             throw 'remover-versao-pwa.ps1 tem erro de sintaxe.'
           }
 
-      # Sem o Git AutoSync (que vem de outro repositório) e sem o instalador NSIS: o que
-      # se quer aqui é saber que o electron-builder ainda monta o app.
+      # Sem o instalador NSIS: o que se quer aqui é saber que o electron-builder ainda
+      # monta o app.
       - name: Empacotar a pasta do aplicativo
         working-directory: desktop
-        run: |
-          node scripts/preparar-autosync.mjs --sem-autosync
-          npx electron-builder --config electron-builder.yml --dir
+        run: npx electron-builder --config electron-builder.yml --dir

@@ -11,11 +11,11 @@ um aplicativo Electron com instalador NSIS, e o instalador remove a versão anti
 
 ## As três peças
 
-| Peça           | Onde mora                                                      | O que é                                                                                |
-| -------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| **Shell**      | `desktop/`                                                     | O Electron: janela, guias, cofre das credenciais e a ponte que o backend chama         |
-| **Backend**    | `src/`                                                         | O mesmo Fastify de sempre, rodando direto do TypeScript, servindo o `public/`          |
-| **Instalador** | `desktop/electron-builder.yml`, `desktop/assets/installer.nsh` | NSIS por usuário, com a remoção da versão PWA e as páginas de perfil e do Git AutoSync |
+| Peça           | Onde mora                                                      | O que é                                                                        |
+| -------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| **Shell**      | `desktop/`                                                     | O Electron: janela, guias, cofre das credenciais e a ponte que o backend chama |
+| **Backend**    | `src/`                                                         | O mesmo Fastify de sempre, rodando direto do TypeScript, servindo o `public/`  |
+| **Instalador** | `desktop/electron-builder.yml`, `desktop/assets/installer.nsh` | NSIS por usuário, com a remoção da versão PWA e a página de perfil             |
 
 O shell sobe o backend como processo filho com o próprio executável do Electron
 (`ELECTRON_RUN_AS_NODE=1`), espera o `GET /api/healthz` e só então abre a janela.
@@ -57,8 +57,7 @@ cria ao abrir, e o backend o lê a cada chamada.
 | Git AutoSync, se instalado | `%USERPROFILE%\.git-autosync`                                   |
 
 A pasta de instalação é substituída a cada atualização, e por isso nada do
-usuário mora nela — nem a marca de que foi o instalador do HUB SNK que instalou o
-Git AutoSync, que fica em `%LOCALAPPDATA%\HubSnk\git-autosync-instalado-pelo-hub.txt`. A desinstalação não apaga nem o cadastro nem o perfil do
+usuário mora nela. A desinstalação não apaga nem o cadastro nem o perfil do
 Electron (`deleteAppDataOnUninstall: false`): apagar dados de quem só está
 reinstalando seria irreversível.
 
@@ -75,12 +74,8 @@ npm run empacotar-desktop
    `package.json`, o `package-lock.json` e a `LICENSE` para `desktop/build/hub`, e
    roda `npm ci --omit=dev` ali — o backend do pacote só com as dependências de
    produção (cerca de 31 MB, 30 MB deles de `node_modules`).
-3. `scripts/preparar-autosync.mjs`: copia os binários do Git AutoSync, o
-   `install-standalone.ps1`, a `SKILL.md` e o `VERSION` para
-   `desktop/build/git-autosync`, e gera o `build/gas-version.nsh` que liga a página
-   dele no instalador. Recusa binário mais antigo que os fontes.
-4. `electron-builder`: monta o `app.asar` com o shell, põe `build/hub`,
-   `build/git-autosync` e `instalador/*.ps1` em `resources/`, fora do asar, e gera
+3. `electron-builder`: monta o `app.asar` com o shell, põe `build/hub` e
+   `instalador/*.ps1` em `resources/`, fora do asar, e gera
    `release/HUB-SNK-Setup-<versão>.exe`.
 
 O backend e os scripts ficam fora do `app.asar` de propósito. O backend é
@@ -89,34 +84,44 @@ dentro do asar.
 
 ### O Git AutoSync
 
-Mora em outro repositório: `https://github.com/FlavianoRS/git-autosync`, **branch
-`master`** — só ela tem o `installer/install-standalone.ps1` que o instalador
-chama. O `preparar-autosync.mjs` o procura em `../scripts/git-autosync`, ao lado do
-repositório do HUB SNK (`C:\Workspace\scripts\git-autosync` com o HUB SNK em
-`C:\Workspace\hub-snk`), ou onde o `GIT_AUTOSYNC_DIR` apontar. Os binários são gerados
-lá, pelo `python\build_windows.ps1` (PyInstaller), e o PyInstaller não faz
-cross-compile.
+**Não vem no instalador.** O Git AutoSync tem licença própria e mora em outro
+repositório, `https://github.com/FlavianoRS/git-autosync`. Quem o quer instala pela
+aba **Git** do Painel: enquanto ele não está na máquina, a aba aparece acinzentada,
+com o botão **Instalar o Git AutoSync** e o ícone de informação (descrição e link do
+repositório) no cabeçalho.
 
-Para um pacote sem ele: `npm --prefix desktop run empacotar:sem-autosync`. O
-`build/gas-version.nsh` sai sem o `GAS_PRESENTE`, e nada do Git AutoSync entra no
-instalador: nem a página, nem a instalação, nem a pergunta da desinstalação. O
-arquivo é gravado assim, e não omitido, porque o `!include /NONFATAL` de um arquivo
-ausente vira o aviso 7000, que o NSIS do `electron-builder` trata como erro.
+O botão primeiro confere o Git (`GET /api/autosync/git`, que roda `git --version`).
+Sem ele, mostra o endereço `https://git-scm.com/` e não segue; com ele, abre o diálogo
+de opções, e a instalação (`src/autosync/pacoteDoGithub.ts`) baixa o pacote da
+**Release mais recente** do repositório do Git AutoSync numa pasta temporária, apagada
+no fim. A Release pode trazer o pacote de dois jeitos:
 
-O que vai no pacote, em `resources\git-autosync`:
+1. um asset `git-autosync-windows.zip` com os cinco arquivos da tabela abaixo, na
+   raiz ou numa pasta só;
+2. só os dois `.exe` anexados. O `install-standalone.ps1`, a `SKILL.md` e o `VERSION`
+   vêm então do próprio repositório, **na mesma tag da Release** (`installer/`,
+   `skill/` e `python/`).
 
-| Arquivo                  | Função                                                                          |
-| ------------------------ | ------------------------------------------------------------------------------- |
-| `git-autosync.exe`       | Interface, bandeja e CLI, no mesmo binário. É o que o HUB SNK chama             |
-| `git-autosync-sync.exe`  | O que a tarefa agendada executa. O HUB SNK nunca o chama                        |
-| `install-standalone.ps1` | Instalação silenciosa e idempotente: é o que o NSIS chama, e serve para reparar |
-| `SKILL.md`               | Skill para Claude Code e Codex, copiada só com a opção marcada                  |
-| `VERSION`                | A versão, gravada em `~\.git-autosync\bin\VERSION` na instalação                |
+| Arquivo                  | Função                                                              |
+| ------------------------ | ------------------------------------------------------------------- |
+| `git-autosync.exe`       | Interface, bandeja e CLI, no mesmo binário. É o que o HUB SNK chama |
+| `git-autosync-sync.exe`  | O que a tarefa agendada executa. O HUB SNK nunca o chama            |
+| `install-standalone.ps1` | Instalação silenciosa e idempotente: é o que o botão Instalar chama |
+| `SKILL.md`               | Skill para Claude Code e Codex, copiada só com a opção marcada      |
+| `VERSION`                | A versão, gravada em `~\.git-autosync\bin\VERSION` na instalação    |
 
-Os binários entram sempre, mesmo que ninguém marque o Git AutoSync: são inertes até
-alguém os instalar, e depender de download na hora da instalação falharia numa
-máquina sem acesso. O `preparar-autosync.mjs` recusa binário mais antigo que qualquer
-`python\*.py` do Git AutoSync — o pacote sairia com uma versão velha.
+Para testar um build do Git AutoSync antes de publicar a Release, aponte
+`HUB_AUTOSYNC_PACOTE` para uma pasta com esses arquivos: ela vence o download.
+
+Instalado pela aba Git do app instalado, o Git AutoSync deixa em `%LOCALAPPDATA%\HubSnk`
+a marca `git-autosync-instalado-pelo-hub.txt` e uma cópia do `install-standalone.ps1`
+em `git-autosync\` (`src/autosync/desinstalacaoJuntoDoHub.ts`): a pasta temporária do
+download some, e o `-Uninstall` apaga o `bin`. Com as duas, e com o `bin` ainda lá, a
+desinstalação do HUB SNK pergunta se o Git AutoSync sai junto e roda o script com
+`-Uninstall`, que preserva repositórios cadastrados, histórico e logs. Nunca remove um
+Git AutoSync instalado por fora do HUB SNK, nem na desinstalação silenciosa da
+atualização. Na atualização de uma versão que trazia o autosync no pacote (até a
+2.2.1), o `customInit` guarda o script dela antes de a pasta antiga ser apagada.
 
 Instalado, o Git AutoSync vive em `%USERPROFILE%\.git-autosync` (ou no que
 `GIT_AUTOSYNC_HOME` apontar, e o backend do HUB SNK respeita a mesma variável):
@@ -137,14 +142,13 @@ caminho do repositório, que vem da tela.
 
 ### O `install-standalone.ps1`
 
-O NSIS o chama depois de copiar os arquivos, e o botão **Instalar** da aba Git do
-Painel chama o mesmo script, pelo pacote que o shell aponta ao backend em
-`HUB_AUTOSYNC_PACOTE` (vazio em desenvolvimento):
+O botão **Instalar o Git AutoSync** da aba Git do Painel o chama na pasta do pacote
+baixado:
 
 ```
 powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass
-  -File "<programa>\resources\git-autosync\install-standalone.ps1"
-  -Source "<programa>\resources\git-autosync"
+  -File "<pacote>\install-standalone.ps1"
+  -Source "<pacote>"
   [-TaskTime HH:mm[,HH:mm]] [-EnableTray] [-Shortcut] [-Skills] [-AddToPath]
 ```
 
@@ -161,12 +165,11 @@ powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass
 
 Regras que não se quebram:
 
-- O script fica em ASCII puro: o `powershell.exe` 5.1, que é o que o NSIS chama, lê
-  arquivo sem BOM como ANSI.
-- O único pré-requisito da máquina é o `git` no PATH. A mensagem do NSIS de que "o Git
-  não está instalado" aparece para qualquer código de saída diferente de zero: para
-  diagnosticar, rode o script à mão com os mesmos argumentos.
-- Falha do Git AutoSync não aborta a instalação do HUB SNK.
+- O script fica em ASCII puro: o `powershell.exe` 5.1, que é o que o backend chama,
+  lê arquivo sem BOM como ANSI.
+- O único pré-requisito da máquina é o `git` no PATH, conferido antes do download.
+  Git instalado com o HUB SNK aberto só é enxergado depois de reabri-lo: o backend
+  herda o PATH de quando subiu.
 
 ## O que o instalador faz
 
@@ -175,22 +178,10 @@ Regras que não se quebram:
 - Cria os atalhos "HUB SNK" no menu Iniciar e na área de trabalho.
 - Roda o `resources\instalador\remover-versao-pwa.ps1` (a seguir).
 - Mostra a página de perfil profissional (a seguir).
-- Mostra a página do Git AutoSync, com a caixa principal desmarcada, e, se marcada,
-  chama o `install-standalone.ps1` com as opções escolhidas. A escolha vai para
-  `%LOCALAPPDATA%\HubSnk\autosync-inicial.txt` (`S` ou `N`), que o shell repassa ao
-  backend em `HUB_AUTOSYNC_INICIAL`. Com `N`, o backend oculta as funcionalidades
-  `autosync` e `cliente.autosync` por cima do preset do perfil, com a mesma regra dele:
-  só enquanto o `configuracao.json` não tem acessos gravados. A instalação silenciosa
-  não mostra a página e preserva o arquivo. Falha do Git AutoSync (o motivo mais
-  comum é não haver Git na máquina) não aborta a instalação do HUB SNK. Instalado por ele, o Git
-  AutoSync ganha a marca `%LOCALAPPDATA%\HubSnk\git-autosync-instalado-pelo-hub.txt`,
-  e só nesse caso a desinstalação pergunta se ele sai junto — nunca remove um Git
-  AutoSync que a pessoa já tinha. Instalações até a 2.0.0 gravavam a marca dentro da
-  pasta do programa; a atualização a leva para o lugar novo antes de apagar a antiga.
 
 ### A página de perfil
 
-Aparece em toda instalação, antes da do Git AutoSync. O perfil (Desenvolvedor,
+Aparece em toda instalação. O perfil (Desenvolvedor,
 Consultor, Analista ou Gerente de projeto) define o preset de funcionalidades
 ocultas, o mesmo de **Configurações › Acessos** (`src/acessos.ts`). A caixa
 **Terceiro**, independente do perfil, oculta por cima do preset o que depende das

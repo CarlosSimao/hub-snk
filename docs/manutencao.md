@@ -300,11 +300,9 @@ Não é preciso rodar `gh release create` à mão. Tag com hífen sai como pre-r
 [Regra de versão](#regra-de-versão)); a release que já existia antes da tag mantém o
 que estiver marcado nela.
 
-Para gerar o instalador na sua máquina: `npm run empacotar-desktop`, com o
-repositório do Git AutoSync em `C:\Workspace\scripts\git-autosync` (ou apontado
-por `GIT_AUTOSYNC_DIR`) e os binários dele já gerados pelo
-`python\build_windows.ps1`. Sem o Git AutoSync, use
-`npm --prefix desktop run empacotar:sem-autosync`. O resultado sai em `release/`.
+Para gerar o instalador na sua máquina: `npm run empacotar-desktop`. O Git AutoSync
+não entra no pacote (veja [Distribuição](distribuicao.md#o-git-autosync)). O resultado
+sai em `release/`.
 
 O `latest.yml` e o `.blockmap` sobem para a release junto do instalador: é o que
 a atualização automática do aplicativo (`desktop/src/atualizacao.ts`) lê. Release

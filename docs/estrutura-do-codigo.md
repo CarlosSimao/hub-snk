@@ -139,10 +139,9 @@ desktop/                                    shell Electron: o aplicativo que o u
   src/ruffle.ts  src/preloadRuffle.ts       compatibilidade com Flash pelo Ruffle, injetado no começo de cada frame
   src/barraDeBusca.ts  src/preloadBarraDeBusca.ts  barraDeBusca.html  barraDeBusca.js   barra do Ctrl+F na guia ativa
   scripts/preparar-hub.mjs                  monta o backend do pacote, só com as dependências de produção
-  scripts/preparar-autosync.mjs             monta os binários do Git AutoSync para o instalador
   instalador/remover-versao-pwa.ps1         remove a instalação PWA antiga, preservando o cadastro
   assets/installer.nsh                      personalização do NSIS: remoção da PWA, página de perfil (com a caixa
-                                            Terceiro) e página do Git AutoSync
+                                            Terceiro)
   electron-builder.yml                      identidade, recursos e alvos do instalador
 ```
 

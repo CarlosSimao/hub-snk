@@ -202,15 +202,6 @@ export const RAIZ_PROJETO =
 export const ENTRYPOINT_BACKEND = join(RAIZ_PROJETO, 'src', 'index.ts');
 
 /**
- * Pacote do Git AutoSync que viaja no instalador (`extraResources` para
- * `resources/git-autosync`). O backend o usa para instalar o autosync depois, quando a
- * pessoa desmarcou o componente no instalador. Vazio em desenvolvimento: não há pacote.
- */
-export const PACOTE_DO_AUTOSYNC =
-  process.env['HUB_AUTOSYNC_PACOTE'] ??
-  (app.isPackaged ? join(process.resourcesPath, 'git-autosync') : '');
-
-/**
  * Caminho que o instalador deixa em `HubSnk\pasta-de-dados.txt` quando a instalação PWA
  * antiga guardava o cadastro fora do padrão (`desktop/instalador/remover-versao-pwa.ps1`).
  * O `trim()` também descarta o BOM que o PowerShell 5.1 grava no início do arquivo.
@@ -267,16 +258,20 @@ function escolhaDoInstalador(nomeDoArquivo: string): string {
   }
 }
 
+/**
+ * `HubSnk\` do app instalado, repassado ao backend: a instalação do Git AutoSync pela
+ * aba Git deixa ali o script e a marca que a desinstalação do HUB SNK usa para removê-lo
+ * junto. Vazio em desenvolvimento, para não oferecer remoção de instalação de teste.
+ */
+export const PASTA_DO_INSTALADOR =
+  app.isPackaged && process.platform === 'win32' ? pastaDeEstadoDoInstalador() : '';
+
 export const PERFIL_INICIAL =
   process.env['HUB_PERFIL_INICIAL'] ?? escolhaDoInstalador('perfil-inicial.txt');
 
 /** Caixa Terceiro do instalador: `S` marcada, `N` ou vazio desmarcada. */
 export const TERCEIRO_INICIAL =
   process.env['HUB_TERCEIRO_INICIAL'] ?? escolhaDoInstalador('terceiro-inicial.txt');
-
-/** Caixa do Git AutoSync do instalador: `S` marcada, `N` desmarcada, vazio sem a página. */
-export const AUTOSYNC_INICIAL =
-  process.env['HUB_AUTOSYNC_INICIAL'] ?? escolhaDoInstalador('autosync-inicial.txt');
 
 export const TZ_PADRAO = 'America/Sao_Paulo';
 
