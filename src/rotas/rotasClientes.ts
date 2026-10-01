@@ -322,6 +322,23 @@ const esquemaDeParametrosDeLinkDeProjeto = esquemaDeParametrosDeProjeto.extend({
   idLink: z.string().uuid('Identificador de link inválido.'),
 });
 
+/*
+ * Ausente, a exclusão de um projeto com kanban é recusada: quem decide se os kanbans
+ * vão junto ou ficam órfãos no cliente é o usuário.
+ */
+const esquemaDaExclusaoDeProjeto = z.object({
+  kanbans: z
+    .enum(['manter', 'excluir'], { error: 'Escolha manter ou excluir os kanbans.' })
+    .optional(),
+});
+
+/** O que a exclusão de um projeto precisa saber dos kanbans dele. */
+export interface KanbansDoProjeto {
+  quantos(idDoCliente: string, idDoProjeto: string): number;
+  manterOrfaos(idDoCliente: string, idDoProjeto: string): void;
+  excluir(idDoCliente: string, idDoProjeto: string): void;
+}
+
 function responderErroDeValidacao(resposta: FastifyReply, erro: z.ZodError): FastifyReply {
   const primeiraMensagem = erro.issues[0]?.message ?? 'Dados inválidos.';
   return resposta.status(400).send({ mensagem: primeiraMensagem });
@@ -371,6 +388,7 @@ export function registrarRotasDeClientes(
   arquivoTokenDoDesktop: string,
   /** O que outros cadastros ligados ao cliente fazem quando ele é excluído (os contatos). */
   aoRemoverCliente: (clienteId: string) => Promise<void> = async () => {},
+  kanbansDoProjeto?: KanbansDoProjeto,
 ): void {
   /**
    * Localiza o repositório e devolve o caminho local, ou uma resposta de erro
@@ -889,8 +907,29 @@ export function registrarRotasDeClientes(
       return responderErroDeValidacao(resposta, parametros.error);
     }
 
+    const exclusao = esquemaDaExclusaoDeProjeto.safeParse(requisicao.query ?? {});
+    if (!exclusao.success) {
+      return responderErroDeValidacao(resposta, exclusao.error);
+    }
+
+    const { id, idProjeto } = parametros.data;
+    const quantos = kanbansDoProjeto?.quantos(id, idProjeto) ?? 0;
+    if (quantos > 0 && !exclusao.data.kanbans) {
+      return resposta.status(409).send({
+        mensagem: 'O projeto tem kanbans. Escolha se eles ficam no cliente ou são excluídos.',
+        kanbans: quantos,
+      });
+    }
+
     try {
-      await repositorio.removerProjeto(parametros.data.id, parametros.data.idProjeto);
+      await repositorio.removerProjeto(id, idProjeto);
+      if (quantos > 0) {
+        if (exclusao.data.kanbans === 'excluir') {
+          kanbansDoProjeto?.excluir(id, idProjeto);
+        } else {
+          kanbansDoProjeto?.manterOrfaos(id, idProjeto);
+        }
+      }
       return resposta.status(204).send();
     } catch (erro) {
       return responderErroDeDominio(resposta, erro);

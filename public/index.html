@@ -1054,6 +1054,16 @@
           </button>
           <button
             class="aba"
+            id="aba-configuracao-ia"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-ia"
+          >
+            IA
+          </button>
+          <button
+            class="aba"
             id="aba-configuracao-acessos"
             type="button"
             role="tab"
@@ -1312,6 +1322,25 @@
                 </div>
               </div>
             </details>
+
+            <details class="grupo-recolhivel" id="grupo-kanban-mcp">
+              <summary>Kanban por MCP</summary>
+              <div class="grupo-recolhivel-corpo">
+                <p class="texto-auxiliar">
+                  Agentes de IA (Claude Code, Codex, Cursor, Copilot) leem e atualizam os kanbans
+                  marcados como "Disponível por MCP" em Editar o kanban. Cole o bloco abaixo na
+                  configuração MCP do agente. O HUB SNK precisa estar aberto.
+                </p>
+                <pre class="bloco-configuracao-mcp" id="configuracao-kanban-mcp"></pre>
+                <p class="linha-do-link-sobre">
+                  <button class="btn tiny" type="button" id="btn-copiar-configuracao-kanban-mcp">
+                    Copiar configuração
+                  </button>
+                </p>
+                <h4 class="titulo-kanbans-mcp">Kanbans disponíveis</h4>
+                <div class="lista-recursos" id="lista-kanbans-mcp"></div>
+              </div>
+            </details>
           </div>
 
           <div
@@ -1548,6 +1577,64 @@
                 O token gravado nunca é mostrado: deixe o campo em branco para manter o atual. A
                 bandeja do Git AutoSync já aberta só enxerga o token novo depois de reaberta.
               </p>
+            </fieldset>
+          </div>
+
+          <div
+            class="painel-aba"
+            id="painel-configuracao-ia"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-ia"
+            hidden
+          >
+            <fieldset class="grupo-de-acessos">
+              <legend>
+                Assistente que gera as tarefas do kanban
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >O assistente de linha de comando instalado nesta máquina que lê o documento de
+                    escopo e devolve as tarefas. Ele roda numa pasta temporária, sem poder alterar
+                    arquivos nem executar comandos.</span
+                  ></span
+                >
+              </legend>
+
+              <div class="campo">
+                <label for="campo-assistente-ia">Assistente</label>
+                <select id="campo-assistente-ia"></select>
+              </div>
+
+              <div class="campo">
+                <label for="campo-modelo-ia">Modelo</label>
+                <select id="campo-modelo-ia"></select>
+              </div>
+
+              <div class="campo" id="bloco-modelo-ia-outro" hidden>
+                <label for="campo-modelo-ia-outro">Nome do modelo</label>
+                <input
+                  id="campo-modelo-ia-outro"
+                  type="text"
+                  maxlength="120"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="O nome exato que o assistente aceita no --model"
+                />
+              </div>
+
+              <div class="campo" id="bloco-raciocinio-ia" hidden>
+                <label for="campo-raciocinio-ia"
+                  >Nível de raciocínio
+                  <span class="opcional">mais alto pensa mais e demora mais</span></label
+                >
+                <select id="campo-raciocinio-ia"></select>
+              </div>
+
+              <div class="linha-do-token-gitlab">
+                <p class="texto-auxiliar" id="situacao-assistente-ia"></p>
+                <button class="btn tiny" type="button" id="btn-atualizar-assistentes-ia">
+                  Procurar de novo
+                </button>
+              </div>
             </fieldset>
           </div>
 
@@ -2328,6 +2415,370 @@
       <div class="modal-rodape">
         <button class="btn ghost" type="button" id="btn-cancelar-exclusao">Cancelar</button>
         <button class="btn danger" type="button" id="btn-confirmar-exclusao">Excluir</button>
+      </div>
+    </dialog>
+
+    <!-- Kanban dos projetos: o quadro e as janelas que ele abre. O conteúdo vem do kanban.js. -->
+    <dialog class="modal modal-kanban" id="modal-kanban">
+      <div class="modal-cabecalho cabecalho-kanban">
+        <div>
+          <h2 id="titulo-kanban">Kanban</h2>
+          <p id="subtitulo-kanban"></p>
+        </div>
+        <div class="acoes-kanban">
+          <select id="campo-kanban-demanda" aria-label="Kanban exibido"></select>
+          <button class="btn tiny" type="button" id="btn-kanban-documento" hidden>
+            Ver documento
+          </button>
+          <button class="btn tiny" type="button" id="btn-kanban-analisar" hidden>
+            Gerar tarefas com a IA
+          </button>
+          <button class="btn tiny primario" type="button" id="btn-kanban-nova-tarefa">
+            Nova tarefa
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-corpo corpo-kanban">
+        <div class="situacao-kanban" id="situacao-kanban"></div>
+        <details class="resumo-kanban" id="resumo-kanban" hidden>
+          <summary>Resumo da IA e pontos a esclarecer</summary>
+          <p class="texto-resumo-kanban" id="texto-resumo-kanban"></p>
+        </details>
+        <div class="colunas-kanban" id="colunas-kanban"></div>
+      </div>
+
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-fechar-kanban">Fechar</button>
+      </div>
+    </dialog>
+
+    <dialog class="modal" id="modal-kanban-novo">
+      <form method="dialog" id="formulario-kanban-novo" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="titulo-kanban-novo">Novo kanban</h2>
+          <p id="subtitulo-kanban-novo"></p>
+        </div>
+
+        <div class="modal-corpo">
+          <fieldset class="grupo-de-acessos" id="grupo-kanban-modo">
+            <legend>Como começar</legend>
+            <label class="campo-checkbox">
+              <input type="radio" name="modo-kanban" id="campo-kanban-modo-documento" checked />
+              Com o documento de escopo
+            </label>
+            <label class="campo-checkbox">
+              <input type="radio" name="modo-kanban" id="campo-kanban-modo-vazio" /> Sem documento,
+              com o quadro vazio
+            </label>
+          </fieldset>
+
+          <div class="campo" id="bloco-kanban-arquivo">
+            <label for="campo-kanban-arquivo"
+              >Documento <span class="opcional">.docx, .pdf, .md ou .txt, até 20 MB</span></label
+            >
+            <input id="campo-kanban-arquivo" type="file" accept=".docx,.pdf,.md,.markdown,.txt" />
+          </div>
+
+          <div class="campo" id="bloco-kanban-projeto">
+            <label for="campo-kanban-projeto">Projeto</label>
+            <select id="campo-kanban-projeto"></select>
+          </div>
+
+          <div class="campo" id="bloco-kanban-nome">
+            <label for="campo-kanban-nome">Nome do kanban</label>
+            <input id="campo-kanban-nome" type="text" maxlength="120" autocomplete="off" />
+          </div>
+
+          <div class="campo" id="bloco-kanban-pasta">
+            <label for="campo-kanban-pasta"
+              >Pasta do arquivo de tarefas
+              <span class="opcional">opcional · o arquivo vai para a subpasta Tarefas</span></label
+            >
+            <div class="campo-com-botao">
+              <input
+                id="campo-kanban-pasta"
+                type="text"
+                maxlength="400"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Onde o arquivo JSON das tarefas será criado"
+              />
+              <button class="btn tiny" type="button" id="btn-kanban-escolher-pasta">
+                Escolher…
+              </button>
+            </div>
+          </div>
+
+          <label class="campo-checkbox" id="bloco-kanban-analisar">
+            <input type="checkbox" id="campo-kanban-analisar" checked /> Gerar as tarefas com a IA
+            logo após o envio
+          </label>
+
+          <p class="erro-formulario" id="erro-kanban-novo" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-kanban-novo">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-kanban-novo">Enviar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-kanban-editar">
+      <form method="dialog" id="formulario-kanban-editar" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Editar kanban</h2>
+          <p id="subtitulo-kanban-editar"></p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-kanban-editar-nome">Nome do kanban</label>
+            <input
+              id="campo-kanban-editar-nome"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              required
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-editar-projeto">Projeto</label>
+            <select id="campo-kanban-editar-projeto"></select>
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-editar-pasta"
+              >Pasta do arquivo de tarefas
+              <span class="opcional">opcional · o arquivo vai para a subpasta Tarefas</span></label
+            >
+            <div class="campo-com-botao">
+              <input
+                id="campo-kanban-editar-pasta"
+                type="text"
+                maxlength="400"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button class="btn tiny" type="button" id="btn-kanban-editar-escolher-pasta">
+                Escolher…
+              </button>
+            </div>
+          </div>
+
+          <p class="texto-auxiliar" id="situacao-kanban-editar-arquivo" hidden></p>
+
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-kanban-editar-mcp" /> Disponível para agentes de IA por
+            MCP
+          </label>
+
+          <div class="linha-do-token-gitlab" id="bloco-kanban-editar-documento" hidden>
+            <p class="texto-auxiliar" id="texto-kanban-editar-documento"></p>
+            <button class="btn tiny danger" type="button" id="btn-kanban-remover-documento">
+              Remover documento
+            </button>
+          </div>
+
+          <p class="erro-formulario" id="erro-kanban-editar" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-kanban-editar">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-kanban-editar">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal largo" id="modal-kanban-tarefa">
+      <form method="dialog" id="formulario-kanban-tarefa" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="titulo-kanban-tarefa">Tarefa</h2>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo" id="bloco-kanban-tarefa-demanda" hidden>
+            <label for="campo-kanban-tarefa-demanda">Kanban</label>
+            <select id="campo-kanban-tarefa-demanda"></select>
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-tarefa-titulo">Título</label>
+            <input
+              id="campo-kanban-tarefa-titulo"
+              type="text"
+              maxlength="200"
+              autocomplete="off"
+              required
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-tarefa-descricao">Descrição</label>
+            <textarea
+              class="campo-anotacoes"
+              id="campo-kanban-tarefa-descricao"
+              rows="4"
+              maxlength="20000"
+            ></textarea>
+          </div>
+
+          <div class="campos-kanban-tarefa">
+            <div class="campo">
+              <label for="campo-kanban-tarefa-estado">Coluna</label>
+              <select id="campo-kanban-tarefa-estado"></select>
+            </div>
+            <div class="campo">
+              <label for="campo-kanban-tarefa-tipo">Tipo</label>
+              <select id="campo-kanban-tarefa-tipo"></select>
+            </div>
+            <div class="campo">
+              <label for="campo-kanban-tarefa-prioridade">Prioridade</label>
+              <select id="campo-kanban-tarefa-prioridade"></select>
+            </div>
+            <div class="campo">
+              <label for="campo-kanban-tarefa-horas">Estimativa (h)</label>
+              <input
+                id="campo-kanban-tarefa-horas"
+                type="text"
+                inputmode="decimal"
+                maxlength="6"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-tarefa-grupo"
+              >Grupo <span class="opcional">a funcionalidade a que a tarefa pertence</span></label
+            >
+            <input id="campo-kanban-tarefa-grupo" type="text" maxlength="120" autocomplete="off" />
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-tarefa-criterios"
+              >Critérios de aceite <span class="opcional">um por linha</span></label
+            >
+            <textarea
+              class="campo-anotacoes"
+              id="campo-kanban-tarefa-criterios"
+              rows="3"
+              maxlength="20000"
+            ></textarea>
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-tarefa-novo-item"
+              >Lista de verificação
+              <span class="opcional" id="progresso-kanban-tarefa-lista"
+                >marque cada passo feito</span
+              ></label
+            >
+            <div class="lista-kanban-tarefa" id="lista-kanban-tarefa"></div>
+            <div class="campo-com-botao">
+              <input
+                id="campo-kanban-tarefa-novo-item"
+                type="text"
+                maxlength="300"
+                autocomplete="off"
+                placeholder="Novo item — Enter adiciona"
+              />
+              <button class="btn tiny" type="button" id="btn-kanban-tarefa-adicionar-item">
+                Adicionar
+              </button>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-tarefa-notas">Notas</label>
+            <textarea
+              class="campo-anotacoes"
+              id="campo-kanban-tarefa-notas"
+              rows="3"
+              maxlength="4000"
+            ></textarea>
+          </div>
+
+          <p class="erro-formulario" id="erro-kanban-tarefa" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn danger rodape-esquerda" type="button" id="btn-excluir-kanban-tarefa">
+            Excluir
+          </button>
+          <button class="btn ghost" type="button" id="btn-cancelar-kanban-tarefa">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-kanban-tarefa">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal muito-largo" id="modal-kanban-documento">
+      <div class="modal-cabecalho">
+        <h2 id="titulo-kanban-documento">Documento</h2>
+      </div>
+      <div class="abas-modal" role="tablist" id="abas-kanban-documento" hidden>
+        <button
+          class="aba ativa"
+          id="aba-kanban-documento-texto"
+          type="button"
+          role="tab"
+          aria-selected="true"
+          aria-controls="texto-kanban-documento"
+        >
+          Texto extraído
+        </button>
+        <button
+          class="aba"
+          id="aba-kanban-documento-original"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="original-kanban-documento"
+        >
+          Original
+        </button>
+      </div>
+      <div class="modal-corpo">
+        <pre class="texto-kanban-documento" id="texto-kanban-documento"></pre>
+        <div class="original-kanban-documento" id="original-kanban-documento" hidden></div>
+      </div>
+      <div class="modal-rodape">
+        <a class="btn ghost rodape-esquerda" id="link-kanban-baixar-documento" download
+          >Baixar original</a
+        >
+        <button class="btn ghost" type="button" id="btn-fechar-kanban-documento">Fechar</button>
+      </div>
+    </dialog>
+
+    <dialog class="modal" id="modal-kanban-exclusao-projeto">
+      <div class="modal-cabecalho">
+        <h2>Excluir projeto</h2>
+        <p id="texto-kanban-exclusao-projeto"></p>
+      </div>
+      <div class="modal-corpo">
+        <fieldset class="grupo-de-acessos">
+          <legend>Kanbans do projeto</legend>
+          <label class="campo-checkbox">
+            <input type="radio" name="exclusao-kanban" id="campo-kanban-exclusao-manter" checked />
+            Manter no cliente, em "Kanbans sem projeto"
+          </label>
+          <label class="campo-checkbox">
+            <input type="radio" name="exclusao-kanban" id="campo-kanban-exclusao-excluir" />
+            Excluir junto, com as tarefas e os documentos
+          </label>
+        </fieldset>
+        <div id="lista-kanban-exclusao-renomear"></div>
+        <p class="erro-formulario" id="erro-kanban-exclusao-projeto" hidden></p>
+      </div>
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-cancelar-kanban-exclusao-projeto">
+          Cancelar
+        </button>
+        <button class="btn danger" type="button" id="btn-confirmar-kanban-exclusao-projeto">
+          Excluir projeto
+        </button>
       </div>
     </dialog>
 

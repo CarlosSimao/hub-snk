@@ -6,6 +6,11 @@ import {
   PERFIL_PADRAO,
 } from '../acessos.ts';
 import {
+  ESCOLHAS_DE_ASSISTENTE,
+  type ConfiguracaoDoAssistenteDeIa,
+  type EscolhaDeAssistente,
+} from '../kanban/tiposDoKanban.ts';
+import {
   DESTINOS_DE_LINK,
   FUNCIONALIDADES,
   SEGURANCAS_SMTP,
@@ -58,6 +63,13 @@ const ALERTA_DA_AGENDA_INICIAL: AlertaDaAgenda = {
   enviarEmail: true,
 };
 
+/* `auto` funciona em qualquer máquina com algum assistente instalado, sem escolha prévia. */
+const ASSISTENTE_DE_IA_INICIAL: ConfiguracaoDoAssistenteDeIa = {
+  assistente: 'auto',
+  modelo: '',
+  raciocinio: '',
+};
+
 const CONFIGURACAO_INICIAL: Omit<
   ConfiguracaoGlobal,
   'perfil' | 'funcionalidadesOcultas' | 'terceiro'
@@ -73,6 +85,7 @@ const CONFIGURACAO_INICIAL: Omit<
   sankhyaOmCodUsu: '',
   smtp: SMTP_INICIAL,
   alertaDaAgenda: ALERTA_DA_AGENDA_INICIAL,
+  assistenteDeIa: ASSISTENTE_DE_IA_INICIAL,
 };
 
 /**
@@ -213,6 +226,23 @@ function lerAlertaDaAgenda(valor: unknown): AlertaDaAgenda {
   };
 }
 
+/** Arquivo de antes do kanban não tem a chave; assistente desconhecido volta ao `auto`. */
+function lerAssistenteDeIa(valor: unknown): ConfiguracaoDoAssistenteDeIa {
+  if (!ehObjeto(valor)) {
+    return { ...ASSISTENTE_DE_IA_INICIAL };
+  }
+
+  const assistente = (ESCOLHAS_DE_ASSISTENTE as readonly unknown[]).includes(valor.assistente)
+    ? (valor.assistente as EscolhaDeAssistente)
+    : ASSISTENTE_DE_IA_INICIAL.assistente;
+
+  return {
+    assistente,
+    modelo: textoOuPadrao(valor.modelo, '').trim(),
+    raciocinio: textoOuPadrao(valor.raciocinio, '').trim(),
+  };
+}
+
 function normalizarSmtp(smtp: ConfiguracaoSmtp): ConfiguracaoSmtp {
   return {
     host: smtp.host.trim(),
@@ -294,6 +324,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       sankhyaOmCodUsu: dados.sankhyaOmCodUsu ?? '',
       smtp: lerSmtp(dados.smtp),
       alertaDaAgenda: lerAlertaDaAgenda(dados.alertaDaAgenda),
+      assistenteDeIa: lerAssistenteDeIa(dados.assistenteDeIa),
       ...lerAcessos(dados, this.#acessosIniciais),
     };
 
@@ -334,6 +365,9 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       terceiro: configuracao.terceiro ?? atual.terceiro,
       smtp: configuracao.smtp ? normalizarSmtp(configuracao.smtp) : atual.smtp,
       alertaDaAgenda: configuracao.alertaDaAgenda ?? atual.alertaDaAgenda,
+      assistenteDeIa: configuracao.assistenteDeIa
+        ? lerAssistenteDeIa(configuracao.assistenteDeIa)
+        : atual.assistenteDeIa,
     };
 
     await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);

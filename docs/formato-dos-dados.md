@@ -15,14 +15,16 @@ estiver em `HUB_DADOS_DIR`:
 | `lembretes.json`    | Os lembretes cadastrados                                                  |
 | `contatos.json`     | Os contatos, com ou sem cliente                                           |
 | `notificacoes.json` | O painel de notificações e as chaves já notificadas                       |
-| `sankhya.db`        | O snapshot da Agenda de Recursos, em SQLite                               |
+| `sankhya.db`        | O snapshot da Agenda de Recursos e os kanbans dos projetos, em SQLite     |
+| `kanbans/`          | Os documentos de escopo originais dos kanbans, uma pasta por cliente      |
 
 ## Envelope
 
 Todos os `.json` seguem a mesma forma: um campo `versaoDoEsquema` e o conteúdo sob
 uma chave própria — `clientes`, `configuracao`, `local`, `lembretes`, `contatos` e
-`notificacoes`. O `sankhya.db` fica fora do envelope: é o snapshot que cada
-consulta da agenda atualiza, e as rotas de eventos leem.
+`notificacoes`. O `sankhya.db` fica fora do envelope: guarda o snapshot que cada
+consulta da agenda atualiza, e as rotas de eventos leem, e os kanbans (veja
+[Kanban dos projetos](#kanban-dos-projetos)).
 
 ```json
 { "versaoDoEsquema": 1, "clientes": [ ... ] }
@@ -65,7 +67,8 @@ cadastro.
       "remetente": "voce@empresa.com.br",
       "destinatario": "voce@empresa.com.br"
     },
-    "alertaDaAgenda": { "ativo": true, "toleranciaMinutos": 30, "enviarEmail": true }
+    "alertaDaAgenda": { "ativo": true, "toleranciaMinutos": 30, "enviarEmail": true },
+    "assistenteDeIa": { "assistente": "auto", "modelo": "", "raciocinio": "" }
   }
 }
 ```
@@ -105,6 +108,13 @@ vazio, a aba OS não tem de quem buscar as OS.
 `alertaDaAgenda` liga o aviso de evento da agenda de hoje sem OS lançada. Arquivo
 de antes destes campos nasce com o SMTP vazio (porta 587, STARTTLS) e o alerta
 desligado.
+
+`assistenteDeIa` é quem gera as tarefas do kanban a partir do documento de escopo:
+`auto` (o primeiro instalado, na ordem `claude`, `codex`, `opencode`, `gemini`,
+`cursor`) ou um deles, com o `modelo` escolhido; vazio usa o padrão do assistente.
+`raciocinio` é o nível de raciocínio do modelo (`low`, `high`, `max`...), vazio
+para o padrão dele. Arquivo de antes do campo, ou com assistente desconhecido, vale
+`auto`.
 
 Nada do Git AutoSync fica aqui. A configuração dele é o `config.json` da pasta dele
 (`%USERPROFILE%\.git-autosync`), que o HUB SNK só lê e altera pelo CLI, e o host e o
@@ -232,6 +242,72 @@ cada repositório é descartado na leitura e sai do arquivo na próxima gravaç�
 Banco de dados gravado antes de `sgbd` e
 `identificadorOracle` existirem é lido como `oracle` e `service-name`. Não há
 migração manual a rodar.
+
+## Kanban dos projetos
+
+Três tabelas no `sankhya.db`, ao lado das da Agenda (`ag_*`):
+
+| Tabela          | Guarda                                                                                |
+| --------------- | ------------------------------------------------------------------------------------- |
+| `kb_demandas`   | Cada kanban: cliente, projeto, nome, pasta do arquivo de tarefas, documento e análise |
+| `kb_tarefas`    | As tarefas, com a coluna (`estado`) e a posição nela (`ordem`, densa por kanban)      |
+| `kb_transicoes` | Cada criação, troca de coluna e exclusão de tarefa, com data e origem                 |
+
+`projeto_id` guarda o id do projeto do `clientes.json`, sem chave estrangeira: vazio
+quer dizer kanban órfão, cujo projeto foi excluído com a opção de manter os kanbans.
+Excluir o cliente apaga os kanbans dele. O original do documento fica em
+`kanbans/<id do cliente>/<id do kanban>-<nome>`; no banco vai só o texto extraído. No
+PDF, o texto serve ao visor e ao Codex e ao Cursor, que não leem PDF; os outros
+assistentes recebem o arquivo original. PDF digitalizado fica sem texto.
+
+`checklist`, em `kb_tarefas`, guarda a lista de verificação da tarefa como JSON:
+`[{ "texto": "...", "feito": false }]`.
+
+`mcp` (0 ou 1) libera o kanban para agentes pelo servidor MCP. `arquivo_nome` é o
+nome do arquivo de tarefas dentro de `<pasta>/Tarefas`, escolhido ao ligar o arquivo
+e mantido enquanto a pasta não muda.
+
+### Arquivo de tarefas
+
+Com a pasta escolhida, o kanban ganha `<pasta>/Tarefas/<projeto>.json`, no mesmo
+formato do DS-hub:
+
+```json
+{
+  "geradoPor": "hub-snk",
+  "documentoId": 4,
+  "sobre": "Tarefas do kanban ... mantidas pelo HUB SNK.",
+  "comoAtualizar": ["Altere só \"estado\" e \"notas\". ..."],
+  "projeto": "Integração CERTADOC",
+  "demanda": "Escopo do envio de pedidos",
+  "documentoDeEscopo": "escopo.pdf",
+  "resumoDoEscopo": "...",
+  "atualizadoEm": "2026-10-01T16:09:00.000Z",
+  "tarefas": [
+    {
+      "id": 7,
+      "titulo": "Criar tabela adicional AD_LOGENVIO",
+      "estado": "backlog",
+      "notas": "",
+      "funcionalidade": "Log de envio",
+      "tipo": "dados",
+      "prioridade": "alta",
+      "estimativaHoras": 3,
+      "descricao": "...",
+      "criteriosAceite": ["..."],
+      "checklist": [{ "texto": "Criar a tabela", "feito": true }]
+    }
+  ]
+}
+```
+
+O HUB SNK reescreve o arquivo a cada mudança no quadro e o confere a cada 1,5 s: o que
+outro programa mudar em `estado`, `notas` ou no `feito` dos itens de `checklist`
+entra no quadro; o resto é ignorado e
+volta ao que está no HUB SNK. JSON quebrado não é sobrescrito. A pasta `Tarefas` entra
+no `.gitignore` quando está num repositório Git; fora de um, só é criada. Arquivo de
+mesmo nome que não foi gerado pelo HUB SNK não é tocado: o kanban usa outro nome. Tirar
+a pasta, ou excluir o kanban, apaga o arquivo.
 
 ## Versão do esquema
 
