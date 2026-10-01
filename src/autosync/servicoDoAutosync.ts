@@ -1,6 +1,7 @@
 import { isAbsolute } from 'node:path';
 import type { Cliente } from '../tipos.ts';
 import {
+  GitAusenteError,
   GitAutosyncFalhouError,
   GitAutosyncUsoError,
   PastaDoAutosyncNaoEncontradaError,
@@ -465,7 +466,17 @@ export class ServicoDoAutosync {
     return extrairJson(resultado.saida);
   }
 
+  /** A tela pergunta antes de abrir o diálogo de instalação, para mandar baixar o Git. */
+  async git(): Promise<{ instalado: boolean; versao: string | null }> {
+    const versao = await this.#cli.versaoDoGit();
+    return { instalado: versao !== null, versao };
+  }
+
+  /* Conferido de novo aqui: o Git pode ter sumido entre a pergunta da tela e o clique. */
   async instalar(opcoes: OpcoesDeInstalacao): Promise<Saida> {
+    if ((await this.#cli.versaoDoGit()) === null) {
+      throw new GitAusenteError();
+    }
     return { saida: exigirSucesso(await this.#cli.instalarPacote(opcoes)) };
   }
 

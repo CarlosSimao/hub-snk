@@ -3500,6 +3500,14 @@ button.selo-situacao:focus-visible {
   margin: 0;
 }
 
+/* Git AutoSync não instalado: as seções aparecem, apagadas e sem resposta ao clique. */
+.autosync-indisponivel {
+  filter: grayscale(1);
+  opacity: 0.35;
+  pointer-events: none;
+  user-select: none;
+}
+
 .edicao-de-horarios-do-autosync {
   display: flex;
   flex-wrap: wrap;

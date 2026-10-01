@@ -4,6 +4,7 @@ import type { FSWatcher } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CliDoAutosyncProcesso } from './autosync/cliDoAutosyncProcesso.ts';
+import { baixarPacoteDoAutosync } from './autosync/pacoteDoGithub.ts';
 import { ServicoDoAutosync } from './autosync/servicoDoAutosync.ts';
 import { configuracao } from './configuracao.ts';
 import { ArquivoDeDadosInvalidoError, EsquemaMaisNovoError } from './repositorio/arquivoDeDados.ts';
@@ -185,6 +186,8 @@ async function iniciarServidor(): Promise<void> {
       cli: new CliDoAutosyncProcesso({
         pasta: configuracao.pastaDoAutosync,
         pacote: configuracao.pacoteDoAutosync,
+        baixarPacote: () => baixarPacoteDoAutosync(),
+        pastaDoInstalador: configuracao.pastaDoInstalador,
       }),
       listarClientes: () => repositorioDeClientes.listar(),
       abrirTerminal: async (caminho) => {

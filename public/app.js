@@ -220,6 +220,8 @@ const ICONES = {
   exportar: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 8l5-5 5 5 M12 3v12',
   /* Elos de corrente: o botão que vincula o parceiro do evento a um cliente do HUB. */
   link: 'M15 7h3a5 5 0 0 1 0 10h-3 M9 17H6a5 5 0 0 1 0-10h3 M8 12h8',
+  /* Círculo com "i": o botão que explica o que é o Git AutoSync. */
+  info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 16v-4 M12 8h.01',
   /* Sino: o botão que abre o painel de notificações. */
   sino: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0',
   /* Lupa: o botão que abre a busca rápida. */
@@ -439,6 +441,14 @@ const elementos = {
   mountAutosync: document.getElementById('mount-autosync'),
   ultimaAtualizacaoAutosync: document.getElementById('ultima-atualizacao-autosync'),
   botaoAtualizarAutosync: document.getElementById('btn-atualizar-autosync'),
+  botaoInstalarAutosync: document.getElementById('btn-instalar-autosync'),
+  botaoSobreAutosync: document.getElementById('btn-sobre-autosync'),
+  modalSobreAutosync: document.getElementById('modal-autosync-sobre'),
+  botaoFecharSobreAutosync: document.getElementById('btn-fechar-autosync-sobre'),
+  modalSemGitAutosync: document.getElementById('modal-autosync-sem-git'),
+  erroSemGitAutosync: document.getElementById('erro-autosync-sem-git'),
+  botaoFecharSemGitAutosync: document.getElementById('btn-fechar-autosync-sem-git'),
+  botaoVerificarGitAutosync: document.getElementById('btn-verificar-git-autosync'),
   modalCommitAutosync: document.getElementById('modal-autosync-commit'),
   formularioCommitAutosync: document.getElementById('formulario-autosync-commit'),
   tituloModalCommitAutosync: document.getElementById('modal-autosync-commit-titulo'),
@@ -856,6 +866,8 @@ async function requisitar(caminho, opcoes = {}) {
     erro.shellIndisponivel = Boolean(conteudo?.shellIndisponivel);
     // O Git AutoSync manda junto o que fazer quando o commit ou o push falha.
     erro.sugestoes = Array.isArray(conteudo?.sugestoes) ? conteudo.sugestoes : [];
+    // A instalação do Git AutoSync recusa sem o Git: a tela manda baixá-lo.
+    erro.gitAusente = Boolean(conteudo?.gitAusente);
     throw erro;
   }
 
@@ -1102,6 +1114,7 @@ const api = {
 
   visaoDoAutosync: () => requisitar(`${CAMINHO_DO_AUTOSYNC}?clientes=true`),
   repositoriosDosClientesNoAutosync: () => requisitar(`${CAMINHO_DO_AUTOSYNC}/clientes`),
+  gitDaMaquina: () => requisitar(`${CAMINHO_DO_AUTOSYNC}/git`),
   instalarAutosync: (opcoes) =>
     requisitar(`${CAMINHO_DO_AUTOSYNC}/instalar`, { metodo: 'POST', corpo: opcoes }),
   adicionarAoAutosync: (caminho, tipo) =>
@@ -10604,18 +10617,15 @@ function tirarDoAutosync(caminho) {
 
 /* ---------------------------- aba do menu ---------------------------------- */
 
-function criarAvisoDeAutosyncNaoInstalado(comBotao) {
+function criarAvisoDeAutosyncNaoInstalado() {
   const aviso = criarElemento('div', 'aviso-shell aviso-do-autosync');
   aviso.append(
     criarElemento(
       'p',
       null,
-      'O Git AutoSync não está instalado nesta máquina. Ele exige o Git no PATH: se a instalação falhar, é o motivo mais comum.',
+      'O Git AutoSync não está instalado nesta máquina. Instale pela aba Git do menu principal.',
     ),
   );
-  if (comBotao) {
-    aviso.append(criarBotao('btn tiny primario', 'Instalar', abrirModalDeInstalacaoDoAutosync));
-  }
   return aviso;
 }
 
@@ -11099,9 +11109,30 @@ function renderizarUltimaAtualizacaoDoAutosync() {
     : '';
 }
 
+/**
+ * Sem o Git AutoSync, a aba mostra as mesmas seções acinzentadas e inertes: dá para ver
+ * o que ele oferece, e só o cabeçalho (instalar e saber mais) responde ao clique.
+ */
+function criarPreviaDoAutosyncIndisponivel(visaoLida) {
+  /* Tarefas do Agendador sobram de uma instalação antiga e dariam a prévia como ativa. */
+  const visao = { ...visaoLida, tarefas: [] };
+  const previa = criarElemento('div', 'autosync-indisponivel');
+  previa.inert = true;
+  previa.setAttribute('aria-hidden', 'true');
+  previa.append(
+    criarSecaoDeEstadoDoAutosync(visao),
+    criarSecaoDeAgendamentoDoAutosync(visao),
+    criarSecaoDaMensagemDoAutosync(visao),
+    criarSecaoDeRepositoriosDoAutosync(visao),
+    criarSecaoDoLogDoAutosync(),
+  );
+  return previa;
+}
+
 function renderizarAutosync() {
   renderizarUltimaAtualizacaoDoAutosync();
   const { visao, erroDeCarga } = estado.autosync;
+  elementos.botaoInstalarAutosync.hidden = !visao || visao.instalado;
 
   if (!visao) {
     elementos.mountAutosync.replaceChildren(
@@ -11118,7 +11149,7 @@ function renderizarAutosync() {
   }
 
   if (!visao.instalado) {
-    partes.push(criarAvisoDeAutosyncNaoInstalado(true));
+    partes.push(criarPreviaDoAutosyncIndisponivel(visao));
     elementos.mountAutosync.replaceChildren(...partes);
     return;
   }
@@ -11221,9 +11252,7 @@ function criarSecaoDoAutosyncDoCliente(cliente) {
     }
 
     if (!visao.instalado) {
-      const aviso = criarAvisoDeAutosyncNaoInstalado(false);
-      aviso.append(criarElemento('p', null, 'Instale pela aba Git do menu principal.'));
-      secao.replaceChildren(cabecalho, aviso);
+      secao.replaceChildren(cabecalho, criarAvisoDeAutosyncNaoInstalado());
       return;
     }
 
@@ -11469,6 +11498,58 @@ async function abrirHistoricoDoAutosync(caminho) {
   }
 }
 
+/**
+ * O botão Instalar pergunta pelo Git antes de abrir o diálogo: sem ele a instalação seria
+ * recusada só depois de a pessoa escolher as opções.
+ */
+async function iniciarInstalacaoDoAutosync() {
+  const botao = elementos.botaoInstalarAutosync;
+  botao.disabled = true;
+  try {
+    const git = await api.gitDaMaquina();
+    if (git.instalado) {
+      abrirModalDeInstalacaoDoAutosync();
+    } else {
+      abrirModalSemGitDoAutosync();
+    }
+  } catch (erro) {
+    exibirAviso(erro.message, 'erro');
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+function abrirModalSemGitDoAutosync() {
+  limparErro(elementos.erroSemGitAutosync);
+  if (!elementos.modalSemGitAutosync.open) {
+    elementos.modalSemGitAutosync.showModal();
+  }
+}
+
+async function verificarGitDeNovoParaOAutosync() {
+  const botao = elementos.botaoVerificarGitAutosync;
+  limparErro(elementos.erroSemGitAutosync);
+  botao.disabled = true;
+  botao.textContent = 'Verificando…';
+  try {
+    const git = await api.gitDaMaquina();
+    if (git.instalado) {
+      elementos.modalSemGitAutosync.close();
+      abrirModalDeInstalacaoDoAutosync();
+      return;
+    }
+    exibirErro(
+      elementos.erroSemGitAutosync,
+      'O Git ainda não foi encontrado. Se acabou de instalá-lo, reinicie o HUB SNK.',
+    );
+  } catch (erro) {
+    exibirErro(elementos.erroSemGitAutosync, erro.message);
+  } finally {
+    botao.disabled = false;
+    botao.textContent = 'Verificar de novo';
+  }
+}
+
 function abrirModalDeInstalacaoDoAutosync() {
   elementos.campoHorarioInstalacaoAutosync.value = '17:30';
   elementos.campoBandejaInstalacaoAutosync.checked = false;
@@ -11499,6 +11580,11 @@ async function instalarAutosync(evento) {
     exibirAviso('Git AutoSync instalado.');
     await recarregarAutosync();
   } catch (erro) {
+    if (erro.gitAusente) {
+      elementos.modalInstalacaoAutosync.close();
+      abrirModalSemGitDoAutosync();
+      return;
+    }
     exibirErro(elementos.erroInstalacaoAutosync, erro.message);
   } finally {
     elementos.botaoConfirmarInstalacaoAutosync.disabled = false;
@@ -11512,6 +11598,18 @@ function registrarEventosDoAutosync() {
   );
   elementos.botaoAtualizarAutosync.append(criarIcone(ICONES.recarregar));
   elementos.botaoAtualizarAutosync.addEventListener('click', () => recarregarAutosync());
+  elementos.botaoSobreAutosync.append(criarIcone(ICONES.info));
+  elementos.botaoSobreAutosync.addEventListener('click', () =>
+    elementos.modalSobreAutosync.showModal(),
+  );
+  elementos.botaoFecharSobreAutosync.addEventListener('click', () =>
+    elementos.modalSobreAutosync.close(),
+  );
+  elementos.botaoInstalarAutosync.addEventListener('click', iniciarInstalacaoDoAutosync);
+  elementos.botaoVerificarGitAutosync.addEventListener('click', verificarGitDeNovoParaOAutosync);
+  elementos.botaoFecharSemGitAutosync.addEventListener('click', () =>
+    elementos.modalSemGitAutosync.close(),
+  );
 
   elementos.formularioCommitAutosync.addEventListener('submit', confirmarCommitDoAutosync);
   elementos.botaoPreviaAutosync.addEventListener('click', gerarPreviaDoCommitDoAutosync);

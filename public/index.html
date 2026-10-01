@@ -321,6 +321,18 @@
           </div>
           <div class="detalhe-acoes">
             <span class="texto-auxiliar" id="ultima-atualizacao-autosync"></span>
+            <!-- Some quando o Git AutoSync já está instalado: ver `renderizarAutosync`. -->
+            <button class="btn primario" type="button" id="btn-instalar-autosync" hidden>
+              Instalar o Git AutoSync
+            </button>
+            <!-- O ícone de informação é montado pelo app.js. -->
+            <button
+              class="btn ghost botao-icone"
+              type="button"
+              id="btn-sobre-autosync"
+              title="Sobre o Git AutoSync"
+              aria-label="Sobre o Git AutoSync"
+            ></button>
             <!-- O ícone de recarregar é montado pelo app.js. -->
             <button
               class="btn ghost botao-icone"
@@ -2988,7 +3000,17 @@
       <form method="dialog" id="formulario-autosync-instalacao" novalidate>
         <div class="modal-cabecalho">
           <h2>Instalar o Git AutoSync</h2>
-          <p>Usa o pacote que veio com o HUB SNK. Exige o Git instalado na máquina.</p>
+          <p>
+            Baixa a versão mais recente da página de releases do
+            <a
+              class="link-sobre"
+              href="https://github.com/FlavianoRS/git-autosync/releases"
+              target="_blank"
+              rel="noopener noreferrer"
+              >repositório do Git AutoSync</a
+            >
+            e instala em %USERPROFILE%\.git-autosync.
+          </p>
         </div>
 
         <div class="modal-corpo">
@@ -3027,6 +3049,66 @@
           </button>
         </div>
       </form>
+    </dialog>
+
+    <!-- Sobre o Git AutoSync: o ícone de informação do cabeçalho da aba Git. -->
+    <dialog class="modal" id="modal-autosync-sobre">
+      <div class="modal-cabecalho">
+        <h2>Git AutoSync</h2>
+        <p>Ferramenta à parte do HUB SNK, com licença e repositório próprios.</p>
+      </div>
+      <div class="modal-corpo">
+        <p>
+          Faz commit e push automáticos dos repositórios cadastrados nele, num horário fixo pela
+          tarefa agendada do Windows ou quando você pedir. A mensagem do commit pode ser escrita por
+          IA (Claude Code, Codex ou OpenCode) ou ser uma mensagem fixa, e cada repositório pode ter
+          a sua política de arquivos e de branches.
+        </p>
+        <p>
+          No HUB SNK, a aba Git mostra o estado de cada repositório, os horários, o log e as ações
+          de commit, push, sincronização e merge request. Ele também tem ícone na bandeja, linha de
+          comando e skill para agentes de IA.
+        </p>
+        <p>Precisa do Git instalado na máquina.</p>
+      </div>
+      <div class="modal-rodape">
+        <a
+          class="btn ghost"
+          href="https://github.com/FlavianoRS/git-autosync"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Abrir o repositório</a
+        >
+        <button class="btn primario" type="button" id="btn-fechar-autosync-sobre">Fechar</button>
+      </div>
+    </dialog>
+
+    <!-- Sem o Git na máquina, a instalação do Git AutoSync nem começa. -->
+    <dialog class="modal" id="modal-autosync-sem-git">
+      <div class="modal-cabecalho">
+        <h2>O Git não está instalado</h2>
+        <p>O Git AutoSync usa o Git em todo commit e push: instale o Git antes.</p>
+      </div>
+      <div class="modal-corpo">
+        <p>
+          Baixe e instale o Git em
+          <a
+            class="link-sobre"
+            href="https://git-scm.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >https://git-scm.com/</a
+          >. Depois, clique em Verificar de novo. Se o Git já estiver instalado e ainda assim não
+          for encontrado, reinicie o HUB SNK: ele só enxerga o PATH novo depois de reaberto.
+        </p>
+        <p class="erro-formulario" id="erro-autosync-sem-git" hidden></p>
+      </div>
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-fechar-autosync-sem-git">Fechar</button>
+        <button class="btn primario" type="button" id="btn-verificar-git-autosync">
+          Verificar de novo
+        </button>
+      </div>
     </dialog>
 
     <!-- Confirmação do Git AutoSync: ligar a IA, desativar o agendamento, tirar uma pasta. -->

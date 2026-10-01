@@ -30,6 +30,8 @@ type Responder = (argumentos: readonly string[]) => ResultadoDoCli;
 /** Dublê do CLI: guarda cada chamada e responde pelo subcomando. */
 class CliDeMentira implements CliDoAutosync {
   instalar = true;
+  git: string | null = 'git version 2.47.0.windows.1';
+  pacotesInstalados = 0;
   configuracao: ConfiguracaoDoAutosync | null = null;
   status: StatusDoAutosync | null = null;
   chamadas: string[][] = [];
@@ -60,7 +62,11 @@ class CliDeMentira implements CliDoAutosync {
     return [];
   }
   async instalarPacote(_opcoes: OpcoesDeInstalacao): Promise<ResultadoDoCli> {
+    this.pacotesInstalados += 1;
     return { codigo: 0, saida: 'instalado' };
+  }
+  async versaoDoGit(): Promise<string | null> {
+    return this.git;
   }
 }
 
@@ -122,6 +128,42 @@ describe('GET /api/autosync', () => {
     assert.equal(visao.instalado, true);
     const doCliente = visao.repositorios.find((r: { caminho: string }) => r.caminho === DO_CLIENTE);
     assert.equal(doCliente.clienteId, 'c1');
+  });
+
+  it('informa se o Git está instalado', async () => {
+    const comGit = await servidor.inject({ url: '/api/autosync/git' });
+    assert.equal(comGit.statusCode, 200);
+    assert.deepEqual(comGit.json(), { instalado: true, versao: 'git version 2.47.0.windows.1' });
+
+    cli.git = null;
+    const semGit = await servidor.inject({ url: '/api/autosync/git' });
+    assert.deepEqual(semGit.json(), { instalado: false, versao: null });
+  });
+
+  it('recusa instalar o autosync sem o Git, com o endereço para baixá-lo', async () => {
+    cli.git = null;
+
+    const resposta = await servidor.inject({
+      method: 'POST',
+      url: '/api/autosync/instalar',
+      payload: {},
+    });
+
+    assert.equal(resposta.statusCode, 409);
+    assert.equal(resposta.json().gitAusente, true);
+    assert.equal(resposta.json().urlDoGit, 'https://git-scm.com/');
+    assert.equal(cli.pacotesInstalados, 0);
+  });
+
+  it('instala o autosync quando o Git está instalado', async () => {
+    const resposta = await servidor.inject({
+      method: 'POST',
+      url: '/api/autosync/instalar',
+      payload: { horario: '17:30' },
+    });
+
+    assert.equal(resposta.statusCode, 200);
+    assert.equal(cli.pacotesInstalados, 1);
   });
 
   it('responde mesmo sem autosync instalado', async () => {

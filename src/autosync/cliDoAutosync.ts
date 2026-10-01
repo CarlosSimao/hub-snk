@@ -37,8 +37,14 @@ export interface CliDoAutosync {
   lerLog(limite: number): Promise<string[]>;
   listarTarefas(): Promise<TarefaDoAgendador[]>;
 
-  /** Roda o `install-standalone.ps1` do pacote que veio com o HUB SNK. */
+  /**
+   * Baixa o pacote da Release mais recente do Git AutoSync e roda o
+   * `install-standalone.ps1` dele.
+   */
   instalarPacote(opcoes: OpcoesDeInstalacao): Promise<ResultadoDoCli>;
+
+  /** Saída do `git --version`, ou `null` quando o Git não está no PATH. */
+  versaoDoGit(): Promise<string | null>;
 }
 
 /** Entrada inválida: caminho que não pode ser usado, horário malformado. Vira 400. */
@@ -73,10 +79,22 @@ export class GitAutosyncNaoInstaladoError extends Error {
   }
 }
 
-/** Build de desenvolvimento, ou empacotado sem o autosync. Vira 409. */
+/** Sem Release, Release sem o `.zip`, ou plataforma sem instalador silencioso. Vira 409. */
 export class PacoteDoAutosyncAusenteError extends Error {
-  constructor() {
-    super('O pacote do Git AutoSync não está neste build.');
+  constructor(mensagem = 'O pacote do Git AutoSync não está disponível para esta máquina.') {
+    super(mensagem);
     this.name = 'PacoteDoAutosyncAusenteError';
+  }
+}
+
+export const URL_DO_GIT = 'https://git-scm.com/';
+
+/** O Git AutoSync roda `git` em todo comando: sem ele no PATH, a instalação nem começa. Vira 409. */
+export class GitAusenteError extends Error {
+  constructor() {
+    super(
+      `O Git não está instalado nesta máquina. Baixe e instale em ${URL_DO_GIT} e tente de novo.`,
+    );
+    this.name = 'GitAusenteError';
   }
 }

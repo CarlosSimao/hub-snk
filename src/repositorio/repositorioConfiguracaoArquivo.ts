@@ -131,22 +131,19 @@ function normalizarFuncionalidadesOcultas(valores: readonly unknown[]): Funciona
 export interface AcessosIniciais {
   perfil: PerfilProfissional;
   terceiro: boolean;
-  /** Falso quando a caixa do Git AutoSync ficou desmarcada no instalador. */
-  autosyncInstalado: boolean;
 }
 
 const ACESSOS_INICIAIS_PADRAO: AcessosIniciais = {
   perfil: PERFIL_PADRAO,
   terceiro: false,
-  autosyncInstalado: true,
 };
 
-/** Sem o Git AutoSync instalado, a aba Git do menu e a seção do cliente não teriam o que mostrar. */
-const FUNCIONALIDADES_DO_AUTOSYNC: readonly Funcionalidade[] = ['autosync', 'cliente.autosync'];
-
-function presetInicial(perfil: PerfilProfissional, iniciais: AcessosIniciais): Funcionalidade[] {
-  const preset = FUNCIONALIDADES_OCULTAS_POR_PERFIL[perfil];
-  return iniciais.autosyncInstalado ? [...preset] : [...preset, ...FUNCIONALIDADES_DO_AUTOSYNC];
+/*
+ * O Git AutoSync não decide mais o preset: ele saiu do instalador, e a aba Git aparece
+ * acinzentada, com o botão de instalar, enquanto ele não está na máquina.
+ */
+function presetInicial(perfil: PerfilProfissional): Funcionalidade[] {
+  return [...FUNCIONALIDADES_OCULTAS_POR_PERFIL[perfil]];
 }
 
 /**
@@ -154,8 +151,7 @@ function presetInicial(perfil: PerfilProfissional, iniciais: AcessosIniciais): F
  * escolhido no instalador com o seu preset. Com o perfil gravado e sem a lista,
  * vale o preset desse perfil. Terceiro segue a mesma regra, campo a campo: uma
  * instalação atualizada, que já tem perfil mas ainda não tem o campo, recebe o
- * que foi marcado no instalador. O Git AutoSync desmarcado no instalador oculta, por
- * cima do preset, a aba Git e a seção AutoSync do cliente.
+ * que foi marcado no instalador.
  */
 function lerAcessos(
   dados: Partial<Record<keyof ConfiguracaoGlobal, unknown>>,
@@ -164,7 +160,7 @@ function lerAcessos(
   const perfil = ehPerfilProfissional(dados.perfil) ? dados.perfil : iniciais.perfil;
   const ocultas = Array.isArray(dados.funcionalidadesOcultas)
     ? dados.funcionalidadesOcultas
-    : presetInicial(perfil, iniciais);
+    : presetInicial(perfil);
 
   return {
     perfil,

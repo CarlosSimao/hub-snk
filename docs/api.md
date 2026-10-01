@@ -218,7 +218,8 @@ chamado sem shell. O que a tela faz com cada rota está em
 | -------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | `GET /api/autosync`                          | `?clientes=true` marca o cliente dono de cada repositório  | Estado, horários, tarefas, IA, alvos e repositórios                               |
 | `GET /api/autosync/clientes`                 |                                                            | Repositórios dos clientes com a situação no autosync e as sugestões de pasta-raiz |
-| `POST /api/autosync/instalar`                | `{ horario?, bandeja?, atalhos?, skills?, path? }`         | Roda o `install-standalone.ps1` do pacote do instalador                           |
+| `GET /api/autosync/git`                      |                                                            | `{ instalado, versao }` do `git --version`: a tela pergunta antes de instalar     |
+| `POST /api/autosync/instalar`                | `{ horario?, bandeja?, atalhos?, skills?, path? }`         | Confere o Git, baixa a Release mais recente e roda o `install-standalone.ps1`     |
 | `POST /api/autosync/repositorios`            | `{ caminho, tipo: 'repo' \| 'root' }`                      | Põe no autosync (`add`, `include` ou religa o alvo desligado)                     |
 | `DELETE /api/autosync/repositorios`          | `{ caminho }`                                              | Tira do autosync (`remove` no alvo próprio, `exclude` na raiz)                    |
 | `POST /api/autosync/repositorios/lote`       | `{ origem: 'clientes' }`                                   | Adiciona um a um os repositórios de clientes que estão fora                       |
@@ -247,7 +248,8 @@ chamado sem shell. O que a tela faz com cada rota está em
 autosync ou no cadastro de um cliente (para `tipo: 'root'`, vale também a pasta-mãe de
 um repositório de cliente). Respostas de ação trazem `{ saida }` com o texto do CLI.
 Códigos: `400` entrada inválida, `404` pasta inexistente, `409` pacote do autosync
-ausente neste build, `502` o CLI rodou e falhou (a mensagem é a saída dele, e
+indisponível (sem Release, Release sem os executáveis, fora do Windows) ou Git ausente
+na instalação (`gitAusente: true`, `urlDoGit`), `502` o CLI rodou e falhou (a mensagem é a saída dele, e
 `sugestoes` traz, para cada erro reconhecido, `{ explicacao, comandos, acao? }`),
 `503` autosync não instalado (`naoInstalado: true`) ou, no `terminal`, nenhum
 terminal abriu.
