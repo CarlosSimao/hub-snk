@@ -41,6 +41,19 @@ export function montarMenu(
           accelerator: 'CmdOrCtrl+R',
           click: () => tabs()?.recarregar(),
         },
+        {
+          label: 'Recarregar sem cache',
+          accelerator: 'CmdOrCtrl+F5',
+          click: () => tabs()?.recarregarSemCache(),
+        },
+        // Segunda tecla do mesmo comando, como no Chrome: o Electron aceita uma só por item,
+        // e o item invisível continua respondendo ao atalho no Windows.
+        {
+          label: 'Recarregar sem cache',
+          accelerator: 'CmdOrCtrl+Shift+R',
+          visible: false,
+          click: () => tabs()?.recarregarSemCache(),
+        },
         // No menu, e não só no painel: dentro da guia do SankhyaOm ou de uma base, o
         // Ctrl+K nunca chegaria à página do painel.
         {
@@ -85,6 +98,14 @@ export function montarMenu(
           visible: !guiaBloqueada('experience'),
           click: () => tabs()?.mostrar('experience'),
         },
+        {
+          label: 'Nova guia',
+          accelerator: 'CmdOrCtrl+T',
+          click: () => tabs()?.abrirAbaAvulsa(),
+        },
+        // Só agem na guia avulsa: o resto das guias ignora.
+        { label: 'Voltar', accelerator: 'Alt+Left', click: () => tabs()?.voltar() },
+        { label: 'Avançar', accelerator: 'Alt+Right', click: () => tabs()?.avancar() },
         { type: 'separator' },
         { label: 'Mostrar na barra', enabled: false },
         // Uma caixa por guia: marcada = aparece na barra. Esconder nao fecha nem
@@ -152,4 +173,12 @@ export function montarMenu(
   Menu.setApplicationMenu(menu);
   // O menu nativo nao e' reativo: abrir ou fechar uma aba exige reconstruir a lista.
   gerenciador?.aoMudarGuias(() => montarMenu(janela, tabs, acoes));
+}
+
+/** Clique direito numa guia: age nela, mesmo que não seja a que está na tela. */
+export function menuDaGuia(tabs: () => TabManager | null, id: string): Menu {
+  return Menu.buildFromTemplate([
+    { label: 'Recarregar', click: () => tabs()?.recarregar(id) },
+    { label: 'Recarregar sem cache', click: () => tabs()?.recarregarSemCache(id) },
+  ]);
 }

@@ -38,7 +38,8 @@ import { pushSessaoExperience, limparSessaoExperience } from './backendClient';
 import { iniciarBackend, pararBackend } from './backendProcess';
 import { autoLoginSankhya } from './autoLoginSankhya';
 import * as cofre from './cofreCredenciais';
-import { montarMenu } from './menu';
+import { menuDaGuia, montarMenu } from './menu';
+import { AvisosDoHub } from './avisosDoHub';
 import { avisarQueContinuaNaBandeja, criarBandeja } from './bandeja';
 import { AtalhoGlobalDaBusca } from './atalhoGlobal';
 import { abrirBuscaRapida } from './buscaRapida';
@@ -179,6 +180,7 @@ function criarJanela(): void {
   // Depois de criar as tres: aplica o que estava escondido na sessao anterior.
   tabs.restaurarGuiasEscondidas();
   void tabs.carregarCadastro();
+  new AvisosDoHub(janelaPrincipal, tabs).iniciar();
 
   // Boot com credencial salva mas sem sessão capturada: loga sozinho, sem esperar a
   // guia cair em tela de login por conta própria (ela pode nem navegar de novo se o
@@ -379,6 +381,24 @@ tratarDaBarraDeGuias('links:fechar', (origin: string) => ({
   ok: tabs?.fecharAbaCliente(origin) ?? false,
 }));
 tratarDaBarraDeGuias('links:lista', () => tabs?.abasClientesAbertas() ?? []);
+tratarDaBarraDeGuias('tabs:recarregarSemCache', (id: string) => ({
+  ok: tabs?.recarregarSemCache(id) ?? false,
+}));
+tratarDaBarraDeGuias('tabs:abrirMenuDaGuia', (id: string, x: number, y: number) => {
+  menuFlutuante?.abrir(() => menuDaGuia(() => tabs, id), x, y);
+  return { ok: true };
+});
+
+tratarDaBarraDeGuias('avulsas:abrir', () => ({ ok: Boolean(tabs?.abrirAbaAvulsa()) }));
+tratarDaBarraDeGuias('avulsas:lista', () => tabs?.abasAvulsasAbertas() ?? []);
+tratarDaBarraDeGuias('avulsas:navegar', (id: string, texto: string) => ({
+  ok: tabs?.navegarAbaAvulsa(id, String(texto)) ?? false,
+}));
+tratarDaBarraDeGuias('avulsas:voltar', (id: string) => ({ ok: tabs?.voltar(id) ?? false }));
+tratarDaBarraDeGuias('avulsas:avancar', (id: string) => ({ ok: tabs?.avancar(id) ?? false }));
+tratarDaBarraDeGuias('avulsas:fechar', (id: string) => ({
+  ok: tabs?.fecharAbaAvulsa(id) ?? false,
+}));
 
 /**
  * Sem isto o Windows escreve "Electron" no topo de toda notificação (WhatsApp, Chat,

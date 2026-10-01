@@ -11,6 +11,22 @@ número significa aqui.
 
 ### Adicionado
 
+- **Guia avulsa**: no aplicativo desktop, o botão **+** ao lado das guias (ou `Ctrl+T`)
+  abre uma guia de navegação livre no Google, com barra de endereço para ver e digitar a
+  URL — domínio sem `https://` e termo de busca também valem —, voltar e avançar
+  (`Alt+←`/`Alt+→`) e `×` para fechar. O login feito nela fica numa partição própria,
+  separada da do Sankhya, e continua depois de reiniciar o aplicativo.
+- **Recarregar sem cache**: `Ctrl+F5` (ou `Ctrl+Shift+R`, ou `Shift`+clique no botão de
+  recarregar) recarrega a guia ativa buscando tudo de novo no servidor, como no Chrome.
+  O clique direito numa guia oferece **Recarregar** e **Recarregar sem cache** para ela,
+  mesmo que não seja a que está na tela.
+- **Aviso do Windows para as notificações do HUB SNK**: lembrete, agenda sem tarefa na
+  Experience e falha ao conferir a agenda aparecem como aviso do Windows, no canto
+  inferior direito, como as mensagens do WhatsApp, e o ícone do HUB SNK pisca na barra
+  de tarefas até a janela ganhar foco. Clicar no aviso abre o Painel com as
+  notificações.
+- **Sino piscando**: enquanto houver notificação não lida, o sino do Painel pisca até o
+  painel de notificações abrir.
 - **Link para a configuração que falta**: quando a Agenda, a OS ou o Resumo não carregam
   por falta de configuração — código de usuário do SankhyaOm, login do Sankhya ERP ou
   sessão da Experience —, a mensagem ganha o link **Abrir configuração**. O mesmo vale
@@ -26,6 +42,9 @@ número significa aqui.
 
 ### Alterado
 
+- **Sem o cartão abaixo do sino**: a notificação nova não abre mais o cartão que sumia
+  sozinho no canto do Painel. Ela chega pelo aviso do Windows, pelo contador e pelo sino
+  piscando, com o mesmo som.
 - **Lembretes ganham aba própria**, no menu principal, entre **Contatos** e **Git**: a
   lista dos lembretes cadastrados, com **Novo lembrete**, editar e excluir, sai do botão
   **Lembretes** do sino e passa a ficar nela. As notificações dos lembretes continuam
@@ -50,6 +69,7 @@ número significa aqui.
 
   O campo **Minutos após o fim do evento** deixa de existir, e o selo do Resumo passa de
   **Sem OS lançada** para **Sem tarefa na Experience**.
+
 - **Página de perfil do instalador igual à aba Acessos**: o perfil vem numa lista, sem a
   descrição na frente de cada um, e logo abaixo ficam a caixa **Terceiro** e uma caixa
   por funcionalidade, do menu principal e do cadastro do cliente. Trocar o perfil marca o

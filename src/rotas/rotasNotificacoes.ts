@@ -45,6 +45,9 @@ export function registrarRotasDeNotificacoes(
       'cache-control': 'no-cache',
       connection: 'keep-alive',
     });
+    // Sem isto os cabeçalhos só saíam com o primeiro dado: quem assina ficava até o
+    // primeiro batimento (30 s) sem saber que a conexão abriu.
+    resposta.raw.flushHeaders();
 
     const cancelarAssinatura = central.assinar((notificacao) => {
       resposta.raw.write(`event: notificacao\ndata: ${JSON.stringify(notificacao)}\n\n`);

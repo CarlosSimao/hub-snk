@@ -3092,13 +3092,28 @@ button.selo-situacao:focus-visible {
 /* ------------------------------ notificações ------------------------------ */
 
 /* Abaixo da barra do topo, que é `sticky` e fica sempre por cima. */
-.painel-notificacoes,
-.pilha-notificacoes {
+.painel-notificacoes {
   --distancia-do-topo: 64px;
 }
 
 .botao-notificacoes {
   position: relative;
+}
+
+/*
+ * Não lida esperando: o sino pisca até o painel abrir, como o botão do WhatsApp na barra
+ * do shell. Mesma exceção ao `prefers-reduced-motion` do indicador do Git: com o Windows
+ * sem animações, a piscada pedida sumiria sem aviso nenhum.
+ */
+.botao-notificacoes.piscando {
+  animation: piscar-sino 1s ease-in-out infinite !important;
+}
+
+@keyframes piscar-sino {
+  50% {
+    background: color-mix(in srgb, var(--perigo) 22%, transparent);
+    color: var(--perigo);
+  }
 }
 
 .contador-notificacoes {
@@ -3247,35 +3262,6 @@ button.selo-situacao:focus-visible {
   margin: 0;
   font-size: 11.5px;
   color: color-mix(in srgb, var(--perigo) 80%, var(--text));
-}
-
-.pilha-notificacoes {
-  position: fixed;
-  top: var(--distancia-do-topo);
-  right: 16px;
-  z-index: 45;
-  display: grid;
-  gap: 8px;
-  width: min(360px, calc(100vw - 32px));
-  pointer-events: none;
-}
-
-.cartao-notificacao {
-  position: relative;
-  padding: 12px 36px 12px 14px;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  border-radius: var(--radius-sm);
-  background: var(--surface-solid);
-  box-shadow: var(--shadow);
-  cursor: pointer;
-  pointer-events: auto;
-  animation: surgir 0.16s ease-out;
-}
-
-.cartao-notificacao-fechar {
-  position: absolute;
-  top: 6px;
-  right: 6px;
 }
 
 /* -------------------------------- lembretes ------------------------------- */

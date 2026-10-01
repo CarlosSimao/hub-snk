@@ -28,6 +28,7 @@ import {
   SERVICOS_COMUNICACAO,
   type ServicoComunicacao,
 } from './config';
+import { janelaEmUso } from './janelaEmUso';
 import { logEvento, origemSemQuery } from './log';
 import { ehEnderecoWeb } from './tabs';
 
@@ -610,14 +611,14 @@ export class GerenciadorComunicacao {
   }
 
   #estaSendoVisto(servico: ServicoComunicacao): boolean {
-    return this.#ativo === servico && this.#janela.isFocused();
+    return this.#ativo === servico && janelaEmUso(this.#janela);
   }
 
   #avisarMensagemNova(servico: ServicoComunicacao): void {
     if (SERVICOS_COMUNICACAO[servico].tocarSom) {
       this.#janela.webContents.send('comunicacao:mensagemNova', servico);
     }
-    if (!this.#janela.isFocused()) this.#janela.flashFrame(true);
+    if (!janelaEmUso(this.#janela)) this.#janela.flashFrame(true);
     logEvento('comunicacao-mensagem-nova', { servico });
   }
 

@@ -48,6 +48,40 @@ configuração — mudar a opção vale no próximo clique, sem reiniciar. As re
 Com o painel aberto num navegador comum (só em desenvolvimento, com
 `HUB_SEM_TOKEN=1`), a escolha não se aplica: os links abrem nesse navegador.
 
+## Guia avulsa
+
+No aplicativo desktop, o botão **+** no fim da fileira de guias abre uma guia de
+navegação livre, já no Google e com o cursor na barra de endereço. `Ctrl+T` — ou
+_Guias_ › _Nova guia_ — também abre, mas sem levar o cursor para a barra. A barra só aparece com uma guia avulsa na tela, numa linha
+abaixo das guias, e mostra o endereço da página. Nela, `Enter` abre:
+
+- o endereço como está, quando começa com `http://` ou `https://`;
+- `https://` + o texto, quando ele parece um domínio (`github.com`,
+  `localhost:8080/mge`, `192.168.0.1:8080`);
+- uma busca no Google com o texto, no resto dos casos.
+
+Outro esquema (`file:`) é recusado, e a barra volta a mostrar o endereço da guia;
+`Esc` desfaz o que foi digitado. As setas ao lado da barra, ou `Alt+←` e `Alt+→`,
+voltam e avançam — só na guia avulsa: no SankhyaOm e na Experience, voltar
+derrubaria a tela aberta.
+
+O título da guia é o da página, e o `×` a fecha. Pop-up aberto pela página vira
+outra guia avulsa; a página perde o `window.opener`, então um login que conversa
+com a janela de origem por ele pode não concluir. Todas as guias avulsas dividem
+uma partição própria e persistente: o login num site vale em todas e continua
+depois de reiniciar o aplicativo, mas nunca enxerga o cookie do SankhyaOm nem o
+token da Experience. As guias avulsas em si não voltam ao reabrir o aplicativo.
+
+## Recarregar sem cache
+
+`Ctrl+F5` ou `Ctrl+Shift+R` — ou _Hub_ › _Recarregar sem cache_ — recarrega a guia
+ativa buscando tudo de novo no servidor, como o `Ctrl+F5` do Chrome. O mesmo vale
+para `Shift`+clique no botão de recarregar e, para qualquer guia sem precisar
+trazê-la para a frente, para o clique direito nela › _Recarregar sem cache_.
+
+O cache em disco não é apagado: ele é da partição, e não da guia — Painel,
+SankhyaOm e Experience dividem a mesma, e apagá-lo valeria para as três.
+
 ## Anotações do cliente
 
 O último bloco do detalhe do cliente é uma caixa de texto livre — contatos,
@@ -376,17 +410,34 @@ fora da soma. As quantidades dos agrupadores contam sempre o mês inteiro.
 
 O sino no topo do painel abre o **painel de notificações**, à direita, com a
 contagem das não lidas. Cada notificação nova chega na hora (o servidor a empurra
-pela conexão aberta com a tela), aparece num cartão no canto direito por 15
-segundos e toca um som curto. Clicar numa notificação a marca como lida; os botões
-do painel marcam todas ou limpam a lista.
+pela conexão aberta com a tela), aumenta o contador do sino e toca um som curto; a
+janela que aparece é o aviso do Windows, abaixo. Clicar numa notificação a marca
+como lida; os botões do painel marcam todas ou limpam a lista.
 
-No lembrete, o cartão não diz "Lembrete": o **resumo** vem em destaque e, abaixo,
+No lembrete, a notificação não diz "Lembrete": o **resumo** vem em destaque e, abaixo,
 mais discretos, o texto e o cliente › projeto. O alerta da agenda e os avisos do
 próprio HUB SNK continuam com a etiqueta de origem.
 
 Com o painel no navegador comum, e não no aplicativo, o som pode ficar mudo até o
 primeiro clique na página: é a política de autoplay do navegador. A guia Painel do
 aplicativo já nasce liberada para tocar.
+
+Enquanto houver notificação não lida, o sino pisca — como o botão do WhatsApp na
+barra lateral — até o painel de notificações abrir; fechar o painel com não lidas
+faz o sino voltar a piscar.
+
+### Aviso do Windows
+
+No aplicativo desktop, toda notificação nova — lembrete, agenda sem tarefa na
+Experience e falha ao conferir a agenda — aparece como aviso do Windows, no canto
+inferior direito da tela, como as mensagens do WhatsApp, em qualquer guia e com a
+janela em foco ou não. Com a janela minimizada, atrás de outra ou sem foco, o ícone
+do HUB SNK também pisca na barra de tarefas até a janela ganhar foco. O aviso é
+mudo, para não soar junto com o som do painel. Clicar nele traz a janela para a
+frente, na guia Painel, com o painel de notificações aberto.
+
+No painel aberto num navegador comum, sem o aplicativo, não há aviso do Windows:
+a notificação chega só pelo contador, pelo sino piscando e pelo som.
 
 ### E-mail
 

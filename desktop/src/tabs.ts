@@ -1,12 +1,19 @@
 /**
- * Gerenciador de abas do shell: `WebContentsView` para Hub/ERP/Experience (fixas) e uma
- * por base de cliente aberta (dinâmicas), política de pop-up (lista branca de SSO +
- * origin de base cadastrada vira aba própria isolada) e download.
+ * Gerenciador de abas do shell: `WebContentsView` para Hub/ERP/Experience (fixas), uma
+ * por base de cliente aberta e uma por guia avulsa do `+` (dinâmicas), política de pop-up
+ * (lista branca de SSO + origin de base cadastrada vira aba própria isolada) e download.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BrowserWindow, WebContentsView, app, session, shell } from 'electron';
-import { DOMINIOS_POPUP_PERMITIDOS, HUB_URL, ICONE } from './config';
+import {
+  DOMINIOS_POPUP_PERMITIDOS,
+  HUB_URL,
+  ICONE,
+  PARTICAO_AVULSA,
+  URL_INICIAL_AVULSA,
+} from './config';
+import { urlDoTextoDigitado } from './enderecoDigitado';
 import { logEvento, origemSemQuery } from './log';
 import { aguardarCampoDeSenha, tentarAutofill } from './autofill';
 import { autoLoginSankhya, podeTentar } from './autoLoginSankhya';
@@ -129,6 +136,22 @@ export interface AbaClienteInfo {
   titulo: string;
   visivel: boolean;
 }
+
+/** Guia avulsa do `+`: o que a barra precisa para a guia e para a barra de endereço. */
+export interface AbaAvulsaInfo {
+  id: string;
+  titulo: string;
+  url: string;
+  podeVoltar: boolean;
+  podeAvancar: boolean;
+  visivel: boolean;
+}
+
+/** Id das guias avulsas: nunca colide com `hub`/`erp`/`experience` nem com um origin. */
+const PREFIXO_AVULSA = 'avulsa:';
+
+/** Título da guia avulsa até a página informar o dela. */
+const TITULO_AVULSA_PADRAO = 'Nova guia';
 
 export interface GuiaInfo {
   id: string;
@@ -274,6 +297,9 @@ export class TabManager {
   readonly #janela: BrowserWindow;
   readonly #abas = new Map<string, WebContentsView>();
   readonly #abasClientes = new Map<string, AbaClienteInfo>();
+  /** id -> título atual; URL e histórico são lidos do `webContents` na hora de emitir. */
+  readonly #abasAvulsas = new Map<string, string>();
+  #proximaAvulsa = 1;
   readonly #janelasFilhas = new Set<BrowserWindow>();
   readonly #particoesComDownload = new Set<string>();
   /** origin (protocolo+host+porta) -> base cadastrada. Precisa ser exato: duas bases do
@@ -651,7 +677,12 @@ export class TabManager {
       rotulo: aba.titulo,
       visivel: !this.#escondidas.has(aba.origin),
     }));
-    return [...principais, ...clientes];
+    const avulsas = [...this.#abasAvulsas.entries()].map(([id, titulo]) => ({
+      id,
+      rotulo: titulo,
+      visivel: !this.#escondidas.has(id),
+    }));
+    return [...principais, ...clientes, ...avulsas];
   }
 
   aoMudarGuias(callback: () => void): void {
@@ -730,6 +761,7 @@ export class TabManager {
   #emitirGuias(): void {
     this.#janela.webContents.send('guias:estado', this.guiasAbertas());
     this.#emitirListaClientes();
+    this.#emitirListaAvulsas();
     this.#aoMudarGuias?.();
   }
 
@@ -765,6 +797,34 @@ export class TabManager {
     const view = this.#abas.get(id);
     if (!view) return false;
     view.webContents.reload();
+    return true;
+  }
+
+  /**
+   * O Ctrl+F5 do Chrome: recarrega buscando tudo de novo no servidor. O cache em disco
+   * não é apagado porque ele é da partição, não da guia — Painel, SankhyaOm e Experience
+   * dividem a mesma, e apagá-lo valeria para as três.
+   */
+  recarregarSemCache(id: string = this.#abaAtiva): boolean {
+    const view = this.#abas.get(id);
+    if (!view) return false;
+    view.webContents.reloadIgnoringCache();
+    logEvento('aba-recarregada-sem-cache', { id });
+    return true;
+  }
+
+  /** Só guia avulsa: no SankhyaOm e na Experience, voltar derrubaria a tela aberta. */
+  voltar(id: string = this.#abaAtiva): boolean {
+    const historico = this.#viewAvulsa(id)?.webContents.navigationHistory;
+    if (!historico?.canGoBack()) return false;
+    historico.goBack();
+    return true;
+  }
+
+  avancar(id: string = this.#abaAtiva): boolean {
+    const historico = this.#viewAvulsa(id)?.webContents.navigationHistory;
+    if (!historico?.canGoForward()) return false;
+    historico.goForward();
     return true;
   }
 
@@ -808,6 +868,129 @@ export class TabManager {
 
   #emitirListaClientes(): void {
     this.#janela.webContents.send('links:lista', this.abasClientesAbertas());
+  }
+
+  #emitirListaAvulsas(): void {
+    this.#janela.webContents.send('avulsas:lista', this.abasAvulsasAbertas());
+  }
+
+  #viewAvulsa(id: string): WebContentsView | undefined {
+    return this.#abasAvulsas.has(id) ? this.#abas.get(id) : undefined;
+  }
+
+  abasAvulsasAbertas(): AbaAvulsaInfo[] {
+    return [...this.#abasAvulsas.entries()].flatMap(([id, titulo]) => {
+      const conteudo = this.#abas.get(id)?.webContents;
+      if (!conteudo) return [];
+      return [
+        {
+          id,
+          titulo,
+          url: conteudo.getURL(),
+          podeVoltar: conteudo.navigationHistory.canGoBack(),
+          podeAvancar: conteudo.navigationHistory.canGoForward(),
+          visivel: !this.#escondidas.has(id),
+        },
+      ];
+    });
+  }
+
+  /**
+   * Guia de navegação livre, aberta pelo `+` da barra. Todas dividem a partição
+   * `PARTICAO_AVULSA` (o login no Google vale em todas e sobrevive ao reinício) e nenhuma
+   * recebe preload nem Ruffle: o conteúdo é de um site qualquer.
+   */
+  abrirAbaAvulsa(url: string = URL_INICIAL_AVULSA): string {
+    const id = `${PREFIXO_AVULSA}${this.#proximaAvulsa++}`;
+    const view = new WebContentsView({
+      webPreferences: {
+        partition: PARTICAO_AVULSA,
+        contextIsolation: true,
+        sandbox: true,
+        nodeIntegration: false,
+        webSecurity: true,
+      },
+    });
+    this.#registrarDownloadsDaParticao(PARTICAO_AVULSA);
+    this.#acompanharAbaAvulsa(id, view);
+    this.#carregarNaAvulsa(id, view, url);
+    this.#janela.contentView.addChildView(view);
+    this.#abas.set(id, view);
+    this.#abasAvulsas.set(id, TITULO_AVULSA_PADRAO);
+    this.reposicionar();
+    this.#emitirGuias();
+    this.mostrar(id);
+    logEvento('aba-avulsa-aberta', { id });
+    return id;
+  }
+
+  /** `false` quando o texto não vira endereço que se possa abrir (`file:`, vazio). */
+  navegarAbaAvulsa(id: string, textoDigitado: string): boolean {
+    const view = this.#viewAvulsa(id);
+    const url = urlDoTextoDigitado(textoDigitado);
+    if (!view || !url) {
+      logEvento('aba-avulsa-endereco-recusado', { id });
+      return false;
+    }
+    this.#carregarNaAvulsa(id, view, url);
+    return true;
+  }
+
+  fecharAbaAvulsa(id: string): boolean {
+    if (!this.#viewAvulsa(id)) return false;
+    this.#descartarView(id);
+    this.#abasAvulsas.delete(id);
+    this.#emitirGuias();
+    if (this.#abaAtiva === id) this.mostrar('hub');
+    logEvento('aba-avulsa-fechada', { id });
+    return true;
+  }
+
+  /**
+   * `loadURL` rejeita quando a navegação é interrompida (outro Enter, página fora do ar):
+   * sem o `catch`, cada uma virava rejeição sem tratamento no processo principal.
+   */
+  #carregarNaAvulsa(id: string, view: WebContentsView, url: string): void {
+    view.webContents.loadURL(url).catch((erro: unknown) => {
+      logEvento('aba-avulsa-falha-carregar', { id, url: origemSemQuery(url), erro: String(erro) });
+    });
+  }
+
+  /** Título, endereço e histórico da página vão para a barra a cada mudança. */
+  #acompanharAbaAvulsa(id: string, view: WebContentsView): void {
+    const conteudo = view.webContents;
+    conteudo.on('page-title-updated', (_evento, titulo) => {
+      if (!this.#abasAvulsas.has(id)) return;
+      this.#abasAvulsas.set(id, titulo || TITULO_AVULSA_PADRAO);
+      this.#emitirGuias();
+    });
+    conteudo.on('did-navigate', () => this.#emitirListaAvulsas());
+    conteudo.on('did-navigate-in-page', (_evento, _url, ehFramePrincipal) => {
+      if (ehFramePrincipal) this.#emitirListaAvulsas();
+    });
+    // Pop-up vira outra guia avulsa, como no Chrome. A página perde o `window.opener`:
+    // um login que conversa com a janela de origem por ele pode não concluir.
+    conteudo.setWindowOpenHandler(({ url: alvo }) => {
+      if (ehEnderecoWeb(alvo)) {
+        this.abrirAbaAvulsa(alvo);
+      } else {
+        logEvento('popup-avulsa-recusado', { id, alvo: origemSemQuery(alvo) });
+      }
+      return { action: 'deny' };
+    });
+  }
+
+  /**
+   * Tirar da janela não encerra a página: sem o `close`, ela seguia viva (e logada), com
+   * timers rodando, e cada abrir e fechar deixava um renderer para trás.
+   */
+  #descartarView(id: string): void {
+    const view = this.#abas.get(id);
+    if (!view) return;
+    this.#janela.contentView.removeChildView(view);
+    view.webContents.close();
+    this.#abas.delete(id);
+    this.#escondidas.delete(id);
   }
 
   /**
@@ -942,15 +1125,9 @@ export class TabManager {
   }
 
   fecharAbaCliente(origin: string): boolean {
-    const view = this.#abas.get(origin);
-    if (!view || !this.#abasClientes.has(origin)) return false;
-    this.#janela.contentView.removeChildView(view);
-    // Tirar da janela não encerra a página: sem isto ela seguia viva e logada, com timers
-    // e o autofill rodando, e cada abrir e fechar deixava um renderer para trás.
-    view.webContents.close();
-    this.#abas.delete(origin);
+    if (!this.abaCliente(origin)) return false;
+    this.#descartarView(origin);
     this.#abasClientes.delete(origin);
-    this.#escondidas.delete(origin);
     this.#emitirGuias();
     if (this.#abaAtiva === origin) this.mostrar('hub');
     return true;

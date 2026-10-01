@@ -509,7 +509,6 @@ const elementos = {
   contadorNotificacoes: document.getElementById('contador-notificacoes'),
   painelNotificacoes: document.getElementById('painel-notificacoes'),
   listaNotificacoes: document.getElementById('lista-notificacoes'),
-  pilhaNotificacoes: document.getElementById('pilha-notificacoes'),
   botaoMarcarNotificacoesLidas: document.getElementById('btn-marcar-notificacoes-lidas'),
   botaoLimparNotificacoes: document.getElementById('btn-limpar-notificacoes'),
   botaoFecharNotificacoes: document.getElementById('btn-fechar-notificacoes'),
@@ -8609,7 +8608,6 @@ const ALERTA_DA_AGENDA_PADRAO = {
   enviarEmail: true,
 };
 
-const DURACAO_DO_CARTAO_DE_NOTIFICACAO_MS = 15_000;
 const LIMITE_DO_CONTADOR_DE_NOTIFICACOES = 99;
 
 /* Duas notas ascendentes e curtas: chama atenção sem ser alarme. */
@@ -8675,6 +8673,15 @@ function renderizarContadorDeNotificacoes() {
   const rotulo = naoLidas === 0 ? 'Notificações' : `Notificações (${naoLidas} não lidas)`;
   elementos.botaoNotificacoes.title = rotulo;
   elementos.botaoNotificacoes.setAttribute('aria-label', rotulo);
+  atualizarPiscarDoSino();
+}
+
+/* Como o botão do WhatsApp na barra do shell: pisca com não lidas, e não com o painel aberto. */
+function atualizarPiscarDoSino() {
+  elementos.botaoNotificacoes.classList.toggle(
+    'piscando',
+    quantidadeDeNaoLidas() > 0 && !painelDeNotificacoesAberto(),
+  );
 }
 
 /*
@@ -8779,32 +8786,10 @@ function painelDeNotificacoesAberto() {
   return !elementos.painelNotificacoes.hidden;
 }
 
-/* Com o painel aberto, o cartão só repetiria o que está nele, e por cima do cabeçalho. */
 function definirPainelDeNotificacoes(aberto) {
   elementos.painelNotificacoes.hidden = !aberto;
   elementos.botaoNotificacoes.setAttribute('aria-expanded', String(aberto));
-  if (aberto) {
-    elementos.pilhaNotificacoes.replaceChildren();
-  }
-}
-
-/** Cartão no canto da tela para a notificação que acabou de chegar; clicar abre o painel. */
-function exibirCartaoDeNotificacao(notificacao) {
-  const cartao = criarElemento('div', 'cartao-notificacao');
-  cartao.setAttribute('role', 'status');
-  const fechar = criarBotao('btn tiny ghost cartao-notificacao-fechar', '✕', (evento) => {
-    evento.stopPropagation();
-    cartao.remove();
-  });
-  fechar.setAttribute('aria-label', 'Fechar');
-  cartao.append(criarConteudoDaNotificacao(notificacao), fechar);
-  cartao.addEventListener('click', () => {
-    cartao.remove();
-    definirPainelDeNotificacoes(true);
-  });
-
-  elementos.pilhaNotificacoes.prepend(cartao);
-  setTimeout(() => cartao.remove(), DURACAO_DO_CARTAO_DE_NOTIFICACAO_MS);
+  atualizarPiscarDoSino();
 }
 
 function receberNotificacao(notificacao) {
@@ -8812,11 +8797,9 @@ function receberNotificacao(notificacao) {
     return;
   }
 
+  /* A janela que aparece é o aviso do Windows, do shell (desktop/src/avisosDoHub.ts). */
   estado.notificacoes = [notificacao, ...estado.notificacoes];
   renderizarNotificacoes();
-  if (!painelDeNotificacoesAberto()) {
-    exibirCartaoDeNotificacao(notificacao);
-  }
   tocarSomDeNotificacao();
 
   // O disparo muda o "próximo" do lembrete: a lista aberta não pode ficar desatualizada.
@@ -8880,8 +8863,7 @@ function registrarEventosDasNotificacoes() {
   document.addEventListener('click', (evento) => {
     const dentro =
       elementos.painelNotificacoes.contains(evento.target) ||
-      elementos.botaoNotificacoes.contains(evento.target) ||
-      elementos.pilhaNotificacoes.contains(evento.target);
+      elementos.botaoNotificacoes.contains(evento.target);
     if (painelDeNotificacoesAberto() && !dentro) {
       definirPainelDeNotificacoes(false);
     }
@@ -8891,6 +8873,8 @@ function registrarEventosDasNotificacoes() {
       definirPainelDeNotificacoes(false);
     }
   });
+  /* Clique no aviso do Windows: o shell traz o Painel e pede o sino aberto (avisosDoHub.ts). */
+  window.addEventListener('hub-snk:abrir-notificacoes', () => definirPainelDeNotificacoes(true));
 }
 
 function preencherNotificacoesDaConfiguracao(smtp, alertaDaAgenda) {

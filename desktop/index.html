@@ -214,7 +214,8 @@
       }
 
       #abas,
-      #abasClientes {
+      #abasClientes,
+      #abasAvulsas {
         display: flex;
         align-items: flex-end;
         gap: 2px;
@@ -259,6 +260,14 @@
         z-index: 1;
       }
 
+      /* Título vem da página: sem limite, um título longo empurraria as outras guias. */
+      .aba-avulsa > span:first-child {
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
       .aba-cliente .fechar {
         opacity: 0;
         padding: 0 2px;
@@ -281,7 +290,9 @@
         margin-left: auto;
         padding-bottom: 5px;
       }
-      #recarregar {
+      #recarregar,
+      #novaGuia,
+      #barraEndereco button {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -297,12 +308,55 @@
           background 0.12s ease,
           color 0.12s ease;
       }
-      #recarregar:hover {
+      #recarregar:hover,
+      #novaGuia:hover,
+      #barraEndereco button:hover:not(:disabled) {
         background: #1b1f27;
         color: #e6e6e6;
       }
-      #recarregar svg {
+      #recarregar svg,
+      #novaGuia svg,
+      #barraEndereco svg {
         display: block;
+      }
+      #novaGuia {
+        margin: 0 0 4px 4px;
+      }
+
+      /* Linha própria, só com a guia avulsa na tela: as outras guias têm endereço fixo. */
+      #barraEndereco {
+        /* 100% mais o padding lateral da barra, que a margem negativa encosta nas bordas. */
+        flex-basis: calc(100% + 20px);
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        margin: 0 -10px;
+        padding: 5px 10px;
+        border-top: 1px solid #333;
+        background: #1b1f27;
+      }
+      #barraEndereco button:hover:not(:disabled) {
+        background: #232833;
+      }
+      #barraEndereco button:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+      #endereco {
+        flex: 1;
+        min-width: 0;
+        margin-left: 6px;
+        padding: 5px 12px;
+        border: 1px solid #333;
+        border-radius: 14px;
+        background: #12151b;
+        color: #e6e6e6;
+        font: inherit;
+        font-size: 12.5px;
+        outline: none;
+      }
+      #endereco:focus {
+        border-color: #2d6cdf;
       }
       /* Um giro por clique: confirma que o comando saiu, sem ficar girando à toa. */
       #recarregar.girando svg {
@@ -432,8 +486,27 @@
           <button data-id="experience">Experience</button>
         </div>
         <div id="abasClientes"></div>
+        <div id="abasAvulsas"></div>
+        <button id="novaGuia" title="Nova guia" aria-label="Nova guia">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
         <div id="controles">
-          <button id="recarregar" title="Recarregar a guia ativa" aria-label="Recarregar">
+          <button
+            id="recarregar"
+            title="Recarregar a guia ativa (Shift+clique: sem cache)"
+            aria-label="Recarregar"
+          >
             <svg
               width="14"
               height="14"
@@ -449,6 +522,46 @@
               <path d="M21 3v6h-6" />
             </svg>
           </button>
+        </div>
+        <div id="barraEndereco" hidden>
+          <button id="voltar" title="Voltar (Alt+←)" aria-label="Voltar" disabled>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M19 12H5M11 6l-6 6 6 6" />
+            </svg>
+          </button>
+          <button id="avancar" title="Avançar (Alt+→)" aria-label="Avançar" disabled>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </button>
+          <input
+            id="endereco"
+            type="text"
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="Pesquisar no Google ou digitar um endereço"
+            aria-label="Endereço"
+          />
         </div>
       </div>
     </div>

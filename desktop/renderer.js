@@ -2,6 +2,7 @@
 
 const botoesFixos = document.querySelectorAll('#abas button[data-id]');
 const containerClientes = document.getElementById('abasClientes');
+const containerAvulsas = document.getElementById('abasAvulsas');
 let abaAtiva = 'hub';
 
 function marcarAtiva(id) {
@@ -9,9 +10,10 @@ function marcarAtiva(id) {
   for (const botao of botoesFixos) {
     botao.classList.toggle('ativa', botao.dataset.id === id);
   }
-  for (const botao of containerClientes.querySelectorAll('.aba-cliente')) {
-    botao.classList.toggle('ativa', botao.dataset.origin === id);
+  for (const botao of document.querySelectorAll('#barra .aba-cliente')) {
+    botao.classList.toggle('ativa', botao.dataset.id === id);
   }
+  atualizarBarraDeEndereco();
 }
 
 async function mostrarAba(id) {
@@ -30,8 +32,13 @@ for (const botao of botoesFixos) {
 }
 
 const botaoRecarregar = document.getElementById('recarregar');
-botaoRecarregar.addEventListener('click', () => {
-  window.hub.tabs.recarregar(abaAtiva);
+botaoRecarregar.addEventListener('click', (evento) => {
+  // Shift+clique é o Ctrl+F5: busca tudo de novo no servidor, sem o cache.
+  if (evento.shiftKey) {
+    window.hub.tabs.recarregarSemCache(abaAtiva);
+  } else {
+    window.hub.tabs.recarregar(abaAtiva);
+  }
   // Remover e forçar reflow reinicia a animação mesmo em cliques seguidos.
   botaoRecarregar.classList.remove('girando');
   void botaoRecarregar.offsetWidth;
@@ -43,39 +50,126 @@ document.getElementById('menu').addEventListener('click', (evento) => {
   window.hub.menu.abrir(left, bottom);
 });
 
+/** Guia de cliente ou avulsa: rótulo que ativa e `×` que fecha. */
+function criarGuiaFechavel(id, titulo, visivel, fecharGuia) {
+  const botao = document.createElement('span');
+  botao.className = 'aba-cliente' + (id === abaAtiva ? ' ativa' : '');
+  botao.dataset.id = id;
+  definirVisibilidade(botao, visivel);
+
+  const rotulo = document.createElement('span');
+  rotulo.textContent = titulo;
+  rotulo.title = titulo;
+  rotulo.addEventListener('click', () => mostrarAba(id));
+  botao.appendChild(rotulo);
+
+  const fechar = document.createElement('span');
+  fechar.className = 'fechar';
+  fechar.textContent = '×';
+  fechar.title = 'Fechar';
+  fechar.addEventListener('click', async (evento) => {
+    evento.stopPropagation();
+    await fecharGuia(id);
+  });
+  botao.appendChild(fechar);
+  return botao;
+}
+
 function renderizarAbasClientes(lista) {
   containerClientes.innerHTML = '';
   // A barra pode crescer (quebrar linha) conforme guias de cliente abrem/fecham — o
   // shell reposiciona as WebContentsView pela altura informada, então precisa saber.
   setTimeout(informarAlturaTopo, 0);
   for (const { origin, titulo, visivel } of lista) {
-    const botao = document.createElement('span');
-    botao.className = 'aba-cliente' + (origin === abaAtiva ? ' ativa' : '');
-    botao.dataset.origin = origin;
-    definirVisibilidade(botao, visivel);
-
-    const rotulo = document.createElement('span');
-    rotulo.textContent = titulo;
-    rotulo.addEventListener('click', () => mostrarAba(origin));
-    botao.appendChild(rotulo);
-
-    const fechar = document.createElement('span');
-    fechar.className = 'fechar';
-    fechar.textContent = '×';
-    fechar.title = 'Fechar';
-    fechar.addEventListener('click', async (evento) => {
-      evento.stopPropagation();
-      await window.hub.links.fechar(origin);
-    });
-    botao.appendChild(fechar);
-
-    containerClientes.appendChild(botao);
+    containerClientes.appendChild(
+      criarGuiaFechavel(origin, titulo, visivel, window.hub.links.fechar),
+    );
   }
 }
 
 window.hub.links.aoAtualizarLista(renderizarAbasClientes);
 window.hub.links.listar().then(renderizarAbasClientes);
+
+/*
+ * Guias avulsas do `+`: navegação livre, com barra de endereço. A lista chega a cada
+ * navegação, com URL e histórico — a barra de endereço desenha a da guia ativa.
+ */
+const barraEndereco = document.getElementById('barraEndereco');
+const campoEndereco = document.getElementById('endereco');
+const botaoVoltar = document.getElementById('voltar');
+const botaoAvancar = document.getElementById('avancar');
+let abasAvulsas = [];
+
+function avulsaAtiva() {
+  return abasAvulsas.find((aba) => aba.id === abaAtiva);
+}
+
+/** Digitando: a página pode navegar sozinha no meio, e não pode apagar o que foi escrito. */
+function digitandoEndereco() {
+  return document.hasFocus() && document.activeElement === campoEndereco;
+}
+
+function atualizarBarraDeEndereco() {
+  const aba = avulsaAtiva();
+  if (barraEndereco.hidden !== !aba) {
+    barraEndereco.hidden = !aba;
+    setTimeout(informarAlturaTopo, 0);
+  }
+  if (!aba) return;
+  botaoVoltar.disabled = !aba.podeVoltar;
+  botaoAvancar.disabled = !aba.podeAvancar;
+  if (!digitandoEndereco()) campoEndereco.value = aba.url;
+}
+
+function renderizarAbasAvulsas(lista) {
+  abasAvulsas = lista;
+  containerAvulsas.innerHTML = '';
+  for (const { id, titulo, visivel } of lista) {
+    const guia = criarGuiaFechavel(id, titulo, visivel, window.hub.avulsas.fechar);
+    guia.classList.add('aba-avulsa');
+    containerAvulsas.appendChild(guia);
+  }
+  atualizarBarraDeEndereco();
+  setTimeout(informarAlturaTopo, 0);
+}
+
+window.hub.avulsas.aoAtualizarLista(renderizarAbasAvulsas);
+window.hub.avulsas.listar().then(renderizarAbasAvulsas);
+
+// Como no Chrome: a guia nova já abre com o cursor no endereço.
+document.getElementById('novaGuia').addEventListener('click', async () => {
+  await window.hub.avulsas.abrir();
+  campoEndereco.focus();
+});
+
+campoEndereco.addEventListener('focus', () => campoEndereco.select());
+campoEndereco.addEventListener('keydown', async (evento) => {
+  const aba = avulsaAtiva();
+  if (!aba) return;
+  if (evento.key === 'Escape') {
+    campoEndereco.value = aba.url;
+    campoEndereco.blur();
+    return;
+  }
+  if (evento.key !== 'Enter') return;
+  const resultado = await window.hub.avulsas.navegar(aba.id, campoEndereco.value);
+  campoEndereco.blur();
+  // Recusado (vazio, `file:`): volta a mostrar onde a guia está.
+  if (!resultado.ok) campoEndereco.value = aba.url;
+});
+
+botaoVoltar.addEventListener('click', () => window.hub.avulsas.voltar(abaAtiva));
+botaoAvancar.addEventListener('click', () => window.hub.avulsas.avancar(abaAtiva));
+
 window.hub.tabs.aoMostrar(marcarAtiva);
+
+// Clique direito em qualquer guia: recarregar, com ou sem cache, aquela guia — não a ativa.
+document.getElementById('barra').addEventListener('contextmenu', (evento) => {
+  const guia = evento.target.closest('#abas button[data-id], .aba-cliente[data-id]');
+  if (!guia) return;
+  evento.preventDefault();
+  window.hub.tabs.abrirMenuDaGuia(guia.dataset.id, evento.clientX, evento.clientY);
+});
 
 function informarAlturaTopo() {
   window.hub.layout.definirAlturaTopo(document.getElementById('barra').offsetHeight);
@@ -92,9 +186,10 @@ informarAlturaTopo();
  */
 function aplicarEstadoDasGuias(guias) {
   for (const { id, visivel } of guias) {
-    const botao =
-      document.querySelector(`#abas button[data-id="${CSS.escape(id)}"]`) ??
-      document.querySelector(`#abasClientes .aba-cliente[data-origin="${CSS.escape(id)}"]`);
+    const seletorDoId = `[data-id="${CSS.escape(id)}"]`;
+    const botao = document.querySelector(
+      `#abas button${seletorDoId}, #barra .aba-cliente${seletorDoId}`,
+    );
     definirVisibilidade(botao, visivel);
   }
   setTimeout(informarAlturaTopo, 0);

@@ -1,6 +1,6 @@
 /**
  * Bridge mínima, só para a UI local confiável (index.html, carregado por loadFile).
- * Nenhuma aba remota (Hub/ERP/Experience/Link) recebe este preload.
+ * Nenhuma aba remota (Hub/ERP/Experience/Link/avulsa) recebe este preload.
  *
  * Sem `agenda.fetch`/`experience.*`/`os.*`: essas operações continuam sendo chamadas
  * HTTP normais feitas pelo próprio painel (rodando dentro da aba Hub) contra o
@@ -13,6 +13,10 @@ contextBridge.exposeInMainWorld('hub', {
   tabs: {
     mostrar: (id: string) => ipcRenderer.invoke('tabs:mostrar', id),
     recarregar: (id: string) => ipcRenderer.invoke('tabs:recarregar', id),
+    recarregarSemCache: (id: string) => ipcRenderer.invoke('tabs:recarregarSemCache', id),
+    /** Menu do clique direito numa guia, na posição informada (coordenadas da janela). */
+    abrirMenuDaGuia: (id: string, x: number, y: number) =>
+      ipcRenderer.invoke('tabs:abrirMenuDaGuia', id, x, y),
     aoMostrar: (cb: (id: string) => void) => ipcRenderer.on('tabs:ativa', (_e, id) => cb(id)),
   },
   guias: {
@@ -27,6 +31,28 @@ contextBridge.exposeInMainWorld('hub', {
     aoAtualizarLista: (
       cb: (lista: Array<{ origin: string; titulo: string; visivel: boolean }>) => void,
     ) => ipcRenderer.on('links:lista', (_e, lista) => cb(lista)),
+  },
+  avulsas: {
+    /** Guia de navegação livre do botão `+`, aberta no Google. */
+    abrir: () => ipcRenderer.invoke('avulsas:abrir'),
+    listar: () => ipcRenderer.invoke('avulsas:lista'),
+    /** Texto da barra de endereço: URL, domínio sem protocolo ou termo de busca. */
+    navegar: (id: string, texto: string) => ipcRenderer.invoke('avulsas:navegar', id, texto),
+    voltar: (id: string) => ipcRenderer.invoke('avulsas:voltar', id),
+    avancar: (id: string) => ipcRenderer.invoke('avulsas:avancar', id),
+    fechar: (id: string) => ipcRenderer.invoke('avulsas:fechar', id),
+    aoAtualizarLista: (
+      cb: (
+        lista: Array<{
+          id: string;
+          titulo: string;
+          url: string;
+          podeVoltar: boolean;
+          podeAvancar: boolean;
+          visivel: boolean;
+        }>,
+      ) => void,
+    ) => ipcRenderer.on('avulsas:lista', (_e, lista) => cb(lista)),
   },
   menu: {
     /** Abre o menu do aplicativo na posição informada (coordenadas da janela). */

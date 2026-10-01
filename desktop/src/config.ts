@@ -48,6 +48,16 @@ export const DOMINIOS_POPUP_PERMITIDOS = [
 /** Partição isolada e persistente do shell — nunca o perfil pessoal do usuário. */
 export const PARTICAO = 'persist:sankhya-hub-desktop';
 
+/**
+ * Partição das guias avulsas do `+`: persistente como a de um navegador, mas nunca a do
+ * Sankhya — um site qualquer aberto ali não pode ver o cookie do ERP nem o token da
+ * Experience.
+ */
+export const PARTICAO_AVULSA = 'persist:hub-navegacao-avulsa';
+
+/** Página com que toda guia avulsa abre. */
+export const URL_INICIAL_AVULSA = 'https://www.google.com/';
+
 // --- painel de comunicação ---------------------------------------------------------
 
 export type ServicoComunicacao = 'whatsapp' | 'gmail' | 'chat';
