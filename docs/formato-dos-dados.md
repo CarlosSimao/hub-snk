@@ -335,7 +335,7 @@ Os arquivos são lidos na inicialização, antes de o servidor abrir a porta.
 Erro de esquema aparece no terminal na largada, e não na primeira tela aberta.
 
 Ao publicar uma versão que muda o formato dos dados, suba a
-`VERSAO_ATUAL_DO_ESQUEMA` em `src/repositorio/arquivoDeDados.ts` junto com a
+`VERSAO_ATUAL_DO_ESQUEMA` em `src/repositorio/arquivo/arquivoDeDados.ts` junto com a
 parte MAJOR da versão do HUB SNK, e escreva a migração da versão anterior para a
 nova.
 

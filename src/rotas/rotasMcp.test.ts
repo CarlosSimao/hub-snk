@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { after, describe, it } from 'node:test';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { KanbanDosProjetos } from '../kanban/kanbanDosProjetos.ts';
-import { RepositorioClientesArquivo } from '../repositorio/repositorioClientesArquivo.ts';
+import { RepositorioClientesArquivo } from '../repositorio/arquivo/repositorioClientesArquivo.ts';
 import { registrarRotasDeMcp } from './rotasMcp.ts';
 
 const pasta = mkdtempSync(join(tmpdir(), 'hub-snk-rotas-mcp-'));

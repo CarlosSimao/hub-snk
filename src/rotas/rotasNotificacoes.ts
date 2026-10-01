@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { CentralDeNotificacoes } from '../notificacoes/centralDeNotificacoes.ts';
 import { SmtpNaoConfiguradoError, type EnviadorDeEmail } from '../notificacoes/enviadorDeEmail.ts';
 import type { Notificacao } from '../tipos.ts';
-import { esquemaDeSmtp } from './esquemaDeNotificacoes.ts';
+import { esquemaDeSmtp } from './comum/esquemaDeNotificacoes.ts';
 
 /*
  * Comentário SSE periódico: sem tráfego, algum intermediário (antivírus com proxy local,

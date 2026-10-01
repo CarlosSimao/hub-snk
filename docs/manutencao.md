@@ -309,7 +309,7 @@ a atualização automática do aplicativo (`desktop/src/atualizacao.ts`) lê. Re
 sem eles não chega a quem já tem o HUB SNK instalado, só o aviso do Painel.
 
 O aviso de atualização dentro do programa vem da release do GitHub, lida por
-`src/sistema/ultimaVersaoPublicada.ts`. Enquanto a tag não sobe, quem já usa o
+`src/sistema/versao/ultimaVersaoPublicada.ts`. Enquanto a tag não sobe, quem já usa o
 HUB SNK não fica sabendo que existe versão nova — daí a versão andar a cada
 entrega, e não de vez em quando.
 

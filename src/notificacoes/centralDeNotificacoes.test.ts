@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
-import { RepositorioNotificacoesArquivo } from '../repositorio/repositorioNotificacoesArquivo.ts';
+import { RepositorioNotificacoesArquivo } from '../repositorio/arquivo/repositorioNotificacoesArquivo.ts';
 import type { Notificacao } from '../tipos.ts';
 import { CentralDeNotificacoes, type DadosDeNotificacao } from './centralDeNotificacoes.ts';
 import type { MensagemDeEmail } from './enviadorDeEmail.ts';

@@ -4,12 +4,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import Fastify, { type FastifyInstance } from 'fastify';
-import type { AnaliseConcluida } from '../kanban/analiseDeEscopo.ts';
-import { AnaliseDeEscopoError } from '../kanban/analiseDeEscopo.ts';
+import type { AnaliseConcluida } from '../kanban/ia/analiseDeEscopo.ts';
+import { AnaliseDeEscopoError } from '../kanban/ia/analiseDeEscopo.ts';
 import { KanbanDosProjetos } from '../kanban/kanbanDosProjetos.ts';
 import type { DemandaDoKanban, KanbansDoCliente, TarefaDoKanban } from '../kanban/tiposDoKanban.ts';
-import { RepositorioClientesArquivo } from '../repositorio/repositorioClientesArquivo.ts';
-import { RepositorioConfiguracaoArquivo } from '../repositorio/repositorioConfiguracaoArquivo.ts';
+import { RepositorioClientesArquivo } from '../repositorio/arquivo/repositorioClientesArquivo.ts';
+import { RepositorioConfiguracaoArquivo } from '../repositorio/arquivo/repositorioConfiguracaoArquivo.ts';
 import { registrarRotasDeClientes } from './rotasClientes.ts';
 import { registrarRotasDeKanban } from './rotasKanban.ts';
 

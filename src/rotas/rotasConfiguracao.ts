@@ -12,13 +12,13 @@ import {
   selecionarArquivoNoSistema,
   SeletorDeArquivoIndisponivelError,
   TIPO_ENV,
-} from '../sistema/selecionarArquivo.ts';
+} from '../sistema/processos/selecionarArquivo.ts';
 import { FUNCIONALIDADES_OCULTAS_POR_PERFIL } from '../acessos.ts';
-import { situacaoDosAssistentes } from '../kanban/assistentesDeIa.ts';
+import { situacaoDosAssistentes } from '../kanban/ia/assistentesDeIa.ts';
 import { ESCOLHAS_DE_ASSISTENTE } from '../kanban/tiposDoKanban.ts';
 import { DESTINOS_DE_LINK, FUNCIONALIDADES, PERFIS_PROFISSIONAIS } from '../tipos.ts';
-import { esquemaDeConfiguracaoMcp } from './esquemaDeConfiguracaoMcp.ts';
-import { esquemaDeAlertaDaAgenda, esquemaDeSmtp } from './esquemaDeNotificacoes.ts';
+import { esquemaDeConfiguracaoMcp } from './comum/esquemaDeConfiguracaoMcp.ts';
+import { esquemaDeAlertaDaAgenda, esquemaDeSmtp } from './comum/esquemaDeNotificacoes.ts';
 
 const TAMANHO_MAXIMO_DO_SCRIPT = 500;
 const TAMANHO_MAXIMO_DO_CAMINHO = 400;

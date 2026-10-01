@@ -4,7 +4,7 @@ import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts'
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
 import { chaveNome, nomesCorrespondem } from '../sankhya/agenda.ts';
 import { SessaoExpiradaError, type Experience } from '../sankhya/experience.ts';
-import { responderErroDoShell } from './respostasDoShell.ts';
+import { responderErroDoShell } from './comum/respostasDoShell.ts';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const esquemaDeConsulta = z.object({

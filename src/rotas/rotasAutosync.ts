@@ -23,7 +23,7 @@ import {
 import { sugerirCorrecoes } from '../autosync/sugestoesDeCorrecao.ts';
 import { AGENTES_DE_IA, FORMATO_DE_HORARIO } from '../autosync/tiposDoAutosync.ts';
 import { PastaNaoEncontradaError } from '../sistema/pasta.ts';
-import { TerminalIndisponivelError } from '../sistema/abrirShell.ts';
+import { TerminalIndisponivelError } from '../sistema/processos/abrirShell.ts';
 import {
   criarVariaveisDeAmbienteDoUsuario,
   definirGitlab,

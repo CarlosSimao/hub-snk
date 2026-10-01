@@ -5,21 +5,21 @@ import type { RepositorioConfiguracao } from '../repositorio/repositorioConfigur
 import {
   abrirPastaNoSistema,
   GerenciadorDeArquivosIndisponivelError,
-} from '../sistema/abrirPasta.ts';
+} from '../sistema/processos/abrirPasta.ts';
 import {
   abrirIdeNaPasta,
   IdeIndisponivelError,
   IdeNaoConfiguradaError,
-} from '../sistema/abrirIde.ts';
-import { abrirShellNaPasta, TerminalIndisponivelError } from '../sistema/abrirShell.ts';
+} from '../sistema/processos/abrirIde.ts';
+import { abrirShellNaPasta, TerminalIndisponivelError } from '../sistema/processos/abrirShell.ts';
 import {
   estadoDoArquivoMcp,
   gravarConfiguracaoMcp,
   lerConfiguracaoMcp,
 } from '../sistema/arquivoMcp.ts';
 import { PastaNaoEncontradaError } from '../sistema/pasta.ts';
-import { requisicaoVeioDoShell } from './autenticacaoDoShell.ts';
-import { esquemaDeConfiguracaoMcp } from './esquemaDeConfiguracaoMcp.ts';
+import { requisicaoVeioDoShell } from './seguranca/autenticacaoDoShell.ts';
+import { esquemaDeConfiguracaoMcp } from './comum/esquemaDeConfiguracaoMcp.ts';
 import type { Cliente, RepositorioGit } from '../tipos.ts';
 import {
   AcessoDeBaseDuplicadoError,
@@ -38,12 +38,12 @@ import {
   type RepositorioClientes,
 } from '../repositorio/repositorioClientes.ts';
 import { IDENTIFICADORES_ORACLE, SGBDS, TIPOS_DE_BASE } from '../tipos.ts';
-import { consultarBaseDoCliente } from '../sistema/baseDoCliente.ts';
+import { consultarBaseDoCliente } from '../sistema/bases/baseDoCliente.ts';
 import {
   limparHistoricoDaBaseDoCliente,
   obterHistoricoDaBaseDoCliente,
   registrarAmostraDaBaseDoCliente,
-} from '../sistema/historicoDeSituacaoDaBaseDoCliente.ts';
+} from '../sistema/bases/historicoDeSituacaoDaBaseDoCliente.ts';
 
 const TAMANHO_MAXIMO_DO_NOME = 120;
 const MAXIMO_DE_NOMES_COMPLETOS = 20;

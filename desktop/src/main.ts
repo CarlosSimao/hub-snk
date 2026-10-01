@@ -26,24 +26,24 @@ import {
   userAgentLimpo,
 } from './config';
 import { logEvento } from './log';
-import { garantirToken } from './tokenStore';
-import { TabManager } from './tabs';
-import { GerenciadorComunicacao } from './comunicacao';
-import { MenuFlutuante } from './menuFlutuante';
-import { BarraDeBusca } from './barraDeBusca';
-import { JanelaAgendaOculta } from './janelaAgendaOculta';
-import { JanelaExperienceOculta } from './janelaExperienceOculta';
-import { criarBridgeServer } from './bridgeServer';
-import { pushSessaoExperience, limparSessaoExperience } from './backendClient';
-import { iniciarBackend, pararBackend } from './backendProcess';
-import { autoLoginSankhya } from './autoLoginSankhya';
-import * as cofre from './cofreCredenciais';
-import { menuDaGuia, montarMenu } from './menu';
-import { AvisosDoHub } from './avisosDoHub';
-import { avisarQueContinuaNaBandeja, criarBandeja } from './bandeja';
-import { AtalhoGlobalDaBusca } from './atalhoGlobal';
-import { abrirBuscaRapida } from './buscaRapida';
-import { registrarEsquemaDoRuffle } from './ruffle';
+import { garantirToken } from './backend/tokenStore';
+import { TabManager } from './interface/tabs';
+import { GerenciadorComunicacao } from './interface/comunicacao';
+import { MenuFlutuante } from './interface/menuFlutuante';
+import { BarraDeBusca } from './interface/barraDeBusca';
+import { JanelaAgendaOculta } from './sankhya/janelaAgendaOculta';
+import { JanelaExperienceOculta } from './sankhya/janelaExperienceOculta';
+import { criarBridgeServer } from './backend/bridgeServer';
+import { pushSessaoExperience, limparSessaoExperience } from './backend/backendClient';
+import { iniciarBackend, pararBackend } from './backend/backendProcess';
+import { autoLoginSankhya } from './sankhya/autoLoginSankhya';
+import * as cofre from './sankhya/cofreCredenciais';
+import { menuDaGuia, montarMenu } from './interface/menu';
+import { AvisosDoHub } from './interface/avisosDoHub';
+import { avisarQueContinuaNaBandeja, criarBandeja } from './interface/bandeja';
+import { AtalhoGlobalDaBusca } from './interface/atalhoGlobal';
+import { abrirBuscaRapida } from './interface/buscaRapida';
+import { registrarEsquemaDoRuffle } from './interface/ruffle';
 import { iniciarAtualizacaoAutomatica } from './atualizacao';
 import {
   definirInicioAutomatico,
@@ -84,7 +84,7 @@ let encerrando = false;
 /** Windows desligando ou saindo da conta: segurar o fechamento travaria o desligamento. */
 let sessaoDoWindowsEncerrando = false;
 const atalhoGlobal = new AtalhoGlobalDaBusca(() => abrirBuscaRapidaNaJanela());
-/** Mesmo nome que o backend lê — ver `src/rotas/autenticacaoDoPainel.ts`. */
+/** Mesmo nome que o backend lê — ver `src/rotas/seguranca/autenticacaoDoPainel.ts`. */
 const NOME_DO_COOKIE_DO_TOKEN = 'hub_token';
 
 /**
@@ -120,7 +120,7 @@ function criarJanela(): void {
     // Aberto pelo Windows no login, o app sobe escondido na bandeja, sem janela na frente.
     show: !foiIniciadoPeloWindows(),
     webPreferences: {
-      preload: join(__dirname, 'preload.js'),
+      preload: join(__dirname, 'preloads', 'preload.js'),
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
@@ -137,7 +137,7 @@ function criarJanela(): void {
   // a navegaria para fora, e a página de destino ganharia o `window.hub`.
   janelaPrincipal.webContents.on('will-navigate', (evento) => evento.preventDefault());
   janelaPrincipal.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  janelaPrincipal.loadFile(join(__dirname, '..', 'index.html'));
+  janelaPrincipal.loadFile(join(__dirname, '..', 'telas', 'index.html'));
   janelaPrincipal.on('resize', () => {
     tabs?.reposicionar();
     comunicacao?.reposicionar();

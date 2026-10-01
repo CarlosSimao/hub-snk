@@ -10,12 +10,15 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { extname, isAbsolute } from 'node:path';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { AssistenteFalhouError, AssistenteIndisponivelError } from '../kanban/assistentesDeIa.ts';
+import {
+  AssistenteFalhouError,
+  AssistenteIndisponivelError,
+} from '../kanban/ia/assistentesDeIa.ts';
 import {
   AnaliseDeEscopoError,
   resumoComDuvidas,
   type AnaliseConcluida,
-} from '../kanban/analiseDeEscopo.ts';
+} from '../kanban/ia/analiseDeEscopo.ts';
 import type { ArquivoDeTarefas } from '../kanban/arquivoDeTarefas.ts';
 import {
   DadosDoKanbanInvalidosError,
@@ -25,8 +28,8 @@ import {
   type DocumentoRecebido,
   type KanbanDosProjetos,
 } from '../kanban/kanbanDosProjetos.ts';
-import { DocxInvalidoError, textoDoDocx } from '../kanban/textoDoDocx.ts';
-import { PdfIlegivelError, textoDoPdf } from '../kanban/textoDoPdf.ts';
+import { DocxInvalidoError, textoDoDocx } from '../kanban/documentos/textoDoDocx.ts';
+import { PdfIlegivelError, textoDoPdf } from '../kanban/documentos/textoDoPdf.ts';
 import {
   ESTADOS_DE_TAREFA,
   type ConfiguracaoDoAssistenteDeIa,

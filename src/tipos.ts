@@ -109,7 +109,7 @@ export interface AlertaDaAgenda {
 
 /**
  * `hub`: guia do aplicativo desktop. `navegador-padrao`: o navegador do sistema.
- * Quem aplica é o shell (`desktop/src/tabs.ts`); com o painel aberto num
+ * Quem aplica é o shell (`desktop/src/interface/tabs.ts`); com o painel aberto num
  * navegador comum, os links abrem nele de qualquer jeito.
  */
 export const DESTINOS_DE_LINK = ['hub', 'navegador-padrao'] as const;

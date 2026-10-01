@@ -7,19 +7,22 @@ import { CliDoAutosyncProcesso } from './autosync/cliDoAutosyncProcesso.ts';
 import { baixarPacoteDoAutosync } from './autosync/pacoteDoGithub.ts';
 import { ServicoDoAutosync } from './autosync/servicoDoAutosync.ts';
 import { configuracao } from './configuracao.ts';
-import { ArquivoDeDadosInvalidoError, EsquemaMaisNovoError } from './repositorio/arquivoDeDados.ts';
-import { RepositorioClientesArquivo } from './repositorio/repositorioClientesArquivo.ts';
-import { RepositorioConfiguracaoArquivo } from './repositorio/repositorioConfiguracaoArquivo.ts';
-import { RepositorioLembretesArquivo } from './repositorio/repositorioLembretesArquivo.ts';
-import { RepositorioContatosArquivo } from './repositorio/repositorioContatosArquivo.ts';
-import { RepositorioLocalArquivo } from './repositorio/repositorioLocalArquivo.ts';
-import { RepositorioNotificacoesArquivo } from './repositorio/repositorioNotificacoesArquivo.ts';
+import {
+  ArquivoDeDadosInvalidoError,
+  EsquemaMaisNovoError,
+} from './repositorio/arquivo/arquivoDeDados.ts';
+import { RepositorioClientesArquivo } from './repositorio/arquivo/repositorioClientesArquivo.ts';
+import { RepositorioConfiguracaoArquivo } from './repositorio/arquivo/repositorioConfiguracaoArquivo.ts';
+import { RepositorioLembretesArquivo } from './repositorio/arquivo/repositorioLembretesArquivo.ts';
+import { RepositorioContatosArquivo } from './repositorio/arquivo/repositorioContatosArquivo.ts';
+import { RepositorioLocalArquivo } from './repositorio/arquivo/repositorioLocalArquivo.ts';
+import { RepositorioNotificacoesArquivo } from './repositorio/arquivo/repositorioNotificacoesArquivo.ts';
 import { AgendadorDeLembretes } from './notificacoes/agendadorDeLembretes.ts';
 import { CentralDeNotificacoes } from './notificacoes/centralDeNotificacoes.ts';
 import { EnviadorDeEmail } from './notificacoes/enviadorDeEmail.ts';
 import { VerificadorDaAgendaDoDia } from './notificacoes/verificadorDaAgendaDoDia.ts';
-import { registrarAutenticacaoDoPainel } from './rotas/autenticacaoDoPainel.ts';
-import { registrarProtecaoDeOrigem } from './rotas/protecaoDeOrigem.ts';
+import { registrarAutenticacaoDoPainel } from './rotas/seguranca/autenticacaoDoPainel.ts';
+import { registrarProtecaoDeOrigem } from './rotas/seguranca/protecaoDeOrigem.ts';
 import { registrarRotasDeAtalhos } from './rotas/rotasAtalhos.ts';
 import { registrarRotasDeAutosync } from './rotas/rotasAutosync.ts';
 import { registrarRotasDeClientes } from './rotas/rotasClientes.ts';
@@ -35,7 +38,7 @@ import { registrarRotasDeNotificacoes } from './rotas/rotasNotificacoes.ts';
 import { registrarRotasDeOs } from './rotas/rotasOs.ts';
 import { registrarRotasDeSankhya } from './rotas/rotasSankhya.ts';
 import { registrarRotasDeSistema } from './rotas/rotasSistema.ts';
-import { analisarEscopo } from './kanban/analiseDeEscopo.ts';
+import { analisarEscopo } from './kanban/ia/analiseDeEscopo.ts';
 import { ArquivoDeTarefas } from './kanban/arquivoDeTarefas.ts';
 import { KanbanDosProjetos } from './kanban/kanbanDosProjetos.ts';
 import { AgendaRecursos } from './sankhya/agenda.ts';
@@ -44,7 +47,7 @@ import { Credenciais } from './sankhya/credenciais.ts';
 import { Experience } from './sankhya/experience.ts';
 import { PonteDoDesktop } from './sankhya/ponteDoDesktop.ts';
 import { SessaoDoDesktop } from './sankhya/sessaoDoDesktop.ts';
-import { abrirShellNaPasta } from './sistema/abrirShell.ts';
+import { abrirShellNaPasta } from './sistema/processos/abrirShell.ts';
 import { observarAlteracoesNosDados, type CacheDescartavel } from './sistema/observadorDeDados.ts';
 
 async function iniciarServidor(): Promise<void> {
