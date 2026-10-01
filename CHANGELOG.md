@@ -11,8 +11,9 @@ número significa aqui.
 
 ### Adicionado
 
-- O e-mail do lembrete ganha, no rodapé, uma linha discreta avisando que é um e-mail
-  automático enviado pelo HUB SNK, com o link da página do projeto.
+- Todo e-mail enviado pelo HUB SNK — lembrete, aviso da agenda sem OS e e-mail de teste
+  do SMTP — termina com uma linha discreta avisando que é um e-mail automático enviado
+  pela ferramenta, com o link da página do projeto.
 
 ### Removido
 

@@ -2,7 +2,11 @@
  * O e-mail de um lembrete: assunto, corpo em HTML com a logo do HUB SNK e a versão em
  * texto puro, para o cliente de e-mail que não mostra HTML. Regras puras, sem SMTP.
  */
-import type { MensagemDeEmail } from './enviadorDeEmail.ts';
+import {
+  AVISO_DE_EMAIL_AUTOMATICO,
+  PAGINA_DO_HUB_SNK,
+  type MensagemDeEmail,
+} from './enviadorDeEmail.ts';
 
 /* O `cid` liga a imagem anexada ao `<img>` do corpo: a logo não depende de internet. */
 const CID_DA_LOGO = 'logo-hub-snk';
@@ -17,10 +21,6 @@ const COR_DO_CABECALHO = '#131c30';
 const COR_DO_TEXTO = '#1e293b';
 const COR_DO_TEXTO_SUTIL = '#64748b';
 const COR_DO_ATRASO = '#b45309';
-
-/* Quem recebe em cópia pode não conhecer o HUB SNK: o rodapé diz de onde veio o e-mail. */
-const PAGINA_DO_HUB_SNK = 'https://carlossimao.github.io/hub-snk/';
-const AVISO_DE_EMAIL_AUTOMATICO = 'Este é um e-mail automático enviado pela ferramenta';
 
 export interface DadosDoEmailDoLembrete {
   resumo: string;
@@ -100,7 +100,6 @@ function montarTexto(dados: DadosDoEmailDoLembrete): string {
   if (dados.texto) linhas.push('', dados.texto);
   if (dados.atrasado) linhas.push('', 'Disparou depois do horário previsto.');
   linhas.push('', ...[dados.vinculo, `Previsto para ${dados.previstoPara}`].filter(Boolean));
-  linhas.push('', '--', `${AVISO_DE_EMAIL_AUTOMATICO} HUB SNK: ${PAGINA_DO_HUB_SNK}`);
   return linhas.join('\n');
 }
 

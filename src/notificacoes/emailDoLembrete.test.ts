@@ -40,12 +40,11 @@ describe('montarEmailDoLembrete', () => {
     assert.ok(!email.html?.includes('<b>Alerta</b>'));
   });
 
-  it('avisa no rodapé que é e-mail automático, com o link da página do HUB SNK', () => {
+  it('avisa no rodapé do HTML que é e-mail automático, com o link da página do HUB SNK', () => {
     const email = montarEmailDoLembrete(DADOS);
 
     assert.ok(email.html?.includes('e-mail automático enviado pela ferramenta'));
     assert.ok(email.html?.includes('href="https://carlossimao.github.io/hub-snk/"'));
-    assert.ok(email.texto.endsWith('HUB SNK: https://carlossimao.github.io/hub-snk/'));
   });
 
   it('avisa o atraso só quando disparou atrasado', () => {

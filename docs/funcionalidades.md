@@ -397,6 +397,12 @@ a tudo o que o HUB SNK enviar por e-mail, e não só às notificações. Sem hos
 notificações ficam só no painel. O e-mail que falha não impede a notificação: ela aparece no painel com
 o motivo.
 
+Todo e-mail que o HUB SNK envia, inclusive o de teste, termina com a linha "Este é um
+e-mail automático enviado pela ferramenta HUB SNK" e o link da página do projeto —
+quem está em cópia pode não conhecer a ferramenta. No texto puro, o envio
+(`enviadorDeEmail.ts`) a acrescenta sozinho; o e-mail em HTML do lembrete a desenha
+no próprio layout.
+
 > A senha do SMTP fica em texto puro no `configuracao.json`, como as senhas das
 > bases no `clientes.json`. Com a pasta de dados na nuvem, ela vai junto.
 
@@ -449,10 +455,9 @@ a expressão ou o tipo rearma o lembrete; corrigir só o texto, não.
 O assunto é `[HUB SNK] Lembrete - <resumo>`. O corpo é em HTML, com a logo do HUB
 SNK embutida no próprio e-mail (não depende de internet para aparecer), o resumo
 como título, o texto, o cliente › projeto e o horário previsto — com aviso quando
-disparou depois dele. Abaixo do cartão, uma linha discreta avisa que é um e-mail
-automático enviado pelo HUB SNK, com o link da página do projeto — quem está em
-cópia pode não conhecer a ferramenta. Vai junto uma versão em texto puro, para o
-cliente de e-mail que não mostra HTML.
+disparou depois dele. Abaixo do cartão fica, discreto, o aviso de e-mail automático
+(veja [E-mail](#e-mail)). Vai junto uma versão em texto puro, para o cliente de
+e-mail que não mostra HTML.
 
 O e-mail vai **para** o destinatário do SMTP, com os **contatos** do lembrete em
 **cópia**. A seção de contatos só aparece com **Enviar também por e-mail**
