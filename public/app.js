@@ -4466,6 +4466,12 @@ function preencherNomesCompletos(nomes) {
   }
 }
 
+function buscarCampoDeNomeCompletoVazio() {
+  return [...elementos.listaNomesCompletosCliente.querySelectorAll('input')].find(
+    (campo) => !campo.value.trim(),
+  );
+}
+
 /** Linha em branco é descartada: é o que sobra de um "Adicionar nome" desistido. */
 function lerNomesCompletosDoFormulario() {
   const valores = [...elementos.listaNomesCompletosCliente.querySelectorAll('input')]
@@ -11406,6 +11412,21 @@ function registrarEventos() {
     linha.querySelector('input').focus();
   });
   elementos.botaoAdicionarNomeCompleto.addEventListener('click', () => {
+    // Reaproveita a linha em branco: cliques repetidos não podem empilhar campos vazios.
+    const campoVazio = buscarCampoDeNomeCompletoVazio();
+    if (campoVazio) {
+      campoVazio.focus();
+      return;
+    }
+
+    if (elementos.listaNomesCompletosCliente.children.length >= MAXIMO_DE_NOMES_COMPLETOS) {
+      exibirErro(
+        elementos.erroCliente,
+        `No máximo ${MAXIMO_DE_NOMES_COMPLETOS} nomes completos por cliente.`,
+      );
+      return;
+    }
+
     const linha = adicionarLinhaDeNomeCompleto('');
     linha.querySelector('input').focus();
   });
