@@ -9,6 +9,16 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.2.1] - 2026-10-01
+
+### Corrigido
+
+- A atualização falhava com **"Falha ao desinstalar os arquivos do aplicativo antigo: 2"**
+  quando algum programa aberto pelo HUB SNK — o WildFly da aba Local, um atalho, a IDE —
+  continuava rodando: ele herdava a pasta da instalação como pasta de trabalho e a
+  travava. O HUB SNK passa a rodar, e a abrir os programas, com a sua pasta de usuário.
+  Um WildFly que já estava rodando antes desta versão precisa ser reiniciado uma vez.
+
 ## [2.2.0] - 2026-09-30
 
 ### Adicionado
@@ -472,7 +482,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.2.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.2.1...HEAD
+[2.2.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.2...v2.2.0
 [2.1.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.1...v2.1.2
 [2.1.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.0...v2.1.1

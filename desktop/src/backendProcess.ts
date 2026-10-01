@@ -19,6 +19,7 @@
  */
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createWriteStream, existsSync, mkdirSync, type WriteStream } from 'node:fs';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { app } from 'electron';
 import {
@@ -33,7 +34,6 @@ import {
   PACOTE_DO_AUTOSYNC,
   PERFIL_INICIAL,
   PORTA_HUB,
-  RAIZ_PROJETO,
   TERCEIRO_INICIAL,
   TZ_PADRAO,
 } from './config';
@@ -202,9 +202,12 @@ export async function iniciarBackend(): Promise<ResultadoBackend> {
   logEvento('backend-iniciando', { runtime: process.execPath, entrypoint: ENTRYPOINT_BACKEND });
 
   const filho = spawn(process.execPath, [ENTRYPOINT_BACKEND], {
-    // A raiz, e não `src/`: é onde o Node acha o `package.json` com `"type": "module"`
-    // e o `node_modules`.
-    cwd: RAIZ_PROJETO,
+    // Fora da pasta de instalação: todo programa que o backend abre (WildFly, atalhos,
+    // IDE) herda esta pasta e sobrevive ao HUB SNK. Com ela dentro da instalação, a
+    // atualização não conseguia mover a pasta e falhava com "Falha ao desinstalar os
+    // arquivos do aplicativo antigo: 2". O Node acha o `package.json` e o `node_modules`
+    // a partir do entrypoint, não da pasta de trabalho.
+    cwd: homedir(),
     env: montarAmbiente(),
     // Nenhum console preto aparece.
     windowsHide: true,
