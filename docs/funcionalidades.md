@@ -491,7 +491,8 @@ abriria vazia.
 | Gerente de projeto | aba Git do cliente, aba Git do menu e a aba Local |
 
 O perfil é perguntado na instalação, e o preset dele vale desde a primeira
-abertura. Trocar o perfil na aba Acessos marca as caixas do preset; depois disso
+abertura. O Git AutoSync deixado desmarcado no instalador oculta, por cima do preset,
+a aba **Git** do menu e a seção **AutoSync** do cliente. Trocar o perfil na aba Acessos marca as caixas do preset; depois disso
 elas seguem editáveis, uma a uma. Salvar com o perfil ou as caixas alterados
 recarrega o Painel, que volta montado do zero com os acessos novos; as guias do
 Sankhya e das bases continuam abertas. Reinstalar ou atualizar não desfaz o ajuste: o

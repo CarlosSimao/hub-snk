@@ -9,6 +9,15 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.1.1] - 2026-09-30
+
+### Alterado
+
+- **Git AutoSync desmarcado no instalador**: a caixa agora vem desmarcada. Quem não a
+  marcar começa com a aba **Git** do menu e a seção **AutoSync** do cliente desligadas em
+  **Configurações › Acessos**; dá para religá-las ali e instalar o Git AutoSync pela
+  própria aba Git. Quem já usa o HUB SNK e atualiza mantém os acessos que tinha.
+
 ## [2.1.0] - 2026-09-30
 
 ### Adicionado
@@ -438,7 +447,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/CarlosSimao/hub-snk/compare/v1.0.0...v1.1.0

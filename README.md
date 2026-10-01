@@ -36,8 +36,11 @@ Baixe o `HUB-SNK-Setup-<versão>.exe` na
   que você ajustou.
 - Outra tela oferece instalar junto o **Git AutoSync** (commit e push
   automáticos dos repositórios), com tarefa diária, ícone na bandeja, atalhos,
-  skill para os agentes de IA e entrada no PATH. Ele exige o Git instalado; sem o
-  Git, o HUB SNK é instalado do mesmo jeito e o Git AutoSync fica de fora.
+  skill para os agentes de IA e entrada no PATH. A caixa vem desmarcada, e deixá-la
+  assim desliga em _Configurações_ › _Acessos_ a aba Git do menu e a seção AutoSync do
+  cliente — dá para religar as duas depois e instalar pela própria aba Git. Ele exige
+  o Git instalado; sem o Git, o HUB SNK é instalado do mesmo jeito e o Git AutoSync
+  fica de fora.
 
 > O instalador não é assinado digitalmente. Na primeira execução, o SmartScreen
 > pode mostrar _"O Windows protegeu o computador"_: clique em _Mais informações_ ›

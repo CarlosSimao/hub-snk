@@ -274,6 +274,10 @@ export const PERFIL_INICIAL =
 export const TERCEIRO_INICIAL =
   process.env['HUB_TERCEIRO_INICIAL'] ?? escolhaDoInstalador('terceiro-inicial.txt');
 
+/** Caixa do Git AutoSync do instalador: `S` marcada, `N` desmarcada, vazio sem a página. */
+export const AUTOSYNC_INICIAL =
+  process.env['HUB_AUTOSYNC_INICIAL'] ?? escolhaDoInstalador('autosync-inicial.txt');
+
 export const TZ_PADRAO = 'America/Sao_Paulo';
 
 /**
