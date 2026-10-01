@@ -1,6 +1,6 @@
 {
   "name": "hub-snk",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "private": true,
   "description": "HUB SNK — cadastro de clientes e ambiente Sankhya, em aplicativo desktop (Electron)",
   "author": "Carlos Nascimento <carlos.nascimento@sankhya.com.br>",
