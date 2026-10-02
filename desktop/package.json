@@ -1,7 +1,7 @@
 {
   "name": "hub-snk-desktop",
   "productName": "HUB SNK",
-  "version": "2.3.0-beta.1",
+  "version": "2.3.0",
   "private": true,
   "description": "Shell desktop (Electron) do HUB SNK — ver docs/distribuicao.md.",
   "main": "dist/main.js",
