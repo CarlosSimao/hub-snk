@@ -5,8 +5,8 @@ import { ehSistemaValido, type Credenciais } from '../sankhya/credenciais.ts';
 import type { Experience } from '../sankhya/experience.ts';
 import type { SessaoDoDesktop } from '../sankhya/sessaoDoDesktop.ts';
 import { SISTEMAS_SANKHYA } from '../tipos.ts';
-import { requisicaoVeioDoShell } from './autenticacaoDoShell.ts';
-import { responderErroDoShell } from './respostasDoShell.ts';
+import { requisicaoVeioDoShell } from './seguranca/autenticacaoDoShell.ts';
+import { responderErroDoShell } from './comum/respostasDoShell.ts';
 
 /** Único sistema cuja sessão o shell empurra: o ERP é consultado dentro da guia. */
 const SISTEMA_COM_SESSAO_EMPURRADA = 'sankhya-experience';

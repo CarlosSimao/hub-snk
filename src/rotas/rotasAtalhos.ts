@@ -5,11 +5,11 @@ import {
   abrirExecutavelNoSistema,
   ExecutavelNaoEncontradoError,
   FalhaAoIniciarExecutavelError,
-} from '../sistema/abrirExecutavel.ts';
+} from '../sistema/processos/abrirExecutavel.ts';
 import {
   selecionarArquivoNoSistema,
   SeletorDeArquivoIndisponivelError,
-} from '../sistema/selecionarArquivo.ts';
+} from '../sistema/processos/selecionarArquivo.ts';
 
 const esquemaDeParametros = z.object({ id: z.string().min(1) });
 

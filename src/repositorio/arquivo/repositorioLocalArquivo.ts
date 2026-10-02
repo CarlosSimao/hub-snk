@@ -1,0 +1,195 @@
+import { randomUUID } from 'node:crypto';
+import { join } from 'node:path';
+import type { BaseLocal, BancoLocal } from '../../tipos.ts';
+import {
+  gravarArquivoDeDados,
+  lerArquivoDeDados,
+  migrarArquivoDeDados,
+  precisaMigrar,
+} from './arquivoDeDados.ts';
+import { FilaDeOperacoes } from './filaDeOperacoes.ts';
+import {
+  BaseLocalNaoEncontradaError,
+  BancoLocalNaoEncontradoError,
+  type DadosDeBancoLocal,
+  type DadosDeBaseLocal,
+  type RepositorioLocal,
+} from '../repositorioLocal.ts';
+
+const NOME_DO_ARQUIVO = 'local.json';
+const CHAVE_DO_CORPO = 'local';
+
+interface DadosDoArquivo {
+  bases: BaseLocal[];
+  bancos: BancoLocal[];
+}
+
+const ARQUIVO_INICIAL: DadosDoArquivo = { bases: [], bancos: [] };
+
+/**
+ * Bases e bancos locais num arquivo JSON próprio, com a mesma escrita atômica
+ * e a mesma fila de operações dos demais repositórios.
+ */
+export class RepositorioLocalArquivo implements RepositorioLocal {
+  readonly #caminhoDoArquivo: string;
+  #dados: DadosDoArquivo | null = null;
+  readonly #fila = new FilaDeOperacoes();
+
+  constructor(diretorioDeDados: string) {
+    this.#caminhoDoArquivo = join(diretorioDeDados, NOME_DO_ARQUIVO);
+  }
+
+  descartarCache(): void {
+    this.#dados = null;
+  }
+
+  async #ler(): Promise<DadosDoArquivo> {
+    if (this.#dados) {
+      return this.#dados;
+    }
+
+    const conteudo = await lerArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO);
+    if (conteudo === null) {
+      this.#dados = structuredClone(ARQUIVO_INICIAL);
+      return this.#dados;
+    }
+
+    const dados = (conteudo.corpo ?? {}) as Partial<DadosDoArquivo>;
+    // Arquivo gravado antes de bancos locais existirem só tem as bases.
+    this.#dados = { bases: dados.bases ?? [], bancos: dados.bancos ?? [] };
+
+    if (precisaMigrar(conteudo)) {
+      await migrarArquivoDeDados({
+        caminhoDoArquivo: this.#caminhoDoArquivo,
+        chaveDoCorpo: CHAVE_DO_CORPO,
+        corpo: this.#dados,
+        versaoDeOrigem: conteudo.versaoDeOrigem,
+      });
+    }
+
+    return this.#dados;
+  }
+
+  async #gravar(dados: DadosDoArquivo): Promise<void> {
+    await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, dados);
+    this.#dados = dados;
+  }
+
+  listarBases(): Promise<BaseLocal[]> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      return dados.bases;
+    });
+  }
+
+  criarBase(dadosDaBase: DadosDeBaseLocal): Promise<BaseLocal> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      const agora = new Date().toISOString();
+
+      const base: BaseLocal = {
+        id: randomUUID(),
+        nome: dadosDaBase.nome,
+        caminhoWildfly: dadosDaBase.caminhoWildfly,
+        porta: dadosDaBase.porta,
+        criadoEm: agora,
+        atualizadoEm: agora,
+      };
+
+      await this.#gravar({ ...dados, bases: [...dados.bases, base] });
+      return base;
+    });
+  }
+
+  atualizarBase(id: string, dadosDaBase: DadosDeBaseLocal): Promise<BaseLocal> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      const indice = dados.bases.findIndex((base) => base.id === id);
+      if (indice === -1) {
+        throw new BaseLocalNaoEncontradaError(id);
+      }
+
+      const base: BaseLocal = {
+        ...dados.bases[indice]!,
+        nome: dadosDaBase.nome,
+        caminhoWildfly: dadosDaBase.caminhoWildfly,
+        porta: dadosDaBase.porta,
+        atualizadoEm: new Date().toISOString(),
+      };
+
+      const bases = [...dados.bases];
+      bases[indice] = base;
+
+      await this.#gravar({ ...dados, bases });
+      return base;
+    });
+  }
+
+  removerBase(id: string): Promise<void> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      if (!dados.bases.some((base) => base.id === id)) {
+        throw new BaseLocalNaoEncontradaError(id);
+      }
+
+      await this.#gravar({ ...dados, bases: dados.bases.filter((base) => base.id !== id) });
+    });
+  }
+
+  listarBancos(): Promise<BancoLocal[]> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      return dados.bancos;
+    });
+  }
+
+  criarBanco(dadosDoBanco: DadosDeBancoLocal): Promise<BancoLocal> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      const agora = new Date().toISOString();
+
+      const banco: BancoLocal = {
+        id: randomUUID(),
+        ...dadosDoBanco,
+        criadoEm: agora,
+        atualizadoEm: agora,
+      };
+
+      await this.#gravar({ ...dados, bancos: [...dados.bancos, banco] });
+      return banco;
+    });
+  }
+
+  atualizarBanco(id: string, dadosDoBanco: DadosDeBancoLocal): Promise<BancoLocal> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      const indice = dados.bancos.findIndex((banco) => banco.id === id);
+      if (indice === -1) {
+        throw new BancoLocalNaoEncontradoError(id);
+      }
+
+      const banco: BancoLocal = {
+        ...dados.bancos[indice]!,
+        ...dadosDoBanco,
+        atualizadoEm: new Date().toISOString(),
+      };
+
+      const bancos = [...dados.bancos];
+      bancos[indice] = banco;
+
+      await this.#gravar({ ...dados, bancos });
+      return banco;
+    });
+  }
+
+  removerBanco(id: string): Promise<void> {
+    return this.#fila.enfileirar(async () => {
+      const dados = await this.#ler();
+      if (!dados.bancos.some((banco) => banco.id === id)) {
+        throw new BancoLocalNaoEncontradoError(id);
+      }
+
+      await this.#gravar({ ...dados, bancos: dados.bancos.filter((banco) => banco.id !== id) });
+    });
+  }
+}

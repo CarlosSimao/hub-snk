@@ -48,6 +48,16 @@ export const DOMINIOS_POPUP_PERMITIDOS = [
 /** Partição isolada e persistente do shell — nunca o perfil pessoal do usuário. */
 export const PARTICAO = 'persist:sankhya-hub-desktop';
 
+/**
+ * Partição das guias avulsas do `+`: persistente como a de um navegador, mas nunca a do
+ * Sankhya — um site qualquer aberto ali não pode ver o cookie do ERP nem o token da
+ * Experience.
+ */
+export const PARTICAO_AVULSA = 'persist:hub-navegacao-avulsa';
+
+/** Página com que toda guia avulsa abre. */
+export const URL_INICIAL_AVULSA = 'https://www.google.com/';
+
 // --- painel de comunicação ---------------------------------------------------------
 
 export type ServicoComunicacao = 'whatsapp' | 'gmail' | 'chat';
@@ -202,15 +212,6 @@ export const RAIZ_PROJETO =
 export const ENTRYPOINT_BACKEND = join(RAIZ_PROJETO, 'src', 'index.ts');
 
 /**
- * Pacote do Git AutoSync que viaja no instalador (`extraResources` para
- * `resources/git-autosync`). O backend o usa para instalar o autosync depois, quando a
- * pessoa desmarcou o componente no instalador. Vazio em desenvolvimento: não há pacote.
- */
-export const PACOTE_DO_AUTOSYNC =
-  process.env['HUB_AUTOSYNC_PACOTE'] ??
-  (app.isPackaged ? join(process.resourcesPath, 'git-autosync') : '');
-
-/**
  * Caminho que o instalador deixa em `HubSnk\pasta-de-dados.txt` quando a instalação PWA
  * antiga guardava o cadastro fora do padrão (`desktop/instalador/remover-versao-pwa.ps1`).
  * O `trim()` também descarta o BOM que o PowerShell 5.1 grava no início do arquivo.
@@ -259,13 +260,26 @@ export const DIRETORIO_DE_DADOS =
  * vazio e o backend aplica o padrão. Quem valida o valor é o backend.
  */
 function escolhaDoInstalador(nomeDoArquivo: string): string {
-  if (!app.isPackaged || process.platform !== 'win32') return '';
+  return escolhaOpcionalDoInstalador(nomeDoArquivo) ?? '';
+}
+
+/** Como `escolhaDoInstalador`, mas sem o arquivo volta `undefined`: vazio também é escolha. */
+function escolhaOpcionalDoInstalador(nomeDoArquivo: string): string | undefined {
+  if (!app.isPackaged || process.platform !== 'win32') return undefined;
   try {
     return readFileSync(join(pastaDeEstadoDoInstalador(), nomeDoArquivo), 'utf8').trim();
   } catch {
-    return '';
+    return undefined;
   }
 }
+
+/**
+ * `HubSnk\` do app instalado, repassado ao backend: a instalação do Git AutoSync pela
+ * aba Git deixa ali o script e a marca que a desinstalação do HUB SNK usa para removê-lo
+ * junto. Vazio em desenvolvimento, para não oferecer remoção de instalação de teste.
+ */
+export const PASTA_DO_INSTALADOR =
+  app.isPackaged && process.platform === 'win32' ? pastaDeEstadoDoInstalador() : '';
 
 export const PERFIL_INICIAL =
   process.env['HUB_PERFIL_INICIAL'] ?? escolhaDoInstalador('perfil-inicial.txt');
@@ -274,9 +288,13 @@ export const PERFIL_INICIAL =
 export const TERCEIRO_INICIAL =
   process.env['HUB_TERCEIRO_INICIAL'] ?? escolhaDoInstalador('terceiro-inicial.txt');
 
-/** Caixa do Git AutoSync do instalador: `S` marcada, `N` desmarcada, vazio sem a página. */
-export const AUTOSYNC_INICIAL =
-  process.env['HUB_AUTOSYNC_INICIAL'] ?? escolhaDoInstalador('autosync-inicial.txt');
+/**
+ * Caixas desmarcadas na página do perfil do instalador, separadas por vírgula. Vazio
+ * é "nenhuma oculta"; `undefined` (instalação anterior à página) deixa valer o preset.
+ */
+export const FUNCIONALIDADES_OCULTAS_INICIAIS =
+  process.env['HUB_FUNCIONALIDADES_OCULTAS_INICIAIS'] ??
+  escolhaOpcionalDoInstalador('funcionalidades-ocultas-inicial.txt');
 
 export const TZ_PADRAO = 'America/Sao_Paulo';
 

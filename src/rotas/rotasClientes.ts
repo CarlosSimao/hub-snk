@@ -5,21 +5,21 @@ import type { RepositorioConfiguracao } from '../repositorio/repositorioConfigur
 import {
   abrirPastaNoSistema,
   GerenciadorDeArquivosIndisponivelError,
-} from '../sistema/abrirPasta.ts';
+} from '../sistema/processos/abrirPasta.ts';
 import {
   abrirIdeNaPasta,
   IdeIndisponivelError,
   IdeNaoConfiguradaError,
-} from '../sistema/abrirIde.ts';
-import { abrirShellNaPasta, TerminalIndisponivelError } from '../sistema/abrirShell.ts';
+} from '../sistema/processos/abrirIde.ts';
+import { abrirShellNaPasta, TerminalIndisponivelError } from '../sistema/processos/abrirShell.ts';
 import {
   estadoDoArquivoMcp,
   gravarConfiguracaoMcp,
   lerConfiguracaoMcp,
 } from '../sistema/arquivoMcp.ts';
 import { PastaNaoEncontradaError } from '../sistema/pasta.ts';
-import { requisicaoVeioDoShell } from './autenticacaoDoShell.ts';
-import { esquemaDeConfiguracaoMcp } from './esquemaDeConfiguracaoMcp.ts';
+import { requisicaoVeioDoShell } from './seguranca/autenticacaoDoShell.ts';
+import { esquemaDeConfiguracaoMcp } from './comum/esquemaDeConfiguracaoMcp.ts';
 import type { Cliente, RepositorioGit } from '../tipos.ts';
 import {
   AcessoDeBaseDuplicadoError,
@@ -38,12 +38,12 @@ import {
   type RepositorioClientes,
 } from '../repositorio/repositorioClientes.ts';
 import { IDENTIFICADORES_ORACLE, SGBDS, TIPOS_DE_BASE } from '../tipos.ts';
-import { consultarBaseDoCliente } from '../sistema/baseDoCliente.ts';
+import { consultarBaseDoCliente } from '../sistema/bases/baseDoCliente.ts';
 import {
   limparHistoricoDaBaseDoCliente,
   obterHistoricoDaBaseDoCliente,
   registrarAmostraDaBaseDoCliente,
-} from '../sistema/historicoDeSituacaoDaBaseDoCliente.ts';
+} from '../sistema/bases/historicoDeSituacaoDaBaseDoCliente.ts';
 
 const TAMANHO_MAXIMO_DO_NOME = 120;
 const MAXIMO_DE_NOMES_COMPLETOS = 20;
@@ -322,6 +322,25 @@ const esquemaDeParametrosDeLinkDeProjeto = esquemaDeParametrosDeProjeto.extend({
   idLink: z.string().uuid('Identificador de link inválido.'),
 });
 
+/*
+ * Ausente, a exclusão de um projeto com kanban é recusada: quem decide se os kanbans
+ * vão junto ou ficam órfãos no cliente é o usuário.
+ */
+const esquemaDaExclusaoDeProjeto = z.object({
+  kanbans: z
+    .enum(['manter', 'excluir'], { error: 'Escolha manter ou excluir o kanban.' })
+    .optional(),
+});
+
+/** O que a exclusão de um projeto precisa saber dos kanbans dele. */
+export interface KanbansDoProjeto {
+  quantos(idDoCliente: string, idDoProjeto: string): number;
+  manterOrfaos(idDoCliente: string, idDoProjeto: string): void;
+  /** O kanban leva o nome do projeto: renomear um renomeia o outro. */
+  renomear(idDoCliente: string, idDoProjeto: string, nome: string): void;
+  excluir(idDoCliente: string, idDoProjeto: string): void;
+}
+
 function responderErroDeValidacao(resposta: FastifyReply, erro: z.ZodError): FastifyReply {
   const primeiraMensagem = erro.issues[0]?.message ?? 'Dados inválidos.';
   return resposta.status(400).send({ mensagem: primeiraMensagem });
@@ -371,6 +390,7 @@ export function registrarRotasDeClientes(
   arquivoTokenDoDesktop: string,
   /** O que outros cadastros ligados ao cliente fazem quando ele é excluído (os contatos). */
   aoRemoverCliente: (clienteId: string) => Promise<void> = async () => {},
+  kanbansDoProjeto?: KanbansDoProjeto,
 ): void {
   /**
    * Localiza o repositório e devolve o caminho local, ou uma resposta de erro
@@ -873,11 +893,13 @@ export function registrarRotasDeClientes(
     }
 
     try {
-      return await repositorio.atualizarProjeto(
+      const projeto = await repositorio.atualizarProjeto(
         parametros.data.id,
         parametros.data.idProjeto,
         dados.data,
       );
+      kanbansDoProjeto?.renomear(parametros.data.id, projeto.id, projeto.nome);
+      return projeto;
     } catch (erro) {
       return responderErroDeDominio(resposta, erro);
     }
@@ -889,8 +911,29 @@ export function registrarRotasDeClientes(
       return responderErroDeValidacao(resposta, parametros.error);
     }
 
+    const exclusao = esquemaDaExclusaoDeProjeto.safeParse(requisicao.query ?? {});
+    if (!exclusao.success) {
+      return responderErroDeValidacao(resposta, exclusao.error);
+    }
+
+    const { id, idProjeto } = parametros.data;
+    const quantos = kanbansDoProjeto?.quantos(id, idProjeto) ?? 0;
+    if (quantos > 0 && !exclusao.data.kanbans) {
+      return resposta.status(409).send({
+        mensagem: 'O projeto tem kanban. Escolha se ele fica no cliente ou é excluído.',
+        kanbans: quantos,
+      });
+    }
+
     try {
-      await repositorio.removerProjeto(parametros.data.id, parametros.data.idProjeto);
+      await repositorio.removerProjeto(id, idProjeto);
+      if (quantos > 0) {
+        if (exclusao.data.kanbans === 'excluir') {
+          kanbansDoProjeto?.excluir(id, idProjeto);
+        } else {
+          kanbansDoProjeto?.manterOrfaos(id, idProjeto);
+        }
+      }
       return resposta.status(204).send();
     } catch (erro) {
       return responderErroDeDominio(resposta, erro);
@@ -1059,8 +1102,9 @@ export function registrarRotasDeClientes(
         if (erro instanceof PastaNaoEncontradaError) {
           return resposta.status(404).send({ mensagem: `Pasta não encontrada: ${caminhoLocal}` });
         }
+        // Executável ausente ou que não abre: nos dois casos o conserto é o caminho da IDE.
         if (erro instanceof IdeNaoConfiguradaError || erro instanceof IdeIndisponivelError) {
-          return resposta.status(503).send({ mensagem: erro.message });
+          return resposta.status(503).send({ mensagem: erro.message, configuracaoPendente: 'ide' });
         }
         throw erro;
       }

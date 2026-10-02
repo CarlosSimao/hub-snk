@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#070b14" />
     <title>HUB SNK</title>
     <link rel="icon" href="/img/icone-192.png" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body>
     <div class="aurora" aria-hidden="true"></div>
@@ -78,12 +78,21 @@
           </button>
           <button
             class="aba"
+            id="btn-visualizacao-lembretes"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Lembretes
+          </button>
+          <button
+            class="aba"
             id="btn-visualizacao-autosync"
             type="button"
             role="tab"
             aria-selected="false"
           >
-            Git
+            Git AutoSync
           </button>
         </div>
         <!-- O ícone de lupa é montado pelo app.js. -->
@@ -311,6 +320,19 @@
         <div id="mount-contatos"></div>
       </div>
 
+      <div class="card" id="visualizacao-lembretes" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Lembretes</h2>
+            <p class="texto-auxiliar">
+              Avisos no painel de notificações, com som e, se quiser, por e-mail.
+            </p>
+          </div>
+        </div>
+        <!-- A lista é montada pelo app.js. -->
+        <div id="mount-lembretes"></div>
+      </div>
+
       <div class="card" id="visualizacao-autosync" hidden>
         <div class="detalhe-cabecalho">
           <div class="detalhe-titulo-com-subtitulo">
@@ -321,6 +343,18 @@
           </div>
           <div class="detalhe-acoes">
             <span class="texto-auxiliar" id="ultima-atualizacao-autosync"></span>
+            <!-- Some quando o Git AutoSync já está instalado: ver `renderizarAutosync`. -->
+            <button class="btn primario" type="button" id="btn-instalar-autosync" hidden>
+              Instalar o Git AutoSync
+            </button>
+            <!-- O ícone de informação é montado pelo app.js. -->
+            <button
+              class="btn ghost botao-icone"
+              type="button"
+              id="btn-sobre-autosync"
+              title="Sobre o Git AutoSync"
+              aria-label="Sobre o Git AutoSync"
+            ></button>
             <!-- O ícone de recarregar é montado pelo app.js. -->
             <button
               class="btn ghost botao-icone"
@@ -328,6 +362,14 @@
               id="btn-atualizar-autosync"
               title="Atualizar"
               aria-label="Atualizar"
+            ></button>
+            <!-- O ícone de engrenagem é montado pelo app.js. -->
+            <button
+              class="btn ghost botao-icone"
+              type="button"
+              id="btn-configuracao-autosync"
+              title="Configurações do Git AutoSync"
+              aria-label="Configurações do Git AutoSync"
             ></button>
           </div>
         </div>
@@ -349,9 +391,8 @@
           ✕
         </button>
       </div>
-      <!-- Lembretes à esquerda; à direita, o que age sobre a lista abaixo. -->
+      <!-- O que age sobre a lista abaixo. -->
       <div class="painel-notificacoes-barra">
-        <button class="btn tiny" id="btn-abrir-lembretes" type="button">Lembretes</button>
         <div class="painel-notificacoes-acoes">
           <button class="btn tiny ghost" id="btn-marcar-notificacoes-lidas" type="button">
             Marcar todas como lidas
@@ -362,9 +403,6 @@
       <!-- Os itens são montados pelo app.js. -->
       <div class="lista-notificacoes" id="lista-notificacoes"></div>
     </aside>
-
-    <!-- Cartões das notificações que acabaram de chegar; somem sozinhos. -->
-    <div class="pilha-notificacoes" id="pilha-notificacoes" aria-live="polite"></div>
 
     <dialog class="modal" id="modal-cliente">
       <form method="dialog" id="formulario-cliente" novalidate>
@@ -741,18 +779,6 @@
       </form>
     </dialog>
 
-    <dialog class="modal largo" id="modal-lista-lembretes">
-      <div class="modal-cabecalho">
-        <h2>Lembretes</h2>
-        <p>Avisos no painel de notificações, com som e, se quiser, por e-mail.</p>
-      </div>
-      <!-- A lista é montada pelo app.js. -->
-      <div class="modal-corpo" id="mount-lembretes"></div>
-      <div class="modal-rodape">
-        <button class="btn ghost" type="button" id="btn-fechar-lista-lembretes">Fechar</button>
-      </div>
-    </dialog>
-
     <dialog class="modal" id="modal-lembrete">
       <form method="dialog" id="formulario-lembrete" novalidate>
         <div class="modal-cabecalho">
@@ -856,6 +882,8 @@
           <label class="campo-checkbox">
             <input type="checkbox" id="campo-email-lembrete" /> Enviar também por e-mail
           </label>
+          <!-- Texto e link montados pelo app.js quando o SMTP não está configurado. -->
+          <p class="aviso-configuracao" id="aviso-smtp-lembrete" hidden></p>
 
           <div class="campo" id="grupo-contatos-lembrete" hidden>
             <label>
@@ -1044,13 +1072,13 @@
           </button>
           <button
             class="aba"
-            id="aba-configuracao-git"
+            id="aba-configuracao-ia"
             type="button"
             role="tab"
             aria-selected="false"
-            aria-controls="painel-configuracao-git"
+            aria-controls="painel-configuracao-ia"
           >
-            Git
+            IA
           </button>
           <button
             class="aba"
@@ -1119,7 +1147,7 @@
                 maxlength="500"
                 autocomplete="off"
                 spellcheck="false"
-                placeholder="Ex.: git fetch --all"
+                placeholder="Ex.: claude (para já executar o claude code)"
               />
             </div>
 
@@ -1312,6 +1340,25 @@
                 </div>
               </div>
             </details>
+
+            <details class="grupo-recolhivel" id="grupo-kanban-mcp">
+              <summary>Kanban por MCP</summary>
+              <div class="grupo-recolhivel-corpo">
+                <p class="texto-auxiliar">
+                  Agentes de IA (Claude Code, Codex, Cursor, Copilot) leem e atualizam os kanbans
+                  marcados como "Disponível por MCP" em Editar o kanban. Cole o bloco abaixo na
+                  configuração MCP do agente. O HUB SNK precisa estar aberto.
+                </p>
+                <pre class="bloco-configuracao-mcp" id="configuracao-kanban-mcp"></pre>
+                <p class="linha-do-link-sobre">
+                  <button class="btn tiny" type="button" id="btn-copiar-configuracao-kanban-mcp">
+                    Copiar configuração
+                  </button>
+                </p>
+                <h4 class="titulo-kanbans-mcp">Kanbans disponíveis</h4>
+                <div class="lista-recursos" id="lista-kanbans-mcp"></div>
+              </div>
+            </details>
           </div>
 
           <div
@@ -1456,25 +1503,33 @@
           >
             <fieldset class="grupo-de-acessos" id="grupo-alerta-agenda">
               <legend>
-                Agenda do dia sem OS lançada
+                Agenda sem tarefa na Experience
                 <span class="dica" tabindex="0"
                   >?<span class="dica-texto" role="tooltip"
-                    >A cada 15 minutos, confere os eventos de hoje da sua Agenda de Recursos. Evento
-                    de cliente que já terminou e não tem OS lançada na Experience gera uma
-                    notificação, uma vez por evento. Precisa do código de usuário do SankhyaOm e do
-                    login feito, os dois em Credenciais Sankhya. O e-mail usa o SMTP da aba
-                    SMTP.</span
+                    >Na periodicidade escolhida, confere os eventos de hoje da sua Agenda de
+                    Recursos — e, se marcado, os do próximo dia útil, que pula sábado e domingo, mas
+                    não feriados. Evento de cliente cujo dia não tem tarefa nem OS na Experience
+                    gera uma notificação. Precisa do código de usuário do SankhyaOm e do login
+                    feito, os dois em Credenciais Sankhya. O e-mail usa o SMTP da aba SMTP.</span
                   ></span
                 >
               </legend>
               <div class="grade-duas-colunas">
                 <div class="campo">
-                  <label for="campo-alerta-agenda-tolerancia">Minutos após o fim do evento</label>
-                  <input id="campo-alerta-agenda-tolerancia" type="number" min="0" max="720" />
+                  <label for="campo-alerta-agenda-intervalo">Periodicidade (minutos)</label>
+                  <input id="campo-alerta-agenda-intervalo" type="number" min="1" max="1440" />
                 </div>
                 <div class="opcoes-do-alerta">
                   <label class="campo-checkbox">
                     <input type="checkbox" id="campo-alerta-agenda-ativo" /> Ligado
+                  </label>
+                  <label class="campo-checkbox">
+                    <input type="checkbox" id="campo-alerta-agenda-proximo-dia-util" /> Monitorar
+                    também o próximo dia útil
+                  </label>
+                  <label class="campo-checkbox">
+                    <input type="checkbox" id="campo-alerta-agenda-repetir" /> Repetir o aviso a
+                    cada execução enquanto a pendência existir
                   </label>
                   <label class="campo-checkbox">
                     <input type="checkbox" id="campo-alerta-agenda-email" /> Enviar por e-mail
@@ -1486,68 +1541,59 @@
 
           <div
             class="painel-aba"
-            id="painel-configuracao-git"
+            id="painel-configuracao-ia"
             role="tabpanel"
-            aria-labelledby="aba-configuracao-git"
+            aria-labelledby="aba-configuracao-ia"
             hidden
           >
             <fieldset class="grupo-de-acessos">
               <legend>
-                Token do GitLab
+                Assistente que gera as tarefas do kanban
                 <span class="dica" tabindex="0"
                   >?<span class="dica-texto" role="tooltip"
-                    >Usado pelo Git AutoSync para criar Merge Request. Fica nas variáveis de
-                    ambiente do seu usuário do Windows (GIT_AUTOSYNC_GITLAB_TOKEN e
-                    GIT_AUTOSYNC_GITLAB_HOST), não no arquivo de dados do HUB SNK.</span
+                    >O assistente de linha de comando instalado nesta máquina que lê o documento de
+                    escopo e devolve as tarefas. Ele roda numa pasta temporária, sem poder alterar
+                    arquivos nem executar comandos.</span
                   ></span
                 >
               </legend>
 
-              <div class="campo">
-                <label for="campo-gitlab-host">Host do GitLab</label>
-                <input
-                  id="campo-gitlab-host"
-                  type="text"
-                  maxlength="255"
-                  autocomplete="off"
-                  spellcheck="false"
-                  placeholder="Ex.: gitlab.empresa.com.br"
-                />
-              </div>
+              <div class="grade-tres-colunas">
+                <div class="campo">
+                  <label for="campo-assistente-ia">Assistente</label>
+                  <select id="campo-assistente-ia"></select>
+                </div>
 
-              <div class="campo">
-                <label for="campo-gitlab-token">
-                  Token <span class="opcional">escopo api</span>
-                </label>
-                <div class="campo-com-botao">
-                  <input
-                    id="campo-gitlab-token"
-                    type="password"
-                    maxlength="500"
-                    autocomplete="new-password"
-                    spellcheck="false"
-                  />
-                  <!-- O ícone de olho é montado pelo app.js. -->
-                  <button
-                    class="btn ghost botao-icone"
-                    id="btn-ver-token-gitlab"
-                    type="button"
-                    title="Mostrar token"
-                    aria-label="Mostrar token"
-                  ></button>
+                <div class="campo">
+                  <label for="campo-modelo-ia">Modelo</label>
+                  <select id="campo-modelo-ia"></select>
+                </div>
+                <div class="campo" id="bloco-raciocinio-ia" hidden>
+                  <label for="campo-raciocinio-ia" title="Mais alto pensa mais e demora mais"
+                    >Nível de raciocínio</label
+                  >
+                  <select id="campo-raciocinio-ia"></select>
                 </div>
               </div>
 
+              <div class="campo" id="bloco-modelo-ia-outro" hidden>
+                <label for="campo-modelo-ia-outro">Nome do modelo</label>
+                <input
+                  id="campo-modelo-ia-outro"
+                  type="text"
+                  maxlength="120"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="O nome exato que o assistente aceita no --model"
+                />
+              </div>
+
               <div class="linha-do-token-gitlab">
-                <p class="texto-auxiliar" id="situacao-token-gitlab"></p>
-                <button class="btn tiny danger" type="button" id="btn-remover-token-gitlab">
-                  Remover token
+                <p class="texto-auxiliar" id="situacao-assistente-ia"></p>
+                <button class="btn tiny" type="button" id="btn-atualizar-assistentes-ia">
+                  Procurar de novo
                 </button>
               </div>
-              <p class="texto-auxiliar">
-                O token gravado nunca é mostrado: deixe o campo em branco para manter o atual. A
-                bandeja do Git AutoSync já aberta só enxerga o token novo depois de reaberta.
-              </p>
             </fieldset>
           </div>
 
@@ -1574,10 +1620,10 @@
                 >
               </label>
               <select id="campo-perfil">
-                <option value="desenvolvedor">Desenvolvedor</option>
                 <option value="consultor">Consultor</option>
                 <option value="analista">Analista</option>
-                <option value="gerente-de-projeto">Gerente de projeto</option>
+                <option value="gerente-de-projeto">Gerente de Projetos</option>
+                <option value="desenvolvedor">Desenvolvedor</option>
               </select>
             </div>
 
@@ -1605,13 +1651,13 @@
                 <input type="checkbox" data-funcionalidade="os" /> OS
               </label>
               <label class="campo-checkbox">
-                <input type="checkbox" data-funcionalidade="lembretes" /> Lembretes (no sino)
+                <input type="checkbox" data-funcionalidade="lembretes" /> Lembretes
               </label>
               <label class="campo-checkbox">
                 <input type="checkbox" data-funcionalidade="contatos" /> Contatos
               </label>
               <label class="campo-checkbox">
-                <input type="checkbox" data-funcionalidade="autosync" /> Git
+                <input type="checkbox" data-funcionalidade="autosync" /> Git AutoSync
               </label>
             </fieldset>
 
@@ -2331,6 +2377,359 @@
       </div>
     </dialog>
 
+    <!-- Kanban dos projetos: o quadro e as janelas que ele abre. O conteúdo vem do kanban.js. -->
+    <dialog class="modal modal-kanban" id="modal-kanban">
+      <div class="modal-cabecalho cabecalho-kanban">
+        <div>
+          <h2 id="titulo-kanban">Kanban</h2>
+          <p id="subtitulo-kanban"></p>
+        </div>
+        <div class="acoes-kanban">
+          <select id="campo-kanban-demanda" aria-label="Kanban exibido"></select>
+          <button class="btn tiny" type="button" id="btn-kanban-documento" hidden>
+            Ver documento
+          </button>
+          <button class="btn tiny" type="button" id="btn-kanban-analisar" hidden>
+            Gerar tarefas com a IA
+          </button>
+          <button class="btn tiny primario" type="button" id="btn-kanban-nova-tarefa">
+            Nova tarefa
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-corpo corpo-kanban">
+        <div class="situacao-kanban" id="situacao-kanban"></div>
+        <details class="resumo-kanban" id="resumo-kanban" hidden>
+          <summary>Resumo da IA e pontos a esclarecer</summary>
+          <p class="texto-resumo-kanban" id="texto-resumo-kanban"></p>
+        </details>
+        <div class="colunas-kanban" id="colunas-kanban"></div>
+      </div>
+
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-fechar-kanban">Fechar</button>
+      </div>
+    </dialog>
+
+    <dialog class="modal" id="modal-kanban-novo">
+      <form method="dialog" id="formulario-kanban-novo" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="titulo-kanban-novo">Novo kanban</h2>
+          <p id="subtitulo-kanban-novo"></p>
+        </div>
+
+        <div class="modal-corpo">
+          <fieldset class="grupo-de-acessos" id="grupo-kanban-modo">
+            <legend>Como começar</legend>
+            <label class="campo-checkbox">
+              <input type="radio" name="modo-kanban" id="campo-kanban-modo-documento" />
+              Com o documento de escopo
+            </label>
+            <label class="campo-checkbox">
+              <input type="radio" name="modo-kanban" id="campo-kanban-modo-vazio" checked /> Sem
+              documento, com o quadro vazio
+            </label>
+          </fieldset>
+
+          <div class="campo" id="bloco-kanban-arquivo">
+            <label for="campo-kanban-arquivo"
+              >Documento <span class="opcional">.docx, .pdf, .md ou .txt, até 20 MB</span></label
+            >
+            <input id="campo-kanban-arquivo" type="file" accept=".docx,.pdf,.md,.markdown,.txt" />
+          </div>
+
+          <div class="campo" id="bloco-kanban-pasta">
+            <label for="campo-kanban-pasta"
+              >Pasta do arquivo de tarefas
+              <span class="opcional">opcional · o arquivo vai para a subpasta Tarefas</span></label
+            >
+            <div class="campo-com-botao">
+              <input
+                id="campo-kanban-pasta"
+                type="text"
+                maxlength="400"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Onde o arquivo JSON das tarefas será criado"
+              />
+              <button class="btn tiny" type="button" id="btn-kanban-escolher-pasta">
+                Escolher…
+              </button>
+            </div>
+          </div>
+
+          <label class="campo-checkbox" id="bloco-kanban-analisar">
+            <input type="checkbox" id="campo-kanban-analisar" checked /> Gerar as tarefas com a IA
+            logo após o envio
+          </label>
+
+          <p class="erro-formulario" id="erro-kanban-novo" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-kanban-novo">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-kanban-novo">Enviar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-kanban-editar">
+      <form method="dialog" id="formulario-kanban-editar" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Editar kanban</h2>
+          <p id="subtitulo-kanban-editar"></p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo" id="bloco-kanban-editar-nome">
+            <label for="campo-kanban-editar-nome">Nome do kanban</label>
+            <input
+              id="campo-kanban-editar-nome"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              required
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-editar-projeto">Projeto</label>
+            <select id="campo-kanban-editar-projeto"></select>
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-editar-pasta"
+              >Pasta do arquivo de tarefas
+              <span class="opcional">opcional · o arquivo vai para a subpasta Tarefas</span></label
+            >
+            <div class="campo-com-botao">
+              <input
+                id="campo-kanban-editar-pasta"
+                type="text"
+                maxlength="400"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button class="btn tiny" type="button" id="btn-kanban-editar-escolher-pasta">
+                Escolher…
+              </button>
+            </div>
+          </div>
+
+          <p class="texto-auxiliar" id="situacao-kanban-editar-arquivo" hidden></p>
+
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-kanban-editar-mcp" /> Disponível para agentes de IA por
+            MCP
+          </label>
+
+          <div class="linha-do-token-gitlab" id="bloco-kanban-editar-documento" hidden>
+            <p class="texto-auxiliar" id="texto-kanban-editar-documento"></p>
+            <button class="btn tiny danger" type="button" id="btn-kanban-remover-documento">
+              Remover documento
+            </button>
+          </div>
+
+          <p class="erro-formulario" id="erro-kanban-editar" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-kanban-editar">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-kanban-editar">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal largo" id="modal-kanban-tarefa">
+      <form method="dialog" id="formulario-kanban-tarefa" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="titulo-kanban-tarefa">Tarefa</h2>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo" id="bloco-kanban-tarefa-demanda" hidden>
+            <label for="campo-kanban-tarefa-demanda">Kanban</label>
+            <select id="campo-kanban-tarefa-demanda"></select>
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-tarefa-titulo">Título</label>
+            <input
+              id="campo-kanban-tarefa-titulo"
+              type="text"
+              maxlength="200"
+              autocomplete="off"
+              required
+            />
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-tarefa-descricao">Descrição</label>
+            <textarea
+              class="campo-anotacoes"
+              id="campo-kanban-tarefa-descricao"
+              rows="4"
+              maxlength="20000"
+            ></textarea>
+          </div>
+
+          <div class="campos-kanban-tarefa">
+            <div class="campo">
+              <label for="campo-kanban-tarefa-estado">Coluna</label>
+              <select id="campo-kanban-tarefa-estado"></select>
+            </div>
+            <div class="campo">
+              <label for="campo-kanban-tarefa-tipo">Tipo</label>
+              <select id="campo-kanban-tarefa-tipo"></select>
+            </div>
+            <div class="campo">
+              <label for="campo-kanban-tarefa-prioridade">Prioridade</label>
+              <select id="campo-kanban-tarefa-prioridade"></select>
+            </div>
+            <div class="campo">
+              <label for="campo-kanban-tarefa-horas">Estimativa (h)</label>
+              <input
+                id="campo-kanban-tarefa-horas"
+                type="text"
+                inputmode="decimal"
+                maxlength="6"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-tarefa-grupo"
+              >Grupo <span class="opcional">a funcionalidade a que a tarefa pertence</span></label
+            >
+            <input id="campo-kanban-tarefa-grupo" type="text" maxlength="120" autocomplete="off" />
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-tarefa-criterios"
+              >Critérios de aceite <span class="opcional">um por linha</span></label
+            >
+            <textarea
+              class="campo-anotacoes"
+              id="campo-kanban-tarefa-criterios"
+              rows="3"
+              maxlength="20000"
+            ></textarea>
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-tarefa-novo-item"
+              >Lista de verificação
+              <span class="opcional" id="progresso-kanban-tarefa-lista"
+                >marque cada passo feito</span
+              ></label
+            >
+            <div class="lista-kanban-tarefa" id="lista-kanban-tarefa"></div>
+            <div class="campo-com-botao">
+              <input
+                id="campo-kanban-tarefa-novo-item"
+                type="text"
+                maxlength="300"
+                autocomplete="off"
+                placeholder="Novo item — Enter adiciona"
+              />
+              <button class="btn tiny" type="button" id="btn-kanban-tarefa-adicionar-item">
+                Adicionar
+              </button>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="campo-kanban-tarefa-notas">Notas</label>
+            <textarea
+              class="campo-anotacoes"
+              id="campo-kanban-tarefa-notas"
+              rows="3"
+              maxlength="4000"
+            ></textarea>
+          </div>
+
+          <p class="erro-formulario" id="erro-kanban-tarefa" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn danger rodape-esquerda" type="button" id="btn-excluir-kanban-tarefa">
+            Excluir
+          </button>
+          <button class="btn ghost" type="button" id="btn-cancelar-kanban-tarefa">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-kanban-tarefa">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal muito-largo" id="modal-kanban-documento">
+      <div class="modal-cabecalho">
+        <h2 id="titulo-kanban-documento">Documento</h2>
+      </div>
+      <div class="abas-modal" role="tablist" id="abas-kanban-documento" hidden>
+        <button
+          class="aba ativa"
+          id="aba-kanban-documento-texto"
+          type="button"
+          role="tab"
+          aria-selected="true"
+          aria-controls="texto-kanban-documento"
+        >
+          Texto extraído
+        </button>
+        <button
+          class="aba"
+          id="aba-kanban-documento-original"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="original-kanban-documento"
+        >
+          Original
+        </button>
+      </div>
+      <div class="modal-corpo">
+        <pre class="texto-kanban-documento" id="texto-kanban-documento"></pre>
+        <div class="original-kanban-documento" id="original-kanban-documento" hidden></div>
+      </div>
+      <div class="modal-rodape">
+        <a class="btn ghost rodape-esquerda" id="link-kanban-baixar-documento" download
+          >Baixar original</a
+        >
+        <button class="btn ghost" type="button" id="btn-fechar-kanban-documento">Fechar</button>
+      </div>
+    </dialog>
+
+    <dialog class="modal" id="modal-kanban-exclusao-projeto">
+      <div class="modal-cabecalho">
+        <h2>Excluir projeto</h2>
+        <p id="texto-kanban-exclusao-projeto"></p>
+      </div>
+      <div class="modal-corpo">
+        <fieldset class="grupo-de-acessos">
+          <legend>Kanban do projeto</legend>
+          <label class="campo-checkbox">
+            <input type="radio" name="exclusao-kanban" id="campo-kanban-exclusao-manter" checked />
+            Manter no cliente, em "Kanbans sem projeto"
+          </label>
+          <label class="campo-checkbox">
+            <input type="radio" name="exclusao-kanban" id="campo-kanban-exclusao-excluir" />
+            Excluir junto, com as tarefas e o documento
+          </label>
+        </fieldset>
+        <p class="erro-formulario" id="erro-kanban-exclusao-projeto" hidden></p>
+      </div>
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-cancelar-kanban-exclusao-projeto">
+          Cancelar
+        </button>
+        <button class="btn danger" type="button" id="btn-confirmar-kanban-exclusao-projeto">
+          Excluir projeto
+        </button>
+      </div>
+    </dialog>
+
     <!-- Commit e Sincronizar usam o mesmo modal: só muda o título e o botão de confirmar. -->
     <dialog class="modal" id="modal-autosync-commit">
       <form method="dialog" id="formulario-autosync-commit" novalidate>
@@ -2418,7 +2817,9 @@
               />
             </div>
           </div>
-          <p class="texto-auxiliar">Só GitLab. O host e o token ficam em Configurações › Git.</p>
+          <p class="texto-auxiliar">
+            Só GitLab. O host e o token ficam na engrenagem da aba Git AutoSync.
+          </p>
 
           <p class="erro-formulario" id="erro-autosync-mr" hidden></p>
         </div>
@@ -2537,7 +2938,17 @@
       <form method="dialog" id="formulario-autosync-instalacao" novalidate>
         <div class="modal-cabecalho">
           <h2>Instalar o Git AutoSync</h2>
-          <p>Usa o pacote que veio com o HUB SNK. Exige o Git instalado na máquina.</p>
+          <p>
+            Baixa a versão mais recente da página de releases do
+            <a
+              class="link-sobre"
+              href="https://github.com/FlavianoRS/git-autosync/releases"
+              target="_blank"
+              rel="noopener noreferrer"
+              >repositório do Git AutoSync</a
+            >
+            e instala em %USERPROFILE%\.git-autosync.
+          </p>
         </div>
 
         <div class="modal-corpo">
@@ -2578,6 +2989,146 @@
       </form>
     </dialog>
 
+    <!-- Configurações do Git AutoSync: a engrenagem do cabeçalho da aba Git AutoSync. -->
+    <dialog class="modal" id="modal-autosync-configuracao">
+      <form method="dialog" id="formulario-autosync-configuracao" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Configurações do Git AutoSync</h2>
+        </div>
+
+        <div class="modal-corpo">
+          <fieldset class="grupo-de-acessos">
+            <legend>
+              Token do GitLab
+              <span class="dica" tabindex="0"
+                >?<span class="dica-texto" role="tooltip"
+                  >Usado pelo Git AutoSync para criar Merge Request. Fica nas variáveis de ambiente
+                  do seu usuário do Windows (GIT_AUTOSYNC_GITLAB_TOKEN e GIT_AUTOSYNC_GITLAB_HOST),
+                  não no arquivo de dados do HUB SNK.</span
+                ></span
+              >
+            </legend>
+
+            <div class="campo">
+              <label for="campo-gitlab-host">Host do GitLab</label>
+              <input
+                id="campo-gitlab-host"
+                type="text"
+                maxlength="255"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: gitlab.empresa.com.br"
+              />
+            </div>
+
+            <div class="campo">
+              <label for="campo-gitlab-token">
+                Token <span class="opcional">escopo api</span>
+              </label>
+              <div class="campo-com-botao">
+                <input
+                  id="campo-gitlab-token"
+                  type="password"
+                  maxlength="500"
+                  autocomplete="new-password"
+                  spellcheck="false"
+                />
+                <!-- O ícone de olho é montado pelo app.js. -->
+                <button
+                  class="btn ghost botao-icone"
+                  id="btn-ver-token-gitlab"
+                  type="button"
+                  title="Mostrar token"
+                  aria-label="Mostrar token"
+                ></button>
+              </div>
+            </div>
+
+            <div class="linha-do-token-gitlab">
+              <p class="texto-auxiliar" id="situacao-token-gitlab"></p>
+              <button class="btn tiny danger" type="button" id="btn-remover-token-gitlab">
+                Remover token
+              </button>
+            </div>
+            <p class="texto-auxiliar">
+              O token gravado nunca é mostrado: deixe o campo em branco para manter o atual. A
+              bandeja do Git AutoSync já aberta só enxerga o token novo depois de reaberta.
+            </p>
+          </fieldset>
+          <p class="erro-formulario" id="erro-autosync-configuracao" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-autosync-configuracao">
+            Cancelar
+          </button>
+          <button class="btn primario" type="submit" id="btn-salvar-autosync-configuracao">
+            Salvar
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Sobre o Git AutoSync: o ícone de informação do cabeçalho da aba Git AutoSync. -->
+    <dialog class="modal" id="modal-autosync-sobre">
+      <div class="modal-cabecalho">
+        <h2>Git AutoSync</h2>
+        <p>Ferramenta à parte do HUB SNK, com licença e repositório próprios.</p>
+      </div>
+      <div class="modal-corpo">
+        <p>
+          Faz commit e push automáticos dos repositórios cadastrados nele, num horário fixo pela
+          tarefa agendada do Windows ou quando você pedir. A mensagem do commit pode ser escrita por
+          IA (Claude Code, Codex ou OpenCode) ou ser uma mensagem fixa, e cada repositório pode ter
+          a sua política de arquivos e de branches.
+        </p>
+        <p>
+          No HUB SNK, a aba Git AutoSync mostra o estado de cada repositório, os horários, o log e
+          as ações de commit, push, sincronização e merge request. Ele também tem ícone na bandeja,
+          linha de comando e skill para agentes de IA.
+        </p>
+        <p>Precisa do Git instalado na máquina.</p>
+      </div>
+      <div class="modal-rodape">
+        <a
+          class="btn ghost"
+          href="https://github.com/FlavianoRS/git-autosync"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Abrir o repositório</a
+        >
+        <button class="btn primario" type="button" id="btn-fechar-autosync-sobre">Fechar</button>
+      </div>
+    </dialog>
+
+    <!-- Sem o Git na máquina, a instalação do Git AutoSync nem começa. -->
+    <dialog class="modal" id="modal-autosync-sem-git">
+      <div class="modal-cabecalho">
+        <h2>O Git não está instalado</h2>
+        <p>O Git AutoSync usa o Git em todo commit e push: instale o Git antes.</p>
+      </div>
+      <div class="modal-corpo">
+        <p>
+          Baixe e instale o Git em
+          <a
+            class="link-sobre"
+            href="https://git-scm.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >https://git-scm.com/</a
+          >. Depois, clique em Verificar de novo. Se o Git já estiver instalado e ainda assim não
+          for encontrado, reinicie o HUB SNK: ele só enxerga o PATH novo depois de reaberto.
+        </p>
+        <p class="erro-formulario" id="erro-autosync-sem-git" hidden></p>
+      </div>
+      <div class="modal-rodape">
+        <button class="btn ghost" type="button" id="btn-fechar-autosync-sem-git">Fechar</button>
+        <button class="btn primario" type="button" id="btn-verificar-git-autosync">
+          Verificar de novo
+        </button>
+      </div>
+    </dialog>
+
     <!-- Confirmação do Git AutoSync: ligar a IA, desativar o agendamento, tirar uma pasta. -->
     <dialog class="modal" id="modal-autosync-confirmacao">
       <div class="modal-cabecalho">
@@ -2597,6 +3148,6 @@
     <!-- Popover para subir à camada superior junto com os modais: ver `exibirAviso`. -->
     <div class="avisos" id="avisos" aria-live="polite" popover="manual"></div>
 
-    <script src="/app.js" type="module"></script>
+    <script src="/js/app.js" type="module"></script>
   </body>
 </html>

@@ -12,11 +12,13 @@ import {
   selecionarArquivoNoSistema,
   SeletorDeArquivoIndisponivelError,
   TIPO_ENV,
-} from '../sistema/selecionarArquivo.ts';
+} from '../sistema/processos/selecionarArquivo.ts';
 import { FUNCIONALIDADES_OCULTAS_POR_PERFIL } from '../acessos.ts';
+import { situacaoDosAssistentes } from '../kanban/ia/assistentesDeIa.ts';
+import { ESCOLHAS_DE_ASSISTENTE } from '../kanban/tiposDoKanban.ts';
 import { DESTINOS_DE_LINK, FUNCIONALIDADES, PERFIS_PROFISSIONAIS } from '../tipos.ts';
-import { esquemaDeConfiguracaoMcp } from './esquemaDeConfiguracaoMcp.ts';
-import { esquemaDeAlertaDaAgenda, esquemaDeSmtp } from './esquemaDeNotificacoes.ts';
+import { esquemaDeConfiguracaoMcp } from './comum/esquemaDeConfiguracaoMcp.ts';
+import { esquemaDeAlertaDaAgenda, esquemaDeSmtp } from './comum/esquemaDeNotificacoes.ts';
 
 const TAMANHO_MAXIMO_DO_SCRIPT = 500;
 const TAMANHO_MAXIMO_DO_CAMINHO = 400;
@@ -25,6 +27,7 @@ const INTERVALO_MINIMO_DE_EXECUCAO_AUTOMATICA_S = 5;
 const INTERVALO_MAXIMO_DE_EXECUCAO_AUTOMATICA_S = 3600;
 const TEMPO_LIMITE_MINIMO_S = 1;
 const TEMPO_LIMITE_MAXIMO_S = 60;
+const TAMANHO_MAXIMO_DO_MODELO = 120;
 
 /*
  * O id só vem nos atalhos que já estão gravados; o de um atalho novo é gerado
@@ -54,6 +57,27 @@ const esquemaDeAtalho = z.object({
 
 const esquemaDeDestinoDeLink = z.enum(DESTINOS_DE_LINK, {
   error: 'Escolha onde o link abre: no HUB SNK ou no navegador padrão.',
+});
+
+/* Modelo vazio deixa o assistente usar o padrão dele. */
+const esquemaDoAssistenteDeIa = z.object({
+  assistente: z.enum(ESCOLHAS_DE_ASSISTENTE, { error: 'Escolha um assistente de IA válido.' }),
+  modelo: z
+    .string()
+    .trim()
+    .max(
+      TAMANHO_MAXIMO_DO_MODELO,
+      `O nome do modelo deve ter no máximo ${TAMANHO_MAXIMO_DO_MODELO} caracteres.`,
+    )
+    .regex(/^[\w.:/@[\]-]*$/, 'O nome do modelo tem caracteres inválidos.')
+    .default(''),
+  /* Ausente vale o padrão do modelo: uma tela antiga não manda o campo. */
+  raciocinio: z
+    .string()
+    .trim()
+    .max(20, 'Nível de raciocínio inválido.')
+    .regex(/^[a-z-]*$/, 'Nível de raciocínio inválido.')
+    .default(''),
 });
 
 const esquemaDeConfiguracao = z.object({
@@ -123,6 +147,8 @@ const esquemaDeConfiguracao = z.object({
   /* Pelo mesmo motivo dos acessos: um padrão aqui apagaria a senha do SMTP gravada. */
   smtp: esquemaDeSmtp.optional(),
   alertaDaAgenda: esquemaDeAlertaDaAgenda.optional(),
+  /* Ausente, preserva o assistente escolhido, pelo mesmo motivo dos acessos. */
+  assistenteDeIa: esquemaDoAssistenteDeIa.optional(),
 });
 
 /**
@@ -157,6 +183,15 @@ export function registrarRotasDeConfiguracao(
 
   /* A aba Acessos marca o preset ao trocar de perfil: a regra fica só aqui, no servidor. */
   servidor.get('/api/configuracao/perfis', async () => FUNCIONALIDADES_OCULTAS_POR_PERFIL);
+
+  /*
+   * Os assistentes de IA da máquina, com os modelos que cada um informa. Consultado
+   * ao abrir a seção, e não na leitura da configuração: listar modelos roda o CLI de
+   * cada assistente e leva alguns segundos.
+   */
+  servidor.get('/api/configuracao/assistentes-de-ia', async () => ({
+    assistentes: await situacaoDosAssistentes(),
+  }));
 
   /*
    * Credenciais do MCP global: lidas do `.env` da pasta cadastrada, e não do

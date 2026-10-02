@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { RepositorioClientesArquivo } from '../repositorio/repositorioClientesArquivo.ts';
-import { RepositorioContatosArquivo } from '../repositorio/repositorioContatosArquivo.ts';
+import { RepositorioClientesArquivo } from '../repositorio/arquivo/repositorioClientesArquivo.ts';
+import { RepositorioContatosArquivo } from '../repositorio/arquivo/repositorioContatosArquivo.ts';
 import { registrarRotasDeContatos } from './rotasContatos.ts';
 
 let diretorio: string;

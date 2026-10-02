@@ -15,7 +15,7 @@ import {
   WildflyIndisponivelError,
   WildflySemPermissaoDeExecucaoError,
   wildflyEstaRodando,
-} from '../sistema/wildfly.ts';
+} from '../sistema/bases/wildfly.ts';
 import {
   bancoEstaAcessivel,
   containerEstaRodando,
@@ -24,30 +24,30 @@ import {
   iniciarContainer,
   pararContainer,
   reiniciarContainer,
-} from '../sistema/docker.ts';
+} from '../sistema/bases/docker.ts';
 import {
   limparHistorico,
   obterHistorico,
   registrarAmostra,
-} from '../sistema/historicoDeSituacaoDoBanco.ts';
+} from '../sistema/bases/historicoDeSituacaoDoBanco.ts';
 import {
   limparHistoricoDaBase,
   obterHistoricoDaBase,
   registrarAmostraDaBase,
-} from '../sistema/historicoDeSituacaoDaBase.ts';
+} from '../sistema/bases/historicoDeSituacaoDaBase.ts';
 import {
   caminhoDoLogDaBase,
   lerDesdePosicao,
   lerFinalDoLog,
   lerNovoTrechoDoLog,
-} from '../sistema/logDaBase.ts';
+} from '../sistema/bases/logDaBase.ts';
 import {
   estadoDoArquivoMcp,
   gravarConfiguracaoMcp,
   lerConfiguracaoMcp,
 } from '../sistema/arquivoMcp.ts';
 import { PastaNaoEncontradaError } from '../sistema/pasta.ts';
-import { esquemaDeConfiguracaoMcp } from './esquemaDeConfiguracaoMcp.ts';
+import { esquemaDeConfiguracaoMcp } from './comum/esquemaDeConfiguracaoMcp.ts';
 import { createReadStream, existsSync } from 'node:fs';
 import type { BancoLocal, BaseLocal } from '../tipos.ts';
 

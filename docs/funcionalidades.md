@@ -48,6 +48,40 @@ configuração — mudar a opção vale no próximo clique, sem reiniciar. As re
 Com o painel aberto num navegador comum (só em desenvolvimento, com
 `HUB_SEM_TOKEN=1`), a escolha não se aplica: os links abrem nesse navegador.
 
+## Guia avulsa
+
+No aplicativo desktop, o botão **+** no fim da fileira de guias abre uma guia de
+navegação livre, já no Google e com o cursor na barra de endereço. `Ctrl+T` — ou
+_Guias_ › _Nova guia_ — também abre, mas sem levar o cursor para a barra. A barra só aparece com uma guia avulsa na tela, numa linha
+abaixo das guias, e mostra o endereço da página. Nela, `Enter` abre:
+
+- o endereço como está, quando começa com `http://` ou `https://`;
+- `https://` + o texto, quando ele parece um domínio (`github.com`,
+  `localhost:8080/mge`, `192.168.0.1:8080`);
+- uma busca no Google com o texto, no resto dos casos.
+
+Outro esquema (`file:`) é recusado, e a barra volta a mostrar o endereço da guia;
+`Esc` desfaz o que foi digitado. As setas ao lado da barra, ou `Alt+←` e `Alt+→`,
+voltam e avançam — só na guia avulsa: no SankhyaOm e na Experience, voltar
+derrubaria a tela aberta.
+
+O título da guia é o da página, e o `×` a fecha. Pop-up aberto pela página vira
+outra guia avulsa; a página perde o `window.opener`, então um login que conversa
+com a janela de origem por ele pode não concluir. Todas as guias avulsas dividem
+uma partição própria e persistente: o login num site vale em todas e continua
+depois de reiniciar o aplicativo, mas nunca enxerga o cookie do SankhyaOm nem o
+token da Experience. As guias avulsas em si não voltam ao reabrir o aplicativo.
+
+## Recarregar sem cache
+
+`Ctrl+F5` ou `Ctrl+Shift+R` — ou _Hub_ › _Recarregar sem cache_ — recarrega a guia
+ativa buscando tudo de novo no servidor, como o `Ctrl+F5` do Chrome. O mesmo vale
+para `Shift`+clique no botão de recarregar e, para qualquer guia sem precisar
+trazê-la para a frente, para o clique direito nela › _Recarregar sem cache_.
+
+O cache em disco não é apagado: ele é da partição, e não da guia — Painel,
+SankhyaOm e Experience dividem a mesma, e apagá-lo valeria para as três.
+
 ## Anotações do cliente
 
 O último bloco do detalhe do cliente é uma caixa de texto livre — contatos,
@@ -376,17 +410,34 @@ fora da soma. As quantidades dos agrupadores contam sempre o mês inteiro.
 
 O sino no topo do painel abre o **painel de notificações**, à direita, com a
 contagem das não lidas. Cada notificação nova chega na hora (o servidor a empurra
-pela conexão aberta com a tela), aparece num cartão no canto direito por 15
-segundos e toca um som curto. Clicar numa notificação a marca como lida; os botões
-do painel marcam todas ou limpam a lista.
+pela conexão aberta com a tela), aumenta o contador do sino e toca um som curto; a
+janela que aparece é o aviso do Windows, abaixo. Clicar numa notificação a marca
+como lida; os botões do painel marcam todas ou limpam a lista.
 
-No lembrete, o cartão não diz "Lembrete": o **resumo** vem em destaque e, abaixo,
+No lembrete, a notificação não diz "Lembrete": o **resumo** vem em destaque e, abaixo,
 mais discretos, o texto e o cliente › projeto. O alerta da agenda e os avisos do
 próprio HUB SNK continuam com a etiqueta de origem.
 
 Com o painel no navegador comum, e não no aplicativo, o som pode ficar mudo até o
 primeiro clique na página: é a política de autoplay do navegador. A guia Painel do
 aplicativo já nasce liberada para tocar.
+
+Enquanto houver notificação não lida, o sino pisca — como o botão do WhatsApp na
+barra lateral — até o painel de notificações abrir; fechar o painel com não lidas
+faz o sino voltar a piscar.
+
+### Aviso do Windows
+
+No aplicativo desktop, toda notificação nova — lembrete, agenda sem tarefa na
+Experience e falha ao conferir a agenda — aparece como aviso do Windows, no canto
+inferior direito da tela, como as mensagens do WhatsApp, em qualquer guia e com a
+janela em foco ou não. Com a janela minimizada, atrás de outra ou sem foco, o ícone
+do HUB SNK também pisca na barra de tarefas até a janela ganhar foco. O aviso é
+mudo, para não soar junto com o som do painel. Clicar nele traz a janela para a
+frente, na guia Painel, com o painel de notificações aberto.
+
+No painel aberto num navegador comum, sem o aplicativo, não há aviso do Windows:
+a notificação chega só pelo contador, pelo sino piscando e pelo som.
 
 ### E-mail
 
@@ -479,6 +530,65 @@ No cadastro do cliente, a aba **Contatos** mostra só os dele, sem filtro, e o
 **Novo contato** dali já nasce vinculado ao cliente — o campo Cliente nem
 aparece. Excluir um cliente não apaga os contatos dele: eles passam a sem cliente.
 
+## Kanban dos projetos
+
+Cada projeto da aba **Projetos** do cliente tem a seção **Kanban**, com um quadro só.
+O **+** da seção cria o kanban, sem documento por padrão:
+
+- **Sem documento, com o quadro vazio**: pede a pasta onde o arquivo de tarefas será
+  criado. O quadro abre vazio.
+- **Com o documento de escopo** (`.docx`, `.pdf`, `.md` ou `.txt`, até 20 MB): com
+  **Gerar as tarefas com a IA** marcado, o assistente de **Configurações › IA** decompõe
+  o escopo em tarefas no Backlog, com resumo e pontos a esclarecer com o cliente. A
+  linha mostra "Analisando com a IA…" e se atualiza sozinha quando termina.
+
+Com o kanban criado, o **+** some. O botão de enviar (seta para cima) da linha do
+kanban insere o documento depois, ou o troca.
+
+O kanban não tem nome próprio: leva o do projeto, e renomear o projeto o renomeia.
+
+O quadro tem as colunas Backlog, A fazer, Em andamento, Em revisão e Concluído. As
+tarefas mudam de coluna arrastando o cartão ou na janela da tarefa, que guarda
+título, descrição, grupo, tipo, prioridade, estimativa, critérios de aceite, notas e a
+**lista de verificação**: passos para marcar conforme a tarefa avança, com o texto
+editável no lugar. O cartão mostra quantos itens estão marcados (`✓ 2/5`). O quadro se
+atualiza sozinho quando um agente, o arquivo de tarefas ou a IA mudam alguma coisa,
+sem recarregar o painel. **Analisar de novo** troca só as tarefas que continuam no
+Backlog. **Ver documento** mostra o texto extraído e, no PDF, o original.
+
+Excluir um projeto com kanban pergunta o que fazer com ele: excluir junto ou manter
+no cliente. O mantido vai para **Kanbans sem projeto**, no fim da aba, com o nome do
+projeto excluído, até ser vinculado a outro projeto em **Editar o kanban** — só
+projeto que ainda não tem kanban.
+
+**Editar o kanban** liga duas formas de agentes de IA trabalharem no quadro:
+
+- **Pasta do arquivo de tarefas**: o HUB SNK cria nela a subpasta `Tarefas` com um
+  JSON das tarefas, no nome do projeto. Qualquer agente que edite arquivo muda
+  `estado` e `notas`, e o quadro acompanha em poucos segundos, mesmo que a mudança
+  tenha sido feita com o HUB SNK fechado. Se a pasta estiver num repositório Git, a
+  `Tarefas` entra no `.gitignore`; sem Git, ela só é criada. O selo **Arquivo** na
+  linha do kanban mostra onde ele está e se houve erro.
+- **Disponível para agentes de IA por MCP**: o kanban aparece no servidor MCP do HUB
+  SNK, com as ferramentas `listar_kanbans`, `ler_kanban`, `mudancas_desde`,
+  `mover_tarefa`, `anotar_tarefa`, `criar_tarefa` (sempre no Backlog) e, para a lista
+  de verificação, `adicionar_item_da_lista`, `alterar_item_da_lista` (texto e marcação),
+  `marcar_item_da_lista` e `remover_item_da_lista`. Em
+  **Configurações › MCP › Kanban por MCP** ficam o bloco `mcpServers` para colar na
+  configuração do agente e a lista dos kanbans liberados, com **Tirar do MCP**. O HUB
+  SNK precisa estar aberto.
+
+Em **Configurações › IA** fica o assistente que gera as tarefas — Claude Code, Codex,
+OpenCode, Gemini CLI, Cursor Agent ou o primeiro instalado — e o modelo dele, escolhido numa lista
+lida do próprio assistente — no Claude Code, o catálogo atual, os modelos já usados na
+máquina e os apelidos — ou digitado em **Outro modelo…**. Quando o modelo tem a opção, aparece também o
+**Nível de raciocínio**, com os níveis que ele aceita: no Claude Code de Baixo a
+Máximo (menos no Haiku), no Codex os níveis de cada modelo do catálogo e no OpenCode as
+variantes do modelo. O Gemini CLI e o Cursor não têm a opção. O kanban registra o nível
+usado junto do modelo, em "Gerado por". O Codex e o Cursor não leem PDF: para eles o
+HUB SNK extrai o texto do PDF e o manda junto. PDF digitalizado, sem texto, precisa de
+um assistente que leia o arquivo.
+
 ## Acessos por perfil
 
 O HUB SNK atende perfis diferentes, e cada um vê só o que usa. Em
@@ -498,8 +608,7 @@ abriria vazia.
 | Gerente de projeto | aba Git do cliente, aba Git do menu e a aba Local |
 
 O perfil é perguntado na instalação, e o preset dele vale desde a primeira
-abertura. O Git AutoSync deixado desmarcado no instalador oculta, por cima do preset,
-a aba **Git** do menu e a seção **AutoSync** do cliente. Trocar o perfil na aba Acessos marca as caixas do preset; depois disso
+abertura. Trocar o perfil na aba Acessos marca as caixas do preset; depois disso
 elas seguem editáveis, uma a uma. Salvar com o perfil ou as caixas alterados
 recarrega o Painel, que volta montado do zero com os acessos novos; as guias do
 Sankhya e das bases continuam abertas. Reinstalar ou atualizar não desfaz o ajuste: o
@@ -508,9 +617,7 @@ gravados — inclusive quando a pasta de dados vem sincronizada de outra máquin
 
 Ocultar a aba **Git** do cliente leva junto o que só existe por causa dos
 repositórios: o filtro por situação do Git, as bolinhas do Git no topo e na lista
-de clientes, a aba **MCP** das configurações e a seção AutoSync da própria aba. A
-aba **Git** das configurações some quando as duas caixas do Git AutoSync — a aba
-Git do menu e a seção AutoSync do cliente — estão desmarcadas.
+de clientes, a aba **MCP** das configurações e a seção AutoSync da própria aba.
 
 ### Terceiro
 
@@ -605,12 +712,13 @@ clicar. Para de rodar sozinho quando a aba perde o foco ou é minimizada.
 
 ## Git AutoSync
 
-O Git AutoSync é um programa à parte, oferecido como opcional no instalador (veja
-[Distribuição](distribuicao.md#o-git-autosync)), que faz commit e push dos
+O Git AutoSync é um programa à parte, com licença própria, que não vem no instalador
+do HUB SNK e é instalado pela própria aba **Git AutoSync** (veja
+[Distribuição](distribuicao.md#o-git-autosync)). Ele faz commit e push dos
 repositórios cadastrados nele nos horários de uma tarefa do Agendador do Windows. O
-HUB SNK mostra e controla esse trabalho em três lugares: a aba **Git** do menu
-principal, a seção **AutoSync** no fim da aba **Git** do cliente e a aba **Git** das
-configurações.
+HUB SNK mostra e controla esse trabalho em três lugares: a aba **Git AutoSync** do
+menu principal, a seção **AutoSync** no fim da aba **Git** do cliente e a engrenagem
+no canto superior direito da aba **Git AutoSync**.
 
 **O HUB SNK nunca grava o `config.json` do Git AutoSync.** Os arquivos da pasta dele
 (`%USERPROFILE%\.git-autosync`, ou o que estiver em `GIT_AUTOSYNC_HOME`) são lidos só
@@ -621,6 +729,14 @@ gravassem ao mesmo tempo, e mudar os horários só no arquivo deixaria o Agendad
 dizendo outra coisa.
 
 ### A aba Git do menu
+
+O cabeçalho tem sempre o ícone de informação, que explica o que é o Git AutoSync e
+abre o repositório dele. Sem o Git AutoSync instalado, as seções abaixo aparecem
+acinzentadas e sem resposta ao clique, e o cabeçalho ganha o botão **Instalar o Git
+AutoSync**: ele confere se o Git está na máquina (sem ele, mostra o endereço
+`https://git-scm.com/` e o botão **Verificar de novo**) e, com o Git, abre as opções
+da instalação, que baixa a versão mais recente da Release do repositório. Instalado,
+o botão some.
 
 - **Estado**: versão instalada, última rodada geral e as tarefas do Agendador. Horário
   configurado sem tarefa no Agendador — agendamento que parece ligado e nunca roda —
@@ -686,8 +802,7 @@ próprio: ele já roda por ela.
   Em branco, quem escreve é o Git AutoSync, com IA ou a mensagem fixa; **Gerar prévia**
   mostra o que ele escreveria, sem gravar nada. **Push** envia o que já foi commitado.
 - **Merge Request** cria o MR no GitLab, com título, branch de destino (em branco, a
-  padrão do Git AutoSync) e de origem. Precisa do token da aba **Git** das
-  configurações.
+  padrão do Git AutoSync) e de origem. Precisa do token da engrenagem da aba **Git AutoSync**.
 - **Histórico** lista os últimos 20 commits do repositório.
 - **Política do repositório**: os arquivos permitidos (arquivo fora da lista bloqueia
   o commit inteiro, e não é ignorado), os proibidos além dos de sempre, as branches em
@@ -717,7 +832,7 @@ bloco, e **Dispensar** o esconde.
 | Push rejeitado, com a sugestão do próprio Git AutoSync | O comando que ele sugeriu, que já sabe o remoto e a branch certos      |
 | Branch local sem upstream                              | `git push -u origin HEAD`                                              |
 | O remoto tem commits que você não tem                  | `git pull --rebase` e depois `git push`                                |
-| Falta o token do GitLab                                | O botão **Abrir Configurações › Git**                                  |
+| Falta o token do GitLab                                | O botão **Configurar o GitLab**                                        |
 | Remoto inacessível                                     | Conferir rede ou VPN: `git remote -v` e `git fetch`                    |
 | Credencial do Git recusada pelo servidor               | `git fetch` no terminal, para entrar de novo                           |
 | HEAD destacado                                         | `git branch` e `git switch -`                                          |
@@ -729,7 +844,7 @@ Erro que nenhuma regra reconhece aparece só com a saída completa e o terminal.
 
 ### Token do GitLab
 
-Em **Configurações › Git** ficam o host do GitLab (sem protocolo nem caminho, como
+Na engrenagem da aba **Git AutoSync** ficam o host do GitLab (sem protocolo nem caminho, como
 `gitlab.empresa.com.br`) e o token, com escopo `api`, que o Git AutoSync usa no Merge
 Request. Os dois vão para as variáveis de ambiente do seu usuário do Windows,
 `GIT_AUTOSYNC_GITLAB_HOST` e `GIT_AUTOSYNC_GITLAB_TOKEN` — não para o

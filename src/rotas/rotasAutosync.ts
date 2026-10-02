@@ -8,11 +8,13 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import {
+  GitAusenteError,
   GitAutosyncFalhouError,
   GitAutosyncNaoInstaladoError,
   GitAutosyncUsoError,
   PacoteDoAutosyncAusenteError,
   PastaDoAutosyncNaoEncontradaError,
+  URL_DO_GIT,
 } from '../autosync/cliDoAutosync.ts';
 import {
   TAMANHO_MAXIMO_DO_CAMINHO,
@@ -21,7 +23,7 @@ import {
 import { sugerirCorrecoes } from '../autosync/sugestoesDeCorrecao.ts';
 import { AGENTES_DE_IA, FORMATO_DE_HORARIO } from '../autosync/tiposDoAutosync.ts';
 import { PastaNaoEncontradaError } from '../sistema/pasta.ts';
-import { TerminalIndisponivelError } from '../sistema/abrirShell.ts';
+import { TerminalIndisponivelError } from '../sistema/processos/abrirShell.ts';
 import {
   criarVariaveisDeAmbienteDoUsuario,
   definirGitlab,
@@ -214,6 +216,11 @@ function responderErroDoAutosync(resposta: FastifyReply, erro: unknown): Fastify
   if (erro instanceof PacoteDoAutosyncAusenteError) {
     return resposta.status(409).send({ mensagem: erro.message });
   }
+  if (erro instanceof GitAusenteError) {
+    return resposta
+      .status(409)
+      .send({ mensagem: erro.message, gitAusente: true, urlDoGit: URL_DO_GIT });
+  }
   if (erro instanceof GitAutosyncFalhouError) {
     return resposta
       .status(502)
@@ -253,6 +260,10 @@ export function registrarRotasDeAutosync(
 
   servidor.get('/api/autosync/clientes', async (_requisicao, resposta) =>
     responder(resposta, () => autosync.repositoriosDosClientes()),
+  );
+
+  servidor.get('/api/autosync/git', async (_requisicao, resposta) =>
+    responder(resposta, () => autosync.git()),
   );
 
   servidor.post('/api/autosync/instalar', async (requisicao, resposta) => {

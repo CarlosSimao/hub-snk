@@ -86,7 +86,7 @@ Invoke-RestMethod http://127.0.0.1:4100/api/clientes -Headers @{ 'x-hub-token' =
 | `DELETE` | `/api/clientes/:id/links/:idLink`                           | `204` — sem conteúdo                                                                       |
 | `POST`   | `/api/clientes/:id/projetos`                                | `201` — projeto criado                                                                     |
 | `PUT`    | `/api/clientes/:id/projetos/:idProjeto`                     | `200` — projeto atualizado                                                                 |
-| `DELETE` | `/api/clientes/:id/projetos/:idProjeto`                     | `204` — sem conteúdo                                                                       |
+| `DELETE` | `/api/clientes/:id/projetos/:idProjeto`                     | `204` — sem conteúdo; com kanban, exige `?kanbans=manter` ou `excluir` (`409` sem ele)     |
 | `PUT`    | `/api/clientes/:id/projetos/:idProjeto/anotacoes`           | `200` — projeto com as anotações gravadas                                                  |
 | `POST`   | `/api/clientes/:id/projetos/:idProjeto/links`               | `201` — link do projeto criado                                                             |
 | `PUT`    | `/api/clientes/:id/projetos/:idProjeto/links/:idLink`       | `200` — link do projeto atualizado                                                         |
@@ -95,6 +95,7 @@ Invoke-RestMethod http://127.0.0.1:4100/api/clientes -Headers @{ 'x-hub-token' =
 | `GET`    | `/api/configuracao`                                         | `200` — configuração global                                                                |
 | `PUT`    | `/api/configuracao`                                         | `200` — configuração salva                                                                 |
 | `GET`    | `/api/configuracao/perfis`                                  | `200` — funcionalidades ocultas no preset de cada perfil                                   |
+| `GET`    | `/api/configuracao/assistentes-de-ia`                       | `200` — `{ assistentes }`: instalado, caminho, modelos e se lê PDF, de cada assistente     |
 | `PUT`    | `/api/configuracao/sankhya-om-codusu`                       | `200` — grava só o `{ sankhyaOmCodUsu }`, fora do formulário                               |
 | `GET`    | `/api/configuracao/mcp`                                     | `200` — `{ configuracao, existe }` do `.env` do sankhya-schema-mcp                         |
 | `POST`   | `/api/configuracao/mcp/importar`                            | `200` — `{ caminhoDoSchemaMcp, configuracao }` do `.env` escolhido; `204` quando cancelado |
@@ -217,7 +218,8 @@ chamado sem shell. O que a tela faz com cada rota está em
 | -------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | `GET /api/autosync`                          | `?clientes=true` marca o cliente dono de cada repositório  | Estado, horários, tarefas, IA, alvos e repositórios                               |
 | `GET /api/autosync/clientes`                 |                                                            | Repositórios dos clientes com a situação no autosync e as sugestões de pasta-raiz |
-| `POST /api/autosync/instalar`                | `{ horario?, bandeja?, atalhos?, skills?, path? }`         | Roda o `install-standalone.ps1` do pacote do instalador                           |
+| `GET /api/autosync/git`                      |                                                            | `{ instalado, versao }` do `git --version`: a tela pergunta antes de instalar     |
+| `POST /api/autosync/instalar`                | `{ horario?, bandeja?, atalhos?, skills?, path? }`         | Confere o Git, baixa a Release mais recente e roda o `install-standalone.ps1`     |
 | `POST /api/autosync/repositorios`            | `{ caminho, tipo: 'repo' \| 'root' }`                      | Põe no autosync (`add`, `include` ou religa o alvo desligado)                     |
 | `DELETE /api/autosync/repositorios`          | `{ caminho }`                                              | Tira do autosync (`remove` no alvo próprio, `exclude` na raiz)                    |
 | `POST /api/autosync/repositorios/lote`       | `{ origem: 'clientes' }`                                   | Adiciona um a um os repositórios de clientes que estão fora                       |
@@ -246,7 +248,8 @@ chamado sem shell. O que a tela faz com cada rota está em
 autosync ou no cadastro de um cliente (para `tipo: 'root'`, vale também a pasta-mãe de
 um repositório de cliente). Respostas de ação trazem `{ saida }` com o texto do CLI.
 Códigos: `400` entrada inválida, `404` pasta inexistente, `409` pacote do autosync
-ausente neste build, `502` o CLI rodou e falhou (a mensagem é a saída dele, e
+indisponível (sem Release, Release sem os executáveis, fora do Windows) ou Git ausente
+na instalação (`gitAusente: true`, `urlDoGit`), `502` o CLI rodou e falhou (a mensagem é a saída dele, e
 `sugestoes` traz, para cada erro reconhecido, `{ explicacao, comandos, acao? }`),
 `503` autosync não instalado (`naoInstalado: true`) ou, no `terminal`, nenhum
 terminal abriu.
@@ -257,6 +260,77 @@ nas variáveis de ambiente do usuário do Windows, de onde o Git AutoSync as lê
 o `token` tem até 500 caracteres, sem espaço. `PUT` sem token, e sem nenhum gravado,
 responde `400`. Fora do Windows, a gravação responde `400` pedindo para definir as
 duas variáveis no perfil do shell.
+
+## Kanban dos projetos
+
+Cada projeto do cliente tem quantos kanbans precisar. Um kanban nasce de um documento
+de escopo (`.docx`, `.pdf`, `.md` ou `.txt`, até 20 MB, em base64 no JSON), que o
+assistente de IA de **Configurações** decompõe em tarefas, ou vazio, para as tarefas
+serem lançadas à mão. Os dados ficam no `sankhya.db`; o documento original, em
+`kanbans/<cliente>/` na pasta de dados.
+
+| Método e rota                                         | Corpo / query                                         | O que faz                                                               |
+| ----------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------- |
+| `GET /api/clientes/:id/kanbans`                       |                                                       | `{ demandas, tarefas }` de todos os projetos do cliente, e as órfãs     |
+| `POST /api/clientes/:id/kanbans`                      | `{ projetoId, nome?, pasta?, documento?, analisar? }` | `201` — kanban criado; com `analisar`, a análise já começa              |
+| `PUT /api/kanban/demandas/:idDemanda`                 | `{ nome?, projetoId?, pasta? }`                       | Renomeia, troca a pasta ou vincula a outro projeto do cliente           |
+| `DELETE /api/kanban/demandas/:idDemanda`              |                                                       | `204` — apaga o kanban com as tarefas, o histórico e o documento        |
+| `PUT /api/kanban/demandas/:idDemanda/documento`       | `{ nome, conteudoBase64, analisar? }`                 | Anexa ou troca o documento; as tarefas ficam                            |
+| `DELETE /api/kanban/demandas/:idDemanda/documento`    |                                                       | Tira o documento e mantém o quadro                                      |
+| `GET /api/kanban/demandas/:idDemanda/documento`       | `?baixar=1` força o download                          | O original, com `nosniff` e `no-store`; texto sai como `text/plain`     |
+| `GET /api/kanban/demandas/:idDemanda/documento/texto` |                                                       | `{ nome, tipo, texto }` extraído (vazio no PDF digitalizado)            |
+| `POST /api/kanban/demandas/:idDemanda/analisar`       |                                                       | `202` — análise em segundo plano; a tela acompanha a `situacao`         |
+| `POST /api/kanban/demandas/:idDemanda/tarefas`        | `{ titulo, descricao?, grupo?, tipo?, estado?, ... }` | `201` — tarefa criada, no `estado` pedido (padrão `backlog`)            |
+| `PUT /api/kanban/tarefas/:idTarefa`                   | os mesmos campos, todos opcionais                     | Tarefa atualizada                                                       |
+| `POST /api/kanban/tarefas/:idTarefa/mover`            | `{ estado, indice? }`                                 | Leva para a coluna, na posição `indice` (ausente, vai para o fim)       |
+| `DELETE /api/kanban/tarefas/:idTarefa`                |                                                       | `204` — tarefa excluída                                                 |
+| `GET /api/kanban/fluxo`                               | SSE                                                   | `event: kanban` com `{ demandaId, clienteId, removida }` a cada mudança |
+| `GET /api/kanban/transicoes`                          | `?clienteId=&desde=`                                  | `{ transicoes }`: histórico de colunas, em ordem cronológica            |
+
+`nome` ausente vale o nome do arquivo sem extensão ou, sem documento, o do projeto.
+`pasta` é onde o arquivo JSON das tarefas será criado; vazia, fica para depois, e
+informada precisa ser um caminho absoluto que já existe. `documento` é
+`{ nome, conteudoBase64 }`; o `.doc` do Word antigo é recusado. A tarefa tem ainda
+`estimativaHoras`, `prioridade` (`alta`, `media` ou `baixa`), `criteriosDeAceite` e
+`notas`; `tipo` é `backend`, `frontend`, `dados`, `relatorio`, `bi`, `integracao`,
+`configuracao`, `teste`, `documentacao` ou `outro`, e valor desconhecido vira `outro`.
+
+A tarefa aceita também `checklist`, a lista de verificação: até 50 itens
+`{ texto, feito }`, com até 300 caracteres no texto; itens sem texto são descartados.
+O fluxo `/api/kanban/fluxo` avisa toda mudança num kanban — da tela, do MCP, do arquivo
+de tarefas ou da análise da IA —, e é por ele que o painel relê o cliente aberto.
+
+As colunas (`estado`) são `backlog`, `a_fazer`, `em_andamento`, `em_revisao` e
+`concluido`. A `situacao` do kanban é `sem-documento`, `enviado`, `analisando`,
+`analisado` ou `falhou` (com o motivo em `erro`). Reanalisar troca só as tarefas que
+continuam no Backlog: o que já mudou de coluna fica. Durante a análise, analisar de
+novo, trocar ou tirar o documento e excluir o kanban respondem `409`.
+
+### Arquivo de tarefas e MCP
+
+| Método e rota                               | Corpo / query                 | O que faz                                                         |
+| ------------------------------------------- | ----------------------------- | ----------------------------------------------------------------- |
+| `PUT /api/kanban/demandas/:idDemanda/mcp`   | `{ ligado }`                  | Libera (ou tira) o kanban para agentes pelo servidor MCP          |
+| `GET /api/mcp/configuracao`                 |                               | `{ nome, command, args, env, mcpServers }` para colar no agente   |
+| `GET /api/mcp/kanbans`                      |                               | `{ estados, kanbans }` liberados, com cliente, projeto e contagem |
+| `GET /api/mcp/kanbans/:id`                  |                               | Resumo do escopo e todas as tarefas do kanban liberado            |
+| `GET /api/mcp/mudancas`                     | `?desde=` (ISO) `&kanbanId=`  | `{ agora, tarefas, transicoes }` alteradas depois do cursor       |
+| `POST /api/mcp/tarefas/:id/mover`           | `{ estado, indice? }`         | Move a tarefa; aceita o código ou o rótulo da coluna              |
+| `POST /api/mcp/tarefas/:id/lista`           | `{ texto, feito?, posicao? }` | `201` — item novo na lista de verificação (sem posição, no fim)   |
+| `PUT /api/mcp/tarefas/:id/lista/:indice`    | `{ texto?, feito? }`          | Altera o texto, a marcação ou os dois                             |
+| `DELETE /api/mcp/tarefas/:id/lista/:indice` |                               | Exclui o item; os seguintes sobem uma posição                     |
+| `PUT /api/mcp/tarefas/:id/notas`            | `{ notas, acrescentar? }`     | Acrescenta às notas (ou substitui, com `acrescentar: false`)      |
+| `POST /api/mcp/kanbans/:id/tarefas`         | `{ titulo, ... }`             | `201` — tarefa nova, sempre no Backlog                            |
+
+Kanban não liberado, e tarefa dele, respondem `404` nas rotas `/api/mcp/*`: a trava é
+do servidor, não do processo MCP. As rotas exigem o token do shell como as demais; o
+servidor MCP (`src/mcp/servidorMcp.ts`) o lê do arquivo apontado em
+`HUB_SNK_TOKEN_FILE` e o manda no cabeçalho `x-hub-token`.
+
+`pasta` preenchida liga o arquivo de tarefas: o HUB SNK cria a subpasta `Tarefas` e
+grava nela `<projeto>.json` (com o nome do kanban junto, se outro do mesmo projeto já
+usa o nome). Nas respostas, o kanban traz `arquivo` com `{ caminho, sincronizadoEm,
+importadoEm, mudancasImportadas, gitignore, erro }`.
 
 ## Integração com o Sankhya e com o aplicativo desktop
 
@@ -550,6 +624,22 @@ configuração. Ausentes, o que está gravado é preservado.
 ```
 
 `seguranca` é `ssl`, `starttls` ou `nenhuma`.
+
+### Assistente de IA
+
+Também no `PUT /api/configuracao`, e preservado quando ausente:
+
+```json
+{ "assistenteDeIa": { "assistente": "claude", "modelo": "sonnet", "raciocinio": "high" } }
+```
+
+`assistente` é `auto` (o primeiro instalado), `claude`, `codex`, `opencode`, `gemini`
+ou `cursor`. `modelo` vazio usa o padrão do assistente, e é ignorado no `auto`.
+`raciocinio` é o nível de raciocínio do modelo — vai no `--effort` do Claude Code, no
+`model_reasoning_effort` do Codex e no `--variant` do OpenCode; o Gemini CLI e o
+Cursor não têm a opção. Vazio usa o padrão do modelo. Os níveis de cada modelo saem de
+`GET /api/configuracao/assistentes-de-ia`, em `raciocinio` (`{ modelo: { niveis,
+padrao } }`; a chave vazia é o modelo padrão do assistente).
 
 ## Erros
 

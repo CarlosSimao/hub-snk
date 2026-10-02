@@ -9,6 +9,117 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.3.0] - 2026-10-01
+
+### Adicionado
+
+- **Guia avulsa**: no aplicativo desktop, o botão **+** ao lado das guias (ou `Ctrl+T`)
+  abre uma guia de navegação livre no Google, com barra de endereço para ver e digitar a
+  URL — domínio sem `https://` e termo de busca também valem —, voltar e avançar
+  (`Alt+←`/`Alt+→`) e `×` para fechar. O login feito nela fica numa partição própria,
+  separada da do Sankhya, e continua depois de reiniciar o aplicativo.
+- **Recarregar sem cache**: `Ctrl+F5` (ou `Ctrl+Shift+R`, ou `Shift`+clique no botão de
+  recarregar) recarrega a guia ativa buscando tudo de novo no servidor, como no Chrome.
+  O clique direito numa guia oferece **Recarregar** e **Recarregar sem cache** para ela,
+  mesmo que não seja a que está na tela.
+- **Aviso do Windows para as notificações do HUB SNK**: lembrete, agenda sem tarefa na
+  Experience e falha ao conferir a agenda aparecem como aviso do Windows, no canto
+  inferior direito, como as mensagens do WhatsApp, e o ícone do HUB SNK pisca na barra
+  de tarefas até a janela ganhar foco. Clicar no aviso abre o Painel com as
+  notificações.
+- **Sino piscando**: enquanto houver notificação não lida, o sino do Painel pisca até o
+  painel de notificações abrir.
+- **Link para a configuração que falta**: quando a Agenda, a OS ou o Resumo não carregam
+  por falta de configuração — código de usuário do SankhyaOm, login do Sankhya ERP ou
+  sessão da Experience —, a mensagem ganha o link **Abrir configuração**. O mesmo vale
+  para a IDE não configurada (ou com caminho errado), o menu de atalhos vazio, o lembrete
+  com e-mail marcado e SMTP incompleto e o e-mail não enviado no sino. Antes de abrir, o
+  botão do topo onde a configuração fica — o cadeado de Credenciais Sankhya ou a
+  engrenagem de Configurações — pisca, para você achá-lo da próxima vez; o modal abre já
+  na aba e no campo certos. O **Abrir Configurações › Git** do AutoSync também pisca.
+- **Carregamento da Agenda e da OS mais visível**: enquanto a consulta ao Sankhya roda,
+  um indicador grande com **Atualizando da Sankhya…** cobre o calendário ou a lista de
+  OS, no topo e no cadastro do cliente, e o conteúdo fica bloqueado até ela terminar. O
+  cabeçalho da aba e a navegação entre abas continuam livres.
+- **Kanban de tarefas nos projetos do cliente.** Com o documento de escopo (`.docx`,
+  `.pdf`, `.md` ou `.txt`), o assistente de IA escolhido em **Configurações › IA**
+  (Claude Code, Codex, OpenCode, Gemini CLI ou Cursor Agent) decompõe o escopo em
+  tarefas; sem documento, o quadro começa vazio. Um kanban por projeto, com o nome
+  dele, criado pelo **+** da seção **Kanban**; cinco colunas, arrastar e soltar e lista
+  de verificação em cada tarefa.
+- As tarefas ficam também num arquivo JSON na pasta do projeto, que o HUB SNK vigia e
+  importa de volta, e num servidor MCP para agentes de IA. O quadro se atualiza sozinho
+  quando o arquivo, o MCP ou a IA o mudam.
+- A aba **Git** ganha o ícone de informação, com o que é o Git AutoSync e o link do
+  repositório dele.
+
+### Alterado
+
+- **Primeira abertura**: com o cadastro de clientes vazio, o HUB SNK abre na aba
+  **Clientes** e, para quem não é Terceiro, já com a janela de **Credenciais Sankhya**
+  aberta.
+- **Aba Git passa a se chamar Git AutoSync**, e o host e o token do GitLab saem de
+  **Configurações › Git** para a engrenagem no canto superior direito da aba.
+- **Configurações › IA**: assistente, modelo e nível de raciocínio lado a lado.
+- **Alerta da agenda nasce sem e-mail**: em **Configurações › Avisos**, **Enviar por
+  e-mail** vem desmarcado numa instalação nova. Quem já salvou a configuração mantém o
+  que escolheu.
+- **Sem o cartão abaixo do sino**: a notificação nova não abre mais o cartão que sumia
+  sozinho no canto do Painel. Ela chega pelo aviso do Windows, pelo contador e pelo sino
+  piscando, com o mesmo som.
+- **Lembretes ganham aba própria**, no menu principal, entre **Contatos** e **Git**: a
+  lista dos lembretes cadastrados, com **Novo lembrete**, editar e excluir, sai do botão
+  **Lembretes** do sino e passa a ficar nela. As notificações dos lembretes continuam
+  chegando no sino. Em **Configurações › Acessos**, a caixa **Lembretes** controla a aba
+  e a seção do Resumo.
+- **Cliente do contato criado pelo lembrete**: o **Adicionar contato** dos contatos em
+  cópia do lembrete passa a mostrar o campo **Cliente**. Em lembrete de um cliente, ele
+  oferece **Sem cliente** ou esse cliente, que já vem marcado; em lembrete sem cliente,
+  qualquer cliente. Contato de outro cliente continua sem poder entrar em cópia de
+  lembrete de um cliente. No cadastro de contato, a opção **Nenhum** passa a se chamar
+  **Sem cliente**, como no filtro da aba Contatos.
+- **Alerta da agenda passa a cobrar a tarefa, e não a OS**: em **Configurações › Avisos**,
+  o alerta confere todos os eventos de hoje, e não só os que já terminaram, e avisa o
+  evento de cliente cujo dia não tem tarefa nem OS na Experience. Tarefa aberta já conta
+  como encaminhado. Novas opções:
+  - **Periodicidade (minutos)**: de quanto em quanto tempo a rotina roda, no lugar dos 15
+    minutos fixos. Padrão de fábrica: 120. A mudança vale em até um minuto.
+  - **Monitorar também o próximo dia útil**: confere junto os eventos do próximo dia útil
+    — numa sexta, os da segunda. Pula sábado e domingo, mas não feriados.
+  - **Repetir o aviso a cada execução enquanto a pendência existir**: desmarcado, como
+    vem, avisa uma vez por evento.
+
+  O campo **Minutos após o fim do evento** deixa de existir, e o selo do Resumo passa de
+  **Sem OS lançada** para **Sem tarefa na Experience**.
+
+- **Página de perfil do instalador igual à aba Acessos**: o perfil vem numa lista, sem a
+  descrição na frente de cada um, e logo abaixo ficam a caixa **Terceiro** e uma caixa
+  por funcionalidade, do menu principal e do cadastro do cliente. Trocar o perfil marca o
+  preset dele, e as caixas podem ser ajustadas antes de seguir; o que for desmarcado já
+  nasce oculto no HUB SNK. Reinstalar abre a página com as escolhas da instalação
+  anterior, e, como antes, nunca desfaz o que você ajustou depois em **Configurações ›
+  Acessos**.
+- Os perfis aparecem na ordem **Consultor**, **Analista**, **Gerente de Projetos** e
+  **Desenvolvedor**, no instalador e na aba Acessos. O instalador novo começa em
+  Consultor. O perfil **Gerente de projeto** passa a se chamar **Gerente de Projetos**.
+- **O Git AutoSync não vem mais no instalador**: tem licença própria. Sem ele, a aba
+  **Git** aparece acinzentada, com o botão **Instalar o Git AutoSync**, que confere se
+  o Git está na máquina (sem ele, mostra onde baixá-lo) e baixa a versão mais recente
+  do repositório do Git AutoSync. Instalado pelo HUB SNK, ele continua podendo sair
+  junto na desinstalação.
+- A aba **Git** não fica mais oculta por causa da escolha do Git AutoSync no
+  instalador.
+
+### Corrigido
+
+- No cadastro do cliente, clicar várias vezes em **Adicionar nome completo** empilhava
+  campos em branco: agora o botão leva ao campo em branco que já existe e para no limite
+  de 20 nomes ([#86](https://github.com/CarlosSimao/hub-snk/issues/86)).
+- A aba **OS** do cliente só achava a OS quando o nome da empresa na Experience era igual
+  ao do cadastro, enquanto a aba **Agenda** aceitava um nome que começa com o outro: um
+  cliente "Konica" via na Agenda os eventos da "KONICA MINOLTA BUSINESS SOLUTIONS DO
+  BRASIL LTDA", mas não as OS dela. As duas abas passam a usar o mesmo critério.
+
 ## [2.2.1] - 2026-10-01
 
 ### Corrigido
@@ -482,7 +593,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.2.1...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.2...v2.2.0
 [2.1.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.1...v2.1.2

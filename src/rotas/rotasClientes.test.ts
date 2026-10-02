@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { RepositorioClientesArquivo } from '../repositorio/repositorioClientesArquivo.ts';
-import { RepositorioConfiguracaoArquivo } from '../repositorio/repositorioConfiguracaoArquivo.ts';
+import { RepositorioClientesArquivo } from '../repositorio/arquivo/repositorioClientesArquivo.ts';
+import { RepositorioConfiguracaoArquivo } from '../repositorio/arquivo/repositorioConfiguracaoArquivo.ts';
 import { registrarRotasDeClientes } from './rotasClientes.ts';
 
 const TOKEN_DO_SHELL = 'token-do-shell';

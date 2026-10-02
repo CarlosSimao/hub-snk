@@ -2,29 +2,29 @@ import type { RepositorioConfiguracao } from '../repositorio/repositorioConfigur
 import { lerCodusuConfigurado } from '../sankhya/consultasDaAgenda.ts';
 import type { SituacaoDoDia } from '../sankhya/experience.ts';
 import { PonteDoDesktopIndisponivelError } from '../sankhya/ponteDoDesktop.ts';
-import type { EventoAgenda } from '../tipos.ts';
+import type { AlertaDaAgenda, EventoAgenda } from '../tipos.ts';
 import type { DadosDeNotificacao, RegistradorDeNotificacoes } from './centralDeNotificacoes.ts';
-import { dataIsoLocal, horaLocal, lerDataHoraDaAgenda } from './relogio.ts';
+import { dataIsoLocal, horaLocal, lerDataHoraDaAgenda, proximoDiaUtil } from './relogio.ts';
 
 /*
  * A primeira verificação espera o shell empurrar a sessão da Experience e a janela
  * oculta do ERP logar; antes disso, toda consulta falharia.
  */
 const ESPERA_ANTES_DA_PRIMEIRA_VERIFICACAO_MS = 2 * 60_000;
-const INTERVALO_ENTRE_VERIFICACOES_MS = 15 * 60_000;
+/*
+ * De quanto em quanto tempo o verificador confere se já deu a periodicidade configurada.
+ * É o atraso máximo para uma periodicidade alterada na tela passar a valer.
+ */
+const INTERVALO_DO_RELOGIO_MS = 60_000;
 const MILISSEGUNDOS_POR_MINUTO = 60_000;
 
-/*
- * Evento de dia inteiro, ou que continua amanhã, não tem fim hoje: o alerta usa o fim do
- * expediente como se fosse o fim dele.
- */
-const HORARIO_DE_FIM_DO_EXPEDIENTE = '18:00:00';
 const DIA_INTEIRO = 'S';
 
-const ROTULOS_DA_SITUACAO: Record<Exclude<SituacaoDoDia['tipo'], 'os-lancada'>, string> = {
-  'tarefa-aberta': 'tarefa aberta, sem OS lançada',
-  'sem-tarefa': 'nenhuma tarefa nem OS no dia',
-};
+/*
+ * Separa, na chave da notificação repetida, a identificação do evento do momento da
+ * execução. Não é `:`, que já aparece no `inicio` da identificação de evento sem número.
+ */
+const SEPARADOR_DA_REPETICAO = '#';
 
 /** O que o verificador usa de fora. Funções, e não as classes, para os testes não precisarem do Sankhya. */
 export interface DependenciasDoVerificadorDaAgenda {
@@ -43,21 +43,18 @@ function descreverErro(erro: unknown): string {
   return erro instanceof Error ? erro.message : String(erro);
 }
 
-/** Quando o evento passa a merecer o alerta: o fim dele no dia, mais a tolerância. */
-export function momentoDoAlerta(
-  evento: EventoAgenda,
-  dia: string,
-  toleranciaMinutos: number,
-): Date {
-  const terminaHoje = evento.allday !== DIA_INTEIRO && evento.fim.startsWith(dia);
-  const fim = terminaHoje ? evento.fim : `${dia} ${HORARIO_DE_FIM_DO_EXPEDIENTE}`;
-  return new Date(
-    lerDataHoraDaAgenda(fim).getTime() + toleranciaMinutos * MILISSEGUNDOS_POR_MINUTO,
-  );
+/** O dia atual e, quando o alerta pede, o próximo dia útil. */
+export function diasMonitorados(hoje: string, alerta: AlertaDaAgenda): string[] {
+  return alerta.incluirProximoDiaUtil ? [hoje, proximoDiaUtil(hoje)] : [hoje];
 }
 
-function chaveDoEvento(evento: EventoAgenda, dia: string): string {
-  return `agenda:${dia}:${evento.nuevento ?? `${evento.codparc}-${evento.inicio}`}`;
+/**
+ * Sem repetição, a chave é a do evento no dia e a central não emite a mesma duas vezes.
+ * Com repetição, cada execução ganha a sua; o Resumo lê só o trecho antes do separador.
+ */
+function chaveDoEvento(evento: EventoAgenda, dia: string, repeticao: number | null): string {
+  const chave = `agenda:${dia}:${evento.nuevento ?? `${evento.codparc}-${evento.inicio}`}`;
+  return repeticao === null ? chave : `${chave}${SEPARADOR_DA_REPETICAO}${repeticao}`;
 }
 
 function descreverHorario(evento: EventoAgenda): string {
@@ -67,16 +64,25 @@ function descreverHorario(evento: EventoAgenda): string {
   return `${horaLocal(lerDataHoraDaAgenda(evento.inicio))}–${horaLocal(lerDataHoraDaAgenda(evento.fim))}`;
 }
 
+function descreverDia(dia: string, hoje: string): string {
+  if (dia === hoje) {
+    return 'hoje';
+  }
+  const [ano, mes, numero] = dia.split('-');
+  return `${numero}/${mes}/${ano}`;
+}
+
 /**
- * Alerta de agenda do dia sem OS lançada: de tempos em tempos, relê a agenda de hoje e,
- * para cada evento de parceiro que já terminou (mais a tolerância), confere na
- * Experience se o dia tem OS. Sem OS — tarefa aberta ou nada —, notifica uma vez por
- * evento por dia.
+ * Alerta de agenda sem tarefa na Experience: na periodicidade configurada, relê a agenda
+ * de hoje — e, se pedido, a do próximo dia útil — e, para cada evento de parceiro,
+ * confere na Experience se o dia tem tarefa ou OS. Sem nenhuma das duas, notifica: uma
+ * vez por evento por dia ou, com a repetição ligada, a cada execução até resolver.
  */
 export class VerificadorDaAgendaDoDia {
   readonly #dependencias: DependenciasDoVerificadorDaAgenda;
   #espera: NodeJS.Timeout | null = null;
-  #intervalo: NodeJS.Timeout | null = null;
+  #relogio: NodeJS.Timeout | null = null;
+  #ultimaVerificacao: number | null = null;
   #verificando = false;
 
   constructor(dependencias: DependenciasDoVerificadorDaAgenda) {
@@ -85,17 +91,17 @@ export class VerificadorDaAgendaDoDia {
 
   iniciar(): void {
     this.#espera = setTimeout(() => {
-      void this.#verificarSemSobrepor();
-      this.#intervalo = setInterval(
-        () => void this.#verificarSemSobrepor(),
-        INTERVALO_ENTRE_VERIFICACOES_MS,
+      void this.#verificarSeDeuAPeriodicidade();
+      this.#relogio = setInterval(
+        () => void this.#verificarSeDeuAPeriodicidade(),
+        INTERVALO_DO_RELOGIO_MS,
       );
     }, ESPERA_ANTES_DA_PRIMEIRA_VERIFICACAO_MS);
   }
 
   parar(): void {
     if (this.#espera) clearTimeout(this.#espera);
-    if (this.#intervalo) clearInterval(this.#intervalo);
+    if (this.#relogio) clearInterval(this.#relogio);
   }
 
   async verificar(): Promise<void> {
@@ -115,26 +121,39 @@ export class VerificadorDaAgendaDoDia {
     }
 
     const momento = agora();
-    const dia = dataIsoLocal(momento);
-    await this.#atualizarAgenda(dia, codusu);
-
-    const vencidos = this.#dependencias
-      .eventosDoDia(dia)
-      .filter((evento) => evento.codusu === codusu && evento.codparc !== null)
-      .filter(
-        (evento) => momentoDoAlerta(evento, dia, alertaDaAgenda.toleranciaMinutos) <= momento,
-      );
-
-    await this.#notificarEventosSemOs(vencidos, dia, alertaDaAgenda.enviarEmail);
+    const hoje = dataIsoLocal(momento);
+    const repeticao = alertaDaAgenda.repetirAteResolver ? momento.getTime() : null;
+    for (const dia of diasMonitorados(hoje, alertaDaAgenda)) {
+      await this.#atualizarAgenda(dia, codusu);
+      const eventos = this.#dependencias
+        .eventosDoDia(dia)
+        .filter((evento) => evento.codusu === codusu && evento.codparc !== null);
+      const conseguiuConsultar = await this.#notificarEventosSemTarefa(eventos, {
+        dia,
+        hoje,
+        repeticao,
+        enviarEmail: alertaDaAgenda.enviarEmail,
+      });
+      if (!conseguiuConsultar) {
+        return;
+      }
+    }
   }
 
-  async #verificarSemSobrepor(): Promise<void> {
+  async #verificarSeDeuAPeriodicidade(): Promise<void> {
     if (this.#verificando) {
       return;
     }
 
     this.#verificando = true;
     try {
+      const { alertaDaAgenda } = await this.#dependencias.configuracao.ler();
+      const agora = this.#dependencias.agora().getTime();
+      const intervalo = alertaDaAgenda.intervaloMinutos * MILISSEGUNDOS_POR_MINUTO;
+      if (this.#ultimaVerificacao !== null && agora - this.#ultimaVerificacao < intervalo) {
+        return;
+      }
+      this.#ultimaVerificacao = agora;
       await this.verificar();
     } catch (erro) {
       this.#dependencias.registrador.warn(`Verificação da agenda falhou: ${descreverErro(erro)}`);
@@ -154,15 +173,16 @@ export class VerificadorDaAgendaDoDia {
     }
   }
 
-  async #notificarEventosSemOs(
+  /** Falso quando a consulta à Experience falhou: a falha vale para os outros dias também. */
+  async #notificarEventosSemTarefa(
     eventos: EventoAgenda[],
-    dia: string,
-    enviarEmail: boolean,
-  ): Promise<void> {
+    contexto: { dia: string; hoje: string; repeticao: number | null; enviarEmail: boolean },
+  ): Promise<boolean> {
+    const { dia, hoje, repeticao, enviarEmail } = contexto;
     const situacoesPorParceiro = new Map<number, SituacaoDoDia>();
 
     for (const evento of eventos) {
-      const chave = chaveDoEvento(evento, dia);
+      const chave = chaveDoEvento(evento, dia, repeticao);
       if (await this.#dependencias.jaEmitida(chave)) {
         continue;
       }
@@ -174,28 +194,30 @@ export class VerificadorDaAgendaDoDia {
           situacao = await this.#dependencias.situacaoDoDia(codparc, dia);
         } catch (erro) {
           // A falha é da sessão ou do shell, e vale para todos os eventos: parar aqui.
-          await this.#notificarFalhaDaConsulta(erro, dia);
-          return;
+          await this.#notificarFalhaDaConsulta(erro, hoje);
+          return false;
         }
         situacoesPorParceiro.set(codparc, situacao);
       }
 
-      if (situacao.tipo === 'os-lancada') {
+      // Tarefa aberta ou OS lançada: o evento já está encaminhado na Experience.
+      if (situacao.tipo !== 'sem-tarefa') {
         continue;
       }
 
       await this.#dependencias.emitir({
         origem: 'agenda',
         chave,
-        titulo: 'Agenda de hoje sem OS lançada',
-        mensagem: `${evento.nomeparc} (${descreverHorario(evento)}): ${ROTULOS_DA_SITUACAO[situacao.tipo]}.`,
+        titulo: 'Agenda sem tarefa na Experience',
+        mensagem: `${evento.nomeparc} (${descreverDia(dia, hoje)}, ${descreverHorario(evento)}): nenhuma tarefa nem OS no dia.`,
         enviarEmail,
       });
     }
+    return true;
   }
 
   /** Uma vez por dia: a sessão caída repetiria o mesmo aviso a cada verificação. */
-  async #notificarFalhaDaConsulta(erro: unknown, dia: string): Promise<void> {
+  async #notificarFalhaDaConsulta(erro: unknown, hoje: string): Promise<void> {
     const motivo = descreverErro(erro);
     // Sem o shell (`npm run dev`) não há consulta possível, e isso é o esperado.
     if (erro instanceof PonteDoDesktopIndisponivelError) {
@@ -205,8 +227,8 @@ export class VerificadorDaAgendaDoDia {
 
     await this.#dependencias.emitir({
       origem: 'sistema',
-      chave: `agenda-falha:${dia}`,
-      titulo: 'Não foi possível conferir as OS da agenda de hoje',
+      chave: `agenda-falha:${hoje}`,
+      titulo: 'Não foi possível conferir as tarefas da agenda',
       mensagem: `${motivo} Confira o login em Credenciais Sankhya.`,
       enviarEmail: false,
     });

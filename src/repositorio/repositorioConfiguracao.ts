@@ -20,6 +20,7 @@ export interface ConfiguracaoParaSalvar extends Omit<
   | 'terceiro'
   | 'smtp'
   | 'alertaDaAgenda'
+  | 'assistenteDeIa'
 > {
   atalhos: DadosDeAtalho[];
   /** Ausentes, preservam o que está gravado: omitir não pode reexibir o que foi ocultado. */
@@ -29,6 +30,8 @@ export interface ConfiguracaoParaSalvar extends Omit<
   /** Ausentes, preservam o que está gravado: omitir não pode apagar a senha do SMTP. */
   smtp?: ConfiguracaoGlobal['smtp'];
   alertaDaAgenda?: ConfiguracaoGlobal['alertaDaAgenda'];
+  /** Ausente, preserva o assistente escolhido: uma tela antiga não manda o campo. */
+  assistenteDeIa?: ConfiguracaoGlobal['assistenteDeIa'];
 }
 
 /**

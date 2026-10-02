@@ -4,27 +4,33 @@ import type { FSWatcher } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CliDoAutosyncProcesso } from './autosync/cliDoAutosyncProcesso.ts';
+import { baixarPacoteDoAutosync } from './autosync/pacoteDoGithub.ts';
 import { ServicoDoAutosync } from './autosync/servicoDoAutosync.ts';
 import { configuracao } from './configuracao.ts';
-import { ArquivoDeDadosInvalidoError, EsquemaMaisNovoError } from './repositorio/arquivoDeDados.ts';
-import { RepositorioClientesArquivo } from './repositorio/repositorioClientesArquivo.ts';
-import { RepositorioConfiguracaoArquivo } from './repositorio/repositorioConfiguracaoArquivo.ts';
-import { RepositorioLembretesArquivo } from './repositorio/repositorioLembretesArquivo.ts';
-import { RepositorioContatosArquivo } from './repositorio/repositorioContatosArquivo.ts';
-import { RepositorioLocalArquivo } from './repositorio/repositorioLocalArquivo.ts';
-import { RepositorioNotificacoesArquivo } from './repositorio/repositorioNotificacoesArquivo.ts';
+import {
+  ArquivoDeDadosInvalidoError,
+  EsquemaMaisNovoError,
+} from './repositorio/arquivo/arquivoDeDados.ts';
+import { RepositorioClientesArquivo } from './repositorio/arquivo/repositorioClientesArquivo.ts';
+import { RepositorioConfiguracaoArquivo } from './repositorio/arquivo/repositorioConfiguracaoArquivo.ts';
+import { RepositorioLembretesArquivo } from './repositorio/arquivo/repositorioLembretesArquivo.ts';
+import { RepositorioContatosArquivo } from './repositorio/arquivo/repositorioContatosArquivo.ts';
+import { RepositorioLocalArquivo } from './repositorio/arquivo/repositorioLocalArquivo.ts';
+import { RepositorioNotificacoesArquivo } from './repositorio/arquivo/repositorioNotificacoesArquivo.ts';
 import { AgendadorDeLembretes } from './notificacoes/agendadorDeLembretes.ts';
 import { CentralDeNotificacoes } from './notificacoes/centralDeNotificacoes.ts';
 import { EnviadorDeEmail } from './notificacoes/enviadorDeEmail.ts';
 import { VerificadorDaAgendaDoDia } from './notificacoes/verificadorDaAgendaDoDia.ts';
-import { registrarAutenticacaoDoPainel } from './rotas/autenticacaoDoPainel.ts';
-import { registrarProtecaoDeOrigem } from './rotas/protecaoDeOrigem.ts';
+import { registrarAutenticacaoDoPainel } from './rotas/seguranca/autenticacaoDoPainel.ts';
+import { registrarProtecaoDeOrigem } from './rotas/seguranca/protecaoDeOrigem.ts';
 import { registrarRotasDeAtalhos } from './rotas/rotasAtalhos.ts';
 import { registrarRotasDeAutosync } from './rotas/rotasAutosync.ts';
 import { registrarRotasDeClientes } from './rotas/rotasClientes.ts';
 import { registrarRotasDeConfiguracao } from './rotas/rotasConfiguracao.ts';
 import { registrarRotasDeContatos } from './rotas/rotasContatos.ts';
 import { registrarRotasDeGit } from './rotas/rotasGit.ts';
+import { registrarRotasDeKanban } from './rotas/rotasKanban.ts';
+import { registrarRotasDeMcp } from './rotas/rotasMcp.ts';
 import { registrarRotasDeAgenda } from './rotas/rotasAgenda.ts';
 import { registrarRotasDeLembretes } from './rotas/rotasLembretes.ts';
 import { registrarRotasDeLocal } from './rotas/rotasLocal.ts';
@@ -32,13 +38,16 @@ import { registrarRotasDeNotificacoes } from './rotas/rotasNotificacoes.ts';
 import { registrarRotasDeOs } from './rotas/rotasOs.ts';
 import { registrarRotasDeSankhya } from './rotas/rotasSankhya.ts';
 import { registrarRotasDeSistema } from './rotas/rotasSistema.ts';
+import { analisarEscopo } from './kanban/ia/analiseDeEscopo.ts';
+import { ArquivoDeTarefas } from './kanban/arquivoDeTarefas.ts';
+import { KanbanDosProjetos } from './kanban/kanbanDosProjetos.ts';
 import { AgendaRecursos } from './sankhya/agenda.ts';
 import { importarAgendaDoPeriodo, situacaoDoDiaDoParceiro } from './sankhya/consultasDaAgenda.ts';
 import { Credenciais } from './sankhya/credenciais.ts';
 import { Experience } from './sankhya/experience.ts';
 import { PonteDoDesktop } from './sankhya/ponteDoDesktop.ts';
 import { SessaoDoDesktop } from './sankhya/sessaoDoDesktop.ts';
-import { abrirShellNaPasta } from './sistema/abrirShell.ts';
+import { abrirShellNaPasta } from './sistema/processos/abrirShell.ts';
 import { observarAlteracoesNosDados, type CacheDescartavel } from './sistema/observadorDeDados.ts';
 
 async function iniciarServidor(): Promise<void> {
@@ -82,6 +91,12 @@ async function iniciarServidor(): Promise<void> {
   const sessaoDoDesktop = new SessaoDoDesktop();
   const credenciaisSankhya = new Credenciais(ponteDoDesktop, sessaoDoDesktop);
   const agendaDeRecursos = new AgendaRecursos(configuracao.diretorioDeDados);
+  const kanbanDosProjetos = new KanbanDosProjetos(configuracao.diretorioDeDados);
+  const arquivoDeTarefas = new ArquivoDeTarefas(kanbanDosProjetos, async (clienteId, projetoId) => {
+    const cliente = await repositorioDeClientes.buscarPorId(clienteId);
+    const projeto = cliente?.projetos.find((item) => item.id === projetoId);
+    return { cliente: cliente?.nome ?? '', projeto: projeto?.nome ?? '' };
+  });
   const experience = new Experience(credenciaisSankhya);
   const repositorioDeLembretes = new RepositorioLembretesArquivo(configuracao.diretorioDeDados);
   const repositorioDeContatos = new RepositorioContatosArquivo(configuracao.diretorioDeDados);
@@ -135,8 +150,37 @@ async function iniciarServidor(): Promise<void> {
     repositorioDeClientes,
     repositorioDeConfiguracao,
     configuracao.ponteDoDesktopTokenFile,
-    (clienteId) => repositorioDeContatos.desvincularDoCliente(clienteId),
+    async (clienteId) => {
+      await repositorioDeContatos.desvincularDoCliente(clienteId);
+      kanbanDosProjetos.removerDoCliente(clienteId);
+    },
+    {
+      quantos: (idDoCliente, idDoProjeto) =>
+        kanbanDosProjetos.demandasDoProjeto(idDoCliente, idDoProjeto).length,
+      manterOrfaos: (idDoCliente, idDoProjeto) =>
+        kanbanDosProjetos.desvincularDoProjeto(idDoCliente, idDoProjeto),
+      renomear: (idDoCliente, idDoProjeto, nome) =>
+        kanbanDosProjetos.renomearDoProjeto(idDoCliente, idDoProjeto, nome),
+      excluir: (idDoCliente, idDoProjeto) =>
+        kanbanDosProjetos.removerDoProjeto(idDoCliente, idDoProjeto),
+    },
   );
+  registrarRotasDeKanban(servidor, {
+    kanban: kanbanDosProjetos,
+    clientes: repositorioDeClientes,
+    configuracao: repositorioDeConfiguracao,
+    analisar: analisarEscopo,
+    registrador: servidor.log,
+    arquivoDeTarefas,
+  });
+  registrarRotasDeMcp(servidor, {
+    kanban: kanbanDosProjetos,
+    clientes: repositorioDeClientes,
+    enderecoDoHub: `http://${configuracao.host}:${configuracao.porta}`,
+    arquivoDoToken: configuracao.autenticacaoDoPainelDesligada
+      ? ''
+      : configuracao.ponteDoDesktopTokenFile,
+  });
   registrarRotasDeConfiguracao(servidor, repositorioDeConfiguracao);
   registrarRotasDeGit(servidor, repositorioDeClientes, repositorioDeConfiguracao);
   registrarRotasDeLocal(servidor, repositorioLocal, repositorioDeConfiguracao);
@@ -147,6 +191,8 @@ async function iniciarServidor(): Promise<void> {
       cli: new CliDoAutosyncProcesso({
         pasta: configuracao.pastaDoAutosync,
         pacote: configuracao.pacoteDoAutosync,
+        baixarPacote: () => baixarPacoteDoAutosync(),
+        pastaDoInstalador: configuracao.pastaDoInstalador,
       }),
       listarClientes: () => repositorioDeClientes.listar(),
       abrirTerminal: async (caminho) => {
@@ -162,6 +208,8 @@ async function iniciarServidor(): Promise<void> {
     observadorDosDados?.close();
     await servidor.close();
     agendaDeRecursos.close();
+    arquivoDeTarefas.fechar();
+    kanbanDosProjetos.close();
   });
   process.once('SIGINT', encerrarOHub);
   process.once('SIGTERM', encerrarOHub);
@@ -215,6 +263,8 @@ async function iniciarServidor(): Promise<void> {
 
   agendadorDeLembretes.iniciar();
   verificadorDaAgenda.iniciar();
+  // Importa o que os agentes mudaram nos arquivos de tarefas enquanto o HUB SNK estava fechado.
+  void arquivoDeTarefas.iniciar();
 
   /*
    * A pasta precisa existir para ser vigiada, e numa instalação nova ela só

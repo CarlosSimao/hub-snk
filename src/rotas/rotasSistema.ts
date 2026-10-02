@@ -2,15 +2,15 @@ import type { FastifyInstance } from 'fastify';
 import { isAbsolute } from 'node:path';
 import { z } from 'zod';
 import pacote from '../../package.json' with { type: 'json' };
-import { versaoEhMaisNova } from '../sistema/comparacaoDeVersao.ts';
+import { versaoEhMaisNova } from '../sistema/versao/comparacaoDeVersao.ts';
 import { PastaNaoEncontradaError } from '../sistema/pasta.ts';
 import {
   selecionarPastaNoSistema,
   SeletorDePastaIndisponivelError,
-} from '../sistema/selecionarPasta.ts';
-import { consultarUltimaVersaoPublicada } from '../sistema/ultimaVersaoPublicada.ts';
-import { varrerRepositoriosLocais } from '../sistema/varreduraDeRepositorios.ts';
-import { requisicaoVeioDoShell } from './autenticacaoDoShell.ts';
+} from '../sistema/processos/selecionarPasta.ts';
+import { consultarUltimaVersaoPublicada } from '../sistema/versao/ultimaVersaoPublicada.ts';
+import { varrerRepositoriosLocais } from '../git/varreduraDeRepositorios.ts';
+import { requisicaoVeioDoShell } from './seguranca/autenticacaoDoShell.ts';
 
 const TAMANHO_MAXIMO_DO_CAMINHO = 400;
 const QUANTIDADE_MAXIMA_DE_PASTAS_VARRIDAS = 20;

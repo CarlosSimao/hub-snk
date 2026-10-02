@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { CentralDeNotificacoes } from '../notificacoes/centralDeNotificacoes.ts';
 import { SmtpNaoConfiguradoError, type EnviadorDeEmail } from '../notificacoes/enviadorDeEmail.ts';
 import type { Notificacao } from '../tipos.ts';
-import { esquemaDeSmtp } from './esquemaDeNotificacoes.ts';
+import { esquemaDeSmtp } from './comum/esquemaDeNotificacoes.ts';
 
 /*
  * Comentário SSE periódico: sem tráfego, algum intermediário (antivírus com proxy local,
@@ -45,6 +45,9 @@ export function registrarRotasDeNotificacoes(
       'cache-control': 'no-cache',
       connection: 'keep-alive',
     });
+    // Sem isto os cabeçalhos só saíam com o primeiro dado: quem assina ficava até o
+    // primeiro batimento (30 s) sem saber que a conexão abriu.
+    resposta.raw.flushHeaders();
 
     const cancelarAssinatura = central.assinar((notificacao) => {
       resposta.raw.write(`event: notificacao\ndata: ${JSON.stringify(notificacao)}\n\n`);
