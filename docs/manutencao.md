@@ -194,14 +194,14 @@ que já existe.
 - O `Ctrl+F` abre a barra no canto da guia ativa no Painel, no SankhyaOm (inclusive
   numa tela dentro de frame) e numa base de cliente; `Enter` e `Shift+Enter` andam
   pelas ocorrências, `Esc` fecha, e trocar de guia fecha a barra.
-- Git AutoSync, com um repositório de teste com remoto: a aba **Git** do menu mostra a
+- Git AutoSync, com um repositório de teste com remoto: a aba **Git AutoSync** do menu mostra a
   versão e a tarefa do Agendador; salvar um horário muda a tarefa; **Adicionar ao Git
   AutoSync** na aba Git do cliente muda o `targets` do
   `%USERPROFILE%\.git-autosync\config.json`; **Sincronizar** faz commit e push de
   verdade; o histórico e o log aparecem. Um push rejeitado (commit novo no remoto)
   mostra o bloco **Como resolver**, e **Abrir terminal na pasta** abre o terminal ali.
   Com o Git AutoSync desinstalado, a aba oferece **Instalar**, e ele sobe pelo pacote.
-- **Configurações › Git** grava o host e o token do GitLab em
+- A engrenagem da aba **Git AutoSync** grava o host e o token do GitLab em
   `GIT_AUTOSYNC_GITLAB_HOST` e `GIT_AUTOSYNC_GITLAB_TOKEN` do usuário, e o token não
   aparece de volta na tela.
 - O e-mail de teste do SMTP chega, e um lembrete marcado para dali a um minuto
@@ -293,8 +293,7 @@ A tag é criada depois do merge de propósito. Criada na branch, ela apontaria p
 um commit que o merge deixa fora da `main` — a release sairia de um código que
 não é o publicado.
 
-A tag dispara o workflow `Distribuição`, que gera os binários do Git AutoSync (do
-repositório `FlavianoRS/git-autosync`, branch `master`), monta o instalador
+A tag dispara o workflow `Distribuição`, que monta o instalador
 `HUB-SNK-Setup-<versão>.exe`, cria a release se ela ainda não existir e o anexa.
 Não é preciso rodar `gh release create` à mão. Tag com hífen sai como pre-release (veja
 [Regra de versão](#regra-de-versão)); a release que já existia antes da tag mantém o

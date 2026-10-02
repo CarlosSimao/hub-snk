@@ -532,16 +532,20 @@ aparece. Excluir um cliente não apaga os contatos dele: eles passam a sem clien
 
 ## Kanban dos projetos
 
-Cada projeto da aba **Projetos** do cliente tem a seção **Kanbans**, com quantos
-quadros o projeto precisar:
+Cada projeto da aba **Projetos** do cliente tem a seção **Kanban**, com um quadro só.
+O **+** da seção cria o kanban, sem documento por padrão:
 
-- **Inserir documento**: envia o escopo (`.docx`, `.pdf`, `.md` ou `.txt`, até 20
-  MB). O projeto vem escolhido e pode ser trocado na hora. Com **Gerar as tarefas com
-  a IA** marcado, o assistente de **Configurações › IA** decompõe o escopo em tarefas
-  no Backlog, com resumo e pontos a esclarecer com o cliente. A linha mostra
-  "Analisando com a IA…" e se atualiza sozinha quando termina.
-- **Kanban sem documento**: pede o nome (em branco, o do projeto) e a pasta onde o
-  arquivo de tarefas será criado. O quadro abre vazio.
+- **Sem documento, com o quadro vazio**: pede a pasta onde o arquivo de tarefas será
+  criado. O quadro abre vazio.
+- **Com o documento de escopo** (`.docx`, `.pdf`, `.md` ou `.txt`, até 20 MB): com
+  **Gerar as tarefas com a IA** marcado, o assistente de **Configurações › IA** decompõe
+  o escopo em tarefas no Backlog, com resumo e pontos a esclarecer com o cliente. A
+  linha mostra "Analisando com a IA…" e se atualiza sozinha quando termina.
+
+Com o kanban criado, o **+** some. O botão de enviar (seta para cima) da linha do
+kanban insere o documento depois, ou o troca.
+
+O kanban não tem nome próprio: leva o do projeto, e renomear o projeto o renomeia.
 
 O quadro tem as colunas Backlog, A fazer, Em andamento, Em revisão e Concluído. As
 tarefas mudam de coluna arrastando o cartão ou na janela da tarefa, que guarda
@@ -549,14 +553,13 @@ título, descrição, grupo, tipo, prioridade, estimativa, critérios de aceite,
 **lista de verificação**: passos para marcar conforme a tarefa avança, com o texto
 editável no lugar. O cartão mostra quantos itens estão marcados (`✓ 2/5`). O quadro se
 atualiza sozinho quando um agente, o arquivo de tarefas ou a IA mudam alguma coisa,
-sem recarregar o painel.
-Com mais de um kanban no projeto, o quadro mostra todos juntos (cada cartão com o nome
-do seu) ou um de cada vez. **Analisar de novo** troca só as tarefas que continuam no
+sem recarregar o painel. **Analisar de novo** troca só as tarefas que continuam no
 Backlog. **Ver documento** mostra o texto extraído e, no PDF, o original.
 
-Excluir um projeto com kanban pergunta o que fazer com eles: excluir junto ou manter
-no cliente, com um nome novo para cada. Os mantidos vão para **Kanbans sem projeto**,
-no fim da aba, até serem vinculados a outro projeto em **Editar o kanban**.
+Excluir um projeto com kanban pergunta o que fazer com ele: excluir junto ou manter
+no cliente. O mantido vai para **Kanbans sem projeto**, no fim da aba, com o nome do
+projeto excluído, até ser vinculado a outro projeto em **Editar o kanban** — só
+projeto que ainda não tem kanban.
 
 **Editar o kanban** liga duas formas de agentes de IA trabalharem no quadro:
 
@@ -614,9 +617,7 @@ gravados — inclusive quando a pasta de dados vem sincronizada de outra máquin
 
 Ocultar a aba **Git** do cliente leva junto o que só existe por causa dos
 repositórios: o filtro por situação do Git, as bolinhas do Git no topo e na lista
-de clientes, a aba **MCP** das configurações e a seção AutoSync da própria aba. A
-aba **Git** das configurações some quando as duas caixas do Git AutoSync — a aba
-Git do menu e a seção AutoSync do cliente — estão desmarcadas.
+de clientes, a aba **MCP** das configurações e a seção AutoSync da própria aba.
 
 ### Terceiro
 
@@ -712,12 +713,12 @@ clicar. Para de rodar sozinho quando a aba perde o foco ou é minimizada.
 ## Git AutoSync
 
 O Git AutoSync é um programa à parte, com licença própria, que não vem no instalador
-do HUB SNK e é instalado pela própria aba **Git** (veja
+do HUB SNK e é instalado pela própria aba **Git AutoSync** (veja
 [Distribuição](distribuicao.md#o-git-autosync)). Ele faz commit e push dos
 repositórios cadastrados nele nos horários de uma tarefa do Agendador do Windows. O
-HUB SNK mostra e controla esse trabalho em três lugares: a aba **Git** do menu
-principal, a seção **AutoSync** no fim da aba **Git** do cliente e a aba **Git** das
-configurações.
+HUB SNK mostra e controla esse trabalho em três lugares: a aba **Git AutoSync** do
+menu principal, a seção **AutoSync** no fim da aba **Git** do cliente e a engrenagem
+no canto superior direito da aba **Git AutoSync**.
 
 **O HUB SNK nunca grava o `config.json` do Git AutoSync.** Os arquivos da pasta dele
 (`%USERPROFILE%\.git-autosync`, ou o que estiver em `GIT_AUTOSYNC_HOME`) são lidos só
@@ -801,8 +802,7 @@ próprio: ele já roda por ela.
   Em branco, quem escreve é o Git AutoSync, com IA ou a mensagem fixa; **Gerar prévia**
   mostra o que ele escreveria, sem gravar nada. **Push** envia o que já foi commitado.
 - **Merge Request** cria o MR no GitLab, com título, branch de destino (em branco, a
-  padrão do Git AutoSync) e de origem. Precisa do token da aba **Git** das
-  configurações.
+  padrão do Git AutoSync) e de origem. Precisa do token da engrenagem da aba **Git AutoSync**.
 - **Histórico** lista os últimos 20 commits do repositório.
 - **Política do repositório**: os arquivos permitidos (arquivo fora da lista bloqueia
   o commit inteiro, e não é ignorado), os proibidos além dos de sempre, as branches em
@@ -832,7 +832,7 @@ bloco, e **Dispensar** o esconde.
 | Push rejeitado, com a sugestão do próprio Git AutoSync | O comando que ele sugeriu, que já sabe o remoto e a branch certos      |
 | Branch local sem upstream                              | `git push -u origin HEAD`                                              |
 | O remoto tem commits que você não tem                  | `git pull --rebase` e depois `git push`                                |
-| Falta o token do GitLab                                | O botão **Abrir Configurações › Git**                                  |
+| Falta o token do GitLab                                | O botão **Configurar o GitLab**                                        |
 | Remoto inacessível                                     | Conferir rede ou VPN: `git remote -v` e `git fetch`                    |
 | Credencial do Git recusada pelo servidor               | `git fetch` no terminal, para entrar de novo                           |
 | HEAD destacado                                         | `git branch` e `git switch -`                                          |
@@ -844,7 +844,7 @@ Erro que nenhuma regra reconhece aparece só com a saída completa e o terminal.
 
 ### Token do GitLab
 
-Em **Configurações › Git** ficam o host do GitLab (sem protocolo nem caminho, como
+Na engrenagem da aba **Git AutoSync** ficam o host do GitLab (sem protocolo nem caminho, como
 `gitlab.empresa.com.br`) e o token, com escopo `api`, que o Git AutoSync usa no Merge
 Request. Os dois vão para as variáveis de ambiente do seu usuário do Windows,
 `GIT_AUTOSYNC_GITLAB_HOST` e `GIT_AUTOSYNC_GITLAB_TOKEN` — não para o

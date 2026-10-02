@@ -118,7 +118,7 @@ para o padrão dele. Arquivo de antes do campo, ou com assistente desconhecido, 
 
 Nada do Git AutoSync fica aqui. A configuração dele é o `config.json` da pasta dele
 (`%USERPROFILE%\.git-autosync`), que o HUB SNK só lê e altera pelo CLI, e o host e o
-token do GitLab de **Configurações › Git** vão para as variáveis de ambiente do
+token do GitLab da engrenagem da aba **Git AutoSync** vão para as variáveis de ambiente do
 usuário do Windows (`GIT_AUTOSYNC_GITLAB_HOST` e `GIT_AUTOSYNC_GITLAB_TOKEN`), para
 não viajarem com a pasta de dados sincronizada.
 

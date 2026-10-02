@@ -86,7 +86,7 @@ dentro do asar.
 
 **Não vem no instalador.** O Git AutoSync tem licença própria e mora em outro
 repositório, `https://github.com/FlavianoRS/git-autosync`. Quem o quer instala pela
-aba **Git** do Painel: enquanto ele não está na máquina, a aba aparece acinzentada,
+aba **Git AutoSync** do Painel: enquanto ele não está na máquina, a aba aparece acinzentada,
 com o botão **Instalar o Git AutoSync** e o ícone de informação (descrição e link do
 repositório) no cabeçalho.
 

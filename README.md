@@ -26,21 +26,18 @@ Baixe o `HUB-SNK-Setup-<versão>.exe` na
   pedir administrador**.
 - Não exige Node.js: o backend roda no Node que vem dentro do aplicativo.
 - Cria os atalhos "HUB SNK" no menu Iniciar e na área de trabalho.
-- Pergunta o seu **perfil profissional** — Desenvolvedor, Consultor, Analista ou
-  Gerente de projeto —, que define as abas visíveis no painel. Consultor e
-  Analista não veem a aba Git do menu nem a do cliente, e Gerente de projeto
-  também não vê a aba Local. A caixa **Terceiro**, independente do perfil, é para quem não
-  tem acesso ao SankhyaOm nem à Experience: oculta Credenciais Sankhya, Agenda,
-  OS e as guias dos dois sistemas. A escolha vale só como ponto de partida: depois
-  da instalação, ajuste em _Configurações_ › _Acessos_, e reinstalar não desfaz o
-  que você ajustou.
-- Outra tela oferece instalar junto o **Git AutoSync** (commit e push
-  automáticos dos repositórios), com tarefa diária, ícone na bandeja, atalhos,
-  skill para os agentes de IA e entrada no PATH. A caixa vem desmarcada, e deixá-la
-  assim desliga em _Configurações_ › _Acessos_ a aba Git do menu e a seção AutoSync do
-  cliente — dá para religar as duas depois e instalar pela própria aba Git. Ele exige
-  o Git instalado; sem o Git, o HUB SNK é instalado do mesmo jeito e o Git AutoSync
-  fica de fora.
+- Pergunta o seu **perfil profissional** — Consultor, Analista, Gerente de Projetos
+  ou Desenvolvedor — e mostra uma caixa por funcionalidade, como a aba _Acessos_:
+  trocar o perfil marca o preset dele, e as caixas podem ser ajustadas antes de
+  seguir. A caixa **Terceiro**, independente do perfil, é para quem não tem acesso ao
+  SankhyaOm nem à Experience: oculta Credenciais Sankhya, Agenda, OS e as guias dos
+  dois sistemas. A escolha vale só como ponto de partida: depois da instalação, ajuste
+  em _Configurações_ › _Acessos_, e reinstalar não desfaz o que você ajustou.
+- Na primeira abertura, com o cadastro vazio, o painel abre na aba **Clientes** e,
+  para quem não é Terceiro, com a janela de **Credenciais Sankhya** já aberta.
+- O **Git AutoSync** (commit e push automáticos dos repositórios) não vem no
+  instalador: tem licença própria. A aba **Git AutoSync** do painel o instala
+  baixando da release do repositório dele, e exige o Git na máquina.
 
 > O instalador não é assinado digitalmente. Na primeira execução, o SmartScreen
 > pode mostrar _"O Windows protegeu o computador"_: clique em _Mais informações_ ›
@@ -53,7 +50,8 @@ baixa em segundo plano e avisa quando ela está pronta — clique no aviso, ou e
 _Ajuda_ › _Reiniciar para atualizar_. Quem desligar _Ajuda_ › _Atualizar
 automaticamente_ atualiza rodando o instalador da versão nova por cima. Para
 desinstalar, use _Configurações_ › _Aplicativos_ › _HUB SNK_. Nos dois casos o cadastro não é
-apagado; na desinstalação, o instalador pergunta se o Git AutoSync sai junto.
+apagado; na desinstalação, se o Git AutoSync foi instalado pelo HUB SNK, o
+instalador pergunta se ele sai junto.
 
 ---
 
@@ -157,8 +155,9 @@ Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 | **Guias do Sankhya**        | SankhyaOm e Experience dentro do aplicativo; cada base de cliente numa guia isolada, com usuário e senha preenchidos                 |
 | **Agenda de Recursos**      | Consultada por uma janela oculta que loga no SankhyaOm sozinha, cruzada com a Experience no calendário de cada cliente               |
 | **Resumo do dia**           | A tela inicial do Painel: agenda de hoje, lembretes do dia, repositórios com pendência e OS não concluídas, cada item com seu atalho |
-| **Notificações**            | Painel no sino do topo, com som e e-mail opcional: agenda de hoje sem OS lançada e lembretes na data ou recorrentes (cron)           |
-| **Lembretes**               | Botão no painel do sino: numa data ou recorrentes, ligados a um cliente ou projeto, com aviso e e-mail opcional                      |
+| **Notificações**            | Sino do topo e aviso do Windows, com som e e-mail opcional: evento da agenda sem tarefa na Experience e lembretes                    |
+| **Lembretes**               | Aba própria no menu: numa data ou recorrentes (cron), ligados a um cliente ou projeto, com aviso e e-mail opcional                   |
+| **Kanban dos projetos**     | Um quadro por projeto; com o documento de escopo, o assistente de IA escolhido gera as tarefas. Arquivo JSON e servidor MCP          |
 | **Importação de favoritos** | Transforma favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, deduzindo Produção ou Teste do nome                         |
 | **Botões do repositório**   | Abrem a pasta, o terminal (rodando o script padrão) e a IDE configurada; e editam o `.sankhya-mcp.env` do MCP Claude                 |
 | **Busca rápida**            | `Ctrl+K` no aplicativo ou `Ctrl+Shift+Espaço` em qualquer programa: acha cliente, base, repositório, link, contato ou atalho e abre  |
@@ -168,7 +167,7 @@ Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 | **Bases locais (Local)**    | Ligam, param e reiniciam o WildFly da sua máquina, com a situação do serviço, o log ao vivo e o `.sankhya-mcp.env` da instalação     |
 | **Bancos locais (Local)**   | Ligam, param e reiniciam o container Docker do banco, conferindo se ele responde login com as credenciais cadastradas                |
 | **Diagnóstico Git**         | Selo por repositório com a branch e a pendência mais grave — commit faltando, conflito, segredo rastreado —, atualizado sozinho      |
-| **Git AutoSync**            | Opcional, no instalador: commit e push automáticos, controlados pela aba Git do menu e pela seção AutoSync da aba Git do cliente     |
+| **Git AutoSync**            | Opcional, instalado pela aba Git AutoSync: commit e push automáticos, também na seção AutoSync da aba Git do cliente                 |
 | **Telas Flash**             | _Hub_ › _Compatibilidade com Flash (Ruffle)_ abre as telas Flex legadas do SankhyaOm, que pedem o Flash Player                       |
 | **Backup na nuvem**         | Não é embutido: aponte a pasta de dados para o Drive, o OneDrive ou o Dropbox que você já usa                                        |
 
