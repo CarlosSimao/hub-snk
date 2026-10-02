@@ -62,7 +62,7 @@ const ALERTA_DA_AGENDA_INICIAL: AlertaDaAgenda = {
   intervaloMinutos: INTERVALO_DO_ALERTA_DA_AGENDA_PADRAO_MIN,
   incluirProximoDiaUtil: false,
   repetirAteResolver: false,
-  enviarEmail: true,
+  enviarEmail: false,
 };
 
 /* `auto` funciona em qualquer máquina com algum assistente instalado, sem escolha prévia. */

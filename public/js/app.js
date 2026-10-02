@@ -442,6 +442,12 @@ const elementos = {
   botaoAtualizarAutosync: document.getElementById('btn-atualizar-autosync'),
   botaoInstalarAutosync: document.getElementById('btn-instalar-autosync'),
   botaoSobreAutosync: document.getElementById('btn-sobre-autosync'),
+  botaoConfiguracaoAutosync: document.getElementById('btn-configuracao-autosync'),
+  modalConfiguracaoAutosync: document.getElementById('modal-autosync-configuracao'),
+  formularioConfiguracaoAutosync: document.getElementById('formulario-autosync-configuracao'),
+  erroConfiguracaoAutosync: document.getElementById('erro-autosync-configuracao'),
+  botaoSalvarConfiguracaoAutosync: document.getElementById('btn-salvar-autosync-configuracao'),
+  botaoCancelarConfiguracaoAutosync: document.getElementById('btn-cancelar-autosync-configuracao'),
   modalSobreAutosync: document.getElementById('modal-autosync-sobre'),
   botaoFecharSobreAutosync: document.getElementById('btn-fechar-autosync-sobre'),
   modalSemGitAutosync: document.getElementById('modal-autosync-sem-git'),
@@ -597,7 +603,6 @@ const elementos = {
   abaConfiguracaoSmtp: document.getElementById('aba-configuracao-smtp'),
   abaConfiguracaoAvisos: document.getElementById('aba-configuracao-avisos'),
   abaConfiguracaoAcessos: document.getElementById('aba-configuracao-acessos'),
-  abaConfiguracaoGit: document.getElementById('aba-configuracao-git'),
   abaConfiguracaoIa: document.getElementById('aba-configuracao-ia'),
   painelConfiguracaoIa: document.getElementById('painel-configuracao-ia'),
   campoAssistenteIa: document.getElementById('campo-assistente-ia'),
@@ -608,7 +613,6 @@ const elementos = {
   blocoRaciocinioIa: document.getElementById('bloco-raciocinio-ia'),
   situacaoAssistenteIa: document.getElementById('situacao-assistente-ia'),
   botaoAtualizarAssistentesIa: document.getElementById('btn-atualizar-assistentes-ia'),
-  painelConfiguracaoGit: document.getElementById('painel-configuracao-git'),
   campoGitlabHost: document.getElementById('campo-gitlab-host'),
   campoGitlabToken: document.getElementById('campo-gitlab-token'),
   botaoVerTokenGitlab: document.getElementById('btn-ver-token-gitlab'),
@@ -5806,7 +5810,6 @@ function selecionarAbaDaConfiguracao(abaEscolhida) {
     { aba: elementos.abaConfiguracaoAtalhos, painel: elementos.painelConfiguracaoAtalhos },
     { aba: elementos.abaConfiguracaoSmtp, painel: elementos.painelConfiguracaoSmtp },
     { aba: elementos.abaConfiguracaoAvisos, painel: elementos.painelConfiguracaoAvisos },
-    { aba: elementos.abaConfiguracaoGit, painel: elementos.painelConfiguracaoGit },
     { aba: elementos.abaConfiguracaoIa, painel: elementos.painelConfiguracaoIa },
     { aba: elementos.abaConfiguracaoAcessos, painel: elementos.painelConfiguracaoAcessos },
     { aba: elementos.abaConfiguracaoSobre, painel: elementos.painelConfiguracaoSobre },
@@ -6120,7 +6123,6 @@ async function abrirModalDeConfiguracao() {
   preencherNotificacoesDaConfiguracao(SMTP_PADRAO, ALERTA_DA_AGENDA_PADRAO);
   exibirResultadoDoTesteDoSmtp(null);
   definirVisibilidadeDoCampo(elementos.campoSmtpSenha, elementos.botaoVerSenhaSmtp, false);
-  preencherGitlabDaConfiguracao({ host: '', tokenDefinido: false });
   preencherAssistenteDeIaDaConfiguracao(ASSISTENTE_DE_IA_PADRAO);
 
   try {
@@ -6158,13 +6160,6 @@ async function abrirModalDeConfiguracao() {
     preencherCamposDoMcpGlobal(arquivo.configuracao);
   } catch (erro) {
     exibirAviso(`Não foi possível ler o .env do sankhya-schema-mcp: ${erro.message}`, 'erro');
-  }
-
-  /* Variáveis do Windows lidas à parte: falhar não impede de mexer no resto. */
-  try {
-    preencherGitlabDaConfiguracao(await api.lerGitlab());
-  } catch (erro) {
-    exibirAviso(`Não foi possível ler o token do GitLab: ${erro.message}`, 'erro');
   }
 
   // Recolhido a cada abertura: o que ficou expandido da última vez não conta.
@@ -6234,8 +6229,8 @@ const DESTINOS_DE_CONFIGURACAO_PENDENTE = {
     abrir: () => abrirConfiguracaoNaAba(elementos.abaConfiguracaoSmtp, elementos.campoSmtpHost),
   },
   gitlab: {
-    botao: () => elementos.botaoConfiguracao,
-    abrir: () => abrirConfiguracaoNaAba(elementos.abaConfiguracaoGit, elementos.campoGitlabHost),
+    botao: () => elementos.botaoConfiguracaoAutosync,
+    abrir: () => abrirConfiguracaoDoAutosync(),
   },
 };
 
@@ -6357,30 +6352,8 @@ async function salvarConfiguracao(evento) {
     return;
   }
 
-  const gitlab = lerGitlabDaConfiguracao();
-  if (gitlab && gitlab.host === '') {
-    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGit);
-    exibirErro(elementos.erroConfiguracao, 'Informe o host do GitLab junto com o token.');
-    return;
-  }
-
   limparErro(elementos.erroConfiguracao);
   elementos.botaoSalvarConfiguracao.disabled = true;
-
-  /*
-   * O token vai antes do resto: se o Windows recusar a variável, nada é gravado e a
-   * aba Git fica aberta com o motivo.
-   */
-  if (gitlab) {
-    try {
-      preencherGitlabDaConfiguracao(await api.definirGitlab(gitlab.host, gitlab.token));
-    } catch (erro) {
-      selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGit);
-      exibirErro(elementos.erroConfiguracao, erro.message);
-      elementos.botaoSalvarConfiguracao.disabled = false;
-      return;
-    }
-  }
 
   try {
     const salva = await api.salvarConfiguracao({
@@ -6697,9 +6670,48 @@ async function removerTokenDoGitlab() {
     preencherGitlabDaConfiguracao(await api.removerTokenDoGitlab());
     exibirAviso('Token do GitLab removido.');
   } catch (erro) {
-    exibirErro(elementos.erroConfiguracao, erro.message);
+    exibirErro(elementos.erroConfiguracaoAutosync, erro.message);
   } finally {
     elementos.botaoRemoverTokenGitlab.disabled = false;
+  }
+}
+
+/** A engrenagem da aba Git AutoSync: o host e o token do GitLab que o MR usa. */
+async function abrirConfiguracaoDoAutosync() {
+  limparErro(elementos.erroConfiguracaoAutosync);
+  preencherGitlabDaConfiguracao({ host: '', tokenDefinido: false });
+  try {
+    preencherGitlabDaConfiguracao(await api.lerGitlab());
+  } catch (erro) {
+    exibirAviso(`Não foi possível ler o token do GitLab: ${erro.message}`, 'erro');
+    return;
+  }
+  elementos.modalConfiguracaoAutosync.showModal();
+  elementos.campoGitlabHost.focus();
+}
+
+async function salvarConfiguracaoDoAutosync(evento) {
+  evento.preventDefault();
+  const gitlab = lerGitlabDaConfiguracao();
+  if (!gitlab) {
+    elementos.modalConfiguracaoAutosync.close();
+    return;
+  }
+  if (gitlab.host === '') {
+    exibirErro(elementos.erroConfiguracaoAutosync, 'Informe o host do GitLab junto com o token.');
+    return;
+  }
+
+  limparErro(elementos.erroConfiguracaoAutosync);
+  elementos.botaoSalvarConfiguracaoAutosync.disabled = true;
+  try {
+    preencherGitlabDaConfiguracao(await api.definirGitlab(gitlab.host, gitlab.token));
+    elementos.modalConfiguracaoAutosync.close();
+    exibirAviso('Configurações do Git AutoSync salvas.');
+  } catch (erro) {
+    exibirErro(elementos.erroConfiguracaoAutosync, erro.message);
+  } finally {
+    elementos.botaoSalvarConfiguracaoAutosync.disabled = false;
   }
 }
 
@@ -6791,9 +6803,6 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false 
   elementos.botaoVisualizacaoLembretes.hidden = !funcionalidadeVisivel('lembretes');
   elementos.botaoVisualizacaoContatos.hidden = !funcionalidadeVisivel('contatos');
   elementos.botaoVisualizacaoAutosync.hidden = !funcionalidadeVisivel('autosync');
-
-  elementos.abaConfiguracaoGit.hidden =
-    !funcionalidadeVisivel('autosync') && !funcionalidadeVisivel('cliente.autosync');
 
   const repositoriosVisiveis = funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS);
   elementos.botaoFiltros.hidden = !repositoriosVisiveis;
@@ -8865,7 +8874,7 @@ const ALERTA_DA_AGENDA_PADRAO = {
   intervaloMinutos: 120,
   incluirProximoDiaUtil: false,
   repetirAteResolver: false,
-  enviarEmail: true,
+  enviarEmail: false,
 };
 
 const LIMITE_DO_CONTADOR_DE_NOTIFICACOES = 99;
@@ -10769,9 +10778,7 @@ function criarBlocoDeCorrecaoDoAutosync(caminho, { mensagem, sugestoes }) {
 
     if (sugestao.acao === 'configurar-gitlab') {
       acoesExtras.push(
-        criarBotao('btn tiny', 'Abrir Configurações › Git', () =>
-          abrirConfiguracaoPendente('gitlab'),
-        ),
+        criarBotao('btn tiny', 'Configurar o GitLab', () => abrirConfiguracaoPendente('gitlab')),
       );
     }
     if (sugestao.acao === 'politica') {
@@ -10844,7 +10851,7 @@ function criarAvisoDeAutosyncNaoInstalado() {
     criarElemento(
       'p',
       null,
-      'O Git AutoSync não está instalado nesta máquina. Instale pela aba Git do menu principal.',
+      'O Git AutoSync não está instalado nesta máquina. Instale pela aba Git AutoSync do menu principal.',
     ),
   );
   return aviso;
@@ -11819,6 +11826,12 @@ function registrarEventosDoAutosync() {
   );
   elementos.botaoAtualizarAutosync.append(criarIcone(ICONES.recarregar));
   elementos.botaoAtualizarAutosync.addEventListener('click', () => recarregarAutosync());
+  elementos.botaoConfiguracaoAutosync.append(criarIcone(ICONES.engrenagem));
+  elementos.botaoConfiguracaoAutosync.addEventListener('click', abrirConfiguracaoDoAutosync);
+  elementos.formularioConfiguracaoAutosync.addEventListener('submit', salvarConfiguracaoDoAutosync);
+  elementos.botaoCancelarConfiguracaoAutosync.addEventListener('click', () =>
+    elementos.modalConfiguracaoAutosync.close(),
+  );
   elementos.botaoSobreAutosync.append(criarIcone(ICONES.info));
   elementos.botaoSobreAutosync.addEventListener('click', () =>
     elementos.modalSobreAutosync.showModal(),
@@ -11957,9 +11970,6 @@ function registrarEventos() {
     ),
   );
   elementos.botaoTestarSmtp.addEventListener('click', testarSmtp);
-  elementos.abaConfiguracaoGit.addEventListener('click', () =>
-    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGit),
-  );
   elementos.abaConfiguracaoIa.addEventListener('click', () => {
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoIa);
     void carregarAssistentesDeIa();
@@ -12283,8 +12293,10 @@ async function iniciar() {
   void exibirVersaoNoRodape();
   void exibirAvisoDeVersaoNova();
 
+  let clientesCarregados = false;
   try {
     await recarregarClientes();
+    clientesCarregados = true;
   } catch (erro) {
     exibirAviso(`Não foi possível carregar os clientes: ${erro.message}`, 'erro');
   }
@@ -12303,6 +12315,15 @@ async function iniciar() {
   } catch {
     // Sem a configuração, vale o padrão — não é motivo para outro aviso na tela.
     definirExecucaoAutomatica(INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S);
+  }
+
+  // Cadastro vazio é a primeira abertura: começa pelos clientes e, quem acessa o
+  // Sankhya, pelas credenciais. Falha ao ler não conta como vazio.
+  if (clientesCarregados && estado.clientes.length === 0) {
+    alternarVisualizacao('clientes');
+    if (!estado.terceiro) {
+      abrirModalDeCredenciaisSankhya();
+    }
   }
 
   renderizarListaDeAtalhos();

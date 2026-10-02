@@ -3286,6 +3286,14 @@ button.selo-situacao:focus-visible {
   align-items: end;
 }
 
+/* Assistente, modelo e raciocínio da aba IA, um ao lado do outro. */
+.grade-tres-colunas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 12px;
+  align-items: end;
+}
+
 .opcoes-do-alerta {
   display: grid;
   gap: 4px;
@@ -3691,7 +3699,7 @@ button.selo-situacao:focus-visible {
   color: var(--accent);
 }
 
-/* Situação do token e o botão de remover, na mesma linha da aba Git das configurações. */
+/* Situação do token e o botão de remover, na mesma linha, nas configurações do Git AutoSync. */
 .linha-do-token-gitlab {
   display: flex;
   align-items: center;

@@ -542,6 +542,15 @@ export class KanbanDosProjetos {
     ).map(paraDemanda);
   }
 
+  /** O projeto mudou de nome: o kanban dele acompanha. */
+  renomearDoProjeto(clienteId: string, projetoId: string, nome: string): void {
+    for (const demanda of this.demandasDoProjeto(clienteId, projetoId)) {
+      if (demanda.nome !== nome) {
+        this.alterarDemanda(demanda.id, { nome });
+      }
+    }
+  }
+
   /** O projeto foi excluído e o usuário quis manter os kanbans: ficam órfãos no cliente. */
   desvincularDoProjeto(clienteId: string, projetoId: string): void {
     this.#db

@@ -328,7 +328,7 @@ const esquemaDeParametrosDeLinkDeProjeto = esquemaDeParametrosDeProjeto.extend({
  */
 const esquemaDaExclusaoDeProjeto = z.object({
   kanbans: z
-    .enum(['manter', 'excluir'], { error: 'Escolha manter ou excluir os kanbans.' })
+    .enum(['manter', 'excluir'], { error: 'Escolha manter ou excluir o kanban.' })
     .optional(),
 });
 
@@ -336,6 +336,8 @@ const esquemaDaExclusaoDeProjeto = z.object({
 export interface KanbansDoProjeto {
   quantos(idDoCliente: string, idDoProjeto: string): number;
   manterOrfaos(idDoCliente: string, idDoProjeto: string): void;
+  /** O kanban leva o nome do projeto: renomear um renomeia o outro. */
+  renomear(idDoCliente: string, idDoProjeto: string, nome: string): void;
   excluir(idDoCliente: string, idDoProjeto: string): void;
 }
 
@@ -891,11 +893,13 @@ export function registrarRotasDeClientes(
     }
 
     try {
-      return await repositorio.atualizarProjeto(
+      const projeto = await repositorio.atualizarProjeto(
         parametros.data.id,
         parametros.data.idProjeto,
         dados.data,
       );
+      kanbansDoProjeto?.renomear(parametros.data.id, projeto.id, projeto.nome);
+      return projeto;
     } catch (erro) {
       return responderErroDeDominio(resposta, erro);
     }
@@ -916,7 +920,7 @@ export function registrarRotasDeClientes(
     const quantos = kanbansDoProjeto?.quantos(id, idProjeto) ?? 0;
     if (quantos > 0 && !exclusao.data.kanbans) {
       return resposta.status(409).send({
-        mensagem: 'O projeto tem kanbans. Escolha se eles ficam no cliente ou são excluídos.',
+        mensagem: 'O projeto tem kanban. Escolha se ele fica no cliente ou é excluído.',
         kanbans: quantos,
       });
     }

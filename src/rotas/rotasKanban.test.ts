@@ -66,6 +66,8 @@ async function criarCenario(): Promise<Cenario> {
         kanban.demandasDoProjeto(idDoCliente, idDoProjeto).length,
       manterOrfaos: (idDoCliente, idDoProjeto) =>
         kanban.desvincularDoProjeto(idDoCliente, idDoProjeto),
+      renomear: (idDoCliente, idDoProjeto, nome) =>
+        kanban.renomearDoProjeto(idDoCliente, idDoProjeto, nome),
       excluir: (idDoCliente, idDoProjeto) => kanban.removerDoProjeto(idDoCliente, idDoProjeto),
     },
   );
@@ -170,7 +172,7 @@ describe('rotas do kanban', () => {
     });
     assert.equal(criada.statusCode, 201);
     const demanda = criada.json<DemandaDoKanban>();
-    assert.equal(demanda.nome, 'Escopo do portal');
+    assert.equal(demanda.nome, 'Portal de pedidos');
     assert.equal(demanda.situacao, 'analisando');
     assert.deepEqual(escolhas, [{ assistente: 'auto', modelo: '', raciocinio: '' }]);
 
@@ -325,6 +327,61 @@ describe('rotas do kanban', () => {
 
     assert.equal(vinculada.statusCode, 200);
     assert.equal(vinculada.json<DemandaDoKanban>().projetoId, idDoProjeto);
-    assert.equal(vinculada.json<DemandaDoKanban>().nome, 'Portal antigo');
+    assert.equal(vinculada.json<DemandaDoKanban>().nome, 'Portal de pedidos');
+  });
+
+  it('recusa um segundo kanban no mesmo projeto', async () => {
+    const { servidor, idDoCliente, idDoProjeto } = await criarCenario();
+    const novo = () =>
+      servidor.inject({
+        method: 'POST',
+        url: `/api/clientes/${idDoCliente}/kanbans`,
+        payload: { projetoId: idDoProjeto },
+      });
+
+    assert.equal((await novo()).statusCode, 201);
+    const segundo = await novo();
+
+    assert.equal(segundo.statusCode, 409);
+    assert.equal(segundo.json<{ mensagem: string }>().mensagem, 'Este projeto já tem kanban.');
+  });
+
+  it('renomear o projeto renomeia o kanban dele', async () => {
+    const { servidor, idDoCliente, idDoProjeto, kanban } = await criarCenario();
+    const { id } = (
+      await servidor.inject({
+        method: 'POST',
+        url: `/api/clientes/${idDoCliente}/kanbans`,
+        payload: { projetoId: idDoProjeto },
+      })
+    ).json<DemandaDoKanban>();
+
+    const renomeado = await servidor.inject({
+      method: 'PUT',
+      url: `/api/clientes/${idDoCliente}/projetos/${idDoProjeto}`,
+      payload: { nome: 'Portal B2B' },
+    });
+
+    assert.equal(renomeado.statusCode, 200);
+    assert.equal(kanban.demanda(id).nome, 'Portal B2B');
+  });
+
+  it('kanban com projeto não aceita outro nome', async () => {
+    const { servidor, idDoCliente, idDoProjeto } = await criarCenario();
+    const { id } = (
+      await servidor.inject({
+        method: 'POST',
+        url: `/api/clientes/${idDoCliente}/kanbans`,
+        payload: { projetoId: idDoProjeto },
+      })
+    ).json<DemandaDoKanban>();
+
+    const alterado = await servidor.inject({
+      method: 'PUT',
+      url: `/api/kanban/demandas/${id}`,
+      payload: { nome: 'Outro nome' },
+    });
+
+    assert.equal(alterado.json<DemandaDoKanban>().nome, 'Portal de pedidos');
   });
 });

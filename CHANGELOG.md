@@ -42,8 +42,9 @@ número significa aqui.
 - **Kanban de tarefas nos projetos do cliente.** Com o documento de escopo (`.docx`,
   `.pdf`, `.md` ou `.txt`), o assistente de IA escolhido em **Configurações › IA**
   (Claude Code, Codex, OpenCode, Gemini CLI ou Cursor Agent) decompõe o escopo em
-  tarefas; sem documento, o quadro começa vazio. Cinco colunas, arrastar e soltar,
-  vários kanbans por projeto e lista de verificação em cada tarefa.
+  tarefas; sem documento, o quadro começa vazio. Um kanban por projeto, com o nome
+  dele, criado pelo **+** da seção **Kanban**; cinco colunas, arrastar e soltar e lista
+  de verificação em cada tarefa.
 - As tarefas ficam também num arquivo JSON na pasta do projeto, que o HUB SNK vigia e
   importa de volta, e num servidor MCP para agentes de IA. O quadro se atualiza sozinho
   quando o arquivo, o MCP ou a IA o mudam.
@@ -52,6 +53,15 @@ número significa aqui.
 
 ### Alterado
 
+- **Primeira abertura**: com o cadastro de clientes vazio, o HUB SNK abre na aba
+  **Clientes** e, para quem não é Terceiro, já com a janela de **Credenciais Sankhya**
+  aberta.
+- **Aba Git passa a se chamar Git AutoSync**, e o host e o token do GitLab saem de
+  **Configurações › Git** para a engrenagem no canto superior direito da aba.
+- **Configurações › IA**: assistente, modelo e nível de raciocínio lado a lado.
+- **Alerta da agenda nasce sem e-mail**: em **Configurações › Avisos**, **Enviar por
+  e-mail** vem desmarcado numa instalação nova. Quem já salvou a configuração mantém o
+  que escolheu.
 - **Sem o cartão abaixo do sino**: a notificação nova não abre mais o cartão que sumia
   sozinho no canto do Painel. Ela chega pelo aviso do Windows, pelo contador e pelo sino
   piscando, com o mesmo som.

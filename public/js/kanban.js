@@ -129,10 +129,6 @@ export function descreverArquivo(arquivo) {
   return arquivo.erro ? `${frase} Atenção: ${arquivo.erro}` : frase;
 }
 
-function nomeSemExtensao(nome) {
-  return nome.replace(/\.[^.]+$/, '').trim();
-}
-
 function lerArquivoEmBase64(arquivo) {
   return new Promise((resolver, rejeitar) => {
     const leitor = new FileReader();
@@ -213,10 +209,6 @@ export function iniciarKanban(dependencias) {
     modoVazio: el('campo-kanban-modo-vazio'),
     blocoArquivo: el('bloco-kanban-arquivo'),
     campoArquivo: el('campo-kanban-arquivo'),
-    blocoProjeto: el('bloco-kanban-projeto'),
-    campoProjeto: el('campo-kanban-projeto'),
-    blocoNome: el('bloco-kanban-nome'),
-    campoNome: el('campo-kanban-nome'),
     blocoPasta: el('bloco-kanban-pasta'),
     campoPasta: el('campo-kanban-pasta'),
     botaoEscolherPasta: el('btn-kanban-escolher-pasta'),
@@ -229,6 +221,7 @@ export function iniciarKanban(dependencias) {
     modalEditar: el('modal-kanban-editar'),
     formularioEditar: el('formulario-kanban-editar'),
     subtituloEditar: el('subtitulo-kanban-editar'),
+    blocoEditarNome: el('bloco-kanban-editar-nome'),
     campoEditarNome: el('campo-kanban-editar-nome'),
     campoEditarProjeto: el('campo-kanban-editar-projeto'),
     campoEditarPasta: el('campo-kanban-editar-pasta'),
@@ -283,7 +276,6 @@ export function iniciarKanban(dependencias) {
     textoExclusaoProjeto: el('texto-kanban-exclusao-projeto'),
     campoManter: el('campo-kanban-exclusao-manter'),
     campoExcluirJunto: el('campo-kanban-exclusao-excluir'),
-    listaRenomear: el('lista-kanban-exclusao-renomear'),
     erroExclusaoProjeto: el('erro-kanban-exclusao-projeto'),
     botaoConfirmarExclusaoProjeto: el('btn-confirmar-kanban-exclusao-projeto'),
     botaoCancelarExclusaoProjeto: el('btn-cancelar-kanban-exclusao-projeto'),
@@ -414,11 +406,6 @@ export function iniciarKanban(dependencias) {
     const tarefas = tarefasDasDemandas(cliente.id, [demanda]);
     const progresso = progressoDasTarefas(tarefas);
 
-    const nome = criarBotao('nome-recurso link-kanban', demanda.nome, () =>
-      abrirQuadro(cliente, demanda.projetoId || null, demanda.id),
-    );
-    nome.title = 'Abrir o quadro';
-
     const detalhes = criarElemento('div', 'detalhes-kanban');
     detalhes.append(criarSeloDeSituacao(demanda));
     if (demanda.mcp) {
@@ -447,7 +434,15 @@ export function iniciarKanban(dependencias) {
     detalhes.append(criarElemento('span', 'texto-auxiliar', partes.join(' · ')));
 
     const informacoes = criarElemento('div', 'recurso-info');
-    informacoes.append(nome, detalhes);
+    // Com projeto, o nome do kanban é o do projeto, já escrito no card: só a órfã o mostra.
+    if (!demanda.projetoId) {
+      const nome = criarBotao('nome-recurso link-kanban', demanda.nome, () =>
+        abrirQuadro(cliente, null, demanda.id),
+      );
+      nome.title = 'Abrir o quadro';
+      informacoes.append(nome);
+    }
+    informacoes.append(detalhes);
     if (demanda.situacao === 'falhou' && demanda.erro) {
       informacoes.append(criarElemento('p', 'erro-kanban', demanda.erro));
     }
@@ -473,7 +468,7 @@ export function iniciarKanban(dependencias) {
     linhaDeAcoes.append(
       criarBotaoDeIcone(
         'btn tiny',
-        ICONES.importar,
+        ICONES.exportar,
         demanda.documento ? 'Trocar o documento' : 'Inserir documento para gerar as tarefas',
         () => abrirNovo(cliente, { anexarA: demanda }),
       ),
@@ -502,22 +497,12 @@ export function iniciarKanban(dependencias) {
     return [criarElemento('p', 'secao-vazia', 'Carregando kanbans…')];
   }
 
-  /** A seção "Kanbans" dentro do card do projeto. */
+  /** A seção "Kanban" dentro do card do projeto: um kanban por projeto. */
   function criarSecaoDoProjeto(cliente, projeto) {
     carregar(cliente.id);
     return criarSecaoViva('secao-recursos secao-kanbans', () => {
       const cabecalho = criarElemento('div', 'secao-cabecalho');
-      cabecalho.append(criarElemento('h3', null, 'Kanbans'));
-      const botoes = criarElemento('div', 'recurso-acoes-linha');
-      botoes.append(
-        criarBotao('btn tiny', 'Inserir documento', () =>
-          abrirNovo(cliente, { projetoId: projeto.id, modo: 'documento' }),
-        ),
-        criarBotao('btn tiny', 'Kanban sem documento', () =>
-          abrirNovo(cliente, { projetoId: projeto.id, modo: 'vazio' }),
-        ),
-      );
-      cabecalho.append(botoes);
+      cabecalho.append(criarElemento('h3', null, 'Kanban'));
 
       if (!dadosDoCliente(cliente.id)) {
         return [cabecalho, ...conteudoEnquantoCarrega(cliente)];
@@ -525,27 +510,24 @@ export function iniciarKanban(dependencias) {
 
       const demandas = demandasDoProjeto(cliente.id, projeto.id);
       if (demandas.length === 0) {
+        cabecalho.append(
+          criarBotaoDeIcone('btn tiny primario', ICONES.mais, 'Novo kanban', () =>
+            abrirNovo(cliente, { projetoId: projeto.id }),
+          ),
+        );
         return [
           cabecalho,
           criarElemento(
             'p',
             'secao-vazia',
-            'Nenhum kanban. Insira o documento de escopo para a IA gerar as tarefas, ou crie um kanban vazio.',
+            'Nenhum kanban. Crie no +: com o documento de escopo, a IA gera as tarefas.',
           ),
         ];
       }
 
       const lista = criarElemento('div', 'lista-recursos');
       lista.append(...demandas.map((demanda) => criarLinhaDeKanban(cliente, demanda)));
-      const conteudo = [cabecalho, lista];
-      if (demandas.length > 1) {
-        conteudo.push(
-          criarBotao('btn tiny ghost', 'Abrir todos os kanbans do projeto', () =>
-            abrirQuadro(cliente, projeto.id, TODAS_AS_DEMANDAS),
-          ),
-        );
-      }
-      return conteudo;
+      return [cabecalho, lista];
     });
   }
 
@@ -995,8 +977,14 @@ export function iniciarKanban(dependencias) {
 
   // --- novo kanban e documento ------------------------------------------------------
 
+  /** Projeto que já tem kanban fica desabilitado: cada projeto tem um só. */
   function preencherProjetos(campo, cliente, selecionado, comVazio) {
-    const opcoes = cliente.projetos.map((projeto) => new Option(projeto.nome, projeto.id));
+    const opcoes = cliente.projetos.map((projeto) => {
+      const opcao = new Option(projeto.nome, projeto.id);
+      opcao.disabled =
+        projeto.id !== selecionado && demandasDoProjeto(cliente.id, projeto.id).length > 0;
+      return opcao;
+    });
     if (comVazio) {
       opcoes.unshift(new Option('Sem projeto (escolha um para vincular)', ''));
     }
@@ -1010,11 +998,6 @@ export function iniciarKanban(dependencias) {
     elementos.blocoArquivo.hidden = !comDocumento;
     elementos.blocoAnalisar.hidden = !comDocumento;
     elementos.blocoPasta.hidden = comDocumento || anexando;
-    elementos.blocoProjeto.hidden = anexando;
-    elementos.blocoNome.hidden = anexando;
-    elementos.campoNome.placeholder = comDocumento
-      ? 'Em branco, o nome do arquivo'
-      : 'Em branco, o nome do projeto';
     elementos.botaoSalvarNovo.textContent = comDocumento
       ? elementos.campoAnalisar.checked
         ? 'Enviar e gerar tarefas'
@@ -1023,11 +1006,11 @@ export function iniciarKanban(dependencias) {
   }
 
   /**
-   * `projetoId` e `modo` vêm do botão do projeto; `anexarA` é o kanban que recebe (ou
-   * troca) o documento, quando o pedido sai da linha de um kanban.
+   * `projetoId` é o do projeto cujo + foi clicado: o kanban é sempre dele. `anexarA` é o
+   * kanban que recebe (ou troca) o documento, quando o pedido sai da linha de um kanban.
    */
-  function abrirNovo(cliente, { projetoId = null, modo = 'documento', anexarA = null } = {}) {
-    novoEmAndamento = { cliente, anexarA };
+  function abrirNovo(cliente, { projetoId = null, modo = 'vazio', anexarA = null } = {}) {
+    novoEmAndamento = { cliente, anexarA, projetoId };
     limparErro(elementos.erroNovo);
     elementos.formularioNovo.reset();
 
@@ -1037,17 +1020,16 @@ export function iniciarKanban(dependencias) {
         : 'Inserir documento'
       : 'Novo kanban';
     elementos.subtituloNovo.textContent = anexarA
-      ? `${anexarA.nome}: as tarefas que já saíram do Backlog continuam no quadro.`
+      ? 'As tarefas que já saíram do Backlog continuam no quadro.'
       : 'Com o documento de escopo, a IA gera as tarefas. Sem ele, o quadro começa vazio.';
     elementos.grupoModo.hidden = Boolean(anexarA);
     elementos.modoDocumento.checked = anexarA ? true : modo === 'documento';
     elementos.modoVazio.checked = !elementos.modoDocumento.checked;
-    preencherProjetos(elementos.campoProjeto, cliente, projetoId ?? cliente.projetos[0]?.id, false);
     elementos.campoAnalisar.checked = true;
     aplicarModoDoNovo();
 
     elementos.modalNovo.showModal();
-    (elementos.modoDocumento.checked ? elementos.campoArquivo : elementos.campoNome).focus();
+    (elementos.modoDocumento.checked ? elementos.campoArquivo : elementos.campoPasta).focus();
   }
 
   function arquivoEscolhido() {
@@ -1064,7 +1046,7 @@ export function iniciarKanban(dependencias) {
   async function salvarNovo(evento) {
     evento.preventDefault();
     if (!novoEmAndamento) return;
-    const { cliente, anexarA } = novoEmAndamento;
+    const { cliente, anexarA, projetoId } = novoEmAndamento;
     const comDocumento = elementos.modoDocumento.checked;
     const analisar = comDocumento && elementos.campoAnalisar.checked;
 
@@ -1077,10 +1059,6 @@ export function iniciarKanban(dependencias) {
       }
       documento = { nome: arquivo.name, conteudoBase64: await lerArquivoEmBase64(arquivo) };
     }
-    if (!anexarA && !elementos.campoProjeto.value) {
-      exibirErro(elementos.erroNovo, 'Cadastre um projeto antes de criar o kanban.');
-      return;
-    }
 
     limparErro(elementos.erroNovo);
     elementos.botaoSalvarNovo.disabled = true;
@@ -1089,10 +1067,8 @@ export function iniciarKanban(dependencias) {
       if (anexarA) {
         demanda = await api.anexarDocumento(anexarA.id, { ...documento, analisar });
       } else {
-        const nome = elementos.campoNome.value.trim();
         demanda = await api.criar(cliente.id, {
-          projetoId: elementos.campoProjeto.value,
-          ...(nome ? { nome } : {}),
+          projetoId,
           ...(comDocumento
             ? { documento, analisar }
             : { pasta: elementos.campoPasta.value.trim() }),
@@ -1149,8 +1125,9 @@ export function iniciarKanban(dependencias) {
     edicaoEmAndamento = { cliente, demanda };
     limparErro(elementos.erroEditar);
     elementos.subtituloEditar.textContent = demanda.projetoId
-      ? 'Nome, projeto e pasta do arquivo de tarefas.'
+      ? 'Projeto e pasta do arquivo de tarefas.'
       : 'Este kanban está sem projeto: vincule a um projeto ou dê um nome que o identifique.';
+    elementos.blocoEditarNome.hidden = Boolean(demanda.projetoId);
     elementos.campoEditarNome.value = demanda.nome;
     preencherProjetos(elementos.campoEditarProjeto, cliente, demanda.projetoId, !demanda.projetoId);
     elementos.campoEditarPasta.value = demanda.pasta;
@@ -1162,24 +1139,25 @@ export function iniciarKanban(dependencias) {
       ? `Documento: ${demanda.documento.nome}`
       : '';
     elementos.modalEditar.showModal();
-    elementos.campoEditarNome.focus();
+    (demanda.projetoId ? elementos.campoEditarProjeto : elementos.campoEditarNome).focus();
   }
 
   async function salvarEdicao(evento) {
     evento.preventDefault();
     if (!edicaoEmAndamento) return;
     const { cliente, demanda } = edicaoEmAndamento;
+    const projetoId = elementos.campoEditarProjeto.value;
+    // Vinculado a um projeto, o nome passa a ser o dele; quem aplica é o backend.
     const nome = elementos.campoEditarNome.value.trim();
-    if (!nome) {
+    if (!projetoId && !nome) {
       exibirErro(elementos.erroEditar, 'Informe o nome do kanban.');
       return;
     }
-    const projetoId = elementos.campoEditarProjeto.value;
     limparErro(elementos.erroEditar);
     elementos.botaoSalvarEditar.disabled = true;
     try {
       await api.alterar(demanda.id, {
-        nome,
+        ...(projetoId ? {} : { nome }),
         pasta: elementos.campoEditarPasta.value.trim(),
         ...(projetoId ? { projetoId } : {}),
       });
@@ -1227,7 +1205,7 @@ export function iniciarKanban(dependencias) {
   function pedirExclusaoDeKanban(demanda) {
     dependencias.pedirExclusao(
       'Excluir kanban',
-      `Excluir o kanban "${demanda.nome}" com as ${tarefasDasDemandas(cache.idDoCliente, [demanda]).length} tarefas e o documento? Esta ação não pode ser desfeita.`,
+      `Excluir o kanban com as ${tarefasDasDemandas(cache.idDoCliente, [demanda]).length} tarefas e o documento? Esta ação não pode ser desfeita.`,
       () => api.excluir(demanda.id),
       'Kanban excluído.',
       recarregar,
@@ -1288,37 +1266,18 @@ export function iniciarKanban(dependencias) {
       return;
     }
 
-    exclusaoDeProjetoPendente = { cliente, projeto, demandas };
+    exclusaoDeProjetoPendente = { cliente, projeto };
     limparErro(elementos.erroExclusaoProjeto);
-    elementos.textoExclusaoProjeto.textContent = `O projeto "${projeto.nome}" tem ${demandas.length === 1 ? '1 kanban' : `${demandas.length} kanbans`}. O que fazer com ${demandas.length === 1 ? 'ele' : 'eles'}?`;
+    elementos.textoExclusaoProjeto.textContent = `O projeto "${projeto.nome}" tem kanban. O que fazer com ele?`;
     elementos.campoManter.checked = true;
-    elementos.listaRenomear.replaceChildren(
-      ...demandas.map((demanda) => {
-        const campo = criarElemento('div', 'campo');
-        const rotulo = criarElemento('label', null, `Novo nome de "${demanda.nome}"`);
-        const entrada = criarElemento('input');
-        entrada.type = 'text';
-        entrada.maxLength = 120;
-        entrada.autocomplete = 'off';
-        entrada.id = `campo-kanban-renomear-${demanda.id}`;
-        entrada.dataset.id = String(demanda.id);
-        // Sugestão que diz de onde o kanban veio, já que o projeto vai sumir.
-        entrada.value =
-          demanda.nome === projeto.nome ? `${demanda.nome} (projeto excluído)` : demanda.nome;
-        rotulo.htmlFor = entrada.id;
-        campo.append(rotulo, entrada);
-        return campo;
-      }),
-    );
     aplicarEscolhaDaExclusao();
     elementos.modalExclusaoProjeto.showModal();
   }
 
   function aplicarEscolhaDaExclusao() {
-    elementos.listaRenomear.hidden = !elementos.campoManter.checked;
     elementos.botaoConfirmarExclusaoProjeto.textContent = elementos.campoManter.checked
-      ? 'Excluir projeto e manter kanbans'
-      : 'Excluir projeto e kanbans';
+      ? 'Excluir projeto e manter kanban'
+      : 'Excluir projeto e kanban';
   }
 
   async function confirmarExclusaoDeProjeto() {
@@ -1326,29 +1285,15 @@ export function iniciarKanban(dependencias) {
     const { cliente, projeto } = exclusaoDeProjetoPendente;
     const manter = elementos.campoManter.checked;
 
-    const novosNomes = [...elementos.listaRenomear.querySelectorAll('input')].map((entrada) => ({
-      id: Number(entrada.dataset.id),
-      nome: entrada.value.trim(),
-    }));
-    if (manter && novosNomes.some((item) => !item.nome)) {
-      exibirErro(elementos.erroExclusaoProjeto, 'Informe o nome de cada kanban que vai ficar.');
-      return;
-    }
-
     limparErro(elementos.erroExclusaoProjeto);
     elementos.botaoConfirmarExclusaoProjeto.disabled = true;
     try {
-      if (manter) {
-        for (const { id, nome } of novosNomes) {
-          if (nome !== demandaPorId(id)?.nome) await api.alterar(id, { nome });
-        }
-      }
       await api.excluirProjeto(cliente.id, projeto.id, manter ? 'manter' : 'excluir');
       elementos.modalExclusaoProjeto.close();
       exibirAviso(
         manter
-          ? 'Projeto excluído. Os kanbans estão em "Kanbans sem projeto".'
-          : 'Projeto e kanbans excluídos.',
+          ? 'Projeto excluído. O kanban está em "Kanbans sem projeto".'
+          : 'Projeto e kanban excluídos.',
       );
       await dependencias.recarregarClientes();
       await carregar(cliente.id, { forcar: true });
@@ -1488,12 +1433,6 @@ export function iniciarKanban(dependencias) {
   elementos.modoDocumento.addEventListener('change', aplicarModoDoNovo);
   elementos.modoVazio.addEventListener('change', aplicarModoDoNovo);
   elementos.campoAnalisar.addEventListener('change', aplicarModoDoNovo);
-  elementos.campoArquivo.addEventListener('change', () => {
-    const arquivo = elementos.campoArquivo.files?.[0];
-    if (arquivo && !elementos.campoNome.value.trim()) {
-      elementos.campoNome.value = nomeSemExtensao(arquivo.name);
-    }
-  });
   elementos.botaoEscolherPasta.addEventListener('click', () =>
     escolherPasta(elementos.campoPasta, elementos.erroNovo),
   );

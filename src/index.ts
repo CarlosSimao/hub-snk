@@ -159,6 +159,8 @@ async function iniciarServidor(): Promise<void> {
         kanbanDosProjetos.demandasDoProjeto(idDoCliente, idDoProjeto).length,
       manterOrfaos: (idDoCliente, idDoProjeto) =>
         kanbanDosProjetos.desvincularDoProjeto(idDoCliente, idDoProjeto),
+      renomear: (idDoCliente, idDoProjeto, nome) =>
+        kanbanDosProjetos.renomearDoProjeto(idDoCliente, idDoProjeto, nome),
       excluir: (idDoCliente, idDoProjeto) =>
         kanbanDosProjetos.removerDoProjeto(idDoCliente, idDoProjeto),
     },

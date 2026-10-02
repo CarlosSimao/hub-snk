@@ -345,7 +345,7 @@ Function PerfilPaginaCriar
   Pop $CheckLembretes
   ${NSD_CreateCheckbox} 6u 105u 40% 10u "Contatos"
   Pop $CheckContatos
-  ${NSD_CreateCheckbox} 6u 116u 40% 10u "Git"
+  ${NSD_CreateCheckbox} 6u 116u 40% 10u "Git AutoSync"
   Pop $CheckGit
 
   ${NSD_CreateGroupBox} 52% 50u 48% 90u "Cadastro do cliente"

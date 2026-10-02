@@ -377,6 +377,7 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     assert.equal(configuracao.alertaDaAgenda.intervaloMinutos, 120);
     assert.equal(configuracao.alertaDaAgenda.incluirProximoDiaUtil, false);
     assert.equal(configuracao.alertaDaAgenda.repetirAteResolver, false);
+    assert.equal(configuracao.alertaDaAgenda.enviarEmail, false);
   });
 
   it('lê o alerta da agenda gravado com a tolerância das versões anteriores', async () => {

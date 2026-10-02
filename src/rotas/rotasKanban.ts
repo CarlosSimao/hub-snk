@@ -137,8 +137,6 @@ const esquemaDaPasta = z
 
 const esquemaDeNovaDemanda = z.object({
   projetoId: z.string().uuid('Escolha o projeto do kanban.'),
-  /* Ausente: o nome do arquivo sem extensão, ou o do projeto quando não há documento. */
-  nome: esquemaDoNome.optional(),
   pasta: esquemaDaPasta.default(''),
   documento: esquemaDeDocumento.optional(),
   /* Com documento, já dispara a análise: é o que a tela faz logo depois do upload. */
@@ -146,6 +144,7 @@ const esquemaDeNovaDemanda = z.object({
 });
 
 const esquemaDeAlteracaoDeDemanda = z.object({
+  /* Só vale para kanban sem projeto: com projeto, o nome é sempre o dele. */
   nome: esquemaDoNome.optional(),
   projetoId: z.string().uuid('Projeto inválido.').optional(),
   pasta: esquemaDaPasta.optional(),
@@ -283,9 +282,8 @@ function conferirPasta(pasta: string): void {
   }
 }
 
-function nomeSemExtensao(nome: string): string {
-  return nome.replace(/\.[^.]+$/, '').trim();
-}
+/* Cada projeto tem um kanban só: o nome dele é o do projeto, e a tela não o repete. */
+const MENSAGEM_DE_PROJETO_COM_KANBAN = 'Este projeto já tem kanban.';
 
 export function registrarRotasDeKanban(
   servidor: FastifyInstance,
@@ -306,6 +304,10 @@ export function registrarRotasDeKanban(
 
   async function clienteOuNada(id: string): Promise<Cliente | undefined> {
     return clientes.buscarPorId(id);
+  }
+
+  function projetoTemKanban(idDoCliente: string, idDoProjeto: string): boolean {
+    return kanban.demandasDoProjeto(idDoCliente, idDoProjeto).length > 0;
   }
 
   function exigirForaDeAnalise(idDemanda: number, acao: string): void {
@@ -422,15 +424,16 @@ export function registrarRotasDeKanban(
       if (!projeto) {
         return resposta.status(404).send({ mensagem: 'Projeto não encontrado.' });
       }
+      if (projetoTemKanban(cliente.id, projeto.id)) {
+        return resposta.status(409).send({ mensagem: MENSAGEM_DE_PROJETO_COM_KANBAN });
+      }
 
       try {
         conferirPasta(dados.data.pasta);
         const documento = dados.data.documento ? lerDocumento(dados.data.documento) : undefined;
-        const nome =
-          dados.data.nome ?? (documento ? nomeSemExtensao(documento.nome) : projeto.nome);
         const demanda = kanban.criarDemanda(cliente.id, {
           projetoId: projeto.id,
-          nome: nome || projeto.nome,
+          nome: projeto.nome,
           pasta: dados.data.pasta,
           ...(documento ? { documento } : {}),
         });
@@ -456,13 +459,21 @@ export function registrarRotasDeKanban(
 
     try {
       const atual = kanban.demanda(parametros.data.idDemanda);
-      const { projetoId, nome, pasta } = dados.data;
+      const { projetoId, pasta } = dados.data;
+      let { nome } = dados.data;
       // Só projeto do mesmo cliente: senão o kanban sumiria de um cadastro e apareceria em outro.
-      if (projetoId !== undefined) {
+      if (projetoId !== undefined && projetoId !== atual.projetoId) {
         const cliente = await clienteOuNada(atual.clienteId);
-        if (!cliente?.projetos.some((projeto) => projeto.id === projetoId)) {
+        const projeto = cliente?.projetos.find((item) => item.id === projetoId);
+        if (!projeto) {
           return resposta.status(404).send({ mensagem: 'Projeto não encontrado neste cliente.' });
         }
+        if (projetoTemKanban(atual.clienteId, projeto.id)) {
+          return resposta.status(409).send({ mensagem: MENSAGEM_DE_PROJETO_COM_KANBAN });
+        }
+        nome = projeto.nome;
+      } else if (atual.projetoId) {
+        nome = undefined;
       }
       if (pasta !== undefined) {
         conferirPasta(pasta);

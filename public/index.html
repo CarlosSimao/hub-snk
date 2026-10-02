@@ -92,7 +92,7 @@
             role="tab"
             aria-selected="false"
           >
-            Git
+            Git AutoSync
           </button>
         </div>
         <!-- O ícone de lupa é montado pelo app.js. -->
@@ -362,6 +362,14 @@
               id="btn-atualizar-autosync"
               title="Atualizar"
               aria-label="Atualizar"
+            ></button>
+            <!-- O ícone de engrenagem é montado pelo app.js. -->
+            <button
+              class="btn ghost botao-icone"
+              type="button"
+              id="btn-configuracao-autosync"
+              title="Configurações do Git AutoSync"
+              aria-label="Configurações do Git AutoSync"
             ></button>
           </div>
         </div>
@@ -1064,16 +1072,6 @@
           </button>
           <button
             class="aba"
-            id="aba-configuracao-git"
-            type="button"
-            role="tab"
-            aria-selected="false"
-            aria-controls="painel-configuracao-git"
-          >
-            Git
-          </button>
-          <button
-            class="aba"
             id="aba-configuracao-ia"
             type="button"
             role="tab"
@@ -1543,73 +1541,6 @@
 
           <div
             class="painel-aba"
-            id="painel-configuracao-git"
-            role="tabpanel"
-            aria-labelledby="aba-configuracao-git"
-            hidden
-          >
-            <fieldset class="grupo-de-acessos">
-              <legend>
-                Token do GitLab
-                <span class="dica" tabindex="0"
-                  >?<span class="dica-texto" role="tooltip"
-                    >Usado pelo Git AutoSync para criar Merge Request. Fica nas variáveis de
-                    ambiente do seu usuário do Windows (GIT_AUTOSYNC_GITLAB_TOKEN e
-                    GIT_AUTOSYNC_GITLAB_HOST), não no arquivo de dados do HUB SNK.</span
-                  ></span
-                >
-              </legend>
-
-              <div class="campo">
-                <label for="campo-gitlab-host">Host do GitLab</label>
-                <input
-                  id="campo-gitlab-host"
-                  type="text"
-                  maxlength="255"
-                  autocomplete="off"
-                  spellcheck="false"
-                  placeholder="Ex.: gitlab.empresa.com.br"
-                />
-              </div>
-
-              <div class="campo">
-                <label for="campo-gitlab-token">
-                  Token <span class="opcional">escopo api</span>
-                </label>
-                <div class="campo-com-botao">
-                  <input
-                    id="campo-gitlab-token"
-                    type="password"
-                    maxlength="500"
-                    autocomplete="new-password"
-                    spellcheck="false"
-                  />
-                  <!-- O ícone de olho é montado pelo app.js. -->
-                  <button
-                    class="btn ghost botao-icone"
-                    id="btn-ver-token-gitlab"
-                    type="button"
-                    title="Mostrar token"
-                    aria-label="Mostrar token"
-                  ></button>
-                </div>
-              </div>
-
-              <div class="linha-do-token-gitlab">
-                <p class="texto-auxiliar" id="situacao-token-gitlab"></p>
-                <button class="btn tiny danger" type="button" id="btn-remover-token-gitlab">
-                  Remover token
-                </button>
-              </div>
-              <p class="texto-auxiliar">
-                O token gravado nunca é mostrado: deixe o campo em branco para manter o atual. A
-                bandeja do Git AutoSync já aberta só enxerga o token novo depois de reaberta.
-              </p>
-            </fieldset>
-          </div>
-
-          <div
-            class="painel-aba"
             id="painel-configuracao-ia"
             role="tabpanel"
             aria-labelledby="aba-configuracao-ia"
@@ -1627,14 +1558,22 @@
                 >
               </legend>
 
-              <div class="campo">
-                <label for="campo-assistente-ia">Assistente</label>
-                <select id="campo-assistente-ia"></select>
-              </div>
+              <div class="grade-tres-colunas">
+                <div class="campo">
+                  <label for="campo-assistente-ia">Assistente</label>
+                  <select id="campo-assistente-ia"></select>
+                </div>
 
-              <div class="campo">
-                <label for="campo-modelo-ia">Modelo</label>
-                <select id="campo-modelo-ia"></select>
+                <div class="campo">
+                  <label for="campo-modelo-ia">Modelo</label>
+                  <select id="campo-modelo-ia"></select>
+                </div>
+                <div class="campo" id="bloco-raciocinio-ia" hidden>
+                  <label for="campo-raciocinio-ia" title="Mais alto pensa mais e demora mais"
+                    >Nível de raciocínio</label
+                  >
+                  <select id="campo-raciocinio-ia"></select>
+                </div>
               </div>
 
               <div class="campo" id="bloco-modelo-ia-outro" hidden>
@@ -1647,14 +1586,6 @@
                   spellcheck="false"
                   placeholder="O nome exato que o assistente aceita no --model"
                 />
-              </div>
-
-              <div class="campo" id="bloco-raciocinio-ia" hidden>
-                <label for="campo-raciocinio-ia"
-                  >Nível de raciocínio
-                  <span class="opcional">mais alto pensa mais e demora mais</span></label
-                >
-                <select id="campo-raciocinio-ia"></select>
               </div>
 
               <div class="linha-do-token-gitlab">
@@ -1726,7 +1657,7 @@
                 <input type="checkbox" data-funcionalidade="contatos" /> Contatos
               </label>
               <label class="campo-checkbox">
-                <input type="checkbox" data-funcionalidade="autosync" /> Git
+                <input type="checkbox" data-funcionalidade="autosync" /> Git AutoSync
               </label>
             </fieldset>
 
@@ -2492,12 +2423,12 @@
           <fieldset class="grupo-de-acessos" id="grupo-kanban-modo">
             <legend>Como começar</legend>
             <label class="campo-checkbox">
-              <input type="radio" name="modo-kanban" id="campo-kanban-modo-documento" checked />
+              <input type="radio" name="modo-kanban" id="campo-kanban-modo-documento" />
               Com o documento de escopo
             </label>
             <label class="campo-checkbox">
-              <input type="radio" name="modo-kanban" id="campo-kanban-modo-vazio" /> Sem documento,
-              com o quadro vazio
+              <input type="radio" name="modo-kanban" id="campo-kanban-modo-vazio" checked /> Sem
+              documento, com o quadro vazio
             </label>
           </fieldset>
 
@@ -2506,16 +2437,6 @@
               >Documento <span class="opcional">.docx, .pdf, .md ou .txt, até 20 MB</span></label
             >
             <input id="campo-kanban-arquivo" type="file" accept=".docx,.pdf,.md,.markdown,.txt" />
-          </div>
-
-          <div class="campo" id="bloco-kanban-projeto">
-            <label for="campo-kanban-projeto">Projeto</label>
-            <select id="campo-kanban-projeto"></select>
-          </div>
-
-          <div class="campo" id="bloco-kanban-nome">
-            <label for="campo-kanban-nome">Nome do kanban</label>
-            <input id="campo-kanban-nome" type="text" maxlength="120" autocomplete="off" />
           </div>
 
           <div class="campo" id="bloco-kanban-pasta">
@@ -2561,7 +2482,7 @@
         </div>
 
         <div class="modal-corpo">
-          <div class="campo">
+          <div class="campo" id="bloco-kanban-editar-nome">
             <label for="campo-kanban-editar-nome">Nome do kanban</label>
             <input
               id="campo-kanban-editar-nome"
@@ -2787,17 +2708,16 @@
       </div>
       <div class="modal-corpo">
         <fieldset class="grupo-de-acessos">
-          <legend>Kanbans do projeto</legend>
+          <legend>Kanban do projeto</legend>
           <label class="campo-checkbox">
             <input type="radio" name="exclusao-kanban" id="campo-kanban-exclusao-manter" checked />
             Manter no cliente, em "Kanbans sem projeto"
           </label>
           <label class="campo-checkbox">
             <input type="radio" name="exclusao-kanban" id="campo-kanban-exclusao-excluir" />
-            Excluir junto, com as tarefas e os documentos
+            Excluir junto, com as tarefas e o documento
           </label>
         </fieldset>
-        <div id="lista-kanban-exclusao-renomear"></div>
         <p class="erro-formulario" id="erro-kanban-exclusao-projeto" hidden></p>
       </div>
       <div class="modal-rodape">
@@ -2897,7 +2817,9 @@
               />
             </div>
           </div>
-          <p class="texto-auxiliar">Só GitLab. O host e o token ficam em Configurações › Git.</p>
+          <p class="texto-auxiliar">
+            Só GitLab. O host e o token ficam na engrenagem da aba Git AutoSync.
+          </p>
 
           <p class="erro-formulario" id="erro-autosync-mr" hidden></p>
         </div>
@@ -3067,7 +2989,87 @@
       </form>
     </dialog>
 
-    <!-- Sobre o Git AutoSync: o ícone de informação do cabeçalho da aba Git. -->
+    <!-- Configurações do Git AutoSync: a engrenagem do cabeçalho da aba Git AutoSync. -->
+    <dialog class="modal" id="modal-autosync-configuracao">
+      <form method="dialog" id="formulario-autosync-configuracao" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Configurações do Git AutoSync</h2>
+        </div>
+
+        <div class="modal-corpo">
+          <fieldset class="grupo-de-acessos">
+            <legend>
+              Token do GitLab
+              <span class="dica" tabindex="0"
+                >?<span class="dica-texto" role="tooltip"
+                  >Usado pelo Git AutoSync para criar Merge Request. Fica nas variáveis de ambiente
+                  do seu usuário do Windows (GIT_AUTOSYNC_GITLAB_TOKEN e GIT_AUTOSYNC_GITLAB_HOST),
+                  não no arquivo de dados do HUB SNK.</span
+                ></span
+              >
+            </legend>
+
+            <div class="campo">
+              <label for="campo-gitlab-host">Host do GitLab</label>
+              <input
+                id="campo-gitlab-host"
+                type="text"
+                maxlength="255"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Ex.: gitlab.empresa.com.br"
+              />
+            </div>
+
+            <div class="campo">
+              <label for="campo-gitlab-token">
+                Token <span class="opcional">escopo api</span>
+              </label>
+              <div class="campo-com-botao">
+                <input
+                  id="campo-gitlab-token"
+                  type="password"
+                  maxlength="500"
+                  autocomplete="new-password"
+                  spellcheck="false"
+                />
+                <!-- O ícone de olho é montado pelo app.js. -->
+                <button
+                  class="btn ghost botao-icone"
+                  id="btn-ver-token-gitlab"
+                  type="button"
+                  title="Mostrar token"
+                  aria-label="Mostrar token"
+                ></button>
+              </div>
+            </div>
+
+            <div class="linha-do-token-gitlab">
+              <p class="texto-auxiliar" id="situacao-token-gitlab"></p>
+              <button class="btn tiny danger" type="button" id="btn-remover-token-gitlab">
+                Remover token
+              </button>
+            </div>
+            <p class="texto-auxiliar">
+              O token gravado nunca é mostrado: deixe o campo em branco para manter o atual. A
+              bandeja do Git AutoSync já aberta só enxerga o token novo depois de reaberta.
+            </p>
+          </fieldset>
+          <p class="erro-formulario" id="erro-autosync-configuracao" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-autosync-configuracao">
+            Cancelar
+          </button>
+          <button class="btn primario" type="submit" id="btn-salvar-autosync-configuracao">
+            Salvar
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Sobre o Git AutoSync: o ícone de informação do cabeçalho da aba Git AutoSync. -->
     <dialog class="modal" id="modal-autosync-sobre">
       <div class="modal-cabecalho">
         <h2>Git AutoSync</h2>
@@ -3081,9 +3083,9 @@
           a sua política de arquivos e de branches.
         </p>
         <p>
-          No HUB SNK, a aba Git mostra o estado de cada repositório, os horários, o log e as ações
-          de commit, push, sincronização e merge request. Ele também tem ícone na bandeja, linha de
-          comando e skill para agentes de IA.
+          No HUB SNK, a aba Git AutoSync mostra o estado de cada repositório, os horários, o log e
+          as ações de commit, push, sincronização e merge request. Ele também tem ícone na bandeja,
+          linha de comando e skill para agentes de IA.
         </p>
         <p>Precisa do Git instalado na máquina.</p>
       </div>
