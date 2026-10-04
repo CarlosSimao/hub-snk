@@ -4169,3 +4169,65 @@ button.selo-situacao:focus-visible {
   color: color-mix(in srgb, var(--marca) 70%, var(--text));
   border-color: color-mix(in srgb, var(--marca) 40%, transparent);
 }
+
+/* ------------------------- relato de problema ---------------------------- */
+
+#modal-relato .campo textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+/* Consentimento do log: a caixa e o texto lado a lado, com o texto podendo quebrar. */
+.opcao-relato {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.opcao-relato input {
+  flex: none;
+  margin-top: 2px;
+}
+
+#btn-previa-relato {
+  align-self: flex-start;
+}
+
+/* O texto exato que seguiria no relato; rola por dentro para não esticar o diálogo. */
+.previa-relato {
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 11.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.previa-relato[hidden],
+.aviso-relato[hidden] {
+  display: none;
+}
+
+.aviso-relato {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text);
+}

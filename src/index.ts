@@ -1,4 +1,5 @@
 import fastifyStatic from '@fastify/static';
+import pacote from '../package.json' with { type: 'json' };
 import Fastify from 'fastify';
 import type { FSWatcher } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -24,6 +25,8 @@ import { VerificadorDaAgendaDoDia } from './notificacoes/verificadorDaAgendaDoDi
 import { registrarAutenticacaoDoPainel } from './rotas/seguranca/autenticacaoDoPainel.ts';
 import { registrarProtecaoDeOrigem } from './rotas/seguranca/protecaoDeOrigem.ts';
 import { registrarRotasDeAtalhos } from './rotas/rotasAtalhos.ts';
+import { registrarRotasDeSuporte } from './rotas/rotasSuporte.ts';
+import { ServicoDeRelatos } from './suporte/servicoDeRelatos.ts';
 import { registrarRotasDeAutosync } from './rotas/rotasAutosync.ts';
 import { registrarRotasDeClientes } from './rotas/rotasClientes.ts';
 import { registrarRotasDeConfiguracao } from './rotas/rotasConfiguracao.ts';
@@ -185,6 +188,21 @@ async function iniciarServidor(): Promise<void> {
   registrarRotasDeGit(servidor, repositorioDeClientes, repositorioDeConfiguracao);
   registrarRotasDeLocal(servidor, repositorioLocal, repositorioDeConfiguracao);
   registrarRotasDeAtalhos(servidor, repositorioDeConfiguracao);
+
+  /*
+   * O id da instalação e a fila de relatos ficam ao lado da pasta de log, que é local
+   * da máquina. A pasta de dados não serve: ela pode estar num Drive sincronizado, e
+   * duas máquinas passariam a dividir o mesmo id.
+   */
+  const servicoDeRelatos = new ServicoDeRelatos({
+    endereco: configuracao.enderecoDoSuporte,
+    pastaDeLog: configuracao.pastaDeLog,
+    pastaDeEstado: join(configuracao.pastaDeLog, '..', 'suporte'),
+    versaoDoAplicativo: pacote.version,
+    lerPerfil: async () => (await repositorioDeConfiguracao.ler()).perfil,
+    registrador: registradorDasNotificacoes,
+  });
+  registrarRotasDeSuporte(servidor, servicoDeRelatos);
   registrarRotasDeAutosync(
     servidor,
     new ServicoDoAutosync({
@@ -263,6 +281,8 @@ async function iniciarServidor(): Promise<void> {
 
   agendadorDeLembretes.iniciar();
   verificadorDaAgenda.iniciar();
+  // Relatos que ficaram sem enviar (sem rede, suporte fora do ar) saem agora.
+  void servicoDeRelatos.reenviarPendentes();
   // Importa o que os agentes mudaram nos arquivos de tarefas enquanto o HUB SNK estava fechado.
   void arquivoDeTarefas.iniciar();
 

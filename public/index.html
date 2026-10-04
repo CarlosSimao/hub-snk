@@ -1726,21 +1726,14 @@
               <h3 class="bloco-sobre-titulo">Ajuda e Sugestões</h3>
               <div class="bloco-sobre-corpo em-linhas">
                 <span
-                  >Issue GitHub:
-                  <a
-                    class="rodape-link"
-                    href="https://github.com/CarlosSimao/hub-snk/issues/new/choose"
-                    target="_blank"
-                    rel="noreferrer"
-                    >Reportar Problema</a
-                  ></span
+                  >Encontrou um problema ou tem uma ideia? Envie direto daqui, sem precisar de conta
+                  em lugar nenhum.</span
                 >
-                <span
-                  >E-mail:
-                  <a class="rodape-link" href="mailto:carlos.snuk@gmail.com"
-                    >carlos.snuk@gmail.com</a
-                  ></span
-                >
+                <span>
+                  <button class="btn primario" type="button" id="btn-reportar-problema">
+                    Reportar problema ou sugerir
+                  </button>
+                </span>
               </div>
             </section>
           </div>
@@ -3148,6 +3141,76 @@
     <!-- Popover para subir à camada superior junto com os modais: ver `exibirAviso`. -->
     <div class="avisos" id="avisos" aria-live="polite" popover="manual"></div>
 
+    <dialog class="modal largo" id="modal-relato">
+      <form method="dialog" id="formulario-relato" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Reportar problema ou sugerir</h2>
+          <p>
+            O relato é enviado ao suporte do HUB SNK e só é lido por quem mantém o aplicativo. Nada
+            sai da sua máquina antes de você clicar em Enviar.
+          </p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo">
+            <label for="campo-tipo-relato">Tipo</label>
+            <select id="campo-tipo-relato">
+              <option value="BUG">Problema</option>
+              <option value="SUGESTAO">Sugestão de melhoria</option>
+              <option value="DUVIDA">Dúvida</option>
+              <option value="ELOGIO">Elogio</option>
+              <option value="OUTRO">Outro</option>
+            </select>
+          </div>
+
+          <div class="campo">
+            <label for="campo-mensagem-relato">O que aconteceu?</label>
+            <textarea
+              id="campo-mensagem-relato"
+              rows="6"
+              maxlength="5000"
+              placeholder="Conte o que você estava fazendo, o que esperava e o que aconteceu."
+            ></textarea>
+          </div>
+
+          <div class="campo">
+            <label for="campo-email-relato">E-mail para resposta (opcional)</label>
+            <input
+              id="campo-email-relato"
+              type="email"
+              maxlength="200"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Deixe em branco para enviar sem identificação"
+            />
+          </div>
+
+          <label class="opcao-relato" for="campo-incluir-log-relato">
+            <input id="campo-incluir-log-relato" type="checkbox" checked />
+            <span
+              >Incluir o log de diagnóstico e os dados técnicos (versão do HUB SNK e do Windows).
+              Tokens, senhas, e-mails e o nome da sua conta do Windows são mascarados antes do
+              envio. O log pode citar nomes de clientes e de servidores.</span
+            >
+          </label>
+
+          <button class="btn ghost" type="button" id="btn-previa-relato">
+            Ver o que será enviado
+          </button>
+          <pre class="previa-relato" id="previa-relato" hidden></pre>
+
+          <p class="aviso-relato" id="aviso-relato" hidden></p>
+          <p class="erro-formulario" id="erro-relato" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-relato">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-enviar-relato">Enviar</button>
+        </div>
+      </form>
+    </dialog>
+
     <script src="/js/app.js" type="module"></script>
+    <script src="/js/relatoDeProblema.js" type="module"></script>
   </body>
 </html>

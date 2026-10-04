@@ -1,7 +1,14 @@
 # Como pedir alguma coisa
 
 Este projeto é mantido por uma pessoa só, e o código é escrito só por ela.
-**Não abra pull request** — ele não será revisado. Tudo entra por aqui:
+**Não abra pull request** — ele não será revisado.
+
+O caminho mais curto é **dentro do próprio aplicativo**: em Configurações › Sobre, o
+botão **Reportar problema ou sugerir** envia o relato direto ao mantenedor, em
+privado, já com a versão e, se você deixar marcado, o log de diagnóstico mascarado.
+Não precisa de conta no GitHub.
+
+Quem preferir o GitHub usa os canais abaixo:
 
 | Para                                                      | Onde                                                                                          |
 | --------------------------------------------------------- | --------------------------------------------------------------------------------------------- |

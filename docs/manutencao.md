@@ -215,6 +215,10 @@ que já existe.
   Gerenciador de Tarefas, e o `sankhya.db` fica sem `-wal` na pasta de dados.
 - O `backend.log` e o `desktop.log`, em `%APPDATA%\HUB SNK\log`, não trazem erro
   nem senha, token ou cookie em texto puro.
+- Em Configurações › Sobre, **Reportar problema ou sugerir** abre o diálogo; **Ver o
+  que será enviado** mostra os dados técnicos e o log sem token, senha, e-mail nem o
+  nome da conta do Windows; **Enviar** responde "Relato enviado". Com a rede
+  desligada, a resposta é que o relato ficou guardado, e ele sai na abertura seguinte.
 
 ### Testando a atualização automática
 
@@ -242,6 +246,37 @@ Para testar também a migração da marca do Git AutoSync, instale antes a últi
 oficial com o Git AutoSync marcado e rode a `2.0.1` por cima com ele desmarcado: a marca
 tem de aparecer em `%LOCALAPPDATA%\HubSnk\git-autosync-instalado-pelo-hub.txt`, e a
 desinstalação no fim tem de perguntar se remove o Git AutoSync.
+
+## Relato de problema
+
+Configurações › Sobre › **Reportar problema ou sugerir** envia o relato ao suporte do
+mantenedor (`src/suporte/`, `src/rotas/rotasSuporte.ts`, `public/js/relatoDeProblema.js`).
+É o único ponto do aplicativo que manda dado do usuário para fora da máquina.
+
+O que segue no relato, e só quando o usuário clica em Enviar:
+
+| Dado                            | Observação                                                                                                              |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Tipo e texto                    | O que ele escreveu.                                                                                                     |
+| E-mail                          | Só se ele preencher.                                                                                                    |
+| Dados técnicos                  | Versão do HUB SNK, do Windows, arquitetura e perfil.                                                                    |
+| Identificador da instalação     | UUID aleatório, criado no primeiro relato em `%APPDATA%\HUB SNK\suporte`. Não identifica a pessoa; nunca viaja sozinho. |
+| Log de diagnóstico (se marcado) | Os últimos 512 KB do `desktop.log` e do `backend.log`, mascarados e compactados.                                        |
+
+O mascaramento (`src/suporte/mascaramento.ts`) roda na coleta, sobre os dois arquivos, e
+tira token, JWT, senha, cabeçalho de autorização, e-mail e o nome da conta do Windows
+nos caminhos. **Nome de cliente e de servidor não são mascarados** — não há como
+reconhecê-los —, e a tela avisa isso antes do envio.
+
+Sem rede, o relato fica em `%APPDATA%\HUB SNK\suporte\relatos-pendentes` e é reenviado na
+abertura seguinte, com o mesmo identificador, então não é registrado duas vezes. O
+suporte limita os envios por instalação e por IP.
+
+O endereço de destino é fixo no código (`src/configuracao.ts`). `HUB_ENDERECO_DO_SUPORTE`
+troca o destino para testar sem enviar nada de verdade.
+
+Os dois logs passam a ser **rotacionados** na abertura do aplicativo: acima de 5 MB o
+arquivo vira `.1` (até `.3`) e um novo começa.
 
 ## Publicando uma versão
 
