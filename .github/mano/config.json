@@ -1,0 +1,13 @@
+{
+  "projeto": "hub-snk",
+  "ci": ["ci.yml"],
+  "protegidos": [
+    "^\\.github/",
+    "^\\.mano/",
+    "(^|/)\\.env",
+    "^desktop/electron-builder\\.yml$",
+    "^desktop/build/",
+    "^desktop/scripts/"
+  ],
+  "migracoes": []
+}

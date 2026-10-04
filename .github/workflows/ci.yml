@@ -3,6 +3,7 @@ name: CI
 # Roda a cada push e a cada pull request. É a rede de segurança do projeto:
 # nada entra na main sem passar por tipos, testes e formatação.
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:

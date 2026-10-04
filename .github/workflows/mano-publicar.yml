@@ -1,0 +1,162 @@
+name: Mano · publicar
+
+# Disparado pelo Mano quando o dono confirma "Publicar" (ou "Descartar") no Telegram.
+#
+# Publicar aqui é gerar uma VERSÃO: a atualização automática a entrega a todas as
+# instalações, e não há como recolher. Por isso o caminho é o mesmo do processo manual
+# (docs/manutencao.md › Publicando uma versão), só que automatizado:
+#
+#   1. confere o pull request e os testes;
+#   2. no próprio branch, sobe o PATCH (raiz e desktop/) e fecha o CHANGELOG;
+#   3. espera os testes do commit novo;
+#   4. faz o merge;
+#   5. cria a tag vX.Y.Z e dispara o workflow de Distribuição, que gera o instalador.
+#
+# O que este caminho NÃO faz é o roteiro de teste de release numa máquina limpa. Use-o
+# para correção pontual; versão com funcionalidade nova segue pelo processo manual.
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Número do pull request
+        required: true
+        type: string
+      acao:
+        description: publicar ou descartar
+        required: true
+        type: choice
+        options: [publicar, descartar]
+      id:
+        description: Identificador do pedido (só para o registro)
+        required: false
+        type: string
+        default: ''
+
+concurrency:
+  group: mano-publicar
+  cancel-in-progress: false
+
+permissions: {}
+
+env:
+  MANO_URL: https://mano.simplifin.app
+  PROJETO: hub-snk
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: read
+      actions: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Conferir o pull request e os testes
+        id: pr
+        uses: actions/github-script@v7
+        env:
+          PR: ${{ inputs.pr }}
+          ACAO: ${{ inputs.acao }}
+          ETAPA: conferir
+        with:
+          script: |
+            const publicar = require('./.github/mano/publicar.cjs');
+            await publicar({ github, context, core });
+
+      - uses: actions/checkout@v7
+        if: ${{ steps.pr.outputs.branch != '' }}
+        with:
+          ref: ${{ steps.pr.outputs.branch }}
+
+      - name: Preparar a versão no branch
+        id: versao
+        if: ${{ steps.pr.outputs.branch != '' }}
+        env:
+          TITULO: ${{ steps.pr.outputs.titulo }}
+          BRANCH: ${{ steps.pr.outputs.branch }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOVA="$(node .github/mano/preparar-versao.cjs "$TITULO")"
+          echo "numero=$NOVA" >> "$GITHUB_OUTPUT"
+          git config user.name mano-bot
+          git config user.email mano-bot@users.noreply.github.com
+          git commit -am "chore(release): v$NOVA"
+          git push origin "HEAD:refs/heads/$BRANCH"
+          # Commit feito com o token do workflow não dispara o CI sozinho.
+          gh workflow run ci.yml --ref "$BRANCH"
+          # Dá tempo de o CI aparecer como check do commit novo.
+          sleep 45
+
+      - name: Esperar os testes da versão
+        if: ${{ steps.versao.outputs.numero != '' }}
+        uses: actions/github-script@v7
+        env:
+          PR: ${{ inputs.pr }}
+          ACAO: publicar
+          ETAPA: esperar
+          ESPERA_MINUTOS: '45'
+        with:
+          script: |
+            const publicar = require('./.github/mano/publicar.cjs');
+            await publicar({ github, context, core });
+
+      # A proteção da main exige uma aprovação. Com MANO_MERGE_TOKEN (um token seu, de
+      # administrador) o merge passa; sem ele, este passo falha e o merge fica para você.
+      - name: Fazer o merge
+        id: merge
+        if: ${{ steps.versao.outputs.numero != '' }}
+        uses: actions/github-script@v7
+        env:
+          PR: ${{ inputs.pr }}
+          ACAO: publicar
+          ETAPA: merge
+        with:
+          github-token: ${{ secrets.MANO_MERGE_TOKEN || github.token }}
+          script: |
+            const publicar = require('./.github/mano/publicar.cjs');
+            await publicar({ github, context, core });
+
+      - name: Criar a tag e disparar a Distribuição
+        if: ${{ steps.merge.outputs.feito == 'publicado' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSAO: ${{ steps.versao.outputs.numero }}
+          SHA: ${{ steps.merge.outputs.sha }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/v$VERSAO" -f sha="$SHA" > /dev/null
+          # Tag criada com o token do workflow não dispara a Distribuição sozinha.
+          gh workflow run distribuicao.yml --ref "v$VERSAO"
+
+      - name: Avisar o Mano
+        if: ${{ always() }}
+        env:
+          MANO_CALLBACK_SECRET: ${{ secrets.MANO_CALLBACK_SECRET }}
+          PR: ${{ inputs.pr }}
+          DESCARTADO: ${{ steps.pr.outputs.feito }}
+          PUBLICADO: ${{ steps.merge.outputs.feito }}
+          MOTIVO: ${{ steps.pr.outputs.motivo || steps.merge.outputs.motivo }}
+          VERSAO: ${{ steps.versao.outputs.numero }}
+          SITUACAO: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$DESCARTADO" = "descartado" ]; then
+            STATUS=discarded; DETALHE=""
+          elif [ "$SITUACAO" = "success" ]; then
+            STATUS=published; DETALHE="Versão v$VERSAO criada. O instalador está sendo gerado pelo workflow Distribuição; a atualização automática chega aos usuários quando ele terminar."
+          elif [ "$PUBLICADO" = "publicado" ]; then
+            STATUS=failed; DETALHE="O merge da v$VERSAO foi feito, mas a tag ou a Distribuição falhou. Nenhum instalador foi publicado."
+          elif [ -n "$VERSAO" ]; then
+            STATUS=failed; DETALHE="A versão v$VERSAO foi preparada no pull request, mas o merge não aconteceu: ${MOTIVO:-veja a execução}. Se for a proteção da main, faça o merge você mesmo e crie a tag v$VERSAO."
+          else
+            STATUS=failed; DETALHE="${MOTIVO:-Não foi possível publicar.}"
+          fi
+          [ -n "$MANO_CALLBACK_SECRET" ] || { echo "MANO_CALLBACK_SECRET não definido — sem aviso"; exit 0; }
+          jq -n --arg project "$PROJETO" --argjson pr "$PR" --arg status "$STATUS" --arg detail "$DETALHE" --arg runUrl "$RUN_URL" \
+            '{project: $project, pr: $pr, status: $status, detail: $detail, runUrl: $runUrl}' |
+            curl -fsS -m 20 -X POST "$MANO_URL/intake/v1/deploy" \
+              -H 'content-type: application/json' -H "authorization: Bearer $MANO_CALLBACK_SECRET" \
+              --data-binary @- || echo "não consegui avisar o Mano"
