@@ -13,6 +13,7 @@ import * as cofre from './cofreCredenciais';
 import * as navegador from './navegador';
 import { autoLoginSankhya } from './autoLoginSankhya';
 import type { ConsultorDeAgenda, ResultadoFetch } from './janelaAgendaOculta';
+import { criarOcorrencia, usuarioLogado, type Resultado } from './ocorrencias';
 import type { TabManager } from './tabs';
 
 function lerCorpo(req: IncomingMessage): Promise<string> {
@@ -224,6 +225,43 @@ export function criarBridgeServer(
             return;
           }
           responderConsultaNaGuia(res, await agenda.buscarNegociacoes(codParceiro), 'negociacoes');
+        } catch (err) {
+          responderJson(res, 500, { erro: String(err) });
+        }
+        return;
+      }
+
+      // Ocorrência de agenda (AD_OCOAGE) pela janela oculta — ver `ocorrencias.ts`. Nenhuma
+      // ação aceita CODUSU: o usuário é sempre o da sessão. `criar` GRAVA no ERP.
+      if (req.method === 'POST' && req.url?.startsWith('/ocorrencias/')) {
+        try {
+          const corpo = JSON.parse((await lerCorpo(req)) || '{}') as Record<string, unknown>;
+          const chamar = agenda.chamarNoMge.bind(agenda);
+          const acao = req.url.slice('/ocorrencias/'.length);
+          let resultado: Resultado<unknown>;
+          if (acao === 'usuario') {
+            resultado = await usuarioLogado(chamar);
+          } else if (acao === 'criar') {
+            const esperado = Number(corpo['codusuEsperado']);
+            const criada = await criarOcorrencia(chamar, {
+              dtInicial: String(corpo['dtInicial'] ?? ''),
+              dtFinal: String(corpo['dtFinal'] ?? ''),
+              motivo: String(corpo['motivo'] ?? ''),
+              codusuEsperado: Number.isInteger(esperado) && esperado > 0 ? esperado : null,
+            });
+            resultado = criada.ok ? { ok: true, corpo: { mensagem: criada.corpo } } : criada;
+          } else {
+            responderJson(res, 404, { erro: `ação de ocorrência desconhecida: ${acao}` });
+            return;
+          }
+          if (!resultado.ok) {
+            logEvento('bridge-ocorrencia-falhou', { acao, erro: resultado.erro ?? '' });
+            responderJson(res, 409, { erro: resultado.erro ?? 'falha na ocorrência' });
+            return;
+          }
+          if (acao === 'criar')
+            logEvento('bridge-ocorrencia-criada', { motivo: String(corpo['motivo'] ?? '') });
+          responderJson(res, 200, resultado.corpo);
         } catch (err) {
           responderJson(res, 500, { erro: String(err) });
         }

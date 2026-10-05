@@ -709,6 +709,14 @@ main {
   gap: 8px;
 }
 
+/* Atualizar em cima e Lançar ocorrência no canto inferior direito do cabeçalho da Agenda. */
+.acoes-agenda {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
 /* Título + subtítulo empilhados — diferente de `.detalhe-identidade`, que é só o nome. */
 .detalhe-titulo-com-subtitulo {
   display: flex;

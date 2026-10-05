@@ -13,6 +13,7 @@ import {
 import type { Credenciais } from '../sankhya/credenciais.ts';
 import { SessaoExpiradaError, type Experience } from '../sankhya/experience.ts';
 import { PayloadDeNegociacoesInvalidoError } from '../sankhya/negociacoes.ts';
+import { MOTIVOS_OCORRENCIA, validarNovaOcorrencia } from '../sankhya/ocorrencias.ts';
 import { responderErroDoShell } from './respostasDoShell.ts';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -96,6 +97,35 @@ export function registrarRotasDeAgenda(
       });
     } catch (erro) {
       return responderErroDaConsulta(resposta, erro);
+    }
+  });
+
+  /**
+   * Ocorrência de agenda (férias, folga, atestado...) lançada direto no ERP, pela janela
+   * oculta do shell — ver `src/sankhya/ocorrencias.ts`. Nenhuma rota aceita usuário: vale
+   * o da sessão, e ela tem que ser do `CODUSU` configurado quando há um.
+   */
+  servidor.get('/api/agenda/ocorrencias/motivos', async () => ({ motivos: MOTIVOS_OCORRENCIA }));
+
+  servidor.get('/api/agenda/ocorrencias/usuario', async (_requisicao, resposta) => {
+    try {
+      const usuario = await credenciais.usuarioDaOcorrencia();
+      return { ...usuario, codusuConfigurado: lerCodusuConfigurado(await configuracao.ler()) };
+    } catch (erro) {
+      return responderErroDoShell(resposta, erro);
+    }
+  });
+
+  servidor.post('/api/agenda/ocorrencias', async (requisicao, resposta) => {
+    const validada = validarNovaOcorrencia(requisicao.body as Record<string, unknown> | undefined);
+    if (!validada.ok) return resposta.status(400).send({ mensagem: validada.erro });
+    try {
+      const codusuEsperado = lerCodusuConfigurado(await configuracao.ler());
+      const { mensagem } = await credenciais.criarOcorrencia(validada.ocorrencia, codusuEsperado);
+      requisicao.log.info({ motivo: validada.ocorrencia.motivo }, 'ocorrência criada no ERP');
+      return { mensagem: mensagem || 'Ocorrência criada.' };
+    } catch (erro) {
+      return responderErroDoShell(resposta, erro);
     }
   });
 

@@ -7,6 +7,7 @@
  * (`Experience`). A senha, e só ela, vai ao navegador por `revelarSenha()`:
  * a janela de credenciais a mostra, decisão consciente de quem usa o hub.
  */
+import type { NovaOcorrencia } from './ocorrencias.ts';
 import type { OpcoesDaPonte, PonteDoDesktop } from './ponteDoDesktop.ts';
 import type { SessaoDoDesktop, SessaoEmpurrada } from './sessaoDoDesktop.ts';
 import { SISTEMAS_SANKHYA, type SistemaSankhya, type StatusCredencial } from '../tipos.ts';
@@ -169,6 +170,34 @@ export class Credenciais {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ codParceiro: String(codParceiro) }),
+      },
+      { timeoutMs: TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS },
+    );
+  }
+
+  /** Quem está logado no ERP pela janela oculta — o único em nome de quem se lança ocorrência. */
+  usuarioDaOcorrencia(): Promise<{ codusu: number; nomeusu: string }> {
+    return this.#requisitar<{ codusu: number; nomeusu: string }>(
+      '/ocorrencias/usuario',
+      { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' },
+      { timeoutMs: TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS },
+    );
+  }
+
+  /**
+   * GRAVA no ERP pelo botão "Criar ocorrência". `codusuEsperado` é o CODUSU configurado no
+   * hub: o shell recusa se a sessão for de outro usuário.
+   */
+  criarOcorrencia(
+    nova: NovaOcorrencia,
+    codusuEsperado: number | null,
+  ): Promise<{ mensagem: string }> {
+    return this.#requisitar<{ mensagem: string }>(
+      '/ocorrencias/criar',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...nova, codusuEsperado }),
       },
       { timeoutMs: TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS },
     );

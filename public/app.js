@@ -552,6 +552,16 @@ const elementos = {
   avisoShellAgenda: document.getElementById('aviso-shell-agenda'),
   botaoAtualizarAgenda: document.getElementById('btn-atualizar-agenda'),
   ultimaAtualizacaoAgenda: document.getElementById('ultima-atualizacao-agenda'),
+  botaoLancarOcorrencia: document.getElementById('btn-lancar-ocorrencia'),
+  modalOcorrencia: document.getElementById('modal-ocorrencia'),
+  formularioOcorrencia: document.getElementById('formulario-ocorrencia'),
+  usuarioOcorrencia: document.getElementById('usuario-ocorrencia'),
+  campoInicioOcorrencia: document.getElementById('campo-inicio-ocorrencia'),
+  campoFimOcorrencia: document.getElementById('campo-fim-ocorrencia'),
+  campoMotivoOcorrencia: document.getElementById('campo-motivo-ocorrencia'),
+  erroOcorrencia: document.getElementById('erro-ocorrencia'),
+  botaoCancelarOcorrencia: document.getElementById('btn-cancelar-ocorrencia'),
+  botaoSalvarOcorrencia: document.getElementById('btn-salvar-ocorrencia'),
   mountAgendaGeral: document.getElementById('mount-agenda-geral'),
   avisoShellOs: document.getElementById('aviso-shell-os'),
   botaoAtualizarOs: document.getElementById('btn-atualizar-os'),
@@ -899,6 +909,10 @@ const api = {
     }),
   consultarAgenda: (de, ate) =>
     requisitar('/api/agenda/consultar', { metodo: 'POST', corpo: { de, ate } }),
+  motivosDeOcorrencia: () => requisitar('/api/agenda/ocorrencias/motivos'),
+  usuarioDaOcorrencia: () => requisitar('/api/agenda/ocorrencias/usuario'),
+  lancarOcorrencia: (dados) =>
+    requisitar('/api/agenda/ocorrencias', { metodo: 'POST', corpo: dados }),
   eventosDaAgenda: (de, ate) =>
     requisitar(`/api/agenda/eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`),
   eventosDoClienteNaAgenda: (id, de, ate) =>
@@ -3447,6 +3461,14 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
     get mes() {
       return estadoWidget.mes;
     },
+    get diaSelecionado() {
+      return estadoWidget.diaSelecionado;
+    },
+    /** Leva a grade ao dia (`YYYY-MM-DD`), já selecionado, sem recarregar. */
+    selecionarDia(dia) {
+      estadoWidget.mes = dia.slice(0, 7);
+      estadoWidget.diaSelecionado = dia;
+    },
   };
 }
 
@@ -3501,6 +3523,88 @@ async function atualizarAgendaGeral() {
     widgetAgendaGeral.elementoStatus.textContent = statusAntes ?? '';
   } finally {
     elementos.botaoAtualizarAgenda.disabled = false;
+  }
+}
+
+/**
+ * Lançar ocorrência de agenda (férias, folga, atestado...) direto no ERP, pela janela
+ * oculta do aplicativo. Sempre para o usuário logado no SankhyaOm: o modal mostra quem é,
+ * e sem identificá-lo o botão Lançar fica travado com o motivo à vista.
+ */
+async function abrirModalDeOcorrencia() {
+  limparErro(elementos.erroOcorrencia);
+  elementos.botaoSalvarOcorrencia.disabled = true;
+  const dia = widgetAgendaGeral.diaSelecionado ?? dataIsoDeHoje();
+  elementos.campoInicioOcorrencia.value = `${dia}T08:00`;
+  elementos.campoFimOcorrencia.value = `${dia}T18:00`;
+  elementos.usuarioOcorrencia.textContent = 'Identificando o usuário logado no SankhyaOm…';
+  elementos.modalOcorrencia.showModal();
+
+  try {
+    if (!elementos.campoMotivoOcorrencia.options.length) {
+      const { motivos } = await api.motivosDeOcorrencia();
+      elementos.campoMotivoOcorrencia.replaceChildren(
+        ...motivos.map((m) => new Option(m.rotulo, m.valor)),
+      );
+      elementos.campoMotivoOcorrencia.value = '15';
+    }
+    const usuario = await api.usuarioDaOcorrencia();
+    if (usuario.codusuConfigurado && usuario.codusuConfigurado !== usuario.codusu) {
+      elementos.usuarioOcorrencia.textContent = 'Lançamento bloqueado.';
+      exibirErro(
+        elementos.erroOcorrencia,
+        `O login salvo do SankhyaOm é de ${usuario.nomeusu} (${usuario.codusu}), mas o seu código ` +
+          `de usuário configurado é ${usuario.codusuConfigurado}. A ocorrência só pode ser lançada ` +
+          'para você mesmo — confira as Credenciais Sankhya.',
+      );
+      return;
+    }
+    elementos.usuarioOcorrencia.textContent = `Para ${usuario.nomeusu} (${usuario.codusu}), direto no SankhyaOm.`;
+    elementos.botaoSalvarOcorrencia.disabled = false;
+  } catch (erro) {
+    elementos.usuarioOcorrencia.textContent =
+      'Não foi possível identificar o usuário do SankhyaOm.';
+    exibirErro(
+      elementos.erroOcorrencia,
+      erro.shellIndisponivel
+        ? 'Lançar ocorrência precisa do aplicativo HUB SNK aberto, com o login do SankhyaOm salvo.'
+        : erro.message,
+    );
+  }
+}
+
+async function salvarOcorrencia(evento) {
+  evento.preventDefault();
+  limparErro(elementos.erroOcorrencia);
+  const inicio = elementos.campoInicioOcorrencia.value;
+  const fim = elementos.campoFimOcorrencia.value;
+  if (!inicio || !fim) {
+    exibirErro(elementos.erroOcorrencia, 'Informe a data inicial e a final.');
+    return;
+  }
+  if (fim <= inicio) {
+    exibirErro(elementos.erroOcorrencia, 'A data final tem que ser depois da inicial.');
+    return;
+  }
+
+  elementos.botaoSalvarOcorrencia.disabled = true;
+  elementos.botaoSalvarOcorrencia.textContent = 'Lançando…';
+  try {
+    const { mensagem } = await api.lancarOcorrencia({
+      inicio,
+      fim,
+      motivo: elementos.campoMotivoOcorrencia.value,
+    });
+    elementos.modalOcorrencia.close();
+    exibirAviso(mensagem);
+    // Leva a grade ao início da ocorrência e busca o mês ao vivo, para ela aparecer.
+    widgetAgendaGeral.selecionarDia(inicio.slice(0, 10));
+    await atualizarAgendaGeral();
+  } catch (erro) {
+    exibirErro(elementos.erroOcorrencia, erro.message);
+    elementos.botaoSalvarOcorrencia.disabled = false;
+  } finally {
+    elementos.botaoSalvarOcorrencia.textContent = 'Lançar';
   }
 }
 
@@ -11665,6 +11769,11 @@ function registrarEventos() {
   registrarEventosDosContatos();
   elementos.botaoAtualizarAgenda.append(criarIcone(ICONES.recarregar));
   elementos.botaoAtualizarAgenda.addEventListener('click', atualizarAgendaGeral);
+  elementos.botaoLancarOcorrencia.addEventListener('click', abrirModalDeOcorrencia);
+  elementos.formularioOcorrencia.addEventListener('submit', salvarOcorrencia);
+  elementos.botaoCancelarOcorrencia.addEventListener('click', () =>
+    elementos.modalOcorrencia.close(),
+  );
   elementos.mountAgendaGeral.append(widgetAgendaGeral.elemento);
   elementos.botaoAtualizarOs.append(criarIcone(ICONES.recarregar));
   elementos.botaoAtualizarOs.addEventListener('click', atualizarOsGeral);
