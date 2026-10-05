@@ -255,14 +255,14 @@ mantenedor (`src/suporte/`, `src/rotas/rotasSuporte.ts`, `public/js/relatoDeProb
 
 O que segue no relato, e só quando o usuário clica em Enviar:
 
-| Dado                            | Observação                                                                                                              |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Tipo e texto                    | O que ele escreveu.                                                                                                     |
-| E-mail                          | Só se ele preencher.                                                                                                    |
-| Dados técnicos                  | Versão do HUB SNK, do Windows, arquitetura e perfil.                                                                    |
-| Nome, empresa e time            | Obrigatórios, preenchidos em Configurações › Geral. Seguem em `context` (`usuario`, `empresa`, `time`) e na prévia.    |
+| Dado                            | Observação                                                                                                                       |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Tipo e texto                    | O que ele escreveu.                                                                                                              |
+| E-mail                          | Só se ele preencher.                                                                                                             |
+| Dados técnicos                  | Versão do HUB SNK, do Windows, arquitetura e perfil.                                                                             |
+| Nome, empresa e time            | Obrigatórios, preenchidos em Configurações › Geral. Seguem em `context` (`usuario`, `empresa`, `time`) e na prévia.              |
 | Identificador da instalação     | UUID aleatório, criado no primeiro relato em `%APPDATA%\HUB SNK\suporte`. Sozinho, não identifica a pessoa; nunca viaja sozinho. |
-| Log de diagnóstico (se marcado) | Os últimos 512 KB do `desktop.log` e do `backend.log`, mascarados e compactados.                                        |
+| Log de diagnóstico (se marcado) | Os últimos 512 KB do `desktop.log` e do `backend.log`, mascarados e compactados.                                                 |
 
 O envio exige os três campos de identificação: sem nome, empresa ou time em
 Configurações, a tela e a rota `POST /api/suporte/relatos` recusam o relato (`400`) e
