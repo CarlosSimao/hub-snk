@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["alterou", "resumo", "observacoes"],
+  "properties": {
+    "alterou": { "type": "boolean" },
+    "resumo": { "type": "string" },
+    "observacoes": { "type": "string" }
+  }
+}

@@ -1,0 +1,148 @@
+name: Mano · corrigir
+
+# Disparado pelo Mano, a pedido do dono (botão "Corrigir" ou /pedir no Telegram).
+# Lê o pedido, altera o código e abre um pull request. Não publica nada.
+on:
+  workflow_dispatch:
+    inputs:
+      id:
+        description: Identificador do pedido (vira o nome do branch mano/<id>)
+        required: true
+        type: string
+      pedido:
+        description: O que o dono pediu
+        required: true
+        type: string
+      contexto:
+        description: Relato do usuário e análise, quando o pedido vem de um ticket
+        required: false
+        type: string
+        default: ''
+      ticket:
+        description: Número do ticket de origem, se houver
+        required: false
+        type: string
+        default: ''
+      pr:
+        description: Pull request a ajustar (vazio = abrir um novo)
+        required: false
+        type: string
+        default: ''
+
+concurrency:
+  group: mano-corrigir-${{ inputs.id }}
+  cancel-in-progress: false
+
+permissions: {}
+
+env:
+  MANO_URL: https://mano.simplifin.app
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Altera o código e devolve um PATCH. Só tem leitura, e o agente não tem shell
+  # nem rede: o máximo que o texto de um ticket consegue induzir aqui é um patch,
+  # que o job seguinte confere antes de aplicar.
+  # ---------------------------------------------------------------------------
+  corrigir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    outputs:
+      resultado: ${{ steps.claude.outputs.structured_output }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Num ajuste, continua do branch do pull request.
+          ref: ${{ inputs.pr != '' && format('mano/{0}', inputs.id) || '' }}
+          persist-credentials: false
+
+      - name: Gravar o pedido
+        env:
+          PEDIDO: ${{ inputs.pedido }}
+          CONTEXTO: ${{ inputs.contexto }}
+        run: |
+          mkdir -p .mano
+          printf '%s' "$PEDIDO" > .mano/pedido.txt
+          printf '%s' "$CONTEXTO" > .mano/contexto.txt
+
+      - name: Preparar o prompt
+        id: prompt
+        run: |
+          {
+            echo 'instrucoes<<FIM_DAS_INSTRUCOES'
+            cat .github/mano/corrigir.md
+            echo
+            echo 'FIM_DAS_INSTRUCOES'
+          } >> "$GITHUB_OUTPUT"
+          echo "schema=$(jq -c . .github/mano/schema.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Alterar o código
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: ${{ steps.prompt.outputs.instrucoes }}
+          # Lê e edita arquivos. Sem shell e sem rede: os testes rodam depois, no CI.
+          claude_args: |
+            --max-turns 120
+            --allowedTools "Read,Grep,Glob,Edit,Write"
+            --disallowedTools "Bash,NotebookEdit,WebFetch,WebSearch,Task"
+            --json-schema '${{ steps.prompt.outputs.schema }}'
+
+      - name: Gerar o patch
+        run: |
+          mkdir -p "$RUNNER_TEMP/mano-artefato"
+          git add -A -- . ':(exclude).mano'
+          git diff --cached --binary > "$RUNNER_TEMP/mano-artefato/mano.patch"
+          git diff --cached --name-only > "$RUNNER_TEMP/mano-artefato/arquivos.txt"
+          echo "arquivos alterados: $(wc -l < "$RUNNER_TEMP/mano-artefato/arquivos.txt")"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mano-artefato
+          path: ${{ runner.temp }}/mano-artefato
+          retention-days: 3
+
+  # ---------------------------------------------------------------------------
+  # Confere o patch, grava no branch mano/<id>, abre o pull request, pede os
+  # testes e avisa o Mano. Roda mesmo se a correção falhar, para o dono saber.
+  # ---------------------------------------------------------------------------
+  abrir-pr:
+    needs: corrigir
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.pr != '' && format('mano/{0}', inputs.id) || '' }}
+
+      - uses: actions/download-artifact@v4
+        if: ${{ needs.corrigir.result == 'success' }}
+        with:
+          name: mano-artefato
+          path: mano-artefato
+
+      - name: Abrir o pull request
+        uses: actions/github-script@v7
+        env:
+          ID: ${{ inputs.id }}
+          PEDIDO: ${{ inputs.pedido }}
+          TICKET: ${{ inputs.ticket }}
+          PR: ${{ inputs.pr }}
+          SITUACAO: ${{ needs.corrigir.result }}
+          RESULTADO: ${{ needs.corrigir.outputs.resultado }}
+          MANO_CALLBACK_SECRET: ${{ secrets.MANO_CALLBACK_SECRET }}
+        with:
+          script: |
+            const abrirPr = require('./.github/mano/abrir-pr.cjs');
+            await abrirPr({ github, context, core });
