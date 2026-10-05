@@ -160,6 +160,27 @@ function lerPastaDoInstalador(): string | null {
   return bruto ? resolve(bruto) : null;
 }
 
+/**
+ * Pasta em que o shell desktop grava `desktop.log` e `backend.log`, repassada por ele.
+ * O relato de problema lê o final dos dois arquivos daqui. Sem o shell (`npm run dev`),
+ * cai numa subpasta dos dados, que simplesmente não terá log para anexar.
+ */
+function lerPastaDeLog(): string {
+  const bruto = process.env.HUB_PASTA_DE_LOG?.trim();
+  return bruto ? resolve(bruto) : join(lerDiretorioDeDados(), 'log');
+}
+
+/**
+ * Endereço que recebe os relatos de problema e sugestões. Fixo: é o destino que o
+ * aviso de privacidade promete. A variável existe para os testes e para apontar um
+ * ambiente de homologação.
+ */
+const ENDERECO_DO_SUPORTE_PADRAO = 'https://mano.simplifin.app/intake/v1/reports/hub-snk';
+
+function lerEnderecoDoSuporte(): string {
+  return process.env.HUB_ENDERECO_DO_SUPORTE?.trim() || ENDERECO_DO_SUPORTE_PADRAO;
+}
+
 export const configuracao = {
   porta: lerPorta(),
   host: lerHost(),
@@ -176,4 +197,6 @@ export const configuracao = {
   pastaDoAutosync: lerPastaDoAutosync(),
   pacoteDoAutosync: lerPacoteDoAutosync(),
   pastaDoInstalador: lerPastaDoInstalador(),
+  pastaDeLog: lerPastaDeLog(),
+  enderecoDoSuporte: lerEnderecoDoSuporte(),
 } as const;

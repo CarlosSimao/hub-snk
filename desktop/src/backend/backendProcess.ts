@@ -37,7 +37,7 @@ import {
   TERCEIRO_INICIAL,
   TZ_PADRAO,
 } from '../config';
-import { logEvento } from '../log';
+import { logEvento, rotacionarLog } from '../log';
 import { garantirToken } from './tokenStore';
 
 /** Quanto esperamos o backend responder `/api/healthz` antes de desistir. */
@@ -72,7 +72,10 @@ function abrirArquivoDeSaida(): WriteStream {
   if (arquivoSaida) return arquivoSaida;
   const pasta = join(app.getPath('userData'), 'log');
   if (!existsSync(pasta)) mkdirSync(pasta, { recursive: true });
-  arquivoSaida = createWriteStream(join(pasta, 'backend.log'), { flags: 'a' });
+  const caminho = join(pasta, 'backend.log');
+  // Antes de abrir: depois de aberto o arquivo fica preso pelo stream e não dá para renomear.
+  rotacionarLog(caminho);
+  arquivoSaida = createWriteStream(caminho, { flags: 'a' });
   return arquivoSaida;
 }
 
@@ -107,6 +110,8 @@ function montarAmbiente(): NodeJS.ProcessEnv {
     TZ: process.env['TZ'] ?? TZ_PADRAO,
     SANKHYA_DESKTOP_BRIDGE_URL: `http://${BRIDGE_HOST}:${BRIDGE_PORT}`,
     DESKTOP_BRIDGE_TOKEN_FILE: ARQUIVO_TOKEN_BRIDGE,
+    // O relato de problema lê o final dos dois arquivos de log desta pasta.
+    HUB_PASTA_DE_LOG: join(app.getPath('userData'), 'log'),
   };
   if (FUNCIONALIDADES_OCULTAS_INICIAIS !== undefined) {
     ambiente['HUB_FUNCIONALIDADES_OCULTAS_INICIAIS'] = FUNCIONALIDADES_OCULTAS_INICIAIS;

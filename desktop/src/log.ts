@@ -3,7 +3,7 @@
  * SSO da Experience carrega o JWT na querystring, então o campo `url` (que não bate em
  * nenhum nome de chave proibido) também precisa ser varrido.
  */
-import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, renameSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { app } from 'electron';
 
@@ -41,12 +41,38 @@ export function origemSemQuery(urlTexto: string): string {
   }
 }
 
+const TAMANHO_PARA_ROTACIONAR_EM_BYTES = 5 * 1024 * 1024;
+const ARQUIVOS_ANTIGOS_MANTIDOS = 3;
+
+/**
+ * Rotação simples, feita uma vez a cada abertura do app: passou de 5 MB, o arquivo vira
+ * `.1` (e o `.1` vira `.2`, até `.3`), e um novo começa vazio. Sem isso os dois logs
+ * cresciam para sempre.
+ *
+ * Feita na abertura, e não durante o uso, porque o `backend.log` fica preso por um
+ * stream enquanto o backend roda — no Windows, arquivo aberto não se renomeia.
+ */
+export function rotacionarLog(caminho: string): void {
+  try {
+    if (!existsSync(caminho) || statSync(caminho).size < TAMANHO_PARA_ROTACIONAR_EM_BYTES) return;
+    rmSync(`${caminho}.${ARQUIVOS_ANTIGOS_MANTIDOS}`, { force: true });
+    for (let numero = ARQUIVOS_ANTIGOS_MANTIDOS - 1; numero >= 1; numero -= 1) {
+      if (existsSync(`${caminho}.${numero}`))
+        renameSync(`${caminho}.${numero}`, `${caminho}.${numero + 1}`);
+    }
+    renameSync(caminho, `${caminho}.1`);
+  } catch {
+    // Rotação é limpeza: se falhar (arquivo em uso, permissão), o log segue no mesmo arquivo.
+  }
+}
+
 let arquivoLog = '';
 function caminhoLog(): string {
   if (!arquivoLog) {
     const pasta = join(app.getPath('userData'), 'log');
     if (!existsSync(pasta)) mkdirSync(pasta, { recursive: true });
     arquivoLog = join(pasta, 'desktop.log');
+    rotacionarLog(arquivoLog);
   }
   return arquivoLog;
 }
