@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.3.1] - 2026-10-05
+
 ### Adicionado
 
 - **Nome, empresa e time em Configurações**: três campos novos na aba Geral. Eles são
@@ -601,6 +603,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.3.0...HEAD
+[2.3.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.2...v2.2.0
