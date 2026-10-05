@@ -7,7 +7,8 @@
  * do CHANGELOG para uma seção com o número e a data.
  *
  * Sempre PATCH: o Mano publica correção. Versão com funcionalidade nova ou mudança de
- * formato de dados (MINOR/MAJOR) continua saindo pelo processo manual.
+ * formato de dados (MINOR/MAJOR) continua saindo pelo processo manual. A parte MAJOR só
+ * sobe por ordem explícita do dono (o projeto fica na linha 2.x.x).
  *
  * Uso: node .github/mano/preparar-versao.cjs "<título do pull request>"
  * Imprime o número novo na saída padrão.
