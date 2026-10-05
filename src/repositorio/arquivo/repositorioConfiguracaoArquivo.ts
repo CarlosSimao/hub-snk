@@ -88,6 +88,9 @@ const CONFIGURACAO_INICIAL: Omit<
   smtp: SMTP_INICIAL,
   alertaDaAgenda: ALERTA_DA_AGENDA_INICIAL,
   assistenteDeIa: ASSISTENTE_DE_IA_INICIAL,
+  nomeDoUsuario: '',
+  empresaDoUsuario: '',
+  timeDoUsuario: '',
 };
 
 /**
@@ -335,6 +338,10 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       smtp: lerSmtp(dados.smtp),
       alertaDaAgenda: lerAlertaDaAgenda(dados.alertaDaAgenda),
       assistenteDeIa: lerAssistenteDeIa(dados.assistenteDeIa),
+      // Idem: arquivo de antes desta versão não tem quem usa o aplicativo.
+      nomeDoUsuario: textoOuPadrao(dados.nomeDoUsuario, '').trim(),
+      empresaDoUsuario: textoOuPadrao(dados.empresaDoUsuario, '').trim(),
+      timeDoUsuario: textoOuPadrao(dados.timeDoUsuario, '').trim(),
       ...lerAcessos(dados, this.#acessosIniciais),
     };
 
@@ -378,6 +385,9 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       assistenteDeIa: configuracao.assistenteDeIa
         ? lerAssistenteDeIa(configuracao.assistenteDeIa)
         : atual.assistenteDeIa,
+      nomeDoUsuario: configuracao.nomeDoUsuario?.trim() ?? atual.nomeDoUsuario,
+      empresaDoUsuario: configuracao.empresaDoUsuario?.trim() ?? atual.empresaDoUsuario,
+      timeDoUsuario: configuracao.timeDoUsuario?.trim() ?? atual.timeDoUsuario,
     };
 
     await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);

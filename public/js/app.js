@@ -660,6 +660,9 @@ const elementos = {
   botaoSalvarCodusu: document.getElementById('btn-salvar-codusu'),
   erroCodusu: document.getElementById('erro-codusu'),
   campoCaminhoExecutavelDaIde: document.getElementById('campo-caminho-executavel-ide'),
+  campoNomeDoUsuario: document.getElementById('campo-nome-do-usuario'),
+  campoEmpresaDoUsuario: document.getElementById('campo-empresa-do-usuario'),
+  campoTimeDoUsuario: document.getElementById('campo-time-do-usuario'),
   botaoSelecionarExecutavelDaIde: document.getElementById('btn-selecionar-executavel-ide'),
   campoCaminhoSchemaMcp: document.getElementById('campo-caminho-schema-mcp'),
   campoConfigMcpHost: document.getElementById('campo-config-mcp-host'),
@@ -6119,6 +6122,9 @@ async function abrirModalDeConfiguracao() {
   elementos.campoDestinoDosLinks.value = DESTINO_DOS_LINKS_PADRAO;
   preencherAtalhosDaConfiguracao([]);
   elementos.campoCaminhoExecutavelDaIde.value = '';
+  elementos.campoNomeDoUsuario.value = '';
+  elementos.campoEmpresaDoUsuario.value = '';
+  elementos.campoTimeDoUsuario.value = '';
   preencherAcessosDaConfiguracao(PERFIL_PADRAO, [], false);
   preencherNotificacoesDaConfiguracao(SMTP_PADRAO, ALERTA_DA_AGENDA_PADRAO);
   exibirResultadoDoTesteDoSmtp(null);
@@ -6136,6 +6142,9 @@ async function abrirModalDeConfiguracao() {
     elementos.campoDestinoDosLinks.value = configuracao.destinoDosLinks ?? DESTINO_DOS_LINKS_PADRAO;
     preencherAtalhosDaConfiguracao(configuracao.atalhos ?? []);
     elementos.campoCaminhoExecutavelDaIde.value = configuracao.caminhoDoExecutavelDaIde ?? '';
+    elementos.campoNomeDoUsuario.value = configuracao.nomeDoUsuario ?? '';
+    elementos.campoEmpresaDoUsuario.value = configuracao.empresaDoUsuario ?? '';
+    elementos.campoTimeDoUsuario.value = configuracao.timeDoUsuario ?? '';
     preencherAcessosDaConfiguracao(
       configuracao.perfil ?? PERFIL_PADRAO,
       configuracao.funcionalidadesOcultas ?? [],
@@ -6373,6 +6382,9 @@ async function salvarConfiguracao(evento) {
       smtp: lerSmtpDaConfiguracao(),
       alertaDaAgenda: lerAlertaDaAgendaDaConfiguracao(),
       assistenteDeIa: lerAssistenteDeIaDaConfiguracao(),
+      nomeDoUsuario: elementos.campoNomeDoUsuario.value.trim(),
+      empresaDoUsuario: elementos.campoEmpresaDoUsuario.value.trim(),
+      timeDoUsuario: elementos.campoTimeDoUsuario.value.trim(),
     });
     elementos.modalConfiguracao.close();
     if (acessosMudaram(salva)) {

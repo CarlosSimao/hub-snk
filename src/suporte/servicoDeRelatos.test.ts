@@ -24,6 +24,8 @@ let pedidos: Pedido[];
 /** O que o "suporte" responde a cada envio: um status HTTP, ou `null` para simular queda de rede. */
 let respostaDoSuporte: number | null;
 let contador = 0;
+/** O que Configurações tem gravado de nome, empresa e time. */
+let identificacao: { nome: string; empresa: string; time: string };
 
 function criarServico(): ServicoDeRelatos {
   return new ServicoDeRelatos({
@@ -32,6 +34,7 @@ function criarServico(): ServicoDeRelatos {
     pastaDeEstado,
     versaoDoAplicativo: '2.4.0',
     lerPerfil: async () => 'consultor',
+    lerIdentificacao: async () => identificacao,
     buscar: (async (url: string | URL | Request, opcoes?: RequestInit) => {
       if (respostaDoSuporte === null) throw new TypeError('fetch failed');
       pedidos.push({
@@ -50,6 +53,7 @@ beforeEach(() => {
   mkdirSync(pastaDeLog, { recursive: true });
   pedidos = [];
   respostaDoSuporte = 201;
+  identificacao = { nome: 'Ana Souza', empresa: 'Acme', time: 'Suporte' };
 });
 
 const fila = () => {
@@ -140,6 +144,9 @@ describe('ServicoDeRelatos', () => {
     const contexto = corpo['context'] as Record<string, string>;
     assert.equal(contexto['appVersion'], '2.4.0');
     assert.equal(contexto['perfil'], 'consultor');
+    assert.equal(contexto['usuario'], 'Ana Souza');
+    assert.equal(contexto['empresa'], 'Acme');
+    assert.equal(contexto['time'], 'Suporte');
 
     const log = gunzipSync(Buffer.from(String(corpo['logGzipBase64']), 'base64')).toString('utf8');
     assert.ok(log.includes('token=[redigido]'));
@@ -210,6 +217,7 @@ describe('ServicoDeRelatos', () => {
       pastaDeLog,
       pastaDeEstado,
       versaoDoAplicativo: '2.4.0',
+      lerIdentificacao: async () => identificacao,
       buscar: (async () =>
         new Response('{}', { status: (chamadas += 1) === 1 ? 400 : 201 })) as typeof fetch,
     });
@@ -263,6 +271,44 @@ describe('rotas de suporte', () => {
     assert.equal(email.statusCode, 400);
     assert.equal(email.json().mensagem, 'E-mail inválido.');
     assert.equal(pedidos.length, 0);
+  });
+
+  it('sem nome, empresa e time o envio é bloqueado e a mensagem aponta o que falta', async () => {
+    const fastify = await servidor();
+    const enviar = () =>
+      fastify.inject({
+        method: 'POST',
+        url: '/api/suporte/relatos',
+        payload: { tipo: 'BUG', mensagem: 'x', incluirLog: false },
+      });
+
+    identificacao = { nome: '', empresa: '   ', time: '' };
+    const todosFaltando = await enviar();
+    assert.equal(todosFaltando.statusCode, 400);
+    assert.equal(
+      todosFaltando.json().mensagem,
+      'Preencha em Configurações antes de enviar: Nome do usuário, Empresa, Time.',
+    );
+
+    identificacao = { nome: 'Ana Souza', empresa: 'Acme', time: ' ' };
+    const soOTimeFaltando = await enviar();
+    assert.equal(soOTimeFaltando.statusCode, 400);
+    assert.equal(
+      soOTimeFaltando.json().mensagem,
+      'Preencha em Configurações antes de enviar: Time.',
+    );
+
+    assert.equal(pedidos.length, 0, 'nada sai sem a identificação');
+    assert.equal(fila().length, 0, 'e também não vai para a fila');
+  });
+
+  it('a prévia mostra nome, empresa e time que seguirão no relato', async () => {
+    const fastify = await servidor();
+    const previa = (await fastify.inject({ method: 'GET', url: '/api/suporte/previa' })).json();
+
+    assert.equal(previa.contexto.usuario, 'Ana Souza');
+    assert.equal(previa.contexto.empresa, 'Acme');
+    assert.equal(previa.contexto.time, 'Suporte');
   });
 
   it('recusa definitiva do suporte vira 422 com a explicação', async () => {

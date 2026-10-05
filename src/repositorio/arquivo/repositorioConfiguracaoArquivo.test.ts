@@ -34,6 +34,36 @@ describe('RepositorioConfiguracaoArquivo', () => {
     assert.equal(configuracao.caminhoDoExecutavelDaIde, '');
     assert.equal(configuracao.experiencePersonId, '');
     assert.equal(configuracao.sankhyaOmCodUsu, '');
+    assert.equal(configuracao.nomeDoUsuario, '');
+    assert.equal(configuracao.empresaDoUsuario, '');
+    assert.equal(configuracao.timeDoUsuario, '');
+  });
+
+  it('grava nome, empresa e time sem espaços sobrando e os preserva quando ausentes', async () => {
+    const base = {
+      scriptPadrao: '',
+      intervaloDeExecucaoAutomaticaSegundos: 30,
+      tempoLimiteSegundos: 5,
+      caminhoDoSchemaMcp: '',
+      atalhos: [],
+      destinoDosLinks: 'hub' as const,
+      caminhoDoExecutavelDaIde: '',
+    };
+    await repositorio.salvar({
+      ...base,
+      nomeDoUsuario: '  Ana Souza ',
+      empresaDoUsuario: ' Acme  ',
+      timeDoUsuario: ' Suporte ',
+    });
+
+    // Uma tela antiga não manda os campos: o que estava gravado fica.
+    await repositorio.salvar(base);
+
+    repositorio.descartarCache();
+    const configuracao = await repositorio.ler();
+    assert.equal(configuracao.nomeDoUsuario, 'Ana Souza');
+    assert.equal(configuracao.empresaDoUsuario, 'Acme');
+    assert.equal(configuracao.timeDoUsuario, 'Suporte');
   });
 
   it('grava dentro do envelope e relê o que gravou', async () => {

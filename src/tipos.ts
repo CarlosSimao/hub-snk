@@ -53,6 +53,11 @@ import type { ConfiguracaoDoAssistenteDeIa } from './kanban/tiposDoKanban.ts';
  * `smtp` é o servidor que envia os e-mails das notificações, e `alertaDaAgenda` liga o
  * aviso de agenda sem tarefa na Experience. A senha do SMTP fica em texto puro neste
  * arquivo, como as senhas das bases no `clientes.json`.
+ *
+ * `nomeDoUsuario`, `empresaDoUsuario` e `timeDoUsuario` dizem quem é a pessoa que usa o
+ * aplicativo. A empresa é a dela (onde trabalha), e não o cadastro de clientes do
+ * Sankhya. Os três são obrigatórios para abrir um relato ao suporte e viajam junto com
+ * ele; fora isso, nada os exige.
  */
 export interface ConfiguracaoGlobal {
   scriptPadrao: string;
@@ -72,6 +77,9 @@ export interface ConfiguracaoGlobal {
   alertaDaAgenda: AlertaDaAgenda;
   /** Quem gera as tarefas do kanban a partir do documento de escopo. */
   assistenteDeIa: ConfiguracaoDoAssistenteDeIa;
+  nomeDoUsuario: string;
+  empresaDoUsuario: string;
+  timeDoUsuario: string;
 }
 
 /**

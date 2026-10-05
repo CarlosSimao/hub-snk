@@ -9,6 +9,13 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- **Nome, empresa e time em Configurações**: três campos novos na aba Geral. Eles são
+  obrigatórios para **Reportar problema ou sugerir**: sem os três preenchidos o envio é
+  bloqueado e a mensagem diz o que falta. Os valores seguem com o relato e aparecem em
+  **Ver o que será enviado**.
+
 ## [2.3.0] - 2026-10-01
 
 ### Adicionado

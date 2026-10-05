@@ -200,6 +200,11 @@ async function iniciarServidor(): Promise<void> {
     pastaDeEstado: join(configuracao.pastaDeLog, '..', 'suporte'),
     versaoDoAplicativo: pacote.version,
     lerPerfil: async () => (await repositorioDeConfiguracao.ler()).perfil,
+    lerIdentificacao: async () => {
+      const { nomeDoUsuario, empresaDoUsuario, timeDoUsuario } =
+        await repositorioDeConfiguracao.ler();
+      return { nome: nomeDoUsuario, empresa: empresaDoUsuario, time: timeDoUsuario };
+    },
     registrador: registradorDasNotificacoes,
   });
   registrarRotasDeSuporte(servidor, servicoDeRelatos);

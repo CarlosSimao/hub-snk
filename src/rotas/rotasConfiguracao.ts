@@ -28,6 +28,7 @@ const INTERVALO_MAXIMO_DE_EXECUCAO_AUTOMATICA_S = 3600;
 const TEMPO_LIMITE_MINIMO_S = 1;
 const TEMPO_LIMITE_MAXIMO_S = 60;
 const TAMANHO_MAXIMO_DO_MODELO = 120;
+const TAMANHO_MAXIMO_DA_IDENTIFICACAO = 120;
 
 /*
  * O id só vem nos atalhos que já estão gravados; o de um atalho novo é gerado
@@ -79,6 +80,16 @@ const esquemaDoAssistenteDeIa = z.object({
     .regex(/^[a-z-]*$/, 'Nível de raciocínio inválido.')
     .default(''),
 });
+
+function esquemaDeIdentificacao(rotulo: string) {
+  return z
+    .string()
+    .trim()
+    .max(
+      TAMANHO_MAXIMO_DA_IDENTIFICACAO,
+      `${rotulo} deve ter no máximo ${TAMANHO_MAXIMO_DA_IDENTIFICACAO} caracteres.`,
+    );
+}
 
 const esquemaDeConfiguracao = z.object({
   scriptPadrao: z
@@ -149,6 +160,10 @@ const esquemaDeConfiguracao = z.object({
   alertaDaAgenda: esquemaDeAlertaDaAgenda.optional(),
   /* Ausente, preserva o assistente escolhido, pelo mesmo motivo dos acessos. */
   assistenteDeIa: esquemaDoAssistenteDeIa.optional(),
+  /* Ausentes, preservam o que está gravado; o preenchimento só é cobrado ao abrir um relato. */
+  nomeDoUsuario: esquemaDeIdentificacao('O nome do usuário').optional(),
+  empresaDoUsuario: esquemaDeIdentificacao('A empresa').optional(),
+  timeDoUsuario: esquemaDeIdentificacao('O time').optional(),
 });
 
 /**
