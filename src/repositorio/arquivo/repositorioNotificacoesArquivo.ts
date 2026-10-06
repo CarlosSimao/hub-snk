@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import type { Notificacao } from '../../tipos.ts';
+import type { Notificacao, TagDeNotificacao } from '../../tipos.ts';
 import {
   gravarArquivoDeDados,
   lerArquivoDeDados,
@@ -27,6 +27,15 @@ interface DadosDoArquivo {
 
 function ehObjeto(valor: unknown): valor is Record<string, unknown> {
   return typeof valor === 'object' && valor !== null && !Array.isArray(valor);
+}
+
+/* Gravadas antes da etiqueta: a agenda era o alerta de OS, e o resto, avulso. */
+function completarEtiqueta(notificacao: Notificacao): Notificacao {
+  if (notificacao.tag) {
+    return notificacao;
+  }
+  const tag: TagDeNotificacao = notificacao.origem === 'agenda' ? 'OS' : 'padrão';
+  return { ...notificacao, tag };
 }
 
 function descartarChavesVencidas(
@@ -65,7 +74,9 @@ export class RepositorioNotificacoesArquivo implements RepositorioNotificacoes {
 
     const corpo = ehObjeto(conteudo.corpo) ? conteudo.corpo : {};
     this.#dados = {
-      lista: Array.isArray(corpo.lista) ? (corpo.lista as Notificacao[]) : [],
+      lista: Array.isArray(corpo.lista)
+        ? (corpo.lista as Notificacao[]).map(completarEtiqueta)
+        : [],
       chavesEmitidas: ehObjeto(corpo.chavesEmitidas)
         ? (corpo.chavesEmitidas as Record<string, string>)
         : {},

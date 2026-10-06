@@ -39,8 +39,8 @@ const esquemaDeRelato = z.object({
  *
  * É a única rota do HUB SNK que manda dado do usuário para fora da máquina, e só o faz
  * quando ele confirma o envio na tela. A prévia existe para ele ver, antes de enviar,
- * exatamente o que seguiria junto. Nome, empresa e time (Configurações) são obrigatórios:
- * sem os três, a rota responde 400 apontando o que falta.
+ * exatamente o que seguiria junto. Nome, empresa, time e e-mail (Configurações) são obrigatórios:
+ * sem os quatro, a rota responde 400 apontando o que falta.
  */
 export function registrarRotasDeSuporte(
   servidor: FastifyInstance,

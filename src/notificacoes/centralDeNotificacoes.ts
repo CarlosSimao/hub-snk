@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { RepositorioNotificacoes } from '../repositorio/repositorioNotificacoes.ts';
-import type { Notificacao, OrigemDeNotificacao } from '../tipos.ts';
+import type { Notificacao, OrigemDeNotificacao, TagDeNotificacao } from '../tipos.ts';
 import type { MensagemDeEmail } from './enviadorDeEmail.ts';
 
 const PREFIXO_DO_ASSUNTO = '[HUB SNK]';
@@ -18,6 +18,8 @@ export interface EntregadorDeEmail {
 
 export interface DadosDeNotificacao {
   origem: OrigemDeNotificacao;
+  /** Sem ela, a notificação sai como `padrão`. */
+  tag?: TagDeNotificacao;
   chave: string;
   titulo: string;
   mensagem: string;
@@ -72,6 +74,7 @@ export class CentralDeNotificacoes {
       const notificacao: Notificacao = {
         id: randomUUID(),
         origem: dados.origem,
+        tag: dados.tag ?? 'padrão',
         chave: dados.chave,
         titulo: dados.titulo,
         mensagem: dados.mensagem,

@@ -16,11 +16,12 @@ export interface DadosDoRelato {
   incluirLog: boolean;
 }
 
-/** Quem usa o aplicativo, como preenchido em Configurações. */
+/** Quem usa o aplicativo (nome, empresa, time e e-mail), como preenchido em Configurações. */
 export interface IdentificacaoDoUsuario {
   nome: string;
   empresa: string;
   time: string;
+  email: string;
 }
 
 export type SituacaoDoRelato = 'enviado' | 'enfileirado';
@@ -48,7 +49,7 @@ export interface OpcoesDoServicoDeRelatos {
   versaoDoAplicativo: string;
   /** Perfil escolhido em Configurações › Acessos, se houver. */
   lerPerfil?: () => Promise<string | undefined>;
-  /** Nome, empresa e time preenchidos em Configurações; todo relato os leva. */
+  /** Nome, empresa, time e e-mail preenchidos em Configurações; todo relato os leva. */
   lerIdentificacao: () => Promise<IdentificacaoDoUsuario>;
   registrador?: { info: (mensagem: string) => void; warn: (mensagem: string) => void };
   buscar?: typeof fetch;
@@ -64,9 +65,9 @@ const MAXIMO_NA_FILA = 20;
  * Envia relatos de problema e sugestões ao suporte.
  *
  * Nada sai da máquina sem a pessoa pedir: só há envio quando ela confirma o relato na
- * tela. Todo relato leva o nome, a empresa e o time dela, e a rota recusa o relato
- * enquanto algum dos três não estiver preenchido em Configurações. Se o envio falhar por rede, o relato fica guardado em disco e é reenviado
- * depois — mesmo `externalId`, então o suporte não registra duas vezes.
+ * tela. Todo relato leva o nome, a empresa, o time e o e-mail dela, e a rota recusa o relato
+ * enquanto algum dos quatro não estiver preenchido em Configurações. Se o envio falhar por
+ * rede, o relato fica guardado em disco e é reenviado depois — mesmo `externalId`, então o suporte não registra duas vezes.
  */
 export class ServicoDeRelatos {
   readonly #opcoes: OpcoesDoServicoDeRelatos;
@@ -101,15 +102,16 @@ export class ServicoDeRelatos {
    * Vazio = pode relatar.
    */
   async camposDeIdentificacaoPendentes(): Promise<string[]> {
-    const { nome, empresa, time } = await this.#opcoes.lerIdentificacao();
+    const { nome, empresa, time, email } = await this.#opcoes.lerIdentificacao();
     const pendentes: string[] = [];
     if (!nome.trim()) pendentes.push('Nome do usuário');
     if (!empresa.trim()) pendentes.push('Empresa');
     if (!time.trim()) pendentes.push('Time');
+    if (!email.trim()) pendentes.push('E-mail');
     return pendentes;
   }
 
-  /** Dados técnicos e a identificação (nome, empresa e time) que acompanham todo relato. */
+  /** Dados técnicos e a identificação (nome, empresa, time e e-mail) que acompanham todo relato. */
   async contexto(): Promise<Record<string, string>> {
     const contexto: Record<string, string> = {
       appVersion: this.#opcoes.versaoDoAplicativo,
@@ -120,10 +122,11 @@ export class ServicoDeRelatos {
     const perfil = await this.#opcoes.lerPerfil?.().catch(() => undefined);
     if (perfil) contexto['perfil'] = perfil;
 
-    const { nome, empresa, time } = await this.#opcoes.lerIdentificacao();
+    const { nome, empresa, time, email } = await this.#opcoes.lerIdentificacao();
     if (nome.trim()) contexto['usuario'] = nome.trim();
     if (empresa.trim()) contexto['empresa'] = empresa.trim();
     if (time.trim()) contexto['time'] = time.trim();
+    if (email.trim()) contexto['email'] = email.trim();
     return contexto;
   }
 

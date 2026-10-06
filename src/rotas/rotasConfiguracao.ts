@@ -164,6 +164,9 @@ const esquemaDeConfiguracao = z.object({
   nomeDoUsuario: esquemaDeIdentificacao('O nome do usuário').optional(),
   empresaDoUsuario: esquemaDeIdentificacao('A empresa').optional(),
   timeDoUsuario: esquemaDeIdentificacao('O time').optional(),
+  emailDoUsuario: esquemaDeIdentificacao('O e-mail')
+    .refine((valor) => valor === '' || z.email().safeParse(valor).success, 'E-mail inválido.')
+    .optional(),
 });
 
 /**

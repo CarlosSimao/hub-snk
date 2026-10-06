@@ -4,7 +4,7 @@
  * Sem dependência do `app.js`: o diálogo só precisa das duas rotas de suporte. É a
  * única tela do HUB SNK que manda algo para fora da máquina, então ela diz isso com
  * todas as letras e deixa a pessoa ver o que seguirá junto antes de enviar. O envio exige
- * nome, empresa e time preenchidos em Configurações, e eles aparecem na prévia.
+ * nome, empresa, time e e-mail preenchidos em Configurações, e eles aparecem na prévia.
  */
 
 const modal = document.getElementById('modal-relato');
@@ -81,7 +81,7 @@ async function alternarPrevia() {
 }
 
 /**
- * Nome, empresa e time vêm de Configurações e são obrigatórios. Devolve os que faltam;
+ * Nome, empresa, time e e-mail vêm de Configurações e são obrigatórios. Devolve os que faltam;
  * se a configuração não puder ser lida, devolve vazio e deixa a rota decidir.
  */
 async function camposDeIdentificacaoPendentes() {
@@ -91,6 +91,7 @@ async function camposDeIdentificacaoPendentes() {
       ['Nome do usuário', configuracao.nomeDoUsuario],
       ['Empresa', configuracao.empresaDoUsuario],
       ['Time', configuracao.timeDoUsuario],
+      ['E-mail', configuracao.emailDoUsuario],
     ]
       .filter(([, valor]) => !String(valor ?? '').trim())
       .map(([rotulo]) => rotulo);

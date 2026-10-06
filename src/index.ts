@@ -201,9 +201,14 @@ async function iniciarServidor(): Promise<void> {
     versaoDoAplicativo: pacote.version,
     lerPerfil: async () => (await repositorioDeConfiguracao.ler()).perfil,
     lerIdentificacao: async () => {
-      const { nomeDoUsuario, empresaDoUsuario, timeDoUsuario } =
+      const { nomeDoUsuario, empresaDoUsuario, timeDoUsuario, emailDoUsuario } =
         await repositorioDeConfiguracao.ler();
-      return { nome: nomeDoUsuario, empresa: empresaDoUsuario, time: timeDoUsuario };
+      return {
+        nome: nomeDoUsuario,
+        empresa: empresaDoUsuario,
+        time: timeDoUsuario,
+        email: emailDoUsuario,
+      };
     },
     registrador: registradorDasNotificacoes,
   });
@@ -240,6 +245,7 @@ async function iniciarServidor(): Promise<void> {
   registrarRotasDeSistema(servidor, {
     arquivoTokenDoDesktop: configuracao.ponteDoDesktopTokenFile,
     encerrar: encerrarOHub,
+    emitirNotificacao: (dados) => centralDeNotificacoes.emitir(dados),
   });
   registrarRotasDeSankhya(
     servidor,

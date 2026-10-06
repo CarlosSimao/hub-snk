@@ -207,6 +207,7 @@ export class VerificadorDaAgendaDoDia {
 
       await this.#dependencias.emitir({
         origem: 'agenda',
+        tag: 'OS',
         chave,
         titulo: 'Agenda sem tarefa na Experience',
         mensagem: `${evento.nomeparc} (${descreverDia(dia, hoje)}, ${descreverHorario(evento)}): nenhuma tarefa nem OS no dia.`,

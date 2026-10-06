@@ -663,6 +663,7 @@ const elementos = {
   campoNomeDoUsuario: document.getElementById('campo-nome-do-usuario'),
   campoEmpresaDoUsuario: document.getElementById('campo-empresa-do-usuario'),
   campoTimeDoUsuario: document.getElementById('campo-time-do-usuario'),
+  campoEmailDoUsuario: document.getElementById('campo-email-do-usuario'),
   botaoSelecionarExecutavelDaIde: document.getElementById('btn-selecionar-executavel-ide'),
   campoCaminhoSchemaMcp: document.getElementById('campo-caminho-schema-mcp'),
   campoConfigMcpHost: document.getElementById('campo-config-mcp-host'),
@@ -2001,11 +2002,18 @@ function criarNomeDeLink(link) {
   return nome;
 }
 
+function criarBotaoDeCopiarLink(link) {
+  return criarBotaoDeIcone('btn tiny ghost', ICONES.copiar, 'Copiar link', () =>
+    copiarParaAreaDeTransferencia(link.url, 'Link copiado.'),
+  );
+}
+
 function criarLinhaDeLink(cliente, link) {
   const informacoes = criarElemento('div', 'recurso-info');
   informacoes.append(criarNomeDeLink(link));
 
   const acoes = criarAcoesDeRecurso({
+    antesDeEditar: [criarBotaoDeCopiarLink(link)],
     rotuloDeEdicao: 'Editar link',
     aoEditar: () => abrirModalDeEdicaoDeLink(cliente, link),
     rotuloDeExclusao: 'Excluir link',
@@ -2034,6 +2042,7 @@ function criarLinhaDeLinkDeProjeto(cliente, projeto, link) {
   informacoes.append(criarNomeDeLink(link));
 
   const acoes = criarAcoesDeRecurso({
+    antesDeEditar: [criarBotaoDeCopiarLink(link)],
     rotuloDeEdicao: 'Editar link',
     aoEditar: () => abrirModalDeEdicaoDeLinkDeProjeto(cliente, projeto, link),
     rotuloDeExclusao: 'Excluir link',
@@ -6125,6 +6134,7 @@ async function abrirModalDeConfiguracao() {
   elementos.campoNomeDoUsuario.value = '';
   elementos.campoEmpresaDoUsuario.value = '';
   elementos.campoTimeDoUsuario.value = '';
+  elementos.campoEmailDoUsuario.value = '';
   preencherAcessosDaConfiguracao(PERFIL_PADRAO, [], false);
   preencherNotificacoesDaConfiguracao(SMTP_PADRAO, ALERTA_DA_AGENDA_PADRAO);
   exibirResultadoDoTesteDoSmtp(null);
@@ -6145,6 +6155,7 @@ async function abrirModalDeConfiguracao() {
     elementos.campoNomeDoUsuario.value = configuracao.nomeDoUsuario ?? '';
     elementos.campoEmpresaDoUsuario.value = configuracao.empresaDoUsuario ?? '';
     elementos.campoTimeDoUsuario.value = configuracao.timeDoUsuario ?? '';
+    elementos.campoEmailDoUsuario.value = configuracao.emailDoUsuario ?? '';
     preencherAcessosDaConfiguracao(
       configuracao.perfil ?? PERFIL_PADRAO,
       configuracao.funcionalidadesOcultas ?? [],
@@ -6385,6 +6396,7 @@ async function salvarConfiguracao(evento) {
       nomeDoUsuario: elementos.campoNomeDoUsuario.value.trim(),
       empresaDoUsuario: elementos.campoEmpresaDoUsuario.value.trim(),
       timeDoUsuario: elementos.campoTimeDoUsuario.value.trim(),
+      emailDoUsuario: elementos.campoEmailDoUsuario.value.trim(),
     });
     elementos.modalConfiguracao.close();
     if (acessosMudaram(salva)) {
@@ -8899,9 +8911,14 @@ const VOLUME_DO_SOM = 0.18;
 const VOLUME_SILENCIOSO = 0.0001;
 const SUBIDA_DO_VOLUME_S = 0.02;
 
-const ROTULOS_DE_ORIGEM_DA_NOTIFICACAO = {
-  agenda: 'Agenda',
-  sistema: 'HUB SNK',
+/* Gravadas antes da etiqueta chegam sem `tag`; o servidor as completa, e isto cobre o intervalo. */
+const TAG_PADRAO_DA_NOTIFICACAO = 'padrão';
+
+/* Classe do CSS por tag: sem acento nem maiúscula, que não valem em nome de classe. */
+const CLASSES_DE_TAG_DA_NOTIFICACAO = {
+  padrão: 'tag-padrao',
+  OS: 'tag-os',
+  atualização: 'tag-atualizacao',
 };
 
 const FORMATO_DE_DATA_E_HORA = { dateStyle: 'short', timeStyle: 'short' };
@@ -8981,15 +8998,14 @@ function tituloEMensagemDaNotificacao(notificacao) {
 
 function criarCabecalhoDaNotificacao(notificacao) {
   const cabecalho = criarElemento('div', 'notificacao-cabecalho');
-  if (notificacao.origem !== 'lembrete') {
-    cabecalho.append(
-      criarElemento(
-        'span',
-        `notificacao-origem origem-${notificacao.origem}`,
-        ROTULOS_DE_ORIGEM_DA_NOTIFICACAO[notificacao.origem] ?? notificacao.origem,
-      ),
-    );
-  }
+  const tag = notificacao.tag ?? TAG_PADRAO_DA_NOTIFICACAO;
+  cabecalho.append(
+    criarElemento(
+      'span',
+      `notificacao-tag ${CLASSES_DE_TAG_DA_NOTIFICACAO[tag] ?? 'tag-padrao'}`,
+      tag,
+    ),
+  );
   cabecalho.append(
     criarElemento('time', 'notificacao-quando', formatarDataEHora(notificacao.criadaEm)),
   );

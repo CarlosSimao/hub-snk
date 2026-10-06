@@ -13,8 +13,44 @@ const TEMPO_LIMITE_DO_SMTP_MS = 15_000;
 export const PAGINA_DO_HUB_SNK = 'https://carlossimao.github.io/hub-snk/';
 export const AVISO_DE_EMAIL_AUTOMATICO = 'Este é um e-mail automático enviado pela ferramenta';
 
-export function textoComRodape(texto: string): string {
-  return `${texto}\n\n--\n${AVISO_DE_EMAIL_AUTOMATICO} HUB SNK: ${PAGINA_DO_HUB_SNK}`;
+/** Quem usa o HUB SNK, como preenchido em Configurações; sai em todo e-mail enviado. */
+export interface RemetenteDoEmail {
+  nome: string;
+  empresa: string;
+  time: string;
+}
+
+/** "Nome · Empresa · Time", só com o que está preenchido. */
+export function descreverRemetente(remetente: RemetenteDoEmail | undefined): string {
+  return [remetente?.nome, remetente?.empresa, remetente?.time]
+    .map((parte) => parte?.trim() ?? '')
+    .filter(Boolean)
+    .join(' · ');
+}
+
+export function textoComRodape(texto: string, remetente?: RemetenteDoEmail): string {
+  const quem = descreverRemetente(remetente);
+  const identificacao = quem ? `\nEnviado por: ${quem}` : '';
+  return `${texto}\n\n--\n${AVISO_DE_EMAIL_AUTOMATICO} HUB SNK: ${PAGINA_DO_HUB_SNK}${identificacao}`;
+}
+
+const ENTIDADES_HTML: Readonly<Record<string, string>> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
+/* O HTML do lembrete tem layout próprio: a identificação entra antes de fechar o corpo. */
+export function htmlComRemetente(html: string, remetente: RemetenteDoEmail): string {
+  const quem = descreverRemetente(remetente);
+  if (!quem) {
+    return html;
+  }
+  const escapado = quem.replace(/[&<>"']/g, (caractere) => ENTIDADES_HTML[caractere] ?? caractere);
+  const bloco = `<p style="margin:8px 0 0;font-size:11px;text-align:center;color:#64748b;">Enviado por: ${escapado}</p>`;
+  return html.includes('</body>') ? html.replace('</body>', `${bloco}\n</body>`) : html + bloco;
 }
 
 /** O SMTP está sem host, remetente ou destinatário: não há como enviar. */
@@ -80,6 +116,9 @@ export class EnviadorDeEmail {
       throw new SmtpNaoConfiguradoError();
     }
 
+    const { nomeDoUsuario, empresaDoUsuario, timeDoUsuario } = await this.#configuracao.ler();
+    const remetente = { nome: nomeDoUsuario, empresa: empresaDoUsuario, time: timeDoUsuario };
+
     const transporte = criarTransporte(smtp);
     try {
       await transporte.sendMail({
@@ -87,8 +126,8 @@ export class EnviadorDeEmail {
         to: smtp.destinatario,
         cc: mensagem.copia?.length ? mensagem.copia : undefined,
         subject: mensagem.assunto,
-        text: textoComRodape(mensagem.texto),
-        html: mensagem.html,
+        text: textoComRodape(mensagem.texto, remetente),
+        html: mensagem.html === undefined ? undefined : htmlComRemetente(mensagem.html, remetente),
         attachments: mensagem.imagensEmbutidas?.map((imagem) => ({
           cid: imagem.cid,
           filename: imagem.nomeDoArquivo,

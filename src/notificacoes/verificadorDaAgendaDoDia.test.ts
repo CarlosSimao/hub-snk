@@ -131,6 +131,7 @@ describe('VerificadorDaAgendaDoDia', () => {
 
     assert.equal(emitidas.length, 1);
     assert.equal(emitidas[0]?.origem, 'agenda');
+    assert.equal(emitidas[0]?.tag, 'OS');
     assert.equal(emitidas[0]?.enviarEmail, true);
     assert.match(emitidas[0]?.mensagem ?? '', /NECO TRUCK.*hoje, 08:00–12:00.*nenhuma tarefa/);
   });
