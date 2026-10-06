@@ -44,6 +44,8 @@ env:
 
 jobs:
   publicar:
+    # Só o dono (ou o Mano, que usa o token dele) dispara; qualquer outra conta é ignorada.
+    if: ${{ github.actor == github.repository_owner }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
     permissions:
