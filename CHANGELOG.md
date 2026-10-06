@@ -9,6 +9,24 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.6.0] - 2026-10-06
+
+### Adicionado
+
+- **Tags nas notificações do sino**: cada notificação mostra uma tag. Lembretes avulsos
+  saem como `padrão`, o alerta de agenda sem tarefa na Experience como `OS`, e o aviso de
+  versão disponível passa a chegar no sino com a tag `atualização`.
+- **Copiar link**: os links do cliente e dos projetos ganharam um botão, só com ícone, que
+  copia o endereço para a área de transferência.
+- **E-mail em Configurações**: novo campo na aba Geral, ao lado de nome, empresa e time.
+  Os quatro seguem com o relato de **Reportar problema ou sugerir**, e o e-mail passa a
+  ser obrigatório para enviá-lo.
+
+### Alterado
+
+- Todo e-mail enviado pelo HUB SNK agora traz, no rodapé, quem enviou: nome, empresa e
+  time preenchidos em Configurações.
+
 ## [2.5.0] - 2026-10-05
 
 ### Adicionado
@@ -619,7 +637,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.5.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.2.1...v2.3.0
