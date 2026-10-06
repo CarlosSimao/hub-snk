@@ -39,7 +39,8 @@ const esquemaDeRelato = z.object({
  *
  * É a única rota do HUB SNK que manda dado do usuário para fora da máquina, e só o faz
  * quando ele confirma o envio na tela. A prévia existe para ele ver, antes de enviar,
- * exatamente o que seguiria junto.
+ * exatamente o que seguiria junto. Nome, empresa e time (Configurações) são obrigatórios:
+ * sem os três, a rota responde 400 apontando o que falta.
  */
 export function registrarRotasDeSuporte(
   servidor: FastifyInstance,
@@ -52,6 +53,13 @@ export function registrarRotasDeSuporte(
     if (!dados.success) {
       const primeiraMensagem = dados.error.issues[0]?.message ?? 'Dados inválidos.';
       return resposta.status(400).send({ mensagem: primeiraMensagem });
+    }
+
+    const pendentes = await relatos.camposDeIdentificacaoPendentes();
+    if (pendentes.length > 0) {
+      return resposta.status(400).send({
+        mensagem: `Preencha em Configurações antes de enviar: ${pendentes.join(', ')}.`,
+      });
     }
 
     try {

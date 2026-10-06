@@ -16,6 +16,13 @@ export interface DadosDoRelato {
   incluirLog: boolean;
 }
 
+/** Quem usa o aplicativo, como preenchido em Configurações. */
+export interface IdentificacaoDoUsuario {
+  nome: string;
+  empresa: string;
+  time: string;
+}
+
 export type SituacaoDoRelato = 'enviado' | 'enfileirado';
 
 /** Recusa definitiva do suporte: reenviar não adianta, então o relato não vai para a fila. */
@@ -41,6 +48,8 @@ export interface OpcoesDoServicoDeRelatos {
   versaoDoAplicativo: string;
   /** Perfil escolhido em Configurações › Acessos, se houver. */
   lerPerfil?: () => Promise<string | undefined>;
+  /** Nome, empresa e time preenchidos em Configurações; todo relato os leva. */
+  lerIdentificacao: () => Promise<IdentificacaoDoUsuario>;
   registrador?: { info: (mensagem: string) => void; warn: (mensagem: string) => void };
   buscar?: typeof fetch;
 }
@@ -55,7 +64,8 @@ const MAXIMO_NA_FILA = 20;
  * Envia relatos de problema e sugestões ao suporte.
  *
  * Nada sai da máquina sem a pessoa pedir: só há envio quando ela confirma o relato na
- * tela. Se o envio falhar por rede, o relato fica guardado em disco e é reenviado
+ * tela. Todo relato leva o nome, a empresa e o time dela, e a rota recusa o relato
+ * enquanto algum dos três não estiver preenchido em Configurações. Se o envio falhar por rede, o relato fica guardado em disco e é reenviado
  * depois — mesmo `externalId`, então o suporte não registra duas vezes.
  */
 export class ServicoDeRelatos {
@@ -68,9 +78,9 @@ export class ServicoDeRelatos {
   }
 
   /**
-   * Identificador aleatório desta instalação. Não identifica a pessoa nem a máquina:
-   * serve para o suporte ver que dois relatos vieram do mesmo lugar e para limitar
-   * envios em excesso. Só viaja junto com um relato.
+   * Identificador aleatório desta instalação. Sozinho, não identifica a pessoa nem a
+   * máquina: serve para o suporte ver que dois relatos vieram do mesmo lugar e para
+   * limitar envios em excesso. Só viaja junto com um relato.
    */
   async identificadorDaInstalacao(): Promise<string> {
     const caminho = join(this.#opcoes.pastaDeEstado, ARQUIVO_DO_ID);
@@ -86,7 +96,20 @@ export class ServicoDeRelatos {
     return novo;
   }
 
-  /** Dados técnicos que acompanham todo relato. Nada que identifique a pessoa. */
+  /**
+   * Nomes, em português, dos campos de identificação ainda vazios em Configurações.
+   * Vazio = pode relatar.
+   */
+  async camposDeIdentificacaoPendentes(): Promise<string[]> {
+    const { nome, empresa, time } = await this.#opcoes.lerIdentificacao();
+    const pendentes: string[] = [];
+    if (!nome.trim()) pendentes.push('Nome do usuário');
+    if (!empresa.trim()) pendentes.push('Empresa');
+    if (!time.trim()) pendentes.push('Time');
+    return pendentes;
+  }
+
+  /** Dados técnicos e a identificação (nome, empresa e time) que acompanham todo relato. */
   async contexto(): Promise<Record<string, string>> {
     const contexto: Record<string, string> = {
       appVersion: this.#opcoes.versaoDoAplicativo,
@@ -96,6 +119,11 @@ export class ServicoDeRelatos {
     };
     const perfil = await this.#opcoes.lerPerfil?.().catch(() => undefined);
     if (perfil) contexto['perfil'] = perfil;
+
+    const { nome, empresa, time } = await this.#opcoes.lerIdentificacao();
+    if (nome.trim()) contexto['usuario'] = nome.trim();
+    if (empresa.trim()) contexto['empresa'] = empresa.trim();
+    if (time.trim()) contexto['time'] = time.trim();
     return contexto;
   }
 

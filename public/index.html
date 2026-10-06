@@ -1129,6 +1129,65 @@
               ></button>
             </div>
 
+            <div class="grade-de-campos">
+              <div class="campo">
+                <label for="campo-nome-do-usuario">
+                  Nome do usuário
+                  <span class="dica" tabindex="0"
+                    >?<span class="dica-texto" role="tooltip"
+                      >Obrigatório para abrir um relato ao suporte (Reportar problema ou sugerir).
+                      Vai junto com o relato.</span
+                    ></span
+                  >
+                </label>
+                <input
+                  id="campo-nome-do-usuario"
+                  type="text"
+                  maxlength="120"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </div>
+
+              <div class="campo">
+                <label for="campo-empresa-do-usuario">
+                  Empresa
+                  <span class="dica" tabindex="0"
+                    >?<span class="dica-texto" role="tooltip"
+                      >A empresa onde você trabalha. Obrigatória para abrir um relato ao suporte, e
+                      vai junto com ele.</span
+                    ></span
+                  >
+                </label>
+                <input
+                  id="campo-empresa-do-usuario"
+                  type="text"
+                  maxlength="120"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </div>
+
+              <div class="campo">
+                <label for="campo-time-do-usuario">
+                  Time
+                  <span class="dica" tabindex="0"
+                    >?<span class="dica-texto" role="tooltip"
+                      >O time a que você pertence. Obrigatório para abrir um relato ao suporte, e
+                      vai junto com ele.</span
+                    ></span
+                  >
+                </label>
+                <input
+                  id="campo-time-do-usuario"
+                  type="text"
+                  maxlength="120"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </div>
+            </div>
+
             <div class="campo">
               <label for="campo-script-padrao">
                 Script padrão
@@ -3147,7 +3206,8 @@
           <h2>Reportar problema ou sugerir</h2>
           <p>
             O relato é enviado ao suporte do HUB SNK e só é lido por quem mantém o aplicativo. Nada
-            sai da sua máquina antes de você clicar em Enviar.
+            sai da sua máquina antes de você clicar em Enviar. Seu nome, empresa e time (preenchidos
+            em Configurações) seguem junto e são obrigatórios.
           </p>
         </div>
 
@@ -3181,7 +3241,7 @@
               maxlength="200"
               autocomplete="off"
               spellcheck="false"
-              placeholder="Deixe em branco para enviar sem identificação"
+              placeholder="Deixe em branco para não receber resposta por e-mail"
             />
           </div>
 

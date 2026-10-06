@@ -63,6 +63,53 @@ describe('PUT /api/configuracao — destino dos links', () => {
   });
 });
 
+describe('PUT /api/configuracao — nome, empresa e time do usuário', () => {
+  it('grava os três campos aparados e devolve na leitura', async () => {
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao',
+      payload: {
+        ...CONFIGURACAO_SEM_DESTINO_DOS_LINKS,
+        nomeDoUsuario: '  Ana Souza ',
+        empresaDoUsuario: ' Acme ',
+        timeDoUsuario: ' Suporte ',
+      },
+    });
+
+    assert.equal(resposta.statusCode, 200);
+    const lida = (await servidor.inject({ method: 'GET', url: '/api/configuracao' })).json();
+    assert.equal(lida.nomeDoUsuario, 'Ana Souza');
+    assert.equal(lida.empresaDoUsuario, 'Acme');
+    assert.equal(lida.timeDoUsuario, 'Suporte');
+  });
+
+  it('ausentes, preserva o que estava gravado', async () => {
+    await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao',
+      payload: { ...CONFIGURACAO_SEM_DESTINO_DOS_LINKS, nomeDoUsuario: 'Ana Souza' },
+    });
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao',
+      payload: CONFIGURACAO_SEM_DESTINO_DOS_LINKS,
+    });
+
+    assert.equal(resposta.json().nomeDoUsuario, 'Ana Souza');
+  });
+
+  it('recusa um nome grande demais', async () => {
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao',
+      payload: { ...CONFIGURACAO_SEM_DESTINO_DOS_LINKS, timeDoUsuario: 'x'.repeat(121) },
+    });
+
+    assert.equal(resposta.statusCode, 400);
+    assert.match(resposta.json().mensagem, /O time deve ter no máximo 120 caracteres/);
+  });
+});
+
 describe('PUT /api/configuracao — acessos', () => {
   it('grava o perfil e as funcionalidades ocultas', async () => {
     const resposta = await servidor.inject({

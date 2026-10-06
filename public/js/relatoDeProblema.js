@@ -3,7 +3,8 @@
  *
  * Sem dependência do `app.js`: o diálogo só precisa das duas rotas de suporte. É a
  * única tela do HUB SNK que manda algo para fora da máquina, então ela diz isso com
- * todas as letras e deixa a pessoa ver o que seguirá junto antes de enviar.
+ * todas as letras e deixa a pessoa ver o que seguirá junto antes de enviar. O envio exige
+ * nome, empresa e time preenchidos em Configurações, e eles aparecem na prévia.
  */
 
 const modal = document.getElementById('modal-relato');
@@ -79,6 +80,25 @@ async function alternarPrevia() {
   }
 }
 
+/**
+ * Nome, empresa e time vêm de Configurações e são obrigatórios. Devolve os que faltam;
+ * se a configuração não puder ser lida, devolve vazio e deixa a rota decidir.
+ */
+async function camposDeIdentificacaoPendentes() {
+  try {
+    const configuracao = await chamar('/api/configuracao');
+    return [
+      ['Nome do usuário', configuracao.nomeDoUsuario],
+      ['Empresa', configuracao.empresaDoUsuario],
+      ['Time', configuracao.timeDoUsuario],
+    ]
+      .filter(([, valor]) => !String(valor ?? '').trim())
+      .map(([rotulo]) => rotulo);
+  } catch {
+    return [];
+  }
+}
+
 async function enviar(evento) {
   evento.preventDefault();
   mostrarErro('');
@@ -86,6 +106,12 @@ async function enviar(evento) {
   if (!campoMensagem.value.trim()) {
     mostrarErro('Descreva o que aconteceu.');
     campoMensagem.focus();
+    return;
+  }
+
+  const pendentes = await camposDeIdentificacaoPendentes();
+  if (pendentes.length > 0) {
+    mostrarErro(`Preencha em Configurações antes de enviar: ${pendentes.join(', ')}.`);
     return;
   }
 

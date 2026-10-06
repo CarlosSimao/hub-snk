@@ -68,7 +68,10 @@ cadastro.
       "destinatario": "voce@empresa.com.br"
     },
     "alertaDaAgenda": { "ativo": true, "toleranciaMinutos": 30, "enviarEmail": true },
-    "assistenteDeIa": { "assistente": "auto", "modelo": "", "raciocinio": "" }
+    "assistenteDeIa": { "assistente": "auto", "modelo": "", "raciocinio": "" },
+    "nomeDoUsuario": "Ana Souza",
+    "empresaDoUsuario": "Acme",
+    "timeDoUsuario": "Suporte"
   }
 }
 ```
@@ -115,6 +118,11 @@ desligado.
 `raciocinio` é o nível de raciocínio do modelo (`low`, `high`, `max`...), vazio
 para o padrão dele. Arquivo de antes do campo, ou com assistente desconhecido, vale
 `auto`.
+
+`nomeDoUsuario`, `empresaDoUsuario` e `timeDoUsuario` são os campos de **Configurações ›
+Geral** que dizem quem usa o aplicativo (a empresa é a da pessoa, e não um cliente do
+cadastro). Os três são obrigatórios para abrir um relato ao suporte e seguem com ele.
+Arquivo de antes dos campos nasce com eles vazios.
 
 Nada do Git AutoSync fica aqui. A configuração dele é o `config.json` da pasta dele
 (`%USERPROFILE%\.git-autosync`), que o HUB SNK só lê e altera pelo CLI, e o host e o
