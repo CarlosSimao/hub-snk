@@ -255,6 +255,8 @@ export class GerenciadorComunicacao {
    */
   readonly #notificacoes = new Set<Notification>();
   readonly #desabilitados: Set<ServicoComunicacao>;
+  /** Serviços que abrem fora do painel (Meet): uma janela por serviço, reaproveitada. */
+  readonly #janelasSeparadas = new Map<ServicoComunicacao, BrowserWindow>();
   #carregarAoAbrir: boolean;
   #ativo: ServicoComunicacao | null = null;
   #larguraLateral = 0;
@@ -276,6 +278,10 @@ export class GerenciadorComunicacao {
   /** Clicar no serviço aberto o esconde; clicar em outro troca um pelo outro. */
   alternar(servico: string): boolean {
     if (!ehServicoComunicacao(servico) || this.#desabilitados.has(servico)) return false;
+    if (SERVICOS_COMUNICACAO[servico].modo === 'janela') {
+      this.#abrirJanela(servico);
+      return true;
+    }
     if (this.#ativo === servico) {
       this.ocultar();
       return true;
@@ -292,6 +298,10 @@ export class GerenciadorComunicacao {
   abrirEndereco(url: string): boolean {
     const servico = servicoDoEndereco(url);
     if (!servico || this.#desabilitados.has(servico)) return false;
+    if (SERVICOS_COMUNICACAO[servico].modo === 'janela') {
+      this.#abrirJanela(servico, url);
+      return true;
+    }
     logEvento('comunicacao-endereco-aberto', { servico, url: origemSemQuery(url) });
     this.#mostrar(servico, url);
     return true;
@@ -391,7 +401,8 @@ export class GerenciadorComunicacao {
   #carregarEmSegundoPlano(): void {
     for (const servico of SERVICOS) {
       if (this.#desabilitados.has(servico) || this.#paineis.has(servico)) continue;
-      if (SERVICOS_COMUNICACAO[servico].sinal.origem === 'feed') continue;
+      const { sinal, modo } = SERVICOS_COMUNICACAO[servico];
+      if (sinal.origem === 'feed' || modo === 'janela') continue;
       const painel = this.#criarPainel(servico);
       this.#janela.contentView.addChildView(painel);
       painel.setBounds(this.#limitesDoPainel());
@@ -405,6 +416,7 @@ export class GerenciadorComunicacao {
    * para — a consulta periódica pula serviço desabilitado.
    */
   #descarregar(servico: ServicoComunicacao): void {
+    this.#janelasSeparadas.get(servico)?.close();
     if (this.#ativo === servico) this.ocultar();
     this.#esquecerNaoLidas(servico);
     const painel = this.#paineis.get(servico);
@@ -444,6 +456,50 @@ export class GerenciadorComunicacao {
     // Com o foco no painel, o clique numa guia dispara o `blur` que o esconde.
     painel.webContents.focus();
     this.#definirAtivo(servico);
+  }
+
+  /**
+   * Janela própria do serviço, ao lado do HUB: chamada de vídeo não cabe num painel que
+   * some ao clicar numa guia. Aberta de novo, só vem para a frente.
+   */
+  #abrirJanela(servico: ServicoComunicacao, endereco?: string): void {
+    const existente = this.#janelasSeparadas.get(servico);
+    if (existente && !existente.isDestroyed()) {
+      if (endereco) void existente.webContents.loadURL(endereco);
+      if (existente.isMinimized()) existente.restore();
+      existente.show();
+      existente.focus();
+      return;
+    }
+    const { particao, url, rotulo } = SERVICOS_COMUNICACAO[servico];
+    this.#prepararParticao(particao);
+    const nova = new BrowserWindow({
+      width: 1100,
+      height: 760,
+      title: rotulo,
+      icon: ICONE,
+      autoHideMenuBar: true,
+      webPreferences: {
+        partition: particao,
+        contextIsolation: true,
+        sandbox: true,
+        nodeIntegration: false,
+        webSecurity: true,
+      },
+    });
+    nova.setMenuBarVisibility(false);
+    nova.webContents.setWindowOpenHandler(({ url: alvo }) => {
+      if (ehHostInterno(alvo)) {
+        void nova.webContents.loadURL(alvo);
+      } else if (ehEnderecoWeb(alvo)) {
+        void shell.openExternal(alvo);
+      }
+      return { action: 'deny' };
+    });
+    nova.on('closed', () => this.#janelasSeparadas.delete(servico));
+    void nova.loadURL(endereco ?? url);
+    this.#janelasSeparadas.set(servico, nova);
+    logEvento('comunicacao-janela-aberta', { servico });
   }
 
   #criarPainel(
@@ -486,6 +542,7 @@ export class GerenciadorComunicacao {
 
   #observarSinalDaPagina(servico: ServicoComunicacao, painel: WebContentsView): void {
     const { sinal } = SERVICOS_COMUNICACAO[servico];
+    if (sinal.origem === 'nenhum') return;
     if (sinal.origem === 'titulo') {
       painel.webContents.on('page-title-updated', (_e, titulo) =>
         this.#definirNaoLidas(servico, quantidadeNoTexto(sinal.padrao, titulo)),

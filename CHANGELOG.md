@@ -17,6 +17,13 @@ número significa aqui.
 - **Downloads do HUB**: arquivos baixados pelas guias vão para a pasta Downloads, e um botão
   na barra de guias, como o do navegador, lista os arquivos e abre cada um com um clique.
 - **Recarregar no kanban**: botão no quadro para reler as tarefas sem fechá-lo.
+- **Google Agenda e Google Meet na barra lateral**: dois botões novos abaixo do Google Chat.
+  A Agenda abre no painel, como o Gmail e o Chat; o Meet abre numa janela própria, na página
+  inicial dele. Ambos usam o mesmo login do Google e podem ser ocultados na engrenagem.
+- **Explorador de arquivos**: aba **Arquivos** no cadastro do cliente e seção **Arquivos** em
+  cada projeto. Escolha uma pasta do computador e navegue, crie pasta e arquivo, renomeie,
+  exclua, envie arquivos (botão ou arrastando) e abra no programa padrão. Nada sai da pasta
+  escolhida, e programas e scripts não abrem por ali. Pode ser ocultada em Acessos.
 - **Cliente da agenda vira link**: na Agenda de Recursos e no Resumo do dia, o nome do
   parceiro já vinculado a um cliente abre o cadastro dele no HUB.
 

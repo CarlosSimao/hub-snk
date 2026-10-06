@@ -149,6 +149,7 @@ export const FUNCIONALIDADES = [
   'cliente.bases',
   'cliente.repositorios',
   'cliente.projetos',
+  'cliente.arquivos',
   'cliente.agenda',
   'cliente.os',
   'cliente.contatos',

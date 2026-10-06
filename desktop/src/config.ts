@@ -60,7 +60,7 @@ export const URL_INICIAL_AVULSA = 'https://www.google.com/';
 
 // --- painel de comunicação ---------------------------------------------------------
 
-export type ServicoComunicacao = 'whatsapp' | 'gmail' | 'chat';
+export type ServicoComunicacao = 'whatsapp' | 'gmail' | 'chat' | 'agenda' | 'meet';
 
 /**
  * De onde sai o aviso de mensagem nova (som, ícone piscando, contador). Cada serviço
@@ -73,7 +73,9 @@ export type ServicoComunicacao = 'whatsapp' | 'gmail' | 'chat';
 export type SinalDeMensagem =
   | { origem: 'titulo'; padrao: RegExp }
   | { origem: 'favicon'; padrao: RegExp }
-  | { origem: 'feed'; url: string; padrao: RegExp; intervaloMs: number };
+  | { origem: 'feed'; url: string; padrao: RegExp; intervaloMs: number }
+  /** Serviço sem aviso de não lidas (Agenda, Meet): só abre. */
+  | { origem: 'nenhum' };
 
 interface DefinicaoServicoComunicacao {
   /** Nome no menu de escolha dos botões da barra lateral. */
@@ -86,6 +88,8 @@ interface DefinicaoServicoComunicacao {
    * toca o dela — os dois juntos soam como duas mensagens.
    */
   tocarSom: boolean;
+  /** `janela`: abre numa janela própria, e não no painel por cima das guias (o Meet). */
+  modo?: 'painel' | 'janela';
 }
 
 /** O feed do Gmail é leve (um XML pequeno), mas não precisa ser mais que por minuto. */
@@ -132,6 +136,21 @@ export const SERVICOS_COMUNICACAO: Record<ServicoComunicacao, DefinicaoServicoCo
     sinal: { origem: 'favicon', padrao: /(?<!no)_dot_/ },
     tocarSom: true,
   },
+  agenda: {
+    rotulo: 'Google Agenda',
+    url: 'https://calendar.google.com/',
+    particao: PARTICAO_GOOGLE,
+    sinal: { origem: 'nenhum' },
+    tocarSom: false,
+  },
+  meet: {
+    rotulo: 'Google Meet',
+    url: 'https://meet.google.com/landing',
+    particao: PARTICAO_GOOGLE,
+    sinal: { origem: 'nenhum' },
+    tocarSom: false,
+    modo: 'janela',
+  },
 };
 
 /**
@@ -143,6 +162,8 @@ export const HOSTS_INTERNOS_COMUNICACAO: ReadonlySet<string> = new Set([
   'accounts.google.com',
   'mail.google.com',
   'chat.google.com',
+  'calendar.google.com',
+  'meet.google.com',
   'web.whatsapp.com',
 ]);
 

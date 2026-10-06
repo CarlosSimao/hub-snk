@@ -15,6 +15,7 @@ import {
   ROTULOS_DOS_TIPOS,
 } from './buscaRapida.js';
 import { iniciarKanban } from './kanban.js';
+import { iniciarExplorador } from './explorador.js';
 import { lerArvoreDeFavoritos } from './leitorDeFavoritos.js';
 import { separarTipoDoNome } from './tipoDeBaseNoNome.js';
 
@@ -2142,10 +2143,23 @@ function criarCardDeProjeto(cliente, projeto) {
     criarSecaoDeLinksDoProjeto(cliente, projeto),
     kanban.criarSecaoDoProjeto(cliente, projeto),
   );
+  if (funcionalidadeVisivel('cliente.arquivos')) {
+    corpo.append(criarSecaoDeArquivosDoProjeto(cliente, projeto));
+  }
 
   const card = criarElemento('div', 'card card-projeto');
   card.append(cabecalho, corpo);
   return card;
+}
+
+/* Explorador de arquivos locais do projeto, com título como as demais seções do card. */
+function criarSecaoDeArquivosDoProjeto(cliente, projeto) {
+  const secao = criarElemento('div', 'secao-arquivos-do-projeto');
+  secao.append(
+    criarElemento('h4', 'titulo-secao-do-projeto', 'Arquivos'),
+    explorador.criar(cliente, projeto),
+  );
+  return secao;
 }
 
 /* Os kanbans cujo projeto foi excluído ficam no fim da aba, até serem vinculados a outro. */
@@ -4620,6 +4634,12 @@ function renderizarDetalhe() {
         chave: 'projetos',
         rotulo: 'Projetos',
         criarConteudo: () => criarSecaoDeProjetos(cliente),
+      },
+      {
+        chave: 'arquivos',
+        rotulo: 'Arquivos',
+        soAoAbrir: true,
+        criarConteudo: () => explorador.criar(cliente),
       },
       {
         chave: 'agenda',
@@ -12502,6 +12522,16 @@ const kanban = iniciarKanban({
   selecionarPasta: () => api.selecionarPasta(),
   clienteSelecionado,
   excluirProjetoSemKanban: pedirExclusaoDeProjetoSemKanban,
+});
+
+const explorador = iniciarExplorador({
+  requisitar,
+  criarElemento,
+  criarBotao,
+  criarBotaoDeIcone,
+  ICONES,
+  exibirAviso,
+  selecionarPasta: () => api.selecionarPasta(),
 });
 
 iniciar();
