@@ -291,6 +291,7 @@
         padding-bottom: 5px;
       }
       #recarregar,
+      #baixados,
       #novaGuia,
       #barraEndereco button {
         display: flex;
@@ -309,12 +310,14 @@
           color 0.12s ease;
       }
       #recarregar:hover,
+      #baixados:hover,
       #novaGuia:hover,
       #barraEndereco button:hover:not(:disabled) {
         background: #1b1f27;
         color: #e6e6e6;
       }
       #recarregar svg,
+      #baixados svg,
       #novaGuia svg,
       #barraEndereco svg {
         display: block;
@@ -357,6 +360,18 @@
       }
       #endereco:focus {
         border-color: #2d6cdf;
+      }
+      /* Download em andamento: o ícone pulsa em azul até terminar. */
+      #baixados.baixando {
+        color: #2d6cdf;
+      }
+      #baixados.baixando svg {
+        animation: pulsar 1s ease-in-out infinite;
+      }
+      @keyframes pulsar {
+        50% {
+          transform: translateY(2px);
+        }
       }
       /* Um giro por clique: confirma que o comando saiu, sem ficar girando à toa. */
       #recarregar.girando svg {
@@ -502,6 +517,21 @@
           </svg>
         </button>
         <div id="controles">
+          <button id="baixados" title="Downloads" aria-label="Downloads" hidden>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 4v11M7 11l5 5 5-5M5 20h14" />
+            </svg>
+          </button>
           <button
             id="recarregar"
             title="Recarregar a guia ativa (Shift+clique: sem cache)"

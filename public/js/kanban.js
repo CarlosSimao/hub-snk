@@ -191,6 +191,7 @@ export function iniciarKanban(dependencias) {
     tituloQuadro: el('titulo-kanban'),
     subtituloQuadro: el('subtitulo-kanban'),
     campoDemanda: el('campo-kanban-demanda'),
+    botaoRecarregar: el('btn-kanban-recarregar'),
     botaoNovaTarefa: el('btn-kanban-nova-tarefa'),
     botaoDocumento: el('btn-kanban-documento'),
     botaoAnalisar: el('btn-kanban-analisar'),
@@ -1419,6 +1420,17 @@ export function iniciarKanban(dependencias) {
     const valor = elementos.campoDemanda.value;
     quadro.demandaId = valor === TODAS_AS_DEMANDAS ? valor : Number(valor);
     desenharQuadro();
+  });
+  elementos.botaoRecarregar.addEventListener('click', async () => {
+    const botao = elementos.botaoRecarregar;
+    botao.disabled = true;
+    botao.classList.add('recarregando');
+    try {
+      await recarregar();
+    } finally {
+      botao.classList.remove('recarregando');
+      botao.disabled = false;
+    }
   });
   elementos.botaoNovaTarefa.addEventListener('click', () => abrirTarefa(null));
   elementos.botaoDocumento.addEventListener('click', () => {

@@ -3239,6 +3239,23 @@ function criarSeletorDeVinculoDeCliente(nomeSankhya, aoConcluir) {
 }
 
 /**
+ * Título do evento da agenda. Com o parceiro já vinculado a um cliente do HUB, o título
+ * vira link para o cadastro dele; sem vínculo (ou sem parceiro), segue texto simples.
+ */
+function criarTituloDoEvento(evento, titulo) {
+  const cliente = evento.nomeparc ? clientePorNomeSankhya(evento.nomeparc) : null;
+  if (!cliente) return criarElemento('p', 'recurso-nome', titulo);
+  const link = criarElemento('a', 'recurso-nome', titulo);
+  link.href = '#';
+  link.title = `Abrir o cadastro de "${cliente.nome}" no HUB`;
+  link.addEventListener('click', (clique) => {
+    clique.preventDefault();
+    abrirClienteDaBusca(cliente.id);
+  });
+  return link;
+}
+
+/**
  * Botão ao lado do nome do parceiro no card de evento: vincula esse nome do Sankhya a um
  * cliente do HUB (existente ou novo). Fica "vinculado" (verde) quando já há um cliente com
  * esse nome. Clicar abre o seletor ao lado; clicar de novo fecha.
@@ -3457,7 +3474,7 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
 
       if (evento.nomeparc) {
         const linhaNome = criarElemento('div', 'linha-horario-situacao');
-        linhaNome.append(criarElemento('p', 'recurso-nome', tituloDoEvento));
+        linhaNome.append(criarTituloDoEvento(evento, tituloDoEvento));
         linhaNome.append(criarBotaoDeVinculoDeCliente(evento));
         informacoes.append(linhaNome);
       } else {
@@ -4006,7 +4023,9 @@ function criarSecaoDoResumo(titulo, linhas, mensagemVazia) {
 function criarLinhaDoResumo({ titulo, detalhes, selo, acao }) {
   const informacoes = criarElemento('div', 'recurso-info');
   const linhaTitulo = criarElemento('div', 'linha-horario-situacao');
-  linhaTitulo.append(criarElemento('p', 'recurso-nome', titulo));
+  linhaTitulo.append(
+    typeof titulo === 'string' ? criarElemento('p', 'recurso-nome', titulo) : titulo,
+  );
   if (selo) linhaTitulo.append(selo);
   informacoes.append(linhaTitulo);
   for (const detalhe of detalhes.filter(Boolean)) {
@@ -4057,7 +4076,7 @@ function criarLinhaDeEventoDoResumo(evento, semTarefa) {
       : `${evento.inicio.slice(11, 16)}–${evento.fim.slice(11, 16)}`;
   const descricao = evento.descrlonga || evento.descrabrev;
   return criarLinhaDoResumo({
-    titulo,
+    titulo: criarTituloDoEvento(evento, titulo),
     detalhes: [horario, descricao !== titulo && descricao],
     selo: semTarefa
       ? criarElemento('span', 'selo-situacao erro', 'Sem tarefa na Experience')

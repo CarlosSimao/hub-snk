@@ -9,6 +9,22 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- **Lançar ocorrência pela Agenda** (contribuição de Flaviano): o botão **Lançar ocorrência**
+  no cabeçalho da Agenda registra férias, folga e afins no ERP, sempre para o usuário
+  logado, e atualiza a Agenda no mês lançado.
+- **Downloads do HUB**: arquivos baixados pelas guias vão para a pasta Downloads, e um botão
+  na barra de guias, como o do navegador, lista os arquivos e abre cada um com um clique.
+- **Recarregar no kanban**: botão no quadro para reler as tarefas sem fechá-lo.
+- **Cliente da agenda vira link**: na Agenda de Recursos e no Resumo do dia, o nome do
+  parceiro já vinculado a um cliente abre o cadastro dele no HUB.
+
+### Alterado
+
+- **HUB já aberto**: abrir o aplicativo de novo traz a janela existente para a frente e
+  mostra um aviso, sem criar um segundo ícone na bandeja.
+
 ## [2.6.0] - 2026-10-06
 
 ### Adicionado
