@@ -91,6 +91,7 @@ const CONFIGURACAO_INICIAL: Omit<
   nomeDoUsuario: '',
   empresaDoUsuario: '',
   timeDoUsuario: '',
+  emailDoUsuario: '',
 };
 
 /**
@@ -342,6 +343,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       nomeDoUsuario: textoOuPadrao(dados.nomeDoUsuario, '').trim(),
       empresaDoUsuario: textoOuPadrao(dados.empresaDoUsuario, '').trim(),
       timeDoUsuario: textoOuPadrao(dados.timeDoUsuario, '').trim(),
+      emailDoUsuario: textoOuPadrao(dados.emailDoUsuario, '').trim(),
       ...lerAcessos(dados, this.#acessosIniciais),
     };
 
@@ -388,6 +390,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       nomeDoUsuario: configuracao.nomeDoUsuario?.trim() ?? atual.nomeDoUsuario,
       empresaDoUsuario: configuracao.empresaDoUsuario?.trim() ?? atual.empresaDoUsuario,
       timeDoUsuario: configuracao.timeDoUsuario?.trim() ?? atual.timeDoUsuario,
+      emailDoUsuario: configuracao.emailDoUsuario?.trim() ?? atual.emailDoUsuario,
     };
 
     await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);

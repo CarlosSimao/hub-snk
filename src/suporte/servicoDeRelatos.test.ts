@@ -24,8 +24,8 @@ let pedidos: Pedido[];
 /** O que o "suporte" responde a cada envio: um status HTTP, ou `null` para simular queda de rede. */
 let respostaDoSuporte: number | null;
 let contador = 0;
-/** O que Configurações tem gravado de nome, empresa e time. */
-let identificacao: { nome: string; empresa: string; time: string };
+/** O que Configurações tem gravado de nome, empresa, time e e-mail. */
+let identificacao: { nome: string; empresa: string; time: string; email: string };
 
 function criarServico(): ServicoDeRelatos {
   return new ServicoDeRelatos({
@@ -53,7 +53,7 @@ beforeEach(() => {
   mkdirSync(pastaDeLog, { recursive: true });
   pedidos = [];
   respostaDoSuporte = 201;
-  identificacao = { nome: 'Ana Souza', empresa: 'Acme', time: 'Suporte' };
+  identificacao = { nome: 'Ana Souza', empresa: 'Acme', time: 'Suporte', email: 'ana@acme.com' };
 });
 
 const fila = () => {
@@ -273,7 +273,7 @@ describe('rotas de suporte', () => {
     assert.equal(pedidos.length, 0);
   });
 
-  it('sem nome, empresa e time o envio é bloqueado e a mensagem aponta o que falta', async () => {
+  it('sem nome, empresa, time e e-mail o envio é bloqueado e a mensagem aponta o que falta', async () => {
     const fastify = await servidor();
     const enviar = () =>
       fastify.inject({
@@ -282,15 +282,15 @@ describe('rotas de suporte', () => {
         payload: { tipo: 'BUG', mensagem: 'x', incluirLog: false },
       });
 
-    identificacao = { nome: '', empresa: '   ', time: '' };
+    identificacao = { nome: '', empresa: '   ', time: '', email: '' };
     const todosFaltando = await enviar();
     assert.equal(todosFaltando.statusCode, 400);
     assert.equal(
       todosFaltando.json().mensagem,
-      'Preencha em Configurações antes de enviar: Nome do usuário, Empresa, Time.',
+      'Preencha em Configurações antes de enviar: Nome do usuário, Empresa, Time, E-mail.',
     );
 
-    identificacao = { nome: 'Ana Souza', empresa: 'Acme', time: ' ' };
+    identificacao = { nome: 'Ana Souza', empresa: 'Acme', time: ' ', email: 'ana@acme.com' };
     const soOTimeFaltando = await enviar();
     assert.equal(soOTimeFaltando.statusCode, 400);
     assert.equal(
@@ -302,13 +302,14 @@ describe('rotas de suporte', () => {
     assert.equal(fila().length, 0, 'e também não vai para a fila');
   });
 
-  it('a prévia mostra nome, empresa e time que seguirão no relato', async () => {
+  it('a prévia mostra nome, empresa, time e e-mail que seguirão no relato', async () => {
     const fastify = await servidor();
     const previa = (await fastify.inject({ method: 'GET', url: '/api/suporte/previa' })).json();
 
     assert.equal(previa.contexto.usuario, 'Ana Souza');
     assert.equal(previa.contexto.empresa, 'Acme');
     assert.equal(previa.contexto.time, 'Suporte');
+    assert.equal(previa.contexto.email, 'ana@acme.com');
   });
 
   it('recusa definitiva do suporte vira 422 com a explicação', async () => {

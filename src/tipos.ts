@@ -54,9 +54,9 @@ import type { ConfiguracaoDoAssistenteDeIa } from './kanban/tiposDoKanban.ts';
  * aviso de agenda sem tarefa na Experience. A senha do SMTP fica em texto puro neste
  * arquivo, como as senhas das bases no `clientes.json`.
  *
- * `nomeDoUsuario`, `empresaDoUsuario` e `timeDoUsuario` dizem quem é a pessoa que usa o
- * aplicativo. A empresa é a dela (onde trabalha), e não o cadastro de clientes do
- * Sankhya. Os três são obrigatórios para abrir um relato ao suporte e viajam junto com
+ * `nomeDoUsuario`, `empresaDoUsuario`, `timeDoUsuario` e `emailDoUsuario` dizem quem é a
+ * pessoa que usa o aplicativo. A empresa é a dela (onde trabalha), e não o cadastro de clientes do
+ * Sankhya. Os quatro são obrigatórios para abrir um relato ao suporte e viajam junto com
  * ele; fora isso, nada os exige.
  */
 export interface ConfiguracaoGlobal {
@@ -80,6 +80,7 @@ export interface ConfiguracaoGlobal {
   nomeDoUsuario: string;
   empresaDoUsuario: string;
   timeDoUsuario: string;
+  emailDoUsuario: string;
 }
 
 /**
@@ -503,6 +504,14 @@ export const ORIGENS_DE_NOTIFICACAO = ['agenda', 'lembrete', 'sistema'] as const
 export type OrigemDeNotificacao = (typeof ORIGENS_DE_NOTIFICACAO)[number];
 
 /**
+ * Etiqueta mostrada no sino: `padrão` para as avulsas (lembretes cadastrados), `OS` para a
+ * agenda sem tarefa na Experience e `atualização` para versão nova do HUB SNK.
+ */
+export const TAGS_DE_NOTIFICACAO = ['padrão', 'OS', 'atualização'] as const;
+
+export type TagDeNotificacao = (typeof TAGS_DE_NOTIFICACAO)[number];
+
+/**
  * Uma notificação do painel lateral.
  *
  * `chave` identifica o fato que a gerou (o evento da agenda num dia, a ocorrência de um
@@ -511,6 +520,8 @@ export type OrigemDeNotificacao = (typeof ORIGENS_DE_NOTIFICACAO)[number];
 export interface Notificacao {
   id: string;
   origem: OrigemDeNotificacao;
+  /** Ausente nas gravadas antes da etiqueta: o repositório as completa ao ler. */
+  tag: TagDeNotificacao;
   chave: string;
   titulo: string;
   mensagem: string;

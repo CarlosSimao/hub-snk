@@ -54,6 +54,7 @@ describe('CentralDeNotificacoes', () => {
     const notificacao = await central.emitir(dados());
 
     assert.equal(notificacao?.lida, false);
+    assert.equal(notificacao?.tag, 'padrão');
     assert.equal(emailsEnviados[0]?.assunto, '[HUB SNK] Lembrete');
     assert.equal(ouvidas.length, 1);
     assert.equal((await central.listar()).length, 1);

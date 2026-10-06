@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import type { DadosDeNotificacao } from '../notificacoes/centralDeNotificacoes.ts';
 import { isAbsolute } from 'node:path';
 import { z } from 'zod';
 import pacote from '../../package.json' with { type: 'json' };
@@ -38,6 +39,8 @@ const esquemaDeVarreduraDeRepositorios = z.object({
 export interface EncerramentoPeloShell {
   arquivoTokenDoDesktop: string;
   encerrar: () => void;
+  /** Emite a notificação de versão nova; sem ela (testes), a rota só responde. */
+  emitirNotificacao?: (dados: DadosDeNotificacao) => Promise<unknown>;
 }
 
 /**
@@ -92,6 +95,20 @@ export function registrarRotasDeSistema(
     const publicada = await consultarUltimaVersaoPublicada();
     const atualizacaoDisponivel =
       publicada !== null && versaoEhMaisNova(publicada.versao, pacote.version);
+
+    if (atualizacaoDisponivel) {
+      // A notificação é um extra: falhar ao gravá-la não pode esconder a versão nova do rodapé.
+      await encerramento
+        .emitirNotificacao?.({
+          origem: 'sistema',
+          tag: 'atualização',
+          chave: `atualizacao:${publicada.versao}`,
+          titulo: `Versão ${publicada.versao} disponível`,
+          mensagem: 'No aplicativo, ela é baixada sozinha e instalada ao reiniciar.',
+          enviarEmail: false,
+        })
+        .catch(() => undefined);
+    }
 
     return {
       versaoInstalada: pacote.version,

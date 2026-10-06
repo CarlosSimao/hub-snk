@@ -641,18 +641,23 @@ Cursor não têm a opção. Vazio usa o padrão do modelo. Os níveis de cada mo
 `GET /api/configuracao/assistentes-de-ia`, em `raciocinio` (`{ modelo: { niveis,
 padrao } }`; a chave vazia é o modelo padrão do assistente).
 
-### Nome, empresa e time do usuário
+### Nome, empresa, time e e-mail do usuário
 
 Também no `PUT /api/configuracao`, e preservados quando ausentes:
 
 ```json
-{ "nomeDoUsuario": "Ana Souza", "empresaDoUsuario": "Acme", "timeDoUsuario": "Suporte" }
+{
+  "nomeDoUsuario": "Ana Souza",
+  "empresaDoUsuario": "Acme",
+  "timeDoUsuario": "Suporte",
+  "emailDoUsuario": "ana@acme.com"
+}
 ```
 
-Cada um vai até 120 caracteres (acima disso, `400`). Vazios são aceitos aqui, mas o
+Cada um vai até 120 caracteres (acima disso, `400`); o e-mail, se preenchido, precisa ser válido. Vazios são aceitos aqui, mas o
 `POST /api/suporte/relatos` responde `400` — `Preencha em Configurações antes de enviar:
-Nome do usuário, Empresa, Time.`, com só os que faltam — enquanto algum dos três estiver
-vazio. Os valores seguem no `context` do relato (`usuario`, `empresa`, `time`) e
+Nome do usuário, Empresa, Time, E-mail.`, com só os que faltam — enquanto algum dos quatro
+estiver vazio. Os valores seguem no `context` do relato (`usuario`, `empresa`, `time`, `email`) e
 aparecem em `GET /api/suporte/previa`.
 
 ## Erros

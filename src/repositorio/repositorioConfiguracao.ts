@@ -24,6 +24,7 @@ export interface ConfiguracaoParaSalvar extends Omit<
   | 'nomeDoUsuario'
   | 'empresaDoUsuario'
   | 'timeDoUsuario'
+  | 'emailDoUsuario'
 > {
   atalhos: DadosDeAtalho[];
   /** Ausentes, preservam o que está gravado: omitir não pode reexibir o que foi ocultado. */
@@ -39,6 +40,7 @@ export interface ConfiguracaoParaSalvar extends Omit<
   nomeDoUsuario?: ConfiguracaoGlobal['nomeDoUsuario'];
   empresaDoUsuario?: ConfiguracaoGlobal['empresaDoUsuario'];
   timeDoUsuario?: ConfiguracaoGlobal['timeDoUsuario'];
+  emailDoUsuario?: ConfiguracaoGlobal['emailDoUsuario'];
 }
 
 /**

@@ -3227,17 +3227,24 @@ button.selo-situacao:focus-visible {
   color: var(--text-dim);
 }
 
-.notificacao-origem {
+.notificacao-tag {
+  align-self: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
 }
 
-.notificacao-origem.origem-agenda {
+.notificacao-tag.tag-padrao {
+  color: var(--text-dim);
+}
+
+.notificacao-tag.tag-os {
   color: var(--aviso);
 }
 
-.notificacao-origem.origem-lembrete {
+.notificacao-tag.tag-atualizacao {
   color: var(--accent);
 }
 

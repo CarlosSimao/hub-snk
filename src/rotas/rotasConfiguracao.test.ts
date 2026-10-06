@@ -98,6 +98,24 @@ describe('PUT /api/configuracao — nome, empresa e time do usuário', () => {
     assert.equal(resposta.json().nomeDoUsuario, 'Ana Souza');
   });
 
+  it('grava o e-mail aparado e recusa um e-mail inválido', async () => {
+    const valido = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao',
+      payload: { ...CONFIGURACAO_SEM_DESTINO_DOS_LINKS, emailDoUsuario: ' ana@acme.com ' },
+    });
+    assert.equal(valido.statusCode, 200);
+    assert.equal(valido.json().emailDoUsuario, 'ana@acme.com');
+
+    const invalido = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao',
+      payload: { ...CONFIGURACAO_SEM_DESTINO_DOS_LINKS, emailDoUsuario: 'ana' },
+    });
+    assert.equal(invalido.statusCode, 400);
+    assert.equal(invalido.json().mensagem, 'E-mail inválido.');
+  });
+
   it('recusa um nome grande demais', async () => {
     const resposta = await servidor.inject({
       method: 'PUT',

@@ -8,7 +8,7 @@ um, com o SankhyaOm e a Experience abertos em guias do próprio aplicativo. Roda
 na sua máquina, sem Docker, sem banco de dados e sem conta para criar.
 
 O cadastro nunca sai da sua máquina. O único envio de dados ao mantenedor é o
-relato de problema, que leva seu nome, empresa e time (de Configurações), e só
+relato de problema, que leva seu nome, empresa, time e e-mail (de Configurações), e só
 quando você clica em **Enviar** — veja
 [Relato de problema](docs/manutencao.md#relato-de-problema).
 
