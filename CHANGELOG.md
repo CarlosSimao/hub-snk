@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.5.0] - 2026-10-05
+
 ### Adicionado
 
 - **Nome, empresa e time em Configurações**: três campos novos na aba Geral. Eles são
@@ -617,7 +619,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.4.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.2.0...v2.2.1
