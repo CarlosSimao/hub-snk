@@ -234,16 +234,21 @@
             <h2>Agenda de Recursos</h2>
             <p class="texto-auxiliar">Consulta ao vivo, direto da guia do Sankhya ERP já logada.</p>
           </div>
-          <div class="detalhe-acoes">
-            <span class="texto-auxiliar" id="ultima-atualizacao-agenda"></span>
-            <!-- O ícone de recarregar é montado pelo app.js. -->
-            <button
-              class="btn ghost botao-icone"
-              type="button"
-              id="btn-atualizar-agenda"
-              title="Atualizar da Sankhya"
-              aria-label="Atualizar da Sankhya"
-            ></button>
+          <div class="acoes-agenda">
+            <div class="detalhe-acoes">
+              <span class="texto-auxiliar" id="ultima-atualizacao-agenda"></span>
+              <!-- O ícone de recarregar é montado pelo app.js. -->
+              <button
+                class="btn ghost botao-icone"
+                type="button"
+                id="btn-atualizar-agenda"
+                title="Atualizar da Sankhya"
+                aria-label="Atualizar da Sankhya"
+              ></button>
+            </div>
+            <button class="btn tiny" type="button" id="btn-lancar-ocorrencia">
+              Lançar ocorrência
+            </button>
           </div>
         </div>
 
@@ -703,6 +708,43 @@
         <div class="modal-rodape">
           <button class="btn ghost" type="button" id="btn-cancelar-repositorio">Cancelar</button>
           <button class="btn primario" type="submit" id="btn-salvar-repositorio">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Ocorrência de agenda: grava direto no ERP, pela janela oculta do aplicativo. -->
+    <dialog class="modal" id="modal-ocorrencia">
+      <form method="dialog" id="formulario-ocorrencia" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Lançar ocorrência</h2>
+          <p id="usuario-ocorrencia">Identificando o usuário logado no SankhyaOm…</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo-duplo">
+            <div class="campo">
+              <label for="campo-inicio-ocorrencia">Data inicial</label>
+              <input id="campo-inicio-ocorrencia" type="datetime-local" required />
+            </div>
+            <div class="campo">
+              <label for="campo-fim-ocorrencia">Data final</label>
+              <input id="campo-fim-ocorrencia" type="datetime-local" required />
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="campo-motivo-ocorrencia">Motivo</label>
+            <select id="campo-motivo-ocorrencia"></select>
+          </div>
+
+          <p class="erro-formulario" id="erro-ocorrencia" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-ocorrencia">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-ocorrencia" disabled>
+            Lançar
+          </button>
         </div>
       </form>
     </dialog>

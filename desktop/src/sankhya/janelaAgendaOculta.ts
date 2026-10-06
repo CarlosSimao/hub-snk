@@ -31,6 +31,7 @@ export interface ResultadoFetch {
 export interface ConsultorDeAgenda {
   buscar(de: string, ate: string): Promise<ResultadoFetch>;
   buscarNegociacoes(codParceiro: string): Promise<ResultadoFetch>;
+  chamarNoMge(serviceName: string, requestBody: unknown): Promise<ResultadoFetch>;
 }
 
 /** Partição isolada da Agenda — nunca a da aba ERP visível, senão relogar uma afetaria a outra. */
@@ -49,6 +50,8 @@ const INTERVALO_MS = 1_000;
 const AUTENTICAR_TIMEOUT_MS = 60_000;
 /** Tempo para o workspace montar a tela da Agenda no iframe e expor o `ServiceProxy`. */
 const TELA_PRONTA_TIMEOUT_MS = 90_000;
+
+const ESPERA_CONCORRENCIA_MS = 700;
 
 const CLIENT_EVENT = { clientEvent: [{ $: 'br.com.sankhya.mgeserv.event.envio.email' }] };
 
@@ -92,6 +95,36 @@ function scriptChamarServico(serviceName: string, requestBody: unknown): string 
   })`;
 }
 
+/**
+ * `fetch` no `/mge/service.sbr` de dentro da página do workspace, com os cookies dela — a
+ * mesma chamada que a tela do ERP faz (ver docs/specs/ocorrencia-agenda-erp.md, §3). O
+ * corpo é decodificado pelo charset do cabeçalho: o Sankhya responde em ISO-8859-1 e
+ * `Response.text()` estragaria os acentos.
+ */
+function scriptFetchNoMge(serviceName: string, requestBody: unknown): string {
+  const url = `/mge/service.sbr?serviceName=${encodeURIComponent(serviceName)}&outputType=json`;
+  const corpo = JSON.stringify({ serviceName, requestBody });
+  return `(async () => {
+    try {
+      let url = ${JSON.stringify(url)};
+      const achar = (s) => { const m = /[?&]mgeSession=([^&#]+)/.exec(s || ''); return m && m[1]; };
+      let sessao = achar(location.search) || achar(location.hash);
+      if (!sessao) { const c = /(?:^|;\\s*)JSESSIONID=([^;.]+)/.exec(document.cookie || ''); sessao = c && c[1]; }
+      if (sessao) url += '&mgeSession=' + encodeURIComponent(sessao);
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json; charset=UTF-8' },
+        credentials: 'same-origin',
+        body: ${JSON.stringify(corpo)},
+      });
+      const cs = ((r.headers.get('content-type') || '').match(/charset=([^;]+)/i) || [])[1] || 'utf-8';
+      return { ok: true, conteudo: new TextDecoder(cs.trim().toLowerCase()).decode(await r.arrayBuffer()) };
+    } catch (e) {
+      return { ok: false, erro: 'a chamada ao Sankhya falhou: ' + String(e) };
+    }
+  })()`;
+}
+
 /** `true` quando o iframe da tela já está montado e o `ServiceProxy` dele acessível. */
 function scriptServiceProxyPronto(): string {
   return `(() => {
@@ -132,14 +165,24 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
       ...CLIENT_EVENT,
     };
     return this.#enfileirar(() =>
-      this.#chamarComRelogin('mgeos@AgendaRecursosSP.carregarAgendas', requestBody),
+      this.#comRelogin(() => this.#chamar('mgeos@AgendaRecursosSP.carregarAgendas', requestBody)),
     );
   }
 
   buscarNegociacoes(codParceiro: string): Promise<ResultadoFetch> {
     const requestBody = { params: { codParceiro: { $: codParceiro } }, ...CLIENT_EVENT };
     return this.#enfileirar(() =>
-      this.#chamarComRelogin('mgeos@AgendaRecursosSP.getNegociacoes', requestBody),
+      this.#comRelogin(() => this.#chamar('mgeos@AgendaRecursosSP.getNegociacoes', requestBody)),
+    );
+  }
+
+  /**
+   * Qualquer serviço do `/mge` (CRUD, botão de ação) chamado por `fetch` na página do
+   * workspace, na mesma fila e com o mesmo relogin da Agenda. Devolve o JSON em texto.
+   */
+  chamarNoMge(serviceName: string, requestBody: unknown): Promise<ResultadoFetch> {
+    return this.#enfileirar(() =>
+      this.#comRelogin(() => this.#fetchNoMge(serviceName, requestBody)),
     );
   }
 
@@ -159,18 +202,18 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
    * Chama o serviço; se a resposta indicar sessão caída (HTML, "Não autorizado" ou
    * "Acesso negado"), reloga do zero e tenta uma única vez mais.
    */
-  async #chamarComRelogin(serviceName: string, requestBody: unknown): Promise<ResultadoFetch> {
+  async #comRelogin(chamar: () => Promise<ResultadoFetch>): Promise<ResultadoFetch> {
     const prontidao = await this.#garantirPronta();
     if (!prontidao.ok) return prontidao;
 
-    const primeira = await this.#chamar(serviceName, requestBody);
+    const primeira = await chamar();
     if (primeira.ok && !sessaoCaiu(primeira.conteudo ?? '')) return primeira;
 
     logEvento('agenda-oculta-relogin', { motivo: primeira.erro ?? 'sessao-caiu' });
     this.destruir();
     const novaProntidao = await this.#garantirPronta();
     if (!novaProntidao.ok) return novaProntidao;
-    return this.#chamar(serviceName, requestBody);
+    return chamar();
   }
 
   async #chamar(serviceName: string, requestBody: unknown): Promise<ResultadoFetch> {
@@ -181,14 +224,26 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
       scriptChamarServico(serviceName, requestBody),
       true,
     )) as ResultadoFetch;
-    if (!resultado.ok) return resultado;
+    return textoJson(resultado);
+  }
 
-    const texto = resultado.conteudo ?? '';
-    if (!texto) return { ok: false, erro: 'a Agenda não devolveu nada — sessão pode ter expirado' };
-    if (texto.trimStart().startsWith('<')) {
-      return { ok: false, erro: 'o Sankhya respondeu HTML, não JSON — a sessão da Agenda caiu' };
-    }
-    return { ok: true, conteudo: texto };
+  async #fetchNoMge(serviceName: string, requestBody: unknown): Promise<ResultadoFetch> {
+    const wc = this.#janela?.webContents;
+    if (!wc || wc.isDestroyed()) return { ok: false, erro: 'a janela da Agenda não está aberta' };
+
+    const executar = async () =>
+      textoJson(
+        (await wc.executeJavaScript(
+          scriptFetchNoMge(serviceName, requestBody),
+          true,
+        )) as ResultadoFetch,
+      );
+    const primeira = await executar();
+    // `status 4` sem `clientEvents` é "cancelado por concorrência" (outra chamada na mesma
+    // sessão, inclusive da própria tela do ERP): uma nova tentativa resolve.
+    if (!primeira.ok || !concorrencia(primeira.conteudo ?? '')) return primeira;
+    await pausa(ESPERA_CONCORRENCIA_MS);
+    return executar();
   }
 
   /**
@@ -325,6 +380,26 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
     logEvento('agenda-oculta-tela-diag', diag as Record<string, unknown>);
 
     return { ok: false, erro: 'a tela da Agenda não terminou de carregar a tempo' };
+  }
+}
+
+/** Resposta vazia ou HTML (tela de login) é sessão caída; o resto segue em texto. */
+function textoJson(resultado: ResultadoFetch): ResultadoFetch {
+  if (!resultado.ok) return resultado;
+  const texto = resultado.conteudo ?? '';
+  if (!texto) return { ok: false, erro: 'o Sankhya não devolveu nada — sessão pode ter expirado' };
+  if (texto.trimStart().startsWith('<')) {
+    return { ok: false, erro: 'o Sankhya respondeu HTML, não JSON — a sessão da Agenda caiu' };
+  }
+  return { ok: true, conteudo: texto };
+}
+
+function concorrencia(conteudo: string): boolean {
+  try {
+    const j = JSON.parse(conteudo) as { status?: unknown; clientEvents?: unknown };
+    return String(j.status) === '4' && !j.clientEvents;
+  } catch {
+    return false;
   }
 }
 
