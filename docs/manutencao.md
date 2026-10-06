@@ -130,6 +130,13 @@ O número da versão diz o que esperar de uma atualização:
 | **MINOR** — 1.`3`.0 | Entra funcionalidade nova e o cadastro continua compatível                   | Um tipo de atalho novo                            |
 | **PATCH** — 1.2.`4` | Correção de comportamento, sem nada novo                                     | A situação do Git deixa de errar o nome da branch |
 
+**O projeto fica na linha `2.x.x`.** A parte MAJOR só sobe quando o dono pedir, de forma
+explícita, a passagem para a versão 3. Até lá, nenhuma mudança vira release `3.0.0`, nem
+mesmo uma que a tabela acima classificaria como MAJOR. Se uma mudança assim aparecer,
+pare e pergunte ao dono antes de subir o número. Dentro da `2.x.x`, prefira agrupar
+funcionalidades pequenas numa mesma versão MINOR em vez de publicar uma versão para cada
+uma, e use PATCH só para correção.
+
 Tag com hífen — `v2.1.0-beta.1` — é versão de teste: o workflow `Distribuição` a
 publica como pre-release, que o aviso de versão nova do Painel e a atualização
 automática ignoram. Serve para distribuir o instalador a quem vai testar sem que ele
@@ -353,6 +360,7 @@ O aviso de atualização dentro do programa vem da release do GitHub, lida por
 HUB SNK não fica sabendo que existe versão nova — daí a versão andar a cada
 entrega, e não de vez em quando.
 
-Mudança incompatível no formato dos arquivos de dados é release MAJOR, e exige
-subir a versão do esquema junto — o procedimento está em
+Mudança incompatível no formato dos arquivos de dados seria release MAJOR, mas o projeto
+fica na `2.x.x` até o dono pedir a versão 3 (veja [Regra de versão](#regra-de-versão)); ela
+também exige subir a versão do esquema junto — o procedimento está em
 [formato-dos-dados.md](formato-dos-dados.md#versão-do-esquema).

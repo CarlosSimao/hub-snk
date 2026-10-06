@@ -67,6 +67,11 @@ module.exports = async ({ github, context, core }) => {
   if (!pr.head.ref.startsWith('mano/') || pr.head.repo?.full_name !== `${owner}/${repo}`) {
     return recusar('Este workflow só publica pull requests abertos pelo Mano.');
   }
+  // Só pull request do dono ou do próprio Mano (workflow). Um pull request de outra
+  // pessoa nunca é mesclado por aqui, mesmo que o branch se chame mano/….
+  if (pr.user?.login !== owner && pr.user?.login !== 'github-actions[bot]') {
+    return recusar('Este workflow só publica pull requests do dono ou do Mano.');
+  }
   if (pr.base.ref !== principal)
     return recusar('O pull request não aponta para o branch principal.');
 

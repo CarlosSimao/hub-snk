@@ -9,14 +9,29 @@ número significa aqui.
 
 ## [Não publicado]
 
-## [2.3.1] - 2026-10-05
-
 ### Adicionado
 
 - **Nome, empresa e time em Configurações**: três campos novos na aba Geral. Eles são
   obrigatórios para **Reportar problema ou sugerir**: sem os três preenchidos o envio é
   bloqueado e a mensagem diz o que falta. Os valores seguem com o relato e aparecem em
   **Ver o que será enviado**.
+
+## [2.4.0] - 2026-10-05
+
+### Adicionado
+
+- **Reportar problema ou sugerir**: em Configurações › Sobre, o botão abre um diálogo que
+  envia o relato em privado ao mantenedor, no lugar do link para issue pública e do
+  e-mail. Se você deixar marcado, segue junto o final dos dois logs, compactado e com
+  token, senha, e-mail e o nome da sua conta do Windows mascarados; **Ver o que será
+  enviado** mostra exatamente o conteúdo antes de enviar. Nomes de cliente e de servidor
+  que estiverem no log não podem ser mascarados automaticamente, e a tela avisa isso.
+  Sem rede, o relato fica guardado e sai na próxima abertura do aplicativo.
+
+### Alterado
+
+- Os logs do aplicativo passam a ser rotacionados na abertura: ao passar de 5 MB, o
+  arquivo é arquivado, e os 3 mais recentes são mantidos.
 
 ## [2.3.0] - 2026-10-01
 
@@ -602,8 +617,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.3.0...HEAD
-[2.3.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.3.0...v2.3.1
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.1.2...v2.2.0
