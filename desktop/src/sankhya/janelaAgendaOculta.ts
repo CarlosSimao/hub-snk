@@ -263,10 +263,10 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
     if (!segredo.usuario || !segredo.senha) {
       return {
         ok: false,
-        erro: 'sem usuário/senha do SankhyaOm salvos — configure o login do ERP',
+        erro: 'sem Sankhya ID (usuário e senha) salvo — configure o login do Sankhya',
       };
     }
-    if (cofre.loginAutomaticoSuspenso('sankhya-erp')) {
+    if (cofre.loginAutomaticoSuspenso()) {
       return { ok: false, erro: cofre.MENSAGEM_DE_LOGIN_SUSPENSO };
     }
 

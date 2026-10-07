@@ -85,7 +85,7 @@ export function registrarRotasDeAgenda(
     if (codusuAlvo === null) {
       return resposta.status(400).send({
         mensagem:
-          'Informe o "Meu código de usuário SankhyaOm" em Credenciais Sankhya para consultar a agenda.',
+          'Informe o "Meu código de usuário SankhyaOm" em Sankhya ID para consultar a agenda.',
         cadastroIncompleto: true,
         configuracaoPendente: 'codusu',
       });
@@ -97,8 +97,7 @@ export function registrarRotasDeAgenda(
       // Sem o login salvo, a janela oculta não entra no ERP e o erro chegaria genérico.
       if (!(await credenciais.status('sankhya-erp')).definido) {
         return resposta.status(400).send({
-          mensagem:
-            'Salve o usuário e a senha do Sankhya ERP em Credenciais Sankhya para consultar a agenda.',
+          mensagem: 'Salve o Sankhya ID (usuário e senha) para consultar a agenda.',
           configuracaoPendente: 'login-erp',
         });
       }

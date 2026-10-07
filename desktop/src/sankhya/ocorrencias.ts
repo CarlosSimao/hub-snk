@@ -114,7 +114,7 @@ export async function criarOcorrencia(
       erro:
         `o login salvo do SankhyaOm é de ${nomeusu} (${codusu}), mas o seu código de usuário ` +
         `configurado é ${nova.codusuEsperado} — a ocorrência só pode ser lançada para você mesmo. ` +
-        'Confira as Credenciais Sankhya.',
+        'Confira o Sankhya ID.',
     };
   }
 

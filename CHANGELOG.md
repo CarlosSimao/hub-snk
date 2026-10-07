@@ -18,17 +18,27 @@ número significa aqui.
   na barra de guias, como o do navegador, lista os arquivos e abre cada um com um clique.
 - **Recarregar no kanban**: botão no quadro para reler as tarefas sem fechá-lo.
 - **Google Agenda e Google Meet na barra lateral**: dois botões novos abaixo do Google Chat.
-  A Agenda abre no painel, como o Gmail e o Chat; o Meet abre numa janela própria, na página
-  inicial dele. Ambos usam o mesmo login do Google e podem ser ocultados na engrenagem.
-- **Explorador de arquivos**: aba **Arquivos** no cadastro do cliente e seção **Arquivos** em
-  cada projeto. Escolha uma pasta do computador e navegue, crie pasta e arquivo, renomeie,
-  exclua, envie arquivos (botão ou arrastando) e abra no programa padrão. Nada sai da pasta
-  escolhida, e programas e scripts não abrem por ali. Pode ser ocultada em Acessos.
+  Os dois abrem no painel, como o Gmail e o Chat. Entrar numa reunião (pelo Meet, pelo link
+  da Agenda, do Gmail ou do Chat) abre a chamada numa janela própria, uma por reunião, que
+  não some ao clicar numa guia. Ambos usam o mesmo login do Google e podem ser ocultados na
+  engrenagem.
 - **Cliente da agenda vira link**: na Agenda de Recursos e no Resumo do dia, o nome do
   parceiro já vinculado a um cliente abre o cadastro dele no HUB.
 
+- **Seus dados no instalador**: página nova, toda opcional, com nome, empresa, time e e-mail.
+  Preenche os mesmos campos de Configurações quando ainda estão vazios; o que já foi
+  editado lá não é trocado ao reinstalar ou atualizar.
+
 ### Alterado
 
+- **Sankhya ID**: as credenciais do SankhyaOm e da Experience viraram um usuário e uma
+  senha só, com o nome **Sankhya ID**. Quem já tinha credenciais salvas é migrado sozinho:
+  vale o login do SankhyaOm, e as sessões capturadas continuam. Se os dois usuários eram
+  diferentes, a tela avisa, e pode ser preciso salvar o Sankhya ID de novo. Uma senha
+  recusada em qualquer um dos dois sistemas pausa o login automático nos dois.
+- **Vínculo de cliente na Agenda**: vincular ou trocar o cliente do parceiro recarrega o
+  card, com o link do título e a situação no Experience. Trocar agora tira o vínculo do
+  cliente anterior, que antes podia continuar aparecendo no lugar do novo.
 - **HUB já aberto**: abrir o aplicativo de novo traz a janela existente para a frente e
   mostra um aviso, sem criar um segundo ícone na bandeja.
 

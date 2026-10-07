@@ -71,7 +71,22 @@ describe('Credenciais', () => {
     try {
       const credenciais = criarCredenciais({ urlDaPonte: shell.url });
 
-      await assert.rejects(() => credenciais.gravar('sankhya-erp', 'u', 's'), PonteDoDesktopError);
+      await assert.rejects(() => credenciais.gravar('u', 's'), PonteDoDesktopError);
+    } finally {
+      shell.servidor.close();
+    }
+  });
+
+  it('grava e remove o Sankhya ID numa rota só, para os dois sistemas', async () => {
+    const shell = await subirServidorFalso(200, { usuario: 'ana', definido: true });
+
+    try {
+      const credenciais = criarCredenciais({ urlDaPonte: shell.url });
+      const gravado = await credenciais.gravar('ana', 'segredo');
+      await credenciais.remover();
+
+      assert.deepEqual(gravado, { usuario: 'ana', definido: true, aviso: '' });
+      assert.deepEqual(shell.chamadas, ['/credentials/id', '/credentials/id']);
     } finally {
       shell.servidor.close();
     }
@@ -123,17 +138,17 @@ describe('Credenciais', () => {
     }
   });
 
-  it('revela só a senha do cofre, mesmo com sessão empurrada da Experience', async () => {
+  it('revela só a senha do Sankhya ID, mesmo com sessão empurrada da Experience', async () => {
     const sessaoDoDesktop = new SessaoDoDesktop();
     sessaoDoDesktop.definir({ usuario: 'usuario', token: 'jwt-da-guia', expira: '' });
     const shell = await subirServidorFalso(200, { senha: 'senha-do-cofre', token: 'jwt' });
 
     try {
       const credenciais = criarCredenciais({ urlDaPonte: shell.url, sessaoDoDesktop });
-      const senha = await credenciais.revelarSenha('sankhya-experience');
+      const senha = await credenciais.revelarSenha();
 
       assert.equal(senha, 'senha-do-cofre');
-      assert.deepEqual(shell.chamadas, ['/credentials/sankhya-experience/reveal']);
+      assert.deepEqual(shell.chamadas, ['/credentials/id/reveal']);
     } finally {
       shell.servidor.close();
     }

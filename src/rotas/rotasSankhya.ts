@@ -113,8 +113,8 @@ export function registrarRotasDeSankhya(
   servidor.get('/api/sankhya/shell', async () => ({ disponivel: await credenciais.disponivel() }));
 
   /**
-   * Estado das duas credenciais. Nunca devolve senha — só o nome de usuário e
-   * se há valor guardado.
+   * Estado do Sankhya ID e da sessão de cada sistema. Nunca devolve senha — só o nome de
+   * usuário e se há valor guardado. O usuário e o aviso são os mesmos nos dois itens.
    */
   servidor.get('/api/sankhya/credenciais', async (_requisicao, resposta) => {
     try {
@@ -125,62 +125,41 @@ export function registrarRotasDeSankhya(
   });
 
   /**
-   * A senha em claro, para a janela de credenciais mostrar. Mesma exposição das
+   * A senha em claro, para a janela do Sankhya ID mostrar. Mesma exposição das
    * senhas de base do cadastro: a API local não tem autenticação além da
    * proteção de origem.
    */
-  servidor.get<{ Params: { sistema: string } }>(
-    '/api/sankhya/credenciais/:sistema/senha',
+  servidor.get('/api/sankhya/id/senha', async (_requisicao, resposta) => {
+    try {
+      return { senha: await credenciais.revelarSenha() };
+    } catch (erro) {
+      return responderErroDoShell(resposta, erro);
+    }
+  });
+
+  servidor.post<{ Body: { usuario?: unknown; senha?: unknown } }>(
+    '/api/sankhya/id',
     async (requisicao, resposta) => {
-      const { sistema } = requisicao.params;
-      if (!ehSistemaValido(sistema)) {
-        return resposta.status(404).send({ mensagem: `sistema "${sistema}" não existe` });
-      }
-
-      try {
-        return { senha: await credenciais.revelarSenha(sistema) };
-      } catch (erro) {
-        return responderErroDoShell(resposta, erro);
-      }
-    },
-  );
-
-  servidor.post<{ Params: { sistema: string }; Body: { usuario?: unknown; senha?: unknown } }>(
-    '/api/sankhya/credenciais/:sistema',
-    async (requisicao, resposta) => {
-      const { sistema } = requisicao.params;
-      if (!ehSistemaValido(sistema)) {
-        return resposta.status(404).send({ mensagem: `sistema "${sistema}" não existe` });
-      }
-
       const { usuario, senha } = requisicao.body ?? {};
       if (typeof usuario !== 'string' || typeof senha !== 'string' || !usuario.trim() || !senha) {
         return resposta.status(400).send({ mensagem: 'Informe usuário e senha.' });
       }
 
       try {
-        return await credenciais.gravar(sistema, usuario.trim(), senha);
+        return await credenciais.gravar(usuario.trim(), senha);
       } catch (erro) {
         return responderErroDoShell(resposta, erro);
       }
     },
   );
 
-  servidor.delete<{ Params: { sistema: string } }>(
-    '/api/sankhya/credenciais/:sistema',
-    async (requisicao, resposta) => {
-      const { sistema } = requisicao.params;
-      if (!ehSistemaValido(sistema)) {
-        return resposta.status(404).send({ mensagem: `sistema "${sistema}" não existe` });
-      }
-
-      try {
-        return await credenciais.remover(sistema);
-      } catch (erro) {
-        return responderErroDoShell(resposta, erro);
-      }
-    },
-  );
+  servidor.delete('/api/sankhya/id', async (_requisicao, resposta) => {
+    try {
+      return await credenciais.remover();
+    } catch (erro) {
+      return responderErroDoShell(resposta, erro);
+    }
+  });
 
   /**
    * Abre a janela do hub na tela de login, e depois lê o cookie de sessão

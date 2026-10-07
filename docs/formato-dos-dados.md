@@ -90,7 +90,7 @@ guarda o que está **oculto**: uma funcionalidade criada numa versão futura já
 nasce visível. Os valores aceitos são `local`, `agenda`, `os`, `contatos` e
 `autosync` (abas do menu principal; `autosync` é a aba Git), `lembretes` (o botão
 Lembretes do painel de notificações), `cliente.bases`, `cliente.repositorios` (a aba
-Git do cliente), `cliente.projetos`, `cliente.arquivos` (explorador de arquivos do cliente e dos projetos), `cliente.agenda`, `cliente.os` e
+Git do cliente), `cliente.projetos`, `cliente.agenda`, `cliente.os` e
 `cliente.contatos` (abas do cadastro do cliente) e `cliente.autosync` (a seção
 AutoSync da aba Git do cliente). Arquivo sem `perfil` recebe o perfil escolhido no instalador, com o
 preset dele; sem instalador, `desenvolvedor`, com nada oculto. Valor desconhecido

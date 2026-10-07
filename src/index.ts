@@ -24,8 +24,6 @@ import { EnviadorDeEmail } from './notificacoes/enviadorDeEmail.ts';
 import { VerificadorDaAgendaDoDia } from './notificacoes/verificadorDaAgendaDoDia.ts';
 import { registrarAutenticacaoDoPainel } from './rotas/seguranca/autenticacaoDoPainel.ts';
 import { registrarProtecaoDeOrigem } from './rotas/seguranca/protecaoDeOrigem.ts';
-import { PastasDoExplorador } from './arquivos/pastasDoExplorador.ts';
-import { registrarRotasDeArquivos } from './rotas/rotasArquivos.ts';
 import { registrarRotasDeAtalhos } from './rotas/rotasAtalhos.ts';
 import { registrarRotasDeSuporte } from './rotas/rotasSuporte.ts';
 import { ServicoDeRelatos } from './suporte/servicoDeRelatos.ts';
@@ -87,6 +85,7 @@ async function iniciarServidor(): Promise<void> {
   const repositorioDeConfiguracao = new RepositorioConfiguracaoArquivo(
     configuracao.diretorioDeDados,
     configuracao.acessosIniciais,
+    configuracao.identificacaoInicial,
   );
   const repositorioLocal = new RepositorioLocalArquivo(configuracao.diretorioDeDados);
   const ponteDoDesktop = new PonteDoDesktop(
@@ -190,11 +189,6 @@ async function iniciarServidor(): Promise<void> {
   registrarRotasDeGit(servidor, repositorioDeClientes, repositorioDeConfiguracao);
   registrarRotasDeLocal(servidor, repositorioLocal, repositorioDeConfiguracao);
   registrarRotasDeAtalhos(servidor, repositorioDeConfiguracao);
-  registrarRotasDeArquivos(
-    servidor,
-    repositorioDeClientes,
-    new PastasDoExplorador(join(configuracao.pastaDeLog, '..', 'explorador')),
-  );
 
   /*
    * O id da instalação e a fila de relatos ficam ao lado da pasta de log, que é local

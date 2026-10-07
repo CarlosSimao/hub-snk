@@ -146,6 +146,19 @@ const ACESSOS_INICIAIS_PADRAO: AcessosIniciais = {
   terceiro: false,
 };
 
+/** Quem usa o aplicativo, como digitado no instalador; só preenche o campo ainda vazio. */
+export type IdentificacaoInicial = Pick<
+  ConfiguracaoGlobal,
+  'nomeDoUsuario' | 'empresaDoUsuario' | 'timeDoUsuario' | 'emailDoUsuario'
+>;
+
+const IDENTIFICACAO_INICIAL_PADRAO: IdentificacaoInicial = {
+  nomeDoUsuario: '',
+  empresaDoUsuario: '',
+  timeDoUsuario: '',
+  emailDoUsuario: '',
+};
+
 /*
  * O Git AutoSync não decide mais o preset: ele saiu do instalador, e a aba Git aparece
  * acinzentada, com o botão de instalar, enquanto ele não está na máquina. As caixas do
@@ -285,16 +298,22 @@ function normalizarAtalho(atalho: DadosDeAtalho): Atalho {
 export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
   readonly #caminhoDoArquivo: string;
   readonly #acessosIniciais: AcessosIniciais;
+  readonly #identificacaoInicial: IdentificacaoInicial;
   #configuracao: ConfiguracaoGlobal | null = null;
   readonly #fila = new FilaDeOperacoes();
 
-  /** `acessosIniciais` é o escolhido no instalador; só vale enquanto o arquivo não tem acessos. */
+  /**
+   * `acessosIniciais` e `identificacaoInicial` são o escolhido no instalador. Os acessos só
+   * valem enquanto o arquivo não os tem; a identificação, campo a campo, enquanto está vazia.
+   */
   constructor(
     diretorioDeDados: string,
     acessosIniciais: AcessosIniciais = ACESSOS_INICIAIS_PADRAO,
+    identificacaoInicial: IdentificacaoInicial = IDENTIFICACAO_INICIAL_PADRAO,
   ) {
     this.#caminhoDoArquivo = join(diretorioDeDados, NOME_DO_ARQUIVO);
     this.#acessosIniciais = acessosIniciais;
+    this.#identificacaoInicial = identificacaoInicial;
   }
 
   descartarCache(): void {
@@ -312,7 +331,11 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
 
     const conteudo = await lerArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO);
     if (conteudo === null) {
-      this.#configuracao = { ...CONFIGURACAO_INICIAL, ...lerAcessos({}, this.#acessosIniciais) };
+      this.#configuracao = {
+        ...CONFIGURACAO_INICIAL,
+        ...this.#identificacaoInicial,
+        ...lerAcessos({}, this.#acessosIniciais),
+      };
       return this.#configuracao;
     }
 
@@ -339,11 +362,17 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       smtp: lerSmtp(dados.smtp),
       alertaDaAgenda: lerAlertaDaAgenda(dados.alertaDaAgenda),
       assistenteDeIa: lerAssistenteDeIa(dados.assistenteDeIa),
-      // Idem: arquivo de antes desta versão não tem quem usa o aplicativo.
-      nomeDoUsuario: textoOuPadrao(dados.nomeDoUsuario, '').trim(),
-      empresaDoUsuario: textoOuPadrao(dados.empresaDoUsuario, '').trim(),
-      timeDoUsuario: textoOuPadrao(dados.timeDoUsuario, '').trim(),
-      emailDoUsuario: textoOuPadrao(dados.emailDoUsuario, '').trim(),
+      // Idem: arquivo de antes desta versão não tem quem usa o aplicativo. Vazio, vale o
+      // digitado no instalador.
+      nomeDoUsuario:
+        textoOuPadrao(dados.nomeDoUsuario, '').trim() || this.#identificacaoInicial.nomeDoUsuario,
+      empresaDoUsuario:
+        textoOuPadrao(dados.empresaDoUsuario, '').trim() ||
+        this.#identificacaoInicial.empresaDoUsuario,
+      timeDoUsuario:
+        textoOuPadrao(dados.timeDoUsuario, '').trim() || this.#identificacaoInicial.timeDoUsuario,
+      emailDoUsuario:
+        textoOuPadrao(dados.emailDoUsuario, '').trim() || this.#identificacaoInicial.emailDoUsuario,
       ...lerAcessos(dados, this.#acessosIniciais),
     };
 

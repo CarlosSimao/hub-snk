@@ -121,8 +121,8 @@
           class="btn ghost botao-icone"
           id="btn-credenciais-sankhya"
           type="button"
-          title="Credenciais Sankhya"
-          aria-label="Credenciais Sankhya"
+          title="Sankhya ID"
+          aria-label="Sankhya ID"
         ></button>
         <!-- O ícone de engrenagem é montado pelo app.js. -->
         <button
@@ -288,7 +288,7 @@
         <div class="secao-recursos">
           <p class="aviso-shell" id="aviso-shell-os" hidden>
             A consulta ao Sankhya precisa do aplicativo HUB SNK aberto, com a sessão do Sankhya
-            Experience capturada (Credenciais Sankhya).
+            Experience capturada (Sankhya ID).
           </p>
           <!-- Navegação de mês e lista de OS são montados pelo app.js (`criarWidgetDeOs`) —
                o mesmo widget usado na aba OS do cadastro do cliente, só que sem recorte de
@@ -1630,7 +1630,7 @@
                     Recursos — e, se marcado, os do próximo dia útil, que pula sábado e domingo, mas
                     não feriados. Evento de cliente cujo dia não tem tarefa nem OS na Experience
                     gera uma notificação. Precisa do código de usuário do SankhyaOm e do login
-                    feito, os dois em Credenciais Sankhya. O e-mail usa o SMTP da aba SMTP.</span
+                    feito, os dois no Sankhya ID. O e-mail usa o SMTP da aba SMTP.</span
                   ></span
                 >
               </legend>
@@ -1752,8 +1752,8 @@
               <span class="dica" tabindex="0"
                 >?<span class="dica-texto" role="tooltip"
                   >Para quem não tem acesso ao SankhyaOm nem à Experience. Oculta o que depende
-                  deles: Credenciais Sankhya, Agenda e OS, os nomes completos do cliente, o alerta
-                  da agenda e as guias SankhyaOm e Experience do aplicativo.</span
+                  deles: Sankhya ID, Agenda e OS, os nomes completos do cliente, o alerta da agenda
+                  e as guias SankhyaOm e Experience do aplicativo.</span
                 ></span
               >
             </label>
@@ -1798,9 +1798,6 @@
               </label>
               <label class="campo-checkbox">
                 <input type="checkbox" data-funcionalidade="cliente.projetos" /> Projetos
-              </label>
-              <label class="campo-checkbox">
-                <input type="checkbox" data-funcionalidade="cliente.arquivos" /> Arquivos
               </label>
               <label class="campo-checkbox">
                 <input type="checkbox" data-funcionalidade="cliente.agenda" /> Agenda
@@ -1873,10 +1870,10 @@
 
     <dialog class="modal largo" id="modal-credenciais-sankhya">
       <div class="modal-cabecalho">
-        <h2>Credenciais Sankhya</h2>
+        <h2>Sankhya ID</h2>
         <p>
-          Login usado pelo HUB SNK para entrar sozinho no SankhyaOm e na Experience, ao abrir o
-          aplicativo e sempre que a sessão expirar.
+          Um usuário e uma senha só, usados pelo HUB SNK para entrar sozinho no SankhyaOm e na
+          Experience, ao abrir o aplicativo e sempre que a sessão expirar.
         </p>
       </div>
 
@@ -1914,9 +1911,9 @@
           funcionam com o painel aberto por ele.
         </p>
 
-        <section class="cartao-credencial" data-sistema="sankhya-erp">
+        <section class="cartao-credencial" id="cartao-sankhya-id">
           <div class="cartao-credencial-cabecalho">
-            <h3>Sankhya ERP</h3>
+            <h3>Usuário e senha</h3>
             <span class="selo-situacao" data-papel="status"></span>
           </div>
 
@@ -1943,8 +1940,21 @@
           </div>
 
           <div class="cartao-credencial-acoes">
-            <button class="btn ghost" type="button" data-papel="salvar">Salvar credencial</button>
+            <button class="btn ghost" type="button" data-papel="salvar">Salvar Sankhya ID</button>
             <button class="btn ghost" type="button" data-papel="remover">Remover</button>
+          </div>
+
+          <p class="aviso-shell" data-papel="aviso" hidden></p>
+          <p class="erro-formulario" data-papel="erro" hidden></p>
+        </section>
+
+        <section class="cartao-credencial" data-sistema="sankhya-erp">
+          <div class="cartao-credencial-cabecalho">
+            <h3>SankhyaOm</h3>
+            <span class="selo-situacao" data-papel="status"></span>
+          </div>
+
+          <div class="cartao-credencial-acoes">
             <span class="rodape-espacador"></span>
             <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
             <button class="btn ghost" type="button" data-papel="capturar-sessao">
@@ -1957,35 +1967,11 @@
 
         <section class="cartao-credencial" data-sistema="sankhya-experience">
           <div class="cartao-credencial-cabecalho">
-            <h3>Sankhya Experience</h3>
+            <h3>Experience</h3>
             <span class="selo-situacao" data-papel="status"></span>
           </div>
 
-          <div class="campo campo-em-linha">
-            <label>Usuário</label>
-            <input type="text" maxlength="200" autocomplete="off" data-papel="usuario" />
-          </div>
-          <div class="campo campo-em-linha">
-            <label>Senha</label>
-            <div class="campo-com-acao">
-              <input
-                type="password"
-                maxlength="200"
-                autocomplete="new-password"
-                data-papel="senha"
-              />
-              <button
-                class="btn tiny botao-icone"
-                type="button"
-                data-papel="ver-senha"
-                aria-pressed="false"
-              ></button>
-            </div>
-          </div>
-
           <div class="cartao-credencial-acoes">
-            <button class="btn ghost" type="button" data-papel="salvar">Salvar credencial</button>
-            <button class="btn ghost" type="button" data-papel="remover">Remover</button>
             <span class="rodape-espacador"></span>
             <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
             <button class="btn ghost" type="button" data-papel="capturar-sessao">

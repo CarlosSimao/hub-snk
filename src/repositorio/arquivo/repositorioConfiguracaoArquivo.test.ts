@@ -491,3 +491,38 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     assert.equal(smtp.porta, 587);
   });
 });
+
+describe('RepositorioConfiguracaoArquivo — identificação do instalador', () => {
+  const DO_INSTALADOR = {
+    nomeDoUsuario: 'João Silva',
+    empresaDoUsuario: 'Acme',
+    timeDoUsuario: 'Suporte',
+    emailDoUsuario: 'joao@acme.com.br',
+  };
+
+  it('preenche nome, empresa, time e e-mail na primeira abertura', async () => {
+    const comInstalador = new RepositorioConfiguracaoArquivo(diretorio, undefined, DO_INSTALADOR);
+
+    const configuracao = await comInstalador.ler();
+
+    assert.equal(configuracao.nomeDoUsuario, 'João Silva');
+    assert.equal(configuracao.empresaDoUsuario, 'Acme');
+    assert.equal(configuracao.timeDoUsuario, 'Suporte');
+    assert.equal(configuracao.emailDoUsuario, 'joao@acme.com.br');
+  });
+
+  it('só preenche o campo vazio: o gravado na tela vence o instalador', async () => {
+    await writeFile(
+      caminhoDoArquivo(),
+      JSON.stringify({ nomeDoUsuario: 'Ana Souza', empresaDoUsuario: '', timeDoUsuario: 'Vendas' }),
+    );
+    const comInstalador = new RepositorioConfiguracaoArquivo(diretorio, undefined, DO_INSTALADOR);
+
+    const configuracao = await comInstalador.ler();
+
+    assert.equal(configuracao.nomeDoUsuario, 'Ana Souza');
+    assert.equal(configuracao.empresaDoUsuario, 'Acme');
+    assert.equal(configuracao.timeDoUsuario, 'Vendas');
+    assert.equal(configuracao.emailDoUsuario, 'joao@acme.com.br');
+  });
+});

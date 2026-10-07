@@ -42,7 +42,7 @@ import type { ConfiguracaoDoAssistenteDeIa } from './kanban/tiposDoKanban.ts';
  * `sankhyaOmCodUsu` é o `CODUSU` do usuário logado no SankhyaOm (ERP) — diferente
  * do `person_id` da Experience, e sem forma automática de descobrir a partir da
  * sessão capturada (só cookies e nenhum deles carrega o valor). Por isso, ao
- * contrário de `experiencePersonId`, é digitado à mão no topo de Credenciais Sankhya.
+ * contrário de `experiencePersonId`, é digitado à mão no topo de Sankhya ID.
  *
  * `perfil` e `funcionalidadesOcultas` são os acessos de Configurações › Acessos. A
  * lista guarda o que está oculto, e não o que está visível, para que uma
@@ -149,7 +149,6 @@ export const FUNCIONALIDADES = [
   'cliente.bases',
   'cliente.repositorios',
   'cliente.projetos',
-  'cliente.arquivos',
   'cliente.agenda',
   'cliente.os',
   'cliente.contatos',
@@ -356,14 +355,16 @@ export const SISTEMAS_SANKHYA = ['sankhya-erp', 'sankhya-experience'] as const;
 export type SistemaSankhya = (typeof SISTEMAS_SANKHYA)[number];
 
 /**
- * Estado de uma credencial do Sankhya guardada pelo cofre do shell desktop — diz
- * se há valor guardado e para qual usuário, nunca a senha. A senha é cifrada com
- * `safeStorage` fora do processo do backend; só o shell a decripta.
+ * Estado do Sankhya ID (o login único) e da sessão de um dos sistemas, guardados pelo
+ * cofre do shell desktop — diz se há valor guardado e para qual usuário, nunca a senha.
+ * A senha é cifrada com `safeStorage` fora do processo do backend; só o shell a decripta.
  */
 export interface StatusCredencial {
   sistema: SistemaSankhya;
   usuario: string;
   definido: boolean;
+  /** Recado da migração do cofre antigo (usuários diferentes); vazio no normal. */
+  aviso: string;
   /** ISO-8601 do `exp` do JWT capturado, quando há um. Vazio sem sessão. */
   sessaoExpiraEm: string;
   sessaoCapturada: boolean;

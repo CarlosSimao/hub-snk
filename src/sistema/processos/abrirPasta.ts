@@ -42,19 +42,3 @@ export async function abrirPastaNoSistema(caminho: string): Promise<void> {
     throw erro;
   }
 }
-
-/**
- * Abre um arquivo no programa padrão do sistema. A falha é devolvida, como em
- * `abrirPastaNoSistema`: a tela não pode dizer que abriu o que não abriu.
- */
-export async function abrirArquivoNoSistema(caminho: string): Promise<void> {
-  const comando = COMANDOS_POR_PLATAFORMA[process.platform] ?? COMANDO_PADRAO;
-  try {
-    await lancarProcesso(comando, [caminho]);
-  } catch (erro) {
-    if (erro instanceof LancamentoFalhouError) {
-      throw new GerenciadorDeArquivosIndisponivelError(erro.motivo);
-    }
-    throw erro;
-  }
-}

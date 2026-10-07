@@ -88,8 +88,6 @@ interface DefinicaoServicoComunicacao {
    * toca o dela — os dois juntos soam como duas mensagens.
    */
   tocarSom: boolean;
-  /** `janela`: abre numa janela própria, e não no painel por cima das guias (o Meet). */
-  modo?: 'painel' | 'janela';
 }
 
 /** O feed do Gmail é leve (um XML pequeno), mas não precisa ser mais que por minuto. */
@@ -149,7 +147,6 @@ export const SERVICOS_COMUNICACAO: Record<ServicoComunicacao, DefinicaoServicoCo
     particao: PARTICAO_GOOGLE,
     sinal: { origem: 'nenhum' },
     tocarSom: false,
-    modo: 'janela',
   },
 };
 
@@ -280,15 +277,18 @@ export const DIRETORIO_DE_DADOS =
  * de `HubSnk\`. Só o instalador do Windows pergunta; fora dele, e sem o arquivo, volta
  * vazio e o backend aplica o padrão. Quem valida o valor é o backend.
  */
-function escolhaDoInstalador(nomeDoArquivo: string): string {
-  return escolhaOpcionalDoInstalador(nomeDoArquivo) ?? '';
+function escolhaDoInstalador(nomeDoArquivo: string, codificacao: BufferEncoding = 'utf8'): string {
+  return escolhaOpcionalDoInstalador(nomeDoArquivo, codificacao) ?? '';
 }
 
 /** Como `escolhaDoInstalador`, mas sem o arquivo volta `undefined`: vazio também é escolha. */
-function escolhaOpcionalDoInstalador(nomeDoArquivo: string): string | undefined {
+function escolhaOpcionalDoInstalador(
+  nomeDoArquivo: string,
+  codificacao: BufferEncoding = 'utf8',
+): string | undefined {
   if (!app.isPackaged || process.platform !== 'win32') return undefined;
   try {
-    return readFileSync(join(pastaDeEstadoDoInstalador(), nomeDoArquivo), 'utf8').trim();
+    return readFileSync(join(pastaDeEstadoDoInstalador(), nomeDoArquivo), codificacao).trim();
   } catch {
     return undefined;
   }
@@ -316,6 +316,19 @@ export const TERCEIRO_INICIAL =
 export const FUNCIONALIDADES_OCULTAS_INICIAIS =
   process.env['HUB_FUNCIONALIDADES_OCULTAS_INICIAIS'] ??
   escolhaOpcionalDoInstalador('funcionalidades-ocultas-inicial.txt');
+
+/**
+ * Página "Seus dados" do instalador, toda opcional. O instalador grava em UTF-16: a
+ * escrita comum do NSIS usa a página de código do Windows, e o acento chegaria trocado.
+ */
+export const NOME_INICIAL =
+  process.env['HUB_NOME_INICIAL'] ?? escolhaDoInstalador('nome-inicial.txt', 'utf16le');
+export const EMPRESA_INICIAL =
+  process.env['HUB_EMPRESA_INICIAL'] ?? escolhaDoInstalador('empresa-inicial.txt', 'utf16le');
+export const TIME_INICIAL =
+  process.env['HUB_TIME_INICIAL'] ?? escolhaDoInstalador('time-inicial.txt', 'utf16le');
+export const EMAIL_INICIAL =
+  process.env['HUB_EMAIL_INICIAL'] ?? escolhaDoInstalador('email-inicial.txt', 'utf16le');
 
 export const TZ_PADRAO = 'America/Sao_Paulo';
 

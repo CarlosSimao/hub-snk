@@ -30,20 +30,26 @@ function responderJson(res: ServerResponse, status: number, corpo: unknown): voi
   res.end(JSON.stringify(corpo));
 }
 
+/** Nome na rota do login único; os sistemas são `sankhya-erp` e `sankhya-experience`. */
+const ROTA_DO_SANKHYA_ID = 'id';
+
 /**
  * Cofre de credenciais — ver `cofreCredenciais.ts`.
  *
  * O `ok` de transporte vai junto porque o cliente do backend (`ponteDoDesktop.ts`) o
  * espera; o estado da credencial em si são os outros campos.
+ *
+ * `/credentials/id` é o Sankhya ID (usuário e senha); `/credentials/<sistema>`, o status e
+ * o segredo de um dos sistemas: a sessão dele, com a senha do Sankhya ID.
  */
 function tratarCredenciais(req: IncomingMessage, res: ServerResponse, corpo: string): void {
-  // `/credentials/<sistema>` ou `/credentials/<sistema>/reveal`.
+  // `/credentials/<alvo>` ou `/credentials/<alvo>/reveal`.
   const partes = (req.url ?? '').split('?')[0]?.split('/').filter(Boolean) ?? [];
-  const sistema = partes[1] ?? '';
+  const alvo = partes[1] ?? '';
   const acao = partes[2] ?? '';
 
-  if (!cofre.ehSistemaValido(sistema)) {
-    responderJson(res, 404, { ok: false, erro: `sistema desconhecido: ${sistema}` });
+  if (alvo !== ROTA_DO_SANKHYA_ID && !cofre.ehSistemaValido(alvo)) {
+    responderJson(res, 404, { ok: false, erro: `sistema desconhecido: ${alvo}` });
     return;
   }
 
@@ -54,6 +60,12 @@ function tratarCredenciais(req: IncomingMessage, res: ServerResponse, corpo: str
     return;
   }
 
+  if (alvo === ROTA_DO_SANKHYA_ID) {
+    tratarSankhyaId(req, res, corpo, acao);
+    return;
+  }
+  const sistema = alvo;
+
   if (req.method === 'GET' && acao === 'reveal') {
     responderJson(res, 200, { ok: true, ...cofre.revelar(sistema) });
     return;
@@ -61,6 +73,21 @@ function tratarCredenciais(req: IncomingMessage, res: ServerResponse, corpo: str
 
   if (req.method === 'GET' && !acao) {
     responderJson(res, 200, { ok: true, ...cofre.status(sistema) });
+    return;
+  }
+
+  responderJson(res, 404, { ok: false, erro: `rota desconhecida: ${req.method} ${req.url}` });
+}
+
+/** O Sankhya ID: grava, remove e mostra a senha. Quem consome a senha é `revelar(sistema)`. */
+function tratarSankhyaId(
+  req: IncomingMessage,
+  res: ServerResponse,
+  corpo: string,
+  acao: string,
+): void {
+  if (req.method === 'GET' && acao === 'reveal') {
+    responderJson(res, 200, { ok: true, senha: cofre.revelarSenha() });
     return;
   }
 
@@ -76,15 +103,15 @@ function tratarCredenciais(req: IncomingMessage, res: ServerResponse, corpo: str
       responderJson(res, 400, { ok: false, erro: 'envie { usuario, senha }' });
       return;
     }
-    const status = cofre.gravar(sistema, dados.usuario, dados.senha);
-    logEvento('credencial-gravada', { sistema });
+    const status = cofre.gravar(dados.usuario, dados.senha);
+    logEvento('sankhya-id-gravado');
     responderJson(res, 200, { ok: true, ...status });
     return;
   }
 
   if (req.method === 'DELETE' && !acao) {
-    const status = cofre.remover(sistema);
-    logEvento('credencial-removida', { sistema });
+    const status = cofre.remover();
+    logEvento('sankhya-id-removido');
     responderJson(res, 200, { ok: true, ...status });
     return;
   }
@@ -279,7 +306,7 @@ export function criarBridgeServer(
     dialog.showErrorBox(
       'HUB SNK — a ponte com o backend não abriu',
       `A porta ${BRIDGE_PORT} de ${BRIDGE_HOST} não pôde ser aberta (${String(erro)}). ` +
-        'Credenciais Sankhya, Agenda e login automático ficam indisponíveis. Feche o outro ' +
+        'Sankhya ID, Agenda e login automático ficam indisponíveis. Feche o outro ' +
         'programa que usa essa porta e abra o HUB SNK de novo.',
     );
   });
