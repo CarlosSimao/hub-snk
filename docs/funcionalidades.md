@@ -474,7 +474,7 @@ Recursos:
 Sem OS, sai uma notificação — e o e-mail, se marcado — **uma vez por evento por
 dia**. Evento de dia inteiro, ou que continua amanhã, usa as 18h como fim.
 
-Precisa do código de usuário do SankhyaOm (no topo de **Credenciais Sankhya**) e das sessões do Sankhya
+Precisa do código de usuário do SankhyaOm (em **Configurações › Sankhya ID**) e das sessões do Sankhya
 Om e da Experience ativas no aplicativo. Sessão caída vira uma notificação do
 próprio HUB SNK, uma vez por dia; com o backend rodando sem o aplicativo
 (`npm run dev`), a verificação só registra no log.
@@ -625,7 +625,7 @@ A caixa **Terceiro**, na aba Acessos e na página do perfil do instalador, é pa
 quem não tem acesso ao SankhyaOm nem à Experience. Vale para qualquer perfil e,
 marcada, oculta tudo o que depende das credenciais Sankhya:
 
-- o botão **Credenciais Sankhya** do topo;
+- a aba **Sankhya ID** das Configurações;
 - as abas **Agenda** e **OS** do menu principal e do cadastro do cliente, cujas
   caixas ficam desabilitadas na aba Acessos;
 - o campo **Nomes completos no Sankhya** do cliente, que só serve à Agenda e à OS;
@@ -868,18 +868,59 @@ como:
   (que dá para mudar a cada MR);
 - esvaziar uma lista já gravada da política do repositório: deixe ao menos um item.
 
-## Backup na nuvem
+## Backup
 
-Não há backup embutido. Para ter um, sincronize a pasta de dados com o serviço
-de nuvem que você já usa — Google Drive, OneDrive, Dropbox: basta adicioná-la à
-sincronização do cliente instalado na máquina, ou apontar o `HUB_DADOS_DIR` para
-dentro de uma pasta que já é sincronizada.
+A aba **Backup**, em **Configurações**, reúne o Google Drive e o backup. Cada caixa e cada
+campo dali grava na hora, sem botão de salvar.
 
-> Os arquivos sobem como estão no disco, e o cadastro guarda as senhas das bases
-> e dos bancos em texto puro. Confira se a pasta não está compartilhada com
-> ninguém.
+### Conectar o Google Drive
 
-Usando em mais de uma máquina, feche o HUB SNK de uma antes de abrir na outra: a
-sincronização é de arquivo, e edição simultânea faz uma das versões se perder.
-Alteração que chega de fora com o HUB SNK aberto é percebida sozinha — ele vigia
-a pasta e relê o arquivo.
+**Conectar ao Google Drive** abre a tela de consentimento do Google no navegador padrão.
+Autorizado, a janela do HUB SNK passa a mostrar a conta conectada. O HUB SNK pede uma
+permissão só: gravar e ler **os arquivos que ele mesmo criou** no Drive, para guardar e
+restaurar a cópia dos dados. Ele não enxerga o resto do seu Drive. Por ser a permissão
+mais restrita que o Google oferece, a tela de consentimento não traz o aviso de app não
+verificado. Se a permissão for desmarcada na tela do Google, a janela avisa. A autorização fica no cofre do sistema operacional, cifrada, e não na pasta
+de dados. **Desconectar** a revoga no Google e a apaga do cofre.
+
+### Cópia no Google Drive
+
+Com **Manter no Google Drive uma cópia sempre atual** ligado, o HUB SNK envia os dados
+para a pasta **HUB SNK** do seu Drive, no arquivo `hub-snk-dados-<nome do computador>.zip`,
+alguns minutos depois de cada mudança — no máximo um envio a cada dez minutos. O arquivo é
+substituído a cada envio, e o Drive guarda as versões anteriores por conta própria.
+
+É uma cópia de mão única: o HUB SNK envia e nunca baixa sozinho. Cada computador tem o
+seu arquivo, então dois computadores na mesma conta não apagam a cópia um do outro, mas
+também não se sincronizam.
+
+### Backup numa pasta
+
+**Fazer backup periodicamente** grava um `hub-snk-backup-AAAA-MM-DD-HHmm.zip` na pasta
+escolhida, no intervalo configurado (24 horas por padrão), e mantém as últimas cópias (10
+por padrão), apagando as mais antigas. A pasta pode ser outro disco, a rede ou uma pasta
+do OneDrive ou do Dropbox.
+
+O backup só é gravado quando algo mudou desde o anterior: cópias idênticas empurrariam as
+versões diferentes para fora das mantidas. Só os arquivos com o nome acima são apagados;
+o resto da pasta não é tocado. Falha de backup, local ou do Drive, vira uma notificação
+por dia e aparece na janela.
+
+### Restaurar
+
+**Restaurar do Google Drive** lista as cópias guardadas na conta; **Restaurar de um
+arquivo de backup** abre o seletor de arquivo. O backup escolhido é conferido e fica à
+espera: nada muda até o HUB SNK ser reiniciado, e dá para cancelar antes.
+
+No reinício, os dados atuais são guardados em `%APPDATA%\HUB SNK\backup`
+(`antes-da-restauracao-<data>.zip`, as três últimas) e a pasta de dados volta ao estado
+do backup — o que foi criado depois dele sai. Uma notificação conta o resultado. Backup
+feito por uma versão mais nova do HUB SNK é recusado: atualize antes.
+
+> O pacote leva os dados como estão no disco, e o cadastro guarda as senhas das bases
+> e dos bancos em texto puro. Não compartilhe a pasta do backup nem a pasta "HUB SNK"
+> do Drive.
+
+O que entra no pacote: todos os arquivos da pasta de dados, com as subpastas, e um
+retrato íntegro do `sankhya.db`. Ficam de fora os arquivos auxiliares do SQLite e as
+gravações pela metade.

@@ -7,9 +7,10 @@ Hub local de cadastro de clientes, das bases e dos repositórios Git de cada
 um, com o SankhyaOm e a Experience abertos em guias do próprio aplicativo. Roda
 na sua máquina, sem Docker, sem banco de dados e sem conta para criar.
 
-O cadastro nunca sai da sua máquina. O único envio de dados ao mantenedor é o
-relato de problema, que leva seu nome, empresa, time e e-mail (de Configurações), e só
-quando você clica em **Enviar** — veja
+O cadastro fica na sua máquina. Ele só sai dela se você ligar a cópia no seu próprio
+Google Drive — veja [Backup](docs/funcionalidades.md#backup). O único envio de dados ao
+mantenedor é o relato de problema, que leva seu nome, empresa, time e e-mail (de
+Configurações), e só quando você clica em **Enviar** — veja
 [Relato de problema](docs/manutencao.md#relato-de-problema).
 
 É um aplicativo desktop (Electron) só para Windows: a partir da versão 2 não há
@@ -39,7 +40,7 @@ Baixe o `HUB-SNK-Setup-<versão>.exe` na
   dois sistemas. A escolha vale só como ponto de partida: depois da instalação, ajuste
   em _Configurações_ › _Acessos_, e reinstalar não desfaz o que você ajustou.
 - Na primeira abertura, com o cadastro vazio, o painel abre na aba **Clientes** e,
-  para quem não é Terceiro, com a janela de **Credenciais Sankhya** já aberta.
+  para quem não é Terceiro, com a aba **Sankhya ID** das Configurações já aberta.
 - O **Git AutoSync** (commit e push automáticos dos repositórios) não vem no
   instalador: tem licença própria. A aba **Git AutoSync** do painel o instala
   baixando da release do repositório dele, e exige o Git na máquina.
@@ -112,8 +113,8 @@ loopback), `HUB_DADOS_DIR` (padrão `./dados-hub-snk`) e `HUB_SEM_TOKEN` (`1`
 desliga a exigência do token na API, para usar o painel no navegador sem o
 aplicativo aberto — só em desenvolvimento).
 
-Apontar a pasta de dados para dentro de uma pasta de nuvem é o que dá backup —
-veja [Backup na nuvem](docs/funcionalidades.md#backup-na-nuvem).
+O backup é embutido: cópia no Google Drive e backup periódico numa pasta — veja
+[Backup](docs/funcionalidades.md#backup).
 
 ---
 
@@ -174,7 +175,7 @@ Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 | **Diagnóstico Git**         | Selo por repositório com a branch e a pendência mais grave — commit faltando, conflito, segredo rastreado —, atualizado sozinho      |
 | **Git AutoSync**            | Opcional, instalado pela aba Git AutoSync: commit e push automáticos, também na seção AutoSync da aba Git do cliente                 |
 | **Telas Flash**             | _Hub_ › _Compatibilidade com Flash (Ruffle)_ abre as telas Flex legadas do SankhyaOm, que pedem o Flash Player                       |
-| **Backup na nuvem**         | Não é embutido: aponte a pasta de dados para o Drive, o OneDrive ou o Dropbox que você já usa                                        |
+| **Backup**                  | Cópia sempre atual no seu Google Drive e backup periódico numa pasta à sua escolha, com restauração pela tela                        |
 
 As bases e os bancos locais ficam no botão **Local**, no topo do painel, ao lado
 de _Clientes_: é o ambiente de desenvolvimento da sua própria máquina, separado do
@@ -185,9 +186,9 @@ encerramento forçado.
 Cada uma em detalhe, com as regras, em
 [docs/funcionalidades.md](docs/funcionalidades.md).
 
-> Os arquivos da pasta de dados sobem para a nuvem **como estão no disco**, e o
-> cadastro guarda as senhas das bases e dos bancos em texto puro. Confira se a
-> pasta não está compartilhada com ninguém.
+> O backup leva os dados **como estão no disco**, e o cadastro guarda as senhas das
+> bases e dos bancos em texto puro. Confira se a pasta do backup e a pasta "HUB SNK"
+> do Drive não estão compartilhadas com ninguém.
 
 ---
 

@@ -25,6 +25,12 @@ número significa aqui.
 - **Cliente da agenda vira link**: na Agenda de Recursos e no Resumo do dia, o nome do
   parceiro já vinculado a um cliente abre o cadastro dele no HUB.
 
+- **Backup e Google Drive**: aba **Backup** nas Configurações. Conecta a sua conta do Google
+  com um clique (a autorização abre no navegador), mantém no Drive uma cópia sempre atual
+  dos dados do HUB e faz backup periódico numa pasta à sua escolha, guardando as últimas
+  cópias. A restauração, do Drive ou de um arquivo, é aplicada ao reiniciar, e os dados de
+  antes ficam guardados. Falha de backup vira notificação.
+
 - **Seus dados no instalador**: página nova, toda opcional, com nome, empresa, time e e-mail.
   Preenche os mesmos campos de Configurações quando ainda estão vazios; o que já foi
   editado lá não é trocado ao reinstalar ou atualizar.

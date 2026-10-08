@@ -3,11 +3,17 @@ import pacote from '../package.json' with { type: 'json' };
 import Fastify from 'fastify';
 import type { FSWatcher } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
+import { hostname } from 'node:os';
 import { join } from 'node:path';
+import { aplicarRestauracaoPendente } from './backup/restauracaoPendente.ts';
+import { ServicoDeBackup } from './backup/servicoDeBackup.ts';
 import { CliDoAutosyncProcesso } from './autosync/cliDoAutosyncProcesso.ts';
 import { baixarPacoteDoAutosync } from './autosync/pacoteDoGithub.ts';
 import { ServicoDoAutosync } from './autosync/servicoDoAutosync.ts';
 import { configuracao } from './configuracao.ts';
+import { ClienteDoDrive } from './drive/clienteDoDrive.ts';
+import { CofreDoDriveNaPonte } from './drive/cofreDoDrive.ts';
+import { ContaDoGoogle } from './drive/contaDoGoogle.ts';
 import {
   ArquivoDeDadosInvalidoError,
   EsquemaMaisNovoError,
@@ -25,6 +31,8 @@ import { VerificadorDaAgendaDoDia } from './notificacoes/verificadorDaAgendaDoDi
 import { registrarAutenticacaoDoPainel } from './rotas/seguranca/autenticacaoDoPainel.ts';
 import { registrarProtecaoDeOrigem } from './rotas/seguranca/protecaoDeOrigem.ts';
 import { registrarRotasDeAtalhos } from './rotas/rotasAtalhos.ts';
+import { registrarRotasDeBackup } from './rotas/rotasBackup.ts';
+import { registrarRotasDeDrive } from './rotas/rotasDrive.ts';
 import { registrarRotasDeSuporte } from './rotas/rotasSuporte.ts';
 import { ServicoDeRelatos } from './suporte/servicoDeRelatos.ts';
 import { registrarRotasDeAutosync } from './rotas/rotasAutosync.ts';
@@ -50,7 +58,10 @@ import { Credenciais } from './sankhya/credenciais.ts';
 import { Experience } from './sankhya/experience.ts';
 import { PonteDoDesktop } from './sankhya/ponteDoDesktop.ts';
 import { SessaoDoDesktop } from './sankhya/sessaoDoDesktop.ts';
+import { abrirNoNavegadorPadrao } from './sistema/processos/abrirNoNavegador.ts';
 import { abrirShellNaPasta } from './sistema/processos/abrirShell.ts';
+import { selecionarArquivoNoSistema, TIPO_BACKUP } from './sistema/processos/selecionarArquivo.ts';
+import { dataHoraLocal } from './notificacoes/relogio.ts';
 import { observarAlteracoesNosDados, type CacheDescartavel } from './sistema/observadorDeDados.ts';
 
 async function iniciarServidor(): Promise<void> {
@@ -80,6 +91,18 @@ async function iniciarServidor(): Promise<void> {
   });
 
   await servidor.register(fastifyStatic, { root: configuracao.diretorioPublico });
+
+  /*
+   * Backup escolhido para restaurar na sessão anterior. Tem de ser antes de qualquer
+   * repositório ler a pasta de dados e de o SQLite abrir: é a única hora em que os
+   * arquivos podem ser trocados.
+   */
+  const restauracao = await aplicarRestauracaoPendente({
+    pastaDeEstado: configuracao.pastaDeEstadoDoBackup,
+    diretorioDeDados: configuracao.diretorioDeDados,
+    versaoDoAplicativo: pacote.version,
+    agora: new Date(),
+  });
 
   const repositorioDeClientes = new RepositorioClientesArquivo(configuracao.diretorioDeDados);
   const repositorioDeConfiguracao = new RepositorioConfiguracaoArquivo(
@@ -147,6 +170,35 @@ async function iniciarServidor(): Promise<void> {
     },
     agora: () => new Date(),
     registrador: registradorDasNotificacoes,
+  });
+
+  const contaDoGoogle = new ContaDoGoogle({
+    credencial: configuracao.credencialDoGoogle,
+    cofre: new CofreDoDriveNaPonte(ponteDoDesktop),
+    abrirNoNavegador: abrirNoNavegadorPadrao,
+  });
+  const clienteDoDrive = new ClienteDoDrive(contaDoGoogle);
+  const servicoDeBackup = new ServicoDeBackup({
+    diretorioDeDados: configuracao.diretorioDeDados,
+    pastaDeEstado: configuracao.pastaDeEstadoDoBackup,
+    versaoDoAplicativo: pacote.version,
+    nomeDaMaquina: hostname(),
+    lerConfiguracao: async () => (await repositorioDeConfiguracao.ler()).backup,
+    conta: contaDoGoogle,
+    drive: clienteDoDrive,
+    agora: () => new Date(),
+    registrador: registradorDasNotificacoes,
+    emitirNotificacao: (dados) => centralDeNotificacoes.emitir(dados),
+  });
+
+  registrarRotasDeDrive(servidor, contaDoGoogle, () => servicoDeBackup.esquecerDrive());
+  registrarRotasDeBackup(servidor, {
+    backup: servicoDeBackup,
+    configuracao: repositorioDeConfiguracao,
+    selecionarArquivoDeBackup: () => selecionarArquivoNoSistema(TIPO_BACKUP),
+    reiniciarAplicativo: async () => {
+      await ponteDoDesktop.requisitar('/app/reiniciar', { method: 'POST' });
+    },
   });
 
   registrarRotasDeClientes(
@@ -234,6 +286,8 @@ async function iniciarServidor(): Promise<void> {
   const encerrarOHub = criarEncerramento(async () => {
     agendadorDeLembretes.parar();
     verificadorDaAgenda.parar();
+    servicoDeBackup.parar();
+    contaDoGoogle.encerrar();
     observadorDosDados?.close();
     await servidor.close();
     agendaDeRecursos.close();
@@ -293,6 +347,27 @@ async function iniciarServidor(): Promise<void> {
 
   agendadorDeLembretes.iniciar();
   verificadorDaAgenda.iniciar();
+  servicoDeBackup.iniciar();
+  if (restauracao) {
+    servidor.log.info(
+      restauracao.erro
+        ? `Restauração do backup falhou: ${restauracao.erro}`
+        : `Backup restaurado; os dados anteriores estão em ${restauracao.copiaAnterior}`,
+    );
+    // A tela recarregou sem dizer nada: a notificação conta o que aconteceu na largada.
+    void centralDeNotificacoes
+      .emitir({
+        origem: 'sistema',
+        chave: `restauracao:${new Date().toISOString()}`,
+        titulo: restauracao.erro ? 'A restauração do backup falhou' : 'Backup restaurado',
+        mensagem: restauracao.erro
+          ? `${restauracao.erro} Os dados que estavam na pasta ficaram guardados em ${restauracao.copiaAnterior}.`
+          : `Os dados voltaram ao backup de ${dataHoraLocal(new Date(restauracao.geradoEm))}. ` +
+            `Os que estavam antes ficaram guardados em ${restauracao.copiaAnterior}.`,
+        enviarEmail: false,
+      })
+      .catch(() => undefined);
+  }
   // Relatos que ficaram sem enviar (sem rede, suporte fora do ar) saem agora.
   void servicoDeRelatos.reenviarPendentes();
   // Importa o que os agentes mudaram nos arquivos de tarefas enquanto o HUB SNK estava fechado.

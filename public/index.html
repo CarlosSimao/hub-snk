@@ -116,14 +116,6 @@
         >
           <span class="contador-notificacoes" id="contador-notificacoes" hidden></span>
         </button>
-        <!-- O ícone de cadeado é montado pelo app.js. -->
-        <button
-          class="btn ghost botao-icone"
-          id="btn-credenciais-sankhya"
-          type="button"
-          title="Sankhya ID"
-          aria-label="Sankhya ID"
-        ></button>
         <!-- O ícone de engrenagem é montado pelo app.js. -->
         <button
           class="btn ghost botao-icone"
@@ -1074,6 +1066,16 @@
           </button>
           <button
             class="aba"
+            id="aba-configuracao-sankhya-id"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-sankhya-id"
+          >
+            Sankhya ID
+          </button>
+          <button
+            class="aba"
             id="aba-configuracao-smtp"
             type="button"
             role="tab"
@@ -1081,6 +1083,16 @@
             aria-controls="painel-configuracao-smtp"
           >
             SMTP
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-atalhos"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-atalhos"
+          >
+            Atalhos
           </button>
           <button
             class="aba"
@@ -1104,16 +1116,6 @@
           </button>
           <button
             class="aba"
-            id="aba-configuracao-atalhos"
-            type="button"
-            role="tab"
-            aria-selected="false"
-            aria-controls="painel-configuracao-atalhos"
-          >
-            Atalhos
-          </button>
-          <button
-            class="aba"
             id="aba-configuracao-ia"
             type="button"
             role="tab"
@@ -1131,6 +1133,16 @@
             aria-controls="painel-configuracao-acessos"
           >
             Acessos
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-backup"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-backup"
+          >
+            Backup
           </button>
           <button
             class="aba"
@@ -1505,6 +1517,136 @@
 
           <div
             class="painel-aba"
+            id="painel-configuracao-sankhya-id"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-sankhya-id"
+            hidden
+          >
+            <p class="texto-auxiliar">
+              Um usuário e uma senha só, usados pelo HUB SNK para entrar sozinho no SankhyaOm e na
+              Experience, ao abrir o aplicativo e sempre que a sessão expirar.
+            </p>
+
+            <section class="cartao-credencial">
+              <div class="campo campo-em-linha">
+                <label for="campo-sankhya-om-codusu">
+                  Meu código de usuário SankhyaOm
+                  <span class="dica" tabindex="0"
+                    >?<span class="dica-texto" role="tooltip"
+                      >Seu <code>CODUSU</code> no SankhyaOm (ERP) — diferente do usuário da
+                      Experience, que é capturado sozinho junto com a sessão. Recorta a Agenda de
+                      Recursos só para você.</span
+                    ></span
+                  >
+                </label>
+                <div class="campo-com-acao">
+                  <input
+                    id="campo-sankhya-om-codusu"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="10"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="Ex.: 4817"
+                  />
+                  <button class="btn ghost" type="button" id="btn-salvar-codusu">Salvar</button>
+                </div>
+              </div>
+              <p class="erro-formulario" id="erro-codusu" hidden></p>
+            </section>
+
+            <p class="aviso-shell" id="aviso-shell-sankhya" hidden>
+              O aplicativo HUB SNK não está respondendo. As credenciais e as guias do Sankhya só
+              funcionam com o painel aberto por ele.
+            </p>
+
+            <section class="cartao-credencial" id="cartao-sankhya-id">
+              <div class="cartao-credencial-cabecalho">
+                <h3>Usuário e senha</h3>
+                <span class="selo-situacao" data-papel="status"></span>
+              </div>
+
+              <div class="campo campo-em-linha">
+                <label>Usuário</label>
+                <input type="text" maxlength="200" autocomplete="off" data-papel="usuario" />
+              </div>
+              <div class="campo campo-em-linha">
+                <label>Senha</label>
+                <div class="campo-com-acao">
+                  <input
+                    type="password"
+                    maxlength="200"
+                    autocomplete="new-password"
+                    data-papel="senha"
+                  />
+                  <button
+                    class="btn tiny botao-icone"
+                    type="button"
+                    data-papel="ver-senha"
+                    aria-pressed="false"
+                  ></button>
+                </div>
+              </div>
+
+              <div class="cartao-credencial-acoes">
+                <button class="btn ghost" type="button" data-papel="salvar">
+                  Salvar Sankhya ID
+                </button>
+                <button class="btn ghost" type="button" data-papel="remover">Remover</button>
+              </div>
+
+              <p class="aviso-shell" data-papel="aviso" hidden></p>
+              <p class="erro-formulario" data-papel="erro" hidden></p>
+            </section>
+
+            <section class="cartao-credencial" data-sistema="sankhya-erp">
+              <div class="cartao-credencial-cabecalho">
+                <h3>SankhyaOm</h3>
+                <span class="selo-situacao" data-papel="status"></span>
+              </div>
+
+              <div class="cartao-credencial-acoes">
+                <span class="rodape-espacador"></span>
+                <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
+                <button class="btn ghost" type="button" data-papel="capturar-sessao">
+                  Capturar sessão
+                </button>
+              </div>
+
+              <p class="erro-formulario" data-papel="erro" hidden></p>
+            </section>
+
+            <section class="cartao-credencial" data-sistema="sankhya-experience">
+              <div class="cartao-credencial-cabecalho">
+                <h3>Experience</h3>
+                <span class="selo-situacao" data-papel="status"></span>
+              </div>
+
+              <div class="cartao-credencial-acoes">
+                <span class="rodape-espacador"></span>
+                <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
+                <button class="btn ghost" type="button" data-papel="capturar-sessao">
+                  Capturar sessão
+                </button>
+              </div>
+
+              <p class="erro-formulario" data-papel="erro" hidden></p>
+            </section>
+          </div>
+
+          <div
+            class="painel-aba"
+            id="painel-configuracao-backup"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-backup"
+            hidden
+          >
+            <!-- Os cartões são montados pelo backup.js, com a situação lida a cada abertura. -->
+            <div id="corpo-backup"></div>
+          </div>
+
+          <div
+            class="painel-aba"
             id="painel-configuracao-smtp"
             role="tabpanel"
             aria-labelledby="aba-configuracao-smtp"
@@ -1866,129 +2008,6 @@
           <button class="btn primario" type="submit" id="btn-salvar-configuracao">Salvar</button>
         </div>
       </form>
-    </dialog>
-
-    <dialog class="modal largo" id="modal-credenciais-sankhya">
-      <div class="modal-cabecalho">
-        <h2>Sankhya ID</h2>
-        <p>
-          Um usuário e uma senha só, usados pelo HUB SNK para entrar sozinho no SankhyaOm e na
-          Experience, ao abrir o aplicativo e sempre que a sessão expirar.
-        </p>
-      </div>
-
-      <div class="modal-corpo">
-        <section class="cartao-credencial">
-          <div class="campo campo-em-linha">
-            <label for="campo-sankhya-om-codusu">
-              Meu código de usuário SankhyaOm
-              <span class="dica" tabindex="0"
-                >?<span class="dica-texto" role="tooltip"
-                  >Seu <code>CODUSU</code> no SankhyaOm (ERP) — diferente do usuário da Experience,
-                  que é capturado sozinho junto com a sessão. Recorta a Agenda de Recursos só para
-                  você.</span
-                ></span
-              >
-            </label>
-            <div class="campo-com-acao">
-              <input
-                id="campo-sankhya-om-codusu"
-                type="text"
-                inputmode="numeric"
-                maxlength="10"
-                autocomplete="off"
-                spellcheck="false"
-                placeholder="Ex.: 4817"
-              />
-              <button class="btn ghost" type="button" id="btn-salvar-codusu">Salvar</button>
-            </div>
-          </div>
-          <p class="erro-formulario" id="erro-codusu" hidden></p>
-        </section>
-
-        <p class="aviso-shell" id="aviso-shell-sankhya" hidden>
-          O aplicativo HUB SNK não está respondendo. As credenciais e as guias do Sankhya só
-          funcionam com o painel aberto por ele.
-        </p>
-
-        <section class="cartao-credencial" id="cartao-sankhya-id">
-          <div class="cartao-credencial-cabecalho">
-            <h3>Usuário e senha</h3>
-            <span class="selo-situacao" data-papel="status"></span>
-          </div>
-
-          <div class="campo campo-em-linha">
-            <label>Usuário</label>
-            <input type="text" maxlength="200" autocomplete="off" data-papel="usuario" />
-          </div>
-          <div class="campo campo-em-linha">
-            <label>Senha</label>
-            <div class="campo-com-acao">
-              <input
-                type="password"
-                maxlength="200"
-                autocomplete="new-password"
-                data-papel="senha"
-              />
-              <button
-                class="btn tiny botao-icone"
-                type="button"
-                data-papel="ver-senha"
-                aria-pressed="false"
-              ></button>
-            </div>
-          </div>
-
-          <div class="cartao-credencial-acoes">
-            <button class="btn ghost" type="button" data-papel="salvar">Salvar Sankhya ID</button>
-            <button class="btn ghost" type="button" data-papel="remover">Remover</button>
-          </div>
-
-          <p class="aviso-shell" data-papel="aviso" hidden></p>
-          <p class="erro-formulario" data-papel="erro" hidden></p>
-        </section>
-
-        <section class="cartao-credencial" data-sistema="sankhya-erp">
-          <div class="cartao-credencial-cabecalho">
-            <h3>SankhyaOm</h3>
-            <span class="selo-situacao" data-papel="status"></span>
-          </div>
-
-          <div class="cartao-credencial-acoes">
-            <span class="rodape-espacador"></span>
-            <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
-            <button class="btn ghost" type="button" data-papel="capturar-sessao">
-              Capturar sessão
-            </button>
-          </div>
-
-          <p class="erro-formulario" data-papel="erro" hidden></p>
-        </section>
-
-        <section class="cartao-credencial" data-sistema="sankhya-experience">
-          <div class="cartao-credencial-cabecalho">
-            <h3>Experience</h3>
-            <span class="selo-situacao" data-papel="status"></span>
-          </div>
-
-          <div class="cartao-credencial-acoes">
-            <span class="rodape-espacador"></span>
-            <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
-            <button class="btn ghost" type="button" data-papel="capturar-sessao">
-              Capturar sessão
-            </button>
-          </div>
-
-          <p class="erro-formulario" data-papel="erro" hidden></p>
-        </section>
-      </div>
-
-      <div class="modal-rodape">
-        <span class="rodape-espacador"></span>
-        <button class="btn primario" type="button" id="btn-fechar-credenciais-sankhya">
-          Fechar
-        </button>
-      </div>
     </dialog>
 
     <dialog class="modal largo" id="modal-mcp">

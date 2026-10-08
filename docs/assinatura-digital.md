@@ -102,6 +102,8 @@ Inventário inicial para a declaração de privacidade. Revisar antes do pedido:
 - **E-mail**: envio pelo SMTP que o usuário configura (`nodemailer`).
 - **Guias web** (Sankhya, Gmail, Chat, WhatsApp Web): o conteúdo é carregado
   direto dos serviços, e os cookies ficam no `userData`.
+- **Google Drive**: só com a conta conectada pelo usuário. Grava e lê, na conta dele, só a
+  cópia dos dados do HUB SNK (`src/drive/`, `src/backup/`). Nada vai para servidor do projeto.
 - **Credenciais**: guardadas no cofre local (`safeStorage` do Windows), nunca
   enviadas para servidor do projeto.
 - **Telemetria**: nenhuma. Confirmar que continua assim.

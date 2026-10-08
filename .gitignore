@@ -14,3 +14,7 @@ Thumbs.db
 
 # Instaladores gerados pelo electron-builder (desktop/electron-builder.yml).
 release/
+
+# Credencial OAuth do Google (cliente "App para computador"): entra no instalador pelo
+# empacotamento e não vai para o repositório. Veja docs/manutencao.md.
+credencial-google.json

@@ -1,15 +1,16 @@
 /**
- * Serviço local que o backend chama (`src/sankhya/ponteDoDesktop.ts`) para o que só a
- * guia autenticada do Electron consegue fazer: cofre de credenciais, captura de sessão e
- * consultas ao `service.sbr` de dentro da página logada. Porta fixa, token de arquivo
- * (`x-hub-token`) e só em 127.0.0.1.
+ * Serviço local que o backend chama (`src/sankhya/ponteDoDesktop.ts`) para o que só o
+ * Electron consegue fazer: cofre de credenciais e de segredos, captura de sessão,
+ * consultas ao `service.sbr` de dentro da página logada e o reinício do aplicativo.
+ * Porta fixa, token de arquivo (`x-hub-token`) e só em 127.0.0.1.
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { dialog } from 'electron';
+import { app, dialog } from 'electron';
 import { BRIDGE_HOST, BRIDGE_PORT } from '../config';
 import { garantirToken } from './tokenStore';
 import { logEvento } from '../log';
 import * as cofre from '../sankhya/cofreCredenciais';
+import * as segredos from './cofreDeSegredos';
 import * as navegador from '../sankhya/navegador';
 import { autoLoginSankhya } from '../sankhya/autoLoginSankhya';
 import type { ConsultorDeAgenda, ResultadoFetch } from '../sankhya/janelaAgendaOculta';
@@ -119,6 +120,57 @@ function tratarSankhyaId(
   responderJson(res, 404, { ok: false, erro: `rota desconhecida: ${req.method} ${req.url}` });
 }
 
+/**
+ * Segredos do backend que não são do Sankhya — ver `cofreDeSegredos.ts`. O valor é
+ * opaco para o shell: quem sabe o que ele guarda é o backend.
+ */
+function tratarSegredos(req: IncomingMessage, res: ServerResponse, corpo: string): void {
+  const nome = (req.url ?? '').split('?')[0]?.split('/').filter(Boolean)[1] ?? '';
+
+  if (!segredos.ehSegredoValido(nome)) {
+    responderJson(res, 404, { ok: false, erro: `segredo desconhecido: ${nome}` });
+    return;
+  }
+
+  // Mesma recusa do cofre das credenciais: sem criptografia real, gravar seria em claro.
+  if (!cofre.disponivel()) {
+    responderJson(res, 503, { ok: false, erro: cofre.motivoIndisponivel() });
+    return;
+  }
+
+  if (req.method === 'GET') {
+    responderJson(res, 200, { ok: true, valor: segredos.lerSegredo(nome) });
+    return;
+  }
+
+  if (req.method === 'PUT') {
+    let dados: { valor?: unknown } = {};
+    try {
+      dados = JSON.parse(corpo || '{}') as { valor?: unknown };
+    } catch {
+      responderJson(res, 400, { ok: false, erro: 'corpo não é JSON válido' });
+      return;
+    }
+    if (typeof dados.valor !== 'string' || !dados.valor) {
+      responderJson(res, 400, { ok: false, erro: 'envie { valor }' });
+      return;
+    }
+    segredos.gravarSegredo(nome, dados.valor);
+    logEvento('segredo-gravado', { nome });
+    responderJson(res, 200, { ok: true });
+    return;
+  }
+
+  if (req.method === 'DELETE') {
+    segredos.removerSegredo(nome);
+    logEvento('segredo-removido', { nome });
+    responderJson(res, 200, { ok: true });
+    return;
+  }
+
+  responderJson(res, 404, { ok: false, erro: `rota desconhecida: ${req.method} ${req.url}` });
+}
+
 /** Guias do Sankhya: abrir, login automático e captura da sessão — ver `navegador.ts`. */
 async function tratarNavegador(
   req: IncomingMessage,
@@ -221,6 +273,24 @@ export function criarBridgeServer(
 
       if (req.url?.startsWith('/credentials/')) {
         tratarCredenciais(req, res, await lerCorpo(req));
+        return;
+      }
+
+      if (req.url?.startsWith('/segredos/')) {
+        tratarSegredos(req, res, await lerCorpo(req));
+        return;
+      }
+
+      // Fecha e abre de novo: é como a restauração de backup, preparada pelo backend, é
+      // aplicada. A resposta sai antes, para o backend não ver a conexão cair no meio; o
+      // `before-quit` encerra o backend como em qualquer saída.
+      if (req.method === 'POST' && req.url === '/app/reiniciar') {
+        logEvento('app-reinicio-pedido');
+        responderJson(res, 202, { ok: true });
+        setImmediate(() => {
+          app.relaunch();
+          app.quit();
+        });
         return;
       }
 

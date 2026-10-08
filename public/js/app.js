@@ -14,6 +14,7 @@ import {
   registrarUsoRecente,
   ROTULOS_DOS_TIPOS,
 } from './buscaRapida.js';
+import { iniciarBackup } from './backup.js';
 import { iniciarKanban } from './kanban.js';
 import { lerArvoreDeFavoritos } from './leitorDeFavoritos.js';
 import { separarTipoDoNome } from './tipoDeBaseNoNome.js';
@@ -196,8 +197,6 @@ const ICONES = {
     'M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M10 11v6 M14 11v6',
   /* Raio: o botão que abre a lista de atalhos. */
   raio: 'M13 2L3 14h7l-1 8 10-12h-7l1-8z',
-  /* Cadeado: o botão que abre o Sankhya ID. */
-  cadeado: 'M5 11h14v10H5z M8 11V7a4 4 0 0 1 8 0v4',
   /* Funil: o botão que abre o painel de filtros da lista de clientes. */
   funil: 'M3 4h18l-7 8.5V20l-4-2.5v-5z',
   /* Triângulo de play: iniciar processo. */
@@ -600,10 +599,12 @@ const elementos = {
   botaoSalvarBancoLocal: document.getElementById('btn-salvar-banco-local'),
   botaoCancelarBancoLocal: document.getElementById('btn-cancelar-banco-local'),
 
-  botaoCredenciaisSankhya: document.getElementById('btn-credenciais-sankhya'),
-  modalCredenciaisSankhya: document.getElementById('modal-credenciais-sankhya'),
+  corpoBackup: document.getElementById('corpo-backup'),
+  abaConfiguracaoSankhyaId: document.getElementById('aba-configuracao-sankhya-id'),
+  painelConfiguracaoSankhyaId: document.getElementById('painel-configuracao-sankhya-id'),
+  abaConfiguracaoBackup: document.getElementById('aba-configuracao-backup'),
+  painelConfiguracaoBackup: document.getElementById('painel-configuracao-backup'),
   avisoShellSankhya: document.getElementById('aviso-shell-sankhya'),
-  botaoFecharCredenciaisSankhya: document.getElementById('btn-fechar-credenciais-sankhya'),
 
   modalConfiguracao: document.getElementById('modal-configuracao'),
   formularioConfiguracao: document.getElementById('formulario-configuracao'),
@@ -5760,7 +5761,7 @@ function elementosDoCartaoDeSessao(cartao) {
 /* Só os cartões de sessão têm `data-sistema`; o do Sankhya ID e o do CODUSU ficam de fora. */
 function cartoesDeCredenciaisSankhya() {
   return [
-    ...elementos.modalCredenciaisSankhya.querySelectorAll('.cartao-credencial[data-sistema]'),
+    ...elementos.painelConfiguracaoSankhyaId.querySelectorAll('.cartao-credencial[data-sistema]'),
   ].map(elementosDoCartaoDeSessao);
 }
 
@@ -5827,10 +5828,9 @@ async function atualizarCredenciaisSankhya() {
   }
 }
 
+/* O Sankhya ID mora numa aba das Configurações; quem a seleciona também a carrega. */
 function abrirModalDeCredenciaisSankhya() {
-  elementos.modalCredenciaisSankhya.showModal();
-  void atualizarCredenciaisSankhya();
-  void carregarCodusuSankhyaOm();
+  return abrirConfiguracaoNaAba(elementos.abaConfiguracaoSankhyaId);
 }
 
 async function carregarCodusuSankhyaOm() {
@@ -5977,6 +5977,8 @@ function registrarEventosDoCartaoDeSessao(cartaoElementos) {
 function selecionarAbaDaConfiguracao(abaEscolhida) {
   const abas = [
     { aba: elementos.abaConfiguracaoGeral, painel: elementos.painelConfiguracaoGeral },
+    { aba: elementos.abaConfiguracaoSankhyaId, painel: elementos.painelConfiguracaoSankhyaId },
+    { aba: elementos.abaConfiguracaoBackup, painel: elementos.painelConfiguracaoBackup },
     { aba: elementos.abaConfiguracaoMcp, painel: elementos.painelConfiguracaoMcp },
     { aba: elementos.abaConfiguracaoAtalhos, painel: elementos.painelConfiguracaoAtalhos },
     { aba: elementos.abaConfiguracaoSmtp, painel: elementos.painelConfiguracaoSmtp },
@@ -5991,6 +5993,20 @@ function selecionarAbaDaConfiguracao(abaEscolhida) {
     aba.classList.toggle('ativa', ativa);
     aba.setAttribute('aria-selected', String(ativa));
     painel.hidden = !ativa;
+  }
+
+  // Sankhya ID e Backup gravam na hora, cada um com seus botões: o Salvar do rodapé não vale.
+  const gravaNaHora =
+    abaEscolhida === elementos.abaConfiguracaoSankhyaId ||
+    abaEscolhida === elementos.abaConfiguracaoBackup;
+  elementos.botaoSalvarConfiguracao.hidden = gravaNaHora;
+  elementos.botaoCancelarConfiguracao.textContent = gravaNaHora ? 'Fechar' : 'Cancelar';
+
+  if (abaEscolhida === elementos.abaConfiguracaoSankhyaId) {
+    void atualizarCredenciaisSankhya();
+    void carregarCodusuSankhyaOm();
+  } else if (abaEscolhida === elementos.abaConfiguracaoBackup) {
+    void backup.abrir();
   }
 }
 
@@ -6359,12 +6375,11 @@ async function abrirConfiguracaoNaAba(aba, campo) {
     return;
   }
   selecionarAbaDaConfiguracao(aba);
-  campo.focus();
+  campo?.focus();
 }
 
 function abrirCredenciaisSankhyaNoCampo(campo) {
-  abrirModalDeCredenciaisSankhya();
-  campo?.focus();
+  return abrirConfiguracaoNaAba(elementos.abaConfiguracaoSankhyaId, campo);
 }
 
 function cartaoDeCredencialSankhya(sistema) {
@@ -6378,15 +6393,15 @@ function cartaoDeCredencialSankhya(sistema) {
  */
 const DESTINOS_DE_CONFIGURACAO_PENDENTE = {
   codusu: {
-    botao: () => elementos.botaoCredenciaisSankhya,
+    botao: () => elementos.botaoConfiguracao,
     abrir: () => abrirCredenciaisSankhyaNoCampo(elementos.campoConfigSankhyaOmCodUsu),
   },
   'login-erp': {
-    botao: () => elementos.botaoCredenciaisSankhya,
+    botao: () => elementos.botaoConfiguracao,
     abrir: () => abrirCredenciaisSankhyaNoCampo(elementosDoSankhyaId().campoUsuario),
   },
   'sessao-experience': {
-    botao: () => elementos.botaoCredenciaisSankhya,
+    botao: () => elementos.botaoConfiguracao,
     abrir: () =>
       abrirCredenciaisSankhyaNoCampo(
         cartaoDeCredencialSankhya('sankhya-experience')?.botaoCapturarSessao,
@@ -6975,7 +6990,7 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false 
   estado.terceiro = terceiro;
 
   // O que usa as credenciais do Sankhya sem ser aba: some junto com Agenda e OS.
-  elementos.botaoCredenciaisSankhya.hidden = terceiro;
+  elementos.abaConfiguracaoSankhyaId.hidden = terceiro;
   elementos.grupoAlertaAgenda.hidden = terceiro;
   elementos.campoNomesCompletosCliente.hidden = terceiro;
 
@@ -12119,12 +12134,7 @@ function registrarEventos() {
     }
   });
 
-  elementos.botaoCredenciaisSankhya.append(criarIcone(ICONES.cadeado));
-  elementos.botaoCredenciaisSankhya.addEventListener('click', abrirModalDeCredenciaisSankhya);
   elementos.botaoSalvarCodusu.addEventListener('click', salvarCodusuSankhyaOm);
-  elementos.botaoFecharCredenciaisSankhya.addEventListener('click', () =>
-    elementos.modalCredenciaisSankhya.close(),
-  );
   registrarEventosDoSankhyaId(elementosDoSankhyaId());
   for (const cartaoElementos of cartoesDeCredenciaisSankhya()) {
     registrarEventosDoCartaoDeSessao(cartaoElementos);
@@ -12136,6 +12146,23 @@ function registrarEventos() {
   elementos.abaConfiguracaoGeral.addEventListener('click', () =>
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGeral),
   );
+  elementos.abaConfiguracaoSankhyaId.addEventListener('click', () =>
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoSankhyaId),
+  );
+  elementos.abaConfiguracaoBackup.addEventListener('click', () =>
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoBackup),
+  );
+  // Enter num campo dessas abas não pode enviar o formulário das configurações.
+  for (const painel of [
+    elementos.painelConfiguracaoSankhyaId,
+    elementos.painelConfiguracaoBackup,
+  ]) {
+    painel.addEventListener('keydown', (evento) => {
+      if (evento.key === 'Enter' && evento.target.tagName === 'INPUT') {
+        evento.preventDefault();
+      }
+    });
+  }
   elementos.abaConfiguracaoMcp.addEventListener('click', () => {
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoMcp);
     if (funcionalidadeVisivel('cliente.projetos')) {
@@ -12538,6 +12565,17 @@ const kanban = iniciarKanban({
   selecionarPasta: () => api.selecionarPasta(),
   clienteSelecionado,
   excluirProjetoSemKanban: pedirExclusaoDeProjetoSemKanban,
+});
+
+const backup = iniciarBackup({
+  requisitar,
+  criarElemento,
+  criarBotao,
+  exibirAviso,
+  selecionarPasta: () => api.selecionarPasta(),
+  copiarParaAreaDeTransferencia,
+  modal: elementos.modalConfiguracao,
+  corpo: elementos.corpoBackup,
 });
 
 iniciar();

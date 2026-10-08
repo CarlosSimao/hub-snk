@@ -71,9 +71,13 @@ npm run empacotar-desktop
 
 1. `tsc` do shell, para `desktop/dist/`.
 2. `scripts/preparar-hub.mjs`: copia `src/` e `public/` sem os testes, o
-   `package.json`, o `package-lock.json` e a `LICENSE` para `desktop/build/hub`, e
-   roda `npm ci --omit=dev` ali — o backend do pacote só com as dependências de
-   produção (cerca de 31 MB, 30 MB deles de `node_modules`).
+   `package.json`, o `package-lock.json` e a `LICENSE` para `desktop/build/hub`, grava
+   ali o `credencial-google.json` com a credencial OAuth do Google Drive (dos secrets
+   `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`, ou do arquivo local ignorado pelo Git) e
+   roda `npm ci --omit=dev` — o backend do pacote só com as dependências de
+   produção (cerca de 31 MB, 30 MB deles de `node_modules`). Sem a credencial o
+   instalador sai sem o Drive; na tag de versão do CI isso é erro. Veja
+   [Credencial do Google Drive](manutencao.md#credencial-do-google-drive).
 3. `electron-builder`: monta o `app.asar` com o shell, põe `build/hub` e
    `instalador/*.ps1` em `resources/`, fora do asar, e gera
    `release/HUB-SNK-Setup-<versão>.exe`.

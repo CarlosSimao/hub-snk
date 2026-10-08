@@ -24,6 +24,7 @@ function criarRepositorioDeConfiguracaoFalso(): RepositorioConfiguracao {
       return { experiencePersonId } as ConfiguracaoGlobal;
     },
     definirSankhyaOmCodUsu: async () => ({ experiencePersonId }) as ConfiguracaoGlobal,
+    definirBackup: async () => ({ experiencePersonId }) as ConfiguracaoGlobal,
   };
 }
 

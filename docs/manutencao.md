@@ -254,11 +254,59 @@ oficial com o Git AutoSync marcado e rode a `2.0.1` por cima com ele desmarcado:
 tem de aparecer em `%LOCALAPPDATA%\HubSnk\git-autosync-instalado-pelo-hub.txt`, e a
 desinstalação no fim tem de perguntar se remove o Git AutoSync.
 
+## Credencial do Google Drive
+
+A conexão com o Google Drive usa uma credencial OAuth do projeto no Google Cloud, que
+viaja no instalador mas **não está no repositório**: ele é público, e o GitHub recusa o
+push de um commit com a chave. Sem a credencial a janela de Backup diz que a integração
+não está configurada, e o resto do HUB SNK funciona normalmente. Para criar:
+
+1. Em <https://console.cloud.google.com>, crie um projeto e ative a **Google Drive API**.
+2. Em **Google Auth Platform**, configure a tela de consentimento como **Externo**, com o
+   nome do aplicativo e o e-mail de suporte, e adicione o escopo
+   `.../auth/drive.file`, e só ele.
+3. Em **Clientes**, crie um cliente OAuth do tipo **App para computador**.
+4. Guarde o ID e a chave secreta (a chave só aparece na criação). Nesse tipo de cliente o
+   Google não trata a chave como segredo, e o que protege a autorização é o PKCE e o
+   consentimento do usuário — mas ela fica fora do Git e entra no instalador:
+
+   - **No instalador publicado**: cadastre os secrets `GOOGLE_CLIENT_ID` e
+     `GOOGLE_CLIENT_SECRET` no repositório (_Settings › Secrets and variables › Actions_).
+     O workflow `Distribuição` os passa ao `npm run empacotar-desktop`, e o
+     `preparar-hub.mjs` os grava em `credencial-google.json` dentro de `resources/hub`.
+     Na tag de versão, secret faltando **falha o job**: o instalador não sai sem o Drive.
+   - **Na sua máquina**: crie o `credencial-google.json` na raiz do repositório, que o
+     `.gitignore` ignora, com `{ "clientId": "...", "clientSecret": "..." }`. Serve ao
+     `npm run app` e a um `npm run empacotar-desktop` local.
+
+   Para testar com outra credencial sem mexer em arquivo, defina `HUB_GOOGLE_CLIENT_ID` e
+   `HUB_GOOGLE_CLIENT_SECRET` antes de abrir o aplicativo: elas vencem o arquivo.
+
+Se a chave vazar para onde não devia, ou precisar ser trocada, gere uma chave nova no
+cliente OAuth do Google Cloud e atualize os secrets: os HUB SNK já instalados só voltam a
+conectar depois de atualizar, porque a chave antiga está dentro do instalador deles.
+
+O `drive.file` é um escopo **não sensível**: o aplicativo pode ficar **em produção** sem
+verificação do Google, sem o aviso "O Google não verificou este app" e sem o teto de 100
+contas. Com a tela de consentimento em **Teste**, só entram contas cadastradas como
+usuários de teste, e a autorização vence em 7 dias: serve só para desenvolver.
+
+**Não acrescente escopo de leitura do Drive** (`drive.readonly`, `drive.metadata.readonly`
+e parecidos): são restritos, e trazem de volta o aviso, o teto e a exigência de verificação
+com avaliação de segurança anual. Listar o conteúdo de pastas que o HUB SNK não criou
+exige um deles.
+
+Todo o fluxo roda contra dublês nos testes (`src/drive/*.test.ts`). Com a credencial
+criada, teste à mão: conectar, enviar a cópia, restaurar e desconectar.
+
 ## Relato de problema
 
 Configurações › Sobre › **Reportar problema ou sugerir** envia o relato ao suporte do
 mantenedor (`src/suporte/`, `src/rotas/rotasSuporte.ts`, `public/js/relatoDeProblema.js`).
 É o único ponto do aplicativo que manda dado do usuário para fora da máquina.
+
+A cópia no Google Drive, quando ligada, manda os dados para a conta do próprio usuário,
+e não para o mantenedor.
 
 O que segue no relato, e só quando o usuário clica em Enviar:
 
