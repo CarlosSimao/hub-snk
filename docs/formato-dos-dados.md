@@ -101,7 +101,7 @@ na lista é descartado na leitura.
 a lista. Arquivo sem o campo recebe a escolha do instalador; sem instalador,
 `false`.
 
-`sankhyaOmCodUsu` é o `CODUSU` digitado no topo de **Credenciais Sankhya**, que
+`sankhyaOmCodUsu` é o `CODUSU` digitado em **Configurações › Sankhya ID**, que
 recorta a Agenda de Recursos para os seus eventos. `experiencePersonId` é o
 `person_id` da Experience, gravado sozinho ao capturar a sessão e nunca digitado;
 vazio, a aba OS não tem de quem buscar as OS.
@@ -123,6 +123,13 @@ para o padrão dele. Arquivo de antes do campo, ou com assistente desconhecido, 
 Geral** que dizem quem usa o aplicativo (a empresa é a da pessoa, e não um cliente do
 cadastro). Os três são obrigatórios para abrir um relato ao suporte e seguem com ele.
 Arquivo de antes dos campos nasce com eles vazios.
+
+`backup` é a configuração da janela **Backup e Google Drive**: `ativo`, `pasta`,
+`intervaloHoras` e `copiasMantidas` do backup periódico, e `espelharNoDrive` da cópia
+no Google Drive. Arquivo de antes do campo nasce com tudo desligado, 24 horas e 10
+cópias. A conta do Google não fica aqui nem na pasta de dados: a autorização vai para o
+cofre do aplicativo (`%APPDATA%\HUB SNK\segredos.json`, cifrado), e o que o backup
+lembra desta máquina, para `%APPDATA%\HUB SNK\backup`.
 
 Nada do Git AutoSync fica aqui. A configuração dele é o `config.json` da pasta dele
 (`%USERPROFILE%\.git-autosync`), que o HUB SNK só lê e altera pelo CLI, e o host e o

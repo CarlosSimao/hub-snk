@@ -137,6 +137,29 @@ Nada é gravado ali: a pasta e as variáveis voltam para a tela e só persistem 
 de 1 a 20 caminhos absolutos, e devolve o que encontrou, sem cadastrar nada.
 Pasta inexistente responde `404`.
 
+## Google Drive e backup
+
+| Método   | Rota                       | Resposta                                                                              |
+| -------- | -------------------------- | ------------------------------------------------------------------------------------- |
+| `GET`    | `/api/drive`               | `200` — situação da conta: configurado, conectado, e-mail, permissão e erro           |
+| `POST`   | `/api/drive/conectar`      | `200` — `{ url }` do consentimento, já aberto no navegador padrão                     |
+| `DELETE` | `/api/drive`               | `200` — desconecta (ou desiste da autorização em aberto) e devolve a situação         |
+| `GET`    | `/api/backup`              | `200` — configuração, último backup, última cópia no Drive e restauração à espera     |
+| `PUT`    | `/api/backup/configuracao` | `200` — grava `ativo`, `pasta`, `intervaloHoras`, `copiasMantidas`, `espelharNoDrive` |
+| `POST`   | `/api/backup/local`        | `200` — grava um backup agora na pasta configurada                                    |
+| `POST`   | `/api/backup/drive`        | `200` — envia a cópia ao Drive agora                                                  |
+| `GET`    | `/api/backup/drive/copias` | `200` — `{ copias }` guardadas na conta                                               |
+| `POST`   | `/api/backup/restauracao`  | `200` — backup deixado à espera do reinício; `204` se o seletor foi cancelado         |
+| `DELETE` | `/api/backup/restauracao`  | `200` — cancela a restauração à espera                                                |
+| `POST`   | `/api/backup/reiniciar`    | `202` — pede ao aplicativo que reinicie; `503` sem ele                                |
+
+`POST /api/backup/restauracao` recebe `{ "origem": "drive", "idDoArquivo": "..." }`, com
+o id de uma das cópias listadas, ou `{ "origem": "arquivo" }`, que abre o seletor de
+arquivo do sistema — o caminho nunca vem na requisição. Arquivo que não é backup do HUB
+SNK, ou de versão mais nova, responde `400`. `POST /api/drive/conectar` responde `409`
+quando a versão não traz a credencial do Google e `503` sem o aplicativo desktop, que é
+quem guarda a autorização. Falha do Google Drive responde `502`.
+
 ## Ambiente local
 
 Bases locais são instalações do WildFly na máquina; bancos locais são containers

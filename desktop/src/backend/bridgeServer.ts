@@ -1,19 +1,21 @@
 /**
- * Serviço local que o backend chama (`src/sankhya/ponteDoDesktop.ts`) para o que só a
- * guia autenticada do Electron consegue fazer: cofre de credenciais, captura de sessão e
- * consultas ao `service.sbr` de dentro da página logada. Porta fixa, token de arquivo
- * (`x-hub-token`) e só em 127.0.0.1.
+ * Serviço local que o backend chama (`src/sankhya/ponteDoDesktop.ts`) para o que só o
+ * Electron consegue fazer: cofre de credenciais e de segredos, captura de sessão,
+ * consultas ao `service.sbr` de dentro da página logada e o reinício do aplicativo.
+ * Porta fixa, token de arquivo (`x-hub-token`) e só em 127.0.0.1.
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { dialog } from 'electron';
+import { app, dialog } from 'electron';
 import { BRIDGE_HOST, BRIDGE_PORT } from '../config';
 import { garantirToken } from './tokenStore';
 import { logEvento } from '../log';
 import * as cofre from '../sankhya/cofreCredenciais';
+import * as segredos from './cofreDeSegredos';
 import * as navegador from '../sankhya/navegador';
 import { autoLoginSankhya } from '../sankhya/autoLoginSankhya';
 import type { ConsultorDeAgenda, ResultadoFetch } from '../sankhya/janelaAgendaOculta';
 import type { TabManager } from '../interface/tabs';
+import { criarOcorrencia, usuarioLogado, type Resultado } from '../sankhya/ocorrencias';
 
 function lerCorpo(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -29,20 +31,26 @@ function responderJson(res: ServerResponse, status: number, corpo: unknown): voi
   res.end(JSON.stringify(corpo));
 }
 
+/** Nome na rota do login único; os sistemas são `sankhya-erp` e `sankhya-experience`. */
+const ROTA_DO_SANKHYA_ID = 'id';
+
 /**
  * Cofre de credenciais — ver `cofreCredenciais.ts`.
  *
  * O `ok` de transporte vai junto porque o cliente do backend (`ponteDoDesktop.ts`) o
  * espera; o estado da credencial em si são os outros campos.
+ *
+ * `/credentials/id` é o Sankhya ID (usuário e senha); `/credentials/<sistema>`, o status e
+ * o segredo de um dos sistemas: a sessão dele, com a senha do Sankhya ID.
  */
 function tratarCredenciais(req: IncomingMessage, res: ServerResponse, corpo: string): void {
-  // `/credentials/<sistema>` ou `/credentials/<sistema>/reveal`.
+  // `/credentials/<alvo>` ou `/credentials/<alvo>/reveal`.
   const partes = (req.url ?? '').split('?')[0]?.split('/').filter(Boolean) ?? [];
-  const sistema = partes[1] ?? '';
+  const alvo = partes[1] ?? '';
   const acao = partes[2] ?? '';
 
-  if (!cofre.ehSistemaValido(sistema)) {
-    responderJson(res, 404, { ok: false, erro: `sistema desconhecido: ${sistema}` });
+  if (alvo !== ROTA_DO_SANKHYA_ID && !cofre.ehSistemaValido(alvo)) {
+    responderJson(res, 404, { ok: false, erro: `sistema desconhecido: ${alvo}` });
     return;
   }
 
@@ -53,6 +61,12 @@ function tratarCredenciais(req: IncomingMessage, res: ServerResponse, corpo: str
     return;
   }
 
+  if (alvo === ROTA_DO_SANKHYA_ID) {
+    tratarSankhyaId(req, res, corpo, acao);
+    return;
+  }
+  const sistema = alvo;
+
   if (req.method === 'GET' && acao === 'reveal') {
     responderJson(res, 200, { ok: true, ...cofre.revelar(sistema) });
     return;
@@ -60,6 +74,21 @@ function tratarCredenciais(req: IncomingMessage, res: ServerResponse, corpo: str
 
   if (req.method === 'GET' && !acao) {
     responderJson(res, 200, { ok: true, ...cofre.status(sistema) });
+    return;
+  }
+
+  responderJson(res, 404, { ok: false, erro: `rota desconhecida: ${req.method} ${req.url}` });
+}
+
+/** O Sankhya ID: grava, remove e mostra a senha. Quem consome a senha é `revelar(sistema)`. */
+function tratarSankhyaId(
+  req: IncomingMessage,
+  res: ServerResponse,
+  corpo: string,
+  acao: string,
+): void {
+  if (req.method === 'GET' && acao === 'reveal') {
+    responderJson(res, 200, { ok: true, senha: cofre.revelarSenha() });
     return;
   }
 
@@ -75,16 +104,67 @@ function tratarCredenciais(req: IncomingMessage, res: ServerResponse, corpo: str
       responderJson(res, 400, { ok: false, erro: 'envie { usuario, senha }' });
       return;
     }
-    const status = cofre.gravar(sistema, dados.usuario, dados.senha);
-    logEvento('credencial-gravada', { sistema });
+    const status = cofre.gravar(dados.usuario, dados.senha);
+    logEvento('sankhya-id-gravado');
     responderJson(res, 200, { ok: true, ...status });
     return;
   }
 
   if (req.method === 'DELETE' && !acao) {
-    const status = cofre.remover(sistema);
-    logEvento('credencial-removida', { sistema });
+    const status = cofre.remover();
+    logEvento('sankhya-id-removido');
     responderJson(res, 200, { ok: true, ...status });
+    return;
+  }
+
+  responderJson(res, 404, { ok: false, erro: `rota desconhecida: ${req.method} ${req.url}` });
+}
+
+/**
+ * Segredos do backend que não são do Sankhya — ver `cofreDeSegredos.ts`. O valor é
+ * opaco para o shell: quem sabe o que ele guarda é o backend.
+ */
+function tratarSegredos(req: IncomingMessage, res: ServerResponse, corpo: string): void {
+  const nome = (req.url ?? '').split('?')[0]?.split('/').filter(Boolean)[1] ?? '';
+
+  if (!segredos.ehSegredoValido(nome)) {
+    responderJson(res, 404, { ok: false, erro: `segredo desconhecido: ${nome}` });
+    return;
+  }
+
+  // Mesma recusa do cofre das credenciais: sem criptografia real, gravar seria em claro.
+  if (!cofre.disponivel()) {
+    responderJson(res, 503, { ok: false, erro: cofre.motivoIndisponivel() });
+    return;
+  }
+
+  if (req.method === 'GET') {
+    responderJson(res, 200, { ok: true, valor: segredos.lerSegredo(nome) });
+    return;
+  }
+
+  if (req.method === 'PUT') {
+    let dados: { valor?: unknown } = {};
+    try {
+      dados = JSON.parse(corpo || '{}') as { valor?: unknown };
+    } catch {
+      responderJson(res, 400, { ok: false, erro: 'corpo não é JSON válido' });
+      return;
+    }
+    if (typeof dados.valor !== 'string' || !dados.valor) {
+      responderJson(res, 400, { ok: false, erro: 'envie { valor }' });
+      return;
+    }
+    segredos.gravarSegredo(nome, dados.valor);
+    logEvento('segredo-gravado', { nome });
+    responderJson(res, 200, { ok: true });
+    return;
+  }
+
+  if (req.method === 'DELETE') {
+    segredos.removerSegredo(nome);
+    logEvento('segredo-removido', { nome });
+    responderJson(res, 200, { ok: true });
     return;
   }
 
@@ -196,6 +276,24 @@ export function criarBridgeServer(
         return;
       }
 
+      if (req.url?.startsWith('/segredos/')) {
+        tratarSegredos(req, res, await lerCorpo(req));
+        return;
+      }
+
+      // Fecha e abre de novo: é como a restauração de backup, preparada pelo backend, é
+      // aplicada. A resposta sai antes, para o backend não ver a conexão cair no meio; o
+      // `before-quit` encerra o backend como em qualquer saída.
+      if (req.method === 'POST' && req.url === '/app/reiniciar') {
+        logEvento('app-reinicio-pedido');
+        responderJson(res, 202, { ok: true });
+        setImmediate(() => {
+          app.relaunch();
+          app.quit();
+        });
+        return;
+      }
+
       if (req.url?.startsWith('/browser/')) {
         await tratarNavegador(req, res, tabs());
         return;
@@ -230,6 +328,43 @@ export function criarBridgeServer(
         return;
       }
 
+      // Ocorrência de agenda (AD_OCOAGE) pela janela oculta — ver `ocorrencias.ts`. Nenhuma
+      // ação aceita CODUSU: o usuário é sempre o da sessão. `criar` GRAVA no ERP.
+      if (req.method === 'POST' && req.url?.startsWith('/ocorrencias/')) {
+        try {
+          const corpo = JSON.parse((await lerCorpo(req)) || '{}') as Record<string, unknown>;
+          const chamar = agenda.chamarNoMge.bind(agenda);
+          const acao = req.url.slice('/ocorrencias/'.length);
+          let resultado: Resultado<unknown>;
+          if (acao === 'usuario') {
+            resultado = await usuarioLogado(chamar);
+          } else if (acao === 'criar') {
+            const esperado = Number(corpo['codusuEsperado']);
+            const criada = await criarOcorrencia(chamar, {
+              dtInicial: String(corpo['dtInicial'] ?? ''),
+              dtFinal: String(corpo['dtFinal'] ?? ''),
+              motivo: String(corpo['motivo'] ?? ''),
+              codusuEsperado: Number.isInteger(esperado) && esperado > 0 ? esperado : null,
+            });
+            resultado = criada.ok ? { ok: true, corpo: { mensagem: criada.corpo } } : criada;
+          } else {
+            responderJson(res, 404, { erro: `ação de ocorrência desconhecida: ${acao}` });
+            return;
+          }
+          if (!resultado.ok) {
+            logEvento('bridge-ocorrencia-falhou', { acao, erro: resultado.erro ?? '' });
+            responderJson(res, 409, { erro: resultado.erro ?? 'falha na ocorrência' });
+            return;
+          }
+          if (acao === 'criar')
+            logEvento('bridge-ocorrencia-criada', { motivo: String(corpo['motivo'] ?? '') });
+          responderJson(res, 200, resultado.corpo);
+        } catch (err) {
+          responderJson(res, 500, { erro: String(err) });
+        }
+        return;
+      }
+
       responderJson(res, 404, { erro: 'rota desconhecida' });
     })();
   });
@@ -241,7 +376,7 @@ export function criarBridgeServer(
     dialog.showErrorBox(
       'HUB SNK — a ponte com o backend não abriu',
       `A porta ${BRIDGE_PORT} de ${BRIDGE_HOST} não pôde ser aberta (${String(erro)}). ` +
-        'Credenciais Sankhya, Agenda e login automático ficam indisponíveis. Feche o outro ' +
+        'Sankhya ID, Agenda e login automático ficam indisponíveis. Feche o outro ' +
         'programa que usa essa porta e abra o HUB SNK de novo.',
     );
   });

@@ -15,13 +15,22 @@
  *   package.json   o `"type": "module"` daqui é o que faz o Node tratar o `src/` como ESM
  *   package-lock.json
  *   LICENSE
+ *   credencial-google.json   a credencial OAuth do Google Drive (veja `gravarCredencialDoGoogle`)
  *   node_modules/  só produção
  *
  * O `dados-hub-snk/` do repositório NÃO entra: o cadastro do usuário vive fora da pasta
  * de instalação (ver `DIRETORIO_DE_DADOS` em `desktop/src/config.ts`).
  */
 import { execSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -58,6 +67,47 @@ function copiar(relativo) {
   console.log(`  + ${relativo}`);
 }
 
+const ARQUIVO_DA_CREDENCIAL = 'credencial-google.json';
+
+/**
+ * A credencial OAuth do Google Drive não está no repositório, que é público: ela entra no
+ * pacote aqui. De onde vem, nesta ordem:
+ *
+ *   1. as variáveis `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` (os secrets do GitHub, no CI);
+ *   2. o `credencial-google.json` da raiz do repositório, que o `.gitignore` ignora (a
+ *      máquina de quem desenvolve).
+ *
+ * Sem nenhuma das duas o instalador sai sem a integração com o Drive, e a tela de Backup
+ * diz isso. Com `HUB_EXIGIR_CREDENCIAL_GOOGLE=1` (as tags de versão no CI) a falta vira
+ * erro: um instalador publicado sem Drive por esquecimento de um secret não passa batido.
+ */
+function gravarCredencialDoGoogle() {
+  const destino = join(DESTINO, ARQUIVO_DA_CREDENCIAL);
+  const id = process.env.GOOGLE_CLIENT_ID?.trim() ?? '';
+  const chave = process.env.GOOGLE_CLIENT_SECRET?.trim() ?? '';
+
+  if (id && chave) {
+    writeFileSync(destino, JSON.stringify({ clientId: id, clientSecret: chave }, null, 2));
+    console.log(`  + ${ARQUIVO_DA_CREDENCIAL} (das variáveis de ambiente)`);
+    return;
+  }
+
+  const local = join(RAIZ_HUB, ARQUIVO_DA_CREDENCIAL);
+  if (existsSync(local)) {
+    const dados = JSON.parse(readFileSync(local, 'utf8'));
+    if (typeof dados.clientId === 'string' && typeof dados.clientSecret === 'string') {
+      writeFileSync(destino, JSON.stringify(dados, null, 2));
+      console.log(`  + ${ARQUIVO_DA_CREDENCIAL} (de ${local})`);
+      return;
+    }
+  }
+
+  const aviso =
+    'sem a credencial do Google: defina GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET, ou crie o credencial-google.json na raiz do repositório';
+  if (process.env.HUB_EXIGIR_CREDENCIAL_GOOGLE === '1') throw new Error(aviso);
+  console.warn(`  ! ${aviso}. O instalador sai sem a integração com o Google Drive.`);
+}
+
 console.log(`\nMontando ${DESTINO}`);
 rmSync(DESTINO, { recursive: true, force: true });
 mkdirSync(DESTINO, { recursive: true });
@@ -65,6 +115,8 @@ mkdirSync(DESTINO, { recursive: true });
 for (const item of ITENS_DO_BACKEND) {
   copiar(item);
 }
+
+gravarCredencialDoGoogle();
 
 // `--omit=dev` é o ponto do exercício: deixa TypeScript, Prettier e tipos de fora.
 // Script de instalação não deve rodar durante o empacotamento — nenhuma dependência de

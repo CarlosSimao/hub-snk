@@ -78,6 +78,23 @@ contextBridge.exposeInMainWorld('hub', {
     aoMensagemNova: (cb: (servico: string) => void) =>
       ipcRenderer.on('comunicacao:mensagemNova', (_e, servico) => cb(servico)),
   },
+  downloads: {
+    estado: () => ipcRenderer.invoke('downloads:estado'),
+    aoAtualizar: (
+      cb: (
+        lista: Array<{
+          id: number;
+          nome: string;
+          recebidos: number;
+          total: number;
+          estado: 'baixando' | 'concluido' | 'cancelado' | 'interrompido';
+          sumiu: boolean;
+        }>,
+      ) => void,
+    ) => ipcRenderer.on('downloads:estado', (_e, lista) => cb(lista)),
+    /** Abre a lista com a borda direita no ponto dado (coordenadas da janela). */
+    abrir: (x: number, y: number) => ipcRenderer.invoke('downloads:abrir', x, y),
+  },
   layout: {
     definirAlturaTopo: (altura: number) => ipcRenderer.invoke('layout:definirAlturaTopo', altura),
     definirLarguraLateral: (largura: number) =>

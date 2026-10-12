@@ -117,6 +117,27 @@ function ehHostInterno(url: string): boolean {
   }
 }
 
+const HOST_DO_MEET = 'meet.google.com';
+
+/**
+ * Caminho de uma sala do Meet: o código `abc-defg-hij`, o `new` da "Nova reunião" e o
+ * `lookup/…` por onde o Google às vezes chega à sala. A página inicial fica de fora.
+ */
+const CAMINHO_DE_SALA_DO_MEET = /^\/(?:[a-z]{3}-[a-z]{4}-[a-z]{3}|new|lookup\/[^/]+)$/;
+
+/** Sala do Meet do endereço (o caminho, que identifica a reunião), ou `null` se não for uma. */
+function salaDoMeet(url: string): string | null {
+  let endereco: URL;
+  try {
+    endereco = new URL(url);
+  } catch {
+    return null;
+  }
+  if (endereco.protocol !== 'https:' || endereco.hostname !== HOST_DO_MEET) return null;
+  const caminho = endereco.pathname.replace(/\/$/, '').toLowerCase();
+  return CAMINHO_DE_SALA_DO_MEET.test(caminho) ? caminho : null;
+}
+
 /**
  * O WhatsApp Web lê o user agent e recusa ("funciona no Google Chrome 100 ou posterior")
  * quando há um produto entre o `(KHTML, like Gecko)` e o `Chrome/` — é onde o Chromium
@@ -190,6 +211,12 @@ function temContagemExata(servico: ServicoComunicacao): boolean {
 }
 
 /**
+ * Abrir um e-mail muda o título antes de o Gmail registrar a leitura no servidor: a
+ * consulta imediata ainda vê o e-mail como não lido. A segunda, depois desta espera, vê.
+ */
+const ESPERA_DA_RELEITURA_DO_FEED_MS = 3_000;
+
+/**
  * Espera entre a janela abrir e os serviços carregarem sozinhos: o Painel e o login
  * automático no Sankhya vêm primeiro, sem disputar rede e processador com o WhatsApp.
  */
@@ -247,6 +274,8 @@ export class GerenciadorComunicacao {
   readonly #particoesConfiguradas = new Set<string>();
   /** Feed que já falhou: loga a primeira falha, não uma por minuto. */
   readonly #feedsComFalha = new Set<ServicoComunicacao>();
+  /** Releitura pendente do feed por serviço: nova mudança de página reinicia a espera. */
+  readonly #releiturasDoFeed = new Map<ServicoComunicacao, NodeJS.Timeout>();
   /** E-mails já conhecidos por serviço: o que não estiver aqui na próxima consulta é novo. */
   readonly #mensagensConhecidas = new Map<ServicoComunicacao, Set<string>>();
   /**
@@ -255,6 +284,8 @@ export class GerenciadorComunicacao {
    */
   readonly #notificacoes = new Set<Notification>();
   readonly #desabilitados: Set<ServicoComunicacao>;
+  /** Janelas de reunião do Meet abertas, uma por sala. */
+  readonly #reunioes = new Set<BrowserWindow>();
   #carregarAoAbrir: boolean;
   #ativo: ServicoComunicacao | null = null;
   #larguraLateral = 0;
@@ -287,9 +318,14 @@ export class GerenciadorComunicacao {
   /**
    * Link do Painel que é de um serviço (a conversa do WhatsApp pelo número, o e-mail novo
    * no Gmail) abre no painel dele. Serviço desabilitado fica de fora: o botão do contato
-   * não carrega de volta o que foi desligado para poupar memória.
+   * não carrega de volta o que foi desligado para poupar memória. Reunião do Meet abre na
+   * janela dela mesmo com o botão do Meet desligado: a janela não fica carregada à toa.
    */
   abrirEndereco(url: string): boolean {
+    if (salaDoMeet(url)) {
+      this.#abrirReuniao(url);
+      return true;
+    }
     const servico = servicoDoEndereco(url);
     if (!servico || this.#desabilitados.has(servico)) return false;
     logEvento('comunicacao-endereco-aberto', { servico, url: origemSemQuery(url) });
@@ -391,7 +427,8 @@ export class GerenciadorComunicacao {
   #carregarEmSegundoPlano(): void {
     for (const servico of SERVICOS) {
       if (this.#desabilitados.has(servico) || this.#paineis.has(servico)) continue;
-      if (SERVICOS_COMUNICACAO[servico].sinal.origem === 'feed') continue;
+      const { sinal } = SERVICOS_COMUNICACAO[servico];
+      if (sinal.origem === 'feed' || sinal.origem === 'nenhum') continue;
       const painel = this.#criarPainel(servico);
       this.#janela.contentView.addChildView(painel);
       painel.setBounds(this.#limitesDoPainel());
@@ -446,6 +483,77 @@ export class GerenciadorComunicacao {
     this.#definirAtivo(servico);
   }
 
+  /**
+   * Reunião numa janela própria, ao lado do HUB: a chamada não cabe num painel que some ao
+   * clicar numa guia. Uma janela por sala; a sala que já está aberta só vem para a frente.
+   * O título acompanha o da página, que traz o código da reunião.
+   */
+  #abrirReuniao(endereco: string): void {
+    const sala = salaDoMeet(endereco);
+    const existente = [...this.#reunioes].find(
+      (janela) => !janela.isDestroyed() && salaDoMeet(janela.webContents.getURL()) === sala,
+    );
+    if (existente) {
+      if (existente.isMinimized()) existente.restore();
+      existente.show();
+      existente.focus();
+      return;
+    }
+    const { particao, rotulo } = SERVICOS_COMUNICACAO.meet;
+    this.#prepararParticao(particao);
+    const nova = new BrowserWindow({
+      width: 1100,
+      height: 760,
+      title: rotulo,
+      icon: ICONE,
+      autoHideMenuBar: true,
+      webPreferences: {
+        partition: particao,
+        contextIsolation: true,
+        sandbox: true,
+        nodeIntegration: false,
+        webSecurity: true,
+      },
+    });
+    nova.setMenuBarVisibility(false);
+    // Link aberto de dentro da chamada não pode tomar o lugar dela: outra sala ganha a
+    // janela dela, e o resto vai para o navegador do sistema.
+    nova.webContents.setWindowOpenHandler(({ url: alvo }) => {
+      if (salaDoMeet(alvo)) {
+        this.#abrirReuniao(alvo);
+      } else if (ehEnderecoWeb(alvo)) {
+        void shell.openExternal(alvo);
+      }
+      return { action: 'deny' };
+    });
+    nova.on('closed', () => this.#reunioes.delete(nova));
+    void nova.loadURL(endereco);
+    this.#reunioes.add(nova);
+    logEvento('comunicacao-reuniao-aberta', { url: origemSemQuery(endereco) });
+  }
+
+  /**
+   * Entrar numa reunião pelo painel (link da Agenda, do Gmail, a "Nova reunião" do Meet)
+   * abre a sala na janela dela, e o painel fica onde estava.
+   */
+  #desviarReunioesParaJanela(servico: ServicoComunicacao, painel: WebContentsView): void {
+    const desviar = (evento: Electron.Event<{ url: string }>) => {
+      if (!salaDoMeet(evento.url)) return;
+      evento.preventDefault();
+      this.#abrirReuniao(evento.url);
+    };
+    painel.webContents.on('will-navigate', desviar);
+    painel.webContents.on('will-redirect', desviar);
+    // A troca de endereço feita pela própria página (pushState) não se cancela, e voltar no
+    // histórico deixaria o Meet no "Participando…", entrando na chamada por baixo da janela
+    // dela. Recarregar a página inicial é o que a descarta por inteiro.
+    painel.webContents.on('did-navigate-in-page', (_e, url, principal) => {
+      if (!principal || !salaDoMeet(url)) return;
+      void painel.webContents.loadURL(SERVICOS_COMUNICACAO[servico].url);
+      this.#abrirReuniao(url);
+    });
+  }
+
   #criarPainel(
     servico: ServicoComunicacao,
     endereco = SERVICOS_COMUNICACAO[servico].url,
@@ -466,6 +574,7 @@ export class GerenciadorComunicacao {
       this.#tratarJanelaNova(servico, painel, alvo),
     );
     painel.webContents.on('blur', () => this.#ocultarSeOFocoFoiParaUmaGuia(painel));
+    this.#desviarReunioesParaJanela(servico, painel);
     this.#observarSinalDaPagina(servico, painel);
     this.#ouvirCliquesNasNotificacoes(servico, painel);
     this.#trocarFechamentoDaPagina(servico, painel);
@@ -486,6 +595,7 @@ export class GerenciadorComunicacao {
 
   #observarSinalDaPagina(servico: ServicoComunicacao, painel: WebContentsView): void {
     const { sinal } = SERVICOS_COMUNICACAO[servico];
+    if (sinal.origem === 'nenhum') return;
     if (sinal.origem === 'titulo') {
       painel.webContents.on('page-title-updated', (_e, titulo) =>
         this.#definirNaoLidas(servico, quantidadeNoTexto(sinal.padrao, titulo)),
@@ -499,7 +609,16 @@ export class GerenciadorComunicacao {
       return;
     }
     // Ler um e-mail muda o título: com a página aberta, a consulta não espera o minuto.
-    painel.webContents.on('page-title-updated', () => this.#consultarFeed(servico));
+    const consultarAgoraEDepois = () => {
+      this.#consultarFeed(servico);
+      clearTimeout(this.#releiturasDoFeed.get(servico));
+      this.#releiturasDoFeed.set(
+        servico,
+        setTimeout(() => this.#consultarFeed(servico), ESPERA_DA_RELEITURA_DO_FEED_MS),
+      );
+    };
+    painel.webContents.on('page-title-updated', consultarAgoraEDepois);
+    painel.webContents.on('did-navigate-in-page', consultarAgoraEDepois);
   }
 
   #iniciarConsultaDosFeeds(): void {
@@ -659,15 +778,19 @@ export class GerenciadorComunicacao {
   }
 
   /**
-   * Login do Google e páginas do próprio serviço continuam no painel. Link de mensagem ou
-   * de e-mail abre no navegador do sistema: uma janela filha aqui ficaria perdida atrás da
-   * janela principal.
+   * Reunião do Meet abre na janela dela. Login do Google e páginas do próprio serviço
+   * continuam no painel. Link de mensagem ou de e-mail abre no navegador do sistema: uma
+   * janela filha aqui ficaria perdida atrás da janela principal.
    */
   #tratarJanelaNova(
     servico: ServicoComunicacao,
     painel: WebContentsView,
     alvo: string,
   ): Electron.WindowOpenHandlerResponse {
+    if (salaDoMeet(alvo)) {
+      this.#abrirReuniao(alvo);
+      return { action: 'deny' };
+    }
     if (ehHostInterno(alvo)) {
       logEvento('comunicacao-janela-no-painel', { servico, alvo: origemSemQuery(alvo) });
       void painel.webContents.loadURL(alvo);

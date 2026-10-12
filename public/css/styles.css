@@ -752,6 +752,14 @@ main {
   gap: 8px;
 }
 
+/* Atualizar em cima e Lançar ocorrência no canto inferior direito do cabeçalho da Agenda. */
+.acoes-agenda {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
 /* Título + subtítulo empilhados — diferente de `.detalhe-identidade`, que é só o nome. */
 .detalhe-titulo-com-subtitulo {
   display: flex;
@@ -808,6 +816,15 @@ main {
   border-top-color: var(--marca);
   border-radius: 50%;
   animation: girar-indicador-carregando 0.9s linear infinite !important;
+}
+
+#btn-kanban-recarregar .icone-recarregar {
+  vertical-align: -2px;
+  margin-right: 3px;
+}
+
+#btn-kanban-recarregar.recarregando .icone-recarregar {
+  animation: girar-indicador-carregando 0.7s linear infinite;
 }
 
 @keyframes girar-indicador-carregando {
@@ -4237,4 +4254,128 @@ button.selo-situacao:focus-visible {
   margin: 0;
   font-size: 12.5px;
   color: var(--text);
+}
+
+/* ---- janela de backup e Google Drive ---- */
+
+#corpo-backup .cartao-credencial .erro-formulario,
+#corpo-backup .cartao-credencial .aviso-shell {
+  margin: 0;
+}
+
+.lista-de-copias {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.linha-de-copia {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+}
+
+.linha-de-copia:last-child {
+  border-bottom: none;
+}
+
+.linha-de-copia-nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linha-de-copia-meta {
+  flex: none;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- aba Backup: cartões compactos, para caber sem rolagem em tela Full HD ---- */
+
+#corpo-backup .cartao-credencial {
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+
+#corpo-backup .texto-auxiliar,
+#corpo-backup .erro-formulario,
+#corpo-backup .aviso-shell {
+  margin: 0;
+}
+
+#corpo-backup .aviso-shell {
+  padding: 6px 10px;
+}
+
+.linha-do-cartao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.linha-do-cartao-texto {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.linha-do-cartao-erro {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--perigo) 70%, var(--text));
+}
+
+.campo-numerico-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.campo-numerico-inline input {
+  width: 64px;
+  padding: 5px 8px;
+}
+
+.lista-de-copias {
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+#corpo-backup input[type='text'],
+#corpo-backup input[type='number'] {
+  padding: 7px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+#corpo-backup input[type='text']:focus-visible,
+#corpo-backup input[type='number']:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+#corpo-backup input[type='text']::placeholder {
+  color: var(--text-faint);
+}
+
+#corpo-backup .campo-numerico-inline input {
+  padding: 5px 8px;
 }

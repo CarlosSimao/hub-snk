@@ -2,8 +2,9 @@
 ;
 ;  1. Remocao da instalacao PWA antiga, sempre (resources\instalador\remover-versao-pwa.ps1).
 ;  2. Pagina do perfil profissional, sempre: perfil e funcionalidades de Configuracoes > Acessos.
+;  3. Pagina "Seus dados", sempre, com nome, empresa, time e e-mail opcionais.
 ;
-;  3. Na desinstalacao, a pergunta se o Git AutoSync sai junto.
+;  4. Na desinstalacao, a pergunta se o Git AutoSync sai junto.
 ;
 ; O Git AutoSync nao faz mais parte deste instalador: tem licenca propria, e a aba Git
 ; do HUB SNK o instala baixando da Release do repositorio dele. Instalado por ela, ele
@@ -430,13 +431,136 @@ FunctionEnd
   ${EndIf}
 !macroend
 
+; --- seus dados ---------------------------------------------------------------------
+;
+; Nome, empresa, time e e-mail de quem usa o aplicativo, todos opcionais: seguem nos
+; relatos de problema ao suporte e no remetente dos e-mails do HUB SNK. Mesmo caminho do
+; perfil: um arquivo por campo em %LOCALAPPDATA%\HubSnk, que o aplicativo
+; (desktop/src/config.ts) repassa ao backend, e o backend so' usa para preencher o campo
+; ainda vazio em Configuracoes. Reinstalar nunca desfaz o que foi editado la'.
+;
+; Os arquivos sao UTF-16LE: o FileWrite comum grava na pagina de codigo do Windows, e o
+; acento do nome chegaria trocado ao aplicativo.
+
+; Mesmo limite da tela de Configuracoes (src/rotas/rotasConfiguracao.ts).
+!define TAMANHO_MAXIMO_DOS_DADOS 120
+
+Var DialogoDados
+Var CampoNome
+Var CampoEmpresa
+Var CampoTime
+Var CampoEmail
+Var NomeDigitado
+Var EmpresaDigitada
+Var TimeDigitado
+Var EmailDigitado
+; "1" depois que a pagina foi mostrada; a instalacao silenciosa nao grava nada.
+Var DadosMostrados
+
+; Entrada: $R0 = nome do arquivo. Saida: $R7 = conteudo, vazio sem o arquivo.
+Function DadosLerArquivo
+  StrCpy $R7 ""
+  Call PerfilArquivo
+  ${If} ${FileExists} "$R9\$R0"
+    FileOpen $R8 "$R9\$R0" r
+    FileReadUTF16LE $R8 $R7
+    FileClose $R8
+  ${EndIf}
+FunctionEnd
+
+; Reinstalacao abre com o digitado na instalacao anterior.
+Function DadosLerAnteriores
+  StrCpy $R0 "nome-inicial.txt"
+  Call DadosLerArquivo
+  StrCpy $NomeDigitado $R7
+  StrCpy $R0 "empresa-inicial.txt"
+  Call DadosLerArquivo
+  StrCpy $EmpresaDigitada $R7
+  StrCpy $R0 "time-inicial.txt"
+  Call DadosLerArquivo
+  StrCpy $TimeDigitado $R7
+  StrCpy $R0 "email-inicial.txt"
+  Call DadosLerArquivo
+  StrCpy $EmailDigitado $R7
+FunctionEnd
+
+!macro DadosCriarCampo ROTULO TOPO VALOR CONTROLE
+  ${NSD_CreateLabel} 0 ${TOPO} 40u 10u "${ROTULO}"
+  Pop $0
+  ${NSD_CreateText} 45u ${TOPO} 200u 12u "${VALOR}"
+  Pop ${CONTROLE}
+  ${NSD_SetTextLimit} ${CONTROLE} ${TAMANHO_MAXIMO_DOS_DADOS}
+!macroend
+
+Function DadosPaginaCriar
+  nsDialogs::Create 1018
+  Pop $DialogoDados
+  ${If} $DialogoDados == error
+    Abort
+  ${EndIf}
+
+  ${If} $DadosMostrados != "1"
+    Call DadosLerAnteriores
+    StrCpy $DadosMostrados "1"
+  ${EndIf}
+
+  ${NSD_CreateLabel} 0 0 100% 18u "Opcional: seus dados seguem nos relatos de problema ao suporte e nos e-mails do HUB SNK. Depois da instalacao, mude em Configuracoes."
+  Pop $0
+
+  !insertmacro DadosCriarCampo "Nome" 24u "$NomeDigitado" $CampoNome
+  !insertmacro DadosCriarCampo "Empresa" 42u "$EmpresaDigitada" $CampoEmpresa
+  !insertmacro DadosCriarCampo "Time" 60u "$TimeDigitado" $CampoTime
+  !insertmacro DadosCriarCampo "E-mail" 78u "$EmailDigitado" $CampoEmail
+
+  nsDialogs::Show
+FunctionEnd
+
+; O backend descarta e-mail invalido; aqui so' se pega o erro de digitacao mais comum,
+; enquanto ainda da' para corrigir.
+Function DadosPaginaSair
+  ${NSD_GetText} $CampoNome $NomeDigitado
+  ${NSD_GetText} $CampoEmpresa $EmpresaDigitada
+  ${NSD_GetText} $CampoTime $TimeDigitado
+  ${NSD_GetText} $CampoEmail $EmailDigitado
+
+  ${If} $EmailDigitado != ""
+    StrCpy $R0 $EmailDigitado
+    StrCpy $R1 "@"
+    Call AcessosListaContem
+    ${If} $R2 == 0
+      MessageBox MB_ICONEXCLAMATION "O e-mail informado nao parece valido. Corrija ou deixe em branco."
+      Abort
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+!macro DadosGravarArquivo ARQUIVO VALOR
+  FileOpen $R8 "$R9\${ARQUIVO}" w
+  FileWriteUTF16LE $R8 "${VALOR}"
+  FileClose $R8
+!macroend
+
+; Campo apagado na pagina grava vazio: o backend so' nao preenche nada com ele.
+!macro HubSnkGravarDados
+  ${If} $DadosMostrados == "1"
+    Call PerfilArquivo
+    CreateDirectory "$R9"
+    !insertmacro DadosGravarArquivo "nome-inicial.txt" "$NomeDigitado"
+    !insertmacro DadosGravarArquivo "empresa-inicial.txt" "$EmpresaDigitada"
+    !insertmacro DadosGravarArquivo "time-inicial.txt" "$TimeDigitado"
+    !insertmacro DadosGravarArquivo "email-inicial.txt" "$EmailDigitado"
+  ${EndIf}
+!macroend
+
 !macro customPageAfterChangeDir
+  Page custom DadosPaginaCriar DadosPaginaSair
   Page custom PerfilPaginaCriar PerfilPaginaSair
 !macroend
 
 !macro customInstall
   !insertmacro HubSnkRemoverVersaoPwa
   !insertmacro HubSnkGravarPerfil
+  !insertmacro HubSnkGravarDados
 !macroend
 
 !endif ; BUILD_UNINSTALLER

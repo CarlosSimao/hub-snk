@@ -40,6 +40,8 @@ src/                                        backend (Fastify), sem build: o Node
     rotasContatos.ts                        cadastro dos contatos
     rotasAutosync.ts                        Git AutoSync: visão, repositórios, horários, commit, push, MR e token do GitLab
     rotasKanban.ts                          kanban dos projetos: documento de escopo, análise pela IA e tarefas
+    rotasDrive.ts                           conexão com a conta do Google Drive
+    rotasBackup.ts                          configuração, backup agora, cópias no Drive e restauração
     rotasMcp.ts                             o lado do HUB SNK do servidor MCP do kanban, com a trava dos liberados
     seguranca/
       protecaoDeOrigem.ts                   confere Host e Origin antes de qualquer rota
@@ -49,6 +51,19 @@ src/                                        backend (Fastify), sem build: o Node
       respostasDoShell.ts                   traduz a falha da ponte com o shell em resposta HTTP
       esquemaDeNotificacoes.ts              validação do SMTP e do alerta da agenda
       esquemaDeConfiguracaoMcp.ts           validação do .sankhya-mcp.env, comum ao repositório e à base local
+
+  drive/
+    credencialDoGoogle.ts                   lê a credencial OAuth de credencial-google.json ou do ambiente, fora do Git
+    contaDoGoogle.ts                        autorização OAuth (PKCE, retorno em 127.0.0.1) e token de acesso
+    cofreDoDrive.ts                         a autorização guardada no cofre do shell, pela ponte
+    clienteDoDrive.ts                       API do Drive: guardar, achar e baixar a cópia dos dados
+
+  backup/
+    zip.ts                                  escrita e leitura de .zip, sem dependência nova
+    pacoteDeDados.ts                        a pasta de dados num .zip, o resumo que diz se algo mudou e a extração
+    servicoDeBackup.ts                      agendador do backup na pasta e da cópia no Drive
+    estadoDoBackup.ts                       o que o backup lembra desta máquina, fora da pasta de dados
+    restauracaoPendente.ts                  backup à espera do reinício, aplicado na largada
 
   mcp/servidorMcp.ts                        servidor MCP por stdio que os agentes rodam; fala só com /api/mcp/*
 
@@ -109,6 +124,7 @@ src/                                        backend (Fastify), sem build: o Node
       abrirPasta.ts                         abre uma pasta no gerenciador do SO
       abrirShell.ts                         abre o terminal do SO na pasta
       abrirIde.ts                           abre a pasta como projeto na IDE configurada
+      abrirNoNavegador.ts                   abre um endereço no navegador padrão, fora do HUB SNK
       abrirExecutavel.ts                    inicia o programa de um atalho
       lancarProcesso.ts                     lança um programa e confere que ele de fato subiu
       linhaDeComandoDoCmd.ts                monta a linha do cmd.exe para .bat e .cmd, recusando % e aspas
@@ -133,6 +149,7 @@ public/                                     painel, sem framework e sem build
   img/                                      ícone
   js/
     app.js                                  lógica do painel
+    backup.js                               janela Backup e Google Drive
     kanban.js                               kanban da aba Projetos: seção do projeto, órfãs, quadro e janelas
     buscaRapida.js                          índice e ordenação dos resultados da busca rápida (Ctrl+K)
     leitorDeFavoritos.js                    lê o arquivo de favoritos de qualquer navegador suportado
@@ -152,6 +169,7 @@ desktop/                                    shell Electron: o aplicativo que o u
       backendProcess.ts                     sobe o src/index.ts no Node do Electron e o encerra pela API
       backendClient.ts                      empurra a sessão da Experience para o backend
       bridgeServer.ts                       ponte que o backend chama: cofre, guias e consultas ao ERP
+      cofreDeSegredos.ts                    segredos do backend que não são do Sankhya (Google Drive), com o safeStorage
       tokenStore.ts                         token compartilhado entre a ponte e o backend, gerado no primeiro boot
     sankhya/
       cofreCredenciais.ts                   cofre das credenciais com o safeStorage do Electron

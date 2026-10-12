@@ -39,7 +39,7 @@ export function registrarRotasDeOs(
     const { experiencePersonId } = await repositorioDeConfiguracao.ler();
     if (experiencePersonId === '') {
       return resposta.status(400).send({
-        mensagem: 'Capture a sessão do Sankhya Experience em Credenciais Sankhya.',
+        mensagem: 'Capture a sessão do Sankhya Experience em Sankhya ID.',
         codigoDeUsuarioAusente: true,
         configuracaoPendente: 'sessao-experience',
       });

@@ -27,9 +27,10 @@ import {
 } from './config';
 import { logEvento } from './log';
 import { garantirToken } from './backend/tokenStore';
-import { TabManager } from './interface/tabs';
+import { TabManager, definirAcompanhamentoDeDownload } from './interface/tabs';
 import { GerenciadorComunicacao } from './interface/comunicacao';
 import { MenuFlutuante } from './interface/menuFlutuante';
+import { CamadaDoHub } from './interface/camadaDoHub';
 import { BarraDeBusca } from './interface/barraDeBusca';
 import { JanelaAgendaOculta } from './sankhya/janelaAgendaOculta';
 import { JanelaExperienceOculta } from './sankhya/janelaExperienceOculta';
@@ -70,6 +71,7 @@ let janelaPrincipal: BrowserWindow | null = null;
 let tabs: TabManager | null = null;
 let comunicacao: GerenciadorComunicacao | null = null;
 let menuFlutuante: MenuFlutuante | null = null;
+let camadaDoHub: CamadaDoHub | null = null;
 let barraDeBusca: BarraDeBusca | null = null;
 let agendaOculta: JanelaAgendaOculta | null = null;
 let experienceOculta: JanelaExperienceOculta | null = null;
@@ -142,6 +144,7 @@ function criarJanela(): void {
     tabs?.reposicionar();
     comunicacao?.reposicionar();
     menuFlutuante?.fechar();
+    camadaDoHub?.reposicionar();
     barraDeBusca?.reposicionar();
   });
   // Fechar a janela principal encerra o aplicativo mesmo com uma janela filha aberta
@@ -164,6 +167,14 @@ function criarJanela(): void {
   comunicacao = new GerenciadorComunicacao(janelaPrincipal);
   tabs.definirPainelDeComunicacao(comunicacao);
   menuFlutuante = new MenuFlutuante(janelaPrincipal);
+  const camada = new CamadaDoHub(janelaPrincipal);
+  camadaDoHub = camada;
+  // Todo download, de qualquer guia, vai para a pasta Downloads e para a lista da barra.
+  definirAcompanhamentoDeDownload((item) => camada.acompanhar(item));
+  camada.aoMudarDownloads((lista) => {
+    if (!janelaPrincipal?.isDestroyed())
+      janelaPrincipal?.webContents.send('downloads:estado', lista);
+  });
   const gerenciadorDasGuias = tabs;
   const barra = new BarraDeBusca(janelaPrincipal, () => gerenciadorDasGuias.viewAtiva());
   // A busca é da guia em que foi aberta: na troca, a barra não pode ficar por cima de outra.
@@ -346,6 +357,34 @@ tratarDaBarraDeGuias('menu:abrir', (x: number, y: number) => {
   return { ok: true };
 });
 
+tratarDaBarraDeGuias('downloads:estado', () => camadaDoHub?.listaDeDownloads() ?? []);
+tratarDaBarraDeGuias('downloads:abrir', (x: number, y: number) => {
+  camadaDoHub?.abrirPainelDeDownloads(x, y);
+  return { ok: true };
+});
+
+function tratarDaCamada<A extends unknown[], R>(
+  canal: string,
+  tratar: (...argumentos: A) => R,
+): void {
+  tratarSoDe('a camada', (e) => camadaDoHub?.ehRemetente(e.sender) ?? false, canal, tratar);
+}
+
+tratarDaCamada('camada:abrirDownload', (id: unknown) => ({
+  ok: camadaDoHub?.abrirDownload(Number(id)) ?? false,
+}));
+tratarDaCamada('camada:mostrarNaPasta', (id: unknown) => ({
+  ok: camadaDoHub?.mostrarNaPasta(Number(id)) ?? false,
+}));
+tratarDaCamada('camada:limparDownloads', () => {
+  camadaDoHub?.limparConcluidos();
+  return { ok: true };
+});
+tratarDaCamada('camada:fechar', () => {
+  camadaDoHub?.fechar();
+  return { ok: true };
+});
+
 tratarDoMenuFlutuante('menuFlutuante:escolher', (id: string) => ({
   ok: menuFlutuante?.escolher(id) ?? false,
 }));
@@ -504,4 +543,10 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => globalShortcut.unregisterAll());
 
 // O atalho da área de trabalho com o app escondido na bandeja cai aqui: a janela volta.
-app.on('second-instance', mostrarJanela);
+app.on('second-instance', () => {
+  mostrarJanela();
+  camadaDoHub?.mostrarAviso(
+    'O HUB SNK já está aberto',
+    'Só uma janela por vez: trouxemos a que já estava rodando para a frente.',
+  );
+});

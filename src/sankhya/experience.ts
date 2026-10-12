@@ -122,7 +122,7 @@ export class Experience {
     const { token } = await this.#credenciais.revelar('sankhya-experience');
     if (!token) {
       throw new SessaoExpiradaError(
-        'sem sessão do Sankhya Experience — capture a sessão em Credenciais Sankhya',
+        'sem sessão do Sankhya Experience — capture a sessão em Sankhya ID',
       );
     }
     return token;

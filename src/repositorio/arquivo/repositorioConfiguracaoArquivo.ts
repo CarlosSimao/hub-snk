@@ -16,6 +16,7 @@ import {
   SEGURANCAS_SMTP,
   type AlertaDaAgenda,
   type Atalho,
+  type ConfiguracaoDeBackup,
   type ConfiguracaoGlobal,
   type ConfiguracaoSmtp,
   type DestinoDeLink,
@@ -72,6 +73,18 @@ const ASSISTENTE_DE_IA_INICIAL: ConfiguracaoDoAssistenteDeIa = {
   raciocinio: '',
 };
 
+const INTERVALO_DO_BACKUP_PADRAO_H = 24;
+const COPIAS_DE_BACKUP_MANTIDAS_PADRAO = 10;
+
+/* Nasce desligado e sem pasta: o HUB SNK não grava fora da pasta de dados sem alguém pedir. */
+export const BACKUP_INICIAL: ConfiguracaoDeBackup = {
+  ativo: false,
+  pasta: '',
+  intervaloHoras: INTERVALO_DO_BACKUP_PADRAO_H,
+  copiasMantidas: COPIAS_DE_BACKUP_MANTIDAS_PADRAO,
+  espelharNoDrive: false,
+};
+
 const CONFIGURACAO_INICIAL: Omit<
   ConfiguracaoGlobal,
   'perfil' | 'funcionalidadesOcultas' | 'terceiro'
@@ -92,6 +105,7 @@ const CONFIGURACAO_INICIAL: Omit<
   empresaDoUsuario: '',
   timeDoUsuario: '',
   emailDoUsuario: '',
+  backup: BACKUP_INICIAL,
 };
 
 /**
@@ -144,6 +158,19 @@ export interface AcessosIniciais {
 const ACESSOS_INICIAIS_PADRAO: AcessosIniciais = {
   perfil: PERFIL_PADRAO,
   terceiro: false,
+};
+
+/** Quem usa o aplicativo, como digitado no instalador; só preenche o campo ainda vazio. */
+export type IdentificacaoInicial = Pick<
+  ConfiguracaoGlobal,
+  'nomeDoUsuario' | 'empresaDoUsuario' | 'timeDoUsuario' | 'emailDoUsuario'
+>;
+
+const IDENTIFICACAO_INICIAL_PADRAO: IdentificacaoInicial = {
+  nomeDoUsuario: '',
+  empresaDoUsuario: '',
+  timeDoUsuario: '',
+  emailDoUsuario: '',
 };
 
 /*
@@ -257,6 +284,26 @@ function lerAssistenteDeIa(valor: unknown): ConfiguracaoDoAssistenteDeIa {
   };
 }
 
+/** Arquivo de antes do backup não tem a chave: nasce desligado. Número fora do aceito volta ao padrão. */
+function lerBackup(valor: unknown): ConfiguracaoDeBackup {
+  if (!ehObjeto(valor)) {
+    return { ...BACKUP_INICIAL };
+  }
+
+  const inteiroPositivo = (bruto: unknown, padrao: number): number => {
+    const numero = numeroOuPadrao(bruto, padrao);
+    return Number.isInteger(numero) && numero >= 1 ? numero : padrao;
+  };
+
+  return {
+    ativo: booleanoOuPadrao(valor.ativo, BACKUP_INICIAL.ativo),
+    pasta: textoOuPadrao(valor.pasta, BACKUP_INICIAL.pasta).trim(),
+    intervaloHoras: inteiroPositivo(valor.intervaloHoras, BACKUP_INICIAL.intervaloHoras),
+    copiasMantidas: inteiroPositivo(valor.copiasMantidas, BACKUP_INICIAL.copiasMantidas),
+    espelharNoDrive: booleanoOuPadrao(valor.espelharNoDrive, BACKUP_INICIAL.espelharNoDrive),
+  };
+}
+
 function normalizarSmtp(smtp: ConfiguracaoSmtp): ConfiguracaoSmtp {
   return {
     host: smtp.host.trim(),
@@ -285,16 +332,22 @@ function normalizarAtalho(atalho: DadosDeAtalho): Atalho {
 export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
   readonly #caminhoDoArquivo: string;
   readonly #acessosIniciais: AcessosIniciais;
+  readonly #identificacaoInicial: IdentificacaoInicial;
   #configuracao: ConfiguracaoGlobal | null = null;
   readonly #fila = new FilaDeOperacoes();
 
-  /** `acessosIniciais` é o escolhido no instalador; só vale enquanto o arquivo não tem acessos. */
+  /**
+   * `acessosIniciais` e `identificacaoInicial` são o escolhido no instalador. Os acessos só
+   * valem enquanto o arquivo não os tem; a identificação, campo a campo, enquanto está vazia.
+   */
   constructor(
     diretorioDeDados: string,
     acessosIniciais: AcessosIniciais = ACESSOS_INICIAIS_PADRAO,
+    identificacaoInicial: IdentificacaoInicial = IDENTIFICACAO_INICIAL_PADRAO,
   ) {
     this.#caminhoDoArquivo = join(diretorioDeDados, NOME_DO_ARQUIVO);
     this.#acessosIniciais = acessosIniciais;
+    this.#identificacaoInicial = identificacaoInicial;
   }
 
   descartarCache(): void {
@@ -312,7 +365,11 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
 
     const conteudo = await lerArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO);
     if (conteudo === null) {
-      this.#configuracao = { ...CONFIGURACAO_INICIAL, ...lerAcessos({}, this.#acessosIniciais) };
+      this.#configuracao = {
+        ...CONFIGURACAO_INICIAL,
+        ...this.#identificacaoInicial,
+        ...lerAcessos({}, this.#acessosIniciais),
+      };
       return this.#configuracao;
     }
 
@@ -339,11 +396,18 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       smtp: lerSmtp(dados.smtp),
       alertaDaAgenda: lerAlertaDaAgenda(dados.alertaDaAgenda),
       assistenteDeIa: lerAssistenteDeIa(dados.assistenteDeIa),
-      // Idem: arquivo de antes desta versão não tem quem usa o aplicativo.
-      nomeDoUsuario: textoOuPadrao(dados.nomeDoUsuario, '').trim(),
-      empresaDoUsuario: textoOuPadrao(dados.empresaDoUsuario, '').trim(),
-      timeDoUsuario: textoOuPadrao(dados.timeDoUsuario, '').trim(),
-      emailDoUsuario: textoOuPadrao(dados.emailDoUsuario, '').trim(),
+      // Idem: arquivo de antes desta versão não tem quem usa o aplicativo. Vazio, vale o
+      // digitado no instalador.
+      nomeDoUsuario:
+        textoOuPadrao(dados.nomeDoUsuario, '').trim() || this.#identificacaoInicial.nomeDoUsuario,
+      empresaDoUsuario:
+        textoOuPadrao(dados.empresaDoUsuario, '').trim() ||
+        this.#identificacaoInicial.empresaDoUsuario,
+      timeDoUsuario:
+        textoOuPadrao(dados.timeDoUsuario, '').trim() || this.#identificacaoInicial.timeDoUsuario,
+      emailDoUsuario:
+        textoOuPadrao(dados.emailDoUsuario, '').trim() || this.#identificacaoInicial.emailDoUsuario,
+      backup: lerBackup(dados.backup),
       ...lerAcessos(dados, this.#acessosIniciais),
     };
 
@@ -391,6 +455,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       empresaDoUsuario: configuracao.empresaDoUsuario?.trim() ?? atual.empresaDoUsuario,
       timeDoUsuario: configuracao.timeDoUsuario?.trim() ?? atual.timeDoUsuario,
       emailDoUsuario: configuracao.emailDoUsuario?.trim() ?? atual.emailDoUsuario,
+      backup: atual.backup,
     };
 
     await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);
@@ -405,6 +470,10 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
 
   definirSankhyaOmCodUsu(codusu: string): Promise<ConfiguracaoGlobal> {
     return this.#fila.enfileirar(() => this.#gravarCampo({ sankhyaOmCodUsu: codusu.trim() }));
+  }
+
+  definirBackup(backup: ConfiguracaoDeBackup): Promise<ConfiguracaoGlobal> {
+    return this.#fila.enfileirar(() => this.#gravarCampo({ backup: lerBackup(backup) }));
   }
 
   async #gravarCampo(campo: Partial<ConfiguracaoGlobal>): Promise<ConfiguracaoGlobal> {

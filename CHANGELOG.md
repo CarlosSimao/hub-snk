@@ -9,6 +9,45 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.7.0] - 2026-10-12
+
+### Adicionado
+
+- **Lançar ocorrência pela Agenda** (contribuição de Flaviano): o botão **Lançar ocorrência**
+  no cabeçalho da Agenda registra férias, folga e afins no ERP, sempre para o usuário
+  logado, e atualiza a Agenda no mês lançado.
+- **Downloads do HUB**: arquivos baixados pelas guias vão para a pasta Downloads, e um botão
+  na barra de guias, como o do navegador, lista os arquivos e abre cada um com um clique.
+- **Recarregar no kanban**: botão no quadro para reler as tarefas sem fechá-lo.
+- **Google Agenda e Google Meet na barra lateral**: dois botões novos abaixo do Google Chat.
+  Os dois abrem no painel, como o Gmail e o Chat. Entrar numa reunião (pelo Meet, pelo link
+  da Agenda, do Gmail ou do Chat) abre a chamada numa janela própria, uma por reunião, que
+  não some ao clicar numa guia. Ambos usam o mesmo login do Google e podem ser ocultados na
+  engrenagem.
+- **Cliente da agenda vira link**: na Agenda de Recursos e no Resumo do dia, o nome do
+  parceiro já vinculado a um cliente abre o cadastro dele no HUB.
+- **Backup e Google Drive**: aba **Backup** nas Configurações. Conecta a sua conta do Google
+  com um clique (a autorização abre no navegador), mantém no Drive uma cópia sempre atual
+  dos dados do HUB e faz backup periódico numa pasta à sua escolha, guardando as últimas
+  cópias. A restauração, do Drive ou de um arquivo, é aplicada ao reiniciar, e os dados de
+  antes ficam guardados. Falha de backup vira notificação.
+- **Seus dados no instalador**: página nova, toda opcional, com nome, empresa, time e e-mail.
+  Preenche os mesmos campos de Configurações quando ainda estão vazios; o que já foi
+  editado lá não é trocado ao reinstalar ou atualizar.
+
+### Alterado
+
+- **Sankhya ID**: as credenciais do SankhyaOm e da Experience viraram um usuário e uma
+  senha só, com o nome **Sankhya ID**. Quem já tinha credenciais salvas é migrado sozinho:
+  vale o login do SankhyaOm, e as sessões capturadas continuam. Se os dois usuários eram
+  diferentes, a tela avisa, e pode ser preciso salvar o Sankhya ID de novo. Uma senha
+  recusada em qualquer um dos dois sistemas pausa o login automático nos dois.
+- **Vínculo de cliente na Agenda**: vincular ou trocar o cliente do parceiro recarrega o
+  card, com o link do título e a situação no Experience. Trocar agora tira o vínculo do
+  cliente anterior, que antes podia continuar aparecendo no lugar do novo.
+- **HUB já aberto**: abrir o aplicativo de novo traz a janela existente para a frente e
+  mostra um aviso, sem criar um segundo ícone na bandeja.
+
 ## [2.6.0] - 2026-10-06
 
 ### Adicionado
@@ -637,7 +676,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.6.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.7.0...HEAD
+[2.7.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.3.0...v2.4.0

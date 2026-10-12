@@ -1,7 +1,12 @@
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { z } from 'zod';
 import { ehPerfilProfissional, PERFIL_PADRAO } from './acessos.ts';
+import {
+  lerCredencialDoGoogle,
+  NOME_DO_ARQUIVO_DA_CREDENCIAL,
+} from './drive/credencialDoGoogle.ts';
 import { PERFIS_PROFISSIONAIS, type PerfilProfissional } from './tipos.ts';
 
 const PORTA_PADRAO = 4100;
@@ -112,6 +117,21 @@ function lerTerceiroInicial(): boolean {
   return process.env.HUB_TERCEIRO_INICIAL?.trim().toUpperCase() === TERCEIRO_MARCADO;
 }
 
+/**
+ * Nome, empresa, time e e-mail da página "Seus dados" do instalador, repassados pelo
+ * shell. Só preenchem o campo ainda vazio — ver `RepositorioConfiguracaoArquivo`. O
+ * instalador não valida o e-mail como a tela de Configurações: inválido, é descartado.
+ */
+function lerIdentificacaoInicial() {
+  const email = process.env.HUB_EMAIL_INICIAL?.trim() ?? '';
+  return {
+    nomeDoUsuario: process.env.HUB_NOME_INICIAL?.trim() ?? '',
+    empresaDoUsuario: process.env.HUB_EMPRESA_INICIAL?.trim() ?? '',
+    timeDoUsuario: process.env.HUB_TIME_INICIAL?.trim() ?? '',
+    emailDoUsuario: z.email().safeParse(email).success ? email : '',
+  };
+}
+
 /** Separador da lista de funcionalidades ocultas gravada pelo instalador. */
 const SEPARADOR_DE_FUNCIONALIDADES = ',';
 
@@ -181,6 +201,15 @@ function lerEnderecoDoSuporte(): string {
   return process.env.HUB_ENDERECO_DO_SUPORTE?.trim() || ENDERECO_DO_SUPORTE_PADRAO;
 }
 
+/**
+ * Estado do backup que é desta máquina — quando foi o último, o que já subiu para o
+ * Drive, a restauração à espera do reinício. Fica ao lado da pasta de log, e não na de
+ * dados, pelo mesmo motivo do id do relato: o que está na pasta de dados entra no backup.
+ */
+function lerPastaDeEstadoDoBackup(): string {
+  return join(lerPastaDeLog(), '..', 'backup');
+}
+
 export const configuracao = {
   porta: lerPorta(),
   host: lerHost(),
@@ -194,9 +223,15 @@ export const configuracao = {
     terceiro: lerTerceiroInicial(),
     funcionalidadesOcultas: lerFuncionalidadesOcultasIniciais(),
   },
+  identificacaoInicial: lerIdentificacaoInicial(),
   pastaDoAutosync: lerPastaDoAutosync(),
   pacoteDoAutosync: lerPacoteDoAutosync(),
   pastaDoInstalador: lerPastaDoInstalador(),
   pastaDeLog: lerPastaDeLog(),
   enderecoDoSuporte: lerEnderecoDoSuporte(),
+  credencialDoGoogle: lerCredencialDoGoogle(
+    join(raizDoProjeto, NOME_DO_ARQUIVO_DA_CREDENCIAL),
+    process.env,
+  ),
+  pastaDeEstadoDoBackup: lerPastaDeEstadoDoBackup(),
 } as const;

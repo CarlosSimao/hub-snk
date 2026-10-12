@@ -196,8 +196,18 @@ function origemLocal(origin: string): boolean {
   }
 }
 
+/** Quem guarda o arquivo e mostra a lista de baixados — ver `camadaDoHub.ts`. */
+let acompanharDownload: ((item: Electron.DownloadItem) => void) | null = null;
+
+export function definirAcompanhamentoDeDownload(
+  acompanhar: (item: Electron.DownloadItem) => void,
+): void {
+  acompanharDownload = acompanhar;
+}
+
 function registrarDownload(sessaoRotulo: string, janelasFilhas: Set<BrowserWindow>) {
   return (_evt: unknown, item: Electron.DownloadItem, webContentsOrigem: Electron.WebContents) => {
+    acompanharDownload?.(item);
     logEvento('download-iniciado', {
       sessao: sessaoRotulo,
       nome: item.getFilename(),

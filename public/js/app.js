@@ -14,6 +14,7 @@ import {
   registrarUsoRecente,
   ROTULOS_DOS_TIPOS,
 } from './buscaRapida.js';
+import { iniciarBackup } from './backup.js';
 import { iniciarKanban } from './kanban.js';
 import { lerArvoreDeFavoritos } from './leitorDeFavoritos.js';
 import { separarTipoDoNome } from './tipoDeBaseNoNome.js';
@@ -196,8 +197,6 @@ const ICONES = {
     'M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M10 11v6 M14 11v6',
   /* Raio: o botão que abre a lista de atalhos. */
   raio: 'M13 2L3 14h7l-1 8 10-12h-7l1-8z',
-  /* Cadeado: o botão que abre as credenciais do Sankhya. */
-  cadeado: 'M5 11h14v10H5z M8 11V7a4 4 0 0 1 8 0v4',
   /* Funil: o botão que abre o painel de filtros da lista de clientes. */
   funil: 'M3 4h18l-7 8.5V20l-4-2.5v-5z',
   /* Triângulo de play: iniciar processo. */
@@ -557,6 +556,16 @@ const elementos = {
   avisoShellAgenda: document.getElementById('aviso-shell-agenda'),
   botaoAtualizarAgenda: document.getElementById('btn-atualizar-agenda'),
   ultimaAtualizacaoAgenda: document.getElementById('ultima-atualizacao-agenda'),
+  botaoLancarOcorrencia: document.getElementById('btn-lancar-ocorrencia'),
+  modalOcorrencia: document.getElementById('modal-ocorrencia'),
+  formularioOcorrencia: document.getElementById('formulario-ocorrencia'),
+  usuarioOcorrencia: document.getElementById('usuario-ocorrencia'),
+  campoInicioOcorrencia: document.getElementById('campo-inicio-ocorrencia'),
+  campoFimOcorrencia: document.getElementById('campo-fim-ocorrencia'),
+  campoMotivoOcorrencia: document.getElementById('campo-motivo-ocorrencia'),
+  erroOcorrencia: document.getElementById('erro-ocorrencia'),
+  botaoCancelarOcorrencia: document.getElementById('btn-cancelar-ocorrencia'),
+  botaoSalvarOcorrencia: document.getElementById('btn-salvar-ocorrencia'),
   mountAgendaGeral: document.getElementById('mount-agenda-geral'),
   avisoShellOs: document.getElementById('aviso-shell-os'),
   botaoAtualizarOs: document.getElementById('btn-atualizar-os'),
@@ -590,10 +599,12 @@ const elementos = {
   botaoSalvarBancoLocal: document.getElementById('btn-salvar-banco-local'),
   botaoCancelarBancoLocal: document.getElementById('btn-cancelar-banco-local'),
 
-  botaoCredenciaisSankhya: document.getElementById('btn-credenciais-sankhya'),
-  modalCredenciaisSankhya: document.getElementById('modal-credenciais-sankhya'),
+  corpoBackup: document.getElementById('corpo-backup'),
+  abaConfiguracaoSankhyaId: document.getElementById('aba-configuracao-sankhya-id'),
+  painelConfiguracaoSankhyaId: document.getElementById('painel-configuracao-sankhya-id'),
+  abaConfiguracaoBackup: document.getElementById('aba-configuracao-backup'),
+  painelConfiguracaoBackup: document.getElementById('painel-configuracao-backup'),
   avisoShellSankhya: document.getElementById('aviso-shell-sankhya'),
-  botaoFecharCredenciaisSankhya: document.getElementById('btn-fechar-credenciais-sankhya'),
 
   modalConfiguracao: document.getElementById('modal-configuracao'),
   formularioConfiguracao: document.getElementById('formulario-configuracao'),
@@ -888,14 +899,10 @@ async function requisitar(caminho, opcoes = {}) {
 const api = {
   shellSankhya: () => requisitar('/api/sankhya/shell'),
   credenciaisSankhya: () => requisitar('/api/sankhya/credenciais'),
-  salvarCredencialSankhya: (sistema, usuario, senha) =>
-    requisitar(`/api/sankhya/credenciais/${sistema}`, {
-      metodo: 'POST',
-      corpo: { usuario, senha },
-    }),
-  senhaCredencialSankhya: (sistema) => requisitar(`/api/sankhya/credenciais/${sistema}/senha`),
-  removerCredencialSankhya: (sistema) =>
-    requisitar(`/api/sankhya/credenciais/${sistema}`, { metodo: 'DELETE' }),
+  salvarSankhyaId: (usuario, senha) =>
+    requisitar('/api/sankhya/id', { metodo: 'POST', corpo: { usuario, senha } }),
+  senhaSankhyaId: () => requisitar('/api/sankhya/id/senha'),
+  removerSankhyaId: () => requisitar('/api/sankhya/id', { metodo: 'DELETE' }),
   abrirNavegadorSankhya: (sistema) =>
     requisitar(`/api/sankhya/navegador/abrir/${sistema}`, { metodo: 'POST' }),
   capturarSessaoSankhya: (sistema) =>
@@ -910,6 +917,10 @@ const api = {
     }),
   consultarAgenda: (de, ate) =>
     requisitar('/api/agenda/consultar', { metodo: 'POST', corpo: { de, ate } }),
+  motivosDeOcorrencia: () => requisitar('/api/agenda/ocorrencias/motivos'),
+  usuarioDaOcorrencia: () => requisitar('/api/agenda/ocorrencias/usuario'),
+  lancarOcorrencia: (dados) =>
+    requisitar('/api/agenda/ocorrencias', { metodo: 'POST', corpo: dados }),
   eventosDaAgenda: (de, ate) =>
     requisitar(`/api/agenda/eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`),
   eventosDoClienteNaAgenda: (id, de, ate) =>
@@ -2252,7 +2263,7 @@ async function refrescarAgendaDoClienteEmSegundoPlano(widget) {
 /**
  * Aba OS do cadastro do cliente: mesmas OS "minhas" da aba OS do topo, recortadas pelo
  * backend comparando o nome da empresa (Experience) com o nome deste cliente — sem nada
- * pra configurar aqui, só a sessão da Experience capturada em Credenciais Sankhya.
+ * pra configurar aqui, só a sessão da Experience capturada em Sankhya ID.
  */
 function criarSecaoDeOs(cliente) {
   const widgetDeOsDoCliente = criarWidgetDeOs({
@@ -3091,10 +3102,18 @@ function normalizarNomeParaVinculo(nome) {
     .replace(/[^A-Z0-9]/g, '');
 }
 
-/** Cliente do HUB cujo nome (ou algum Nome Completo) corresponde a este nome do Sankhya. */
+/**
+ * Cliente do HUB cujo nome (ou algum Nome Completo) corresponde a este nome do Sankhya. O
+ * vínculo feito pelo botão (Nome Completo idêntico) vence a semelhança de nomes: sem isso,
+ * trocar o vínculo não adiantaria quando o cliente anterior tem o nome parecido.
+ */
 function clientePorNomeSankhya(nomeSankhya) {
   const alvo = normalizarNomeParaVinculo(nomeSankhya);
   if (!alvo) return null;
+  const vinculadoPeloBotao = estado.clientes.find((cliente) =>
+    cliente.nomesCompletos.some((nome) => normalizarNomeParaVinculo(nome) === alvo),
+  );
+  if (vinculadoPeloBotao) return vinculadoPeloBotao;
   return (
     estado.clientes.find((cliente) =>
       [cliente.nome, ...cliente.nomesCompletos].some((nome) => {
@@ -3105,24 +3124,33 @@ function clientePorNomeSankhya(nomeSankhya) {
   );
 }
 
-/** Adiciona o nome do Sankhya aos Nomes Completos de um cliente existente (sem duplicar). */
-async function vincularNomeSankhyaAoCliente(nomeSankhya, clienteId) {
-  const cliente = estado.clientes.find((c) => c.id === clienteId);
-  if (!cliente) return;
-
+/**
+ * Põe o nome do Sankhya nos Nomes Completos do cliente (sem duplicar) e o tira de qualquer
+ * outro que o tenha: na troca de vínculo, o cliente anterior deixa de responder pelo
+ * parceiro. O novo é gravado primeiro, para uma falha no meio não deixar o parceiro sem
+ * vínculo nenhum.
+ */
+async function vincularNomeSankhyaAoCliente(nomeSankhya, cliente) {
   const alvo = normalizarNomeParaVinculo(nomeSankhya);
-  const jaTem = cliente.nomesCompletos.some((nome) => normalizarNomeParaVinculo(nome) === alvo);
-  if (jaTem) return;
+  const ehOMesmoNome = (nome) => normalizarNomeParaVinculo(nome) === alvo;
 
-  await api.salvarNomesCompletos(clienteId, [...cliente.nomesCompletos, nomeSankhya]);
+  if (!cliente.nomesCompletos.some(ehOMesmoNome)) {
+    await api.salvarNomesCompletos(cliente.id, [...cliente.nomesCompletos, nomeSankhya]);
+  }
+  const anteriores = estado.clientes.filter(
+    (outro) => outro.id !== cliente.id && outro.nomesCompletos.some(ehOMesmoNome),
+  );
+  for (const anterior of anteriores) {
+    const restantes = anterior.nomesCompletos.filter((nome) => !ehOMesmoNome(nome));
+    await api.salvarNomesCompletos(anterior.id, restantes);
+  }
   await recarregarClientes();
 }
 
 /** Cria um cliente novo já com o nome do Sankhya vinculado nos Nomes Completos. */
 async function criarClienteComNomeSankhya(nomeDoCadastro, nomeSankhya) {
   const cliente = await api.criar(nomeDoCadastro);
-  await api.salvarNomesCompletos(cliente.id, [nomeSankhya]);
-  await recarregarClientes();
+  await vincularNomeSankhyaAoCliente(nomeSankhya, cliente);
 }
 
 /**
@@ -3155,7 +3183,7 @@ function criarSeletorDeVinculoDeCliente(nomeSankhya, aoConcluir) {
   async function escolher(cliente) {
     painel.classList.add('ocupado');
     try {
-      await vincularNomeSankhyaAoCliente(nomeSankhya, cliente.id);
+      await vincularNomeSankhyaAoCliente(nomeSankhya, cliente);
       exibirAviso(`"${nomeSankhya}" vinculado a "${cliente.nome}".`);
     } catch (erro) {
       exibirAviso(`Não consegui vincular: ${erro.message}`, 'erro');
@@ -3225,13 +3253,34 @@ function criarSeletorDeVinculoDeCliente(nomeSankhya, aoConcluir) {
 }
 
 /**
+ * Título do evento da agenda. Com o parceiro já vinculado a um cliente do HUB, o título
+ * vira link para o cadastro dele; sem vínculo (ou sem parceiro), segue texto simples.
+ */
+function criarTituloDoEvento(evento, titulo) {
+  const cliente = evento.nomeparc ? clientePorNomeSankhya(evento.nomeparc) : null;
+  if (!cliente) return criarElemento('p', 'recurso-nome', titulo);
+  const link = criarElemento('a', 'recurso-nome', titulo);
+  link.href = '#';
+  link.title = `Abrir o cadastro de "${cliente.nome}" no HUB`;
+  link.addEventListener('click', (clique) => {
+    clique.preventDefault();
+    abrirClienteDaBusca(cliente.id);
+  });
+  return link;
+}
+
+/**
  * Botão ao lado do nome do parceiro no card de evento: vincula esse nome do Sankhya a um
  * cliente do HUB (existente ou novo). Fica "vinculado" (verde) quando já há um cliente com
  * esse nome. Clicar abre o seletor ao lado; clicar de novo fecha.
+ *
+ * `aoTrocarVinculo` roda quando o seletor fecha com outro cliente vinculado: o card é
+ * redesenhado, com o link do título e a situação no Experience do cliente novo.
  */
-function criarBotaoDeVinculoDeCliente(evento) {
+function criarBotaoDeVinculoDeCliente(evento, aoTrocarVinculo) {
   let seletor = null;
   let fecharForaDoPainel = null;
+  let idDoDonoAoAbrir = null;
 
   function fechar() {
     if (fecharForaDoPainel) {
@@ -3241,6 +3290,7 @@ function criarBotaoDeVinculoDeCliente(evento) {
     seletor?.remove();
     seletor = null;
     atualizarBotao();
+    if (clientePorNomeSankhya(evento.nomeparc)?.id !== idDoDonoAoAbrir) aoTrocarVinculo();
   }
 
   /** Ancora o popover abaixo do botão; se não couber, joga pra cima. Preso à viewport. */
@@ -3262,6 +3312,7 @@ function criarBotaoDeVinculoDeCliente(evento) {
       fechar();
       return;
     }
+    idDoDonoAoAbrir = clientePorNomeSankhya(evento.nomeparc)?.id ?? null;
     seletor = criarSeletorDeVinculoDeCliente(evento.nomeparc, fechar);
     document.body.append(seletor);
     posicionar();
@@ -3443,8 +3494,8 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
 
       if (evento.nomeparc) {
         const linhaNome = criarElemento('div', 'linha-horario-situacao');
-        linhaNome.append(criarElemento('p', 'recurso-nome', tituloDoEvento));
-        linhaNome.append(criarBotaoDeVinculoDeCliente(evento));
+        linhaNome.append(criarTituloDoEvento(evento, tituloDoEvento));
+        linhaNome.append(criarBotaoDeVinculoDeCliente(evento, () => renderizarDetalhe(dia, true)));
         informacoes.append(linhaNome);
       } else {
         informacoes.append(criarElemento('p', 'recurso-nome', tituloDoEvento));
@@ -3523,6 +3574,14 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
     get mes() {
       return estadoWidget.mes;
     },
+    get diaSelecionado() {
+      return estadoWidget.diaSelecionado;
+    },
+    /** Leva a grade ao dia (`YYYY-MM-DD`), já selecionado, sem recarregar. */
+    selecionarDia(dia) {
+      estadoWidget.mes = dia.slice(0, 7);
+      estadoWidget.diaSelecionado = dia;
+    },
   };
 }
 
@@ -3579,6 +3638,88 @@ async function atualizarAgendaGeral() {
     widgetAgendaGeral.elementoStatus.textContent = statusAntes ?? '';
   } finally {
     elementos.botaoAtualizarAgenda.disabled = false;
+  }
+}
+
+/**
+ * Lançar ocorrência de agenda (férias, folga, atestado...) direto no ERP, pela janela
+ * oculta do aplicativo. Sempre para o usuário logado no SankhyaOm: o modal mostra quem é,
+ * e sem identificá-lo o botão Lançar fica travado com o motivo à vista.
+ */
+async function abrirModalDeOcorrencia() {
+  limparErro(elementos.erroOcorrencia);
+  elementos.botaoSalvarOcorrencia.disabled = true;
+  const dia = widgetAgendaGeral.diaSelecionado ?? dataIsoDeHoje();
+  elementos.campoInicioOcorrencia.value = `${dia}T08:00`;
+  elementos.campoFimOcorrencia.value = `${dia}T18:00`;
+  elementos.usuarioOcorrencia.textContent = 'Identificando o usuário logado no SankhyaOm…';
+  elementos.modalOcorrencia.showModal();
+
+  try {
+    if (!elementos.campoMotivoOcorrencia.options.length) {
+      const { motivos } = await api.motivosDeOcorrencia();
+      elementos.campoMotivoOcorrencia.replaceChildren(
+        ...motivos.map((m) => new Option(m.rotulo, m.valor)),
+      );
+      elementos.campoMotivoOcorrencia.value = '15';
+    }
+    const usuario = await api.usuarioDaOcorrencia();
+    if (usuario.codusuConfigurado && usuario.codusuConfigurado !== usuario.codusu) {
+      elementos.usuarioOcorrencia.textContent = 'Lançamento bloqueado.';
+      exibirErro(
+        elementos.erroOcorrencia,
+        `O login salvo do SankhyaOm é de ${usuario.nomeusu} (${usuario.codusu}), mas o seu código ` +
+          `de usuário configurado é ${usuario.codusuConfigurado}. A ocorrência só pode ser lançada ` +
+          'para você mesmo — confira as Sankhya ID.',
+      );
+      return;
+    }
+    elementos.usuarioOcorrencia.textContent = `Para ${usuario.nomeusu} (${usuario.codusu}), direto no SankhyaOm.`;
+    elementos.botaoSalvarOcorrencia.disabled = false;
+  } catch (erro) {
+    elementos.usuarioOcorrencia.textContent =
+      'Não foi possível identificar o usuário do SankhyaOm.';
+    exibirErro(
+      elementos.erroOcorrencia,
+      erro.shellIndisponivel
+        ? 'Lançar ocorrência precisa do aplicativo HUB SNK aberto, com o login do SankhyaOm salvo.'
+        : erro.message,
+    );
+  }
+}
+
+async function salvarOcorrencia(evento) {
+  evento.preventDefault();
+  limparErro(elementos.erroOcorrencia);
+  const inicio = elementos.campoInicioOcorrencia.value;
+  const fim = elementos.campoFimOcorrencia.value;
+  if (!inicio || !fim) {
+    exibirErro(elementos.erroOcorrencia, 'Informe a data inicial e a final.');
+    return;
+  }
+  if (fim <= inicio) {
+    exibirErro(elementos.erroOcorrencia, 'A data final tem que ser depois da inicial.');
+    return;
+  }
+
+  elementos.botaoSalvarOcorrencia.disabled = true;
+  elementos.botaoSalvarOcorrencia.textContent = 'Lançando…';
+  try {
+    const { mensagem } = await api.lancarOcorrencia({
+      inicio,
+      fim,
+      motivo: elementos.campoMotivoOcorrencia.value,
+    });
+    elementos.modalOcorrencia.close();
+    exibirAviso(mensagem);
+    // Leva a grade ao início da ocorrência e busca o mês ao vivo, para ela aparecer.
+    widgetAgendaGeral.selecionarDia(inicio.slice(0, 10));
+    await atualizarAgendaGeral();
+  } catch (erro) {
+    exibirErro(elementos.erroOcorrencia, erro.message);
+    elementos.botaoSalvarOcorrencia.disabled = false;
+  } finally {
+    elementos.botaoSalvarOcorrencia.textContent = 'Lançar';
   }
 }
 
@@ -3902,7 +4043,9 @@ function criarSecaoDoResumo(titulo, linhas, mensagemVazia) {
 function criarLinhaDoResumo({ titulo, detalhes, selo, acao }) {
   const informacoes = criarElemento('div', 'recurso-info');
   const linhaTitulo = criarElemento('div', 'linha-horario-situacao');
-  linhaTitulo.append(criarElemento('p', 'recurso-nome', titulo));
+  linhaTitulo.append(
+    typeof titulo === 'string' ? criarElemento('p', 'recurso-nome', titulo) : titulo,
+  );
   if (selo) linhaTitulo.append(selo);
   informacoes.append(linhaTitulo);
   for (const detalhe of detalhes.filter(Boolean)) {
@@ -3953,7 +4096,7 @@ function criarLinhaDeEventoDoResumo(evento, semTarefa) {
       : `${evento.inicio.slice(11, 16)}–${evento.fim.slice(11, 16)}`;
   const descricao = evento.descrlonga || evento.descrabrev;
   return criarLinhaDoResumo({
-    titulo,
+    titulo: criarTituloDoEvento(evento, titulo),
     detalhes: [horario, descricao !== titulo && descricao],
     selo: semTarefa
       ? criarElemento('span', 'selo-situacao erro', 'Sem tarefa na Experience')
@@ -5587,35 +5730,53 @@ async function salvarConfiguracaoMcp(evento) {
   }
 }
 
-/* --------------------------- credenciais do sankhya ------------------------ */
+/* ------------------------------- sankhya id ------------------------------- */
 
-/** Os elementos de um cartão de credencial, lidos pelo atributo `data-papel`. */
-function elementosDoCartaoDeCredencial(cartao) {
+/** Os elementos do cartão do Sankhya ID (usuário e senha), lidos pelo atributo `data-papel`. */
+function elementosDoSankhyaId() {
+  const cartao = document.getElementById('cartao-sankhya-id');
   return {
-    sistema: cartao.dataset.sistema,
     status: cartao.querySelector('[data-papel="status"]'),
     campoUsuario: cartao.querySelector('[data-papel="usuario"]'),
     campoSenha: cartao.querySelector('[data-papel="senha"]'),
     botaoVerSenha: cartao.querySelector('[data-papel="ver-senha"]'),
     botaoSalvar: cartao.querySelector('[data-papel="salvar"]'),
     botaoRemover: cartao.querySelector('[data-papel="remover"]'),
+    aviso: cartao.querySelector('[data-papel="aviso"]'),
+    erro: cartao.querySelector('[data-papel="erro"]'),
+  };
+}
+
+/** Os elementos de um cartão de sessão (SankhyaOm ou Experience), pelo `data-papel`. */
+function elementosDoCartaoDeSessao(cartao) {
+  return {
+    sistema: cartao.dataset.sistema,
+    status: cartao.querySelector('[data-papel="status"]'),
     botaoAbrirAba: cartao.querySelector('[data-papel="abrir-aba"]'),
     botaoCapturarSessao: cartao.querySelector('[data-papel="capturar-sessao"]'),
     erro: cartao.querySelector('[data-papel="erro"]'),
   };
 }
 
-/* Só os cartões de login têm `data-sistema`; o do CODUSU usa o mesmo visual e fica de fora. */
+/* Só os cartões de sessão têm `data-sistema`; o do Sankhya ID e o do CODUSU ficam de fora. */
 function cartoesDeCredenciaisSankhya() {
   return [
-    ...elementos.modalCredenciaisSankhya.querySelectorAll('.cartao-credencial[data-sistema]'),
-  ].map(elementosDoCartaoDeCredencial);
+    ...elementos.painelConfiguracaoSankhyaId.querySelectorAll('.cartao-credencial[data-sistema]'),
+  ].map(elementosDoCartaoDeSessao);
 }
 
-/** Pinta o selo do cartão a partir do status devolvido pelo cofre do app desktop. */
-function renderizarStatusCredencial(cartaoElementos, status) {
-  const { campoUsuario, status: selo } = cartaoElementos;
-  campoUsuario.value = status.usuario;
+/** Pinta o selo do Sankhya ID, o aviso da migração e o usuário salvo. */
+function renderizarSankhyaId(sankhyaId, status) {
+  sankhyaId.campoUsuario.value = status.usuario;
+  sankhyaId.status.className = status.definido ? 'selo-situacao ok' : 'selo-situacao';
+  sankhyaId.status.textContent = status.definido ? 'Salvo' : 'Sem Sankhya ID';
+  sankhyaId.aviso.textContent = status.aviso ?? '';
+  sankhyaId.aviso.hidden = !status.aviso;
+}
+
+/** Pinta o selo do cartão da sessão a partir do status devolvido pelo cofre do app desktop. */
+function renderizarStatusDaSessao(cartaoElementos, status) {
+  const { status: selo } = cartaoElementos;
 
   if (status.sessaoCapturada) {
     const expira = status.sessaoExpiraEm
@@ -5628,16 +5789,17 @@ function renderizarStatusCredencial(cartaoElementos, status) {
 
   if (status.definido) {
     selo.className = 'selo-situacao atencao';
-    selo.textContent = 'Credencial salva, sem sessão capturada';
+    selo.textContent = 'Sankhya ID salvo, sem sessão capturada';
     return;
   }
 
   selo.className = 'selo-situacao';
-  selo.textContent = 'Sem credencial';
+  selo.textContent = 'Sem Sankhya ID';
 }
 
-/** Recarrega os dois cartões; app desktop fora do ar avisa uma vez só. */
+/** Recarrega o Sankhya ID e as duas sessões; app desktop fora do ar avisa uma vez só. */
 async function atualizarCredenciaisSankhya() {
+  const sankhyaId = elementosDoSankhyaId();
   const cartoes = cartoesDeCredenciaisSankhya();
 
   let shellDisponivel = true;
@@ -5648,31 +5810,27 @@ async function atualizarCredenciaisSankhya() {
   }
   elementos.avisoShellSankhya.hidden = shellDisponivel;
 
-  for (const cartaoElementos of cartoes) {
-    limparErro(cartaoElementos.erro);
+  for (const { erro } of [sankhyaId, ...cartoes]) {
+    limparErro(erro);
   }
 
   try {
     const { credenciais } = await api.credenciaisSankhya();
+    // Usuário, "definido" e aviso são os mesmos nos dois itens: vêm do Sankhya ID.
+    if (credenciais.length) renderizarSankhyaId(sankhyaId, credenciais[0]);
     for (const status of credenciais) {
       const cartaoElementos = cartoes.find((c) => c.sistema === status.sistema);
-      if (!cartaoElementos) continue;
-      renderizarStatusCredencial(cartaoElementos, status);
-      cartaoElementos.campoSenha.value = status.definido
-        ? (await api.senhaCredencialSankhya(status.sistema)).senha
-        : '';
+      if (cartaoElementos) renderizarStatusDaSessao(cartaoElementos, status);
     }
+    sankhyaId.campoSenha.value = credenciais[0]?.definido ? (await api.senhaSankhyaId()).senha : '';
   } catch (erro) {
-    for (const cartaoElementos of cartoes) {
-      exibirErro(cartaoElementos.erro, erro.message);
-    }
+    exibirErro(sankhyaId.erro, erro.message);
   }
 }
 
+/* O Sankhya ID mora numa aba das Configurações; quem a seleciona também a carrega. */
 function abrirModalDeCredenciaisSankhya() {
-  elementos.modalCredenciaisSankhya.showModal();
-  void atualizarCredenciaisSankhya();
-  void carregarCodusuSankhyaOm();
+  return abrirConfiguracaoNaAba(elementos.abaConfiguracaoSankhyaId);
 }
 
 async function carregarCodusuSankhyaOm() {
@@ -5700,29 +5858,47 @@ async function salvarCodusuSankhyaOm() {
   }
 }
 
-async function salvarCredencialDoCartao(cartaoElementos) {
-  const usuario = cartaoElementos.campoUsuario.value.trim();
-  const senha = cartaoElementos.campoSenha.value;
-  limparErro(cartaoElementos.erro);
+async function salvarSankhyaId(sankhyaId) {
+  const usuario = sankhyaId.campoUsuario.value.trim();
+  const senha = sankhyaId.campoSenha.value;
+  limparErro(sankhyaId.erro);
 
   if (!usuario || !senha) {
-    exibirErro(cartaoElementos.erro, 'Informe usuário e senha.');
+    exibirErro(sankhyaId.erro, 'Informe usuário e senha.');
     return;
   }
 
-  cartaoElementos.botaoSalvar.disabled = true;
+  sankhyaId.botaoSalvar.disabled = true;
   try {
-    const status = await api.salvarCredencialSankhya(cartaoElementos.sistema, usuario, senha);
-    renderizarStatusCredencial(cartaoElementos, status);
-    exibirAviso('Credencial salva. Logando automaticamente…');
+    const status = await api.salvarSankhyaId(usuario, senha);
+    renderizarSankhyaId(sankhyaId, status);
+    exibirAviso('Sankhya ID salvo. Logando automaticamente…');
   } catch (erro) {
-    exibirErro(cartaoElementos.erro, erro.message);
+    exibirErro(sankhyaId.erro, erro.message);
     return;
   } finally {
-    cartaoElementos.botaoSalvar.disabled = false;
+    sankhyaId.botaoSalvar.disabled = false;
   }
 
-  await autoLoginDoCartao(cartaoElementos);
+  for (const cartaoElementos of cartoesDeCredenciaisSankhya()) {
+    await autoLoginDoCartao(cartaoElementos);
+  }
+}
+
+async function removerSankhyaId(sankhyaId) {
+  limparErro(sankhyaId.erro);
+  sankhyaId.botaoRemover.disabled = true;
+  try {
+    const status = await api.removerSankhyaId();
+    sankhyaId.campoSenha.value = '';
+    renderizarSankhyaId(sankhyaId, status);
+    exibirAviso('Sankhya ID removido.');
+    await atualizarCredenciaisSankhya();
+  } catch (erro) {
+    exibirErro(sankhyaId.erro, erro.message);
+  } finally {
+    sankhyaId.botaoRemover.disabled = false;
+  }
 }
 
 /**
@@ -5741,22 +5917,6 @@ async function autoLoginDoCartao(cartaoElementos) {
       cartaoElementos.erro,
       `${erro.message} — use "Abrir aba" e "Capturar sessão" manualmente.`,
     );
-  }
-}
-
-async function removerCredencialDoCartao(cartaoElementos) {
-  limparErro(cartaoElementos.erro);
-  cartaoElementos.botaoRemover.disabled = true;
-  try {
-    const status = await api.removerCredencialSankhya(cartaoElementos.sistema);
-    cartaoElementos.campoUsuario.value = '';
-    cartaoElementos.campoSenha.value = '';
-    renderizarStatusCredencial(cartaoElementos, status);
-    exibirAviso('Credencial removida.');
-  } catch (erro) {
-    exibirErro(cartaoElementos.erro, erro.message);
-  } finally {
-    cartaoElementos.botaoRemover.disabled = false;
   }
 }
 
@@ -5791,21 +5951,20 @@ async function capturarSessaoDoCartao(cartaoElementos) {
   }
 }
 
-function registrarEventosDoCartaoDeCredencial(cartaoElementos) {
-  cartaoElementos.botaoVerSenha.append(criarIcone(ICONES.olho));
-  cartaoElementos.botaoVerSenha.addEventListener('click', () => {
+function registrarEventosDoSankhyaId(sankhyaId) {
+  sankhyaId.botaoVerSenha.append(criarIcone(ICONES.olho));
+  sankhyaId.botaoVerSenha.addEventListener('click', () => {
     definirVisibilidadeDoCampo(
-      cartaoElementos.campoSenha,
-      cartaoElementos.botaoVerSenha,
-      cartaoElementos.campoSenha.type === 'password',
+      sankhyaId.campoSenha,
+      sankhyaId.botaoVerSenha,
+      sankhyaId.campoSenha.type === 'password',
     );
   });
-  cartaoElementos.botaoSalvar.addEventListener('click', () =>
-    salvarCredencialDoCartao(cartaoElementos),
-  );
-  cartaoElementos.botaoRemover.addEventListener('click', () =>
-    removerCredencialDoCartao(cartaoElementos),
-  );
+  sankhyaId.botaoSalvar.addEventListener('click', () => salvarSankhyaId(sankhyaId));
+  sankhyaId.botaoRemover.addEventListener('click', () => removerSankhyaId(sankhyaId));
+}
+
+function registrarEventosDoCartaoDeSessao(cartaoElementos) {
   cartaoElementos.botaoAbrirAba.addEventListener('click', () => abrirAbaDoCartao(cartaoElementos));
   cartaoElementos.botaoCapturarSessao.addEventListener('click', () =>
     capturarSessaoDoCartao(cartaoElementos),
@@ -5818,6 +5977,8 @@ function registrarEventosDoCartaoDeCredencial(cartaoElementos) {
 function selecionarAbaDaConfiguracao(abaEscolhida) {
   const abas = [
     { aba: elementos.abaConfiguracaoGeral, painel: elementos.painelConfiguracaoGeral },
+    { aba: elementos.abaConfiguracaoSankhyaId, painel: elementos.painelConfiguracaoSankhyaId },
+    { aba: elementos.abaConfiguracaoBackup, painel: elementos.painelConfiguracaoBackup },
     { aba: elementos.abaConfiguracaoMcp, painel: elementos.painelConfiguracaoMcp },
     { aba: elementos.abaConfiguracaoAtalhos, painel: elementos.painelConfiguracaoAtalhos },
     { aba: elementos.abaConfiguracaoSmtp, painel: elementos.painelConfiguracaoSmtp },
@@ -5832,6 +5993,20 @@ function selecionarAbaDaConfiguracao(abaEscolhida) {
     aba.classList.toggle('ativa', ativa);
     aba.setAttribute('aria-selected', String(ativa));
     painel.hidden = !ativa;
+  }
+
+  // Sankhya ID e Backup gravam na hora, cada um com seus botões: o Salvar do rodapé não vale.
+  const gravaNaHora =
+    abaEscolhida === elementos.abaConfiguracaoSankhyaId ||
+    abaEscolhida === elementos.abaConfiguracaoBackup;
+  elementos.botaoSalvarConfiguracao.hidden = gravaNaHora;
+  elementos.botaoCancelarConfiguracao.textContent = gravaNaHora ? 'Fechar' : 'Cancelar';
+
+  if (abaEscolhida === elementos.abaConfiguracaoSankhyaId) {
+    void atualizarCredenciaisSankhya();
+    void carregarCodusuSankhyaOm();
+  } else if (abaEscolhida === elementos.abaConfiguracaoBackup) {
+    void backup.abrir();
   }
 }
 
@@ -6200,12 +6375,11 @@ async function abrirConfiguracaoNaAba(aba, campo) {
     return;
   }
   selecionarAbaDaConfiguracao(aba);
-  campo.focus();
+  campo?.focus();
 }
 
 function abrirCredenciaisSankhyaNoCampo(campo) {
-  abrirModalDeCredenciaisSankhya();
-  campo?.focus();
+  return abrirConfiguracaoNaAba(elementos.abaConfiguracaoSankhyaId, campo);
 }
 
 function cartaoDeCredencialSankhya(sistema) {
@@ -6219,16 +6393,15 @@ function cartaoDeCredencialSankhya(sistema) {
  */
 const DESTINOS_DE_CONFIGURACAO_PENDENTE = {
   codusu: {
-    botao: () => elementos.botaoCredenciaisSankhya,
+    botao: () => elementos.botaoConfiguracao,
     abrir: () => abrirCredenciaisSankhyaNoCampo(elementos.campoConfigSankhyaOmCodUsu),
   },
   'login-erp': {
-    botao: () => elementos.botaoCredenciaisSankhya,
-    abrir: () =>
-      abrirCredenciaisSankhyaNoCampo(cartaoDeCredencialSankhya('sankhya-erp')?.campoUsuario),
+    botao: () => elementos.botaoConfiguracao,
+    abrir: () => abrirCredenciaisSankhyaNoCampo(elementosDoSankhyaId().campoUsuario),
   },
   'sessao-experience': {
-    botao: () => elementos.botaoCredenciaisSankhya,
+    botao: () => elementos.botaoConfiguracao,
     abrir: () =>
       abrirCredenciaisSankhyaNoCampo(
         cartaoDeCredencialSankhya('sankhya-experience')?.botaoCapturarSessao,
@@ -6817,7 +6990,7 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false 
   estado.terceiro = terceiro;
 
   // O que usa as credenciais do Sankhya sem ser aba: some junto com Agenda e OS.
-  elementos.botaoCredenciaisSankhya.hidden = terceiro;
+  elementos.abaConfiguracaoSankhyaId.hidden = terceiro;
   elementos.grupoAlertaAgenda.hidden = terceiro;
   elementos.campoNomesCompletosCliente.hidden = terceiro;
 
@@ -11930,6 +12103,11 @@ function registrarEventos() {
   registrarEventosDosContatos();
   elementos.botaoAtualizarAgenda.append(criarIcone(ICONES.recarregar));
   elementos.botaoAtualizarAgenda.addEventListener('click', atualizarAgendaGeral);
+  elementos.botaoLancarOcorrencia.addEventListener('click', abrirModalDeOcorrencia);
+  elementos.formularioOcorrencia.addEventListener('submit', salvarOcorrencia);
+  elementos.botaoCancelarOcorrencia.addEventListener('click', () =>
+    elementos.modalOcorrencia.close(),
+  );
   elementos.mountAgendaGeral.append(widgetAgendaGeral.elemento);
   elementos.botaoAtualizarOs.append(criarIcone(ICONES.recarregar));
   elementos.botaoAtualizarOs.addEventListener('click', atualizarOsGeral);
@@ -11956,14 +12134,10 @@ function registrarEventos() {
     }
   });
 
-  elementos.botaoCredenciaisSankhya.append(criarIcone(ICONES.cadeado));
-  elementos.botaoCredenciaisSankhya.addEventListener('click', abrirModalDeCredenciaisSankhya);
   elementos.botaoSalvarCodusu.addEventListener('click', salvarCodusuSankhyaOm);
-  elementos.botaoFecharCredenciaisSankhya.addEventListener('click', () =>
-    elementos.modalCredenciaisSankhya.close(),
-  );
+  registrarEventosDoSankhyaId(elementosDoSankhyaId());
   for (const cartaoElementos of cartoesDeCredenciaisSankhya()) {
-    registrarEventosDoCartaoDeCredencial(cartaoElementos);
+    registrarEventosDoCartaoDeSessao(cartaoElementos);
   }
 
   elementos.botaoConfiguracao.append(criarIcone(ICONES.engrenagem));
@@ -11972,6 +12146,23 @@ function registrarEventos() {
   elementos.abaConfiguracaoGeral.addEventListener('click', () =>
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGeral),
   );
+  elementos.abaConfiguracaoSankhyaId.addEventListener('click', () =>
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoSankhyaId),
+  );
+  elementos.abaConfiguracaoBackup.addEventListener('click', () =>
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoBackup),
+  );
+  // Enter num campo dessas abas não pode enviar o formulário das configurações.
+  for (const painel of [
+    elementos.painelConfiguracaoSankhyaId,
+    elementos.painelConfiguracaoBackup,
+  ]) {
+    painel.addEventListener('keydown', (evento) => {
+      if (evento.key === 'Enter' && evento.target.tagName === 'INPUT') {
+        evento.preventDefault();
+      }
+    });
+  }
   elementos.abaConfiguracaoMcp.addEventListener('click', () => {
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoMcp);
     if (funcionalidadeVisivel('cliente.projetos')) {
@@ -12374,6 +12565,17 @@ const kanban = iniciarKanban({
   selecionarPasta: () => api.selecionarPasta(),
   clienteSelecionado,
   excluirProjetoSemKanban: pedirExclusaoDeProjetoSemKanban,
+});
+
+const backup = iniciarBackup({
+  requisitar,
+  criarElemento,
+  criarBotao,
+  exibirAviso,
+  selecionarPasta: () => api.selecionarPasta(),
+  copiarParaAreaDeTransferencia,
+  modal: elementos.modalConfiguracao,
+  corpo: elementos.corpoBackup,
 });
 
 iniciar();

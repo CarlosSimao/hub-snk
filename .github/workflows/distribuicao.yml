@@ -50,7 +50,14 @@ jobs:
 
       # Só o HUB SNK: o Git AutoSync tem licença própria e é instalado pela aba Git,
       # que baixa da Release do repositório dele.
+      # A credencial OAuth do Google Drive não está no repositório: entra no pacote a
+      # partir de dois secrets (veja docs/manutencao.md). Na tag de versão a falta deles
+      # falha o job, em vez de publicar um instalador sem o Drive.
       - name: Gerar o instalador
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          HUB_EXIGIR_CREDENCIAL_GOOGLE: ${{ startsWith(github.ref, 'refs/tags/v') && '1' || '0' }}
         run: npm run empacotar-desktop
 
       - uses: actions/upload-artifact@v7

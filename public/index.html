@@ -116,14 +116,6 @@
         >
           <span class="contador-notificacoes" id="contador-notificacoes" hidden></span>
         </button>
-        <!-- O ícone de cadeado é montado pelo app.js. -->
-        <button
-          class="btn ghost botao-icone"
-          id="btn-credenciais-sankhya"
-          type="button"
-          title="Credenciais Sankhya"
-          aria-label="Credenciais Sankhya"
-        ></button>
         <!-- O ícone de engrenagem é montado pelo app.js. -->
         <button
           class="btn ghost botao-icone"
@@ -234,16 +226,21 @@
             <h2>Agenda de Recursos</h2>
             <p class="texto-auxiliar">Consulta ao vivo, direto da guia do Sankhya ERP já logada.</p>
           </div>
-          <div class="detalhe-acoes">
-            <span class="texto-auxiliar" id="ultima-atualizacao-agenda"></span>
-            <!-- O ícone de recarregar é montado pelo app.js. -->
-            <button
-              class="btn ghost botao-icone"
-              type="button"
-              id="btn-atualizar-agenda"
-              title="Atualizar da Sankhya"
-              aria-label="Atualizar da Sankhya"
-            ></button>
+          <div class="acoes-agenda">
+            <div class="detalhe-acoes">
+              <span class="texto-auxiliar" id="ultima-atualizacao-agenda"></span>
+              <!-- O ícone de recarregar é montado pelo app.js. -->
+              <button
+                class="btn ghost botao-icone"
+                type="button"
+                id="btn-atualizar-agenda"
+                title="Atualizar da Sankhya"
+                aria-label="Atualizar da Sankhya"
+              ></button>
+            </div>
+            <button class="btn tiny" type="button" id="btn-lancar-ocorrencia">
+              Lançar ocorrência
+            </button>
           </div>
         </div>
 
@@ -283,7 +280,7 @@
         <div class="secao-recursos">
           <p class="aviso-shell" id="aviso-shell-os" hidden>
             A consulta ao Sankhya precisa do aplicativo HUB SNK aberto, com a sessão do Sankhya
-            Experience capturada (Credenciais Sankhya).
+            Experience capturada (Sankhya ID).
           </p>
           <!-- Navegação de mês e lista de OS são montados pelo app.js (`criarWidgetDeOs`) —
                o mesmo widget usado na aba OS do cadastro do cliente, só que sem recorte de
@@ -707,6 +704,43 @@
       </form>
     </dialog>
 
+    <!-- Ocorrência de agenda: grava direto no ERP, pela janela oculta do aplicativo. -->
+    <dialog class="modal" id="modal-ocorrencia">
+      <form method="dialog" id="formulario-ocorrencia" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Lançar ocorrência</h2>
+          <p id="usuario-ocorrencia">Identificando o usuário logado no SankhyaOm…</p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo-duplo">
+            <div class="campo">
+              <label for="campo-inicio-ocorrencia">Data inicial</label>
+              <input id="campo-inicio-ocorrencia" type="datetime-local" required />
+            </div>
+            <div class="campo">
+              <label for="campo-fim-ocorrencia">Data final</label>
+              <input id="campo-fim-ocorrencia" type="datetime-local" required />
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="campo-motivo-ocorrencia">Motivo</label>
+            <select id="campo-motivo-ocorrencia"></select>
+          </div>
+
+          <p class="erro-formulario" id="erro-ocorrencia" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-ocorrencia">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-ocorrencia" disabled>
+            Lançar
+          </button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog class="modal" id="modal-projeto">
       <form method="dialog" id="formulario-projeto" novalidate>
         <div class="modal-cabecalho">
@@ -1032,6 +1066,16 @@
           </button>
           <button
             class="aba"
+            id="aba-configuracao-sankhya-id"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-sankhya-id"
+          >
+            Sankhya ID
+          </button>
+          <button
+            class="aba"
             id="aba-configuracao-smtp"
             type="button"
             role="tab"
@@ -1039,6 +1083,16 @@
             aria-controls="painel-configuracao-smtp"
           >
             SMTP
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-atalhos"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-atalhos"
+          >
+            Atalhos
           </button>
           <button
             class="aba"
@@ -1062,16 +1116,6 @@
           </button>
           <button
             class="aba"
-            id="aba-configuracao-atalhos"
-            type="button"
-            role="tab"
-            aria-selected="false"
-            aria-controls="painel-configuracao-atalhos"
-          >
-            Atalhos
-          </button>
-          <button
-            class="aba"
             id="aba-configuracao-ia"
             type="button"
             role="tab"
@@ -1089,6 +1133,16 @@
             aria-controls="painel-configuracao-acessos"
           >
             Acessos
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-backup"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-backup"
+          >
+            Backup
           </button>
           <button
             class="aba"
@@ -1463,6 +1517,136 @@
 
           <div
             class="painel-aba"
+            id="painel-configuracao-sankhya-id"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-sankhya-id"
+            hidden
+          >
+            <p class="texto-auxiliar">
+              Um usuário e uma senha só, usados pelo HUB SNK para entrar sozinho no SankhyaOm e na
+              Experience, ao abrir o aplicativo e sempre que a sessão expirar.
+            </p>
+
+            <section class="cartao-credencial">
+              <div class="campo campo-em-linha">
+                <label for="campo-sankhya-om-codusu">
+                  Meu código de usuário SankhyaOm
+                  <span class="dica" tabindex="0"
+                    >?<span class="dica-texto" role="tooltip"
+                      >Seu <code>CODUSU</code> no SankhyaOm (ERP) — diferente do usuário da
+                      Experience, que é capturado sozinho junto com a sessão. Recorta a Agenda de
+                      Recursos só para você.</span
+                    ></span
+                  >
+                </label>
+                <div class="campo-com-acao">
+                  <input
+                    id="campo-sankhya-om-codusu"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="10"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="Ex.: 4817"
+                  />
+                  <button class="btn ghost" type="button" id="btn-salvar-codusu">Salvar</button>
+                </div>
+              </div>
+              <p class="erro-formulario" id="erro-codusu" hidden></p>
+            </section>
+
+            <p class="aviso-shell" id="aviso-shell-sankhya" hidden>
+              O aplicativo HUB SNK não está respondendo. As credenciais e as guias do Sankhya só
+              funcionam com o painel aberto por ele.
+            </p>
+
+            <section class="cartao-credencial" id="cartao-sankhya-id">
+              <div class="cartao-credencial-cabecalho">
+                <h3>Usuário e senha</h3>
+                <span class="selo-situacao" data-papel="status"></span>
+              </div>
+
+              <div class="campo campo-em-linha">
+                <label>Usuário</label>
+                <input type="text" maxlength="200" autocomplete="off" data-papel="usuario" />
+              </div>
+              <div class="campo campo-em-linha">
+                <label>Senha</label>
+                <div class="campo-com-acao">
+                  <input
+                    type="password"
+                    maxlength="200"
+                    autocomplete="new-password"
+                    data-papel="senha"
+                  />
+                  <button
+                    class="btn tiny botao-icone"
+                    type="button"
+                    data-papel="ver-senha"
+                    aria-pressed="false"
+                  ></button>
+                </div>
+              </div>
+
+              <div class="cartao-credencial-acoes">
+                <button class="btn ghost" type="button" data-papel="salvar">
+                  Salvar Sankhya ID
+                </button>
+                <button class="btn ghost" type="button" data-papel="remover">Remover</button>
+              </div>
+
+              <p class="aviso-shell" data-papel="aviso" hidden></p>
+              <p class="erro-formulario" data-papel="erro" hidden></p>
+            </section>
+
+            <section class="cartao-credencial" data-sistema="sankhya-erp">
+              <div class="cartao-credencial-cabecalho">
+                <h3>SankhyaOm</h3>
+                <span class="selo-situacao" data-papel="status"></span>
+              </div>
+
+              <div class="cartao-credencial-acoes">
+                <span class="rodape-espacador"></span>
+                <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
+                <button class="btn ghost" type="button" data-papel="capturar-sessao">
+                  Capturar sessão
+                </button>
+              </div>
+
+              <p class="erro-formulario" data-papel="erro" hidden></p>
+            </section>
+
+            <section class="cartao-credencial" data-sistema="sankhya-experience">
+              <div class="cartao-credencial-cabecalho">
+                <h3>Experience</h3>
+                <span class="selo-situacao" data-papel="status"></span>
+              </div>
+
+              <div class="cartao-credencial-acoes">
+                <span class="rodape-espacador"></span>
+                <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
+                <button class="btn ghost" type="button" data-papel="capturar-sessao">
+                  Capturar sessão
+                </button>
+              </div>
+
+              <p class="erro-formulario" data-papel="erro" hidden></p>
+            </section>
+          </div>
+
+          <div
+            class="painel-aba"
+            id="painel-configuracao-backup"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-backup"
+            hidden
+          >
+            <!-- Os cartões são montados pelo backup.js, com a situação lida a cada abertura. -->
+            <div id="corpo-backup"></div>
+          </div>
+
+          <div
+            class="painel-aba"
             id="painel-configuracao-smtp"
             role="tabpanel"
             aria-labelledby="aba-configuracao-smtp"
@@ -1588,7 +1772,7 @@
                     Recursos — e, se marcado, os do próximo dia útil, que pula sábado e domingo, mas
                     não feriados. Evento de cliente cujo dia não tem tarefa nem OS na Experience
                     gera uma notificação. Precisa do código de usuário do SankhyaOm e do login
-                    feito, os dois em Credenciais Sankhya. O e-mail usa o SMTP da aba SMTP.</span
+                    feito, os dois no Sankhya ID. O e-mail usa o SMTP da aba SMTP.</span
                   ></span
                 >
               </legend>
@@ -1710,8 +1894,8 @@
               <span class="dica" tabindex="0"
                 >?<span class="dica-texto" role="tooltip"
                   >Para quem não tem acesso ao SankhyaOm nem à Experience. Oculta o que depende
-                  deles: Credenciais Sankhya, Agenda e OS, os nomes completos do cliente, o alerta
-                  da agenda e as guias SankhyaOm e Experience do aplicativo.</span
+                  deles: Sankhya ID, Agenda e OS, os nomes completos do cliente, o alerta da agenda
+                  e as guias SankhyaOm e Experience do aplicativo.</span
                 ></span
               >
             </label>
@@ -1824,140 +2008,6 @@
           <button class="btn primario" type="submit" id="btn-salvar-configuracao">Salvar</button>
         </div>
       </form>
-    </dialog>
-
-    <dialog class="modal largo" id="modal-credenciais-sankhya">
-      <div class="modal-cabecalho">
-        <h2>Credenciais Sankhya</h2>
-        <p>
-          Login usado pelo HUB SNK para entrar sozinho no SankhyaOm e na Experience, ao abrir o
-          aplicativo e sempre que a sessão expirar.
-        </p>
-      </div>
-
-      <div class="modal-corpo">
-        <section class="cartao-credencial">
-          <div class="campo campo-em-linha">
-            <label for="campo-sankhya-om-codusu">
-              Meu código de usuário SankhyaOm
-              <span class="dica" tabindex="0"
-                >?<span class="dica-texto" role="tooltip"
-                  >Seu <code>CODUSU</code> no SankhyaOm (ERP) — diferente do usuário da Experience,
-                  que é capturado sozinho junto com a sessão. Recorta a Agenda de Recursos só para
-                  você.</span
-                ></span
-              >
-            </label>
-            <div class="campo-com-acao">
-              <input
-                id="campo-sankhya-om-codusu"
-                type="text"
-                inputmode="numeric"
-                maxlength="10"
-                autocomplete="off"
-                spellcheck="false"
-                placeholder="Ex.: 4817"
-              />
-              <button class="btn ghost" type="button" id="btn-salvar-codusu">Salvar</button>
-            </div>
-          </div>
-          <p class="erro-formulario" id="erro-codusu" hidden></p>
-        </section>
-
-        <p class="aviso-shell" id="aviso-shell-sankhya" hidden>
-          O aplicativo HUB SNK não está respondendo. As credenciais e as guias do Sankhya só
-          funcionam com o painel aberto por ele.
-        </p>
-
-        <section class="cartao-credencial" data-sistema="sankhya-erp">
-          <div class="cartao-credencial-cabecalho">
-            <h3>Sankhya ERP</h3>
-            <span class="selo-situacao" data-papel="status"></span>
-          </div>
-
-          <div class="campo campo-em-linha">
-            <label>Usuário</label>
-            <input type="text" maxlength="200" autocomplete="off" data-papel="usuario" />
-          </div>
-          <div class="campo campo-em-linha">
-            <label>Senha</label>
-            <div class="campo-com-acao">
-              <input
-                type="password"
-                maxlength="200"
-                autocomplete="new-password"
-                data-papel="senha"
-              />
-              <button
-                class="btn tiny botao-icone"
-                type="button"
-                data-papel="ver-senha"
-                aria-pressed="false"
-              ></button>
-            </div>
-          </div>
-
-          <div class="cartao-credencial-acoes">
-            <button class="btn ghost" type="button" data-papel="salvar">Salvar credencial</button>
-            <button class="btn ghost" type="button" data-papel="remover">Remover</button>
-            <span class="rodape-espacador"></span>
-            <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
-            <button class="btn ghost" type="button" data-papel="capturar-sessao">
-              Capturar sessão
-            </button>
-          </div>
-
-          <p class="erro-formulario" data-papel="erro" hidden></p>
-        </section>
-
-        <section class="cartao-credencial" data-sistema="sankhya-experience">
-          <div class="cartao-credencial-cabecalho">
-            <h3>Sankhya Experience</h3>
-            <span class="selo-situacao" data-papel="status"></span>
-          </div>
-
-          <div class="campo campo-em-linha">
-            <label>Usuário</label>
-            <input type="text" maxlength="200" autocomplete="off" data-papel="usuario" />
-          </div>
-          <div class="campo campo-em-linha">
-            <label>Senha</label>
-            <div class="campo-com-acao">
-              <input
-                type="password"
-                maxlength="200"
-                autocomplete="new-password"
-                data-papel="senha"
-              />
-              <button
-                class="btn tiny botao-icone"
-                type="button"
-                data-papel="ver-senha"
-                aria-pressed="false"
-              ></button>
-            </div>
-          </div>
-
-          <div class="cartao-credencial-acoes">
-            <button class="btn ghost" type="button" data-papel="salvar">Salvar credencial</button>
-            <button class="btn ghost" type="button" data-papel="remover">Remover</button>
-            <span class="rodape-espacador"></span>
-            <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
-            <button class="btn ghost" type="button" data-papel="capturar-sessao">
-              Capturar sessão
-            </button>
-          </div>
-
-          <p class="erro-formulario" data-papel="erro" hidden></p>
-        </section>
-      </div>
-
-      <div class="modal-rodape">
-        <span class="rodape-espacador"></span>
-        <button class="btn primario" type="button" id="btn-fechar-credenciais-sankhya">
-          Fechar
-        </button>
-      </div>
     </dialog>
 
     <dialog class="modal largo" id="modal-mcp">
@@ -2462,6 +2512,30 @@
           </button>
           <button class="btn tiny" type="button" id="btn-kanban-analisar" hidden>
             Gerar tarefas com a IA
+          </button>
+          <button
+            class="btn tiny"
+            type="button"
+            id="btn-kanban-recarregar"
+            title="Recarregar as informações do quadro"
+            aria-label="Recarregar o quadro"
+          >
+            <svg
+              class="icone-recarregar"
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+              <path d="M21 3v6h-6" />
+            </svg>
+            Recarregar
           </button>
           <button class="btn tiny primario" type="button" id="btn-kanban-nova-tarefa">
             Nova tarefa

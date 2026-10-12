@@ -63,7 +63,7 @@ export class JanelaExperienceOculta {
 
     const segredo = cofre.revelar('sankhya-experience');
     if (!segredo.usuario || !segredo.senha) return SEM_SESSAO;
-    if (cofre.loginAutomaticoSuspenso('sankhya-experience')) return SEM_SESSAO;
+    if (cofre.loginAutomaticoSuspenso()) return SEM_SESSAO;
 
     this.#criarJanela();
     const wc = this.#janela!.webContents;

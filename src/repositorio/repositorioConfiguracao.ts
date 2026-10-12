@@ -1,20 +1,24 @@
-import type { Atalho, ConfiguracaoGlobal } from '../tipos.ts';
+import type { Atalho, ConfiguracaoDeBackup, ConfiguracaoGlobal } from '../tipos.ts';
 
 /** Atalho que ainda não foi gravado não tem id: quem o cria é o repositório. */
 export type DadosDeAtalho = Omit<Atalho, 'id'> & { id?: string };
 
 /**
  * `experiencePersonId` e `sankhyaOmCodUsu` ficam de fora: não têm campo na tela de
- * configuração (o CODUSU é digitado em Credenciais Sankhya), então o formulário nunca
+ * configuração (o CODUSU é digitado em Sankhya ID), então o formulário nunca
  * manda esses valores. Se entrassem aqui, `salvar()` — que grava o objeto inteiro —
  * apagaria o que `definirExperiencePersonId` e `definirSankhyaOmCodUsu` guardaram a
  * cada vez que o usuário só mudasse outro campo da tela.
+ *
+ * `backup` fica de fora pelo mesmo motivo: é gravado pela janela de Backup, campo a
+ * campo, por `definirBackup`.
  */
 export interface ConfiguracaoParaSalvar extends Omit<
   ConfiguracaoGlobal,
   | 'atalhos'
   | 'experiencePersonId'
   | 'sankhyaOmCodUsu'
+  | 'backup'
   | 'perfil'
   | 'funcionalidadesOcultas'
   | 'terceiro'
@@ -57,6 +61,8 @@ export interface RepositorioConfiguracao {
   salvar(configuracao: ConfiguracaoParaSalvar): Promise<ConfiguracaoGlobal>;
   /** Escrita isolada do `person_id` da Experience, fora do fluxo da tela de configuração. */
   definirExperiencePersonId(personId: string): Promise<ConfiguracaoGlobal>;
-  /** Escrita isolada do `CODUSU` do SankhyaOm, digitado em Credenciais Sankhya. */
+  /** Escrita isolada do `CODUSU` do SankhyaOm, digitado em Sankhya ID. */
   definirSankhyaOmCodUsu(codusu: string): Promise<ConfiguracaoGlobal>;
+  /** Escrita isolada do backup, ajustado na janela de Backup e não no formulário. */
+  definirBackup(backup: ConfiguracaoDeBackup): Promise<ConfiguracaoGlobal>;
 }

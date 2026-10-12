@@ -230,7 +230,7 @@ export class VerificadorDaAgendaDoDia {
       origem: 'sistema',
       chave: `agenda-falha:${hoje}`,
       titulo: 'Não foi possível conferir as tarefas da agenda',
-      mensagem: `${motivo} Confira o login em Credenciais Sankhya.`,
+      mensagem: `${motivo} Confira o login em Sankhya ID.`,
       enviarEmail: false,
     });
   }

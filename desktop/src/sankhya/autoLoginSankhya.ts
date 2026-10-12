@@ -31,7 +31,7 @@ const emAndamento = new Set<cofre.Sistema>();
 const ultimaTentativa = new Map<cofre.Sistema, number>();
 
 export function podeTentar(sistema: cofre.Sistema): boolean {
-  if (emAndamento.has(sistema) || cofre.loginAutomaticoSuspenso(sistema)) return false;
+  if (emAndamento.has(sistema) || cofre.loginAutomaticoSuspenso()) return false;
   const anterior = ultimaTentativa.get(sistema);
   return !anterior || Date.now() - anterior > COOLDOWN_MS;
 }
@@ -62,7 +62,7 @@ export async function autoLoginSankhya(
   tabs: TabManager | null,
   sistema: cofre.Sistema,
 ): Promise<ResultadoCaptura> {
-  if (cofre.loginAutomaticoSuspenso(sistema)) {
+  if (cofre.loginAutomaticoSuspenso()) {
     return { ok: false, cookies: 0, erro: cofre.MENSAGEM_DE_LOGIN_SUSPENSO };
   }
   if (!podeTentar(sistema)) {
@@ -71,7 +71,7 @@ export async function autoLoginSankhya(
 
   const segredo = cofre.revelar(sistema);
   if (!segredo.usuario || !segredo.senha) {
-    return { ok: false, cookies: 0, erro: 'sem usuário/senha salvos para este sistema' };
+    return { ok: false, cookies: 0, erro: 'sem Sankhya ID (usuário e senha) salvo' };
   }
 
   const id = sistema === 'sankhya-erp' ? 'erp' : 'experience';

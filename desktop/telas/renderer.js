@@ -45,6 +45,22 @@ botaoRecarregar.addEventListener('click', (evento) => {
   botaoRecarregar.classList.add('girando');
 });
 
+const botaoBaixados = document.getElementById('baixados');
+function atualizarBotaoDeDownloads(lista) {
+  // Como no navegador: só aparece depois do primeiro download.
+  botaoBaixados.hidden = lista.length === 0;
+  botaoBaixados.classList.toggle(
+    'baixando',
+    lista.some((d) => d.estado === 'baixando'),
+  );
+}
+botaoBaixados.addEventListener('click', () => {
+  const { right, bottom } = botaoBaixados.getBoundingClientRect();
+  window.hub.downloads.abrir(right, bottom);
+});
+window.hub.downloads.aoAtualizar(atualizarBotaoDeDownloads);
+window.hub.downloads.estado().then(atualizarBotaoDeDownloads);
+
 document.getElementById('menu').addEventListener('click', (evento) => {
   const { left, bottom } = evento.currentTarget.getBoundingClientRect();
   window.hub.menu.abrir(left, bottom);

@@ -178,7 +178,7 @@ const esquemaDoCorpoDaConfiguracao = esquemaDeConfiguracao.extend({
 });
 
 /*
- * O CODUSU tem rota própria porque é digitado em Credenciais Sankhya, e não no
+ * O CODUSU tem rota própria porque é digitado em Sankhya ID, e não no
  * formulário das configurações; vazio desliga a consulta da agenda.
  */
 const esquemaDoCodusu = z.object({

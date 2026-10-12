@@ -291,6 +291,7 @@
         padding-bottom: 5px;
       }
       #recarregar,
+      #baixados,
       #novaGuia,
       #barraEndereco button {
         display: flex;
@@ -309,12 +310,14 @@
           color 0.12s ease;
       }
       #recarregar:hover,
+      #baixados:hover,
       #novaGuia:hover,
       #barraEndereco button:hover:not(:disabled) {
         background: #1b1f27;
         color: #e6e6e6;
       }
       #recarregar svg,
+      #baixados svg,
       #novaGuia svg,
       #barraEndereco svg {
         display: block;
@@ -357,6 +360,18 @@
       }
       #endereco:focus {
         border-color: #2d6cdf;
+      }
+      /* Download em andamento: o ícone pulsa em azul até terminar. */
+      #baixados.baixando {
+        color: #2d6cdf;
+      }
+      #baixados.baixando svg {
+        animation: pulsar 1s ease-in-out infinite;
+      }
+      @keyframes pulsar {
+        50% {
+          transform: translateY(2px);
+        }
       }
       /* Um giro por clique: confirma que o comando saiu, sem ficar girando à toa. */
       #recarregar.girando svg {
@@ -424,6 +439,40 @@
             <path
               d="M4 4.5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9.5L5 20v-3.5H4a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1z"
             />
+          </svg>
+        </button>
+        <button data-servico="agenda" title="Google Agenda" aria-label="Google Agenda">
+          <span class="contador" hidden></span>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3.5" y="5" width="17" height="15" rx="2" />
+            <path d="M3.5 10h17M8 3v4M16 3v4" />
+          </svg>
+        </button>
+        <button data-servico="meet" title="Google Meet" aria-label="Google Meet">
+          <span class="contador" hidden></span>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3" y="6.5" width="12" height="11" rx="2" />
+            <path d="m15 11 6-3.5v9L15 13z" />
           </svg>
         </button>
         <button
@@ -502,6 +551,21 @@
           </svg>
         </button>
         <div id="controles">
+          <button id="baixados" title="Downloads" aria-label="Downloads" hidden>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 4v11M7 11l5 5 5-5M5 20h14" />
+            </svg>
+          </button>
           <button
             id="recarregar"
             title="Recarregar a guia ativa (Shift+clique: sem cache)"

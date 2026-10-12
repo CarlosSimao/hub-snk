@@ -42,6 +42,13 @@ export const TIPO_ENV: TipoDeArquivo = {
   filtroDoLinux: '*.env',
 };
 
+export const TIPO_BACKUP: TipoDeArquivo = {
+  titulo: 'Selecione o arquivo de backup do HUB SNK',
+  filtroDoWindows: 'Backup do HUB SNK (*.zip)|*.zip|Todos os arquivos (*.*)|*.*',
+  complementoDoMacos: 'of type {"public.zip-archive"}',
+  filtroDoLinux: '*.zip',
+};
+
 export class SeletorDeArquivoIndisponivelError extends Error {
   constructor() {
     super(

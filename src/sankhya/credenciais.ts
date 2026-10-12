@@ -1,12 +1,14 @@
 /**
- * Credenciais do Sankhya ERP e do Sankhya Experience, guardadas pelo cofre do
- * shell desktop (`safeStorage` do Electron) — nunca em texto puro pelo HUB SNK.
+ * Sankhya ID (usuário e senha, os mesmos para o SankhyaOm e para a Experience) e a sessão
+ * de cada um dos dois, guardados pelo cofre do shell desktop (`safeStorage` do Electron)
+ * — nunca em texto puro pelo HUB SNK.
  *
  * `revelar()` não tem rota HTTP correspondente, de propósito: cookies e token
  * só existem dentro do backend, para autenticar chamadas server-to-server
  * (`Experience`). A senha, e só ela, vai ao navegador por `revelarSenha()`:
  * a janela de credenciais a mostra, decisão consciente de quem usa o hub.
  */
+import type { NovaOcorrencia } from './ocorrencias.ts';
 import type { OpcoesDaPonte, PonteDoDesktop } from './ponteDoDesktop.ts';
 import type { SessaoDoDesktop, SessaoEmpurrada } from './sessaoDoDesktop.ts';
 import { SISTEMAS_SANKHYA, type SistemaSankhya, type StatusCredencial } from '../tipos.ts';
@@ -29,6 +31,9 @@ const TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS = 120_000;
 /** O que o shell devolve nas rotas de credencial, sem o `sistema`. */
 type RespostaCredencial = Omit<StatusCredencial, 'sistema'>;
 
+/** O Sankhya ID sozinho: o que o shell devolve ao gravar e ao remover. */
+export type StatusDoSankhyaId = Pick<StatusCredencial, 'usuario' | 'definido' | 'aviso'>;
+
 /** O que a aba ERP devolve das consultas: o JSON do Sankhya, ainda em texto. */
 interface ConsultaNaGuia {
   conteudo: string;
@@ -48,6 +53,7 @@ function montar(sistema: SistemaSankhya, corpo: RespostaCredencial): StatusCrede
     sistema,
     usuario: corpo.usuario ?? '',
     definido: Boolean(corpo.definido),
+    aviso: corpo.aviso ?? '',
     sessaoCapturada: Boolean(corpo.sessaoCapturada),
     sessaoExpiraEm: corpo.sessaoExpiraEm ?? '',
   };
@@ -83,6 +89,7 @@ export class Credenciais {
         sistema,
         usuario: sessaoEmpurrada.usuario,
         definido: true,
+        aviso: '',
         sessaoCapturada: true,
         sessaoExpiraEm: sessaoEmpurrada.expira,
       };
@@ -100,28 +107,37 @@ export class Credenciais {
     return sistema === 'sankhya-experience' ? this.#sessaoDoDesktop.obter() : undefined;
   }
 
-  async gravar(sistema: SistemaSankhya, usuario: string, senha: string): Promise<StatusCredencial> {
-    const corpo = await this.#requisitar<RespostaCredencial>(`/credentials/${sistema}`, {
+  async gravar(usuario: string, senha: string): Promise<StatusDoSankhyaId> {
+    const corpo = await this.#requisitar<StatusDoSankhyaId>('/credentials/id', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ usuario, senha }),
     });
-    return montar(sistema, corpo);
+    return this.#statusDoId(corpo);
   }
 
-  async remover(sistema: SistemaSankhya): Promise<StatusCredencial> {
-    const corpo = await this.#requisitar<RespostaCredencial>(`/credentials/${sistema}`, {
+  /** Tira o Sankhya ID e as sessões dos dois sistemas. */
+  async remover(): Promise<StatusDoSankhyaId> {
+    const corpo = await this.#requisitar<StatusDoSankhyaId>('/credentials/id', {
       method: 'DELETE',
     });
-    return montar(sistema, corpo);
+    return this.#statusDoId(corpo);
+  }
+
+  #statusDoId(corpo: StatusDoSankhyaId): StatusDoSankhyaId {
+    return {
+      usuario: corpo.usuario ?? '',
+      definido: Boolean(corpo.definido),
+      aviso: corpo.aviso ?? '',
+    };
   }
 
   /**
    * A senha guardada no cofre, e nada mais — nem a sessão empurrada da
    * Experience, que não tem senha, serve aqui.
    */
-  async revelarSenha(sistema: SistemaSankhya): Promise<string> {
-    const segredo = await this.#requisitar<SegredoSankhya>(`/credentials/${sistema}/reveal`);
+  async revelarSenha(): Promise<string> {
+    const segredo = await this.#requisitar<SegredoSankhya>('/credentials/id/reveal');
     return segredo.senha ?? '';
   }
 
@@ -169,6 +185,34 @@ export class Credenciais {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ codParceiro: String(codParceiro) }),
+      },
+      { timeoutMs: TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS },
+    );
+  }
+
+  /** Quem está logado no ERP pela janela oculta — o único em nome de quem se lança ocorrência. */
+  usuarioDaOcorrencia(): Promise<{ codusu: number; nomeusu: string }> {
+    return this.#requisitar<{ codusu: number; nomeusu: string }>(
+      '/ocorrencias/usuario',
+      { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' },
+      { timeoutMs: TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS },
+    );
+  }
+
+  /**
+   * GRAVA no ERP pelo botão "Criar ocorrência". `codusuEsperado` é o CODUSU configurado no
+   * hub: o shell recusa se a sessão for de outro usuário.
+   */
+  criarOcorrencia(
+    nova: NovaOcorrencia,
+    codusuEsperado: number | null,
+  ): Promise<{ mensagem: string }> {
+    return this.#requisitar<{ mensagem: string }>(
+      '/ocorrencias/criar',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...nova, codusuEsperado }),
       },
       { timeoutMs: TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS },
     );

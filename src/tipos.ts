@@ -42,7 +42,7 @@ import type { ConfiguracaoDoAssistenteDeIa } from './kanban/tiposDoKanban.ts';
  * `sankhyaOmCodUsu` é o `CODUSU` do usuário logado no SankhyaOm (ERP) — diferente
  * do `person_id` da Experience, e sem forma automática de descobrir a partir da
  * sessão capturada (só cookies e nenhum deles carrega o valor). Por isso, ao
- * contrário de `experiencePersonId`, é digitado à mão no topo de Credenciais Sankhya.
+ * contrário de `experiencePersonId`, é digitado à mão no topo de Sankhya ID.
  *
  * `perfil` e `funcionalidadesOcultas` são os acessos de Configurações › Acessos. A
  * lista guarda o que está oculto, e não o que está visível, para que uma
@@ -58,6 +58,9 @@ import type { ConfiguracaoDoAssistenteDeIa } from './kanban/tiposDoKanban.ts';
  * pessoa que usa o aplicativo. A empresa é a dela (onde trabalha), e não o cadastro de clientes do
  * Sankhya. Os quatro são obrigatórios para abrir um relato ao suporte e viajam junto com
  * ele; fora isso, nada os exige.
+ *
+ * `backup` é a cópia de segurança da pasta de dados: a periódica, numa pasta do
+ * computador, e a mantida no Google Drive conectado.
  */
 export interface ConfiguracaoGlobal {
   scriptPadrao: string;
@@ -81,6 +84,26 @@ export interface ConfiguracaoGlobal {
   empresaDoUsuario: string;
   timeDoUsuario: string;
   emailDoUsuario: string;
+  backup: ConfiguracaoDeBackup;
+}
+
+/**
+ * Cópia de segurança da pasta de dados.
+ *
+ * `ativo`, `pasta`, `intervaloHoras` e `copiasMantidas` são do backup periódico numa
+ * pasta do computador; sem pasta escolhida ele não roda, mesmo ligado. O backup só é
+ * gravado quando os dados mudaram desde o anterior: cópias idênticas empurrariam as
+ * versões diferentes para fora das mantidas.
+ *
+ * `espelharNoDrive` mantém no Google Drive conectado uma cópia sempre atual. A conta
+ * conectada não fica aqui: o token mora no cofre do shell desktop, fora da pasta de dados.
+ */
+export interface ConfiguracaoDeBackup {
+  ativo: boolean;
+  pasta: string;
+  intervaloHoras: number;
+  copiasMantidas: number;
+  espelharNoDrive: boolean;
 }
 
 /**
@@ -355,14 +378,16 @@ export const SISTEMAS_SANKHYA = ['sankhya-erp', 'sankhya-experience'] as const;
 export type SistemaSankhya = (typeof SISTEMAS_SANKHYA)[number];
 
 /**
- * Estado de uma credencial do Sankhya guardada pelo cofre do shell desktop — diz
- * se há valor guardado e para qual usuário, nunca a senha. A senha é cifrada com
- * `safeStorage` fora do processo do backend; só o shell a decripta.
+ * Estado do Sankhya ID (o login único) e da sessão de um dos sistemas, guardados pelo
+ * cofre do shell desktop — diz se há valor guardado e para qual usuário, nunca a senha.
+ * A senha é cifrada com `safeStorage` fora do processo do backend; só o shell a decripta.
  */
 export interface StatusCredencial {
   sistema: SistemaSankhya;
   usuario: string;
   definido: boolean;
+  /** Recado da migração do cofre antigo (usuários diferentes); vazio no normal. */
+  aviso: string;
   /** ISO-8601 do `exp` do JWT capturado, quando há um. Vazio sem sessão. */
   sessaoExpiraEm: string;
   sessaoCapturada: boolean;
