@@ -128,7 +128,7 @@ jobs:
         with:
           ref: ${{ inputs.pr != '' && format('mano/{0}', inputs.id) || '' }}
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: ${{ needs.corrigir.result == 'success' }}
         with:
           name: mano-artefato
