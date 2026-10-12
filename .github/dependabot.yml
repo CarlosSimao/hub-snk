@@ -1,12 +1,11 @@
 # Atualizações de dependência abertas como pull request, uma vez por mês: num
 # projeto de um mantenedor, a frequência semanal viraria ruído ignorado.
 #
-# Contra a `dev`, como todo o resto: a `main` só recebe o PR da release, já testado.
+# Sem `target-branch`: os PRs vão para a branch padrão, a `main`.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
-    target-branch: dev
     schedule:
       interval: monthly
     open-pull-requests-limit: 5
@@ -16,7 +15,6 @@ updates:
   # O shell desktop tem o próprio package.json: Electron e electron-builder.
   - package-ecosystem: npm
     directory: /desktop
-    target-branch: dev
     schedule:
       interval: monthly
     open-pull-requests-limit: 5
@@ -25,7 +23,6 @@ updates:
 
   - package-ecosystem: github-actions
     directory: /
-    target-branch: dev
     schedule:
       interval: monthly
     commit-message:
