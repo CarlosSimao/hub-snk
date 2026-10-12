@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.7.0] - 2026-10-12
+
 ### Adicionado
 
 - **Lançar ocorrência pela Agenda** (contribuição de Flaviano): o botão **Lançar ocorrência**
@@ -24,13 +26,11 @@ número significa aqui.
   engrenagem.
 - **Cliente da agenda vira link**: na Agenda de Recursos e no Resumo do dia, o nome do
   parceiro já vinculado a um cliente abre o cadastro dele no HUB.
-
 - **Backup e Google Drive**: aba **Backup** nas Configurações. Conecta a sua conta do Google
   com um clique (a autorização abre no navegador), mantém no Drive uma cópia sempre atual
   dos dados do HUB e faz backup periódico numa pasta à sua escolha, guardando as últimas
   cópias. A restauração, do Drive ou de um arquivo, é aplicada ao reiniciar, e os dados de
   antes ficam guardados. Falha de backup vira notificação.
-
 - **Seus dados no instalador**: página nova, toda opcional, com nome, empresa, time e e-mail.
   Preenche os mesmos campos de Configurações quando ainda estão vazios; o que já foi
   editado lá não é trocado ao reinstalar ou atualizar.
@@ -676,7 +676,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.6.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.7.0...HEAD
+[2.7.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.3.0...v2.4.0

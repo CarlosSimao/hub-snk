@@ -36,9 +36,11 @@ Baixe o `HUB-SNK-Setup-<versão>.exe` na
   ou Desenvolvedor — e mostra uma caixa por funcionalidade, como a aba _Acessos_:
   trocar o perfil marca o preset dele, e as caixas podem ser ajustadas antes de
   seguir. A caixa **Terceiro**, independente do perfil, é para quem não tem acesso ao
-  SankhyaOm nem à Experience: oculta Credenciais Sankhya, Agenda, OS e as guias dos
+  SankhyaOm nem à Experience: oculta Sankhya ID, Agenda, OS e as guias dos
   dois sistemas. A escolha vale só como ponto de partida: depois da instalação, ajuste
   em _Configurações_ › _Acessos_, e reinstalar não desfaz o que você ajustou.
+- Uma página opcional pede nome, empresa, time e e-mail, que preenchem os mesmos
+  campos de _Configurações_ enquanto eles estiverem vazios.
 - Na primeira abertura, com o cadastro vazio, o painel abre na aba **Clientes** e,
   para quem não é Terceiro, com a aba **Sankhya ID** das Configurações já aberta.
 - O **Git AutoSync** (commit e push automáticos dos repositórios) não vem no
@@ -70,7 +72,7 @@ A janela tem guias no topo:
 | Guia                | O que é                                                                                      |
 | ------------------- | -------------------------------------------------------------------------------------------- |
 | **Painel**          | O HUB SNK: Resumo do dia, clientes, bases, repositórios, ambiente local e agenda             |
-| **SankhyaOm**       | O ERP, que loga sozinho com a credencial salva em Credenciais Sankhya                        |
+| **SankhyaOm**       | O ERP, que loga sozinho com o Sankhya ID salvo                                               |
 | **Experience**      | A Experience, com o mesmo login automático                                                   |
 | Uma por base aberta | Cada base de cliente abre na sua própria guia, isolada das outras, com o login já preenchido |
 
@@ -83,9 +85,10 @@ já abre com o login preenchido. Detalhes em
 O menu _Guias_ esconde e mostra cada guia. `Ctrl+F` busca um texto na guia que
 está na tela, como no Chrome.
 
-À esquerda fica a barra de comunicação, com o **WhatsApp Web**, o **Gmail** e o
-**Google Chat** abertos num painel por cima das guias, cada um com o próprio login
-salvo e aviso de mensagem nova.
+À esquerda fica a barra de comunicação, com o **WhatsApp Web**, o **Gmail**, o
+**Google Chat**, o **Google Agenda** e o **Google Meet** abertos num painel por cima das
+guias, cada um com o próprio login salvo. Entrar numa reunião abre a chamada numa janela
+própria, uma por reunião.
 
 Fechar a janela não encerra o aplicativo: ele fica na bandeja do Windows, perto
 do relógio. Para sair, use _Hub_ › _Sair_ ou o botão direito no ícone da bandeja.
@@ -135,8 +138,8 @@ aplicativo chama (sessão da Experience, senha para o login automático,
 encerramento) exigem o token no cabeçalho, que a tela não tem. Como as
 conferências funcionam está em [docs/api.md](docs/api.md#autenticação).
 
-As credenciais do Sankhya ERP e da Experience ficam no cofre do sistema
-operacional, cifradas pelo aplicativo — nunca em texto puro.
+O Sankhya ID (um usuário e uma senha, que valem para o SankhyaOm e para a Experience)
+fica no cofre do sistema operacional, cifradas pelo aplicativo — nunca em texto puro.
 
 ---
 
@@ -159,7 +162,7 @@ Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | **Cadastro de clientes**    | Bases do ERP com usuário, senha e banco vinculado, repositórios Git, links avulsos, projetos e anotações livres                      |
 | **Guias do Sankhya**        | SankhyaOm e Experience dentro do aplicativo; cada base de cliente numa guia isolada, com usuário e senha preenchidos                 |
-| **Agenda de Recursos**      | Consultada por uma janela oculta que loga no SankhyaOm sozinha, cruzada com a Experience no calendário de cada cliente               |
+| **Agenda de Recursos**      | Consultada por uma janela oculta que loga no SankhyaOm sozinha, cruzada com a Experience; lança ocorrência (férias, folga) no ERP    |
 | **Resumo do dia**           | A tela inicial do Painel: agenda de hoje, lembretes do dia, repositórios com pendência e OS não concluídas, cada item com seu atalho |
 | **Notificações**            | Sino do topo e aviso do Windows, com som e e-mail opcional: evento da agenda sem tarefa na Experience e lembretes                    |
 | **Lembretes**               | Aba própria no menu: numa data ou recorrentes (cron), ligados a um cliente ou projeto, com aviso e e-mail opcional                   |
@@ -168,7 +171,7 @@ Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 | **Botões do repositório**   | Abrem a pasta, o terminal (rodando o script padrão) e a IDE configurada; e editam o `.sankhya-mcp.env` do MCP Claude                 |
 | **Busca rápida**            | `Ctrl+K` no aplicativo ou `Ctrl+Shift+Espaço` em qualquer programa: acha cliente, base, repositório, link, contato ou atalho e abre  |
 | **Buscar na página**        | `Ctrl+F` em qualquer guia, inclusive na Experience e no SankhyaOm: destaca as ocorrências e anda entre elas, como no Chrome          |
-| **Comunicação**             | WhatsApp Web, Gmail e Google Chat na barra lateral, com aviso de mensagem nova; o contato abre a conversa ou um e-mail já endereçado |
+| **Comunicação**             | WhatsApp Web, Gmail, Google Chat, Google Agenda e Meet na barra lateral; o contato abre a conversa ou um e-mail já endereçado        |
 | **Atalhos**                 | Lista de programas da sua máquina, iniciados com um clique pelo botão de raio, com busca a partir de seis cadastrados                |
 | **Bases locais (Local)**    | Ligam, param e reiniciam o WildFly da sua máquina, com a situação do serviço, o log ao vivo e o `.sankhya-mcp.env` da instalação     |
 | **Bancos locais (Local)**   | Ligam, param e reiniciam o container Docker do banco, conferindo se ele responde login com as credenciais cadastradas                |
@@ -197,10 +200,10 @@ Cada uma em detalhe, com as regras, em
 | Sintoma                                                                                      | O que fazer                                                                                                                                                                                                                                                                      |
 | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | _"HUB SNK — o backend não subiu"_ ao abrir                                                   | Com _"A porta 4100 já está em uso por outro programa, que não é o backend do HUB SNK"_, feche esse programa e abra o HUB SNK de novo: o aplicativo não usa um backend que não é dele. Sem essa frase, o backend falhou, e as últimas linhas estão na mensagem e em `backend.log` |
-| _"HUB SNK — a ponte com o backend não abriu"_ ao abrir                                       | A porta 4103 está ocupada por outro programa. Credenciais Sankhya, Agenda e login automático ficam indisponíveis até você fechar esse programa e abrir o HUB SNK de novo                                                                                                         |
+| _"HUB SNK — a ponte com o backend não abriu"_ ao abrir                                       | A porta 4103 está ocupada por outro programa. Sankhya ID, Agenda e login automático ficam indisponíveis até você fechar esse programa e abrir o HUB SNK de novo                                                                                                                  |
 | O painel não carrega nada e o log do backend mostra _"Requisição sem token válido recusada"_ | O painel foi aberto fora do aplicativo, num navegador comum. Ele só funciona dentro do HUB SNK, que entrega o token da API à guia Painel                                                                                                                                         |
-| A agenda diz que o login automático falhou ou que não há usuário e senha salvos              | Confira o usuário e a senha do SankhyaOm em Credenciais Sankhya e tente de novo                                                                                                                                                                                                  |
-| A agenda diz _"login automático suspenso: ..."_, ou as guias pararam de logar sozinhas       | O Sankhya recusou a senha salva duas vezes seguidas, e o login automático parou para não bloquear a conta. Salve usuário e senha de novo em Credenciais Sankhya (ou reabra o aplicativo)                                                                                         |
+| A agenda diz que o login automático falhou ou que não há usuário e senha salvos              | Confira o usuário e a senha no Sankhya ID e tente de novo                                                                                                                                                                                                                        |
+| A agenda diz _"login automático suspenso: ..."_, ou as guias pararam de logar sozinhas       | O Sankhya recusou a senha salva duas vezes seguidas, e o login automático parou para não bloquear a conta. Salve usuário e senha de novo no Sankhya ID (ou reabra o aplicativo)                                                                                                  |
 | Os botões de Git não fazem nada                                                              | O `git` precisa estar no PATH. Confira com `git --version` num terminal novo                                                                                                                                                                                                     |
 | Mensagem sobre esquema mais novo ao iniciar                                                  | O cadastro foi gravado por uma versão mais nova do HUB SNK. Instale a versão mais recente                                                                                                                                                                                        |
 
