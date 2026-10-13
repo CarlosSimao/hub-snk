@@ -231,7 +231,8 @@ do AppArmor que libera a sandbox, o `.desktop` (o `desktopName` do `desktop/pack
 liga a janela a ele, e é isso que dá o ícone certo na barra do GNOME) e declara as
 dependências de chaveiro (`libsecret-1-0`, recomendando o `gnome-keyring`).
 
-Instalação: `sudo apt install ./hub-snk-<versão>-amd64.deb`. Gerar o pacote exige
+O workflow `Distribuição` gera o `.deb` no job `linux` e anexa à release com a cópia
+`hub-snk-amd64.deb`, que o botão do site baixa. Instalação: `sudo apt install ./hub-snk-<versão>-amd64.deb`. Gerar o pacote exige
 Linux (o electron-builder não gera `.deb` no Windows) e o `binutils` na máquina.
 
 O que muda em relação ao Windows:

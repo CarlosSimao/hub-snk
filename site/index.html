@@ -6,7 +6,7 @@
     <title>HUB SNK</title>
     <meta
       name="description"
-      content="Cadastro de clientes, bases e repositórios, com o SankhyaOm e a Experience abertos em guias do próprio aplicativo. Para Windows."
+      content="Cadastro de clientes, bases e repositórios, com o SankhyaOm e a Experience abertos em guias do próprio aplicativo. Para Windows e Ubuntu."
     />
     <meta property="og:title" content="HUB SNK" />
     <meta
@@ -155,6 +155,24 @@
         color: #fff;
       }
 
+      .downloads {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+      }
+
+      .botao-download.secundario {
+        background: transparent;
+        color: var(--marca-forte);
+        box-shadow: inset 0 0 0 2px var(--marca-forte);
+      }
+
+      .botao-download.secundario:hover {
+        background: var(--marca);
+        color: var(--text-no-botao);
+      }
+
       .botao-download svg {
         width: 20px;
         height: 20px;
@@ -199,7 +217,8 @@
         gap: 16px;
       }
 
-      .funcionalidade code {
+      .funcionalidade code,
+      .aviso code {
         padding: 1px 6px;
         border: 1px solid var(--border-strong);
         border-radius: 5px;
@@ -353,25 +372,46 @@
           SankhyaOm, a Experience e as bases dos clientes em guias do próprio HUB SNK, com o login
           feito sozinho.
         </p>
-        <a
-          class="botao-download"
-          href="https://github.com/CarlosSimao/hub-snk/releases/latest/download/HUB-SNK-Setup.exe"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
+        <div class="downloads">
+          <a
+            class="botao-download"
+            href="https://github.com/CarlosSimao/hub-snk/releases/latest/download/HUB-SNK-Setup.exe"
           >
-            <path d="M12 3v12" />
-            <path d="m7 10 5 5 5-5" />
-            <path d="M5 21h14" />
-          </svg>
-          Baixar para Windows
-        </a>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 3v12" />
+              <path d="m7 10 5 5 5-5" />
+              <path d="M5 21h14" />
+            </svg>
+            Baixar para Windows
+          </a>
+          <a
+            class="botao-download secundario"
+            href="https://github.com/CarlosSimao/hub-snk/releases/latest/download/hub-snk-amd64.deb"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 3v12" />
+              <path d="m7 10 5 5 5-5" />
+              <path d="M5 21h14" />
+            </svg>
+            Baixar para Ubuntu (.deb)
+          </a>
+        </div>
       </div>
 
       <div class="print">
@@ -386,8 +426,8 @@
       <section id="funcionalidades">
         <h2>Funcionalidades</h2>
         <p class="introducao">
-          O que aparece no painel depende do seu perfil, escolhido na instalação e ajustável depois
-          em Configurações › Acessos.
+          O que aparece no painel depende do seu perfil, escolhido no primeiro uso e ajustável
+          depois em Configurações › Acessos.
         </p>
         <div class="print">
           <img
@@ -447,7 +487,7 @@
             <h3>Credenciais protegidas</h3>
             <p>
               O Sankhya ID, um usuário e uma senha só para o SankhyaOm e a Experience, fica no cofre
-              do Windows, cifrado, e só é preenchido na página de login esperada.
+              do sistema, cifrado, e só é preenchido na página de login esperada.
             </p>
           </article>
           <article class="funcionalidade">
@@ -468,7 +508,7 @@
             <h3>Lembretes e notificações</h3>
             <p>
               Lembretes numa data ou recorrentes, ligados a um cliente ou projeto, numa aba própria.
-              Avisos aparecem como notificação do Windows e no sino do painel, com sinal sonoro e,
+              Avisos aparecem como notificação do sistema e no sino do painel, com sinal sonoro e,
               se quiser, por e-mail.
             </p>
           </article>
@@ -480,7 +520,7 @@
             </p>
           </article>
           <article class="funcionalidade">
-            <h3>Git AutoSync (opcional)</h3>
+            <h3>Git AutoSync (opcional, Windows)</h3>
             <p>
               Commit e push automáticos dos seus repositórios, com tarefa diária. Instalado e
               controlado pela aba Git AutoSync: rodar agora, sincronizar, merge request e histórico.
@@ -542,10 +582,7 @@
           </li>
           <li>
             <h3>Rode o HUB-SNK-Setup.exe</h3>
-            <p>
-              Ele instala só para o seu usuário e não pede senha de administrador. Nome, empresa,
-              time e e-mail são opcionais.
-            </p>
+            <p>Ele instala só para o seu usuário e não pede senha de administrador.</p>
             <div class="aviso">
               Se aparecer <em class="caminho">"O Windows protegeu o computador"</em>, clique em
               <em class="caminho">Mais informações</em> ›
@@ -553,24 +590,32 @@
             </div>
           </li>
           <li>
-            <h3>Escolha o seu perfil</h3>
+            <h3>Responda as boas-vindas</h3>
             <p>
-              Consultor, Analista, Gerente de Projetos ou Desenvolvedor: o perfil marca as abas
-              visíveis, e dá para ajustar cada uma na mesma tela. Marque
-              <em class="caminho">Terceiro</em> se você não tem acesso ao SankhyaOm nem à
-              Experience.
+              Na primeira abertura, quatro passos rápidos: seus dados (opcionais), o seu perfil —
+              Consultor, Analista, Gerente de Projetos ou Desenvolvedor, que marca as abas visíveis
+              — e se você tem login no SankhyaOm e na Experience. Tudo muda depois em Configurações.
             </p>
           </li>
           <li>
             <h3>Salve o seu Sankhya ID</h3>
             <p>
-              Abra o HUB SNK pelo atalho na área de trabalho: na primeira vez, a aba
+              Em seguida, na primeira vez, a aba
               <em class="caminho">Sankhya ID</em> das Configurações já abre. Salve usuário e senha,
               que valem para o SankhyaOm e a Experience, junto com o seu código de usuário
               SankhyaOm, que filtra a agenda. A partir daí, as guias logam sozinhas.
             </p>
           </li>
         </ol>
+        <div class="aviso">
+          <strong>No Ubuntu:</strong> baixe o
+          <a
+            href="https://github.com/CarlosSimao/hub-snk/releases/latest/download/hub-snk-amd64.deb"
+            >pacote .deb</a
+          >, instale com <code>sudo apt install ./hub-snk-amd64.deb</code> e abra o HUB SNK pelo
+          menu de aplicativos. A partir daí, os passos são os mesmos. O Git AutoSync é só do
+          Windows.
+        </div>
       </section>
 
       <section id="requisitos">
@@ -585,7 +630,10 @@
           </article>
           <article class="funcionalidade">
             <h3>Desinstalar</h3>
-            <p>Em Configurações do Windows › Aplicativos › HUB SNK. O cadastro não é apagado.</p>
+            <p>
+              No Windows, em Configurações › Aplicativos › HUB SNK. No Ubuntu,
+              <code>sudo apt remove hub-snk-desktop</code>. O cadastro não é apagado.
+            </p>
           </article>
           <article class="funcionalidade">
             <h3>Recursos opcionais</h3>

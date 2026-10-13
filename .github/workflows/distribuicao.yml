@@ -1,7 +1,7 @@
 name: Distribuição
 
-# Gera o instalador do aplicativo desktop a cada tag de versão e anexa à release
-# correspondente.
+# Gera o instalador do Windows e o pacote .deb do Linux a cada tag de versão e anexa
+# os dois à release correspondente.
 #
 # Um workflow só, com um job de publicação no fim: dois workflows disparados
 # pela mesma tag disputariam a criação da release.
@@ -70,8 +70,54 @@ jobs:
             release/latest.yml
           if-no-files-found: error
 
+  # Só o .deb: o electron-builder não o gera no Windows, e o AppImage foi descartado
+  # (docs/distribuicao.md). Os testes já rodaram no job do Windows e no CI.
+  linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Conferir a versão da tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          esperada="${GITHUB_REF_NAME#v}"
+          for arquivo in package.json desktop/package.json; do
+            versao=$(node -p "require('./$arquivo').version")
+            if [ "$versao" != "$esperada" ]; then
+              echo "$arquivo está na versão $versao, e a tag é $esperada."
+              exit 1
+            fi
+          done
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Instalar dependências
+        run: |
+          npm ci
+          npm --prefix desktop ci
+          node desktop/node_modules/electron/install.js
+
+      - name: Gerar o pacote .deb
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          HUB_EXIGIR_CREDENCIAL_GOOGLE: ${{ startsWith(github.ref, 'refs/tags/v') && '1' || '0' }}
+        run: npm run empacotar-desktop
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pacote-linux
+          # O `latest-linux.yml` é o que a atualização automática do Linux lê.
+          path: |
+            release/hub-snk-*-amd64.deb
+            release/latest-linux.yml
+          if-no-files-found: error
+
   publicar:
-    needs: [windows]
+    needs: [windows, linux]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
@@ -86,11 +132,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
-          # Cópia com nome sem versão: é ela que o link
-          # `releases/latest/download/HUB-SNK-Setup.exe` da página do projeto
-          # baixa, sem precisar mudar a cada versão.
-          # O `latest.yml` aponta para o nome com versão, que continua subindo.
+          # Cópias com nome sem versão: são elas que os links
+          # `releases/latest/download/HUB-SNK-Setup.exe` e `.../hub-snk-amd64.deb` da
+          # página do projeto baixam, sem precisar mudar a cada versão.
+          # O `latest.yml` e o `latest-linux.yml` apontam para os nomes com versão.
           cp artefatos/HUB-SNK-Setup-*.exe artefatos/HUB-SNK-Setup.exe
+          cp artefatos/hub-snk-*-amd64.deb artefatos/hub-snk-amd64.deb
           ls -lh artefatos
 
           # A tag pode chegar antes de a release existir — nesse caso, cria.
