@@ -12,28 +12,10 @@
  * Projetos ou Kanban aparece, e ficam guardados para o cliente selecionado. Enquanto
  * algum kanban está sendo analisado, a leitura se repete sozinha até a IA terminar. O
  * Kanban geral tem a leitura dele, refeita toda vez que a aba do topo é aberta.
+ *
+ * As colunas e os tipos vêm do cadastro das Configurações, iguais em todos os quadros, e
+ * são relidos quando o servidor avisa que mudaram.
  */
-
-export const COLUNAS = [
-  { estado: 'backlog', rotulo: 'Backlog' },
-  { estado: 'a_fazer', rotulo: 'A fazer' },
-  { estado: 'em_andamento', rotulo: 'Em andamento' },
-  { estado: 'em_revisao', rotulo: 'Em revisão' },
-  { estado: 'concluido', rotulo: 'Concluído' },
-];
-
-export const ROTULOS_DOS_TIPOS = {
-  backend: 'Backend',
-  frontend: 'Frontend',
-  dados: 'Dados',
-  relatorio: 'Relatório',
-  bi: 'BI',
-  integracao: 'Integração',
-  configuracao: 'Configuração',
-  teste: 'Teste',
-  documentacao: 'Documentação',
-  outro: 'Outro',
-};
 
 const NOMES_DOS_ASSISTENTES = {
   claude: 'Claude Code',
@@ -70,14 +52,17 @@ const FILTRO_INTERNO = 'interno';
 const CLIENTE_INTERNO = '';
 const NOME_DO_QUADRO_INTERNO = 'Interno';
 
-/** Total de tarefas, concluídas e horas, para o resumo de um kanban ou de um projeto. */
-export function progressoDasTarefas(tarefas) {
+/**
+ * Total de tarefas, concluídas e horas, para o resumo de um kanban ou de um projeto.
+ * Concluída é a tarefa na última coluna do cadastro, `colunaDasConcluidas`.
+ */
+export function progressoDasTarefas(tarefas, colunaDasConcluidas) {
   let concluidas = 0;
   let horas = 0;
   let horasConcluidas = 0;
   for (const tarefa of tarefas) {
     horas += tarefa.estimativaHoras;
-    if (tarefa.estado === 'concluido') {
+    if (tarefa.estado === colunaDasConcluidas) {
       concluidas += 1;
       horasConcluidas += tarefa.estimativaHoras;
     }
@@ -173,8 +158,9 @@ export function iniciarKanban(dependencias) {
   const api = {
     doCliente: (idDoCliente) => requisitar(`/api/clientes/${idDoCliente}/kanbans`),
     geral: () => requisitar('/api/kanban'),
-    criarTarefaNoQuadroDoCliente: (clienteId, corpo) =>
-      requisitar('/api/kanban/tarefas', { metodo: 'POST', corpo: { ...corpo, clienteId } }),
+    cadastros: () => requisitar('/api/kanban/cadastros'),
+    /* O servidor acha (ou cria) o quadro do `clienteId` e `projetoId` do corpo. */
+    criarTarefaNoQuadro: (corpo) => requisitar('/api/kanban/tarefas', { metodo: 'POST', corpo }),
     criar: (idDoCliente, corpo) =>
       requisitar(`/api/clientes/${idDoCliente}/kanbans`, { metodo: 'POST', corpo }),
     alterar: (id, corpo) => requisitar(`/api/kanban/demandas/${id}`, { metodo: 'PUT', corpo }),
@@ -189,8 +175,6 @@ export function iniciarKanban(dependencias) {
       requisitar(`/api/kanban/demandas/${id}/mcp`, { metodo: 'PUT', corpo: { ligado } }),
     configuracaoDoMcp: () => requisitar('/api/mcp/configuracao'),
     kanbansNoMcp: () => requisitar('/api/mcp/kanbans'),
-    criarTarefa: (id, corpo) =>
-      requisitar(`/api/kanban/demandas/${id}/tarefas`, { metodo: 'POST', corpo }),
     alterarTarefa: (id, corpo) => requisitar(`/api/kanban/tarefas/${id}`, { metodo: 'PUT', corpo }),
     moverTarefa: (id, corpo) =>
       requisitar(`/api/kanban/tarefas/${id}/mover`, { metodo: 'POST', corpo }),
@@ -266,8 +250,8 @@ export function iniciarKanban(dependencias) {
     modalTarefa: el('modal-kanban-tarefa'),
     formularioTarefa: el('formulario-kanban-tarefa'),
     tituloTarefa: el('titulo-kanban-tarefa'),
-    blocoTarefaDemanda: el('bloco-kanban-tarefa-demanda'),
-    campoTarefaDemanda: el('campo-kanban-tarefa-demanda'),
+    campoTarefaCliente: el('campo-kanban-tarefa-cliente'),
+    campoTarefaProjeto: el('campo-kanban-tarefa-projeto'),
     campoTarefaTitulo: el('campo-kanban-tarefa-titulo'),
     campoTarefaDescricao: el('campo-kanban-tarefa-descricao'),
     campoTarefaGrupo: el('campo-kanban-tarefa-grupo'),
@@ -328,13 +312,14 @@ export function iniciarKanban(dependencias) {
     filtro: TODOS_OS_CLIENTES,
     projeto: TODOS_OS_PROJETOS,
   };
+  /* Colunas e tipos das Configurações; vazios até a primeira leitura. */
+  const cadastros = { colunas: [], tipos: [] };
   /* O que cada janela de formulário está editando. */
   let novoEmAndamento = null;
   let edicaoEmAndamento = null;
   let tarefaEmEdicao = null;
-  /* O quadro de onde a janela da tarefa foi aberta, e onde a tarefa nova pode nascer. */
+  /* O quadro de onde a janela da tarefa foi aberta: é ele que relê depois de salvar. */
   let contextoDaTarefa = null;
-  let destinosDaTarefa = [];
   /* A lista de verificação da janela da tarefa, editada até o Salvar. */
   let listaEmEdicao = [];
   let exclusaoDeProjetoPendente = null;
@@ -440,6 +425,21 @@ export function iniciarKanban(dependencias) {
     return elemento;
   }
 
+  function carregarCadastros() {
+    return api
+      .cadastros()
+      .then((dados) => {
+        Object.assign(cadastros, dados);
+        redesenhar();
+        desenharGeral();
+      })
+      .catch((erro) => exibirAviso(`Colunas do kanban indisponíveis: ${erro.message}`, 'erro'));
+  }
+
+  function progressoNoQuadro(tarefas) {
+    return progressoDasTarefas(tarefas, cadastros.colunas.at(-1)?.chave);
+  }
+
   // --- seção do projeto e aba Kanban do cliente --------------------------------------
 
   function criarSeloDeSituacao(demanda) {
@@ -453,7 +453,7 @@ export function iniciarKanban(dependencias) {
 
   /** "2/5 concluídas · 12 h", ou "Nenhuma tarefa". */
   function textoDoProgresso(tarefas) {
-    const progresso = progressoDasTarefas(tarefas);
+    const progresso = progressoNoQuadro(tarefas);
     return progresso.total > 0
       ? `${progresso.concluidas}/${progresso.total} concluídas · ${formatarHoras(progresso.horas)}`
       : 'Nenhuma tarefa';
@@ -633,9 +633,9 @@ export function iniciarKanban(dependencias) {
   // --- quadro ---------------------------------------------------------------------
 
   /*
-   * Um quadro desenhado na tela: o da janela ou o geral. Diz
-   * de onde vêm as tarefas, o que o cartão mostra da origem, onde a tarefa nova pode
-   * nascer e o que redesenhar e reler depois de mexer.
+   * Um quadro desenhado na tela: o da janela ou o geral. Diz de onde vêm as tarefas, o
+   * que o cartão mostra da origem, o cliente e o projeto da tarefa (ou da nova, pelos
+   * filtros) e o que redesenhar e reler depois de mexer.
    */
   const contextoDoModal = {
     tarefas: () => tarefasDasDemandas(cache.idDoCliente, demandasDoQuadro()),
@@ -646,7 +646,7 @@ export function iniciarKanban(dependencias) {
       const demanda = demandaPorId(tarefa.demandaId);
       return variosNaTela && demanda ? rotuloNoCliente(demanda) : null;
     },
-    destinos: destinosDoQuadro,
+    destino: destinoNoModal,
     tarefaLocal: (id) => cache.dados?.tarefas.find((tarefa) => tarefa.id === id),
     redesenhar,
     recarregar,
@@ -661,7 +661,7 @@ export function iniciarKanban(dependencias) {
       const demanda = geral.dados?.demandas.find((item) => item.id === tarefa.demandaId);
       return demanda ? nomeNoGeral(demanda) : null;
     },
-    destinos: destinosDoGeral,
+    destino: destinoNoGeral,
     tarefaLocal: (id) => geral.dados?.tarefas.find((tarefa) => tarefa.id === id),
     redesenhar: desenharGeral,
     recarregar: carregarGeral,
@@ -669,7 +669,14 @@ export function iniciarKanban(dependencias) {
 
   function desenharColunas(container, contexto) {
     const tarefas = contexto.tarefas();
-    container.replaceChildren(...COLUNAS.map((coluna) => criarColuna(coluna, tarefas, contexto)));
+    container.replaceChildren(
+      ...cadastros.colunas.map((coluna) => criarColuna(coluna, tarefas, contexto)),
+    );
+  }
+
+  /** Cliente e projeto do kanban; sem ele, o cliente informado e o sem projeto. */
+  function destinoDaDemanda(demanda, clienteId) {
+    return { clienteId: demanda?.clienteId ?? clienteId, projetoId: demanda?.projetoId ?? '' };
   }
 
   // --- Kanban geral -----------------------------------------------------------------
@@ -703,38 +710,17 @@ export function iniciarKanban(dependencias) {
     return demanda.projetoId ? `${cliente} · ${demanda.nome}` : cliente;
   }
 
-  /**
-   * Onde a tarefa nova do Kanban geral pode nascer: o Interno e, de cada cliente, o
-   * quadro sem projeto (o servidor cria se faltar) e os dos projetos. Os filtros restringem.
-   */
-  function destinosDoGeral() {
-    const interno = {
-      rotulo: NOME_DO_QUADRO_INTERNO,
-      criar: (dados) => api.criarTarefaNoQuadroDoCliente(CLIENTE_INTERNO, dados),
-    };
-    if (geral.filtro === FILTRO_INTERNO) return [interno];
-    const todos = geral.filtro === TODOS_OS_CLIENTES;
-    const destinos = todos ? [interno] : [];
-    for (const cliente of listarClientes()) {
-      if (!todos && cliente.id !== geral.filtro) continue;
-      if (casaComOProjeto('')) {
-        destinos.push({
-          grupo: cliente.nome,
-          rotulo: ROTULO_SEM_PROJETO,
-          criar: (dados) => api.criarTarefaNoQuadroDoCliente(cliente.id, dados),
-        });
-      }
-      for (const demanda of geral.dados?.demandas ?? []) {
-        if (demanda.clienteId !== cliente.id || !demanda.projetoId) continue;
-        if (!casaComOProjeto(demanda.projetoId)) continue;
-        destinos.push({
-          grupo: cliente.nome,
-          rotulo: demanda.nome,
-          criar: (dados) => api.criarTarefa(demanda.id, dados),
-        });
-      }
+  /** A tarefa nova do Kanban geral nasce no cliente e projeto filtrados, ou no Interno. */
+  function destinoNoGeral(tarefa) {
+    if (tarefa) {
+      const demanda = geral.dados?.demandas.find((item) => item.id === tarefa.demandaId);
+      return destinoDaDemanda(demanda, CLIENTE_INTERNO);
     }
-    return destinos;
+    if (!clienteFiltradoNoGeral()) {
+      return { clienteId: CLIENTE_INTERNO, projetoId: '' };
+    }
+    const semProjeto = geral.projeto === TODOS_OS_PROJETOS || geral.projeto === SEM_PROJETO;
+    return { clienteId: geral.filtro, projetoId: semProjeto ? '' : geral.projeto };
   }
 
   /* Leitura em andamento é reaproveitada: a mudança que chegar depois relê pelo fluxo. */
@@ -803,7 +789,7 @@ export function iniciarKanban(dependencias) {
       );
       return;
     }
-    const progresso = progressoDasTarefas(contextoGeral.tarefas());
+    const progresso = progressoNoQuadro(contextoGeral.tarefas());
     elementos.situacaoGeral.textContent =
       progresso.total > 0
         ? `${progresso.concluidas}/${progresso.total} concluídas · ${formatarHoras(progresso.horasConcluidas)} de ${formatarHoras(progresso.horas)}`
@@ -843,25 +829,16 @@ export function iniciarKanban(dependencias) {
     return doEscopo.filter((demanda) => demanda.id === quadro.demandaId);
   }
 
-  /**
-   * Onde a tarefa nova da janela pode nascer: os kanbans do filtro e, no quadro do
-   * cliente, o sem projeto mesmo antes de existir (o servidor cria na hora).
-   */
-  function destinosDoQuadro() {
-    const destinos = demandasDoQuadro().map((demanda) => ({
-      rotulo: rotuloNoCliente(demanda),
-      criar: (dados) => api.criarTarefa(demanda.id, dados),
-    }));
-    const cliente = clienteSelecionado();
-    const semProjetoNoFiltro =
-      quadro.demandaId === TODAS_AS_DEMANDAS || quadro.demandaId === SEM_PROJETO;
-    if (quadro.escopo === 'cliente' && semProjetoNoFiltro && !quadroDoCliente(cliente.id)) {
-      destinos.unshift({
-        rotulo: ROTULO_SEM_PROJETO,
-        criar: (dados) => api.criarTarefaNoQuadroDoCliente(cliente.id, dados),
-      });
+  /** A tarefa nova da janela nasce no projeto do quadro, ou no do filtro do cliente. */
+  function destinoNoModal(tarefa) {
+    const clienteId = clienteSelecionado()?.id ?? CLIENTE_INTERNO;
+    if (tarefa) {
+      return destinoDaDemanda(demandaPorId(tarefa.demandaId), clienteId);
     }
-    return destinos;
+    if (quadro.escopo === 'projeto') {
+      return { clienteId, projetoId: quadro.projetoId ?? '' };
+    }
+    return { clienteId, projetoId: demandaPorId(quadro.demandaId)?.projetoId ?? '' };
   }
 
   function abrirQuadro(cliente, projetoId, demandaId) {
@@ -925,8 +902,11 @@ export function iniciarKanban(dependencias) {
     cartao.append(criarElemento('p', 'cartao-kanban-titulo', tarefa.titulo));
 
     const selos = criarElemento('div', 'cartao-kanban-selos');
+    const tipo = cadastros.tipos.find((item) => item.chave === tarefa.tipo);
+    if (tipo) {
+      selos.append(criarElemento('span', 'selo-kanban', tipo.nome));
+    }
     selos.append(
-      criarElemento('span', 'selo-kanban', ROTULOS_DOS_TIPOS[tarefa.tipo] ?? tarefa.tipo),
       criarElemento(
         'span',
         `selo-kanban prioridade-${tarefa.prioridade}`,
@@ -989,12 +969,12 @@ export function iniciarKanban(dependencias) {
   }
 
   function criarColuna(coluna, tarefas, contexto) {
-    const cartoes = cartoesDaColuna(tarefas, coluna.estado);
-    const progresso = progressoDasTarefas(cartoes);
+    const cartoes = cartoesDaColuna(tarefas, coluna.chave);
+    const progresso = progressoNoQuadro(cartoes);
 
     const cabecalho = criarElemento('div', 'coluna-kanban-cabecalho');
     cabecalho.append(
-      criarElemento('h3', null, coluna.rotulo),
+      criarElemento('h3', null, coluna.nome),
       criarElemento(
         'span',
         'texto-auxiliar',
@@ -1011,7 +991,7 @@ export function iniciarKanban(dependencias) {
     }
 
     const elemento = criarElemento('section', 'coluna-kanban');
-    elemento.setAttribute('aria-label', coluna.rotulo);
+    elemento.setAttribute('aria-label', coluna.nome);
     elemento.append(cabecalho, lista);
 
     elemento.addEventListener('dragover', (evento) => {
@@ -1034,7 +1014,7 @@ export function iniciarKanban(dependencias) {
       const antes = antesDoElemento
         ? cartoes.find((cartao) => String(cartao.id) === antesDoElemento.dataset.id)
         : null;
-      soltarTarefa(contexto, movida, coluna.estado, indiceAoSoltar(cartoes, movida, antes ?? null));
+      soltarTarefa(contexto, movida, coluna.chave, indiceAoSoltar(cartoes, movida, antes ?? null));
     });
     return elemento;
   }
@@ -1101,7 +1081,7 @@ export function iniciarKanban(dependencias) {
         );
       }
     }
-    const progresso = progressoDasTarefas(tarefas);
+    const progresso = progressoNoQuadro(tarefas);
     if (progresso.total > 0) {
       elementos.situacaoQuadro.append(
         criarElemento(
@@ -1120,40 +1100,42 @@ export function iniciarKanban(dependencias) {
 
   // --- tarefa ---------------------------------------------------------------------
 
+  /* Refeito a cada abertura: colunas e tipos podem ter mudado nas Configurações. */
   function preencherOpcoesDaTarefa() {
-    if (elementos.campoTarefaTipo.options.length === 0) {
-      for (const [valor, rotulo] of Object.entries(ROTULOS_DOS_TIPOS)) {
-        elementos.campoTarefaTipo.append(new Option(rotulo, valor));
-      }
+    elementos.campoTarefaTipo.replaceChildren(
+      new Option('Sem tipo', ''),
+      ...cadastros.tipos.map((tipo) => new Option(tipo.nome, tipo.chave)),
+    );
+    elementos.campoTarefaEstado.replaceChildren(
+      ...cadastros.colunas.map((coluna) => new Option(coluna.nome, coluna.chave)),
+    );
+    if (elementos.campoTarefaPrioridade.options.length === 0) {
       for (const [valor, rotulo] of Object.entries(ROTULOS_DAS_PRIORIDADES)) {
         elementos.campoTarefaPrioridade.append(new Option(rotulo, valor));
-      }
-      for (const coluna of COLUNAS) {
-        elementos.campoTarefaEstado.append(new Option(coluna.rotulo, coluna.estado));
       }
     }
   }
 
-  /** As opções em grupos (um por cliente, no geral); o valor é a posição na lista. */
-  function preencherDestinos(destinos) {
-    const filhos = [];
-    let grupo = null;
-    destinos.forEach((destino, posicao) => {
-      const opcao = new Option(destino.rotulo, String(posicao));
-      if (!destino.grupo) {
-        grupo = null;
-        filhos.push(opcao);
-        return;
-      }
-      if (grupo?.label !== destino.grupo) {
-        grupo = document.createElement('optgroup');
-        grupo.label = destino.grupo;
-        filhos.push(grupo);
-      }
-      grupo.append(opcao);
-    });
-    elementos.campoTarefaDemanda.replaceChildren(...filhos);
-    elementos.campoTarefaDemanda.value = '0';
+  function preencherClientesDaTarefa(clienteId) {
+    elementos.campoTarefaCliente.replaceChildren(
+      new Option(NOME_DO_QUADRO_INTERNO, CLIENTE_INTERNO),
+      ...listarClientes().map((cliente) => new Option(cliente.nome, cliente.id)),
+    );
+    elementos.campoTarefaCliente.value = clienteId;
+  }
+
+  /** Os projetos do cliente escolhido. O Interno só tem o sem projeto. */
+  function preencherProjetosDaTarefa(projetoId) {
+    const cliente = listarClientes().find((item) => item.id === elementos.campoTarefaCliente.value);
+    elementos.campoTarefaProjeto.replaceChildren(
+      new Option(ROTULO_SEM_PROJETO, ''),
+      ...(cliente?.projetos ?? []).map((projeto) => new Option(projeto.nome, projeto.id)),
+    );
+    elementos.campoTarefaProjeto.value = projetoId;
+    if (elementos.campoTarefaProjeto.selectedIndex < 0) {
+      elementos.campoTarefaProjeto.value = '';
+    }
+    elementos.campoTarefaProjeto.disabled = !cliente;
   }
 
   function abrirTarefa(tarefa, contexto) {
@@ -1161,20 +1143,19 @@ export function iniciarKanban(dependencias) {
     limparErro(elementos.erroTarefa);
     tarefaEmEdicao = tarefa;
     contextoDaTarefa = contexto;
-    destinosDaTarefa = tarefa ? [] : contexto.destinos();
 
     elementos.tituloTarefa.textContent = tarefa ? 'Tarefa' : 'Nova tarefa';
-    preencherDestinos(destinosDaTarefa);
-    // O quadro da tarefa só se escolhe ao criar, e só quando há mais de um possível.
-    elementos.blocoTarefaDemanda.hidden = destinosDaTarefa.length <= 1;
+    const { clienteId, projetoId } = contexto.destino(tarefa);
+    preencherClientesDaTarefa(clienteId);
+    preencherProjetosDaTarefa(projetoId);
 
     elementos.campoTarefaTitulo.value = tarefa?.titulo ?? '';
     elementos.campoTarefaDescricao.value = tarefa?.descricao ?? '';
     elementos.campoTarefaGrupo.value = tarefa?.grupo ?? '';
-    elementos.campoTarefaTipo.value = tarefa?.tipo ?? 'outro';
+    elementos.campoTarefaTipo.value = tarefa?.tipo ?? '';
     elementos.campoTarefaPrioridade.value = tarefa?.prioridade ?? 'media';
     elementos.campoTarefaHoras.value = tarefa ? String(tarefa.estimativaHoras) : '';
-    elementos.campoTarefaEstado.value = tarefa?.estado ?? 'backlog';
+    elementos.campoTarefaEstado.value = tarefa?.estado ?? cadastros.colunas[0]?.chave ?? '';
     elementos.campoTarefaCriterios.value = tarefa?.criteriosDeAceite ?? '';
     elementos.campoTarefaNotas.value = tarefa?.notas ?? '';
     listaEmEdicao = (tarefa?.checklist ?? []).map((item) => ({ ...item }));
@@ -1216,16 +1197,18 @@ export function iniciarKanban(dependencias) {
     elementos.botaoSalvarTarefa.disabled = true;
     try {
       const estado = elementos.campoTarefaEstado.value;
+      // Mudar cliente ou projeto leva a tarefa para o quadro deles, criado se faltar.
+      const destino = {
+        clienteId: elementos.campoTarefaCliente.value,
+        projetoId: elementos.campoTarefaProjeto.value,
+      };
       if (tarefaEmEdicao) {
-        await api.alterarTarefa(tarefaEmEdicao.id, dados);
+        await api.alterarTarefa(tarefaEmEdicao.id, { ...dados, ...destino });
         if (estado !== tarefaEmEdicao.estado) {
           await api.moverTarefa(tarefaEmEdicao.id, { estado });
         }
       } else {
-        await destinosDaTarefa[Number(elementos.campoTarefaDemanda.value)].criar({
-          ...dados,
-          estado,
-        });
+        await api.criarTarefaNoQuadro({ ...dados, ...destino, estado });
       }
       elementos.modalTarefa.close();
       await contextoDaTarefa.recarregar();
@@ -1756,9 +1739,13 @@ export function iniciarKanban(dependencias) {
     const fluxo = new EventSource('/api/kanban/fluxo');
     let jaAbriu = false;
     fluxo.addEventListener('open', () => {
-      if (jaAbriu) agendarReleitura();
+      if (jaAbriu) {
+        agendarReleitura();
+        void carregarCadastros();
+      }
       jaAbriu = true;
     });
+    fluxo.addEventListener('cadastros', () => void carregarCadastros());
     fluxo.addEventListener('kanban', (evento) => {
       try {
         const { clienteId } = JSON.parse(evento.data);
@@ -1798,6 +1785,7 @@ export function iniciarKanban(dependencias) {
     desenharGeral();
   });
   elementos.botaoNovaTarefaGeral.addEventListener('click', () => abrirTarefa(null, contextoGeral));
+  elementos.campoTarefaCliente.addEventListener('change', () => preencherProjetosDaTarefa(''));
   elementos.botaoDocumento.addEventListener('click', () => {
     const [unica] = demandasDoQuadro();
     if (unica?.documento) abrirDocumento(unica);
@@ -1851,6 +1839,7 @@ export function iniciarKanban(dependencias) {
     elementos.modalExclusaoProjeto.close(),
   );
 
+  void carregarCadastros();
   acompanharMudancas();
 
   return {

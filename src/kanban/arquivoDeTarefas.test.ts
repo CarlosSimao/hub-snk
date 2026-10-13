@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import { ArquivoDeTarefas, estadoDoTexto, slugDoNome } from './arquivoDeTarefas.ts';
+import { COLUNAS_INICIAIS } from './tiposDoKanban.ts';
 import { KanbanDosProjetos } from './kanbanDosProjetos.ts';
 
 const CLIENTE = '11111111-1111-4111-8111-111111111111';
@@ -214,10 +215,21 @@ describe('ArquivoDeTarefas e a lista de verificação', () => {
 
 describe('estadoDoTexto', () => {
   it('aceita o código, o rótulo e os apelidos em inglês', () => {
-    assert.equal(estadoDoTexto('em_revisao'), 'em_revisao');
-    assert.equal(estadoDoTexto('Concluído'), 'concluido');
-    assert.equal(estadoDoTexto('done'), 'concluido');
-    assert.equal(estadoDoTexto('qualquer'), undefined);
+    assert.equal(estadoDoTexto('em_revisao', COLUNAS_INICIAIS), 'em_revisao');
+    assert.equal(estadoDoTexto('Concluído', COLUNAS_INICIAIS), 'concluido');
+    assert.equal(estadoDoTexto('done', COLUNAS_INICIAIS), 'concluido');
+    assert.equal(estadoDoTexto('qualquer', COLUNAS_INICIAIS), undefined);
+  });
+
+  it('com colunas cadastradas, entregue é a última e o apelido sem coluna não vale', () => {
+    const colunas = [
+      { chave: 'fila', nome: 'Fila' },
+      { chave: 'em_teste', nome: 'Em teste' },
+      { chave: 'entregue', nome: 'Entregue' },
+    ];
+    assert.equal(estadoDoTexto('Em Teste', colunas), 'em_teste');
+    assert.equal(estadoDoTexto('done', colunas), 'entregue');
+    assert.equal(estadoDoTexto('doing', colunas), undefined);
   });
 });
 

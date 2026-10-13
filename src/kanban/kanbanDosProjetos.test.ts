@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import {
+  CadastroEmUsoError,
   DadosDoKanbanInvalidosError,
   DemandaNaoEncontradaError,
   KanbanDosProjetos,
@@ -101,7 +102,7 @@ describe('KanbanDosProjetos', () => {
       prioridade: 'Média',
       estimativaHoras: 2.26,
     });
-    assert.equal(tarefa.tipo, 'outro');
+    assert.equal(tarefa.tipo, '');
     assert.equal(tarefa.prioridade, 'media');
     assert.equal(tarefa.estimativaHoras, 2.5);
     kanban.close();
@@ -171,7 +172,7 @@ describe('KanbanDosProjetos', () => {
 
   it('desvincular com o cliente já tendo kanban sem projeto junta as tarefas no fim das colunas', () => {
     const kanban = criarKanban();
-    const doCliente = kanban.garantirQuadroDoCliente(CLIENTE, 'Cliente');
+    const doCliente = kanban.garantirQuadro(CLIENTE, '', 'Cliente');
     const existente = kanban.criarTarefa(doCliente.id, { titulo: 'Do cliente' });
     const doProjeto = kanban.criarDemanda(CLIENTE, { projetoId: PROJETO, nome: 'K' });
     const movida = kanban.criarTarefa(doProjeto.id, { titulo: 'Do projeto' });
@@ -196,9 +197,9 @@ describe('KanbanDosProjetos', () => {
 
   it('o quadro do cliente e o Interno são criados uma vez e aparecem no geral', () => {
     const kanban = criarKanban();
-    const primeiro = kanban.garantirQuadroDoCliente(CLIENTE, 'Cliente');
-    assert.equal(kanban.garantirQuadroDoCliente(CLIENTE, 'Outro nome').id, primeiro.id);
-    const interno = kanban.garantirQuadroDoCliente('', 'Interno');
+    const primeiro = kanban.garantirQuadro(CLIENTE, '', 'Cliente');
+    assert.equal(kanban.garantirQuadro(CLIENTE, '', 'Outro nome').id, primeiro.id);
+    const interno = kanban.garantirQuadro('', '', 'Interno');
     kanban.criarTarefa(interno.id, { titulo: 'Interna' });
 
     const geral = kanban.geral();
@@ -222,6 +223,88 @@ describe('KanbanDosProjetos', () => {
     );
     assert.equal(depois.tarefasDaDemanda(primeiro.id).length, 1);
     depois.close();
+  });
+
+  it('cadastra, ordena e renomeia colunas; a primeira recebe as tarefas novas', () => {
+    const kanban = criarKanban();
+    const nova = kanban.criarColuna('Em teste');
+    assert.deepEqual(nova, { chave: 'em_teste', nome: 'Em teste' });
+    assert.throws(() => kanban.criarColuna('em TESTE'), DadosDoKanbanInvalidosError);
+
+    const chaves = kanban.colunas().map((coluna) => coluna.chave);
+    kanban.ordenarColunas(['em_teste', ...chaves.filter((chave) => chave !== 'em_teste')]);
+    kanban.renomearColuna('em_teste', 'Triagem');
+    assert.deepEqual(kanban.colunas()[0], { chave: 'em_teste', nome: 'Triagem' });
+
+    const demanda = kanban.criarDemanda(CLIENTE, { projetoId: PROJETO, nome: 'K' });
+    assert.equal(kanban.criarTarefa(demanda.id, { titulo: 'T' }).estado, 'em_teste');
+    assert.throws(
+      () => kanban.criarTarefa(demanda.id, { titulo: 'T' }, 'inexistente'),
+      DadosDoKanbanInvalidosError,
+    );
+    assert.throws(() => kanban.ordenarColunas(['em_teste']), DadosDoKanbanInvalidosError);
+    kanban.close();
+  });
+
+  it('não exclui coluna ou tipo com card e lista os cards que impedem', () => {
+    const kanban = criarKanban();
+    const demanda = kanban.criarDemanda(CLIENTE, { projetoId: PROJETO, nome: 'Quadro' });
+    const tarefa = kanban.criarTarefa(demanda.id, { titulo: 'Tela', tipo: 'Relatório' }, 'a_fazer');
+    assert.equal(tarefa.tipo, 'relatorio');
+
+    for (const excluir of [
+      () => kanban.excluirColuna('a_fazer'),
+      () => kanban.excluirTipo('relatorio'),
+    ]) {
+      assert.throws(excluir, (erro: unknown) => {
+        assert.ok(erro instanceof CadastroEmUsoError);
+        assert.deepEqual(erro.tarefas, [
+          { id: tarefa.id, titulo: 'Tela', clienteId: CLIENTE, quadro: 'Quadro' },
+        ]);
+        return true;
+      });
+    }
+
+    kanban.excluirTipo('bi');
+    assert.equal(kanban.criarTarefa(demanda.id, { titulo: 'X', tipo: 'bi' }).tipo, '');
+    for (const coluna of kanban.colunas().slice(1)) {
+      if (coluna.chave !== 'a_fazer') kanban.excluirColuna(coluna.chave);
+    }
+    kanban.removerTarefa(tarefa.id);
+    kanban.excluirColuna('a_fazer');
+    assert.throws(() => kanban.excluirColuna('backlog'), DadosDoKanbanInvalidosError);
+    kanban.close();
+  });
+
+  it('leva a tarefa para o fim da mesma coluna de outro quadro, com o histórico', () => {
+    const kanban = criarKanban();
+    const origem = kanban.criarDemanda(CLIENTE, { projetoId: PROJETO, nome: 'Origem' });
+    const destino = kanban.garantirQuadro('', '', 'Interno');
+    const ficou = kanban.criarTarefa(origem.id, { titulo: 'Fica' }, 'a_fazer');
+    const levada = kanban.criarTarefa(origem.id, { titulo: 'Vai' }, 'a_fazer');
+    const ultima = kanban.criarTarefa(origem.id, { titulo: 'Última' }, 'a_fazer');
+    kanban.criarTarefa(destino.id, { titulo: 'Já estava' }, 'a_fazer');
+    kanban.moverTarefa(ultima.id, 'a_fazer', 0);
+
+    const resultado = kanban.levarTarefaPara(levada.id, destino.id);
+
+    assert.equal(resultado.demandaId, destino.id);
+    assert.equal(resultado.estado, 'a_fazer');
+    assert.equal(resultado.ordem, 1);
+    assert.deepEqual(
+      kanban.tarefasDaDemanda(origem.id).map((tarefa) => [tarefa.id, tarefa.ordem]),
+      [
+        [ultima.id, 0],
+        [ficou.id, 1],
+      ],
+    );
+    assert.ok(
+      kanban
+        .transicoes()
+        .filter((transicao) => transicao.tarefaId === levada.id)
+        .every((transicao) => transicao.demandaId === destino.id && transicao.clienteId === ''),
+    );
+    kanban.close();
   });
 
   it('exclui as demandas do projeto com as tarefas', () => {

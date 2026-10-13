@@ -22,19 +22,6 @@ import { createInterface } from 'node:readline';
 const ENDERECO = (process.env['HUB_SNK_URL'] ?? 'http://127.0.0.1:4100').replace(/\/+$/, '');
 const ARQUIVO_DO_TOKEN = process.env['HUB_SNK_TOKEN_FILE'] ?? '';
 const VERSOES = ['2025-06-18', '2025-03-26', '2024-11-05'];
-const ESTADOS = ['backlog', 'a_fazer', 'em_andamento', 'em_revisao', 'concluido'];
-const TIPOS = [
-  'backend',
-  'frontend',
-  'dados',
-  'relatorio',
-  'bi',
-  'integracao',
-  'configuracao',
-  'teste',
-  'documentacao',
-  'outro',
-];
 
 type Json = Record<string, unknown>;
 
@@ -98,7 +85,8 @@ interface Ferramenta {
 const FERRAMENTAS: Record<string, Ferramenta> = {
   listar_kanbans: {
     descricao:
-      'Lista os kanbans do HUB SNK liberados para agentes, com cliente, projeto e a contagem de tarefas por coluna.',
+      'Lista os kanbans do HUB SNK liberados para agentes, com cliente, projeto e a contagem de tarefas por coluna. ' +
+      'Traz também as colunas (na ordem do quadro) e os tipos de tarefa cadastrados: use as chaves deles.',
     entrada: { type: 'object', properties: {} },
     executar: () => hub('GET', '/api/mcp/kanbans'),
   },
@@ -139,13 +127,13 @@ const FERRAMENTAS: Record<string, Ferramenta> = {
   },
   mover_tarefa: {
     descricao:
-      `Move a tarefa de coluna. Estados: ${ESTADOS.join(', ')}. Ao começar, em_andamento; pronta para ` +
-      'conferência, em_revisao; entregue, concluido. A mudança aparece no quadro do HUB SNK.',
+      'Move a tarefa de coluna. O estado é a chave de uma das colunas de listar_kanbans, que seguem ' +
+      'a ordem do quadro: avance conforme o trabalho anda; entregue, a última. A mudança aparece no quadro do HUB SNK.',
     entrada: {
       type: 'object',
       properties: {
         tarefaId: { type: 'integer' },
-        estado: { type: 'string', enum: ESTADOS },
+        estado: { type: 'string', description: 'chave da coluna (de listar_kanbans)' },
         posicao: { type: 'integer', description: 'posição na coluna, 0 = topo; omitido = fim' },
       },
       required: ['tarefaId', 'estado'],
@@ -251,7 +239,7 @@ const FERRAMENTAS: Record<string, Ferramenta> = {
   },
   criar_tarefa: {
     descricao:
-      'Cria uma tarefa nova no Backlog do kanban — para trabalho descoberto durante a execução. ' +
+      'Cria uma tarefa nova na primeira coluna do kanban — para trabalho descoberto durante a execução. ' +
       'Não serve para reescrever tarefas existentes: título, estimativa e critérios delas ficam no HUB SNK.',
     entrada: {
       type: 'object',
@@ -260,7 +248,7 @@ const FERRAMENTAS: Record<string, Ferramenta> = {
         titulo: { type: 'string' },
         descricao: { type: 'string' },
         funcionalidade: { type: 'string', description: 'funcionalidade que agrupa os cartões' },
-        tipo: { type: 'string', enum: TIPOS },
+        tipo: { type: 'string', description: 'chave de um tipo de listar_kanbans' },
         prioridade: { type: 'string', enum: ['alta', 'media', 'baixa'] },
         estimativaHoras: { type: 'number' },
         criteriosAceite: { type: 'array', items: { type: 'string' } },
@@ -281,8 +269,8 @@ const FERRAMENTAS: Record<string, Ferramenta> = {
 };
 
 const INSTRUCOES =
-  'Kanban de tarefas do HUB SNK. Comece por listar_kanbans e ler_kanban. Pegue as tarefas de ' +
-  'a_fazer (ou do backlog, por prioridade), mova para em_andamento ao começar e registre o ' +
+  'Kanban de tarefas do HUB SNK. Comece por listar_kanbans e ler_kanban. Pegue as tarefas das ' +
+  'primeiras colunas, por prioridade, avance-as pelas colunas conforme o trabalho anda e registre o ' +
   'andamento com anotar_tarefa. Antes de cada nova etapa, chame mudancas_desde: o quadro também ' +
   'é mexido por pessoas e por outros agentes.';
 

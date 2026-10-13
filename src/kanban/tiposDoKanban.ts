@@ -13,39 +13,50 @@ export const CLIENTE_INTERNO = '';
 
 export const NOME_DO_QUADRO_INTERNO = 'Interno';
 
-/** As colunas do quadro, na ordem em que aparecem. */
-export const ESTADOS_DE_TAREFA = [
-  'backlog',
-  'a_fazer',
-  'em_andamento',
-  'em_revisao',
-  'concluido',
-] as const;
+/**
+ * Uma coluna ou um tipo do cadastro das Configurações. A `chave` é o que a tarefa grava
+ * e o que os agentes usam: nasce do nome e nunca muda, e renomear troca só o `nome`.
+ */
+export interface ItemDoCadastro {
+  chave: string;
+  nome: string;
+}
 
-export type EstadoDeTarefa = (typeof ESTADOS_DE_TAREFA)[number];
+/**
+ * As colunas e os tipos que valem para todos os quadros. A primeira coluna recebe as
+ * tarefas novas e as da IA; a última é a das concluídas.
+ */
+export interface CadastrosDoKanban {
+  colunas: ItemDoCadastro[];
+  tipos: ItemDoCadastro[];
+}
+
+/** O que o banco ganha na primeira vez: as colunas e os tipos de antes do cadastro. */
+export const COLUNAS_INICIAIS: ItemDoCadastro[] = [
+  { chave: 'backlog', nome: 'Backlog' },
+  { chave: 'a_fazer', nome: 'A fazer' },
+  { chave: 'em_andamento', nome: 'Em andamento' },
+  { chave: 'em_revisao', nome: 'Em revisão' },
+  { chave: 'concluido', nome: 'Concluído' },
+];
+
+/** O tipo de artefato Sankhya que a tarefa produz: diz a quem distribuir o trabalho. */
+export const TIPOS_INICIAIS: ItemDoCadastro[] = [
+  { chave: 'backend', nome: 'Backend' },
+  { chave: 'frontend', nome: 'Frontend' },
+  { chave: 'dados', nome: 'Dados' },
+  { chave: 'relatorio', nome: 'Relatório' },
+  { chave: 'bi', nome: 'BI' },
+  { chave: 'integracao', nome: 'Integração' },
+  { chave: 'configuracao', nome: 'Configuração' },
+  { chave: 'teste', nome: 'Teste' },
+  { chave: 'documentacao', nome: 'Documentação' },
+  { chave: 'outro', nome: 'Outro' },
+];
 
 export const PRIORIDADES_DE_TAREFA = ['alta', 'media', 'baixa'] as const;
 
 export type PrioridadeDeTarefa = (typeof PRIORIDADES_DE_TAREFA)[number];
-
-/**
- * O tipo de artefato Sankhya que a tarefa produz: diz a quem distribuir e separa o
- * que é código do que é configuração ou teste.
- */
-export const TIPOS_DE_TAREFA = [
-  'backend',
-  'frontend',
-  'dados',
-  'relatorio',
-  'bi',
-  'integracao',
-  'configuracao',
-  'teste',
-  'documentacao',
-  'outro',
-] as const;
-
-export type TipoDeTarefa = (typeof TIPOS_DE_TAREFA)[number];
 
 /** Assistentes de IA de linha de comando que sabem gerar as tarefas de um escopo. */
 export const ASSISTENTES_DE_IA = ['claude', 'codex', 'opencode', 'gemini', 'cursor'] as const;
@@ -144,14 +155,16 @@ export interface TarefaDoKanban {
   titulo: string;
   descricao: string;
   grupo: string;
-  tipo: TipoDeTarefa;
+  /** Chave de um tipo do cadastro; vazio é sem tipo. */
+  tipo: string;
   estimativaHoras: number;
   prioridade: PrioridadeDeTarefa;
   criteriosDeAceite: string;
   notas: string;
   /** Itens para marcar conforme a tarefa avança, na ordem em que aparecem. */
   checklist: ItemDaLista[];
-  estado: EstadoDeTarefa;
+  /** Chave da coluna do cadastro em que a tarefa está. */
+  estado: string;
   /** Posição na coluna, dentro da demanda: 0 é o topo. */
   ordem: number;
   criadaEm: string;

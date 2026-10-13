@@ -1147,6 +1147,16 @@
           </button>
           <button
             class="aba"
+            id="aba-configuracao-kanban"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-kanban"
+          >
+            Kanban
+          </button>
+          <button
+            class="aba"
             id="aba-configuracao-ia"
             type="button"
             role="tab"
@@ -1828,6 +1838,57 @@
                     <input type="checkbox" id="campo-alerta-agenda-email" /> Enviar por e-mail
                   </label>
                 </div>
+              </div>
+            </fieldset>
+          </div>
+
+          <!-- Cadastro das colunas e dos tipos de todos os quadros. A lista vem do configuracaoDoKanban.js. -->
+          <div
+            class="painel-aba"
+            id="painel-configuracao-kanban"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-kanban"
+            hidden
+          >
+            <fieldset class="grupo-de-acessos">
+              <legend>Colunas</legend>
+              <p class="texto-auxiliar">
+                Valem para todos os quadros, na ordem abaixo. A primeira recebe as tarefas novas e
+                as geradas pela IA; a última é a das concluídas.
+              </p>
+              <div class="lista-kanban-cadastro" id="lista-kanban-colunas"></div>
+              <div class="bloqueio-kanban-cadastro" id="bloqueio-kanban-colunas" hidden></div>
+              <div class="linha-kanban-cadastro">
+                <input
+                  id="campo-kanban-novo-colunas"
+                  type="text"
+                  maxlength="60"
+                  placeholder="Nova coluna"
+                  aria-label="Nome da nova coluna"
+                />
+                <button class="btn tiny primario" type="button" id="btn-kanban-novo-colunas">
+                  Adicionar
+                </button>
+              </div>
+            </fieldset>
+            <fieldset class="grupo-de-acessos">
+              <legend>Tipos</legend>
+              <p class="texto-auxiliar">
+                O tipo de cada tarefa. A IA escolhe entre estes ao gerar as tarefas do escopo.
+              </p>
+              <div class="lista-kanban-cadastro" id="lista-kanban-tipos"></div>
+              <div class="bloqueio-kanban-cadastro" id="bloqueio-kanban-tipos" hidden></div>
+              <div class="linha-kanban-cadastro">
+                <input
+                  id="campo-kanban-novo-tipos"
+                  type="text"
+                  maxlength="60"
+                  placeholder="Novo tipo"
+                  aria-label="Nome do novo tipo"
+                />
+                <button class="btn tiny primario" type="button" id="btn-kanban-novo-tipos">
+                  Adicionar
+                </button>
               </div>
             </fieldset>
           </div>
@@ -2724,9 +2785,15 @@
         </div>
 
         <div class="modal-corpo">
-          <div class="campo" id="bloco-kanban-tarefa-demanda" hidden>
-            <label for="campo-kanban-tarefa-demanda">Quadro</label>
-            <select id="campo-kanban-tarefa-demanda"></select>
+          <div class="campos-kanban-tarefa">
+            <div class="campo">
+              <label for="campo-kanban-tarefa-cliente">Cliente</label>
+              <select id="campo-kanban-tarefa-cliente"></select>
+            </div>
+            <div class="campo">
+              <label for="campo-kanban-tarefa-projeto">Projeto</label>
+              <select id="campo-kanban-tarefa-projeto"></select>
+            </div>
           </div>
 
           <div class="campo">

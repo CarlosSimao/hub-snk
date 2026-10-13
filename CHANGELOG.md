@@ -13,8 +13,15 @@ número significa aqui.
 
 - **Kanban geral**: aba Kanban no topo, ao lado de Clientes, com as tarefas de todos os
   clientes num quadro só, filtro por cliente e, com um cliente escolhido, filtro pelos
-  projetos dele ou "Sem projeto". A tarefa nova escolhe o quadro: o de um projeto, o sem
-  projeto do cliente ou o **Interno**, para o que não é de cliente nenhum.
+  projetos dele ou "Sem projeto". A tarefa nova escolhe o cliente e o projeto, ou o
+  **Interno**, para o que não é de cliente nenhum.
+- **Colunas e tipos do kanban nas Configurações**: aba Kanban para incluir, renomear,
+  ordenar e excluir as colunas, e incluir, renomear e excluir os tipos de tarefa. Valem
+  para todos os quadros. A primeira coluna recebe as tarefas novas e as da IA, e a última
+  conta como concluída. Coluna ou tipo usado por algum card não sai: a aba lista os cards
+  que impedem.
+- **Trocar o cliente e o projeto da tarefa**: em qualquer quadro, a janela da tarefa tem
+  Cliente e Projeto. Mudar leva a tarefa para o quadro deles, criado na hora se faltar.
 - **Kanban do cliente**: aba Kanban no cadastro do cliente, minimizada como a do projeto.
   O botão de abrir mostra as tarefas do cliente com e sem projeto, com filtro por projeto
   ou "Sem projeto". Em Editar o kanban, o quadro sem projeto vai para dentro de um projeto
@@ -31,6 +38,9 @@ número significa aqui.
   Com Terceiro, some a aba Avisos das configurações; sem Projetos, somem a aba IA e o
   Kanban do topo; sem Agenda, Lembretes, OS e Git, some o Resumo e o HUB SNK abre em
   Clientes.
+- **Tipo desconhecido vira "Sem tipo"**: o que a IA ou um agente mandar fora do cadastro
+  fica sem tipo, em vez de "Outro". Os agentes MCP e o arquivo de tarefas passam a usar as
+  colunas cadastradas, e "done"/"concluído" vale sempre a última.
 
 ### Corrigido
 

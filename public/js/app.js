@@ -17,6 +17,7 @@ import {
 import { abrirBoasVindas } from './boasVindas.js';
 import { iniciarBackup } from './backup.js';
 import { iniciarKanban } from './kanban.js';
+import { iniciarConfiguracaoDoKanban } from './configuracaoDoKanban.js';
 import { lerArvoreDeFavoritos } from './leitorDeFavoritos.js';
 import { separarTipoDoNome } from './tipoDeBaseNoNome.js';
 
@@ -178,6 +179,7 @@ const ICONES = {
   seta: 'M7 17L17 7 M7 7h10v10',
   /* Chevron para baixo: alterna entre exibir e ocultar o corpo de um card. */
   chevronBaixo: 'M6 9l6 6 6-6',
+  chevronCima: 'M6 15l6-6 6 6',
   mais: 'M12 5v14 M5 12h14',
   pasta: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z',
   terminal: 'M4 17l6-6-6-6 M12 19h8',
@@ -617,6 +619,8 @@ const elementos = {
   abaConfiguracaoSmtp: document.getElementById('aba-configuracao-smtp'),
   abaConfiguracaoAvisos: document.getElementById('aba-configuracao-avisos'),
   abaConfiguracaoAcessos: document.getElementById('aba-configuracao-acessos'),
+  abaConfiguracaoKanban: document.getElementById('aba-configuracao-kanban'),
+  painelConfiguracaoKanban: document.getElementById('painel-configuracao-kanban'),
   abaConfiguracaoIa: document.getElementById('aba-configuracao-ia'),
   painelConfiguracaoIa: document.getElementById('painel-configuracao-ia'),
   campoAssistenteIa: document.getElementById('campo-assistente-ia'),
@@ -893,6 +897,8 @@ async function requisitar(caminho, opcoes = {}) {
     erro.configuracaoPendente = conteudo?.configuracaoPendente ?? null;
     // A instalação do Git AutoSync recusa sem o Git: a tela manda baixá-lo.
     erro.gitAusente = Boolean(conteudo?.gitAusente);
+    // A exclusão de coluna ou tipo do kanban em uso manda os cards que a impedem.
+    erro.tarefas = Array.isArray(conteudo?.tarefas) ? conteudo.tarefas : [];
     throw erro;
   }
 
@@ -6001,6 +6007,7 @@ function selecionarAbaDaConfiguracao(abaEscolhida) {
     { aba: elementos.abaConfiguracaoAtalhos, painel: elementos.painelConfiguracaoAtalhos },
     { aba: elementos.abaConfiguracaoSmtp, painel: elementos.painelConfiguracaoSmtp },
     { aba: elementos.abaConfiguracaoAvisos, painel: elementos.painelConfiguracaoAvisos },
+    { aba: elementos.abaConfiguracaoKanban, painel: elementos.painelConfiguracaoKanban },
     { aba: elementos.abaConfiguracaoIa, painel: elementos.painelConfiguracaoIa },
     { aba: elementos.abaConfiguracaoAcessos, painel: elementos.painelConfiguracaoAcessos },
     { aba: elementos.abaConfiguracaoSobre, painel: elementos.painelConfiguracaoSobre },
@@ -6013,10 +6020,11 @@ function selecionarAbaDaConfiguracao(abaEscolhida) {
     painel.hidden = !ativa;
   }
 
-  // Sankhya ID e Backup gravam na hora, cada um com seus botões: o Salvar do rodapé não vale.
+  // Sankhya ID, Backup e Kanban gravam na hora, cada um com seus botões: o Salvar do rodapé não vale.
   const gravaNaHora =
     abaEscolhida === elementos.abaConfiguracaoSankhyaId ||
-    abaEscolhida === elementos.abaConfiguracaoBackup;
+    abaEscolhida === elementos.abaConfiguracaoBackup ||
+    abaEscolhida === elementos.abaConfiguracaoKanban;
   elementos.botaoSalvarConfiguracao.hidden = gravaNaHora;
   elementos.botaoCancelarConfiguracao.textContent = gravaNaHora ? 'Fechar' : 'Cancelar';
 
@@ -6025,6 +6033,8 @@ function selecionarAbaDaConfiguracao(abaEscolhida) {
     void carregarCodusuSankhyaOm();
   } else if (abaEscolhida === elementos.abaConfiguracaoBackup) {
     void backup.abrir();
+  } else if (abaEscolhida === elementos.abaConfiguracaoKanban) {
+    void configuracaoDoKanban.carregar();
   }
 }
 
@@ -7062,8 +7072,9 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false 
   elementos.abaConfiguracaoMcp.hidden = !repositoriosVisiveis && !projetosVisiveis;
   elementos.grupoSankhyaSchema.hidden = !repositoriosVisiveis;
   elementos.grupoKanbanMcp.hidden = !projetosVisiveis;
-  // O assistente de IA só gera as tarefas do kanban, que mora em Projetos.
+  // O assistente de IA só gera as tarefas do kanban, que mora em Projetos, como as colunas e tipos.
   elementos.abaConfiguracaoIa.hidden = !projetosVisiveis;
+  elementos.abaConfiguracaoKanban.hidden = !projetosVisiveis;
   if (!repositoriosVisiveis) {
     // Filtro marcado e escondido sumiria com clientes sem o usuário ter como desfazer.
     estado.situacoesFiltradas.clear();
@@ -12246,6 +12257,9 @@ function registrarEventos() {
     ),
   );
   elementos.botaoTestarSmtp.addEventListener('click', testarSmtp);
+  elementos.abaConfiguracaoKanban.addEventListener('click', () =>
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoKanban),
+  );
   elementos.abaConfiguracaoIa.addEventListener('click', () => {
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoIa);
     void carregarAssistentesDeIa();
@@ -12628,6 +12642,14 @@ const kanban = iniciarKanban({
   clienteSelecionado,
   listarClientes: () => estado.clientes,
   excluirProjetoSemKanban: pedirExclusaoDeProjetoSemKanban,
+});
+
+const configuracaoDoKanban = iniciarConfiguracaoDoKanban({
+  requisitar,
+  criarElemento,
+  criarBotaoDeIcone,
+  ICONES,
+  exibirAviso,
 });
 
 const backup = iniciarBackup({

@@ -1,6 +1,7 @@
 /**
  * Kanban dos clientes: envio do documento de escopo, análise pela IA, as tarefas do
- * quadro e o Kanban geral, com os quadros de todos os clientes e o Interno.
+ * quadro, o Kanban geral, com os quadros de todos os clientes e o Interno, e o cadastro
+ * de colunas e tipos das Configurações.
  *
  * O upload vai como base64 dentro do JSON: o projeto não tem plugin de multipart, e um
  * documento de escopo cabe folgado no limite abaixo. A análise leva minutos, então roda
@@ -21,21 +22,23 @@ import {
 } from '../kanban/ia/analiseDeEscopo.ts';
 import type { ArquivoDeTarefas } from '../kanban/arquivoDeTarefas.ts';
 import {
+  CadastroEmUsoError,
   DadosDoKanbanInvalidosError,
   DemandaNaoEncontradaError,
   TarefaNaoEncontradaError,
   type ConteudoDoDocumento,
   type DocumentoRecebido,
   type KanbanDosProjetos,
+  type TarefaQueImpede,
 } from '../kanban/kanbanDosProjetos.ts';
 import { DocxInvalidoError, textoDoDocx } from '../kanban/documentos/textoDoDocx.ts';
 import { PdfIlegivelError, textoDoPdf } from '../kanban/documentos/textoDoPdf.ts';
 import {
   CLIENTE_INTERNO,
-  ESTADOS_DE_TAREFA,
   NOME_DO_QUADRO_INTERNO,
   type ConfiguracaoDoAssistenteDeIa,
   type DemandaDoKanban,
+  type ItemDoCadastro,
   type TipoDeDocumento,
 } from '../kanban/tiposDoKanban.ts';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
@@ -79,6 +82,21 @@ class AnaliseEmAndamentoError extends Error {
   }
 }
 
+/** Cliente ou projeto escolhido para a tarefa que não existe (mais). */
+class DestinoNaoEncontradoError extends Error {
+  constructor(mensagem: string) {
+    super(mensagem);
+    this.name = 'DestinoNaoEncontradoError';
+  }
+}
+
+/** O que muda entre o cadastro de colunas e o de tipos. */
+interface AcoesDoCadastro {
+  criar: (nome: string) => ItemDoCadastro;
+  renomear: (chave: string, nome: string) => ItemDoCadastro;
+  excluir: (chave: string) => void;
+}
+
 export interface DependenciasDoKanban {
   kanban: KanbanDosProjetos;
   clientes: RepositorioClientes;
@@ -87,6 +105,7 @@ export interface DependenciasDoKanban {
   analisar: (
     documento: ConteudoDoDocumento,
     escolha: ConfiguracaoDoAssistenteDeIa,
+    tipos: string[],
   ) => Promise<AnaliseConcluida>;
   registrador?: { error: (objeto: unknown, mensagem?: string) => void };
   /** O arquivo JSON de tarefas: ausente nos testes que não tratam dele. */
@@ -196,15 +215,35 @@ const esquemaDeDadosDeTarefa = z.object({
     .optional(),
 });
 
-const esquemaDoEstado = z.enum(ESTADOS_DE_TAREFA, { error: 'Coluna do kanban desconhecida.' });
+/* A coluna é conferida no cadastro: o que não existe lá é recusado pelo kanban. */
+const esquemaDoEstado = z
+  .string({ error: 'Coluna do kanban desconhecida.' })
+  .trim()
+  .min(1, 'Coluna do kanban desconhecida.');
 
+/* Sem `estado`, a tarefa nasce na primeira coluna. */
 const esquemaDeNovaTarefa = esquemaDeDadosDeTarefa.extend({
-  estado: esquemaDoEstado.default('backlog'),
+  estado: esquemaDoEstado.optional(),
 });
 
-/* Sem `clienteId` (ou vazio), a tarefa é do quadro Interno. */
-const esquemaDeTarefaDoQuadroDoCliente = esquemaDeNovaTarefa.extend({
+/* Sem `clienteId` (ou vazio), a tarefa é do quadro Interno; sem `projetoId`, do sem projeto. */
+const esquemaDoDestino = {
   clienteId: z.string().trim().default(CLIENTE_INTERNO),
+  projetoId: esquemaDoProjeto.default(''),
+};
+
+const esquemaDeTarefaNoQuadro = esquemaDeNovaTarefa.extend(esquemaDoDestino);
+
+/* Com `clienteId`, a tarefa muda para o quadro daquele cliente e projeto. */
+const esquemaDeAlteracaoDeTarefa = esquemaDeDadosDeTarefa.partial().extend({
+  clienteId: z.string().trim().optional(),
+  projetoId: esquemaDoProjeto.optional(),
+});
+
+const esquemaDoNomeDoCadastro = z.object({ nome: z.string({ error: 'Informe o nome.' }) });
+
+const esquemaDaOrdemDasColunas = z.object({
+  chaves: z.array(z.string(), { error: 'Informe { chaves } na ordem nova.' }),
 });
 
 const esquemaDoMovimento = z.object({
@@ -229,6 +268,9 @@ function responderErroDeDominio(resposta: FastifyReply, erro: unknown): FastifyR
   }
   if (erro instanceof TarefaNaoEncontradaError) {
     return resposta.status(404).send({ mensagem: 'Tarefa não encontrada.' });
+  }
+  if (erro instanceof DestinoNaoEncontradoError) {
+    return resposta.status(404).send({ mensagem: erro.message });
   }
   if (erro instanceof DadosDoKanbanInvalidosError || erro instanceof DocxInvalidoError) {
     return resposta.status(400).send({ mensagem: erro.message });
@@ -322,6 +364,79 @@ export function registrarRotasDeKanban(
     return kanban.demandasDoProjeto(idDoCliente, idDoProjeto).length > 0;
   }
 
+  /** O quadro do cliente e projeto escolhidos na tarefa, criado vazio se ainda não existe. */
+  async function quadroPara(clienteId: string, projetoId: string): Promise<DemandaDoKanban> {
+    if (clienteId === CLIENTE_INTERNO) {
+      if (projetoId) {
+        throw new DestinoNaoEncontradoError('O quadro Interno não tem projetos.');
+      }
+      return kanban.garantirQuadro(CLIENTE_INTERNO, '', NOME_DO_QUADRO_INTERNO);
+    }
+    const cliente = await clienteOuNada(clienteId);
+    if (!cliente) {
+      throw new DestinoNaoEncontradoError('Cliente não encontrado.');
+    }
+    const projeto = cliente.projetos.find((item) => item.id === projetoId);
+    if (projetoId && !projeto) {
+      throw new DestinoNaoEncontradoError('Projeto não encontrado neste cliente.');
+    }
+    return kanban.garantirQuadro(cliente.id, projetoId, projeto?.nome ?? cliente.nome);
+  }
+
+  /** Os cards que impedem a exclusão, com o nome do cliente no lugar do id. */
+  async function comNomeDoCliente(tarefas: TarefaQueImpede[]) {
+    const nomes = new Map((await clientes.listar()).map((cliente) => [cliente.id, cliente.nome]));
+    return tarefas.map(({ id, titulo, clienteId, quadro }) => ({
+      id,
+      titulo,
+      quadro,
+      cliente:
+        clienteId === CLIENTE_INTERNO ? NOME_DO_QUADRO_INTERNO : (nomes.get(clienteId) ?? ''),
+    }));
+  }
+
+  /* Criar, renomear e excluir valem igual para colunas e tipos. */
+  function registrarCadastro(caminho: string, acoes: AcoesDoCadastro): void {
+    servidor.post(`/api/kanban/${caminho}`, async (requisicao, resposta) => {
+      const dados = esquemaDoNomeDoCadastro.safeParse(requisicao.body);
+      if (!dados.success) {
+        return responderErroDeValidacao(resposta, dados.error);
+      }
+      try {
+        return resposta.status(201).send(acoes.criar(dados.data.nome));
+      } catch (erro) {
+        return responder(resposta, erro);
+      }
+    });
+
+    servidor.put(`/api/kanban/${caminho}/:chave`, async (requisicao, resposta) => {
+      const dados = esquemaDoNomeDoCadastro.safeParse(requisicao.body);
+      if (!dados.success) {
+        return responderErroDeValidacao(resposta, dados.error);
+      }
+      try {
+        const { chave } = requisicao.params as { chave: string };
+        return acoes.renomear(chave, dados.data.nome);
+      } catch (erro) {
+        return responder(resposta, erro);
+      }
+    });
+
+    servidor.delete(`/api/kanban/${caminho}/:chave`, async (requisicao, resposta) => {
+      try {
+        acoes.excluir((requisicao.params as { chave: string }).chave);
+        return resposta.status(204).send();
+      } catch (erro) {
+        if (erro instanceof CadastroEmUsoError) {
+          return resposta
+            .status(409)
+            .send({ mensagem: erro.message, tarefas: await comNomeDoCliente(erro.tarefas) });
+        }
+        return responder(resposta, erro);
+      }
+    });
+  }
+
   function exigirForaDeAnalise(idDemanda: number, acao: string): void {
     if (emAnalise.has(idDemanda)) {
       throw new AnaliseEmAndamentoError(acao);
@@ -341,7 +456,8 @@ export function registrarRotasDeKanban(
 
     void (async () => {
       try {
-        const resultado = await analisar(conteudo, assistenteDeIa);
+        const tipos = kanban.tipos().map((tipo) => tipo.chave);
+        const resultado = await analisar(conteudo, assistenteDeIa, tipos);
         kanban.registrarAnalise(idDemanda, {
           resumo: resumoComDuvidas(resultado),
           tarefas: resultado.tarefas,
@@ -392,6 +508,9 @@ export function registrarRotasDeKanban(
         `event: kanban\ndata: ${JSON.stringify({ demandaId, clienteId, removida })}\n\n`,
       );
     });
+    const pararDeOuvirOsCadastros = kanban.aoMudarCadastros(() => {
+      resposta.raw.write('event: cadastros\ndata: {}\n\n');
+    });
     const batimento = setInterval(
       () => resposta.raw.write(': batimento\n\n'),
       INTERVALO_DO_BATIMENTO_DO_FLUXO_MS,
@@ -399,32 +518,52 @@ export function registrarRotasDeKanban(
     requisicao.raw.on('close', () => {
       clearInterval(batimento);
       pararDeOuvir();
+      pararDeOuvirOsCadastros();
     });
     resposta.hijack();
   });
 
   servidor.get('/api/kanban', async () => kanban.geral());
 
-  /*
-   * Tarefa no kanban sem projeto do cliente, ou no Interno: é a criação do Kanban geral,
-   * que não exige o quadro criado antes.
-   */
-  servidor.post('/api/kanban/tarefas', async (requisicao, resposta) => {
-    const dados = esquemaDeTarefaDoQuadroDoCliente.safeParse(requisicao.body);
+  servidor.get('/api/kanban/cadastros', async () => kanban.cadastros());
+
+  registrarCadastro('colunas', {
+    criar: (nome) => kanban.criarColuna(nome),
+    renomear: (chave, nome) => kanban.renomearColuna(chave, nome),
+    excluir: (chave) => kanban.excluirColuna(chave),
+  });
+
+  registrarCadastro('tipos', {
+    criar: (nome) => kanban.criarTipo(nome),
+    renomear: (chave, nome) => kanban.renomearTipo(chave, nome),
+    excluir: (chave) => kanban.excluirTipo(chave),
+  });
+
+  /* Fora de `/colunas/:chave`: uma coluna chamada "Ordem" não pode virar esta rota. */
+  servidor.put('/api/kanban/ordem-das-colunas', async (requisicao, resposta) => {
+    const dados = esquemaDaOrdemDasColunas.safeParse(requisicao.body);
     if (!dados.success) {
       return responderErroDeValidacao(resposta, dados.error);
     }
-    const { clienteId, estado, ...tarefa } = dados.data;
-    let nome = NOME_DO_QUADRO_INTERNO;
-    if (clienteId !== CLIENTE_INTERNO) {
-      const cliente = await clienteOuNada(clienteId);
-      if (!cliente) {
-        return resposta.status(404).send({ mensagem: 'Cliente não encontrado.' });
-      }
-      nome = cliente.nome;
-    }
     try {
-      const quadro = kanban.garantirQuadroDoCliente(clienteId, nome);
+      return kanban.ordenarColunas(dados.data.chaves);
+    } catch (erro) {
+      return responder(resposta, erro);
+    }
+  });
+
+  /*
+   * Tarefa no quadro do cliente e projeto escolhidos, ou no Interno: é a criação do
+   * Kanban geral e do modal da tarefa, que não exige o quadro criado antes.
+   */
+  servidor.post('/api/kanban/tarefas', async (requisicao, resposta) => {
+    const dados = esquemaDeTarefaNoQuadro.safeParse(requisicao.body);
+    if (!dados.success) {
+      return responderErroDeValidacao(resposta, dados.error);
+    }
+    const { clienteId, projetoId, estado, ...tarefa } = dados.data;
+    try {
+      const quadro = await quadroPara(clienteId, projetoId);
       return resposta.status(201).send(kanban.criarTarefa(quadro.id, tarefa, estado));
     } catch (erro) {
       return responder(resposta, erro);
@@ -689,12 +828,18 @@ export function registrarRotasDeKanban(
     if (!parametros.success) {
       return responderErroDeValidacao(resposta, parametros.error);
     }
-    const dados = esquemaDeDadosDeTarefa.partial().safeParse(requisicao.body);
+    const dados = esquemaDeAlteracaoDeTarefa.safeParse(requisicao.body);
     if (!dados.success) {
       return responderErroDeValidacao(resposta, dados.error);
     }
+    const { clienteId, projetoId, ...alteracao } = dados.data;
     try {
-      return kanban.atualizarTarefa(parametros.data.idTarefa, dados.data);
+      const atual = kanban.tarefa(parametros.data.idTarefa);
+      if (clienteId !== undefined) {
+        const quadro = await quadroPara(clienteId, projetoId ?? '');
+        kanban.levarTarefaPara(atual.id, quadro.id);
+      }
+      return kanban.atualizarTarefa(atual.id, alteracao);
     } catch (erro) {
       return responder(resposta, erro);
     }

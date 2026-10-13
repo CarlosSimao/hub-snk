@@ -10,7 +10,7 @@
  * arquivo de tarefas é reescrito, sem o quadro saber que a mudança veio de um agente.
  *
  * O que um agente pode mudar: `estado` (com posição), `notas` e criar tarefa nova, que
- * sempre nasce no Backlog. Título, estimativa e critérios das tarefas existentes são o
+ * sempre nasce na primeira coluna. Título, estimativa e critérios das tarefas existentes são o
  * escopo combinado com o cliente e continuam só na tela.
  */
 import { dirname, join } from 'node:path';
@@ -27,9 +27,8 @@ import {
   type KanbanDosProjetos,
 } from '../kanban/kanbanDosProjetos.ts';
 import {
-  ESTADOS_DE_TAREFA,
   type DemandaDoKanban,
-  type EstadoDeTarefa,
+  type ItemDoCadastro,
   type TarefaDoKanban,
 } from '../kanban/tiposDoKanban.ts';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
@@ -74,8 +73,9 @@ function tarefaParaAgente(tarefa: TarefaDoKanban) {
   };
 }
 
-function ordenadas(tarefas: TarefaDoKanban[]): TarefaDoKanban[] {
-  const coluna = (estado: EstadoDeTarefa) => ESTADOS_DE_TAREFA.indexOf(estado);
+function ordenadas(tarefas: TarefaDoKanban[], colunas: ItemDoCadastro[]): TarefaDoKanban[] {
+  const chaves = colunas.map((item) => item.chave);
+  const coluna = (estado: string) => chaves.indexOf(estado);
   return [...tarefas].sort(
     (uma, outra) =>
       coluna(uma.estado) - coluna(outra.estado) || uma.ordem - outra.ordem || uma.id - outra.id,
@@ -126,11 +126,10 @@ export function registrarRotasDeMcp(
 
   async function resumo(demanda: DemandaDoKanban) {
     const tarefas = kanban.tarefasDaDemanda(demanda.id);
-    const porEstado = Object.fromEntries(ESTADOS_DE_TAREFA.map((estado) => [estado, 0])) as Record<
-      EstadoDeTarefa,
-      number
-    >;
-    for (const tarefa of tarefas) porEstado[tarefa.estado] += 1;
+    const porEstado: Record<string, number> = Object.fromEntries(
+      kanban.colunas().map((coluna) => [coluna.chave, 0]),
+    );
+    for (const tarefa of tarefas) porEstado[tarefa.estado] = (porEstado[tarefa.estado] ?? 0) + 1;
     const cliente = await clientes.buscarPorId(demanda.clienteId);
     const projeto = cliente?.projetos.find((item) => item.id === demanda.projetoId);
     return {
@@ -165,9 +164,13 @@ export function registrarRotasDeMcp(
     };
   });
 
-  /** Para a aba MCP das Configurações: os kanbans liberados, com cliente e projeto. */
+  /**
+   * Para a aba MCP das Configurações e para os agentes: os kanbans liberados, com cliente
+   * e projeto, e o cadastro de colunas (na ordem do quadro) e de tipos.
+   */
   servidor.get('/api/mcp/kanbans', async () => ({
-    estados: ESTADOS_DE_TAREFA,
+    estados: kanban.colunas().map((coluna) => coluna.chave),
+    ...kanban.cadastros(),
     kanbans: await Promise.all(kanban.demandasNoMcp().map(resumo)),
   }));
 
@@ -177,7 +180,9 @@ export function registrarRotasDeMcp(
     return {
       ...(await resumo(demanda)),
       resumoDoEscopo: demanda.resumo,
-      tarefas: ordenadas(kanban.tarefasDaDemanda(demanda.id)).map(tarefaParaAgente),
+      tarefas: ordenadas(kanban.tarefasDaDemanda(demanda.id), kanban.colunas()).map(
+        tarefaParaAgente,
+      ),
     };
   });
 
@@ -221,11 +226,11 @@ export function registrarRotasDeMcp(
     const atual = tarefaLiberada(idDe((requisicao.params as { id?: string }).id));
     if (!atual) return naoLiberado(resposta, 'tarefa');
     const corpo = (requisicao.body ?? {}) as { estado?: unknown; indice?: unknown };
-    const estado = estadoDoTexto(String(corpo.estado ?? ''));
+    const colunas = kanban.colunas();
+    const estado = estadoDoTexto(String(corpo.estado ?? ''), colunas);
     if (!estado) {
-      return resposta
-        .status(400)
-        .send({ mensagem: `Estado desconhecido: use um de ${ESTADOS_DE_TAREFA.join(', ')}.` });
+      const chaves = colunas.map((coluna) => coluna.chave).join(', ');
+      return resposta.status(400).send({ mensagem: `Estado desconhecido: use um de ${chaves}.` });
     }
     const indice = corpo.indice === undefined ? Number.POSITIVE_INFINITY : Number(corpo.indice);
     return { tarefa: tarefaParaAgente(kanban.moverTarefa(atual.id, estado, indice)) };
@@ -355,31 +360,27 @@ export function registrarRotasDeMcp(
           .join('\n')
       : texto('criteriosAceite');
     try {
-      const tarefa = kanban.criarTarefa(
-        demanda.id,
-        {
-          titulo: texto('titulo') ?? '',
-          ...(texto('descricao') !== undefined ? { descricao: texto('descricao') } : {}),
-          ...((texto('funcionalidade') ?? texto('grupo')) !== undefined
-            ? { grupo: texto('funcionalidade') ?? texto('grupo') }
-            : {}),
-          ...(texto('tipo') !== undefined ? { tipo: texto('tipo') } : {}),
-          ...(texto('prioridade') !== undefined ? { prioridade: texto('prioridade') } : {}),
-          ...(corpo['estimativaHoras'] !== undefined
-            ? { estimativaHoras: Number(corpo['estimativaHoras']) }
-            : {}),
-          ...(criterios !== undefined ? { criteriosDeAceite: criterios } : {}),
-          ...(texto('notas') !== undefined ? { notas: texto('notas') } : {}),
-          ...(Array.isArray(corpo['checklist'])
-            ? {
-                checklist: (corpo['checklist'] as unknown[])
-                  .filter((item): item is string => typeof item === 'string')
-                  .map((item) => ({ texto: item, feito: false })),
-              }
-            : {}),
-        },
-        'backlog',
-      );
+      const tarefa = kanban.criarTarefa(demanda.id, {
+        titulo: texto('titulo') ?? '',
+        ...(texto('descricao') !== undefined ? { descricao: texto('descricao') } : {}),
+        ...((texto('funcionalidade') ?? texto('grupo')) !== undefined
+          ? { grupo: texto('funcionalidade') ?? texto('grupo') }
+          : {}),
+        ...(texto('tipo') !== undefined ? { tipo: texto('tipo') } : {}),
+        ...(texto('prioridade') !== undefined ? { prioridade: texto('prioridade') } : {}),
+        ...(corpo['estimativaHoras'] !== undefined
+          ? { estimativaHoras: Number(corpo['estimativaHoras']) }
+          : {}),
+        ...(criterios !== undefined ? { criteriosDeAceite: criterios } : {}),
+        ...(texto('notas') !== undefined ? { notas: texto('notas') } : {}),
+        ...(Array.isArray(corpo['checklist'])
+          ? {
+              checklist: (corpo['checklist'] as unknown[])
+                .filter((item): item is string => typeof item === 'string')
+                .map((item) => ({ texto: item, feito: false })),
+            }
+          : {}),
+      });
       return resposta.status(201).send({ tarefa: tarefaParaAgente(tarefa) });
     } catch (erro) {
       if (erro instanceof DadosDoKanbanInvalidosError) {

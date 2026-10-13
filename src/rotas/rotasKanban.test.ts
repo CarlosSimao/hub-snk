@@ -425,4 +425,86 @@ describe('rotas do kanban', () => {
 
     assert.equal(alterado.json<DemandaDoKanban>().nome, 'Portal de pedidos');
   });
+
+  it('muda o cliente e o projeto da tarefa, criando o quadro do projeto', async () => {
+    const { servidor, idDoCliente, idDoProjeto, kanban } = await criarCenario();
+    const tarefa = (
+      await servidor.inject({
+        method: 'POST',
+        url: '/api/kanban/tarefas',
+        payload: { titulo: 'Interna' },
+      })
+    ).json<TarefaDoKanban>();
+
+    const levada = await servidor.inject({
+      method: 'PUT',
+      url: `/api/kanban/tarefas/${tarefa.id}`,
+      payload: { titulo: 'Do projeto', clienteId: idDoCliente, projetoId: idDoProjeto },
+    });
+
+    assert.equal(levada.statusCode, 200);
+    const quadro = kanban.demandasDoProjeto(idDoCliente, idDoProjeto)[0];
+    assert.equal(quadro?.nome, 'Portal de pedidos');
+    assert.equal(levada.json<TarefaDoKanban>().demandaId, quadro?.id);
+    assert.equal(levada.json<TarefaDoKanban>().titulo, 'Do projeto');
+
+    const semCliente = await servidor.inject({
+      method: 'PUT',
+      url: `/api/kanban/tarefas/${tarefa.id}`,
+      payload: { clienteId: '', projetoId: idDoProjeto },
+    });
+    assert.equal(semCliente.statusCode, 404);
+  });
+
+  it('cadastro de colunas e tipos: cria, renomeia, ordena e recusa excluir em uso', async () => {
+    const { servidor, idDoCliente } = await criarCenario();
+    const criada = await servidor.inject({
+      method: 'POST',
+      url: '/api/kanban/colunas',
+      payload: { nome: 'Homologação' },
+    });
+    assert.equal(criada.statusCode, 201);
+    assert.equal(criada.json<{ chave: string }>().chave, 'homologacao');
+
+    const renomeado = await servidor.inject({
+      method: 'PUT',
+      url: '/api/kanban/tipos/bi',
+      payload: { nome: 'Dashboard' },
+    });
+    assert.equal(renomeado.json<{ nome: string }>().nome, 'Dashboard');
+
+    const cadastros = (await servidor.inject({ url: '/api/kanban/cadastros' })).json<{
+      colunas: { chave: string }[];
+    }>();
+    const ordem = cadastros.colunas.map((coluna) => coluna.chave).reverse();
+    const ordenadas = await servidor.inject({
+      method: 'PUT',
+      url: '/api/kanban/ordem-das-colunas',
+      payload: { chaves: ordem },
+    });
+    assert.deepEqual(
+      ordenadas.json<{ chave: string }[]>().map((coluna) => coluna.chave),
+      ordem,
+    );
+
+    await servidor.inject({
+      method: 'POST',
+      url: '/api/kanban/tarefas',
+      payload: { titulo: 'Validar', clienteId: idDoCliente, estado: 'homologacao' },
+    });
+    const recusada = await servidor.inject({
+      method: 'DELETE',
+      url: '/api/kanban/colunas/homologacao',
+    });
+    assert.equal(recusada.statusCode, 409);
+    assert.deepEqual(
+      recusada
+        .json<{ tarefas: { titulo: string; cliente: string; quadro: string }[] }>()
+        .tarefas.map(({ titulo, cliente, quadro }) => ({ titulo, cliente, quadro })),
+      [{ titulo: 'Validar', cliente: 'Indústria Alfa', quadro: 'Indústria Alfa' }],
+    );
+
+    const livre = await servidor.inject({ method: 'DELETE', url: '/api/kanban/tipos/teste' });
+    assert.equal(livre.statusCode, 204);
+  });
 });
