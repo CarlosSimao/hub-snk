@@ -12,11 +12,13 @@ número significa aqui.
 ### Adicionado
 
 - **Kanban geral**: aba Kanban no topo, ao lado de Clientes, com as tarefas de todos os
-  clientes num quadro só e filtro por cliente. A tarefa nova escolhe o quadro: o de um
-  projeto, o do cliente ou o **Interno**, para o que não é de cliente nenhum.
-- **Kanban do cliente**: aba Kanban no cadastro do cliente, com o quadro das tarefas fora
-  de projeto desenhado na própria aba. Em Editar o kanban, o quadro vai para dentro de um
-  projeto e volta escolhendo "Sem projeto".
+  clientes num quadro só, filtro por cliente e, com um cliente escolhido, filtro pelos
+  projetos dele ou "Sem projeto". A tarefa nova escolhe o quadro: o de um projeto, o sem
+  projeto do cliente ou o **Interno**, para o que não é de cliente nenhum.
+- **Kanban do cliente**: aba Kanban no cadastro do cliente, minimizada como a do projeto.
+  O botão de abrir mostra as tarefas do cliente com e sem projeto, com filtro por projeto
+  ou "Sem projeto". Em Editar o kanban, o quadro sem projeto vai para dentro de um projeto
+  e volta escolhendo "Sem projeto".
 
 ### Alterado
 

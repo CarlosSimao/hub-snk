@@ -3856,24 +3856,11 @@ button.selo-situacao:focus-visible {
   color: color-mix(in srgb, var(--perigo) 70%, var(--text));
 }
 
-/* Fora do modal as colunas crescem com os cartões; a altura limitada rola cada coluna. */
-/* Largura 0 com mínimo de 100%: as cinco colunas não alargam a aba, rolam dentro dela. */
-.colunas-kanban-na-aba {
-  grid-template-columns: repeat(5, minmax(160px, 1fr));
-  width: 0;
-  min-width: 100%;
-  margin-top: 12px;
-}
-
-.secao-kanban-do-cliente .recurso-acoes-linha {
-  margin-left: auto;
-}
-
+/* Fora da janela as colunas crescem com os cartões; a altura limitada rola cada coluna. */
 #colunas-kanban-geral {
   padding: 0 20px 20px;
 }
 
-.colunas-kanban-na-aba .coluna-kanban-cartoes,
 #colunas-kanban-geral .coluna-kanban-cartoes {
   max-height: 70vh;
 }
