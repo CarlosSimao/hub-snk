@@ -217,9 +217,10 @@
         max-width: 720px;
       }
 
+      /* Duas colunas no desktop: mais estreito que isso, o vídeo do card fica ilegível. */
       .funcionalidades {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
         gap: 16px;
       }
 
@@ -234,10 +235,69 @@
       }
 
       .funcionalidade {
-        padding: 20px;
+        overflow: hidden;
         border: 1px solid var(--border);
         border-radius: var(--radius);
         background: var(--surface);
+      }
+
+      .funcionalidade .texto {
+        padding: 18px 20px 20px;
+      }
+
+      .demo {
+        display: block;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        border-bottom: 1px solid var(--border);
+        background: #0b1020;
+        cursor: zoom-in;
+      }
+
+      .demo:focus-visible {
+        outline: 2px solid var(--marca);
+        outline-offset: -2px;
+      }
+
+      .demo video {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      dialog.ampliado {
+        width: min(1280px, 94vw);
+        padding: 0;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius);
+        background: #0b1020;
+        overflow: hidden;
+      }
+
+      dialog.ampliado::backdrop {
+        background: rgba(3, 6, 12, 0.82);
+      }
+
+      dialog.ampliado video {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      dialog.ampliado .fechar {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1;
+        width: 36px;
+        height: 36px;
+        border: 1px solid var(--border-strong);
+        border-radius: 50%;
+        background: rgba(7, 11, 20, 0.85);
+        color: #e8eefc;
+        font-size: 1rem;
+        cursor: pointer;
       }
 
       .funcionalidade h3 {
@@ -447,120 +507,375 @@
         </div>
         <div class="funcionalidades">
           <article class="funcionalidade">
-            <h3>Cadastro de clientes e projetos</h3>
-            <p>
-              Bases de Produção e Teste com usuário, senha e banco (Oracle ou SQL Server),
-              repositórios Git, links, contatos e anotações de cada cliente. E controle por projeto
-              também: cada projeto do cliente com anotações, links e lembretes próprios.
-            </p>
+            <button
+              class="demo"
+              type="button"
+              aria-label="Ampliar o vídeo: Cadastro de clientes e projetos"
+            >
+              <video
+                src="videos/clientes.mp4"
+                poster="videos/clientes.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>Cadastro de clientes e projetos</h3>
+              <p>
+                Bases de Produção e Teste com usuário, senha e banco (Oracle ou SQL Server),
+                repositórios Git, links, contatos e anotações de cada cliente. E controle por
+                projeto também: cada projeto do cliente com anotações, links e lembretes próprios.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>Kanban dos projetos</h3>
-            <p>
-              Um quadro de tarefas por projeto. Envie o documento de escopo e o assistente de IA que
-              você usa (Claude Code, Codex, OpenCode, Gemini CLI ou Cursor Agent) gera as tarefas.
-              Agentes de IA também leem e atualizam o quadro pelo MCP.
-            </p>
+            <button class="demo" type="button" aria-label="Ampliar o vídeo: Kanban dos projetos">
+              <video
+                src="videos/kanban.mp4"
+                poster="videos/kanban.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>Kanban dos projetos</h3>
+              <p>
+                Um quadro de tarefas por projeto. Envie o documento de escopo e o assistente de IA
+                que você usa (Claude Code, Codex, OpenCode, Gemini CLI ou Cursor Agent) gera as
+                tarefas. Agentes de IA também leem e atualizam o quadro pelo MCP.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>SankhyaOm e Experience em guias</h3>
-            <p>
-              Os dois sistemas abertos dentro do aplicativo, com login automático. Cada base de
-              cliente abre na sua própria guia, isolada das outras, já logada.
-            </p>
+            <button
+              class="demo"
+              type="button"
+              aria-label="Ampliar o vídeo: SankhyaOm e Experience em guias"
+            >
+              <video
+                src="videos/guias.mp4"
+                poster="videos/guias.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>SankhyaOm e Experience em guias</h3>
+              <p>
+                Os dois sistemas abertos dentro do aplicativo, com login automático. Cada base de
+                cliente abre na sua própria guia, isolada das outras, já logada.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>Resumo do dia</h3>
-            <p>
-              A primeira tela do painel: a agenda de hoje, os lembretes do dia, os repositórios com
-              pendência e as OS ainda não concluídas, cada item com o atalho para resolver.
-            </p>
+            <button class="demo" type="button" aria-label="Ampliar o vídeo: Resumo do dia">
+              <video
+                src="videos/resumo.mp4"
+                poster="videos/resumo.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>Resumo do dia</h3>
+              <p>
+                A primeira tela do painel: a agenda de hoje, os lembretes do dia, os repositórios
+                com pendência e as OS ainda não concluídas, cada item com o atalho para resolver.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>Busca rápida e atalhos</h3>
-            <p>
-              <code>Ctrl+K</code> acha e abre qualquer cliente, base, projeto, repositório ou
-              contato, e <code>Ctrl+Shift+Espaço</code> faz o mesmo com o HUB SNK em segundo plano.
-            </p>
+            <button class="demo" type="button" aria-label="Ampliar o vídeo: Busca rápida e atalhos">
+              <video
+                src="videos/busca.mp4"
+                poster="videos/busca.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>Busca rápida e atalhos</h3>
+              <p>
+                <code>Ctrl+K</code> acha e abre qualquer cliente, base, projeto, repositório ou
+                contato, e <code>Ctrl+Shift+Espaço</code> faz o mesmo com o HUB SNK em segundo
+                plano.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>WhatsApp, Gmail, Chat, Agenda e Meet</h3>
-            <p>
-              Na barra lateral, cada um com o seu login salvo. O contato do cliente abre a conversa
-              ou um e-mail já endereçado, e cada reunião do Meet abre na sua própria janela.
-            </p>
+            <button
+              class="demo"
+              type="button"
+              aria-label="Ampliar o vídeo: WhatsApp, Gmail, Chat, Agenda e Meet"
+            >
+              <video
+                src="videos/comunicacao.mp4"
+                poster="videos/comunicacao.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>WhatsApp, Gmail, Chat, Agenda e Meet</h3>
+              <p>
+                Na barra lateral, cada um com o seu login salvo. O contato do cliente abre a
+                conversa ou um e-mail já endereçado, e cada reunião do Meet abre na sua própria
+                janela.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>Credenciais protegidas</h3>
-            <p>
-              O Sankhya ID, um usuário e uma senha só para o SankhyaOm e a Experience, fica no cofre
-              do sistema, cifrado, e só é preenchido na página de login esperada.
-            </p>
+            <button class="demo" type="button" aria-label="Ampliar o vídeo: Credenciais protegidas">
+              <video
+                src="videos/credenciais.mp4"
+                poster="videos/credenciais.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>Credenciais protegidas</h3>
+              <p>
+                O Sankhya ID, um usuário e uma senha só para o SankhyaOm e a Experience, fica no
+                cofre do sistema, cifrado, e só é preenchido na página de login esperada.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>Agenda de Recursos</h3>
-            <p>
-              Os seus eventos da agenda num calendário, também separados por cliente, sem abrir o
-              SankhyaOm. Férias, folga e afins são lançados no ERP pelo próprio HUB.
-            </p>
+            <button class="demo" type="button" aria-label="Ampliar o vídeo: Agenda de Recursos">
+              <video
+                src="videos/agenda.mp4"
+                poster="videos/agenda.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>Agenda de Recursos</h3>
+              <p>
+                Os seus eventos da agenda num calendário, também separados por cliente, sem abrir o
+                SankhyaOm. Férias, folga e afins são lançados no ERP pelo próprio HUB.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>Ordens de Serviço</h3>
-            <p>
-              As OS que você lançou na Experience, mês a mês, agrupadas por status e com o total de
-              horas. E um aviso quando um atendimento do dia terminou sem OS lançada.
-            </p>
+            <button class="demo" type="button" aria-label="Ampliar o vídeo: Ordens de Serviço">
+              <video
+                src="videos/os.mp4"
+                poster="videos/os.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>Ordens de Serviço</h3>
+              <p>
+                As OS que você lançou na Experience, mês a mês, agrupadas por status e com o total
+                de horas. E um aviso quando um atendimento do dia terminou sem OS lançada.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>Lembretes e notificações</h3>
-            <p>
-              Lembretes numa data ou recorrentes, ligados a um cliente ou projeto, numa aba própria.
-              Avisos aparecem como notificação do sistema e no sino do painel, com sinal sonoro e,
-              se quiser, por e-mail.
-            </p>
+            <button
+              class="demo"
+              type="button"
+              aria-label="Ampliar o vídeo: Lembretes e notificações"
+            >
+              <video
+                src="videos/lembretes.mp4"
+                poster="videos/lembretes.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>Lembretes e notificações</h3>
+              <p>
+                Lembretes numa data ou recorrentes, ligados a um cliente ou projeto, numa aba
+                própria. Avisos aparecem como notificação do sistema e no sino do painel, com sinal
+                sonoro e, se quiser, por e-mail.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>Repositórios Git</h3>
-            <p>
-              Abra a pasta, o terminal ou a sua IDE com um clique. Um selo mostra a branch e o que
-              está pendente: commit faltando, conflito ou arquivo sensível versionado.
-            </p>
+            <button class="demo" type="button" aria-label="Ampliar o vídeo: Repositórios Git">
+              <video
+                src="videos/git.mp4"
+                poster="videos/git.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>Repositórios Git</h3>
+              <p>
+                Abra a pasta, o terminal ou a sua IDE com um clique. Um selo mostra a branch e o que
+                está pendente: commit faltando, conflito ou arquivo sensível versionado.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>Git AutoSync (opcional, Windows)</h3>
-            <p>
-              Commit e push automáticos dos seus repositórios, com tarefa diária. Instalado e
-              controlado pela aba Git AutoSync: rodar agora, sincronizar, merge request e histórico.
-            </p>
+            <button
+              class="demo"
+              type="button"
+              aria-label="Ampliar o vídeo: Git AutoSync (opcional, Windows)"
+            >
+              <video
+                src="videos/autosync.mp4"
+                poster="videos/autosync.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>Git AutoSync (opcional, Windows)</h3>
+              <p>
+                Commit e push automáticos dos seus repositórios, com tarefa diária. Instalado e
+                controlado pela aba Git AutoSync: rodar agora, sincronizar, merge request e
+                histórico.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>Ambiente local e atalhos</h3>
-            <p>
-              Ligue, pare e reinicie o WildFly e o banco Docker da sua máquina, com a situação do
-              serviço e o log ao vivo. E os programas que você mais usa, abertos com um clique.
-            </p>
+            <button
+              class="demo"
+              type="button"
+              aria-label="Ampliar o vídeo: Ambiente local e atalhos"
+            >
+              <video
+                src="videos/local.mp4"
+                poster="videos/local.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>Ambiente local e atalhos</h3>
+              <p>
+                Ligue, pare e reinicie o WildFly e o banco Docker da sua máquina, com a situação do
+                serviço e o log ao vivo. E os programas que você mais usa, abertos com um clique.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>Telas Flash</h3>
-            <p>
-              As telas Flex legadas do SankhyaOm, que pedem o Flash Player, abrem dentro do
-              aplicativo com a compatibilidade do Ruffle.
-            </p>
+            <button class="demo" type="button" aria-label="Ampliar o vídeo: Telas Flash">
+              <video
+                src="videos/flash.mp4"
+                poster="videos/flash.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>Telas Flash</h3>
+              <p>
+                As telas Flex legadas do SankhyaOm, que pedem o Flash Player, abrem dentro do
+                aplicativo com a compatibilidade do Ruffle.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>Importar favoritos</h3>
-            <p>
-              Transforme os favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, com
-              Produção ou Teste deduzido do nome.
-            </p>
+            <button class="demo" type="button" aria-label="Ampliar o vídeo: Importar favoritos">
+              <video
+                src="videos/favoritos.mp4"
+                poster="videos/favoritos.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>Importar favoritos</h3>
+              <p>
+                Transforme os favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, com
+                Produção ou Teste deduzido do nome.
+              </p>
+            </div>
           </article>
           <article class="funcionalidade">
-            <h3>Seus dados na sua máquina</h3>
-            <p>
-              O cadastro fica em arquivos no seu computador, sem conta, sem servidor e sem banco de
-              dados para instalar. Se quiser, com cópia no seu Google Drive e backup periódico numa
-              pasta.
-            </p>
+            <button
+              class="demo"
+              type="button"
+              aria-label="Ampliar o vídeo: Seus dados na sua máquina"
+            >
+              <video
+                src="videos/dados.mp4"
+                poster="videos/dados.jpg"
+                width="1280"
+                height="800"
+                muted
+                loop
+                playsinline
+                preload="none"
+              ></video>
+            </button>
+            <div class="texto">
+              <h3>Seus dados na sua máquina</h3>
+              <p>
+                O cadastro fica em arquivos no seu computador, sem conta, sem servidor e sem banco
+                de dados para instalar. Se quiser, com cópia no seu Google Drive e backup periódico
+                numa pasta.
+              </p>
+            </div>
           </article>
         </div>
       </section>
@@ -671,5 +986,45 @@
         </nav>
       </div>
     </footer>
+    <dialog id="ampliado" class="ampliado" aria-label="Vídeo ampliado">
+      <form method="dialog">
+        <button class="fechar" aria-label="Fechar">✕</button>
+      </form>
+      <video muted loop playsinline controls></video>
+    </dialog>
+    <script>
+      // Cada vídeo toca só enquanto aparece na tela; com movimento reduzido, nenhum toca sozinho.
+      const semMovimento = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const videosDosCards = document.querySelectorAll('.demo video');
+      if (!semMovimento && 'IntersectionObserver' in window) {
+        const observador = new IntersectionObserver(
+          (entradas) => {
+            for (const { target, isIntersecting } of entradas) {
+              if (isIntersecting) target.play().catch(() => {});
+              else target.pause();
+            }
+          },
+          { threshold: 0.4 },
+        );
+        videosDosCards.forEach((video) => observador.observe(video));
+      }
+
+      const ampliado = document.getElementById('ampliado');
+      const videoAmpliado = ampliado.querySelector('video');
+      document.querySelectorAll('.demo').forEach((botao) =>
+        botao.addEventListener('click', () => {
+          const video = botao.querySelector('video');
+          videoAmpliado.poster = video.poster;
+          videoAmpliado.src = video.currentSrc || video.src;
+          ampliado.showModal();
+          videoAmpliado.play().catch(() => {});
+        }),
+      );
+      ampliado.addEventListener('close', () => videoAmpliado.pause());
+      // Clique fora do vídeo (no fundo escurecido) fecha.
+      ampliado.addEventListener('click', (evento) => {
+        if (evento.target === ampliado) ampliado.close();
+      });
+    </script>
   </body>
 </html>
