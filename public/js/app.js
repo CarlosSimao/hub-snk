@@ -422,6 +422,8 @@ const elementos = {
   mountResumo: document.getElementById('mount-resumo'),
   dataDoResumo: document.getElementById('data-do-resumo'),
   botaoVisualizacaoClientes: document.getElementById('btn-visualizacao-clientes'),
+  botaoVisualizacaoKanban: document.getElementById('btn-visualizacao-kanban'),
+  visualizacaoKanban: document.getElementById('visualizacao-kanban'),
   botaoVisualizacaoLocal: document.getElementById('btn-visualizacao-local'),
   botaoVisualizacaoAgenda: document.getElementById('btn-visualizacao-agenda'),
   botaoVisualizacaoOs: document.getElementById('btn-visualizacao-os'),
@@ -2146,17 +2148,14 @@ function criarCardDeProjeto(cliente, projeto) {
   return card;
 }
 
-/* Os kanbans cujo projeto foi excluído ficam no fim da aba, até serem vinculados a outro. */
 function criarSecaoDeProjetos(cliente) {
-  const secao = criarSecaoDeRecursos({
+  return criarSecaoDeRecursos({
     titulo: null,
     rotuloDoBotao: 'Adicionar projeto',
     aoAdicionar: () => abrirModalDeCadastroDeProjeto(cliente),
     linhas: cliente.projetos.map((projeto) => criarCardDeProjeto(cliente, projeto)),
     mensagemVazia: 'Nenhum projeto cadastrado para este cliente.',
   });
-  secao.append(kanban.criarSecaoDeOrfaos(cliente));
-  return secao;
 }
 
 /** O rascunho tem precedência sobre o gravado: é o que o usuário acabou de digitar. */
@@ -4371,6 +4370,11 @@ function alternarVisualizacao(visualizacao) {
       botao: elementos.botaoVisualizacaoClientes,
       area: elementos.visualizacaoClientes,
     },
+    {
+      chave: 'kanban',
+      botao: elementos.botaoVisualizacaoKanban,
+      area: elementos.visualizacaoKanban,
+    },
     { chave: 'local', botao: elementos.botaoVisualizacaoLocal, area: elementos.visualizacaoLocal },
     {
       chave: 'agenda',
@@ -4404,6 +4408,9 @@ function alternarVisualizacao(visualizacao) {
 
   if (visualizacao === 'resumo') {
     renderizarResumo({ renovarOs: true });
+  }
+  if (visualizacao === 'kanban') {
+    kanban.mostrarGeral();
   }
   if (visualizacao === 'local') {
     carregarLocal();
@@ -4642,6 +4649,16 @@ function renderizarDetalhe() {
         rotulo: 'Projetos',
         criarConteudo: () => criarSecaoDeProjetos(cliente),
       },
+      // O kanban nasceu dentro de Projetos: esconder Projetos esconde ele também.
+      ...(funcionalidadeVisivel('cliente.projetos')
+        ? [
+            {
+              chave: 'kanban',
+              rotulo: 'Kanban',
+              criarConteudo: () => kanban.criarSecaoDoCliente(cliente),
+            },
+          ]
+        : []),
       {
         chave: 'agenda',
         rotulo: 'Agenda',
@@ -6950,6 +6967,20 @@ function funcionalidadeVisivel(chave) {
   return !estado.funcionalidadesOcultas.has(chave);
 }
 
+/*
+ * Abas do topo montadas com o conteúdo de outras funcionalidades: sem nenhuma delas
+ * visível, a aba ficaria vazia. O aviso de versão do Resumo sozinho não segura a aba.
+ */
+function visualizacaoVisivel(chave) {
+  if (chave === 'resumo') {
+    return ['agenda', 'lembretes', 'os', FUNCIONALIDADE_REPOSITORIOS].some(funcionalidadeVisivel);
+  }
+  if (chave === 'kanban') {
+    return funcionalidadeVisivel('cliente.projetos');
+  }
+  return funcionalidadeVisivel(chave);
+}
+
 function esconderCaixasDoAutosyncForaDoWindows() {
   if (AUTOSYNC_DISPONIVEL) {
     return;
@@ -7011,6 +7042,8 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false 
   // O que usa as credenciais do Sankhya sem ser aba: some junto com Agenda e OS.
   elementos.abaConfiguracaoSankhyaId.hidden = terceiro;
   elementos.grupoAlertaAgenda.hidden = terceiro;
+  // O alerta da Agenda é tudo o que a aba Avisos tem; com Terceiro o servidor nem o roda.
+  elementos.abaConfiguracaoAvisos.hidden = terceiro;
   elementos.campoNomesCompletosCliente.hidden = terceiro;
 
   elementos.botaoVisualizacaoLocal.hidden = !funcionalidadeVisivel('local');
@@ -7019,6 +7052,8 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false 
   elementos.botaoVisualizacaoLembretes.hidden = !funcionalidadeVisivel('lembretes');
   elementos.botaoVisualizacaoContatos.hidden = !funcionalidadeVisivel('contatos');
   elementos.botaoVisualizacaoAutosync.hidden = !funcionalidadeVisivel('autosync');
+  elementos.botaoVisualizacaoResumo.hidden = !visualizacaoVisivel('resumo');
+  elementos.botaoVisualizacaoKanban.hidden = !visualizacaoVisivel('kanban');
 
   const repositoriosVisiveis = funcionalidadeVisivel(FUNCIONALIDADE_REPOSITORIOS);
   elementos.botaoFiltros.hidden = !repositoriosVisiveis;
@@ -7027,13 +7062,15 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false 
   elementos.abaConfiguracaoMcp.hidden = !repositoriosVisiveis && !projetosVisiveis;
   elementos.grupoSankhyaSchema.hidden = !repositoriosVisiveis;
   elementos.grupoKanbanMcp.hidden = !projetosVisiveis;
+  // O assistente de IA só gera as tarefas do kanban, que mora em Projetos.
+  elementos.abaConfiguracaoIa.hidden = !projetosVisiveis;
   if (!repositoriosVisiveis) {
     // Filtro marcado e escondido sumiria com clientes sem o usuário ter como desfazer.
     estado.situacoesFiltradas.clear();
     definirPainelDeFiltros(false);
   }
 
-  if (!funcionalidadeVisivel(estado.visualizacao)) {
+  if (!visualizacaoVisivel(estado.visualizacao)) {
     alternarVisualizacao('clientes');
   }
   renderizar();
@@ -12107,6 +12144,7 @@ function registrarEventos() {
   elementos.botaoVisualizacaoClientes.addEventListener('click', () =>
     alternarVisualizacao('clientes'),
   );
+  elementos.botaoVisualizacaoKanban.addEventListener('click', () => alternarVisualizacao('kanban'));
   elementos.botaoVisualizacaoLocal.addEventListener('click', () => alternarVisualizacao('local'));
   elementos.botaoVisualizacaoAgenda.addEventListener('click', () => alternarVisualizacao('agenda'));
   elementos.botaoVisualizacaoOs.addEventListener('click', () => alternarVisualizacao('os'));
@@ -12588,6 +12626,7 @@ const kanban = iniciarKanban({
   recarregarClientes,
   selecionarPasta: () => api.selecionarPasta(),
   clienteSelecionado,
+  listarClientes: () => estado.clientes,
   excluirProjetoSemKanban: pedirExclusaoDeProjetoSemKanban,
 });
 

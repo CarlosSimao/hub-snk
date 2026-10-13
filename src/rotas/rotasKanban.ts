@@ -1,6 +1,6 @@
 /**
- * Kanban dos projetos do cliente: envio do documento de escopo, análise pela IA e as
- * tarefas do quadro.
+ * Kanban dos clientes: envio do documento de escopo, análise pela IA, as tarefas do
+ * quadro e o Kanban geral, com os quadros de todos os clientes e o Interno.
  *
  * O upload vai como base64 dentro do JSON: o projeto não tem plugin de multipart, e um
  * documento de escopo cabe folgado no limite abaixo. A análise leva minutos, então roda
@@ -31,7 +31,9 @@ import {
 import { DocxInvalidoError, textoDoDocx } from '../kanban/documentos/textoDoDocx.ts';
 import { PdfIlegivelError, textoDoPdf } from '../kanban/documentos/textoDoPdf.ts';
 import {
+  CLIENTE_INTERNO,
   ESTADOS_DE_TAREFA,
+  NOME_DO_QUADRO_INTERNO,
   type ConfiguracaoDoAssistenteDeIa,
   type DemandaDoKanban,
   type TipoDeDocumento,
@@ -135,8 +137,11 @@ const esquemaDaPasta = z
     `O caminho deve ter no máximo ${TAMANHO_MAXIMO_DO_CAMINHO} caracteres.`,
   );
 
+/* Vazio é o kanban sem projeto do cliente. O projeto é conferido no cadastro do cliente. */
+const esquemaDoProjeto = z.string().trim().max(TAMANHO_MAXIMO_DO_NOME, 'Projeto inválido.');
+
 const esquemaDeNovaDemanda = z.object({
-  projetoId: z.string().uuid('Escolha o projeto do kanban.'),
+  projetoId: esquemaDoProjeto.default(''),
   pasta: esquemaDaPasta.default(''),
   documento: esquemaDeDocumento.optional(),
   /* Com documento, já dispara a análise: é o que a tela faz logo depois do upload. */
@@ -146,7 +151,8 @@ const esquemaDeNovaDemanda = z.object({
 const esquemaDeAlteracaoDeDemanda = z.object({
   /* Só vale para kanban sem projeto: com projeto, o nome é sempre o dele. */
   nome: esquemaDoNome.optional(),
-  projetoId: z.string().uuid('Projeto inválido.').optional(),
+  /* Vazio desvincula: o kanban vai para a aba Kanban do cliente, ou junta-se ao que já está lá. */
+  projetoId: esquemaDoProjeto.optional(),
   pasta: esquemaDaPasta.optional(),
 });
 
@@ -194,6 +200,11 @@ const esquemaDoEstado = z.enum(ESTADOS_DE_TAREFA, { error: 'Coluna do kanban des
 
 const esquemaDeNovaTarefa = esquemaDeDadosDeTarefa.extend({
   estado: esquemaDoEstado.default('backlog'),
+});
+
+/* Sem `clienteId` (ou vazio), a tarefa é do quadro Interno. */
+const esquemaDeTarefaDoQuadroDoCliente = esquemaDeNovaTarefa.extend({
+  clienteId: z.string().trim().default(CLIENTE_INTERNO),
 });
 
 const esquemaDoMovimento = z.object({
@@ -284,6 +295,7 @@ function conferirPasta(pasta: string): void {
 
 /* Cada projeto tem um kanban só: o nome dele é o do projeto, e a tela não o repete. */
 const MENSAGEM_DE_PROJETO_COM_KANBAN = 'Este projeto já tem kanban.';
+const MENSAGEM_DE_CLIENTE_COM_KANBAN = 'Este cliente já tem kanban sem projeto.';
 
 export function registrarRotasDeKanban(
   servidor: FastifyInstance,
@@ -391,6 +403,34 @@ export function registrarRotasDeKanban(
     resposta.hijack();
   });
 
+  servidor.get('/api/kanban', async () => kanban.geral());
+
+  /*
+   * Tarefa no kanban sem projeto do cliente, ou no Interno: é a criação do Kanban geral,
+   * que não exige o quadro criado antes.
+   */
+  servidor.post('/api/kanban/tarefas', async (requisicao, resposta) => {
+    const dados = esquemaDeTarefaDoQuadroDoCliente.safeParse(requisicao.body);
+    if (!dados.success) {
+      return responderErroDeValidacao(resposta, dados.error);
+    }
+    const { clienteId, estado, ...tarefa } = dados.data;
+    let nome = NOME_DO_QUADRO_INTERNO;
+    if (clienteId !== CLIENTE_INTERNO) {
+      const cliente = await clienteOuNada(clienteId);
+      if (!cliente) {
+        return resposta.status(404).send({ mensagem: 'Cliente não encontrado.' });
+      }
+      nome = cliente.nome;
+    }
+    try {
+      const quadro = kanban.garantirQuadroDoCliente(clienteId, nome);
+      return resposta.status(201).send(kanban.criarTarefa(quadro.id, tarefa, estado));
+    } catch (erro) {
+      return responder(resposta, erro);
+    }
+  });
+
   servidor.get('/api/clientes/:id/kanbans', async (requisicao, resposta) => {
     const parametros = esquemaDeParametrosDeCliente.safeParse(requisicao.params);
     if (!parametros.success) {
@@ -420,20 +460,23 @@ export function registrarRotasDeKanban(
       if (!cliente) {
         return resposta.status(404).send({ mensagem: 'Cliente não encontrado.' });
       }
-      const projeto = cliente.projetos.find((item) => item.id === dados.data.projetoId);
-      if (!projeto) {
+      const { projetoId } = dados.data;
+      const projeto = cliente.projetos.find((item) => item.id === projetoId);
+      if (projetoId && !projeto) {
         return resposta.status(404).send({ mensagem: 'Projeto não encontrado.' });
       }
-      if (projetoTemKanban(cliente.id, projeto.id)) {
-        return resposta.status(409).send({ mensagem: MENSAGEM_DE_PROJETO_COM_KANBAN });
+      if (projetoTemKanban(cliente.id, projetoId)) {
+        return resposta.status(409).send({
+          mensagem: projetoId ? MENSAGEM_DE_PROJETO_COM_KANBAN : MENSAGEM_DE_CLIENTE_COM_KANBAN,
+        });
       }
 
       try {
         conferirPasta(dados.data.pasta);
         const documento = dados.data.documento ? lerDocumento(dados.data.documento) : undefined;
         const demanda = kanban.criarDemanda(cliente.id, {
-          projetoId: projeto.id,
-          nome: projeto.nome,
+          projetoId,
+          nome: projeto?.nome ?? cliente.nome,
           pasta: dados.data.pasta,
           ...(documento ? { documento } : {}),
         });
@@ -462,7 +505,7 @@ export function registrarRotasDeKanban(
       const { projetoId, pasta } = dados.data;
       let { nome } = dados.data;
       // Só projeto do mesmo cliente: senão o kanban sumiria de um cadastro e apareceria em outro.
-      if (projetoId !== undefined && projetoId !== atual.projetoId) {
+      if (projetoId && projetoId !== atual.projetoId) {
         const cliente = await clienteOuNada(atual.clienteId);
         const projeto = cliente?.projetos.find((item) => item.id === projetoId);
         if (!projeto) {

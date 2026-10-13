@@ -1,14 +1,17 @@
 /*
- * Kanban dos projetos do cliente: a seção dentro de cada projeto, o bloco das órfãs no
- * fim da aba Projetos e as janelas do quadro, da tarefa, do documento e da exclusão.
+ * Kanban dos clientes: a seção dentro de cada projeto, a aba Kanban do cliente (o quadro
+ * sem projeto, desenhado na própria aba), o Kanban geral do topo, com os quadros de
+ * todos os clientes e o Interno, e as janelas do quadro, da tarefa, do documento e da
+ * exclusão.
  *
  * O que é puro (colunas, ordem dos cartões, posição do arrasto) fica exportado à parte
  * e roda nos testes sem navegador. O resto recebe do `app.js`, em `iniciarKanban`, os
  * auxiliares de tela que ele já tem: requisição, botões, avisos e erros de formulário.
  *
  * Os dados do kanban não vêm com o cadastro do cliente: são lidos à parte, quando a aba
- * Projetos aparece, e ficam guardados para o cliente selecionado. Enquanto algum kanban
- * está sendo analisado, a leitura se repete sozinha até a IA terminar.
+ * Projetos ou Kanban aparece, e ficam guardados para o cliente selecionado. Enquanto
+ * algum kanban está sendo analisado, a leitura se repete sozinha até a IA terminar. O
+ * Kanban geral tem a leitura dele, refeita toda vez que a aba do topo é aberta.
  */
 
 export const COLUNAS = [
@@ -57,6 +60,11 @@ const INTERVALO_DA_CONSULTA_DA_ANALISE_MS = 4000;
 /* Uma rajada de mudanças (o agente moveu e anotou, a IA gravou dez tarefas) vira uma releitura. */
 const ESPERA_PARA_RELER_MS = 300;
 const TODAS_AS_DEMANDAS = 'todas';
+const TODOS_OS_CLIENTES = 'todos';
+/* No filtro do Kanban geral: o `clienteId` do Interno é vazio, e opção vazia parece "nenhuma". */
+const FILTRO_INTERNO = 'interno';
+const CLIENTE_INTERNO = '';
+const NOME_DO_QUADRO_INTERNO = 'Interno';
 
 /** Total de tarefas, concluídas e horas, para o resumo de um kanban ou de um projeto. */
 export function progressoDasTarefas(tarefas) {
@@ -154,11 +162,15 @@ export function iniciarKanban(dependencias) {
     limparErro,
     selecionarPasta,
     clienteSelecionado,
+    listarClientes,
     excluirProjetoSemKanban,
   } = dependencias;
 
   const api = {
     doCliente: (idDoCliente) => requisitar(`/api/clientes/${idDoCliente}/kanbans`),
+    geral: () => requisitar('/api/kanban'),
+    criarTarefaNoQuadroDoCliente: (clienteId, corpo) =>
+      requisitar('/api/kanban/tarefas', { metodo: 'POST', corpo: { ...corpo, clienteId } }),
     criar: (idDoCliente, corpo) =>
       requisitar(`/api/clientes/${idDoCliente}/kanbans`, { metodo: 'POST', corpo }),
     alterar: (id, corpo) => requisitar(`/api/kanban/demandas/${id}`, { metodo: 'PUT', corpo }),
@@ -200,6 +212,12 @@ export function iniciarKanban(dependencias) {
     textoResumo: el('texto-resumo-kanban'),
     colunas: el('colunas-kanban'),
     botaoFecharQuadro: el('btn-fechar-kanban'),
+
+    areaGeral: el('visualizacao-kanban'),
+    situacaoGeral: el('situacao-kanban-geral'),
+    campoClienteGeral: el('campo-kanban-geral-cliente'),
+    botaoNovaTarefaGeral: el('btn-kanban-geral-nova-tarefa'),
+    colunasGeral: el('colunas-kanban-geral'),
 
     modalNovo: el('modal-kanban-novo'),
     formularioNovo: el('formulario-kanban-novo'),
@@ -286,12 +304,17 @@ export function iniciarKanban(dependencias) {
   const cache = { idDoCliente: null, dados: null, erro: null, consulta: null, temporizador: null };
   /* Seções montadas na tela: redesenhadas quando os dados chegam ou mudam. */
   const secoes = new Set();
-  /* O quadro aberto: projeto (ou `null`, para uma órfã) e o filtro de kanban. */
+  /* O quadro aberto: projeto (ou `null`, sem projeto) e o filtro de kanban. */
   const quadro = { projetoId: null, demandaId: TODAS_AS_DEMANDAS, arrastada: null };
+  /* O Kanban geral: todos os quadros, e o cliente escolhido no filtro. */
+  const geral = { dados: null, erro: null, consulta: null, filtro: TODOS_OS_CLIENTES };
   /* O que cada janela de formulário está editando. */
   let novoEmAndamento = null;
   let edicaoEmAndamento = null;
   let tarefaEmEdicao = null;
+  /* O quadro de onde a janela da tarefa foi aberta, e onde a tarefa nova pode nascer. */
+  let contextoDaTarefa = null;
+  let destinosDaTarefa = [];
   /* A lista de verificação da janela da tarefa, editada até o Salvar. */
   let listaEmEdicao = [];
   let exclusaoDeProjetoPendente = null;
@@ -313,6 +336,11 @@ export function iniciarKanban(dependencias) {
     return (dadosDoCliente(idDoCliente)?.tarefas ?? []).filter((tarefa) =>
       ids.has(tarefa.demandaId),
     );
+  }
+
+  /** O quadro sem projeto do cliente: há no máximo um. */
+  function quadroDoCliente(idDoCliente) {
+    return demandasDoProjeto(idDoCliente, '')[0] ?? null;
   }
 
   function demandaPorId(id) {
@@ -392,7 +420,7 @@ export function iniciarKanban(dependencias) {
     return elemento;
   }
 
-  // --- seção do projeto e das órfãs -------------------------------------------------
+  // --- seção do projeto e aba Kanban do cliente --------------------------------------
 
   function criarSeloDeSituacao(demanda) {
     const situacao = SITUACOES[demanda.situacao] ?? SITUACOES['sem-documento'];
@@ -403,7 +431,8 @@ export function iniciarKanban(dependencias) {
     return selo;
   }
 
-  function criarLinhaDeKanban(cliente, demanda) {
+  /** `naAba`: a linha do quadro já desenhado na aba Kanban, que não precisa de "Abrir o quadro". */
+  function criarLinhaDeKanban(cliente, demanda, { naAba = false } = {}) {
     const tarefas = tarefasDasDemandas(cliente.id, [demanda]);
     const progresso = progressoDasTarefas(tarefas);
 
@@ -435,8 +464,8 @@ export function iniciarKanban(dependencias) {
     detalhes.append(criarElemento('span', 'texto-auxiliar', partes.join(' · ')));
 
     const informacoes = criarElemento('div', 'recurso-info');
-    // Com projeto, o nome do kanban é o do projeto, já escrito no card: só a órfã o mostra.
-    if (!demanda.projetoId) {
+    // Com projeto, o nome do kanban é o do projeto, já escrito no card.
+    if (!demanda.projetoId && !naAba) {
       const nome = criarBotao('nome-recurso link-kanban', demanda.nome, () =>
         abrirQuadro(cliente, null, demanda.id),
       );
@@ -450,11 +479,13 @@ export function iniciarKanban(dependencias) {
 
     const acoes = criarElemento('div', 'recurso-acoes');
     const linhaDeAcoes = criarElemento('div', 'recurso-acoes-linha');
-    linhaDeAcoes.append(
-      criarBotaoDeIcone('btn tiny primario', ICONES.seta, 'Abrir o quadro', () =>
-        abrirQuadro(cliente, demanda.projetoId || null, demanda.id),
-      ),
-    );
+    if (!naAba) {
+      linhaDeAcoes.append(
+        criarBotaoDeIcone('btn tiny primario', ICONES.seta, 'Abrir o quadro', () =>
+          abrirQuadro(cliente, demanda.projetoId || null, demanda.id),
+        ),
+      );
+    }
     if (demanda.documento) {
       // Documento parado (sem análise, ou com análise que falhou) ganha o atalho para a IA.
       if (demanda.situacao === 'enviado' || demanda.situacao === 'falhou') {
@@ -532,30 +563,223 @@ export function iniciarKanban(dependencias) {
     });
   }
 
-  /** Bloco "Kanbans sem projeto", no fim da aba Projetos: some quando não há órfã. */
-  function criarSecaoDeOrfaos(cliente) {
+  /**
+   * A aba Kanban do cliente: o quadro sem projeto, desenhado na própria aba. Enquanto ele
+   * não existe as colunas aparecem vazias, e a primeira tarefa o cria.
+   */
+  function criarSecaoDoCliente(cliente) {
     carregar(cliente.id);
-    return criarSecaoViva('secao-kanbans-orfaos', () => {
-      const orfas = demandasDoProjeto(cliente.id, '');
-      if (orfas.length === 0) {
-        return [];
-      }
+    const contexto = contextoDoCliente(cliente);
+    return criarSecaoViva('secao-recursos secao-kanban-do-cliente', () => {
       const cabecalho = criarElemento('div', 'secao-cabecalho');
-      cabecalho.append(criarElemento('h3', null, 'Kanbans sem projeto'));
+      cabecalho.append(criarElemento('h3', null, 'Quadro do cliente'));
+      if (!dadosDoCliente(cliente.id)) {
+        return [cabecalho, ...conteudoEnquantoCarrega(cliente)];
+      }
+
+      const demanda = quadroDoCliente(cliente.id);
+      const acoes = criarElemento('div', 'recurso-acoes-linha');
+      if (!demanda) {
+        acoes.append(
+          criarBotaoDeIcone(
+            'btn tiny',
+            ICONES.exportar,
+            'Inserir documento para gerar as tarefas',
+            () => abrirNovo(cliente, { projetoId: '', modo: 'documento' }),
+          ),
+        );
+      }
+      acoes.append(
+        criarBotaoDeIcone('btn tiny primario', ICONES.mais, 'Nova tarefa', () =>
+          abrirTarefa(null, contexto),
+        ),
+      );
+      cabecalho.append(acoes);
       const explicacao = criarElemento(
         'p',
         'texto-auxiliar',
-        'O projeto destes kanbans foi excluído. Vincule cada um a outro projeto, ou dê um nome que o identifique.',
+        'Tarefas do cliente fora de projeto. Em Editar o kanban, vincule o quadro a um projeto para levá-lo para dentro dele.',
       );
-      const lista = criarElemento('div', 'lista-recursos');
-      lista.append(...orfas.map((demanda) => criarLinhaDeKanban(cliente, demanda)));
-      const card = criarElemento('div', 'card card-projeto card-kanbans-orfaos');
-      card.append(cabecalho, explicacao, lista);
-      return [card];
+      const colunas = criarElemento('div', 'colunas-kanban colunas-kanban-na-aba');
+      desenharColunas(colunas, contexto);
+      return [
+        cabecalho,
+        ...(demanda ? [criarLinhaDeKanban(cliente, demanda, { naAba: true })] : [explicacao]),
+        colunas,
+      ];
     });
   }
 
   // --- quadro ---------------------------------------------------------------------
+
+  /*
+   * Um quadro desenhado na tela: o do modal, o da aba Kanban do cliente ou o geral. Diz
+   * de onde vêm as tarefas, o que o cartão mostra da origem, onde a tarefa nova pode
+   * nascer e o que redesenhar e reler depois de mexer.
+   */
+  const contextoDoModal = {
+    tarefas: () => tarefasDasDemandas(cache.idDoCliente, demandasDoQuadro()),
+    origemDoCartao: (tarefa) =>
+      demandasDoQuadro().length > 1 ? (demandaPorId(tarefa.demandaId)?.nome ?? null) : null,
+    destinos: () =>
+      demandasDoQuadro().map((demanda) => ({
+        rotulo: demanda.nome,
+        criar: (dados) => api.criarTarefa(demanda.id, dados),
+      })),
+    tarefaLocal: (id) => cache.dados?.tarefas.find((tarefa) => tarefa.id === id),
+    redesenhar,
+    recarregar,
+  };
+
+  function contextoDoCliente(cliente) {
+    return {
+      tarefas: () => {
+        const demanda = quadroDoCliente(cliente.id);
+        return demanda ? tarefasDasDemandas(cliente.id, [demanda]) : [];
+      },
+      origemDoCartao: () => null,
+      destinos: () => [
+        {
+          rotulo: 'Quadro do cliente',
+          criar: (dados) => api.criarTarefaNoQuadroDoCliente(cliente.id, dados),
+        },
+      ],
+      tarefaLocal: contextoDoModal.tarefaLocal,
+      redesenhar,
+      recarregar: () => carregar(cliente.id, { forcar: true }),
+    };
+  }
+
+  const contextoGeral = {
+    tarefas: () => {
+      const ids = new Set(demandasDoFiltro().map((demanda) => demanda.id));
+      return (geral.dados?.tarefas ?? []).filter((tarefa) => ids.has(tarefa.demandaId));
+    },
+    origemDoCartao: (tarefa) => {
+      const demanda = geral.dados?.demandas.find((item) => item.id === tarefa.demandaId);
+      return demanda ? nomeNoGeral(demanda) : null;
+    },
+    destinos: destinosDoGeral,
+    tarefaLocal: (id) => geral.dados?.tarefas.find((tarefa) => tarefa.id === id),
+    redesenhar: desenharGeral,
+    recarregar: carregarGeral,
+  };
+
+  function desenharColunas(container, contexto) {
+    const tarefas = contexto.tarefas();
+    container.replaceChildren(...COLUNAS.map((coluna) => criarColuna(coluna, tarefas, contexto)));
+  }
+
+  // --- Kanban geral -----------------------------------------------------------------
+
+  function demandasDoFiltro() {
+    const demandas = geral.dados?.demandas ?? [];
+    if (geral.filtro === TODOS_OS_CLIENTES) return demandas;
+    const clienteId = geral.filtro === FILTRO_INTERNO ? CLIENTE_INTERNO : geral.filtro;
+    return demandas.filter((demanda) => demanda.clienteId === clienteId);
+  }
+
+  /** "Cliente · Projeto", ou só o cliente no quadro sem projeto. */
+  function nomeNoGeral(demanda) {
+    const cliente =
+      demanda.clienteId === CLIENTE_INTERNO
+        ? NOME_DO_QUADRO_INTERNO
+        : (listarClientes().find((item) => item.id === demanda.clienteId)?.nome ?? demanda.nome);
+    return demanda.projetoId ? `${cliente} · ${demanda.nome}` : cliente;
+  }
+
+  /**
+   * Onde a tarefa nova do Kanban geral pode nascer: o Interno e, de cada cliente, o
+   * quadro sem projeto (o servidor cria se faltar) e os dos projetos. O filtro restringe.
+   */
+  function destinosDoGeral() {
+    const interno = {
+      rotulo: NOME_DO_QUADRO_INTERNO,
+      criar: (dados) => api.criarTarefaNoQuadroDoCliente(CLIENTE_INTERNO, dados),
+    };
+    if (geral.filtro === FILTRO_INTERNO) return [interno];
+    const todos = geral.filtro === TODOS_OS_CLIENTES;
+    const destinos = todos ? [interno] : [];
+    for (const cliente of listarClientes()) {
+      if (!todos && cliente.id !== geral.filtro) continue;
+      destinos.push({
+        grupo: cliente.nome,
+        rotulo: 'Quadro do cliente',
+        criar: (dados) => api.criarTarefaNoQuadroDoCliente(cliente.id, dados),
+      });
+      for (const demanda of geral.dados?.demandas ?? []) {
+        if (demanda.clienteId !== cliente.id || !demanda.projetoId) continue;
+        destinos.push({
+          grupo: cliente.nome,
+          rotulo: demanda.nome,
+          criar: (dados) => api.criarTarefa(demanda.id, dados),
+        });
+      }
+    }
+    return destinos;
+  }
+
+  /* Leitura em andamento é reaproveitada: a mudança que chegar depois relê pelo fluxo. */
+  function carregarGeral() {
+    geral.consulta ??= api
+      .geral()
+      .then((dados) => {
+        geral.dados = dados;
+        geral.erro = null;
+      })
+      .catch((erro) => {
+        geral.erro = erro.message;
+      })
+      .finally(() => {
+        geral.consulta = null;
+        desenharGeral();
+      });
+    return geral.consulta;
+  }
+
+  function desenharFiltroDeClientes() {
+    const opcoes = [
+      new Option('Todos os clientes', TODOS_OS_CLIENTES),
+      new Option(NOME_DO_QUADRO_INTERNO, FILTRO_INTERNO),
+      ...listarClientes().map((cliente) => new Option(cliente.nome, cliente.id)),
+    ];
+    // O cliente do filtro pode ter sido excluído.
+    if (!opcoes.some((opcao) => opcao.value === geral.filtro)) {
+      geral.filtro = TODOS_OS_CLIENTES;
+    }
+    elementos.campoClienteGeral.replaceChildren(...opcoes);
+    elementos.campoClienteGeral.value = geral.filtro;
+  }
+
+  function desenharGeral() {
+    if (elementos.areaGeral.hidden) return;
+    desenharFiltroDeClientes();
+    if (!geral.dados) {
+      elementos.situacaoGeral.textContent = '';
+      elementos.colunasGeral.replaceChildren(
+        criarElemento(
+          'p',
+          'secao-vazia',
+          geral.erro ? `Kanban indisponível: ${geral.erro}` : 'Carregando…',
+        ),
+      );
+      return;
+    }
+    const progresso = progressoDasTarefas(contextoGeral.tarefas());
+    elementos.situacaoGeral.textContent =
+      progresso.total > 0
+        ? `${progresso.concluidas}/${progresso.total} concluídas · ${formatarHoras(progresso.horasConcluidas)} de ${formatarHoras(progresso.horas)}`
+        : 'Nenhuma tarefa.';
+    desenharColunas(elementos.colunasGeral, contextoGeral);
+  }
+
+  /** A aba Kanban do topo ficou visível: desenha o que tem e relê. */
+  function mostrarGeral() {
+    desenharGeral();
+    void carregarGeral();
+  }
+
+  // --- quadro do modal --------------------------------------------------------------
 
   function demandasDoQuadro() {
     const cliente = clienteSelecionado();
@@ -580,7 +804,7 @@ export function iniciarKanban(dependencias) {
   function desenharSeletorDeDemanda(cliente) {
     const doProjeto = demandasDoProjeto(cliente.id, quadro.projetoId ?? '');
     const opcoes = [];
-    // Órfã é sempre vista sozinha: duas órfãs não têm nada em comum além de não ter projeto.
+    // O quadro sem projeto é sempre visto sozinho: o seletor só serve a projeto com vários.
     if (quadro.projetoId && doProjeto.length > 1) {
       opcoes.push(new Option('Todos os kanbans do projeto', TODAS_AS_DEMANDAS));
     }
@@ -592,7 +816,7 @@ export function iniciarKanban(dependencias) {
     elementos.campoDemanda.hidden = opcoes.length <= 1;
   }
 
-  function criarCartao(tarefa, mostrarDemanda) {
+  function criarCartao(tarefa, contexto) {
     const cartao = criarElemento('div', 'cartao-kanban');
     cartao.draggable = true;
     cartao.tabIndex = 0;
@@ -600,10 +824,8 @@ export function iniciarKanban(dependencias) {
     cartao.setAttribute('role', 'button');
     cartao.setAttribute('aria-label', `${tarefa.titulo}: abrir tarefa`);
 
-    if (mostrarDemanda) {
-      const demanda = demandaPorId(tarefa.demandaId);
-      if (demanda) cartao.append(criarElemento('span', 'cartao-kanban-demanda', demanda.nome));
-    }
+    const origem = contexto.origemDoCartao(tarefa);
+    if (origem) cartao.append(criarElemento('span', 'cartao-kanban-demanda', origem));
     cartao.append(criarElemento('p', 'cartao-kanban-titulo', tarefa.titulo));
 
     const selos = criarElemento('div', 'cartao-kanban-selos');
@@ -636,11 +858,11 @@ export function iniciarKanban(dependencias) {
     }
     cartao.append(selos);
 
-    cartao.addEventListener('click', () => abrirTarefa(tarefa));
+    cartao.addEventListener('click', () => abrirTarefa(tarefa, contexto));
     cartao.addEventListener('keydown', (evento) => {
       if (evento.key === 'Enter' || evento.key === ' ') {
         evento.preventDefault();
-        abrirTarefa(tarefa);
+        abrirTarefa(tarefa, contexto);
       }
     });
     cartao.addEventListener('dragstart', (evento) => {
@@ -652,7 +874,7 @@ export function iniciarKanban(dependencias) {
     cartao.addEventListener('dragend', () => {
       quadro.arrastada = null;
       cartao.classList.remove('arrastando');
-      for (const marcada of elementos.colunas.querySelectorAll('.alvo-do-arrasto')) {
+      for (const marcada of document.querySelectorAll('.alvo-do-arrasto')) {
         marcada.classList.remove('alvo-do-arrasto');
       }
     });
@@ -670,7 +892,7 @@ export function iniciarKanban(dependencias) {
     return null;
   }
 
-  function criarColuna(coluna, tarefas, mostrarDemanda) {
+  function criarColuna(coluna, tarefas, contexto) {
     const cartoes = cartoesDaColuna(tarefas, coluna.estado);
     const progresso = progressoDasTarefas(cartoes);
 
@@ -687,7 +909,7 @@ export function iniciarKanban(dependencias) {
     );
 
     const lista = criarElemento('div', 'coluna-kanban-cartoes');
-    lista.append(...cartoes.map((tarefa) => criarCartao(tarefa, mostrarDemanda)));
+    lista.append(...cartoes.map((tarefa) => criarCartao(tarefa, contexto)));
     if (cartoes.length === 0) {
       lista.append(criarElemento('p', 'coluna-kanban-vazia', 'Arraste uma tarefa para cá.'));
     }
@@ -716,25 +938,25 @@ export function iniciarKanban(dependencias) {
       const antes = antesDoElemento
         ? cartoes.find((cartao) => String(cartao.id) === antesDoElemento.dataset.id)
         : null;
-      soltarTarefa(movida, coluna.estado, indiceAoSoltar(cartoes, movida, antes ?? null));
+      soltarTarefa(contexto, movida, coluna.estado, indiceAoSoltar(cartoes, movida, antes ?? null));
     });
     return elemento;
   }
 
-  async function soltarTarefa(tarefa, estado, indice) {
+  async function soltarTarefa(contexto, tarefa, estado, indice) {
     // Redesenha já na posição nova; a resposta do servidor confirma (ou desfaz) em seguida.
-    const local = cache.dados?.tarefas.find((item) => item.id === tarefa.id);
+    const local = contexto.tarefaLocal(tarefa.id);
     if (local) {
       local.estado = estado;
       local.ordem = indice - 0.5;
-      desenharQuadro();
+      contexto.redesenhar();
     }
     try {
       await api.moverTarefa(tarefa.id, { estado, indice });
     } catch (erro) {
       exibirAviso(`Não foi possível mover a tarefa: ${erro.message}`, 'erro');
     }
-    await recarregar();
+    await contexto.recarregar();
   }
 
   function desenharQuadro() {
@@ -798,10 +1020,7 @@ export function iniciarKanban(dependencias) {
     elementos.resumoQuadro.hidden = !unica?.resumo;
     elementos.textoResumo.textContent = unica?.resumo ?? '';
 
-    const mostrarDemanda = demandas.length > 1;
-    elementos.colunas.replaceChildren(
-      ...COLUNAS.map((coluna) => criarColuna(coluna, tarefas, mostrarDemanda)),
-    );
+    desenharColunas(elementos.colunas, contextoDoModal);
   }
 
   // --- tarefa ---------------------------------------------------------------------
@@ -820,19 +1039,39 @@ export function iniciarKanban(dependencias) {
     }
   }
 
-  function abrirTarefa(tarefa, demandaPadrao = null) {
+  /** As opções em grupos (um por cliente, no geral); o valor é a posição na lista. */
+  function preencherDestinos(destinos) {
+    const filhos = [];
+    let grupo = null;
+    destinos.forEach((destino, posicao) => {
+      const opcao = new Option(destino.rotulo, String(posicao));
+      if (!destino.grupo) {
+        grupo = null;
+        filhos.push(opcao);
+        return;
+      }
+      if (grupo?.label !== destino.grupo) {
+        grupo = document.createElement('optgroup');
+        grupo.label = destino.grupo;
+        filhos.push(grupo);
+      }
+      grupo.append(opcao);
+    });
+    elementos.campoTarefaDemanda.replaceChildren(...filhos);
+    elementos.campoTarefaDemanda.value = '0';
+  }
+
+  function abrirTarefa(tarefa, contexto) {
     preencherOpcoesDaTarefa();
     limparErro(elementos.erroTarefa);
     tarefaEmEdicao = tarefa;
-    const demandas = demandasDoQuadro();
+    contextoDaTarefa = contexto;
+    destinosDaTarefa = tarefa ? [] : contexto.destinos();
 
     elementos.tituloTarefa.textContent = tarefa ? 'Tarefa' : 'Nova tarefa';
-    elementos.campoTarefaDemanda.replaceChildren(
-      ...demandas.map((demanda) => new Option(demanda.nome, String(demanda.id))),
-    );
-    // O kanban da tarefa só se escolhe ao criar, e só quando há mais de um na tela.
-    elementos.blocoTarefaDemanda.hidden = Boolean(tarefa) || demandas.length <= 1;
-    elementos.campoTarefaDemanda.value = String(demandaPadrao ?? demandas[0]?.id ?? '');
+    preencherDestinos(destinosDaTarefa);
+    // O quadro da tarefa só se escolhe ao criar, e só quando há mais de um possível.
+    elementos.blocoTarefaDemanda.hidden = destinosDaTarefa.length <= 1;
 
     elementos.campoTarefaTitulo.value = tarefa?.titulo ?? '';
     elementos.campoTarefaDescricao.value = tarefa?.descricao ?? '';
@@ -888,10 +1127,13 @@ export function iniciarKanban(dependencias) {
           await api.moverTarefa(tarefaEmEdicao.id, { estado });
         }
       } else {
-        await api.criarTarefa(Number(elementos.campoTarefaDemanda.value), { ...dados, estado });
+        await destinosDaTarefa[Number(elementos.campoTarefaDemanda.value)].criar({
+          ...dados,
+          estado,
+        });
       }
       elementos.modalTarefa.close();
-      await recarregar();
+      await contextoDaTarefa.recarregar();
     } catch (erro) {
       exibirErro(elementos.erroTarefa, erro.message);
     } finally {
@@ -912,7 +1154,7 @@ export function iniciarKanban(dependencias) {
       await api.excluirTarefa(tarefaEmEdicao.id);
       elementos.modalTarefa.close();
       exibirAviso('Tarefa excluída.');
-      await recarregar();
+      await contextoDaTarefa.recarregar();
     } catch (erro) {
       exibirErro(elementos.erroTarefa, erro.message);
     } finally {
@@ -978,19 +1220,29 @@ export function iniciarKanban(dependencias) {
 
   // --- novo kanban e documento ------------------------------------------------------
 
-  /** Projeto que já tem kanban fica desabilitado: cada projeto tem um só. */
-  function preencherProjetos(campo, cliente, selecionado, comVazio) {
+  /**
+   * Projeto que já tem kanban fica desabilitado: cada projeto tem um só. "Sem projeto"
+   * leva o quadro para a aba Kanban do cliente, que também tem um só: se ela já tem,
+   * as tarefas vão para ele.
+   */
+  function preencherProjetos(campo, cliente, demanda) {
     const opcoes = cliente.projetos.map((projeto) => {
       const opcao = new Option(projeto.nome, projeto.id);
       opcao.disabled =
-        projeto.id !== selecionado && demandasDoProjeto(cliente.id, projeto.id).length > 0;
+        projeto.id !== demanda.projetoId && demandasDoProjeto(cliente.id, projeto.id).length > 0;
       return opcao;
     });
-    if (comVazio) {
-      opcoes.unshift(new Option('Sem projeto (escolha um para vincular)', ''));
-    }
+    const juntaria = Boolean(demanda.projetoId && quadroDoCliente(cliente.id));
+    opcoes.unshift(
+      new Option(
+        juntaria
+          ? 'Sem projeto (juntar as tarefas ao quadro do cliente)'
+          : 'Sem projeto (quadro do cliente)',
+        '',
+      ),
+    );
     campo.replaceChildren(...opcoes);
-    campo.value = selecionado ?? '';
+    campo.value = demanda.projetoId;
   }
 
   function aplicarModoDoNovo() {
@@ -1084,7 +1336,8 @@ export function iniciarKanban(dependencias) {
             : 'Kanban criado.',
       );
       await carregar(cliente.id, { forcar: true });
-      if (!comDocumento && !anexarA) {
+      // O quadro sem projeto já está desenhado na aba Kanban: só o de projeto abre a janela.
+      if (!comDocumento && !anexarA && demanda.projetoId) {
         abrirQuadro(cliente, demanda.projetoId, demanda.id);
       }
     } catch (erro) {
@@ -1126,11 +1379,11 @@ export function iniciarKanban(dependencias) {
     edicaoEmAndamento = { cliente, demanda };
     limparErro(elementos.erroEditar);
     elementos.subtituloEditar.textContent = demanda.projetoId
-      ? 'Projeto e pasta do arquivo de tarefas.'
-      : 'Este kanban está sem projeto: vincule a um projeto ou dê um nome que o identifique.';
+      ? 'Projeto e pasta do arquivo de tarefas. Sem projeto, o quadro vai para a aba Kanban do cliente.'
+      : 'Quadro do cliente: vincule a um projeto para levá-lo para dentro dele.';
     elementos.blocoEditarNome.hidden = Boolean(demanda.projetoId);
     elementos.campoEditarNome.value = demanda.nome;
-    preencherProjetos(elementos.campoEditarProjeto, cliente, demanda.projetoId, !demanda.projetoId);
+    preencherProjetos(elementos.campoEditarProjeto, cliente, demanda);
     elementos.campoEditarPasta.value = demanda.pasta;
     elementos.campoEditarMcp.checked = demanda.mcp;
     elementos.situacaoEditarArquivo.textContent = descreverArquivo(demanda.arquivo);
@@ -1157,18 +1410,22 @@ export function iniciarKanban(dependencias) {
     limparErro(elementos.erroEditar);
     elementos.botaoSalvarEditar.disabled = true;
     try {
-      await api.alterar(demanda.id, {
+      const salvo = await api.alterar(demanda.id, {
         ...(projetoId ? {} : { nome }),
         pasta: elementos.campoEditarPasta.value.trim(),
-        ...(projetoId ? { projetoId } : {}),
+        projetoId,
       });
-      if (elementos.campoEditarMcp.checked !== demanda.mcp) {
+      // Desvinculado com o cliente já tendo quadro, o kanban se juntou a ele e deixou de existir.
+      const juntou = salvo.id !== demanda.id;
+      if (!juntou && elementos.campoEditarMcp.checked !== demanda.mcp) {
         await api.definirMcp(demanda.id, elementos.campoEditarMcp.checked);
       }
       elementos.modalEditar.close();
-      exibirAviso(
-        projetoId && !demanda.projetoId ? 'Kanban vinculado ao projeto.' : 'Kanban salvo.',
-      );
+      let aviso = 'Kanban salvo.';
+      if (juntou) aviso = 'As tarefas foram para o quadro do cliente, na aba Kanban.';
+      else if (projetoId && !demanda.projetoId) aviso = 'Kanban vinculado ao projeto.';
+      else if (!projetoId && demanda.projetoId) aviso = 'Kanban desvinculado: está na aba Kanban.';
+      exibirAviso(aviso);
       await carregar(cliente.id, { forcar: true });
     } catch (erro) {
       exibirErro(elementos.erroEditar, erro.message);
@@ -1293,7 +1550,7 @@ export function iniciarKanban(dependencias) {
       elementos.modalExclusaoProjeto.close();
       exibirAviso(
         manter
-          ? 'Projeto excluído. O kanban está em "Kanbans sem projeto".'
+          ? 'Projeto excluído. O kanban está na aba Kanban do cliente.'
           : 'Projeto e kanban excluídos.',
       );
       await dependencias.recarregarClientes();
@@ -1393,6 +1650,9 @@ export function iniciarKanban(dependencias) {
       if (cache.idDoCliente && clienteSelecionado()?.id === cache.idDoCliente) {
         void carregar(cache.idDoCliente, { forcar: true });
       }
+      if (!elementos.areaGeral.hidden) {
+        void carregarGeral();
+      }
     }, ESPERA_PARA_RELER_MS);
   }
 
@@ -1407,7 +1667,7 @@ export function iniciarKanban(dependencias) {
     fluxo.addEventListener('kanban', (evento) => {
       try {
         const { clienteId } = JSON.parse(evento.data);
-        if (clienteId === cache.idDoCliente) agendarReleitura();
+        if (clienteId === cache.idDoCliente || !elementos.areaGeral.hidden) agendarReleitura();
       } catch {
         // Aviso malformado: a próxima mudança ou a reconexão relê.
       }
@@ -1432,7 +1692,12 @@ export function iniciarKanban(dependencias) {
       botao.disabled = false;
     }
   });
-  elementos.botaoNovaTarefa.addEventListener('click', () => abrirTarefa(null));
+  elementos.botaoNovaTarefa.addEventListener('click', () => abrirTarefa(null, contextoDoModal));
+  elementos.campoClienteGeral.addEventListener('change', () => {
+    geral.filtro = elementos.campoClienteGeral.value;
+    desenharGeral();
+  });
+  elementos.botaoNovaTarefaGeral.addEventListener('click', () => abrirTarefa(null, contextoGeral));
   elementos.botaoDocumento.addEventListener('click', () => {
     const [unica] = demandasDoQuadro();
     if (unica?.documento) abrirDocumento(unica);
@@ -1490,7 +1755,8 @@ export function iniciarKanban(dependencias) {
 
   return {
     criarSecaoDoProjeto,
-    criarSecaoDeOrfaos,
+    criarSecaoDoCliente,
+    mostrarGeral,
     pedirExclusaoDeProjeto,
     carregarMcpDaConfiguracao,
     /** O cadastro mudou (projeto renomeado, cliente trocado): relê na próxima montagem. */

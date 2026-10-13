@@ -42,6 +42,15 @@
           </button>
           <button
             class="aba"
+            id="btn-visualizacao-kanban"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Kanban
+          </button>
+          <button
+            class="aba"
             id="btn-visualizacao-local"
             type="button"
             role="tab"
@@ -254,6 +263,23 @@
                do cliente, só que sem recorte de cliente. -->
           <div id="mount-agenda-geral"></div>
         </div>
+      </div>
+
+      <div class="card quadro-kanban-geral" id="visualizacao-kanban" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Kanban</h2>
+            <p class="texto-auxiliar" id="situacao-kanban-geral"></p>
+          </div>
+          <div class="acoes-kanban">
+            <select id="campo-kanban-geral-cliente" aria-label="Filtrar por cliente"></select>
+            <button class="btn tiny primario" type="button" id="btn-kanban-geral-nova-tarefa">
+              Nova tarefa
+            </button>
+          </div>
+        </div>
+        <!-- As colunas são montadas pelo kanban.js. -->
+        <div class="colunas-kanban" id="colunas-kanban-geral"></div>
       </div>
 
       <div class="card" id="visualizacao-os" hidden>
@@ -2694,7 +2720,7 @@
 
         <div class="modal-corpo">
           <div class="campo" id="bloco-kanban-tarefa-demanda" hidden>
-            <label for="campo-kanban-tarefa-demanda">Kanban</label>
+            <label for="campo-kanban-tarefa-demanda">Quadro</label>
             <select id="campo-kanban-tarefa-demanda"></select>
           </div>
 
@@ -2856,7 +2882,7 @@
           <legend>Kanban do projeto</legend>
           <label class="campo-checkbox">
             <input type="radio" name="exclusao-kanban" id="campo-kanban-exclusao-manter" checked />
-            Manter no cliente, em "Kanbans sem projeto"
+            Manter no cliente, na aba Kanban (as tarefas vão para o quadro do cliente)
           </label>
           <label class="campo-checkbox">
             <input type="radio" name="exclusao-kanban" id="campo-kanban-exclusao-excluir" />

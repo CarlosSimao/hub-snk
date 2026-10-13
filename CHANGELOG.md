@@ -9,6 +9,27 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- **Kanban geral**: aba Kanban no topo, ao lado de Clientes, com as tarefas de todos os
+  clientes num quadro só e filtro por cliente. A tarefa nova escolhe o quadro: o de um
+  projeto, o do cliente ou o **Interno**, para o que não é de cliente nenhum.
+- **Kanban do cliente**: aba Kanban no cadastro do cliente, com o quadro das tarefas fora
+  de projeto desenhado na própria aba. Em Editar o kanban, o quadro vai para dentro de um
+  projeto e volta escolhendo "Sem projeto".
+
+### Alterado
+
+- **Um quadro sem projeto por cliente**: o kanban que perde o projeto (desvinculado, ou com
+  o projeto excluído mantendo o kanban) vai para a aba Kanban do cliente; se ela já tem
+  quadro, as tarefas passam para ele, e o documento e o resumo do quadro antigo são
+  descartados. Clientes que tinham vários kanbans sem projeto ficam com o mais antigo, com
+  as tarefas de todos. O bloco "Kanbans sem projeto" saiu da aba Projetos.
+- **Sem abas vazias**: o que não tem conteúdo para os acessos escolhidos deixa de aparecer.
+  Com Terceiro, some a aba Avisos das configurações; sem Projetos, somem a aba IA e o
+  Kanban do topo; sem Agenda, Lembretes, OS e Git, some o Resumo e o HUB SNK abre em
+  Clientes.
+
 ## [2.8.0] - 2026-10-12
 
 ### Adicionado

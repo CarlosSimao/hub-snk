@@ -1,11 +1,17 @@
 /**
- * Formatos do kanban de tarefas dos projetos do cliente.
+ * Formatos do kanban de tarefas dos clientes.
  *
- * Cada kanban é uma demanda de um projeto: nasce de um documento de escopo, que a IA
- * decompõe em tarefas, ou vazio, para as tarefas serem lançadas à mão. Um projeto tem
- * quantas demandas precisar; a demanda cujo projeto foi excluído fica órfã
- * (`projetoId` vazio) até ser vinculada a outro.
+ * Cada kanban é uma demanda: nasce de um documento de escopo, que a IA decompõe em
+ * tarefas, ou vazio, para as tarefas serem lançadas à mão. Um projeto tem no máximo um
+ * kanban, e o cliente tem no máximo um sem projeto (`projetoId` vazio), o da aba Kanban
+ * dele. O quadro Interno é o sem projeto de `clienteId` vazio: o das tarefas que não são
+ * de cliente nenhum.
  */
+
+/** O `clienteId` do quadro Interno. */
+export const CLIENTE_INTERNO = '';
+
+export const NOME_DO_QUADRO_INTERNO = 'Interno';
 
 /** As colunas do quadro, na ordem em que aparecem. */
 export const ESTADOS_DE_TAREFA = [
@@ -171,7 +177,7 @@ export interface TransicaoDeTarefa {
   origem: OrigemDeTransicao;
 }
 
-/** O que a tela do cliente recebe: as demandas de todos os projetos e as órfãs. */
+/** O que a tela recebe: as demandas do cliente, ou de todos no Kanban geral. */
 export interface KanbansDoCliente {
   demandas: DemandaDoKanban[];
   tarefas: TarefaDoKanban[];

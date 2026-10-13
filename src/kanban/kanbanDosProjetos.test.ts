@@ -169,6 +169,61 @@ describe('KanbanDosProjetos', () => {
     kanban.close();
   });
 
+  it('desvincular com o cliente já tendo kanban sem projeto junta as tarefas no fim das colunas', () => {
+    const kanban = criarKanban();
+    const doCliente = kanban.garantirQuadroDoCliente(CLIENTE, 'Cliente');
+    const existente = kanban.criarTarefa(doCliente.id, { titulo: 'Do cliente' });
+    const doProjeto = kanban.criarDemanda(CLIENTE, { projetoId: PROJETO, nome: 'K' });
+    const movida = kanban.criarTarefa(doProjeto.id, { titulo: 'Do projeto' });
+    const removidas: number[] = [];
+    kanban.aoMudar((mudanca) => mudanca.removida && removidas.push(mudanca.demandaId));
+
+    const resultado = kanban.alterarDemanda(doProjeto.id, { projetoId: '' });
+
+    assert.equal(resultado.id, doCliente.id);
+    assert.throws(() => kanban.demanda(doProjeto.id), DemandaNaoEncontradaError);
+    assert.deepEqual(
+      kanban.tarefasDaDemanda(doCliente.id).map((tarefa) => [tarefa.id, tarefa.ordem]),
+      [
+        [existente.id, 0],
+        [movida.id, 1],
+      ],
+    );
+    assert.ok(kanban.transicoes().every((transicao) => transicao.demandaId === doCliente.id));
+    assert.deepEqual(removidas, [doProjeto.id]);
+    kanban.close();
+  });
+
+  it('o quadro do cliente e o Interno são criados uma vez e aparecem no geral', () => {
+    const kanban = criarKanban();
+    const primeiro = kanban.garantirQuadroDoCliente(CLIENTE, 'Cliente');
+    assert.equal(kanban.garantirQuadroDoCliente(CLIENTE, 'Outro nome').id, primeiro.id);
+    const interno = kanban.garantirQuadroDoCliente('', 'Interno');
+    kanban.criarTarefa(interno.id, { titulo: 'Interna' });
+
+    const geral = kanban.geral();
+    assert.deepEqual(geral.demandas.map((demanda) => demanda.clienteId).sort(), ['', CLIENTE]);
+    assert.equal(geral.tarefas.length, 1);
+    kanban.close();
+  });
+
+  it('ao abrir, junta no mais antigo os kanbans sem projeto que sobraram de antes da regra', () => {
+    const dados = mkdtempSync(join(pasta, 'legado-'));
+    const antes = new KanbanDosProjetos(dados);
+    const primeiro = antes.criarDemanda(CLIENTE, { projetoId: '', nome: 'A' });
+    const segundo = antes.criarDemanda(CLIENTE, { projetoId: '', nome: 'B' });
+    antes.criarTarefa(segundo.id, { titulo: 'T' });
+    antes.close();
+
+    const depois = new KanbanDosProjetos(dados);
+    assert.deepEqual(
+      depois.doCliente(CLIENTE).demandas.map((demanda) => demanda.id),
+      [primeiro.id],
+    );
+    assert.equal(depois.tarefasDaDemanda(primeiro.id).length, 1);
+    depois.close();
+  });
+
   it('exclui as demandas do projeto com as tarefas', () => {
     const kanban = criarKanban();
     const demanda = kanban.criarDemanda(CLIENTE, { projetoId: PROJETO, nome: 'K' });

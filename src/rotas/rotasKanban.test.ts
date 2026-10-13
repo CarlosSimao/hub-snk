@@ -330,6 +330,47 @@ describe('rotas do kanban', () => {
     assert.equal(vinculada.json<DemandaDoKanban>().nome, 'Portal de pedidos');
   });
 
+  it('kanban sem projeto: um por cliente, com o nome dele, e desvincular junta nele', async () => {
+    const { servidor, idDoCliente, idDoProjeto, kanban } = await criarCenario();
+    const criar = (payload: object) =>
+      servidor.inject({ method: 'POST', url: `/api/clientes/${idDoCliente}/kanbans`, payload });
+
+    const doCliente = (await criar({})).json<DemandaDoKanban>();
+    assert.equal(doCliente.nome, 'Indústria Alfa');
+    assert.equal((await criar({ projetoId: '' })).statusCode, 409);
+
+    const doProjeto = (await criar({ projetoId: idDoProjeto })).json<DemandaDoKanban>();
+    kanban.criarTarefa(doProjeto.id, { titulo: 'T' });
+    const desvinculado = await servidor.inject({
+      method: 'PUT',
+      url: `/api/kanban/demandas/${doProjeto.id}`,
+      payload: { projetoId: '' },
+    });
+
+    assert.equal(desvinculado.statusCode, 200);
+    assert.equal(desvinculado.json<DemandaDoKanban>().id, doCliente.id);
+    assert.equal(kanban.tarefasDaDemanda(doCliente.id).length, 1);
+  });
+
+  it('o Kanban geral cria no quadro do cliente ou no Interno e lista todos', async () => {
+    const { servidor, idDoCliente } = await criarCenario();
+    const criar = (payload: object) =>
+      servidor.inject({ method: 'POST', url: '/api/kanban/tarefas', payload });
+
+    assert.equal((await criar({ titulo: 'Interna' })).statusCode, 201);
+    assert.equal((await criar({ titulo: 'Do cliente', clienteId: idDoCliente })).statusCode, 201);
+    assert.equal((await criar({ titulo: 'X', clienteId: 'nao-existe' })).statusCode, 404);
+
+    const geral = (
+      await servidor.inject({ method: 'GET', url: '/api/kanban' })
+    ).json<KanbansDoCliente>();
+    assert.deepEqual(geral.demandas.map((demanda) => [demanda.clienteId, demanda.nome]).sort(), [
+      ['', 'Interno'],
+      [idDoCliente, 'Indústria Alfa'],
+    ]);
+    assert.equal(geral.tarefas.length, 2);
+  });
+
   it('recusa um segundo kanban no mesmo projeto', async () => {
     const { servidor, idDoCliente, idDoProjeto } = await criarCenario();
     const novo = () =>

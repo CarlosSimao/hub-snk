@@ -3,7 +3,9 @@
  *
  * Mora no mesmo `sankhya.db` da Agenda de Recursos, cada um com as próprias tabelas.
  * O projeto continua no `clientes.json`: a demanda guarda só o id dele, sem chave
- * estrangeira, e quem exclui o projeto decide se as demandas vão junto ou ficam órfãs.
+ * estrangeira, e quem exclui o projeto decide se o kanban vai junto ou fica no cliente.
+ * O cliente tem um quadro sem projeto só: o que perde o projeto, com o cliente já tendo
+ * um, entrega as tarefas a ele e deixa de existir.
  *
  * O documento original fica em disco (`<dados>/kanbans/<cliente>/`), porque é o que se
  * reabre para conferir; no banco vai o texto extraído, que é o que a análise consome.
@@ -360,6 +362,7 @@ export class KanbanDosProjetos {
       ['arquivo_nome', "TEXT NOT NULL DEFAULT ''"],
     ]);
     this.#garantirColunas('kb_tarefas', [['checklist', "TEXT NOT NULL DEFAULT '[]'"]]);
+    this.#juntarQuadrosSemProjeto();
     /*
      * Análise que estava rodando quando o HUB SNK caiu nunca vai terminar: sem isto a
      * demanda ficaria "analisando" para sempre e o botão de analisar, travado.
@@ -428,8 +431,33 @@ export class KanbanDosProjetos {
     return { demandas, tarefas };
   }
 
+  /** Todos os kanbans, de todos os clientes e o Interno: é o que o Kanban geral mostra. */
+  geral(): KanbansDoCliente {
+    const demandas = (
+      this.#db
+        .prepare('SELECT * FROM kb_demandas ORDER BY cliente_id, id')
+        .all() as unknown as LinhaDeDemanda[]
+    ).map(paraDemanda);
+    const tarefas = (
+      this.#db
+        .prepare('SELECT * FROM kb_tarefas ORDER BY demanda_id, estado, ordem, id')
+        .all() as unknown as LinhaDeTarefa[]
+    ).map(paraTarefa);
+    return { demandas, tarefas };
+  }
+
   demanda(id: number): DemandaDoKanban {
     return paraDemanda(this.#linhaDaDemanda(id));
+  }
+
+  /** O kanban sem projeto do cliente, ou o Interno com `clienteId` vazio. */
+  quadroDoCliente(clienteId: string): DemandaDoKanban | undefined {
+    return this.demandasDoProjeto(clienteId, '')[0];
+  }
+
+  /** O kanban sem projeto do cliente, criado vazio na primeira tarefa que ele recebe. */
+  garantirQuadroDoCliente(clienteId: string, nome: string): DemandaDoKanban {
+    return this.quadroDoCliente(clienteId) ?? this.criarDemanda(clienteId, { projetoId: '', nome });
   }
 
   tarefasDaDemanda(id: number): TarefaDoKanban[] {
@@ -477,8 +505,19 @@ export class KanbanDosProjetos {
     return this.demanda(id);
   }
 
+  /**
+   * Devolve o kanban como ficou. Desvincular do projeto quando o cliente já tem kanban
+   * sem projeto junta as tarefas nele: o devolvido é esse outro.
+   */
   alterarDemanda(id: number, alteracao: AlteracaoDeDemanda): DemandaDoKanban {
     const atual = this.#linhaDaDemanda(id);
+    if (alteracao.projetoId === '' && atual.projeto_id) {
+      const doCliente = this.quadroDoCliente(atual.cliente_id);
+      if (doCliente) {
+        this.#juntar(id, doCliente.id);
+        return this.demanda(doCliente.id);
+      }
+    }
     this.#db
       .prepare(
         'UPDATE kb_demandas SET nome = ?, projeto_id = ?, pasta = ?, atualizada_em = ? WHERE id = ?',
@@ -551,16 +590,10 @@ export class KanbanDosProjetos {
     }
   }
 
-  /** O projeto foi excluído e o usuário quis manter os kanbans: ficam órfãos no cliente. */
+  /** O projeto foi excluído e o usuário quis manter o kanban: fica no cliente, sem projeto. */
   desvincularDoProjeto(clienteId: string, projetoId: string): void {
-    this.#db
-      .prepare(
-        `UPDATE kb_demandas SET projeto_id = '', atualizada_em = ?
-          WHERE cliente_id = ? AND projeto_id = ?`,
-      )
-      .run(new Date().toISOString(), clienteId, projetoId);
-    for (const { id } of this.demandasDoProjeto(clienteId, '')) {
-      this.#avisar(id);
+    for (const demanda of this.demandasDoProjeto(clienteId, projetoId)) {
+      this.alterarDemanda(demanda.id, { projetoId: '' });
     }
   }
 
@@ -882,6 +915,47 @@ export class KanbanDosProjetos {
   #apagarArquivo(arquivo: string): void {
     if (arquivo && existsSync(arquivo)) {
       rmSync(arquivo, { force: true });
+    }
+  }
+
+  /**
+   * Passa as tarefas e o histórico de `origemId` para o fim de cada coluna de `destinoId`
+   * e apaga a origem, com o documento: o resumo e a análise eram do escopo dela.
+   */
+  #juntar(origemId: number, destinoId: number): void {
+    const origem = this.#linhaDaDemanda(origemId);
+    this.#emTransacao(() => {
+      for (const estado of ESTADOS_DE_TAREFA) {
+        this.#db
+          .prepare(
+            'UPDATE kb_tarefas SET demanda_id = ?, ordem = ordem + ? WHERE demanda_id = ? AND estado = ?',
+          )
+          .run(destinoId, this.#proximaOrdem(destinoId, estado), origemId, estado);
+        this.#renumerar(destinoId, estado);
+      }
+      this.#db
+        .prepare('UPDATE kb_transicoes SET demanda_id = ? WHERE demanda_id = ?')
+        .run(destinoId, origemId);
+      this.#db.prepare('DELETE FROM kb_demandas WHERE id = ?').run(origemId);
+    });
+    this.#apagarArquivo(origem.documento_arquivo);
+    this.#avisar(origemId, true, origem.cliente_id);
+    this.#avisar(destinoId);
+  }
+
+  /** Antes da regra de um kanban sem projeto por cliente podiam existir vários: ficam no mais antigo. */
+  #juntarQuadrosSemProjeto(): void {
+    const semProjeto = this.#db
+      .prepare(`SELECT id, cliente_id FROM kb_demandas WHERE projeto_id = '' ORDER BY id`)
+      .all() as { id: number; cliente_id: string }[];
+    const maisAntigo = new Map<string, number>();
+    for (const { id, cliente_id } of semProjeto) {
+      const destino = maisAntigo.get(cliente_id);
+      if (destino === undefined) {
+        maisAntigo.set(cliente_id, id);
+      } else {
+        this.#juntar(id, destino);
+      }
     }
   }
 
