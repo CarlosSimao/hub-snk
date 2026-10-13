@@ -6,7 +6,7 @@
     <title>HUB SNK</title>
     <meta
       name="description"
-      content="Cadastro de clientes, bases e repositórios, com o SankhyaOm e a Experience abertos em guias do próprio aplicativo. Para Windows e Ubuntu."
+      content="Cadastro de clientes, bases e repositórios, com o SankhyaOm e a Experience abertos em guias do próprio aplicativo. Para Windows e Linux."
     />
     <meta property="og:title" content="HUB SNK" />
     <meta
@@ -166,6 +166,12 @@
         background: transparent;
         color: var(--marca-forte);
         box-shadow: inset 0 0 0 2px var(--marca-forte);
+      }
+
+      .em-breve {
+        margin: 14px 0 0;
+        color: var(--text-dim);
+        font-size: 0.95rem;
       }
 
       .botao-download.secundario:hover {
@@ -409,9 +415,10 @@
               <path d="m7 10 5 5 5-5" />
               <path d="M5 21h14" />
             </svg>
-            Baixar para Ubuntu (.deb)
+            Baixar para Linux (.deb)
           </a>
         </div>
+        <p class="em-breve">Em breve para Mac</p>
       </div>
 
       <div class="print">
@@ -608,7 +615,7 @@
           </li>
         </ol>
         <div class="aviso">
-          <strong>No Ubuntu:</strong> baixe o
+          <strong>No Linux</strong> (Ubuntu, Debian e derivados): baixe o
           <a
             href="https://github.com/CarlosSimao/hub-snk/releases/latest/download/hub-snk-amd64.deb"
             >pacote .deb</a
@@ -631,7 +638,7 @@
           <article class="funcionalidade">
             <h3>Desinstalar</h3>
             <p>
-              No Windows, em Configurações › Aplicativos › HUB SNK. No Ubuntu,
+              No Windows, em Configurações › Aplicativos › HUB SNK. No Linux,
               <code>sudo apt remove hub-snk-desktop</code>. O cadastro não é apagado.
             </p>
           </article>
