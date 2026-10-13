@@ -9,13 +9,14 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.8.0] - 2026-10-12
+
 ### Adicionado
 
 - **Assistente de boas-vindas**: na primeira abertura, quatro passos rápidos perguntam seus
   dados (nome, empresa, time e e-mail, todos opcionais), o perfil e se você tem login no
   SankhyaOm e na Experience. Tudo já vem respondido, e dá para mudar depois em
   Configurações. Quem já usa o HUB SNK e tem perfil escolhido não vê o assistente.
-
 - **Linux (Ubuntu)**: pacote `.deb`, com o ícone certo na barra do GNOME, menu no ícone da
   área de indicadores, início automático com o sistema e o PATH do terminal (nvm,
   `~/.local/bin`) valendo para o que o HUB SNK abre. No Wayland sem portal de atalhos, a
@@ -695,6 +696,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.7.0...HEAD
+[2.8.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.7.0...v2.8.0
 [2.7.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.4.0...v2.5.0

@@ -116,7 +116,8 @@ guias, cada um com o próprio login salvo. Entrar numa reunião abre a chamada n
 própria, uma por reunião.
 
 Fechar a janela não encerra o aplicativo: ele fica na bandeja do Windows, perto
-do relógio. Para sair, use _Hub_ › _Sair_ ou o botão direito no ícone da bandeja.
+do relógio, ou no ícone do canto superior direito, no Linux. Para sair, use _Hub_ ›
+_Sair_ ou o menu do ícone (botão direito, no Windows).
 
 ---
 
