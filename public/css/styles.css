@@ -4379,3 +4379,100 @@ button.selo-situacao:focus-visible {
 #corpo-backup .campo-numerico-inline input {
   padding: 5px 8px;
 }
+
+/* ------------------------- assistente de boas-vindas ------------------------ */
+
+.modal.boas-vindas {
+  width: min(500px, 92vw);
+}
+
+.passos-boas-vindas {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passos-boas-vindas li {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+
+.passos-boas-vindas li.feito {
+  background: var(--marca);
+}
+
+/* `.modal-corpo` põe `display: grid`, que venceria o `[hidden]` do navegador. */
+#modal-boas-vindas [data-passo][hidden],
+#btn-voltar-boas-vindas[hidden] {
+  display: none;
+}
+
+.texto-boas-vindas {
+  margin: 0;
+  padding: 0;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.opcao-boas-vindas {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  row-gap: 2px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.opcao-boas-vindas:has(input:checked) {
+  border-color: var(--marca);
+  background: color-mix(in srgb, var(--marca) 10%, transparent);
+}
+
+.opcao-boas-vindas:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.opcao-boas-vindas input {
+  accent-color: var(--marca);
+  margin: 0;
+}
+
+.opcao-boas-vindas strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.opcao-boas-vindas span {
+  grid-column: 2;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.resumo-boas-vindas {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.resumo-boas-vindas dt {
+  color: var(--text-dim);
+}
+
+.resumo-boas-vindas dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.erro-boas-vindas {
+  padding: 0 16px 10px;
+}

@@ -11,7 +11,8 @@ export type DadosDeAtalho = Omit<Atalho, 'id'> & { id?: string };
  * cada vez que o usuário só mudasse outro campo da tela.
  *
  * `backup` fica de fora pelo mesmo motivo: é gravado pela janela de Backup, campo a
- * campo, por `definirBackup`.
+ * campo, por `definirBackup`. E `boasVindasConcluidas` também: só o assistente de
+ * boas-vindas o liga, por `concluirBoasVindas`.
  */
 export interface ConfiguracaoParaSalvar extends Omit<
   ConfiguracaoGlobal,
@@ -19,6 +20,7 @@ export interface ConfiguracaoParaSalvar extends Omit<
   | 'experiencePersonId'
   | 'sankhyaOmCodUsu'
   | 'backup'
+  | 'boasVindasConcluidas'
   | 'perfil'
   | 'funcionalidadesOcultas'
   | 'terceiro'
@@ -47,6 +49,12 @@ export interface ConfiguracaoParaSalvar extends Omit<
   emailDoUsuario?: ConfiguracaoGlobal['emailDoUsuario'];
 }
 
+/** O respondido no assistente de boas-vindas. As funcionalidades ocultas são o preset do perfil. */
+export type RespostasDasBoasVindas = Pick<
+  ConfiguracaoGlobal,
+  'nomeDoUsuario' | 'empresaDoUsuario' | 'timeDoUsuario' | 'emailDoUsuario' | 'perfil' | 'terceiro'
+>;
+
 /**
  * Contrato de persistência da configuração global.
  *
@@ -65,4 +73,6 @@ export interface RepositorioConfiguracao {
   definirSankhyaOmCodUsu(codusu: string): Promise<ConfiguracaoGlobal>;
   /** Escrita isolada do backup, ajustado na janela de Backup e não no formulário. */
   definirBackup(backup: ConfiguracaoDeBackup): Promise<ConfiguracaoGlobal>;
+  /** Grava as respostas do assistente de boas-vindas e não o mostra mais. */
+  concluirBoasVindas(respostas: RespostasDasBoasVindas): Promise<ConfiguracaoGlobal>;
 }

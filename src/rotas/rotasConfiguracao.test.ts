@@ -240,3 +240,47 @@ describe('PUT /api/configuracao/sankhya-om-codusu', () => {
     assert.equal(resposta.json().sankhyaOmCodUsu, '4817');
   });
 });
+
+describe('PUT /api/configuracao/boas-vindas', () => {
+  const RESPOSTAS = {
+    nomeDoUsuario: 'Ana',
+    empresaDoUsuario: '',
+    timeDoUsuario: '',
+    emailDoUsuario: '',
+    perfil: 'consultor',
+    terceiro: false,
+  };
+
+  it('grava as respostas e conclui as boas-vindas', async () => {
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao/boas-vindas',
+      payload: RESPOSTAS,
+    });
+
+    assert.equal(resposta.statusCode, 200);
+    assert.equal(resposta.json().boasVindasConcluidas, true);
+    assert.equal(resposta.json().perfil, 'consultor');
+  });
+
+  it('recusa e-mail inválido', async () => {
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao/boas-vindas',
+      payload: { ...RESPOSTAS, emailDoUsuario: 'ana@' },
+    });
+
+    assert.equal(resposta.statusCode, 400);
+    assert.equal(resposta.json().mensagem, 'E-mail inválido.');
+  });
+
+  it('recusa perfil desconhecido', async () => {
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: '/api/configuracao/boas-vindas',
+      payload: { ...RESPOSTAS, perfil: 'estagiario' },
+    });
+
+    assert.equal(resposta.statusCode, 400);
+  });
+});

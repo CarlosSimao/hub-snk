@@ -683,6 +683,24 @@ Nome do usuário, Empresa, Time, E-mail.`, com só os que faltam — enquanto al
 estiver vazio. Os valores seguem no `context` do relato (`usuario`, `empresa`, `time`, `email`) e
 aparecem em `GET /api/suporte/previa`.
 
+### Boas-vindas
+
+`PUT /api/configuracao/boas-vindas` grava o respondido no assistente do primeiro uso e
+liga `boasVindasConcluidas`. Os seis campos são obrigatórios (os quatro textos podem ir
+vazios), com as mesmas regras de tamanho e de e-mail acima; as funcionalidades ocultas
+viram o preset do perfil. Responde a configuração gravada.
+
+```json
+{
+  "nomeDoUsuario": "Ana Souza",
+  "empresaDoUsuario": "Acme",
+  "timeDoUsuario": "Suporte",
+  "emailDoUsuario": "ana@acme.com",
+  "perfil": "consultor",
+  "terceiro": false
+}
+```
+
 ## Erros
 
 Erros retornam `{ "mensagem": "..." }` com `400` (dados inválidos), `403`

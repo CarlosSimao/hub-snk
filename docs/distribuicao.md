@@ -15,7 +15,7 @@ um aplicativo Electron com instalador NSIS, e o instalador remove a versão anti
 | -------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | **Shell**      | `desktop/`                                                     | O Electron: janela, guias, cofre das credenciais e a ponte que o backend chama |
 | **Backend**    | `src/`                                                         | O mesmo Fastify de sempre, rodando direto do TypeScript, servindo o `public/`  |
-| **Instalador** | `desktop/electron-builder.yml`, `desktop/assets/installer.nsh` | NSIS por usuário, com a remoção da versão PWA e a página de perfil             |
+| **Instalador** | `desktop/electron-builder.yml`, `desktop/assets/installer.nsh` | NSIS por usuário, com a remoção da versão PWA                                  |
 
 O shell sobe o backend como processo filho com o próprio executável do Electron
 (`ELECTRON_RUN_AS_NODE=1`), espera o `GET /api/healthz` e só então abre a janela.
@@ -181,24 +181,15 @@ Regras que não se quebram:
   máquina corporativa sem acionar o time de infra.
 - Cria os atalhos "HUB SNK" no menu Iniciar e na área de trabalho.
 - Roda o `resources\instalador\remover-versao-pwa.ps1` (a seguir).
-- Mostra a página de perfil profissional (a seguir).
 
-### A página de perfil
+### Perfil e dados de quem usa
 
-Aparece em toda instalação. O perfil (Desenvolvedor,
-Consultor, Analista ou Gerente de projeto) define o preset de funcionalidades
-ocultas, o mesmo de **Configurações › Acessos** (`src/acessos.ts`). A caixa
-**Terceiro**, independente do perfil, oculta por cima do preset o que depende das
-credenciais do SankhyaOm e da Experience: Credenciais Sankhya, as abas Agenda e
-OS e as guias dos dois sistemas.
-
-A escolha vai para `%LOCALAPPDATA%\HubSnk\perfil-inicial.txt` e
-`terceiro-inicial.txt` (`S` ou `N`). O shell repassa os dois ao backend
-(`HUB_PERFIL_INICIAL` e `HUB_TERCEIRO_INICIAL`), que só aplica cada um enquanto o
-`configuracao.json` ainda não tem o campo correspondente: reinstalar ou atualizar nunca
-desfaz o que o usuário ajustou. Uma reinstalação abre a página com a escolha
-anterior marcada, e a instalação silenciosa, que não mostra a página, preserva os
-arquivos que já existiam.
+O instalador não pergunta mais nada além da pasta: perfil, Terceiro, nome, empresa,
+time e e-mail são perguntados pelo assistente de boas-vindas do próprio HUB SNK, no
+primeiro uso, igual nos três sistemas (ver `docs/funcionalidades.md`). Os arquivos
+`perfil-inicial.txt`, `terceiro-inicial.txt`, `funcionalidades-ocultas-inicial.txt` e
+`*-inicial.txt` que versões anteriores deixaram em `%LOCALAPPDATA%\HubSnk` não são mais
+lidos.
 
 ### A remoção da versão PWA
 

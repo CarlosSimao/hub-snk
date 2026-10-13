@@ -9,6 +9,18 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- **Assistente de boas-vindas**: na primeira abertura, quatro passos rápidos perguntam seus
+  dados (nome, empresa, time e e-mail, todos opcionais), o perfil e se você tem login no
+  SankhyaOm e na Experience. Tudo já vem respondido, e dá para mudar depois em
+  Configurações. Quem já usa o HUB SNK e tem perfil escolhido não vê o assistente.
+
+### Alterado
+
+- **Instalador mais curto**: as páginas "Seus dados" e do perfil saíram do instalador do
+  Windows; o assistente de boas-vindas pergunta o mesmo, e vale igual em qualquer sistema.
+
 ## [2.7.0] - 2026-10-12
 
 ### Adicionado

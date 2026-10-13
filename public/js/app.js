@@ -14,6 +14,7 @@ import {
   registrarUsoRecente,
   ROTULOS_DOS_TIPOS,
 } from './buscaRapida.js';
+import { abrirBoasVindas } from './boasVindas.js';
 import { iniciarBackup } from './backup.js';
 import { iniciarKanban } from './kanban.js';
 import { lerArvoreDeFavoritos } from './leitorDeFavoritos.js';
@@ -12523,7 +12524,11 @@ async function iniciar() {
   void carregarContatos().then(renderizarDetalhe);
 
   try {
-    const configuracao = await api.lerConfiguracao();
+    let configuracao = await api.lerConfiguracao();
+    // Primeiro uso: perfil e Terceiro decidem o que aparece, então vêm antes do resto.
+    if (!configuracao.boasVindasConcluidas) {
+      configuracao = await abrirBoasVindas(requisitar);
+    }
     definirExecucaoAutomatica(
       configuracao.intervaloDeExecucaoAutomaticaSegundos ??
         INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S,

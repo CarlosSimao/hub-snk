@@ -3363,6 +3363,137 @@
       </form>
     </dialog>
 
+    <!-- Assistente de boas-vindas: primeiro uso, nos três sistemas (public/js/boasVindas.js). -->
+    <dialog class="modal boas-vindas" id="modal-boas-vindas" aria-labelledby="titulo-boas-vindas">
+      <form method="dialog" id="formulario-boas-vindas" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="titulo-boas-vindas">Boas-vindas ao HUB SNK</h2>
+          <p id="progresso-boas-vindas">Passo 1 de 4</p>
+          <ol class="passos-boas-vindas" aria-hidden="true">
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+          </ol>
+        </div>
+
+        <section class="modal-corpo" data-passo="1">
+          <p class="texto-boas-vindas">
+            Três perguntas rápidas para deixar o HUB SNK com a sua cara. Tudo pode ser mudado depois
+            em Configurações.
+          </p>
+          <p class="texto-boas-vindas">
+            Seus dados seguem nos relatos de problema ao suporte e nos e-mails do HUB SNK.
+          </p>
+          <div class="campo">
+            <label for="campo-nome-boas-vindas"
+              >Nome <span class="opcional">(opcional)</span></label
+            >
+            <input id="campo-nome-boas-vindas" type="text" maxlength="120" autocomplete="name" />
+          </div>
+          <div class="campo">
+            <label for="campo-empresa-boas-vindas"
+              >Empresa <span class="opcional">(opcional)</span></label
+            >
+            <input
+              id="campo-empresa-boas-vindas"
+              type="text"
+              maxlength="120"
+              autocomplete="organization"
+            />
+          </div>
+          <div class="campo">
+            <label for="campo-time-boas-vindas"
+              >Time <span class="opcional">(opcional)</span></label
+            >
+            <input id="campo-time-boas-vindas" type="text" maxlength="120" />
+          </div>
+          <div class="campo">
+            <label for="campo-email-boas-vindas"
+              >E-mail <span class="opcional">(opcional)</span></label
+            >
+            <input id="campo-email-boas-vindas" type="email" maxlength="120" autocomplete="email" />
+          </div>
+        </section>
+
+        <!-- Mesmos presets de src/acessos.ts: mudou lá, muda o texto aqui. -->
+        <div
+          class="modal-corpo"
+          data-passo="2"
+          role="radiogroup"
+          aria-labelledby="pergunta-perfil-boas-vindas"
+          hidden
+        >
+          <p class="texto-boas-vindas" id="pergunta-perfil-boas-vindas">
+            Qual é o seu perfil? Ele define o que aparece no menu.
+          </p>
+          <label class="opcao-boas-vindas">
+            <input type="radio" name="perfil" value="consultor" checked />
+            <strong>Consultor</strong>
+            <span>Esconde os repositórios Git e o Git AutoSync.</span>
+          </label>
+          <label class="opcao-boas-vindas">
+            <input type="radio" name="perfil" value="analista" />
+            <strong>Analista</strong>
+            <span>Esconde os repositórios Git e o Git AutoSync.</span>
+          </label>
+          <label class="opcao-boas-vindas">
+            <input type="radio" name="perfil" value="gerente-de-projeto" />
+            <strong>Gerente de Projetos</strong>
+            <span>Esconde os repositórios Git, a aba Local e o Git AutoSync.</span>
+          </label>
+          <label class="opcao-boas-vindas">
+            <input type="radio" name="perfil" value="desenvolvedor" />
+            <strong>Desenvolvedor</strong>
+            <span>Mostra tudo.</span>
+          </label>
+        </div>
+
+        <div
+          class="modal-corpo"
+          data-passo="3"
+          role="radiogroup"
+          aria-labelledby="pergunta-acesso-boas-vindas"
+          hidden
+        >
+          <p class="texto-boas-vindas" id="pergunta-acesso-boas-vindas">
+            Você tem login no SankhyaOm e na Experience?
+          </p>
+          <label class="opcao-boas-vindas">
+            <input type="radio" name="acesso-ao-sankhya" value="sim" checked />
+            <strong>Sim</strong>
+            <span>Agenda, OS e as guias do SankhyaOm e da Experience ficam disponíveis.</span>
+          </label>
+          <label class="opcao-boas-vindas">
+            <input type="radio" name="acesso-ao-sankhya" value="nao" />
+            <strong>Não, sou terceiro</strong>
+            <span
+              >Esconde o que depende desse login: Sankhya ID, Agenda, OS e as guias do SankhyaOm e
+              da Experience.</span
+            >
+          </label>
+        </div>
+
+        <section class="modal-corpo" data-passo="4" hidden>
+          <p class="texto-boas-vindas">Tudo pronto. Confira:</p>
+          <dl class="resumo-boas-vindas" id="resumo-boas-vindas"></dl>
+          <p class="texto-boas-vindas">
+            Para mudar depois: seus dados em Configurações › Geral, e o que aparece no menu em
+            Configurações › Acessos.
+          </p>
+        </section>
+
+        <p class="erro-formulario erro-boas-vindas" id="erro-boas-vindas" hidden></p>
+
+        <div class="modal-rodape">
+          <button class="btn ghost rodape-esquerda" type="button" id="btn-voltar-boas-vindas">
+            Voltar
+          </button>
+          <button class="btn primario" type="submit" id="btn-avancar-boas-vindas">Próximo</button>
+        </div>
+      </form>
+    </dialog>
+
     <script src="/js/app.js" type="module"></script>
     <script src="/js/relatoDeProblema.js" type="module"></script>
   </body>

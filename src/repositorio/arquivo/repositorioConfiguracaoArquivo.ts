@@ -21,7 +21,6 @@ import {
   type ConfiguracaoSmtp,
   type DestinoDeLink,
   type Funcionalidade,
-  type PerfilProfissional,
 } from '../../tipos.ts';
 import {
   gravarArquivoDeDados,
@@ -34,6 +33,7 @@ import type {
   ConfiguracaoParaSalvar,
   DadosDeAtalho,
   RepositorioConfiguracao,
+  RespostasDasBoasVindas,
 } from '../repositorioConfiguracao.ts';
 
 const NOME_DO_ARQUIVO = 'configuracao.json';
@@ -85,10 +85,7 @@ export const BACKUP_INICIAL: ConfiguracaoDeBackup = {
   espelharNoDrive: false,
 };
 
-const CONFIGURACAO_INICIAL: Omit<
-  ConfiguracaoGlobal,
-  'perfil' | 'funcionalidadesOcultas' | 'terceiro'
-> = {
+const CONFIGURACAO_INICIAL: ConfiguracaoGlobal = {
   scriptPadrao: '',
   intervaloDeExecucaoAutomaticaSegundos: INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S,
   tempoLimiteSegundos: TEMPO_LIMITE_PADRAO_S,
@@ -106,6 +103,11 @@ const CONFIGURACAO_INICIAL: Omit<
   timeDoUsuario: '',
   emailDoUsuario: '',
   backup: BACKUP_INICIAL,
+  perfil: PERFIL_PADRAO,
+  funcionalidadesOcultas: [...FUNCIONALIDADES_OCULTAS_POR_PERFIL[PERFIL_PADRAO]],
+  terceiro: false,
+  /* Instalação nova: o assistente de boas-vindas abre na primeira vez. */
+  boasVindasConcluidas: false,
 };
 
 /**
@@ -147,65 +149,33 @@ function normalizarFuncionalidadesOcultas(valores: readonly unknown[]): Funciona
   return [...new Set(valores.filter(ehFuncionalidade))];
 }
 
-/** O que o instalador escolheu; só vale para o que o arquivo ainda não tem gravado. */
-export interface AcessosIniciais {
-  perfil: PerfilProfissional;
-  terceiro: boolean;
-  /** Caixas desmarcadas na página do perfil; ausente, vale o preset do perfil. */
-  funcionalidadesOcultas?: readonly unknown[];
-}
-
-const ACESSOS_INICIAIS_PADRAO: AcessosIniciais = {
-  perfil: PERFIL_PADRAO,
-  terceiro: false,
-};
-
-/** Quem usa o aplicativo, como digitado no instalador; só preenche o campo ainda vazio. */
-export type IdentificacaoInicial = Pick<
-  ConfiguracaoGlobal,
-  'nomeDoUsuario' | 'empresaDoUsuario' | 'timeDoUsuario' | 'emailDoUsuario'
->;
-
-const IDENTIFICACAO_INICIAL_PADRAO: IdentificacaoInicial = {
-  nomeDoUsuario: '',
-  empresaDoUsuario: '',
-  timeDoUsuario: '',
-  emailDoUsuario: '',
-};
-
-/*
- * O Git AutoSync não decide mais o preset: ele saiu do instalador, e a aba Git aparece
- * acinzentada, com o botão de instalar, enquanto ele não está na máquina. As caixas do
- * instalador só valem para o perfil escolhido junto com elas.
- */
-function presetInicial(perfil: PerfilProfissional, iniciais: AcessosIniciais): unknown[] {
-  const escolhidasNoInstalador =
-    perfil === iniciais.perfil ? iniciais.funcionalidadesOcultas : undefined;
-  return [...(escolhidasNoInstalador ?? FUNCIONALIDADES_OCULTAS_POR_PERFIL[perfil])];
-}
-
 /**
- * Arquivo sem os acessos — instalação nova ou anterior a eles — recebe o perfil
- * escolhido no instalador com as caixas marcadas lá ou, sem elas, com o preset do
- * perfil. Com o perfil gravado e sem a lista,
- * vale o preset desse perfil. Terceiro segue a mesma regra, campo a campo: uma
- * instalação atualizada, que já tem perfil mas ainda não tem o campo, recebe o
- * que foi marcado no instalador.
+ * Arquivo de antes dos acessos não tem perfil: vale o padrão, com tudo visível. Com o
+ * perfil gravado e sem a lista, vale o preset desse perfil.
  */
 function lerAcessos(
   dados: Partial<Record<keyof ConfiguracaoGlobal, unknown>>,
-  iniciais: AcessosIniciais,
 ): Pick<ConfiguracaoGlobal, 'perfil' | 'funcionalidadesOcultas' | 'terceiro'> {
-  const perfil = ehPerfilProfissional(dados.perfil) ? dados.perfil : iniciais.perfil;
+  const perfil = ehPerfilProfissional(dados.perfil) ? dados.perfil : PERFIL_PADRAO;
   const ocultas = Array.isArray(dados.funcionalidadesOcultas)
     ? dados.funcionalidadesOcultas
-    : presetInicial(perfil, iniciais);
+    : FUNCIONALIDADES_OCULTAS_POR_PERFIL[perfil];
 
   return {
     perfil,
     funcionalidadesOcultas: normalizarFuncionalidadesOcultas(ocultas),
-    terceiro: booleanoOuPadrao(dados.terceiro, iniciais.terceiro),
+    terceiro: booleanoOuPadrao(dados.terceiro, false),
   };
+}
+
+/**
+ * Arquivo de antes do assistente: quem já tem perfil gravado escolheu no instalador ou
+ * na aba Acessos e não é incomodado; quem não tem nunca escolheu, e o assistente abre.
+ */
+function lerBoasVindasConcluidas(
+  dados: Partial<Record<keyof ConfiguracaoGlobal, unknown>>,
+): boolean {
+  return booleanoOuPadrao(dados.boasVindasConcluidas, ehPerfilProfissional(dados.perfil));
 }
 
 function ehObjeto(valor: unknown): valor is Record<string, unknown> {
@@ -331,23 +301,11 @@ function normalizarAtalho(atalho: DadosDeAtalho): Atalho {
  */
 export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
   readonly #caminhoDoArquivo: string;
-  readonly #acessosIniciais: AcessosIniciais;
-  readonly #identificacaoInicial: IdentificacaoInicial;
   #configuracao: ConfiguracaoGlobal | null = null;
   readonly #fila = new FilaDeOperacoes();
 
-  /**
-   * `acessosIniciais` e `identificacaoInicial` são o escolhido no instalador. Os acessos só
-   * valem enquanto o arquivo não os tem; a identificação, campo a campo, enquanto está vazia.
-   */
-  constructor(
-    diretorioDeDados: string,
-    acessosIniciais: AcessosIniciais = ACESSOS_INICIAIS_PADRAO,
-    identificacaoInicial: IdentificacaoInicial = IDENTIFICACAO_INICIAL_PADRAO,
-  ) {
+  constructor(diretorioDeDados: string) {
     this.#caminhoDoArquivo = join(diretorioDeDados, NOME_DO_ARQUIVO);
-    this.#acessosIniciais = acessosIniciais;
-    this.#identificacaoInicial = identificacaoInicial;
   }
 
   descartarCache(): void {
@@ -365,11 +323,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
 
     const conteudo = await lerArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO);
     if (conteudo === null) {
-      this.#configuracao = {
-        ...CONFIGURACAO_INICIAL,
-        ...this.#identificacaoInicial,
-        ...lerAcessos({}, this.#acessosIniciais),
-      };
+      this.#configuracao = structuredClone(CONFIGURACAO_INICIAL);
       return this.#configuracao;
     }
 
@@ -396,19 +350,14 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       smtp: lerSmtp(dados.smtp),
       alertaDaAgenda: lerAlertaDaAgenda(dados.alertaDaAgenda),
       assistenteDeIa: lerAssistenteDeIa(dados.assistenteDeIa),
-      // Idem: arquivo de antes desta versão não tem quem usa o aplicativo. Vazio, vale o
-      // digitado no instalador.
-      nomeDoUsuario:
-        textoOuPadrao(dados.nomeDoUsuario, '').trim() || this.#identificacaoInicial.nomeDoUsuario,
-      empresaDoUsuario:
-        textoOuPadrao(dados.empresaDoUsuario, '').trim() ||
-        this.#identificacaoInicial.empresaDoUsuario,
-      timeDoUsuario:
-        textoOuPadrao(dados.timeDoUsuario, '').trim() || this.#identificacaoInicial.timeDoUsuario,
-      emailDoUsuario:
-        textoOuPadrao(dados.emailDoUsuario, '').trim() || this.#identificacaoInicial.emailDoUsuario,
+      // Idem: arquivo de antes desta versão não tem quem usa o aplicativo.
+      nomeDoUsuario: textoOuPadrao(dados.nomeDoUsuario, '').trim(),
+      empresaDoUsuario: textoOuPadrao(dados.empresaDoUsuario, '').trim(),
+      timeDoUsuario: textoOuPadrao(dados.timeDoUsuario, '').trim(),
+      emailDoUsuario: textoOuPadrao(dados.emailDoUsuario, '').trim(),
       backup: lerBackup(dados.backup),
-      ...lerAcessos(dados, this.#acessosIniciais),
+      ...lerAcessos(dados),
+      boasVindasConcluidas: lerBoasVindasConcluidas(dados),
     };
 
     if (precisaMigrar(conteudo)) {
@@ -456,6 +405,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       timeDoUsuario: configuracao.timeDoUsuario?.trim() ?? atual.timeDoUsuario,
       emailDoUsuario: configuracao.emailDoUsuario?.trim() ?? atual.emailDoUsuario,
       backup: atual.backup,
+      boasVindasConcluidas: atual.boasVindasConcluidas,
     };
 
     await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);
@@ -474,6 +424,21 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
 
   definirBackup(backup: ConfiguracaoDeBackup): Promise<ConfiguracaoGlobal> {
     return this.#fila.enfileirar(() => this.#gravarCampo({ backup: lerBackup(backup) }));
+  }
+
+  concluirBoasVindas(respostas: RespostasDasBoasVindas): Promise<ConfiguracaoGlobal> {
+    return this.#fila.enfileirar(() =>
+      this.#gravarCampo({
+        nomeDoUsuario: respostas.nomeDoUsuario.trim(),
+        empresaDoUsuario: respostas.empresaDoUsuario.trim(),
+        timeDoUsuario: respostas.timeDoUsuario.trim(),
+        emailDoUsuario: respostas.emailDoUsuario.trim(),
+        perfil: respostas.perfil,
+        funcionalidadesOcultas: [...FUNCIONALIDADES_OCULTAS_POR_PERFIL[respostas.perfil]],
+        terceiro: respostas.terceiro,
+        boasVindasConcluidas: true,
+      }),
+    );
   }
 
   async #gravarCampo(campo: Partial<ConfiguracaoGlobal>): Promise<ConfiguracaoGlobal> {

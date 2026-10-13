@@ -607,13 +607,12 @@ abriria vazia.
 | Analista           | aba Git do cliente e aba Git do menu              |
 | Gerente de projeto | aba Git do cliente, aba Git do menu e a aba Local |
 
-O perfil é perguntado na instalação, e o preset dele vale desde a primeira
-abertura. Trocar o perfil na aba Acessos marca as caixas do preset; depois disso
-elas seguem editáveis, uma a uma. Salvar com o perfil ou as caixas alterados
-recarrega o Painel, que volta montado do zero com os acessos novos; as guias do
-Sankhya e das bases continuam abertas. Reinstalar ou atualizar não desfaz o ajuste: o
-perfil do instalador só é aplicado enquanto a configuração ainda não tem acessos
-gravados — inclusive quando a pasta de dados vem sincronizada de outra máquina.
+O perfil é perguntado no assistente de boas-vindas (abaixo), e o preset dele vale
+desde a primeira abertura. Trocar o perfil na aba Acessos marca as caixas do preset;
+depois disso elas seguem editáveis, uma a uma. Salvar com o perfil ou as caixas
+alterados recarrega o Painel, que volta montado do zero com os acessos novos; as guias
+do Sankhya e das bases continuam abertas. Reinstalar ou atualizar não desfaz o ajuste:
+os acessos ficam no `configuracao.json`, na pasta de dados.
 
 Ocultar a aba **Git** do cliente leva junto o que só existe por causa dos
 repositórios: o filtro por situação do Git, as bolinhas do Git no topo e na lista
@@ -621,7 +620,7 @@ de clientes, a aba **MCP** das configurações e a seção AutoSync da própria 
 
 ### Terceiro
 
-A caixa **Terceiro**, na aba Acessos e na página do perfil do instalador, é para
+A caixa **Terceiro**, na aba Acessos e no assistente de boas-vindas, é para
 quem não tem acesso ao SankhyaOm nem à Experience. Vale para qualquer perfil e,
 marcada, oculta tudo o que depende das credenciais Sankhya:
 
@@ -635,9 +634,24 @@ marcada, oculta tudo o que depende das credenciais Sankhya:
   **Guias**, e o aplicativo deixa de logar sozinho nelas.
 
 Terceiro não altera as caixas gravadas: desmarcá-lo devolve a tela ao que era.
-A caixa do instalador segue a regra do perfil, só é aplicada enquanto a
-configuração ainda não tem o campo — inclusive numa instalação atualizada, que já
-tem perfil.
+
+### Assistente de boas-vindas
+
+Na primeira abertura, igual no Windows, no Linux e no Mac, o HUB SNK abre um
+assistente de quatro passos antes do Painel:
+
+1. **Seus dados:** nome, empresa, time e e-mail, todos opcionais. Seguem nos relatos
+   de problema ao suporte e nos e-mails do HUB SNK.
+2. **Perfil:** Consultor (marcado), Analista, Gerente de Projetos ou Desenvolvedor,
+   com o que cada um esconde.
+3. **Login no SankhyaOm e na Experience:** "Não, sou terceiro" é a caixa Terceiro.
+4. **Resumo**, com o botão **Começar**.
+
+Todo passo já vem respondido; Esc não fecha, porque o assistente voltaria na próxima
+abertura. As funcionalidades ocultas são o preset do perfil, e o ajuste fino fica na
+aba Acessos. Concluir grava `boasVindasConcluidas` no `configuracao.json` e o
+assistente não volta. Quem atualiza de uma versão com perfil gravado não o vê; quem
+vem de uma versão anterior aos acessos, sem perfil, vê.
 
 > Desmarcar só tira a funcionalidade da tela. Nenhum dado é apagado, marcar de
 > novo a traz de volta, e a API continua respondendo: não é controle de
