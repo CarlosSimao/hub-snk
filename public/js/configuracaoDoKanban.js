@@ -1,11 +1,13 @@
 /*
  * Aba Kanban das Configurações: o cadastro das colunas e dos tipos que todos os quadros
- * usam. Grava na hora, item a item, e o servidor avisa os quadros abertos pelo fluxo do
- * kanban. Excluir o que algum card usa é recusado: os cards aparecem na aba para a
- * pessoa mover ou trocar o tipo deles no quadro.
+ * usam. Os itens aparecem como chips; o clique num deles o leva para o campo de edição,
+ * e sem chip escolhido o campo inclui um novo. Grava na hora, item a item, e o servidor
+ * avisa os quadros abertos pelo fluxo do kanban. Excluir o que algum card usa é recusado:
+ * os cards aparecem na aba para a pessoa mover ou trocar o tipo deles no quadro.
  */
 
-const TAMANHO_MAXIMO_DO_NOME = 60;
+/* Mais que isso esticaria a janela das Configurações até criar barra de rolagem. */
+const MAXIMO_DE_CARDS_NO_BLOQUEIO = 5;
 
 /* `caminho` é o da API e o sufixo dos ids da aba; só as colunas têm ordem. */
 const CADASTROS = [
@@ -23,12 +25,16 @@ export function iniciarConfiguracaoDoKanban(dependencias) {
       {
         lista: el(`lista-kanban-${caminho}`),
         bloqueio: el(`bloqueio-kanban-${caminho}`),
-        campoNovo: el(`campo-kanban-novo-${caminho}`),
-        botaoNovo: el(`btn-kanban-novo-${caminho}`),
+        campo: el(`campo-kanban-${caminho}`),
+        salvar: el(`btn-kanban-salvar-${caminho}`),
+        excluir: el(`btn-kanban-excluir-${caminho}`),
+        cancelar: el(`btn-kanban-cancelar-${caminho}`),
       },
     ]),
   );
   let dados = { colunas: [], tipos: [] };
+  /* A chave do chip escolhido em cada cadastro; `null` deixa o campo no modo de incluir. */
+  const escolhidas = { colunas: null, tipos: null };
 
   async function carregar() {
     try {
@@ -38,93 +44,101 @@ export function iniciarConfiguracaoDoKanban(dependencias) {
       return;
     }
     for (const cadastro of CADASTROS) {
-      desenharLista(cadastro);
+      desenhar(cadastro);
     }
   }
 
-  function desenharLista(cadastro) {
-    const itens = dados[cadastro.caminho];
-    partes[cadastro.caminho].lista.replaceChildren(
-      ...itens.map((item, posicao) => criarLinha(cadastro, item, posicao, itens.length)),
+  function itemEscolhido(caminho) {
+    return dados[caminho].find((item) => item.chave === escolhidas[caminho]);
+  }
+
+  function escolher(cadastro, chave) {
+    escolhidas[cadastro.caminho] = chave;
+    partes[cadastro.caminho].bloqueio.hidden = true;
+    desenhar(cadastro);
+  }
+
+  function desenhar(cadastro) {
+    const { caminho } = cadastro;
+    // O item escolhido pode ter sido excluído: o campo volta ao modo de incluir.
+    if (!itemEscolhido(caminho)) {
+      escolhidas[caminho] = null;
+    }
+    const itens = dados[caminho];
+    partes[caminho].lista.replaceChildren(
+      ...itens.map((item, posicao) => criarChip(cadastro, item, posicao, itens.length)),
     );
+    preencherEdicao(cadastro);
   }
 
   /** O papel que a posição dá à coluna: só a primeira e a última têm um. */
   function papelDaColuna(posicao, total) {
-    if (posicao === 0) return 'recebe as novas';
+    if (posicao === 0) return 'novas';
     if (posicao === total - 1) return 'concluídas';
     return '';
   }
 
-  function criarLinha(cadastro, item, posicao, total) {
-    const { caminho } = cadastro;
-    const endereco = `/api/kanban/${caminho}/${encodeURIComponent(item.chave)}`;
-    const nome = criarElemento('input');
-    nome.type = 'text';
-    nome.maxLength = TAMANHO_MAXIMO_DO_NOME;
-    nome.value = item.nome;
-    nome.setAttribute('aria-label', `Nome de "${item.nome}"`);
-    // `change` só dispara com o nome alterado, ao sair do campo ou no Enter.
-    nome.addEventListener('change', () =>
-      agir(caminho, () => requisitar(endereco, { metodo: 'PUT', corpo: { nome: nome.value } })),
+  function criarChip(cadastro, item, posicao, total) {
+    const chip = criarElemento('button', 'chip-kanban-cadastro', item.nome);
+    chip.type = 'button';
+    chip.setAttribute('aria-pressed', String(item.chave === escolhidas[cadastro.caminho]));
+    chip.addEventListener('click', () =>
+      escolher(cadastro, item.chave === escolhidas[cadastro.caminho] ? null : item.chave),
     );
-    nome.addEventListener('keydown', (evento) => {
-      if (evento.key === 'Enter') {
-        evento.preventDefault();
-        nome.blur();
-      }
-    });
-
-    const linha = criarElemento('div', 'linha-kanban-cadastro');
-    linha.append(nome);
-    if (cadastro.ordenavel) {
-      const subir = criarBotaoDeIcone('btn tiny', ICONES.chevronCima, 'Subir', () =>
-        mover(posicao, posicao - 1),
-      );
-      subir.disabled = posicao === 0;
-      const descer = criarBotaoDeIcone('btn tiny', ICONES.chevronBaixo, 'Descer', () =>
-        mover(posicao, posicao + 1),
-      );
-      descer.disabled = posicao === total - 1;
-      linha.append(
-        criarElemento(
-          'span',
-          'texto-auxiliar papel-kanban-cadastro',
-          papelDaColuna(posicao, total),
-        ),
-        subir,
-        descer,
-      );
+    const papel = cadastro.ordenavel ? papelDaColuna(posicao, total) : '';
+    if (papel) {
+      chip.append(criarElemento('span', 'papel-kanban-cadastro', papel));
     }
-    linha.append(
-      criarBotaoDeIcone('btn tiny danger', ICONES.lixeira, `Excluir "${item.nome}"`, () =>
-        agir(caminho, () => requisitar(endereco, { metodo: 'DELETE' })),
-      ),
-    );
-    return linha;
+    return chip;
   }
 
-  function mover(de, para) {
+  function preencherEdicao(cadastro) {
+    const { caminho, ordenavel } = cadastro;
+    const { campo, salvar, excluir, cancelar, esquerda, direita } = partes[caminho];
+    const item = itemEscolhido(caminho);
+    campo.value = item?.nome ?? '';
+    salvar.textContent = item ? 'Salvar' : 'Adicionar';
+    excluir.hidden = !item;
+    cancelar.hidden = !item;
+    if (!ordenavel) return;
+    const posicao = dados[caminho].indexOf(item);
+    esquerda.hidden = !item;
+    direita.hidden = !item;
+    esquerda.disabled = posicao <= 0;
+    direita.disabled = posicao === dados[caminho].length - 1;
+  }
+
+  function endereco(caminho, item) {
+    return `/api/kanban/${caminho}/${encodeURIComponent(item.chave)}`;
+  }
+
+  async function salvar(caminho) {
+    const { campo } = partes[caminho];
+    const nome = campo.value;
+    if (!nome.trim()) {
+      campo.focus();
+      return;
+    }
+    const item = itemEscolhido(caminho);
+    const gravou = await agir(caminho, () =>
+      item
+        ? requisitar(endereco(caminho, item), { metodo: 'PUT', corpo: { nome } })
+        : requisitar(`/api/kanban/${caminho}`, { metodo: 'POST', corpo: { nome } }),
+    );
+    // Recusado na inclusão, o nome digitado fica para a pessoa corrigir.
+    if (!gravou && !item) {
+      campo.value = nome;
+    }
+  }
+
+  function mover(deslocamento) {
     const chaves = dados.colunas.map((coluna) => coluna.chave);
+    const de = chaves.indexOf(escolhidas.colunas);
     const [movida] = chaves.splice(de, 1);
-    chaves.splice(para, 0, movida);
+    chaves.splice(de + deslocamento, 0, movida);
     return agir('colunas', () =>
       requisitar('/api/kanban/ordem-das-colunas', { metodo: 'PUT', corpo: { chaves } }),
     );
-  }
-
-  async function adicionar(caminho) {
-    const { campoNovo } = partes[caminho];
-    if (!campoNovo.value.trim()) {
-      campoNovo.focus();
-      return;
-    }
-    const criado = await agir(caminho, () =>
-      requisitar(`/api/kanban/${caminho}`, { metodo: 'POST', corpo: { nome: campoNovo.value } }),
-    );
-    if (criado) {
-      campoNovo.value = '';
-    }
   }
 
   /*
@@ -150,26 +164,53 @@ export function iniciarConfiguracaoDoKanban(dependencias) {
   }
 
   function mostrarBloqueio(bloqueio, erro) {
-    const cards = erro.tarefas.map(({ titulo, cliente, quadro }) => {
+    const cards = erro.tarefas.slice(0, MAXIMO_DE_CARDS_NO_BLOQUEIO).map((tarefa) => {
+      const { titulo, cliente, quadro } = tarefa;
       const onde = cliente && cliente !== quadro ? `${cliente} · ${quadro}` : quadro;
       return criarElemento('li', null, `${titulo} — ${onde}`);
     });
+    const restantes = erro.tarefas.length - cards.length;
+    if (restantes > 0) {
+      cards.push(criarElemento('li', null, `e mais ${restantes} card${restantes > 1 ? 's' : ''}`));
+    }
     const lista = criarElemento('ul');
     lista.append(...cards);
     bloqueio.replaceChildren(criarElemento('p', 'erro-formulario', erro.message), lista);
     bloqueio.hidden = false;
   }
 
-  for (const { caminho } of CADASTROS) {
-    const { campoNovo, botaoNovo } = partes[caminho];
-    botaoNovo.addEventListener('click', () => adicionar(caminho));
-    // Enter no campo adiciona: o formulário das Configurações não é o dono deste campo.
-    campoNovo.addEventListener('keydown', (evento) => {
+  for (const cadastro of CADASTROS) {
+    const { caminho } = cadastro;
+    const parte = partes[caminho];
+    parte.salvar.addEventListener('click', () => salvar(caminho));
+    parte.excluir.addEventListener('click', () =>
+      agir(caminho, () =>
+        requisitar(endereco(caminho, itemEscolhido(caminho)), { metodo: 'DELETE' }),
+      ),
+    );
+    parte.cancelar.addEventListener('click', () => escolher(cadastro, null));
+    // Enter no campo grava: o formulário das Configurações não é o dono deste campo.
+    parte.campo.addEventListener('keydown', (evento) => {
       if (evento.key === 'Enter') {
         evento.preventDefault();
-        void adicionar(caminho);
+        void salvar(caminho);
       }
     });
+    if (cadastro.ordenavel) {
+      parte.esquerda = criarBotaoDeIcone(
+        'btn tiny',
+        ICONES.chevronEsquerda,
+        'Mover para a esquerda',
+        () => mover(-1),
+      );
+      parte.direita = criarBotaoDeIcone(
+        'btn tiny',
+        ICONES.chevronDireita,
+        'Mover para a direita',
+        () => mover(1),
+      );
+      parte.salvar.before(parte.esquerda, parte.direita);
+    }
   }
 
   return { carregar };

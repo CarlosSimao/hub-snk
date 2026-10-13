@@ -2000,7 +2000,7 @@ button.selo-situacao:focus-visible {
 .campo input,
 .campo select,
 .linha-atalho-config input,
-.linha-kanban-cadastro input,
+.edicao-kanban-cadastro input,
 .busca-atalhos {
   width: 100%;
   padding: 8px 10px;
@@ -2039,7 +2039,7 @@ button.selo-situacao:focus-visible {
 .campo input:focus-visible,
 .campo select:focus-visible,
 .linha-atalho-config input:focus-visible,
-.linha-kanban-cadastro input:focus-visible,
+.edicao-kanban-cadastro input:focus-visible,
 .busca-atalhos:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -1px;
@@ -3811,10 +3811,6 @@ button.selo-situacao:focus-visible {
 
 /* ------------------------------- kanban dos projetos ------------------------------- */
 
-.secao-kanbans {
-  margin-top: 4px;
-}
-
 .secao-kanbans .secao-cabecalho {
   flex-wrap: wrap;
   gap: 8px;
@@ -3867,28 +3863,63 @@ button.selo-situacao:focus-visible {
   max-height: 70vh;
 }
 
-/* Aba Kanban das Configurações: uma linha por coluna ou tipo, com o nome editável. */
+/*
+ * Aba Kanban das Configurações: colunas e tipos em chips que quebram linha, para a aba
+ * não crescer um item por linha; o clique escolhe o item que o campo abaixo edita.
+ */
 .lista-kanban-cadastro {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 6px;
-  margin: 8px 0;
 }
 
-.linha-kanban-cadastro {
+.chip-kanban-cadastro {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.chip-kanban-cadastro:hover {
+  border-color: var(--accent);
+}
+
+.chip-kanban-cadastro[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+}
+
+.chip-kanban-cadastro:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.papel-kanban-cadastro {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.edicao-kanban-cadastro {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.linha-kanban-cadastro input {
+.edicao-kanban-cadastro input {
   flex: 1;
   min-width: 0;
 }
 
-.papel-kanban-cadastro {
-  min-width: 96px;
-  text-align: right;
+/* `.botao-icone` tem `display` próprio, que venceria o atributo hidden. */
+.edicao-kanban-cadastro .btn[hidden] {
+  display: none;
 }
 
 .bloqueio-kanban-cadastro ul {

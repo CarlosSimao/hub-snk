@@ -1137,16 +1137,6 @@
           </button>
           <button
             class="aba"
-            id="aba-configuracao-mcp"
-            type="button"
-            role="tab"
-            aria-selected="false"
-            aria-controls="painel-configuracao-mcp"
-          >
-            MCP
-          </button>
-          <button
-            class="aba"
             id="aba-configuracao-kanban"
             type="button"
             role="tab"
@@ -1154,6 +1144,16 @@
             aria-controls="painel-configuracao-kanban"
           >
             Kanban
+          </button>
+          <button
+            class="aba"
+            id="aba-configuracao-mcp"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-mcp"
+          >
+            MCP
           </button>
           <button
             class="aba"
@@ -1853,21 +1853,38 @@
             <fieldset class="grupo-de-acessos">
               <legend>Colunas</legend>
               <p class="texto-auxiliar">
-                Valem para todos os quadros, na ordem abaixo. A primeira recebe as tarefas novas e
-                as geradas pela IA; a última é a das concluídas.
+                Valem para todos os quadros, da esquerda para a direita. A primeira recebe as
+                tarefas novas e as geradas pela IA; a última é a das concluídas. Clique numa coluna
+                para renomear, mover ou excluir.
               </p>
               <div class="lista-kanban-cadastro" id="lista-kanban-colunas"></div>
               <div class="bloqueio-kanban-cadastro" id="bloqueio-kanban-colunas" hidden></div>
-              <div class="linha-kanban-cadastro">
+              <div class="edicao-kanban-cadastro">
                 <input
-                  id="campo-kanban-novo-colunas"
+                  id="campo-kanban-colunas"
                   type="text"
                   maxlength="60"
                   placeholder="Nova coluna"
-                  aria-label="Nome da nova coluna"
+                  aria-label="Nome da coluna"
                 />
-                <button class="btn tiny primario" type="button" id="btn-kanban-novo-colunas">
+                <button class="btn tiny primario" type="button" id="btn-kanban-salvar-colunas">
                   Adicionar
+                </button>
+                <button
+                  class="btn tiny danger"
+                  type="button"
+                  id="btn-kanban-excluir-colunas"
+                  hidden
+                >
+                  Excluir
+                </button>
+                <button
+                  class="btn tiny ghost"
+                  type="button"
+                  id="btn-kanban-cancelar-colunas"
+                  hidden
+                >
+                  Cancelar
                 </button>
               </div>
             </fieldset>
@@ -1875,19 +1892,26 @@
               <legend>Tipos</legend>
               <p class="texto-auxiliar">
                 O tipo de cada tarefa. A IA escolhe entre estes ao gerar as tarefas do escopo.
+                Clique num tipo para renomear ou excluir.
               </p>
               <div class="lista-kanban-cadastro" id="lista-kanban-tipos"></div>
               <div class="bloqueio-kanban-cadastro" id="bloqueio-kanban-tipos" hidden></div>
-              <div class="linha-kanban-cadastro">
+              <div class="edicao-kanban-cadastro">
                 <input
-                  id="campo-kanban-novo-tipos"
+                  id="campo-kanban-tipos"
                   type="text"
                   maxlength="60"
                   placeholder="Novo tipo"
-                  aria-label="Nome do novo tipo"
+                  aria-label="Nome do tipo"
                 />
-                <button class="btn tiny primario" type="button" id="btn-kanban-novo-tipos">
+                <button class="btn tiny primario" type="button" id="btn-kanban-salvar-tipos">
                   Adicionar
+                </button>
+                <button class="btn tiny danger" type="button" id="btn-kanban-excluir-tipos" hidden>
+                  Excluir
+                </button>
+                <button class="btn tiny ghost" type="button" id="btn-kanban-cancelar-tipos" hidden>
+                  Cancelar
                 </button>
               </div>
             </fieldset>

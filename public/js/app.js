@@ -179,7 +179,8 @@ const ICONES = {
   seta: 'M7 17L17 7 M7 7h10v10',
   /* Chevron para baixo: alterna entre exibir e ocultar o corpo de um card. */
   chevronBaixo: 'M6 9l6 6 6-6',
-  chevronCima: 'M6 15l6-6 6 6',
+  chevronEsquerda: 'M15 18l-6-6 6-6',
+  chevronDireita: 'M9 18l6-6-6-6',
   mais: 'M12 5v14 M5 12h14',
   pasta: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z',
   terminal: 'M4 17l6-6-6-6 M12 19h8',
