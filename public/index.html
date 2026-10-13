@@ -42,6 +42,15 @@
           </button>
           <button
             class="aba"
+            id="btn-visualizacao-kanban"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Kanban
+          </button>
+          <button
+            class="aba"
             id="btn-visualizacao-local"
             type="button"
             role="tab"
@@ -254,6 +263,28 @@
                do cliente, só que sem recorte de cliente. -->
           <div id="mount-agenda-geral"></div>
         </div>
+      </div>
+
+      <div class="card quadro-kanban-geral" id="visualizacao-kanban" hidden>
+        <div class="detalhe-cabecalho">
+          <div class="detalhe-titulo-com-subtitulo">
+            <h2>Kanban</h2>
+            <p class="texto-auxiliar" id="situacao-kanban-geral"></p>
+          </div>
+          <div class="acoes-kanban">
+            <select id="campo-kanban-geral-cliente" aria-label="Filtrar por cliente"></select>
+            <select
+              id="campo-kanban-geral-projeto"
+              aria-label="Filtrar por projeto"
+              hidden
+            ></select>
+            <button class="btn tiny primario" type="button" id="btn-kanban-geral-nova-tarefa">
+              Nova tarefa
+            </button>
+          </div>
+        </div>
+        <!-- As colunas são montadas pelo kanban.js. -->
+        <div class="colunas-kanban" id="colunas-kanban-geral"></div>
       </div>
 
       <div class="card" id="visualizacao-os" hidden>
@@ -1106,6 +1137,16 @@
           </button>
           <button
             class="aba"
+            id="aba-configuracao-kanban"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="painel-configuracao-kanban"
+          >
+            Kanban
+          </button>
+          <button
+            class="aba"
             id="aba-configuracao-mcp"
             type="button"
             role="tab"
@@ -1797,6 +1838,81 @@
                     <input type="checkbox" id="campo-alerta-agenda-email" /> Enviar por e-mail
                   </label>
                 </div>
+              </div>
+            </fieldset>
+          </div>
+
+          <!-- Cadastro das colunas e dos tipos de todos os quadros. A lista vem do configuracaoDoKanban.js. -->
+          <div
+            class="painel-aba"
+            id="painel-configuracao-kanban"
+            role="tabpanel"
+            aria-labelledby="aba-configuracao-kanban"
+            hidden
+          >
+            <fieldset class="grupo-de-acessos">
+              <legend>Colunas</legend>
+              <p class="texto-auxiliar">
+                Valem para todos os quadros, da esquerda para a direita. A primeira recebe as
+                tarefas novas e as geradas pela IA; a última é a das concluídas. Clique numa coluna
+                para renomear, mover ou excluir.
+              </p>
+              <div class="lista-kanban-cadastro" id="lista-kanban-colunas"></div>
+              <div class="bloqueio-kanban-cadastro" id="bloqueio-kanban-colunas" hidden></div>
+              <div class="edicao-kanban-cadastro">
+                <input
+                  id="campo-kanban-colunas"
+                  type="text"
+                  maxlength="60"
+                  placeholder="Nova coluna"
+                  aria-label="Nome da coluna"
+                />
+                <button class="btn tiny primario" type="button" id="btn-kanban-salvar-colunas">
+                  Adicionar
+                </button>
+                <button
+                  class="btn tiny danger"
+                  type="button"
+                  id="btn-kanban-excluir-colunas"
+                  hidden
+                >
+                  Excluir
+                </button>
+                <button
+                  class="btn tiny ghost"
+                  type="button"
+                  id="btn-kanban-cancelar-colunas"
+                  hidden
+                >
+                  Cancelar
+                </button>
+              </div>
+            </fieldset>
+            <fieldset class="grupo-de-acessos">
+              <legend>Tipos</legend>
+              <p class="texto-auxiliar">
+                O tipo de cada tarefa. A IA escolhe entre estes ao gerar as tarefas do escopo.
+                Clique num tipo para renomear ou excluir.
+              </p>
+              <div class="lista-kanban-cadastro" id="lista-kanban-tipos"></div>
+              <div class="bloqueio-kanban-cadastro" id="bloqueio-kanban-tipos" hidden></div>
+              <div class="edicao-kanban-cadastro">
+                <input
+                  id="campo-kanban-tipos"
+                  type="text"
+                  maxlength="60"
+                  placeholder="Novo tipo"
+                  aria-label="Nome do tipo"
+                />
+                <button class="btn tiny primario" type="button" id="btn-kanban-salvar-tipos">
+                  Adicionar
+                </button>
+                <button class="btn tiny danger" type="button" id="btn-kanban-excluir-tipos" hidden>
+                  Excluir
+                </button>
+                <button class="btn tiny ghost" type="button" id="btn-kanban-cancelar-tipos" hidden>
+                  Cancelar
+                </button>
               </div>
             </fieldset>
           </div>
@@ -2693,9 +2809,15 @@
         </div>
 
         <div class="modal-corpo">
-          <div class="campo" id="bloco-kanban-tarefa-demanda" hidden>
-            <label for="campo-kanban-tarefa-demanda">Kanban</label>
-            <select id="campo-kanban-tarefa-demanda"></select>
+          <div class="campos-kanban-tarefa">
+            <div class="campo">
+              <label for="campo-kanban-tarefa-cliente">Cliente</label>
+              <select id="campo-kanban-tarefa-cliente"></select>
+            </div>
+            <div class="campo">
+              <label for="campo-kanban-tarefa-projeto">Projeto</label>
+              <select id="campo-kanban-tarefa-projeto"></select>
+            </div>
           </div>
 
           <div class="campo">
@@ -2856,7 +2978,7 @@
           <legend>Kanban do projeto</legend>
           <label class="campo-checkbox">
             <input type="radio" name="exclusao-kanban" id="campo-kanban-exclusao-manter" checked />
-            Manter no cliente, em "Kanbans sem projeto"
+            Manter no cliente, na aba Kanban (as tarefas vão para o quadro do cliente)
           </label>
           <label class="campo-checkbox">
             <input type="radio" name="exclusao-kanban" id="campo-kanban-exclusao-excluir" />

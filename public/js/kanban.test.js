@@ -7,12 +7,15 @@ function tarefa(id, demandaId, estado, ordem, estimativaHoras = 0) {
 }
 
 describe('progressoDasTarefas', () => {
-  it('soma tarefas e horas, e o que já está concluído', () => {
-    const progresso = progressoDasTarefas([
-      tarefa(1, 1, 'backlog', 0, 4),
-      tarefa(2, 1, 'concluido', 0, 2.5),
-      tarefa(3, 1, 'concluido', 1, 1),
-    ]);
+  it('soma tarefas e horas, e o que já está na coluna das concluídas', () => {
+    const progresso = progressoDasTarefas(
+      [
+        tarefa(1, 1, 'backlog', 0, 4),
+        tarefa(2, 1, 'entregue', 0, 2.5),
+        tarefa(3, 1, 'entregue', 1, 1),
+      ],
+      'entregue',
+    );
 
     assert.deepEqual(progresso, { total: 3, concluidas: 2, horas: 7.5, horasConcluidas: 3.5 });
   });

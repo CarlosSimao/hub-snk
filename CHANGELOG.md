@@ -9,6 +9,46 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.9.0] - 2026-10-13
+
+### Adicionado
+
+- **Kanban geral**: aba Kanban no topo, ao lado de Clientes, com as tarefas de todos os
+  clientes num quadro só, filtro por cliente e, com um cliente escolhido, filtro pelos
+  projetos dele ou "Sem projeto". A tarefa nova escolhe o cliente e o projeto, ou o
+  **Interno**, para o que não é de cliente nenhum.
+- **Colunas e tipos do kanban nas Configurações**: aba Kanban para incluir, renomear,
+  ordenar e excluir as colunas, e incluir, renomear e excluir os tipos de tarefa. Valem
+  para todos os quadros. A primeira coluna recebe as tarefas novas e as da IA, e a última
+  conta como concluída. Coluna ou tipo usado por algum card não sai: a aba lista os cards
+  que impedem.
+- **Trocar o cliente e o projeto da tarefa**: em qualquer quadro, a janela da tarefa tem
+  Cliente e Projeto. Mudar leva a tarefa para o quadro deles, criado na hora se faltar.
+- **Kanban do cliente**: aba Kanban no cadastro do cliente, minimizada como a do projeto.
+  O botão de abrir mostra as tarefas do cliente com e sem projeto, com filtro por projeto
+  ou "Sem projeto". Em Editar o kanban, o quadro sem projeto vai para dentro de um projeto
+  e volta escolhendo "Sem projeto".
+
+### Alterado
+
+- **Um quadro sem projeto por cliente**: o kanban que perde o projeto (desvinculado, ou com
+  o projeto excluído mantendo o kanban) vai para a aba Kanban do cliente; se ela já tem
+  quadro, as tarefas passam para ele, e o documento e o resumo do quadro antigo são
+  descartados. Clientes que tinham vários kanbans sem projeto ficam com o mais antigo, com
+  as tarefas de todos. O bloco "Kanbans sem projeto" saiu da aba Projetos.
+- **Sem abas vazias**: o que não tem conteúdo para os acessos escolhidos deixa de aparecer.
+  Com Terceiro, some a aba Avisos das configurações; sem Projetos, somem a aba IA e o
+  Kanban do topo; sem Agenda, Lembretes, OS e Git, some o Resumo e o HUB SNK abre em
+  Clientes.
+- **Tipo desconhecido vira "Sem tipo"**: o que a IA ou um agente mandar fora do cadastro
+  fica sem tipo, em vez de "Outro". Os agentes MCP e o arquivo de tarefas passam a usar as
+  colunas cadastradas, e "done"/"concluído" vale sempre a última.
+
+### Corrigido
+
+- **Meet travado em "Participando…"**: entrar numa reunião pela lista do Meet abre a
+  chamada na janela dela e devolve o painel à lista, pronto para a próxima reunião.
+
 ## [2.8.0] - 2026-10-12
 
 ### Adicionado
@@ -695,7 +735,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.7.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.9.0...HEAD
+[2.9.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.7.0...v2.8.0
 [2.7.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.5.0...v2.6.0

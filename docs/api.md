@@ -303,11 +303,18 @@ serem lançadas à mão. Os dados ficam no `sankhya.db`; o documento original, e
 | `GET /api/kanban/demandas/:idDemanda/documento`       | `?baixar=1` força o download                          | O original, com `nosniff` e `no-store`; texto sai como `text/plain`     |
 | `GET /api/kanban/demandas/:idDemanda/documento/texto` |                                                       | `{ nome, tipo, texto }` extraído (vazio no PDF digitalizado)            |
 | `POST /api/kanban/demandas/:idDemanda/analisar`       |                                                       | `202` — análise em segundo plano; a tela acompanha a `situacao`         |
-| `POST /api/kanban/demandas/:idDemanda/tarefas`        | `{ titulo, descricao?, grupo?, tipo?, estado?, ... }` | `201` — tarefa criada, no `estado` pedido (padrão `backlog`)            |
-| `PUT /api/kanban/tarefas/:idTarefa`                   | os mesmos campos, todos opcionais                     | Tarefa atualizada                                                       |
+| `POST /api/kanban/demandas/:idDemanda/tarefas`        | `{ titulo, descricao?, grupo?, tipo?, estado?, ... }` | `201` — tarefa criada, no `estado` pedido (padrão: a primeira coluna)   |
+| `POST /api/kanban/tarefas`                            | os mesmos, com `clienteId?` e `projetoId?`            | `201` — tarefa no quadro do cliente e projeto, criado se faltar         |
+| `PUT /api/kanban/tarefas/:idTarefa`                   | os mesmos campos, todos opcionais                     | Tarefa atualizada; com `clienteId`, vai para o quadro dele e do projeto |
 | `POST /api/kanban/tarefas/:idTarefa/mover`            | `{ estado, indice? }`                                 | Leva para a coluna, na posição `indice` (ausente, vai para o fim)       |
 | `DELETE /api/kanban/tarefas/:idTarefa`                |                                                       | `204` — tarefa excluída                                                 |
-| `GET /api/kanban/fluxo`                               | SSE                                                   | `event: kanban` com `{ demandaId, clienteId, removida }` a cada mudança |
+| `GET /api/kanban`                                     |                                                       | `{ demandas, tarefas }` de todos os clientes e do Interno               |
+| `GET /api/kanban/cadastros`                           |                                                       | `{ colunas, tipos }`, cada item `{ chave, nome }`, na ordem do quadro   |
+| `POST /api/kanban/colunas` e `/tipos`                 | `{ nome }`                                            | `201` — `{ chave, nome }`; a chave nasce do nome e não muda             |
+| `PUT /api/kanban/colunas/:chave` e `/tipos/:chave`    | `{ nome }`                                            | Renomeia; a chave e os cards ficam                                      |
+| `DELETE /api/kanban/colunas/:chave` e `/tipos/:chave` |                                                       | `204`; em uso, `409` com `{ mensagem, tarefas }` (os cards que impedem) |
+| `PUT /api/kanban/ordem-das-colunas`                   | `{ chaves }`                                          | Todas as chaves na ordem nova; as colunas na ordem gravada              |
+| `GET /api/kanban/fluxo`                               | SSE                                                   | `event: kanban` a cada mudança num kanban; `event: cadastros` nos dois  |
 | `GET /api/kanban/transicoes`                          | `?clienteId=&desde=`                                  | `{ transicoes }`: histórico de colunas, em ordem cronológica            |
 
 `nome` ausente vale o nome do arquivo sem extensão ou, sem documento, o do projeto.
@@ -315,18 +322,20 @@ serem lançadas à mão. Os dados ficam no `sankhya.db`; o documento original, e
 informada precisa ser um caminho absoluto que já existe. `documento` é
 `{ nome, conteudoBase64 }`; o `.doc` do Word antigo é recusado. A tarefa tem ainda
 `estimativaHoras`, `prioridade` (`alta`, `media` ou `baixa`), `criteriosDeAceite` e
-`notas`; `tipo` é `backend`, `frontend`, `dados`, `relatorio`, `bi`, `integracao`,
-`configuracao`, `teste`, `documentacao` ou `outro`, e valor desconhecido vira `outro`.
+`notas`; `tipo` é a chave (ou o nome) de um tipo do cadastro, e valor desconhecido fica
+vazio, sem tipo. Sem `clienteId`, a tarefa vai para o quadro Interno.
 
 A tarefa aceita também `checklist`, a lista de verificação: até 50 itens
 `{ texto, feito }`, com até 300 caracteres no texto; itens sem texto são descartados.
 O fluxo `/api/kanban/fluxo` avisa toda mudança num kanban — da tela, do MCP, do arquivo
 de tarefas ou da análise da IA —, e é por ele que o painel relê o cliente aberto.
 
-As colunas (`estado`) são `backlog`, `a_fazer`, `em_andamento`, `em_revisao` e
-`concluido`. A `situacao` do kanban é `sem-documento`, `enviado`, `analisando`,
-`analisado` ou `falhou` (com o motivo em `erro`). Reanalisar troca só as tarefas que
-continuam no Backlog: o que já mudou de coluna fica. Durante a análise, analisar de
+As colunas (`estado`) são as do cadastro, iguais para todos os quadros: o banco começa
+com `backlog`, `a_fazer`, `em_andamento`, `em_revisao` e `concluido`. A primeira recebe
+as tarefas novas e as da IA; a última conta como concluída. Coluna com card não se
+exclui, nem a última que sobrar. A `situacao` do kanban é `sem-documento`, `enviado`,
+`analisando`, `analisado` ou `falhou` (com o motivo em `erro`). Reanalisar troca só as
+tarefas que continuam na primeira coluna: o que já mudou de coluna fica. Durante a análise, analisar de
 novo, trocar ou tirar o documento e excluir o kanban respondem `409`.
 
 ### Arquivo de tarefas e MCP

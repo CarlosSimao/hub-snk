@@ -29,15 +29,10 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
+import { chaveDoNome, type KanbanDosProjetos, type MudancaNoKanban } from './kanbanDosProjetos.ts';
 import {
-  ehEstadoDeTarefa,
-  type KanbanDosProjetos,
-  type MudancaNoKanban,
-} from './kanbanDosProjetos.ts';
-import {
-  ESTADOS_DE_TAREFA,
   type DemandaDoKanban,
-  type EstadoDeTarefa,
+  type ItemDoCadastro,
   type SituacaoDoArquivoDeTarefas,
   type TarefaDoKanban,
 } from './tiposDoKanban.ts';
@@ -63,7 +58,7 @@ interface Vigia {
   /** O texto que o HUB SNK gravou por último: o arquivo igual a ele é eco da própria escrita. */
   escrito: string;
   /** `estado` e `notas` como o HUB SNK os deixou no arquivo: a edição de fora é o que difere disto. */
-  base: Map<number, { estado: EstadoDeTarefa; notas: string; feitos: boolean[] }>;
+  base: Map<number, { estado: string; notas: string; feitos: boolean[] }>;
   situacao: SituacaoDoArquivoDeTarefas;
 }
 
@@ -78,7 +73,8 @@ export function slugDoNome(nome: string): string {
     .slice(0, TAMANHO_MAXIMO_DO_NOME);
 }
 
-const APELIDOS: Record<string, EstadoDeTarefa> = {
+/** Valem só enquanto a coluna existir no cadastro. */
+const APELIDOS: Record<string, string> = {
   todo: 'a_fazer',
   fazer: 'a_fazer',
   doing: 'em_andamento',
@@ -86,21 +82,28 @@ const APELIDOS: Record<string, EstadoDeTarefa> = {
   in_progress: 'em_andamento',
   revisao: 'em_revisao',
   review: 'em_revisao',
-  done: 'concluido',
-  feito: 'concluido',
-  feita: 'concluido',
-  concluida: 'concluido',
 };
 
-/** O modelo escreve o rótulo ("Em andamento", "Concluído") tanto quanto o código: os dois valem. */
-export function estadoDoTexto(valor: string): EstadoDeTarefa | undefined {
-  const normalizado = valor
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .trim()
-    .toLowerCase()
-    .replace(/[\s-]+/g, '_');
-  return ehEstadoDeTarefa(normalizado) ? normalizado : APELIDOS[normalizado];
+/** "Entregue" é sempre a última coluna, seja qual for o nome dela. */
+const APELIDOS_DA_ULTIMA = ['done', 'feito', 'feita', 'concluido', 'concluida'];
+
+/**
+ * O modelo escreve o rótulo ("Em andamento", "Concluído") tanto quanto a chave: os dois
+ * valem, e os apelidos comuns também.
+ */
+export function estadoDoTexto(valor: string, colunas: ItemDoCadastro[]): string | undefined {
+  const normalizado = chaveDoNome(valor);
+  const coluna = colunas.find(
+    (item) => item.chave === normalizado || chaveDoNome(item.nome) === normalizado,
+  );
+  if (coluna) {
+    return coluna.chave;
+  }
+  if (APELIDOS_DA_ULTIMA.includes(normalizado)) {
+    return colunas.at(-1)?.chave;
+  }
+  const apelido = APELIDOS[normalizado];
+  return colunas.some((item) => item.chave === apelido) ? apelido : undefined;
 }
 
 /** A pasta `Tarefas` da escolhida, sem repetir quando a escolhida já é ela. */
@@ -176,8 +179,9 @@ function baseDaTarefa(tarefa: TarefaDoKanban) {
   };
 }
 
-function ordenadas(tarefas: TarefaDoKanban[]): TarefaDoKanban[] {
-  const coluna = (estado: EstadoDeTarefa) => ESTADOS_DE_TAREFA.indexOf(estado);
+function ordenadas(tarefas: TarefaDoKanban[], colunas: ItemDoCadastro[]): TarefaDoKanban[] {
+  const chaves = colunas.map((item) => item.chave);
+  const coluna = (estado: string) => chaves.indexOf(estado);
   return [...tarefas].sort(
     (uma, outra) =>
       coluna(uma.estado) - coluna(outra.estado) || uma.ordem - outra.ordem || uma.id - outra.id,
@@ -453,7 +457,7 @@ export class ArquivoDeTarefas {
 
       const estadoEscrito = tarefa['estado'];
       if (typeof estadoEscrito === 'string' && estadoEscrito !== base.estado) {
-        const estado = estadoDoTexto(estadoEscrito);
+        const estado = estadoDoTexto(estadoEscrito, this.#kanban.colunas());
         if (!estado) {
           avisos.push(`Tarefa ${id}: o estado "${estadoEscrito.slice(0, 40)}" não existe`);
         } else if (estado !== atual.estado) {
@@ -504,7 +508,8 @@ export class ArquivoDeTarefas {
   /** Devolve a mensagem de erro, ou '' quando gravou (ou não havia o que gravar). */
   async #escrever(vigia: Vigia, demanda: DemandaDoKanban): Promise<string> {
     const { cliente, projeto } = await this.#nomes(demanda.clienteId, demanda.projetoId);
-    const tarefas = ordenadas(this.#kanban.tarefasDaDemanda(demanda.id));
+    const colunas = this.#kanban.colunas();
+    const tarefas = ordenadas(this.#kanban.tarefasDaDemanda(demanda.id), colunas);
     const conteudo = `${JSON.stringify(
       {
         geradoPor: MARCA,
@@ -514,8 +519,8 @@ export class ArquivoDeTarefas {
           'mantidas pelo HUB SNK. O quadro kanban do HUB SNK lê este arquivo de volta.',
         comoAtualizar: [
           'Releia o arquivo antes de editar: o HUB SNK o reescreve quando alguém mexe no quadro.',
-          `Altere só "estado", "notas" e o "feito" dos itens de "checklist". Estados válidos: ${ESTADOS_DE_TAREFA.join(', ')}.`,
-          'Fluxo: ao começar uma tarefa, "em_andamento"; pronta para conferência, "em_revisao"; entregue, "concluido".',
+          `Altere só "estado", "notas" e o "feito" dos itens de "checklist". Estados válidos, na ordem do quadro: ${colunas.map((item) => item.chave).join(', ')}.`,
+          `Fluxo: avance a tarefa pelas colunas conforme o trabalho anda; entregue, "${colunas.at(-1)?.chave ?? ''}".`,
           'Em "notas", registre o que foi feito, onde (arquivos, commit) ou o que está bloqueando.',
           'Não mude "id", não crie nem remova tarefas (isso é feito no HUB SNK) e mantenha o JSON válido.',
           'Ao salvar, o HUB SNK importa em poucos segundos e regrava o arquivo normalizado.',

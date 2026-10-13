@@ -21,11 +21,7 @@ import {
 } from './assistentesDeIa.ts';
 import type { ConteudoDoDocumento, DadosDeTarefa } from '../kanbanDosProjetos.ts';
 import { PdfIlegivelError, textoDoPdf } from '../documentos/textoDoPdf.ts';
-import {
-  TIPOS_DE_TAREFA,
-  type AssistenteDeIa,
-  type ConfiguracaoDoAssistenteDeIa,
-} from '../tiposDoKanban.ts';
+import type { AssistenteDeIa, ConfiguracaoDoAssistenteDeIa } from '../tiposDoKanban.ts';
 
 export class AnaliseDeEscopoError extends Error {
   constructor(mensagem: string) {
@@ -51,7 +47,14 @@ export interface AnaliseConcluida extends ResultadoDaAnalise {
   modelo: string;
 }
 
-function instrucoes(origem: string): string {
+/** Os tipos vêm do cadastro: sem nenhum, a IA deixa o campo vazio. */
+function regraDoTipo(tipos: string[]): string {
+  return tipos.length
+    ? `- "tipo" deve ser exatamente um de: ${tipos.join(', ')}.`
+    : '- "tipo" deve ficar vazio ("").';
+}
+
+function instrucoes(origem: string, tipos: string[]): string {
   return `Você é analista técnico de desenvolvimento para o ERP Sankhya OM (customizações em
 Java — Módulo Java/Addon Studio —, telas, tabelas adicionais AD_, relatórios Jasper,
 dashboards/BI, integrações).
@@ -66,7 +69,7 @@ Regras:
 - Cada tarefa entre 1 e 16 horas. Se passar disso, quebre em mais tarefas.
 - "grupo" é a funcionalidade/entregável a que a tarefa pertence (use o mesmo nome para
   tarefas da mesma funcionalidade).
-- "tipo" deve ser exatamente um de: ${TIPOS_DE_TAREFA.join(', ')}.
+${regraDoTipo(tipos)}
 - "prioridade" deve ser alta, media ou baixa (alta = bloqueia outras ou é o núcleo do escopo).
 - Inclua, quando o escopo implicar: estrutura de dados (tabelas/campos), testes e
   homologação com o cliente, e documentação de entrega.
@@ -83,7 +86,7 @@ Responda SOMENTE com um JSON válido, sem texto antes ou depois, neste formato:
       "titulo": "verbo no infinitivo + objeto",
       "descricao": "o que fazer, com os nomes de tabela/tela/rotina que o escopo citar",
       "grupo": "funcionalidade",
-      "tipo": "backend",
+      "tipo": "${tipos[0] ?? ''}",
       "estimativaHoras": 4,
       "prioridade": "alta",
       "criteriosAceite": "critério 1\\ncritério 2"
@@ -176,9 +179,11 @@ function textoDoPdfParaAnalise(documento: ConteudoDoDocumento, assistente: strin
   return texto;
 }
 
+/** `tipos` são as chaves do cadastro de tipos do kanban. */
 export async function analisarEscopo(
   documento: ConteudoDoDocumento,
   escolha: ConfiguracaoDoAssistenteDeIa,
+  tipos: string[],
 ): Promise<AnaliseConcluida> {
   const assistente = resolverAssistente(escolha.assistente);
   // Modelo escolhido para outro assistente não serve para o que o `auto` achou.
@@ -206,6 +211,7 @@ export async function analisarEscopo(
       arquivoParaLer = NOME_DO_PDF_ISOLADO;
       prompt = instrucoes(
         `O documento de escopo está no arquivo \`${NOME_DO_PDF_ISOLADO}\`, no diretório atual. Leia o arquivo inteiro antes de responder.`,
+        tipos,
       );
     } else {
       if (!textoDoDocumento.trim()) {
@@ -217,6 +223,7 @@ export async function analisarEscopo(
           : textoDoDocumento;
       prompt = instrucoes(
         `Documento de escopo "${documento.nome}":\n\n<<<ESCOPO\n${texto}\nESCOPO>>>`,
+        tipos,
       );
     }
 

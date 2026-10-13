@@ -3,7 +3,12 @@
  *
  * Mora no mesmo `sankhya.db` da Agenda de Recursos, cada um com as próprias tabelas.
  * O projeto continua no `clientes.json`: a demanda guarda só o id dele, sem chave
- * estrangeira, e quem exclui o projeto decide se as demandas vão junto ou ficam órfãs.
+ * estrangeira, e quem exclui o projeto decide se o kanban vai junto ou fica no cliente.
+ * O cliente tem um quadro sem projeto só: o que perde o projeto, com o cliente já tendo
+ * um, entrega as tarefas a ele e deixa de existir.
+ *
+ * As colunas e os tipos são um cadastro só para todos os quadros (`kb_colunas` e
+ * `kb_tipos`). A tarefa guarda a chave, por isso não se exclui coluna ou tipo em uso.
  *
  * O documento original fica em disco (`<dados>/kanbans/<cliente>/`), porque é o que se
  * reabre para conferir; no banco vai o texto extraído, que é o que a análise consome.
@@ -16,19 +21,19 @@ import { DatabaseSync } from 'node:sqlite';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  ESTADOS_DE_TAREFA,
+  COLUNAS_INICIAIS,
   PRIORIDADES_DE_TAREFA,
-  TIPOS_DE_TAREFA,
+  TIPOS_INICIAIS,
+  type CadastrosDoKanban,
   type DemandaDoKanban,
-  type EstadoDeTarefa,
   type ItemDaLista,
+  type ItemDoCadastro,
   type KanbansDoCliente,
   type OrigemDeTransicao,
   type PrioridadeDeTarefa,
   type SituacaoDaDemanda,
   type TarefaDoKanban,
   type TipoDeDocumento,
-  type TipoDeTarefa,
   type TransicaoDeTarefa,
 } from './tiposDoKanban.ts';
 
@@ -39,6 +44,8 @@ const TAMANHO_MAXIMO_DAS_NOTAS = 4000;
 const TAMANHO_MAXIMO_DO_ERRO = 2000;
 export const ITENS_MAXIMOS_DA_LISTA = 50;
 export const TAMANHO_MAXIMO_DO_ITEM = 300;
+export const TAMANHO_MAXIMO_DO_NOME_DO_CADASTRO = 60;
+const TAMANHO_MAXIMO_DA_CHAVE = 40;
 
 export class DemandaNaoEncontradaError extends Error {
   constructor(id: number) {
@@ -61,6 +68,32 @@ export class DadosDoKanbanInvalidosError extends Error {
     this.name = 'DadosDoKanbanInvalidosError';
   }
 }
+
+/** Um card que impede excluir a coluna ou o tipo: a tela lista para a pessoa resolver. */
+export interface TarefaQueImpede {
+  id: number;
+  titulo: string;
+  clienteId: string;
+  quadro: string;
+}
+
+export class CadastroEmUsoError extends Error {
+  readonly tarefas: TarefaQueImpede[];
+
+  constructor(mensagem: string, tarefas: TarefaQueImpede[]) {
+    super(mensagem);
+    this.name = 'CadastroEmUsoError';
+    this.tarefas = tarefas;
+  }
+}
+
+type TabelaDoCadastro = 'kb_colunas' | 'kb_tipos';
+
+/** O campo da tarefa que guarda a chave de cada cadastro e o que o banco ganha vazio. */
+const CADASTROS: Record<TabelaDoCadastro, { campo: string; iniciais: ItemDoCadastro[] }> = {
+  kb_colunas: { campo: 'estado', iniciais: COLUNAS_INICIAIS },
+  kb_tipos: { campo: 'tipo', iniciais: TIPOS_INICIAIS },
+};
 
 export interface DocumentoRecebido {
   nome: string;
@@ -172,16 +205,28 @@ interface LinhaDeTransicao {
   origem: string;
 }
 
-export function ehEstadoDeTarefa(valor: unknown): valor is EstadoDeTarefa {
-  return (ESTADOS_DE_TAREFA as readonly unknown[]).includes(valor);
+/** "Em revisão" vira `em_revisao`: é a chave de item novo e o que compara texto com chave. */
+export function chaveDoNome(nome: string): string {
+  return nome
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, TAMANHO_MAXIMO_DA_CHAVE);
 }
 
-/** Valor desconhecido vira o padrão em vez de erro: é o que a IA manda que mais varia. */
-function tipoValido(valor: string | undefined): TipoDeTarefa {
-  const normalizado = (valor ?? '').toLowerCase().trim();
-  return (TIPOS_DE_TAREFA as readonly string[]).includes(normalizado)
-    ? (normalizado as TipoDeTarefa)
-    : 'outro';
+function nomeDoCadastroValido(nome: string): string {
+  const limpo = nome.trim();
+  if (!limpo) {
+    throw new DadosDoKanbanInvalidosError('Informe o nome.');
+  }
+  if (limpo.length > TAMANHO_MAXIMO_DO_NOME_DO_CADASTRO) {
+    throw new DadosDoKanbanInvalidosError(
+      `O nome deve ter no máximo ${TAMANHO_MAXIMO_DO_NOME_DO_CADASTRO} caracteres.`,
+    );
+  }
+  return limpo;
 }
 
 function prioridadeValida(valor: string | undefined): PrioridadeDeTarefa {
@@ -274,13 +319,13 @@ function paraTarefa(linha: LinhaDeTarefa): TarefaDoKanban {
     titulo: linha.titulo,
     descricao: linha.descricao,
     grupo: linha.grupo,
-    tipo: linha.tipo as TipoDeTarefa,
+    tipo: linha.tipo,
     estimativaHoras: linha.estimativa_horas,
     prioridade: linha.prioridade as PrioridadeDeTarefa,
     criteriosDeAceite: linha.criterios_de_aceite,
     notas: linha.notas,
     checklist: lerLista(linha.checklist),
-    estado: linha.estado as EstadoDeTarefa,
+    estado: linha.estado,
     ordem: linha.ordem,
     criadaEm: linha.criada_em,
     atualizadaEm: linha.atualizada_em,
@@ -291,6 +336,7 @@ export class KanbanDosProjetos {
   readonly #db: DatabaseSync;
   readonly #pastaDosDocumentos: string;
   readonly #ouvintes = new Set<(mudanca: MudancaNoKanban) => void>();
+  readonly #ouvintesDosCadastros = new Set<() => void>();
 
   constructor(diretorioDeDados: string) {
     mkdirSync(diretorioDeDados, { recursive: true });
@@ -353,13 +399,28 @@ export class KanbanDosProjetos {
         origem      TEXT    NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_kb_transicoes_cliente ON kb_transicoes (cliente_id, em);
+
+      CREATE TABLE IF NOT EXISTS kb_colunas (
+        chave TEXT    PRIMARY KEY,
+        nome  TEXT    NOT NULL,
+        ordem INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS kb_tipos (
+        chave TEXT    PRIMARY KEY,
+        nome  TEXT    NOT NULL,
+        ordem INTEGER NOT NULL
+      );
     `);
+    this.#semearCadastro('kb_colunas');
+    this.#semearCadastro('kb_tipos');
     // Banco criado antes do MCP e do arquivo de tarefas não pode perder o quadro para ganhar campo.
     this.#garantirColunas('kb_demandas', [
       ['mcp', 'INTEGER NOT NULL DEFAULT 0'],
       ['arquivo_nome', "TEXT NOT NULL DEFAULT ''"],
     ]);
     this.#garantirColunas('kb_tarefas', [['checklist', "TEXT NOT NULL DEFAULT '[]'"]]);
+    this.#juntarQuadrosSemProjeto();
     /*
      * Análise que estava rodando quando o HUB SNK caiu nunca vai terminar: sem isto a
      * demanda ficaria "analisando" para sempre e o botão de analisar, travado.
@@ -396,6 +457,12 @@ export class KanbanDosProjetos {
     }
   }
 
+  /** Avisado quando colunas ou tipos mudam: todo quadro aberto precisa se redesenhar. */
+  aoMudarCadastros(ouvinte: () => void): () => void {
+    this.#ouvintesDosCadastros.add(ouvinte);
+    return () => this.#ouvintesDosCadastros.delete(ouvinte);
+  }
+
   #garantirColunas(tabela: string, colunas: [string, string][]): void {
     const existentes = new Set(
       (this.#db.prepare(`PRAGMA table_info(${tabela})`).all() as unknown as { name: string }[]).map(
@@ -407,6 +474,80 @@ export class KanbanDosProjetos {
         this.#db.exec(`ALTER TABLE ${tabela} ADD COLUMN ${coluna} ${tipo}`);
       }
     }
+  }
+
+  // --- colunas e tipos ---------------------------------------------------------------
+
+  cadastros(): CadastrosDoKanban {
+    return { colunas: this.colunas(), tipos: this.tipos() };
+  }
+
+  colunas(): ItemDoCadastro[] {
+    return this.#itens('kb_colunas');
+  }
+
+  tipos(): ItemDoCadastro[] {
+    return this.#itens('kb_tipos');
+  }
+
+  /** Onde nascem as tarefas novas e as da IA. Sempre existe: a última coluna não se exclui. */
+  colunaInicial(): string {
+    return this.colunas()[0]!.chave;
+  }
+
+  criarColuna(nome: string): ItemDoCadastro {
+    return this.#criarItem('kb_colunas', nome);
+  }
+
+  renomearColuna(chave: string, nome: string): ItemDoCadastro {
+    return this.#renomearItem('kb_colunas', chave, nome, 'Coluna não encontrada.');
+  }
+
+  excluirColuna(chave: string): void {
+    const coluna = this.#item('kb_colunas', chave, 'Coluna não encontrada.');
+    if (this.colunas().length === 1) {
+      throw new DadosDoKanbanInvalidosError('O quadro precisa de pelo menos uma coluna.');
+    }
+    this.#excluirItem(
+      'kb_colunas',
+      chave,
+      `A coluna "${coluna.nome}" tem cards: mova-os para outra coluna antes de excluir.`,
+    );
+  }
+
+  /** Recebe todas as chaves na ordem nova: lista incompleta ou com sobra é recusada. */
+  ordenarColunas(chaves: string[]): ItemDoCadastro[] {
+    const atuais = this.colunas().map((coluna) => coluna.chave);
+    const mesmas =
+      chaves.length === atuais.length && atuais.every((chave) => chaves.includes(chave));
+    if (!mesmas) {
+      throw new DadosDoKanbanInvalidosError(
+        'As colunas mudaram enquanto você ordenava. Reabra a lista e tente de novo.',
+      );
+    }
+    this.#emTransacao(() => {
+      const ordenar = this.#db.prepare('UPDATE kb_colunas SET ordem = ? WHERE chave = ?');
+      chaves.forEach((chave, posicao) => ordenar.run(posicao, chave));
+    });
+    this.#avisarCadastros();
+    return this.colunas();
+  }
+
+  criarTipo(nome: string): ItemDoCadastro {
+    return this.#criarItem('kb_tipos', nome);
+  }
+
+  renomearTipo(chave: string, nome: string): ItemDoCadastro {
+    return this.#renomearItem('kb_tipos', chave, nome, 'Tipo não encontrado.');
+  }
+
+  excluirTipo(chave: string): void {
+    const tipo = this.#item('kb_tipos', chave, 'Tipo não encontrado.');
+    this.#excluirItem(
+      'kb_tipos',
+      chave,
+      `O tipo "${tipo.nome}" está em cards: troque o tipo deles antes de excluir.`,
+    );
   }
 
   // --- demandas -----------------------------------------------------------------------
@@ -428,8 +569,39 @@ export class KanbanDosProjetos {
     return { demandas, tarefas };
   }
 
+  /** Todos os kanbans, de todos os clientes e o Interno: é o que o Kanban geral mostra. */
+  geral(): KanbansDoCliente {
+    const demandas = (
+      this.#db
+        .prepare('SELECT * FROM kb_demandas ORDER BY cliente_id, id')
+        .all() as unknown as LinhaDeDemanda[]
+    ).map(paraDemanda);
+    const tarefas = (
+      this.#db
+        .prepare('SELECT * FROM kb_tarefas ORDER BY demanda_id, estado, ordem, id')
+        .all() as unknown as LinhaDeTarefa[]
+    ).map(paraTarefa);
+    return { demandas, tarefas };
+  }
+
   demanda(id: number): DemandaDoKanban {
     return paraDemanda(this.#linhaDaDemanda(id));
+  }
+
+  /** O kanban sem projeto do cliente, ou o Interno com `clienteId` vazio. */
+  quadroDoCliente(clienteId: string): DemandaDoKanban | undefined {
+    return this.demandasDoProjeto(clienteId, '')[0];
+  }
+
+  /**
+   * O kanban do projeto, ou o sem projeto do cliente com `projetoId` vazio, criado vazio
+   * na primeira tarefa que recebe.
+   */
+  garantirQuadro(clienteId: string, projetoId: string, nome: string): DemandaDoKanban {
+    return (
+      this.demandasDoProjeto(clienteId, projetoId)[0] ??
+      this.criarDemanda(clienteId, { projetoId, nome })
+    );
   }
 
   tarefasDaDemanda(id: number): TarefaDoKanban[] {
@@ -477,8 +649,19 @@ export class KanbanDosProjetos {
     return this.demanda(id);
   }
 
+  /**
+   * Devolve o kanban como ficou. Desvincular do projeto quando o cliente já tem kanban
+   * sem projeto junta as tarefas nele: o devolvido é esse outro.
+   */
   alterarDemanda(id: number, alteracao: AlteracaoDeDemanda): DemandaDoKanban {
     const atual = this.#linhaDaDemanda(id);
+    if (alteracao.projetoId === '' && atual.projeto_id) {
+      const doCliente = this.quadroDoCliente(atual.cliente_id);
+      if (doCliente) {
+        this.#juntar(id, doCliente.id);
+        return this.demanda(doCliente.id);
+      }
+    }
     this.#db
       .prepare(
         'UPDATE kb_demandas SET nome = ?, projeto_id = ?, pasta = ?, atualizada_em = ? WHERE id = ?',
@@ -551,16 +734,10 @@ export class KanbanDosProjetos {
     }
   }
 
-  /** O projeto foi excluído e o usuário quis manter os kanbans: ficam órfãos no cliente. */
+  /** O projeto foi excluído e o usuário quis manter o kanban: fica no cliente, sem projeto. */
   desvincularDoProjeto(clienteId: string, projetoId: string): void {
-    this.#db
-      .prepare(
-        `UPDATE kb_demandas SET projeto_id = '', atualizada_em = ?
-          WHERE cliente_id = ? AND projeto_id = ?`,
-      )
-      .run(new Date().toISOString(), clienteId, projetoId);
-    for (const { id } of this.demandasDoProjeto(clienteId, '')) {
-      this.#avisar(id);
+    for (const demanda of this.demandasDoProjeto(clienteId, projetoId)) {
+      this.alterarDemanda(demanda.id, { projetoId: '' });
     }
   }
 
@@ -629,7 +806,7 @@ export class KanbanDosProjetos {
    * Grava o resultado da análise.
    *
    * Reanálise não pode apagar o trabalho de quem já está tocando o projeto: só saem as
-   * tarefas desta demanda que continuam no Backlog. O que já foi movido de coluna fica,
+   * tarefas desta demanda que continuam na primeira coluna. O que já foi movido fica,
    * mesmo que a nova análise não o traga: quem decide descartar é a pessoa.
    */
   registrarAnalise(
@@ -638,17 +815,18 @@ export class KanbanDosProjetos {
   ): { criadas: number; mantidas: number } {
     const demanda = this.#linhaDaDemanda(id);
     const agora = new Date().toISOString();
+    const inicial = this.colunaInicial();
 
     const resultadoDaGravacao = this.#emTransacao(() => {
-      const doBacklog = this.#db
-        .prepare(`SELECT id FROM kb_tarefas WHERE demanda_id = ? AND estado = 'backlog'`)
-        .all(id) as { id: number }[];
-      for (const velha of doBacklog) {
-        this.#transicao(velha.id, demanda, 'backlog', 'removida', agora, 'removida');
+      const daInicial = this.#db
+        .prepare('SELECT id FROM kb_tarefas WHERE demanda_id = ? AND estado = ?')
+        .all(id, inicial) as { id: number }[];
+      for (const velha of daInicial) {
+        this.#transicao(velha.id, demanda, inicial, 'removida', agora, 'removida');
       }
       this.#db
-        .prepare(`DELETE FROM kb_tarefas WHERE demanda_id = ? AND estado = 'backlog'`)
-        .run(id);
+        .prepare('DELETE FROM kb_tarefas WHERE demanda_id = ? AND estado = ?')
+        .run(id, inicial);
       const mantidas = (
         this.#db.prepare('SELECT COUNT(*) AS n FROM kb_tarefas WHERE demanda_id = ?').get(id) as {
           n: number;
@@ -660,7 +838,7 @@ export class KanbanDosProjetos {
         if (!(dados.titulo ?? '').trim()) {
           continue;
         }
-        this.#inserirTarefa(demanda, dados, 'backlog', criadas, agora);
+        this.#inserirTarefa(demanda, dados, inicial, criadas, agora);
         criadas += 1;
       }
 
@@ -683,21 +861,19 @@ export class KanbanDosProjetos {
     return paraTarefa(this.#linhaDaTarefa(id));
   }
 
-  criarTarefa(
-    demandaId: number,
-    dados: DadosDeTarefa,
-    estado: EstadoDeTarefa = 'backlog',
-  ): TarefaDoKanban {
+  /** Sem `estado`, a tarefa nasce na primeira coluna. */
+  criarTarefa(demandaId: number, dados: DadosDeTarefa, estado?: string): TarefaDoKanban {
     const demanda = this.#linhaDaDemanda(demandaId);
     if (!(dados.titulo ?? '').trim()) {
       throw new DadosDoKanbanInvalidosError('Informe o título da tarefa.');
     }
+    const coluna = this.#colunaValida(estado ?? this.colunaInicial());
     const id = this.#emTransacao(() =>
       this.#inserirTarefa(
         demanda,
         dados,
-        estado,
-        this.#proximaOrdem(demandaId, estado),
+        coluna,
+        this.#proximaOrdem(demandaId, coluna),
         new Date().toISOString(),
       ),
     );
@@ -723,7 +899,7 @@ export class KanbanDosProjetos {
         dados.grupo !== undefined
           ? dados.grupo.trim().slice(0, TAMANHO_MAXIMO_DO_GRUPO)
           : atual.grupo,
-        dados.tipo !== undefined ? tipoValido(dados.tipo) : atual.tipo,
+        dados.tipo !== undefined ? this.#tipoValido(dados.tipo) : atual.tipo,
         dados.estimativaHoras !== undefined
           ? horasValidas(dados.estimativaHoras)
           : atual.estimativaHoras,
@@ -748,7 +924,8 @@ export class KanbanDosProjetos {
    * Leva a tarefa para `estado`, na posição `indice` daquela coluna da demanda (0 é o
    * topo). Serve tanto para trocar de coluna quanto para reordenar dentro da mesma.
    */
-  moverTarefa(id: number, estado: EstadoDeTarefa, indice: number): TarefaDoKanban {
+  moverTarefa(id: number, estado: string, indice: number): TarefaDoKanban {
+    this.#colunaValida(estado);
     const atual = this.tarefa(id);
     const demanda = this.#linhaDaDemanda(atual.demandaId);
 
@@ -783,6 +960,35 @@ export class KanbanDosProjetos {
       }
     });
     this.#avisar(atual.demandaId);
+    return this.tarefa(id);
+  }
+
+  /**
+   * Leva a tarefa para o fim da mesma coluna de outro kanban, que pode ser de outro
+   * cliente: o histórico dela vai junto, para os gráficos a contarem onde ela está.
+   */
+  levarTarefaPara(id: number, demandaId: number): TarefaDoKanban {
+    const atual = this.tarefa(id);
+    if (atual.demandaId === demandaId) {
+      return atual;
+    }
+    const destino = this.#linhaDaDemanda(demandaId);
+    this.#emTransacao(() => {
+      this.#db
+        .prepare('UPDATE kb_tarefas SET demanda_id = ?, ordem = ?, atualizada_em = ? WHERE id = ?')
+        .run(
+          destino.id,
+          this.#proximaOrdem(destino.id, atual.estado),
+          new Date().toISOString(),
+          id,
+        );
+      this.#db
+        .prepare('UPDATE kb_transicoes SET demanda_id = ?, cliente_id = ? WHERE tarefa_id = ?')
+        .run(destino.id, destino.cliente_id, id);
+      this.#renumerar(atual.demandaId, atual.estado);
+    });
+    this.#avisar(atual.demandaId);
+    this.#avisar(destino.id);
     return this.tarefa(id);
   }
 
@@ -885,10 +1091,54 @@ export class KanbanDosProjetos {
     }
   }
 
+  /**
+   * Passa as tarefas e o histórico de `origemId` para o fim de cada coluna de `destinoId`
+   * e apaga a origem, com o documento: o resumo e a análise eram do escopo dela.
+   */
+  #juntar(origemId: number, destinoId: number): void {
+    const origem = this.#linhaDaDemanda(origemId);
+    this.#emTransacao(() => {
+      const estados = this.#db
+        .prepare('SELECT DISTINCT estado FROM kb_tarefas WHERE demanda_id = ?')
+        .all(origemId) as { estado: string }[];
+      for (const { estado } of estados) {
+        this.#db
+          .prepare(
+            'UPDATE kb_tarefas SET demanda_id = ?, ordem = ordem + ? WHERE demanda_id = ? AND estado = ?',
+          )
+          .run(destinoId, this.#proximaOrdem(destinoId, estado), origemId, estado);
+        this.#renumerar(destinoId, estado);
+      }
+      this.#db
+        .prepare('UPDATE kb_transicoes SET demanda_id = ? WHERE demanda_id = ?')
+        .run(destinoId, origemId);
+      this.#db.prepare('DELETE FROM kb_demandas WHERE id = ?').run(origemId);
+    });
+    this.#apagarArquivo(origem.documento_arquivo);
+    this.#avisar(origemId, true, origem.cliente_id);
+    this.#avisar(destinoId);
+  }
+
+  /** Antes da regra de um kanban sem projeto por cliente podiam existir vários: ficam no mais antigo. */
+  #juntarQuadrosSemProjeto(): void {
+    const semProjeto = this.#db
+      .prepare(`SELECT id, cliente_id FROM kb_demandas WHERE projeto_id = '' ORDER BY id`)
+      .all() as { id: number; cliente_id: string }[];
+    const maisAntigo = new Map<string, number>();
+    for (const { id, cliente_id } of semProjeto) {
+      const destino = maisAntigo.get(cliente_id);
+      if (destino === undefined) {
+        maisAntigo.set(cliente_id, id);
+      } else {
+        this.#juntar(id, destino);
+      }
+    }
+  }
+
   #inserirTarefa(
     demanda: LinhaDeDemanda,
     dados: DadosDeTarefa,
-    estado: EstadoDeTarefa,
+    estado: string,
     ordem: number,
     agora: string,
   ): number {
@@ -904,7 +1154,7 @@ export class KanbanDosProjetos {
         dados.titulo.trim().slice(0, TAMANHO_MAXIMO_DO_TITULO),
         (dados.descricao ?? '').trim(),
         (dados.grupo ?? '').trim().slice(0, TAMANHO_MAXIMO_DO_GRUPO),
-        tipoValido(dados.tipo),
+        this.#tipoValido(dados.tipo),
         horasValidas(dados.estimativaHoras),
         prioridadeValida(dados.prioridade),
         (dados.criteriosDeAceite ?? '').trim(),
@@ -934,6 +1184,120 @@ export class KanbanDosProjetos {
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(tarefaId, demanda.id, demanda.cliente_id, de, para, em, origem);
+  }
+
+  #colunaValida(estado: string): string {
+    if (!this.colunas().some((coluna) => coluna.chave === estado)) {
+      throw new DadosDoKanbanInvalidosError('Coluna do kanban desconhecida.');
+    }
+    return estado;
+  }
+
+  /**
+   * Aceita a chave ou o nome do tipo. O desconhecido vira sem tipo em vez de erro: é o
+   * que a IA e os agentes mandam que mais varia.
+   */
+  #tipoValido(valor: string | undefined): string {
+    const procurado = chaveDoNome(valor ?? '');
+    if (!procurado) {
+      return '';
+    }
+    const tipo = this.tipos().find(
+      (item) => item.chave === procurado || chaveDoNome(item.nome) === procurado,
+    );
+    return tipo?.chave ?? '';
+  }
+
+  #itens(tabela: TabelaDoCadastro): ItemDoCadastro[] {
+    const linhas = this.#db
+      .prepare(`SELECT chave, nome FROM ${tabela} ORDER BY ordem, chave`)
+      .all() as unknown as ItemDoCadastro[];
+    return linhas.map(({ chave, nome }) => ({ chave, nome }));
+  }
+
+  #item(tabela: TabelaDoCadastro, chave: string, naoEncontrado: string): ItemDoCadastro {
+    const item = this.#itens(tabela).find((atual) => atual.chave === chave);
+    if (!item) {
+      throw new DadosDoKanbanInvalidosError(naoEncontrado);
+    }
+    return item;
+  }
+
+  #semearCadastro(tabela: TabelaDoCadastro): void {
+    if (this.#itens(tabela).length) {
+      return;
+    }
+    const inserir = this.#db.prepare(`INSERT INTO ${tabela} (chave, nome, ordem) VALUES (?, ?, ?)`);
+    CADASTROS[tabela].iniciais.forEach((item, ordem) => inserir.run(item.chave, item.nome, ordem));
+  }
+
+  #exigirNomeLivre(tabela: TabelaDoCadastro, nome: string, chaveAtual = ''): void {
+    const comparavel = nome.toLocaleLowerCase('pt-BR');
+    const repetido = this.#itens(tabela).some(
+      (item) => item.chave !== chaveAtual && item.nome.toLocaleLowerCase('pt-BR') === comparavel,
+    );
+    if (repetido) {
+      throw new DadosDoKanbanInvalidosError(`Já existe "${nome}".`);
+    }
+  }
+
+  /** A chave nasce do nome; repetida (de um item excluído e recriado) ganha um número. */
+  #criarItem(tabela: TabelaDoCadastro, nomeInformado: string): ItemDoCadastro {
+    const nome = nomeDoCadastroValido(nomeInformado);
+    this.#exigirNomeLivre(tabela, nome);
+    const usadas = new Set(this.#itens(tabela).map((item) => item.chave));
+    const base = chaveDoNome(nome) || 'item';
+    let chave = base;
+    for (let numero = 2; usadas.has(chave); numero += 1) {
+      chave = `${base}_${numero}`;
+    }
+    this.#db
+      .prepare(
+        `INSERT INTO ${tabela} (chave, nome, ordem)
+         VALUES (?, ?, (SELECT COALESCE(MAX(ordem) + 1, 0) FROM ${tabela}))`,
+      )
+      .run(chave, nome);
+    this.#avisarCadastros();
+    return { chave, nome };
+  }
+
+  #renomearItem(
+    tabela: TabelaDoCadastro,
+    chave: string,
+    nomeInformado: string,
+    naoEncontrado: string,
+  ): ItemDoCadastro {
+    this.#item(tabela, chave, naoEncontrado);
+    const nome = nomeDoCadastroValido(nomeInformado);
+    this.#exigirNomeLivre(tabela, nome, chave);
+    this.#db.prepare(`UPDATE ${tabela} SET nome = ? WHERE chave = ?`).run(nome, chave);
+    this.#avisarCadastros();
+    return { chave, nome };
+  }
+
+  #excluirItem(tabela: TabelaDoCadastro, chave: string, emUso: string): void {
+    const tarefas = this.#db
+      .prepare(
+        `SELECT t.id, t.titulo, d.cliente_id AS clienteId, d.nome AS quadro
+           FROM kb_tarefas t JOIN kb_demandas d ON d.id = t.demanda_id
+          WHERE t.${CADASTROS[tabela].campo} = ?
+          ORDER BY d.cliente_id, d.nome, t.titulo`,
+      )
+      .all(chave) as unknown as TarefaQueImpede[];
+    if (tarefas.length) {
+      throw new CadastroEmUsoError(
+        emUso,
+        tarefas.map(({ id, titulo, clienteId, quadro }) => ({ id, titulo, clienteId, quadro })),
+      );
+    }
+    this.#db.prepare(`DELETE FROM ${tabela} WHERE chave = ?`).run(chave);
+    this.#avisarCadastros();
+  }
+
+  #avisarCadastros(): void {
+    for (const ouvinte of this.#ouvintesDosCadastros) {
+      ouvinte();
+    }
   }
 
   #proximaOrdem(demandaId: number, estado: string): number {
