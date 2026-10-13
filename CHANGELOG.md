@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.9.0] - 2026-10-13
+
 ### Adicionado
 
 - **Kanban geral**: aba Kanban no topo, ao lado de Clientes, com as tarefas de todos os
@@ -733,7 +735,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.7.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.9.0...HEAD
+[2.9.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.7.0...v2.8.0
 [2.7.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.5.0...v2.6.0
