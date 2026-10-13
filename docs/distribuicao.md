@@ -222,9 +222,25 @@ certificado. O SmartScreen avisa na primeira execução. Assinar exige um
 certificado de assinatura de código; com ele, basta configurar o
 `electron-builder` (`win.certificateFile` ou a assinatura na nuvem).
 
-## Só Windows
+## Linux
 
-A versão 2 é distribuída só para Windows: não há pacote para Linux nem para macOS,
-e o workflow de distribuição só gera o instalador NSIS. O bloco `linux` do
-`electron-builder.yml` e os caminhos do Linux no shell ficaram no código, mas estão
-dormentes — nenhum pacote Linux foi gerado nem validado.
+O pacote do Linux é só o `.deb` (`hub-snk-<versão>-amd64.deb`), testado no Ubuntu 24.04.
+O AppImage foi testado e descartado: o AppArmor do 24.04 bloqueia a sandbox do Chromium,
+e o AppImage sobe com `--no-sandbox`. O `.deb` instala em `/opt/HUB SNK`, põe um perfil
+do AppArmor que libera a sandbox, o `.desktop` (o `desktopName` do `desktop/package.json`
+liga a janela a ele, e é isso que dá o ícone certo na barra do GNOME) e declara as
+dependências de chaveiro (`libsecret-1-0`, recomendando o `gnome-keyring`).
+
+Instalação: `sudo apt install ./hub-snk-<versão>-amd64.deb`. Gerar o pacote exige
+Linux (o electron-builder não gera `.deb` no Windows) e o `binutils` na máquina.
+
+O que muda em relação ao Windows:
+
+- O Git AutoSync não aparece: ele só publica executáveis para Windows.
+- O atalho global depende do portal de atalhos do Wayland; sem ele, o atalho é
+  cadastrado no sistema com `hub-snk-desktop --busca-rapida` (ver
+  `docs/funcionalidades.md`).
+- O shell lê o PATH do shell de login da pessoa na abertura (`desktop/src/pathDoShell.ts`):
+  aberto pelo menu, ele herdaria o PATH da sessão gráfica, sem nvm nem `~/.local/bin`.
+
+O macOS ainda não tem pacote.

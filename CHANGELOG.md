@@ -16,6 +16,12 @@ número significa aqui.
   SankhyaOm e na Experience. Tudo já vem respondido, e dá para mudar depois em
   Configurações. Quem já usa o HUB SNK e tem perfil escolhido não vê o assistente.
 
+- **Linux (Ubuntu)**: pacote `.deb`, com o ícone certo na barra do GNOME, menu no ícone da
+  área de indicadores, início automático com o sistema e o PATH do terminal (nvm,
+  `~/.local/bin`) valendo para o que o HUB SNK abre. No Wayland sem portal de atalhos, a
+  busca rápida global é cadastrada no sistema com `hub-snk-desktop --busca-rapida`. O Git
+  AutoSync fica só no Windows.
+
 ### Alterado
 
 - **Instalador mais curto**: as páginas "Seus dados" e do perfil saíram do instalador do

@@ -290,6 +290,14 @@ para quando o outro programa já tiver sido fechado. Só o atalho global desliga
 os de dentro do aplicativo, como o `Ctrl+K`, valem apenas com a janela do HUB SNK
 em foco e não disputam tecla com ninguém.
 
+No Ubuntu, a sessão Wayland só entrega tecla global pelo portal de atalhos do
+sistema, que o GNOME tem a partir da versão 48 (Ubuntu 26.04) e o KDE já tem. No
+Ubuntu 24.04 o item mostra _o sistema não liberou a tecla_. Nesse caso, cadastre o
+atalho no próprio sistema: _Configurações_ › _Teclado_ › _Atalhos de teclado_ ›
+_Atalhos personalizados_, com o comando `hub-snk-desktop --busca-rapida` e a
+combinação que preferir. Com o HUB SNK aberto, o comando traz a janela e abre a
+busca rápida.
+
 A busca ignora acento e maiúsculas, e cada palavra digitada precisa aparecer no
 item — `alfa teste` acha a base de teste do cliente Alfa. Além do nome, ela
 procura na URL e no usuário da base, no caminho e na URL do repositório, e no
@@ -342,7 +350,7 @@ desenvolvedor), o atalho global da busca e as teclas de dentro da busca rápida 
 da barra do `Ctrl+F`. A parte do menu é lida dele na hora de abrir, então uma
 tecla nova no menu já aparece na lista. `Esc` fecha a janela.
 
-## Bandeja do Windows
+## Bandeja
 
 No aplicativo desktop, fechar a janela a esconde na bandeja, perto do relógio, em
 vez de encerrar o HUB SNK: o atalho global da busca e os avisos de mensagem nova
@@ -353,6 +361,12 @@ Clicar no ícone traz a janela de volta, e o botão direito abre o menu com **Ab
 HUB SNK**, **Busca rápida**, a caixa **Atalho global**, a caixa **Iniciar HUB SNK
 automaticamente** e **Sair**. Sair também fica em _Hub_ › _Sair_. Desligar o
 computador ou sair da conta do Windows encerra o HUB SNK normalmente.
+
+No Ubuntu o ícone fica na área de indicadores, no canto superior direito, e
+qualquer clique nele abre o mesmo menu: o painel do GNOME não repassa o clique
+direito ao aplicativo. **Iniciar HUB SNK automaticamente** grava o arquivo
+`~/.config/autostart/br.dev.hubsnk.desktop.desktop`, que o GNOME e o KDE leem no
+login; apagar o arquivo desliga.
 
 **Iniciar HUB SNK automaticamente** abre o HUB SNK junto com o Windows, a cada
 login, já escondido na bandeja: o backend, o login automático no Sankhya e o

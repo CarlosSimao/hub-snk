@@ -78,18 +78,20 @@ nsis:
   include: installer.nsh
 
 linux:
-  # Dormente: a distribuição é só para Windows, e nenhum workflow gera este alvo.
-  # AppImage é o equivalente ao NSIS per-user: roda sem root, sem instalar nada no
-  # sistema. O `.deb` fica para quem prefere pacote gerenciado, e é ele que declara as
-  # dependências de chaveiro.
+  # Só `.deb`. O AppImage foi testado no Ubuntu 24.04 e descartado: o AppArmor de lá
+  # bloqueia a sandbox do Chromium, e o AppImage então sobe com `--no-sandbox` — inaceitável
+  # num app que abre Gmail, Sankhya e sites de terceiros nas guias. O `.deb` instala um
+  # perfil do AppArmor que libera a sandbox, declara as dependências de chaveiro e põe o
+  # `.desktop` que dá o ícone certo à janela (ligado pelo `desktopName` do package.json).
   target:
-    - target: AppImage
-      arch: [x64]
     - target: deb
       arch: [x64]
   icon: assets/hub-snk.png
   category: Development
   synopsis: Cadastro de clientes e ambiente Sankhya
+  # Vira o `Comment` do `.desktop`, que o menu de aplicativos mostra: sem isto iria a
+  # `description` do package.json, que é texto para quem mexe no código.
+  description: Cadastro de clientes e ambiente Sankhya
   artifactName: hub-snk-${version}-${arch}.${ext}
 
 deb:

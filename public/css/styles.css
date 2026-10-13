@@ -1907,6 +1907,10 @@ button.selo-situacao:focus-visible {
   cursor: pointer;
 }
 
+.campo-checkbox[hidden] {
+  display: none;
+}
+
 .campo-checkbox input {
   width: 15px;
   height: 15px;

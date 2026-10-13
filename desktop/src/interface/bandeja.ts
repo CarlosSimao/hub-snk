@@ -1,13 +1,14 @@
 /**
- * Ícone do HUB SNK na bandeja do Windows.
+ * Ícone do HUB SNK na bandeja (Windows) ou na área de indicadores (Linux).
  *
  * Com ele, fechar a janela só a esconde: o app continua no ar para o atalho global da
  * busca rápida e para os avisos de mensagem nova do painel de comunicação. Sair de
  * verdade é pelo menu da bandeja ou por Hub › Sair.
  *
- * O menu é montado a cada clique com o botão direito, e não fixado com `setContextMenu`,
- * porque as caixas mostram estado que muda por fora dele: o início automático pode ser
- * desligado no Gerenciador de Tarefas, e o atalho global, recusado pelo Windows.
+ * No Windows o menu é montado a cada clique com o botão direito, e não fixado com
+ * `setContextMenu`, porque as caixas mostram estado que muda por fora dele: o início
+ * automático pode ser desligado no Gerenciador de Tarefas, e o atalho global, recusado pelo
+ * Windows. No Linux não há escolha: ver `fixarMenuNoLinux`.
  */
 import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -31,10 +32,18 @@ export interface AcoesDaBandeja {
   sair(): void;
 }
 
-/** Caixa marcada é a escolha de ligar; o sufixo diz quando o Windows não entregou a tecla. */
+/**
+ * Por que o sistema não entregou a tecla. No Windows é outro programa com a mesma
+ * combinação; no Linux, quase sempre o Wayland, que só a entrega pelo portal de atalhos
+ * (GNOME 48 em diante, KDE).
+ */
+const MOTIVO_DO_ATALHO_RECUSADO =
+  process.platform === 'win32' ? 'em uso por outro programa' : 'o sistema não liberou a tecla';
+
+/** Caixa marcada é a escolha de ligar; o sufixo diz quando o sistema não entregou a tecla. */
 function itemDoAtalhoGlobal(acoes: AcoesDaBandeja): MenuItemConstructorOptions {
   const situacao = acoes.situacaoDoAtalhoGlobal();
-  const aviso = situacao === 'recusado' ? ' — em uso por outro programa' : '';
+  const aviso = situacao === 'recusado' ? ` — ${MOTIVO_DO_ATALHO_RECUSADO}` : '';
   return {
     label: `Atalho global (${atalhoLegivel(ATALHO_GLOBAL_DA_BUSCA)})${aviso}`,
     type: 'checkbox',
@@ -71,9 +80,34 @@ function montarMenuDaBandeja(acoes: AcoesDaBandeja): Menu {
   ]);
 }
 
+/**
+ * No Linux a bandeja é um AppIndicator: o painel do GNOME abre o menu sozinho e não repassa
+ * o clique direito ao app, então o menu precisa estar fixado. É refeito a cada caixa
+ * clicada, para a marcação acompanhar o estado.
+ */
+function fixarMenuNoLinux(bandeja: Tray, acoes: AcoesDaBandeja): void {
+  const refazer = () => bandeja.setContextMenu(montarMenuDaBandeja(acoesQueRefazem));
+  const acoesQueRefazem: AcoesDaBandeja = {
+    ...acoes,
+    definirAtalhoGlobalLigado: (ligado) => {
+      acoes.definirAtalhoGlobalLigado(ligado);
+      refazer();
+    },
+    definirInicioAutomatico: (ligado) => {
+      acoes.definirInicioAutomatico(ligado);
+      refazer();
+    },
+  };
+  refazer();
+}
+
 export function criarBandeja(acoes: AcoesDaBandeja): Tray {
   const bandeja = new Tray(ICONE);
   bandeja.setToolTip(app.getName());
+  if (process.platform === 'linux') {
+    fixarMenuNoLinux(bandeja, acoes);
+    return bandeja;
+  }
   bandeja.on('click', () => acoes.mostrarJanela());
   bandeja.on('right-click', () => {
     bandeja.popUpContextMenu(montarMenuDaBandeja(acoes));
@@ -91,7 +125,10 @@ export function avisarQueContinuaNaBandeja(): void {
 
   new Notification({
     title: 'O HUB SNK continua aberto',
-    body: 'Ele fica na bandeja, perto do relógio. Para encerrar, clique com o botão direito no ícone e escolha Sair.',
+    body:
+      process.platform === 'linux'
+        ? 'Ele fica no ícone do canto superior direito da tela. Para encerrar, clique no ícone e escolha Sair.'
+        : 'Ele fica na bandeja, perto do relógio. Para encerrar, clique com o botão direito no ícone e escolha Sair.',
     icon: ICONE,
   }).show();
 
