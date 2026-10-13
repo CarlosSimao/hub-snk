@@ -534,23 +534,27 @@ export class GerenciadorComunicacao {
 
   /**
    * Entrar numa reunião pelo painel (link da Agenda, do Gmail, a "Nova reunião" do Meet)
-   * abre a sala na janela dela, e o painel fica onde estava.
+   * abre a sala na janela dela, e o painel volta à página inicial do serviço.
    */
   #desviarReunioesParaJanela(servico: ServicoComunicacao, painel: WebContentsView): void {
+    // A página já se preparou para entrar na sala: com a navegação cancelada, o Meet fica no
+    // "Participando…" travando a lista; com a troca de endereço feita pela própria página
+    // (pushState), que não se cancela, voltar no histórico entraria na chamada por baixo da
+    // janela dela. Recarregar a página inicial descarta os dois.
+    const levarParaJanela = (url: string) => {
+      void painel.webContents.loadURL(SERVICOS_COMUNICACAO[servico].url);
+      this.#abrirReuniao(url);
+    };
     const desviar = (evento: Electron.Event<{ url: string }>) => {
       if (!salaDoMeet(evento.url)) return;
       evento.preventDefault();
-      this.#abrirReuniao(evento.url);
+      levarParaJanela(evento.url);
     };
     painel.webContents.on('will-navigate', desviar);
     painel.webContents.on('will-redirect', desviar);
-    // A troca de endereço feita pela própria página (pushState) não se cancela, e voltar no
-    // histórico deixaria o Meet no "Participando…", entrando na chamada por baixo da janela
-    // dela. Recarregar a página inicial é o que a descarta por inteiro.
     painel.webContents.on('did-navigate-in-page', (_e, url, principal) => {
       if (!principal || !salaDoMeet(url)) return;
-      void painel.webContents.loadURL(SERVICOS_COMUNICACAO[servico].url);
-      this.#abrirReuniao(url);
+      levarParaJanela(url);
     });
   }
 

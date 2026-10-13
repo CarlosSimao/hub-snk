@@ -30,6 +30,11 @@ número significa aqui.
   Kanban do topo; sem Agenda, Lembretes, OS e Git, some o Resumo e o HUB SNK abre em
   Clientes.
 
+### Corrigido
+
+- **Meet travado em "Participando…"**: entrar numa reunião pela lista do Meet abre a
+  chamada na janela dela e devolve o painel à lista, pronto para a próxima reunião.
+
 ## [2.8.0] - 2026-10-12
 
 ### Adicionado
