@@ -6,7 +6,7 @@ Mapa dos arquivos, para quem vai mexer no HUB SNK. Para usar o programa, veja o
 ```
 src/                                        backend (Fastify), sem build: o Node roda o .ts direto
   index.ts                                  sobe o Fastify e serve public/
-  configuracao.ts                           porta, host, diretório de dados e perfil do instalador
+  configuracao.ts                           porta, host, diretório de dados e caminhos repassados pelo shell
   acessos.ts                                preset de funcionalidades ocultas de cada perfil
   tipos.ts                                  os tipos do domínio: cadastro (Cliente, Base, BancoDeDados, RepositorioGit,
                                             Projeto), configuração global e acessos, situação do Git, bases e bancos

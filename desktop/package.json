@@ -4,6 +4,9 @@
   "version": "2.7.0",
   "private": true,
   "description": "Shell desktop (Electron) do HUB SNK — ver docs/distribuicao.md.",
+  "author": "Carlos Nascimento <carlos.nascimento@sankhya.com.br>",
+  "homepage": "https://carlossimao.github.io/hub-snk/",
+  "desktopName": "hub-snk-desktop.desktop",
   "main": "dist/main.js",
   "type": "commonjs",
   "scripts": {

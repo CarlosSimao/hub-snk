@@ -15,7 +15,7 @@ um aplicativo Electron com instalador NSIS, e o instalador remove a versão anti
 | -------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | **Shell**      | `desktop/`                                                     | O Electron: janela, guias, cofre das credenciais e a ponte que o backend chama |
 | **Backend**    | `src/`                                                         | O mesmo Fastify de sempre, rodando direto do TypeScript, servindo o `public/`  |
-| **Instalador** | `desktop/electron-builder.yml`, `desktop/assets/installer.nsh` | NSIS por usuário, com a remoção da versão PWA e a página de perfil             |
+| **Instalador** | `desktop/electron-builder.yml`, `desktop/assets/installer.nsh` | NSIS por usuário, com a remoção da versão PWA                                  |
 
 O shell sobe o backend como processo filho com o próprio executável do Electron
 (`ELECTRON_RUN_AS_NODE=1`), espera o `GET /api/healthz` e só então abre a janela.
@@ -181,24 +181,15 @@ Regras que não se quebram:
   máquina corporativa sem acionar o time de infra.
 - Cria os atalhos "HUB SNK" no menu Iniciar e na área de trabalho.
 - Roda o `resources\instalador\remover-versao-pwa.ps1` (a seguir).
-- Mostra a página de perfil profissional (a seguir).
 
-### A página de perfil
+### Perfil e dados de quem usa
 
-Aparece em toda instalação. O perfil (Desenvolvedor,
-Consultor, Analista ou Gerente de projeto) define o preset de funcionalidades
-ocultas, o mesmo de **Configurações › Acessos** (`src/acessos.ts`). A caixa
-**Terceiro**, independente do perfil, oculta por cima do preset o que depende das
-credenciais do SankhyaOm e da Experience: Credenciais Sankhya, as abas Agenda e
-OS e as guias dos dois sistemas.
-
-A escolha vai para `%LOCALAPPDATA%\HubSnk\perfil-inicial.txt` e
-`terceiro-inicial.txt` (`S` ou `N`). O shell repassa os dois ao backend
-(`HUB_PERFIL_INICIAL` e `HUB_TERCEIRO_INICIAL`), que só aplica cada um enquanto o
-`configuracao.json` ainda não tem o campo correspondente: reinstalar ou atualizar nunca
-desfaz o que o usuário ajustou. Uma reinstalação abre a página com a escolha
-anterior marcada, e a instalação silenciosa, que não mostra a página, preserva os
-arquivos que já existiam.
+O instalador não pergunta mais nada além da pasta: perfil, Terceiro, nome, empresa,
+time e e-mail são perguntados pelo assistente de boas-vindas do próprio HUB SNK, no
+primeiro uso, igual nos três sistemas (ver `docs/funcionalidades.md`). Os arquivos
+`perfil-inicial.txt`, `terceiro-inicial.txt`, `funcionalidades-ocultas-inicial.txt` e
+`*-inicial.txt` que versões anteriores deixaram em `%LOCALAPPDATA%\HubSnk` não são mais
+lidos.
 
 ### A remoção da versão PWA
 
@@ -231,9 +222,26 @@ certificado. O SmartScreen avisa na primeira execução. Assinar exige um
 certificado de assinatura de código; com ele, basta configurar o
 `electron-builder` (`win.certificateFile` ou a assinatura na nuvem).
 
-## Só Windows
+## Linux
 
-A versão 2 é distribuída só para Windows: não há pacote para Linux nem para macOS,
-e o workflow de distribuição só gera o instalador NSIS. O bloco `linux` do
-`electron-builder.yml` e os caminhos do Linux no shell ficaram no código, mas estão
-dormentes — nenhum pacote Linux foi gerado nem validado.
+O pacote do Linux é só o `.deb` (`hub-snk-<versão>-amd64.deb`), testado no Ubuntu 24.04.
+O AppImage foi testado e descartado: o AppArmor do 24.04 bloqueia a sandbox do Chromium,
+e o AppImage sobe com `--no-sandbox`. O `.deb` instala em `/opt/HUB SNK`, põe um perfil
+do AppArmor que libera a sandbox, o `.desktop` (o `desktopName` do `desktop/package.json`
+liga a janela a ele, e é isso que dá o ícone certo na barra do GNOME) e declara as
+dependências de chaveiro (`libsecret-1-0`, recomendando o `gnome-keyring`).
+
+O workflow `Distribuição` gera o `.deb` no job `linux` e anexa à release com a cópia
+`hub-snk-amd64.deb`, que o botão do site baixa. Instalação: `sudo apt install ./hub-snk-<versão>-amd64.deb`. Gerar o pacote exige
+Linux (o electron-builder não gera `.deb` no Windows) e o `binutils` na máquina.
+
+O que muda em relação ao Windows:
+
+- O Git AutoSync não aparece: ele só publica executáveis para Windows.
+- O atalho global depende do portal de atalhos do Wayland; sem ele, o atalho é
+  cadastrado no sistema com `hub-snk-desktop --busca-rapida` (ver
+  `docs/funcionalidades.md`).
+- O shell lê o PATH do shell de login da pessoa na abertura (`desktop/src/pathDoShell.ts`):
+  aberto pelo menu, ele herdaria o PATH da sessão gráfica, sem nvm nem `~/.local/bin`.
+
+O macOS ainda não tem pacote.

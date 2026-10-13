@@ -92,14 +92,17 @@ nasce visível. Os valores aceitos são `local`, `agenda`, `os`, `contatos` e
 Lembretes do painel de notificações), `cliente.bases`, `cliente.repositorios` (a aba
 Git do cliente), `cliente.projetos`, `cliente.agenda`, `cliente.os` e
 `cliente.contatos` (abas do cadastro do cliente) e `cliente.autosync` (a seção
-AutoSync da aba Git do cliente). Arquivo sem `perfil` recebe o perfil escolhido no instalador, com o
-preset dele; sem instalador, `desenvolvedor`, com nada oculto. Valor desconhecido
-na lista é descartado na leitura.
+AutoSync da aba Git do cliente). Arquivo sem `perfil` vale `desenvolvedor`, com nada
+oculto; com `perfil` e sem a lista, vale o preset do perfil. Valor desconhecido na
+lista é descartado na leitura.
 
 `terceiro` é a caixa **Terceiro** da aba Acessos: `true` oculta, por cima de
 `funcionalidadesOcultas`, o que depende do SankhyaOm e da Experience, sem alterar
-a lista. Arquivo sem o campo recebe a escolha do instalador; sem instalador,
-`false`.
+a lista. Arquivo sem o campo vale `false`.
+
+`boasVindasConcluidas` diz se o assistente de boas-vindas já foi concluído. Arquivo
+sem o campo vale `true` quando tem `perfil` (quem já escolheu não é incomodado) e
+`false` quando não tem. Só `PUT /api/configuracao/boas-vindas` o liga.
 
 `sankhyaOmCodUsu` é o `CODUSU` digitado em **Configurações › Sankhya ID**, que
 recorta a Agenda de Recursos para os seus eventos. `experiencePersonId` é o

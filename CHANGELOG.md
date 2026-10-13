@@ -9,6 +9,24 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- **Assistente de boas-vindas**: na primeira abertura, quatro passos rápidos perguntam seus
+  dados (nome, empresa, time e e-mail, todos opcionais), o perfil e se você tem login no
+  SankhyaOm e na Experience. Tudo já vem respondido, e dá para mudar depois em
+  Configurações. Quem já usa o HUB SNK e tem perfil escolhido não vê o assistente.
+
+- **Linux (Ubuntu)**: pacote `.deb`, com o ícone certo na barra do GNOME, menu no ícone da
+  área de indicadores, início automático com o sistema e o PATH do terminal (nvm,
+  `~/.local/bin`) valendo para o que o HUB SNK abre. No Wayland sem portal de atalhos, a
+  busca rápida global é cadastrada no sistema com `hub-snk-desktop --busca-rapida`. O Git
+  AutoSync fica só no Windows.
+
+### Alterado
+
+- **Instalador mais curto**: as páginas "Seus dados" e do perfil saíram do instalador do
+  Windows; o assistente de boas-vindas pergunta o mesmo, e vale igual em qualquer sistema.
+
 ## [2.7.0] - 2026-10-12
 
 ### Adicionado

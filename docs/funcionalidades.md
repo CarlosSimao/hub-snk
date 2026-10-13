@@ -290,6 +290,14 @@ para quando o outro programa já tiver sido fechado. Só o atalho global desliga
 os de dentro do aplicativo, como o `Ctrl+K`, valem apenas com a janela do HUB SNK
 em foco e não disputam tecla com ninguém.
 
+No Ubuntu, a sessão Wayland só entrega tecla global pelo portal de atalhos do
+sistema, que o GNOME tem a partir da versão 48 (Ubuntu 26.04) e o KDE já tem. No
+Ubuntu 24.04 o item mostra _o sistema não liberou a tecla_. Nesse caso, cadastre o
+atalho no próprio sistema: _Configurações_ › _Teclado_ › _Atalhos de teclado_ ›
+_Atalhos personalizados_, com o comando `hub-snk-desktop --busca-rapida` e a
+combinação que preferir. Com o HUB SNK aberto, o comando traz a janela e abre a
+busca rápida.
+
 A busca ignora acento e maiúsculas, e cada palavra digitada precisa aparecer no
 item — `alfa teste` acha a base de teste do cliente Alfa. Além do nome, ela
 procura na URL e no usuário da base, no caminho e na URL do repositório, e no
@@ -342,7 +350,7 @@ desenvolvedor), o atalho global da busca e as teclas de dentro da busca rápida 
 da barra do `Ctrl+F`. A parte do menu é lida dele na hora de abrir, então uma
 tecla nova no menu já aparece na lista. `Esc` fecha a janela.
 
-## Bandeja do Windows
+## Bandeja
 
 No aplicativo desktop, fechar a janela a esconde na bandeja, perto do relógio, em
 vez de encerrar o HUB SNK: o atalho global da busca e os avisos de mensagem nova
@@ -353,6 +361,12 @@ Clicar no ícone traz a janela de volta, e o botão direito abre o menu com **Ab
 HUB SNK**, **Busca rápida**, a caixa **Atalho global**, a caixa **Iniciar HUB SNK
 automaticamente** e **Sair**. Sair também fica em _Hub_ › _Sair_. Desligar o
 computador ou sair da conta do Windows encerra o HUB SNK normalmente.
+
+No Ubuntu o ícone fica na área de indicadores, no canto superior direito, e
+qualquer clique nele abre o mesmo menu: o painel do GNOME não repassa o clique
+direito ao aplicativo. **Iniciar HUB SNK automaticamente** grava o arquivo
+`~/.config/autostart/br.dev.hubsnk.desktop.desktop`, que o GNOME e o KDE leem no
+login; apagar o arquivo desliga.
 
 **Iniciar HUB SNK automaticamente** abre o HUB SNK junto com o Windows, a cada
 login, já escondido na bandeja: o backend, o login automático no Sankhya e o
@@ -607,13 +621,12 @@ abriria vazia.
 | Analista           | aba Git do cliente e aba Git do menu              |
 | Gerente de projeto | aba Git do cliente, aba Git do menu e a aba Local |
 
-O perfil é perguntado na instalação, e o preset dele vale desde a primeira
-abertura. Trocar o perfil na aba Acessos marca as caixas do preset; depois disso
-elas seguem editáveis, uma a uma. Salvar com o perfil ou as caixas alterados
-recarrega o Painel, que volta montado do zero com os acessos novos; as guias do
-Sankhya e das bases continuam abertas. Reinstalar ou atualizar não desfaz o ajuste: o
-perfil do instalador só é aplicado enquanto a configuração ainda não tem acessos
-gravados — inclusive quando a pasta de dados vem sincronizada de outra máquina.
+O perfil é perguntado no assistente de boas-vindas (abaixo), e o preset dele vale
+desde a primeira abertura. Trocar o perfil na aba Acessos marca as caixas do preset;
+depois disso elas seguem editáveis, uma a uma. Salvar com o perfil ou as caixas
+alterados recarrega o Painel, que volta montado do zero com os acessos novos; as guias
+do Sankhya e das bases continuam abertas. Reinstalar ou atualizar não desfaz o ajuste:
+os acessos ficam no `configuracao.json`, na pasta de dados.
 
 Ocultar a aba **Git** do cliente leva junto o que só existe por causa dos
 repositórios: o filtro por situação do Git, as bolinhas do Git no topo e na lista
@@ -621,7 +634,7 @@ de clientes, a aba **MCP** das configurações e a seção AutoSync da própria 
 
 ### Terceiro
 
-A caixa **Terceiro**, na aba Acessos e na página do perfil do instalador, é para
+A caixa **Terceiro**, na aba Acessos e no assistente de boas-vindas, é para
 quem não tem acesso ao SankhyaOm nem à Experience. Vale para qualquer perfil e,
 marcada, oculta tudo o que depende das credenciais Sankhya:
 
@@ -635,9 +648,24 @@ marcada, oculta tudo o que depende das credenciais Sankhya:
   **Guias**, e o aplicativo deixa de logar sozinho nelas.
 
 Terceiro não altera as caixas gravadas: desmarcá-lo devolve a tela ao que era.
-A caixa do instalador segue a regra do perfil, só é aplicada enquanto a
-configuração ainda não tem o campo — inclusive numa instalação atualizada, que já
-tem perfil.
+
+### Assistente de boas-vindas
+
+Na primeira abertura, igual no Windows, no Linux e no Mac, o HUB SNK abre um
+assistente de quatro passos antes do Painel:
+
+1. **Seus dados:** nome, empresa, time e e-mail, todos opcionais. Seguem nos relatos
+   de problema ao suporte e nos e-mails do HUB SNK.
+2. **Perfil:** Consultor (marcado), Analista, Gerente de Projetos ou Desenvolvedor,
+   com o que cada um esconde.
+3. **Login no SankhyaOm e na Experience:** "Não, sou terceiro" é a caixa Terceiro.
+4. **Resumo**, com o botão **Começar**.
+
+Todo passo já vem respondido; Esc não fecha, porque o assistente voltaria na próxima
+abertura. As funcionalidades ocultas são o preset do perfil, e o ajuste fino fica na
+aba Acessos. Concluir grava `boasVindasConcluidas` no `configuracao.json` e o
+assistente não volta. Quem atualiza de uma versão com perfil gravado não o vê; quem
+vem de uma versão anterior aos acessos, sem perfil, vê.
 
 > Desmarcar só tira a funcionalidade da tela. Nenhum dado é apagado, marcar de
 > novo a traz de volta, e a API continua respondendo: não é controle de

@@ -218,68 +218,15 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     caminhoDoExecutavelDaIde: '',
   };
 
-  it('sem perfil do instalador, nasce desenvolvedor com tudo visível', async () => {
+  it('arquivo novo nasce desenvolvedor, com tudo visível e sem Terceiro', async () => {
     const configuracao = await repositorio.ler();
 
     assert.equal(configuracao.perfil, 'desenvolvedor');
     assert.deepEqual(configuracao.funcionalidadesOcultas, []);
+    assert.equal(configuracao.terceiro, false);
   });
 
-  it('aplica o preset do perfil escolhido no instalador', async () => {
-    const doGerente = new RepositorioConfiguracaoArquivo(diretorio, {
-      perfil: 'gerente-de-projeto',
-      terceiro: false,
-    });
-
-    const configuracao = await doGerente.ler();
-
-    assert.equal(configuracao.perfil, 'gerente-de-projeto');
-    assert.deepEqual(configuracao.funcionalidadesOcultas, [
-      'cliente.repositorios',
-      'local',
-      'autosync',
-      'cliente.autosync',
-    ]);
-  });
-
-  it('aplica as caixas desmarcadas no instalador no lugar do preset do perfil', async () => {
-    const consultorAjustado = new RepositorioConfiguracaoArquivo(diretorio, {
-      perfil: 'consultor',
-      terceiro: false,
-      funcionalidadesOcultas: ['os', 'cliente.projetos'],
-    });
-
-    const configuracao = await consultorAjustado.ler();
-
-    assert.equal(configuracao.perfil, 'consultor');
-    assert.deepEqual(configuracao.funcionalidadesOcultas, ['os', 'cliente.projetos']);
-  });
-
-  it('lista vazia do instalador deixa tudo visível, mesmo com preset', async () => {
-    const gerenteComTudo = new RepositorioConfiguracaoArquivo(diretorio, {
-      perfil: 'gerente-de-projeto',
-      terceiro: false,
-      funcionalidadesOcultas: [],
-    });
-
-    const configuracao = await gerenteComTudo.ler();
-
-    assert.deepEqual(configuracao.funcionalidadesOcultas, []);
-  });
-
-  it('descarta funcionalidade desconhecida vinda do instalador', async () => {
-    const comChaveAntiga = new RepositorioConfiguracaoArquivo(diretorio, {
-      perfil: 'consultor',
-      terceiro: false,
-      funcionalidadesOcultas: ['os', 'nao-existe-mais'],
-    });
-
-    const configuracao = await comChaveAntiga.ler();
-
-    assert.deepEqual(configuracao.funcionalidadesOcultas, ['os']);
-  });
-
-  it('com outro perfil gravado, ignora as caixas do instalador e usa o preset dele', async () => {
+  it('com o perfil gravado e sem a lista, usa o preset dele', async () => {
     await writeFile(
       caminhoDoArquivo(),
       JSON.stringify({
@@ -289,11 +236,7 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
       'utf8',
     );
 
-    const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, {
-      perfil: 'desenvolvedor',
-      terceiro: false,
-      funcionalidadesOcultas: ['os'],
-    }).ler();
+    const configuracao = await repositorio.ler();
 
     assert.equal(configuracao.perfil, 'analista');
     assert.deepEqual(configuracao.funcionalidadesOcultas, [
@@ -301,21 +244,6 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
       'autosync',
       'cliente.autosync',
     ]);
-  });
-  it('ignora o perfil do instalador quando o arquivo já tem acessos', async () => {
-    await repositorio.salvar({
-      ...CONFIGURACAO_SEM_ACESSOS,
-      perfil: 'desenvolvedor',
-      funcionalidadesOcultas: ['os'],
-    });
-
-    const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, {
-      perfil: 'consultor',
-      terceiro: false,
-    }).ler();
-
-    assert.equal(configuracao.perfil, 'desenvolvedor');
-    assert.deepEqual(configuracao.funcionalidadesOcultas, ['os']);
   });
 
   it('preserva os acessos gravados quando o salvar não os manda', async () => {
@@ -331,42 +259,6 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     const configuracao = await repositorio.ler();
     assert.equal(configuracao.perfil, 'consultor');
     assert.deepEqual(configuracao.funcionalidadesOcultas, ['cliente.repositorios']);
-  });
-
-  it('sem Terceiro no instalador, nasce sem o acesso de terceiro', async () => {
-    const configuracao = await repositorio.ler();
-
-    assert.equal(configuracao.terceiro, false);
-  });
-
-  it('aplica o Terceiro do instalador a arquivo que já tem perfil mas não tem o campo', async () => {
-    await writeFile(
-      caminhoDoArquivo(),
-      JSON.stringify({
-        versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
-        configuracao: { perfil: 'analista', funcionalidadesOcultas: [] },
-      }),
-      'utf8',
-    );
-
-    const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, {
-      perfil: 'desenvolvedor',
-      terceiro: true,
-    }).ler();
-
-    assert.equal(configuracao.terceiro, true);
-    assert.equal(configuracao.perfil, 'analista');
-  });
-
-  it('ignora o Terceiro do instalador quando o arquivo já tem o campo', async () => {
-    await repositorio.salvar({ ...CONFIGURACAO_SEM_ACESSOS, terceiro: false });
-
-    const configuracao = await new RepositorioConfiguracaoArquivo(diretorio, {
-      perfil: 'desenvolvedor',
-      terceiro: true,
-    }).ler();
-
-    assert.equal(configuracao.terceiro, false);
   });
 
   it('preserva o Terceiro gravado quando o salvar não o manda', async () => {
@@ -492,37 +384,72 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
   });
 });
 
-describe('RepositorioConfiguracaoArquivo — identificação do instalador', () => {
-  const DO_INSTALADOR = {
-    nomeDoUsuario: 'João Silva',
+describe('RepositorioConfiguracaoArquivo — boas-vindas', () => {
+  const RESPOSTAS = {
+    nomeDoUsuario: ' João Silva ',
     empresaDoUsuario: 'Acme',
     timeDoUsuario: 'Suporte',
     emailDoUsuario: 'joao@acme.com.br',
+    perfil: 'gerente-de-projeto' as const,
+    terceiro: true,
   };
 
-  it('preenche nome, empresa, time e e-mail na primeira abertura', async () => {
-    const comInstalador = new RepositorioConfiguracaoArquivo(diretorio, undefined, DO_INSTALADOR);
-
-    const configuracao = await comInstalador.ler();
-
-    assert.equal(configuracao.nomeDoUsuario, 'João Silva');
-    assert.equal(configuracao.empresaDoUsuario, 'Acme');
-    assert.equal(configuracao.timeDoUsuario, 'Suporte');
-    assert.equal(configuracao.emailDoUsuario, 'joao@acme.com.br');
-  });
-
-  it('só preenche o campo vazio: o gravado na tela vence o instalador', async () => {
+  async function gravarConfiguracao(configuracao: object): Promise<void> {
     await writeFile(
       caminhoDoArquivo(),
-      JSON.stringify({ nomeDoUsuario: 'Ana Souza', empresaDoUsuario: '', timeDoUsuario: 'Vendas' }),
+      JSON.stringify({ versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA, configuracao }),
+      'utf8',
     );
-    const comInstalador = new RepositorioConfiguracaoArquivo(diretorio, undefined, DO_INSTALADOR);
+  }
 
-    const configuracao = await comInstalador.ler();
+  it('instalação nova ainda não passou pelas boas-vindas', async () => {
+    assert.equal((await repositorio.ler()).boasVindasConcluidas, false);
+  });
 
-    assert.equal(configuracao.nomeDoUsuario, 'Ana Souza');
-    assert.equal(configuracao.empresaDoUsuario, 'Acme');
-    assert.equal(configuracao.timeDoUsuario, 'Vendas');
+  it('arquivo antigo com perfil gravado conta como concluído', async () => {
+    await gravarConfiguracao({ perfil: 'consultor' });
+
+    assert.equal((await repositorio.ler()).boasVindasConcluidas, true);
+  });
+
+  it('arquivo antigo sem perfil ainda não passou pelas boas-vindas', async () => {
+    await gravarConfiguracao({ scriptPadrao: 'git status' });
+
+    assert.equal((await repositorio.ler()).boasVindasConcluidas, false);
+  });
+
+  it('grava as respostas com o preset do perfil e conclui', async () => {
+    await repositorio.concluirBoasVindas(RESPOSTAS);
+
+    repositorio.descartarCache();
+    const configuracao = await repositorio.ler();
+    assert.equal(configuracao.boasVindasConcluidas, true);
+    assert.equal(configuracao.nomeDoUsuario, 'João Silva');
     assert.equal(configuracao.emailDoUsuario, 'joao@acme.com.br');
+    assert.equal(configuracao.perfil, 'gerente-de-projeto');
+    assert.equal(configuracao.terceiro, true);
+    assert.deepEqual(configuracao.funcionalidadesOcultas, [
+      'cliente.repositorios',
+      'local',
+      'autosync',
+      'cliente.autosync',
+    ]);
+  });
+
+  it('salvar o formulário não desfaz a conclusão', async () => {
+    await repositorio.concluirBoasVindas(RESPOSTAS);
+
+    await repositorio.salvar({
+      scriptPadrao: '',
+      intervaloDeExecucaoAutomaticaSegundos: 30,
+      tempoLimiteSegundos: 5,
+      caminhoDoSchemaMcp: '',
+      atalhos: [],
+      destinoDosLinks: 'hub',
+      caminhoDoExecutavelDaIde: '',
+    });
+
+    repositorio.descartarCache();
+    assert.equal((await repositorio.ler()).boasVindasConcluidas, true);
   });
 });

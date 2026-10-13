@@ -91,6 +91,11 @@ function esquemaDeIdentificacao(rotulo: string) {
     );
 }
 
+const esquemaDeEmail = esquemaDeIdentificacao('O e-mail').refine(
+  (valor) => valor === '' || z.email().safeParse(valor).success,
+  'E-mail inválido.',
+);
+
 const esquemaDeConfiguracao = z.object({
   scriptPadrao: z
     .string({ error: 'Informe o script padrão.' })
@@ -164,9 +169,17 @@ const esquemaDeConfiguracao = z.object({
   nomeDoUsuario: esquemaDeIdentificacao('O nome do usuário').optional(),
   empresaDoUsuario: esquemaDeIdentificacao('A empresa').optional(),
   timeDoUsuario: esquemaDeIdentificacao('O time').optional(),
-  emailDoUsuario: esquemaDeIdentificacao('O e-mail')
-    .refine((valor) => valor === '' || z.email().safeParse(valor).success, 'E-mail inválido.')
-    .optional(),
+  emailDoUsuario: esquemaDeEmail.optional(),
+});
+
+/* Tudo obrigatório: o assistente sempre manda os seis campos, mesmo vazios. */
+const esquemaDasBoasVindas = z.object({
+  nomeDoUsuario: esquemaDeIdentificacao('O nome do usuário'),
+  empresaDoUsuario: esquemaDeIdentificacao('A empresa'),
+  timeDoUsuario: esquemaDeIdentificacao('O time'),
+  emailDoUsuario: esquemaDeEmail,
+  perfil: z.enum(PERFIS_PROFISSIONAIS, { error: 'Escolha um perfil válido.' }),
+  terceiro: z.boolean({ error: 'Terceiro deve ser verdadeiro ou falso.' }),
 });
 
 /**
@@ -273,6 +286,15 @@ export function registrarRotasDeConfiguracao(
     }
 
     return repositorio.definirSankhyaOmCodUsu(dados.data.sankhyaOmCodUsu);
+  });
+
+  servidor.put('/api/configuracao/boas-vindas', async (requisicao, resposta) => {
+    const dados = esquemaDasBoasVindas.safeParse(requisicao.body);
+    if (!dados.success) {
+      return responderErroDeValidacao(resposta, dados.error);
+    }
+
+    return repositorio.concluirBoasVindas(dados.data);
   });
 
   servidor.put('/api/configuracao', async (requisicao, resposta) => {

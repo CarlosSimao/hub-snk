@@ -273,62 +273,12 @@ export const DIRETORIO_DE_DADOS =
   (app.isPackaged ? pastaDeDadosInstalada() : join(RAIZ_PROJETO, 'dados-hub-snk'));
 
 /**
- * Escolha feita na página do perfil do instalador (`assets/installer.nsh`), num arquivo
- * de `HubSnk\`. Só o instalador do Windows pergunta; fora dele, e sem o arquivo, volta
- * vazio e o backend aplica o padrão. Quem valida o valor é o backend.
- */
-function escolhaDoInstalador(nomeDoArquivo: string, codificacao: BufferEncoding = 'utf8'): string {
-  return escolhaOpcionalDoInstalador(nomeDoArquivo, codificacao) ?? '';
-}
-
-/** Como `escolhaDoInstalador`, mas sem o arquivo volta `undefined`: vazio também é escolha. */
-function escolhaOpcionalDoInstalador(
-  nomeDoArquivo: string,
-  codificacao: BufferEncoding = 'utf8',
-): string | undefined {
-  if (!app.isPackaged || process.platform !== 'win32') return undefined;
-  try {
-    return readFileSync(join(pastaDeEstadoDoInstalador(), nomeDoArquivo), codificacao).trim();
-  } catch {
-    return undefined;
-  }
-}
-
-/**
  * `HubSnk\` do app instalado, repassado ao backend: a instalação do Git AutoSync pela
  * aba Git deixa ali o script e a marca que a desinstalação do HUB SNK usa para removê-lo
  * junto. Vazio em desenvolvimento, para não oferecer remoção de instalação de teste.
  */
 export const PASTA_DO_INSTALADOR =
   app.isPackaged && process.platform === 'win32' ? pastaDeEstadoDoInstalador() : '';
-
-export const PERFIL_INICIAL =
-  process.env['HUB_PERFIL_INICIAL'] ?? escolhaDoInstalador('perfil-inicial.txt');
-
-/** Caixa Terceiro do instalador: `S` marcada, `N` ou vazio desmarcada. */
-export const TERCEIRO_INICIAL =
-  process.env['HUB_TERCEIRO_INICIAL'] ?? escolhaDoInstalador('terceiro-inicial.txt');
-
-/**
- * Caixas desmarcadas na página do perfil do instalador, separadas por vírgula. Vazio
- * é "nenhuma oculta"; `undefined` (instalação anterior à página) deixa valer o preset.
- */
-export const FUNCIONALIDADES_OCULTAS_INICIAIS =
-  process.env['HUB_FUNCIONALIDADES_OCULTAS_INICIAIS'] ??
-  escolhaOpcionalDoInstalador('funcionalidades-ocultas-inicial.txt');
-
-/**
- * Página "Seus dados" do instalador, toda opcional. O instalador grava em UTF-16: a
- * escrita comum do NSIS usa a página de código do Windows, e o acento chegaria trocado.
- */
-export const NOME_INICIAL =
-  process.env['HUB_NOME_INICIAL'] ?? escolhaDoInstalador('nome-inicial.txt', 'utf16le');
-export const EMPRESA_INICIAL =
-  process.env['HUB_EMPRESA_INICIAL'] ?? escolhaDoInstalador('empresa-inicial.txt', 'utf16le');
-export const TIME_INICIAL =
-  process.env['HUB_TIME_INICIAL'] ?? escolhaDoInstalador('time-inicial.txt', 'utf16le');
-export const EMAIL_INICIAL =
-  process.env['HUB_EMAIL_INICIAL'] ?? escolhaDoInstalador('email-inicial.txt', 'utf16le');
 
 export const TZ_PADRAO = 'America/Sao_Paulo';
 

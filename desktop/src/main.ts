@@ -46,6 +46,7 @@ import { AtalhoGlobalDaBusca } from './interface/atalhoGlobal';
 import { abrirBuscaRapida } from './interface/buscaRapida';
 import { registrarEsquemaDoRuffle } from './interface/ruffle';
 import { iniciarAtualizacaoAutomatica } from './atualizacao';
+import { completarPathComOShellDeLogin } from './pathDoShell';
 import {
   definirInicioAutomatico,
   foiIniciadoPeloWindows,
@@ -64,6 +65,20 @@ if (!app.requestSingleInstanceLock()) {
 // mais o shell abrir herdariam essa pasta e travariam a próxima atualização, que precisa
 // mover a pasta inteira.
 process.chdir(homedir());
+
+// Antes do backend, que herda o PATH deste processo.
+completarPathComOShellDeLogin();
+
+// No Wayland o `globalShortcut` só funciona pelo portal de atalhos do sistema (KDE, GNOME
+// 48 em diante). Onde não houver portal, a tecla é recusada e a busca rápida fica pelo
+// argumento `--busca-rapida` (ver `second-instance`).
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal');
+}
+
+// O Linux encerra o app com SIGTERM (saída da sessão, `kill`). Sem tratar, o processo
+// morre sem o `before-quit`, e o backend fica órfão segurando a porta 4100.
+process.on('SIGTERM', () => app.quit());
 
 registrarEsquemaDoRuffle();
 
@@ -514,8 +529,9 @@ app.whenReady().then(async () => {
   reconstruirMenu();
   // Versão baixada ou atualização desligada: o item "Reiniciar para atualizar" muda.
   iniciarAtualizacaoAutomatica(reconstruirMenu);
-  criarBandejaDoApp();
+  // O atalho antes da bandeja: no Linux o menu dela é montado agora, já com a situação.
   atalhoGlobal.aplicarEscolhaGravada();
+  criarBandejaDoApp();
   comunicacao?.carregarAoAbrirSeEscolhido();
 
   app.on('activate', () => {
@@ -542,8 +558,19 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => globalShortcut.unregisterAll());
 
+/**
+ * Abrir o app com ele já no ar. `--busca-rapida` é o atalho global de quem não tem um:
+ * no Wayland sem portal de atalhos, a pessoa cadastra `hub-snk-desktop --busca-rapida`
+ * como atalho de teclado do sistema.
+ */
+const ARGUMENTO_DA_BUSCA_RAPIDA = '--busca-rapida';
+
 // O atalho da área de trabalho com o app escondido na bandeja cai aqui: a janela volta.
-app.on('second-instance', () => {
+app.on('second-instance', (_evento, argumentos) => {
+  if (argumentos.includes(ARGUMENTO_DA_BUSCA_RAPIDA)) {
+    abrirBuscaRapidaNaJanela();
+    return;
+  }
   mostrarJanela();
   camadaDoHub?.mostrarAviso(
     'O HUB SNK já está aberto',

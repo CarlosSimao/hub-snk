@@ -13,8 +13,8 @@ mantenedor é o relato de problema, que leva seu nome, empresa, time e e-mail (d
 Configurações), e só quando você clica em **Enviar** — veja
 [Relato de problema](docs/manutencao.md#relato-de-problema).
 
-É um aplicativo desktop (Electron) só para Windows: a partir da versão 2 não há
-distribuição para Linux nem para macOS.
+É um aplicativo desktop (Electron) para Windows e Ubuntu (`.deb`). Ainda não há
+versão para macOS.
 
 Funcionalidades e download também em
 **[carlossimao.github.io/hub-snk](https://carlossimao.github.io/hub-snk/)**.
@@ -25,6 +25,8 @@ Funcionalidades e download também em
 
 ## Instalação
 
+### Windows
+
 Baixe o `HUB-SNK-Setup-<versão>.exe` na
 [página de releases](https://github.com/CarlosSimao/hub-snk/releases) e rode.
 
@@ -32,17 +34,6 @@ Baixe o `HUB-SNK-Setup-<versão>.exe` na
   pedir administrador**.
 - Não exige Node.js: o backend roda no Node que vem dentro do aplicativo.
 - Cria os atalhos "HUB SNK" no menu Iniciar e na área de trabalho.
-- Pergunta o seu **perfil profissional** — Consultor, Analista, Gerente de Projetos
-  ou Desenvolvedor — e mostra uma caixa por funcionalidade, como a aba _Acessos_:
-  trocar o perfil marca o preset dele, e as caixas podem ser ajustadas antes de
-  seguir. A caixa **Terceiro**, independente do perfil, é para quem não tem acesso ao
-  SankhyaOm nem à Experience: oculta Sankhya ID, Agenda, OS e as guias dos
-  dois sistemas. A escolha vale só como ponto de partida: depois da instalação, ajuste
-  em _Configurações_ › _Acessos_, e reinstalar não desfaz o que você ajustou.
-- Uma página opcional pede nome, empresa, time e e-mail, que preenchem os mesmos
-  campos de _Configurações_ enquanto eles estiverem vazios.
-- Na primeira abertura, com o cadastro vazio, o painel abre na aba **Clientes** e,
-  para quem não é Terceiro, com a aba **Sankhya ID** das Configurações já aberta.
 - O **Git AutoSync** (commit e push automáticos dos repositórios) não vem no
   instalador: tem licença própria. A aba **Git AutoSync** do painel o instala
   baixando da release do repositório dele, e exige o Git na máquina.
@@ -50,6 +41,40 @@ Baixe o `HUB-SNK-Setup-<versão>.exe` na
 > O instalador não é assinado digitalmente. Na primeira execução, o SmartScreen
 > pode mostrar _"O Windows protegeu o computador"_: clique em _Mais informações_ ›
 > _Executar assim mesmo_.
+
+### Ubuntu
+
+Testado no Ubuntu 24.04. Baixe o `hub-snk-<versão>-amd64.deb` na
+[página de releases](https://github.com/CarlosSimao/hub-snk/releases) e instale:
+
+```bash
+sudo apt install ./hub-snk-<versão>-amd64.deb
+```
+
+Depois abra o **HUB SNK** pelo menu de aplicativos. O pacote instala em `/opt/HUB SNK`
+e traz o que o cofre de senhas precisa (o chaveiro do GNOME). Diferenças em relação ao
+Windows:
+
+- O **Git AutoSync** não aparece: ele só publica executáveis para Windows.
+- No Ubuntu 24.04 o atalho global `Ctrl+Shift+Espaço` não funciona (o GNOME 46 não
+  libera tecla global no Wayland). Cadastre em _Configurações_ › _Teclado_ › _Atalhos
+  personalizados_ o comando `hub-snk-desktop --busca-rapida` com a combinação que
+  preferir.
+- Para desinstalar: `sudo apt remove hub-snk-desktop`. O cadastro não é apagado.
+
+### Primeiro uso
+
+Na primeira abertura, um assistente de boas-vindas pergunta, em quatro passos rápidos:
+
+- nome, empresa, time e e-mail, todos opcionais;
+- o seu **perfil profissional** — Consultor, Analista, Gerente de Projetos ou
+  Desenvolvedor —, que define as abas visíveis;
+- se você tem login no SankhyaOm e na Experience. Quem não tem é **Terceiro**: some
+  o que depende deles (Sankhya ID, Agenda, OS e as guias dos dois sistemas).
+
+Tudo pode ser mudado depois em _Configurações_ › _Geral_ e _Configurações_ › _Acessos_.
+Com o cadastro vazio, o painel abre na aba **Clientes** e, para quem não é Terceiro,
+com a aba **Sankhya ID** das Configurações já aberta.
 
 ### Atualizar e desinstalar
 

@@ -61,6 +61,9 @@ import type { ConfiguracaoDoAssistenteDeIa } from './kanban/tiposDoKanban.ts';
  *
  * `backup` é a cópia de segurança da pasta de dados: a periódica, numa pasta do
  * computador, e a mantida no Google Drive conectado.
+ *
+ * `boasVindasConcluidas` diz se a pessoa já passou pelo assistente de boas-vindas, que
+ * pergunta a identificação, o perfil e o Terceiro no primeiro uso.
  */
 export interface ConfiguracaoGlobal {
   scriptPadrao: string;
@@ -85,6 +88,7 @@ export interface ConfiguracaoGlobal {
   timeDoUsuario: string;
   emailDoUsuario: string;
   backup: ConfiguracaoDeBackup;
+  boasVindasConcluidas: boolean;
 }
 
 /**
