@@ -9,6 +9,14 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.10.1] - 2026-10-14
+
+### Corrigido
+
+- **Segurança das dependências**: o servidor do HUB SNK passa a usar o fastify 5.12.7, que
+  fecha falhas de contorno de autenticação e de validação das requisições. Também foram
+  atualizadas outras dependências com falhas conhecidas e o Electron, para a versão 44.7.0.
+
 ## [2.10.0] - 2026-10-14
 
 ### Adicionado
@@ -758,7 +766,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.1...HEAD
+[2.10.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.0...v2.10.1
 [2.10.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.9.0...v2.10.0
 [2.9.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.7.0...v2.8.0
