@@ -278,6 +278,27 @@
               aria-label="Filtrar por projeto"
               hidden
             ></select>
+            <button
+              class="btn tiny botao-icone"
+              type="button"
+              id="btn-kanban-geral-recarregar"
+              title="Recarregar as informações do quadro"
+              aria-label="Recarregar o quadro"
+            >
+              <svg
+                class="icone-recarregar"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                <path d="M21 3v6h-6" />
+              </svg>
+            </button>
             <button class="btn tiny primario" type="button" id="btn-kanban-geral-nova-tarefa">
               Nova tarefa
             </button>
@@ -2633,7 +2654,7 @@
             Gerar tarefas com a IA
           </button>
           <button
-            class="btn tiny"
+            class="btn tiny botao-icone"
             type="button"
             id="btn-kanban-recarregar"
             title="Recarregar as informações do quadro"
@@ -2641,8 +2662,6 @@
           >
             <svg
               class="icone-recarregar"
-              width="13"
-              height="13"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -2654,7 +2673,6 @@
               <path d="M21 12a9 9 0 1 1-2.64-6.36" />
               <path d="M21 3v6h-6" />
             </svg>
-            Recarregar
           </button>
           <button class="btn tiny primario" type="button" id="btn-kanban-nova-tarefa">
             Nova tarefa

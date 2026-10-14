@@ -818,12 +818,7 @@ main {
   animation: girar-indicador-carregando 0.9s linear infinite !important;
 }
 
-#btn-kanban-recarregar .icone-recarregar {
-  vertical-align: -2px;
-  margin-right: 3px;
-}
-
-#btn-kanban-recarregar.recarregando .icone-recarregar {
+.recarregando .icone-recarregar {
   animation: girar-indicador-carregando 0.7s linear infinite;
 }
 
