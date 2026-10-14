@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Contatos · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como cadastrar, filtrar, editar e excluir contatos no HUB SNK e falar com eles pelo WhatsApp e pelo Gmail, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Contatos</h1>
+        <p class="introducao">
+          Os contatos são as pessoas dos clientes, ou de fora deles, com quem você fala: nome,
+          cargo, telefone e e-mail. Ficam na aba Contatos do menu e na aba Contatos de cada cliente,
+          abrem a conversa no WhatsApp ou um e-mail novo no Gmail e podem receber os lembretes por
+          e-mail.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#lista-de-contatos">Lista de contatos</a></li>
+            <li><a href="#filtrar">Filtrar por nome e por cliente</a></li>
+            <li><a href="#cadastrar-contato">Cadastrar contato</a></li>
+            <li><a href="#aba-do-cliente">Aba Contatos do cliente</a></li>
+            <li><a href="#editar-e-excluir">Editar e excluir contato</a></li>
+            <li><a href="#whatsapp">Conversar no WhatsApp</a></li>
+            <li><a href="#email">Escrever e-mail</a></li>
+            <li><a href="#sem-cliente">Contatos sem cliente</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="lista-de-contatos">
+          <h2>Lista de contatos</h2>
+          <p>
+            A aba <strong>Contatos</strong> do menu mostra todos os contatos, de qualquer cliente ou
+            sem cliente, em ordem alfabética. Cada linha traz o nome, o cargo e o cliente e,
+            embaixo, o telefone e o e-mail. A lista é lida de novo toda vez que a aba é aberta.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No topo do Painel, clique em <strong>Contatos</strong>.
+              <figure>
+                <img
+                  src="img/contatos/lista-01-aba-contatos.webp"
+                  alt="Topo do Painel com a aba Contatos destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Os contatos ficam em <strong>Cadastrados</strong>. À direita de cada um estão o lápis,
+              a lixeira e os botões de WhatsApp e de e-mail. Sem nenhum contato, aparece
+              <strong>Nenhum contato cadastrado.</strong>
+              <figure>
+                <img
+                  src="img/contatos/lista-02-lista.webp"
+                  alt="Lista de contatos cadastrados destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-contatos">Configurações › Acessos › Contatos</a>
+              (menu principal): desmarcado, a aba Contatos some do topo.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#cadastrar-contato">Cadastrar contato</a> e
+              <a href="#filtrar">filtrar a lista</a>
+            </li>
+            <li>
+              Para achar um contato sem abrir a aba, use a
+              <a href="buscas-e-atalhos.html#busca-rapida">busca rápida</a>
+              (<kbd>Ctrl</kbd>+<kbd>K</kbd>): ela procura também pelo cargo, pelo telefone e pelo
+              e-mail.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="filtrar">
+          <h2>Filtrar por nome e por cliente</h2>
+          <p>
+            Dois filtros, que se somam. O de nome reduz a lista aos contatos que têm o texto
+            digitado em qualquer parte do nome, sem diferenciar maiúsculas nem acentos. O de cliente
+            mostra só os contatos de um cliente, ou só os que não têm cliente. A escolha do cliente
+            continua valendo quando você volta à aba, a não ser que o cliente tenha sido excluído.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Digite parte do nome em <strong>Filtrar por nome…</strong>. A lista filtra a cada
+              tecla; o <strong>×</strong> do campo apaga o texto.
+              <figure>
+                <img
+                  src="img/contatos/filtrar-01-nome.webp"
+                  alt="Lista de contatos filtrada pelo texto mar"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              No seletor ao lado, escolha um cliente, <strong>Sem cliente</strong> ou
+              <strong>Todos os clientes</strong> para voltar a ver todos.
+              <figure>
+                <img
+                  src="img/contatos/filtrar-02-cliente.webp"
+                  alt="Lista de contatos filtrada pelo cliente Fazenda Boa Vista"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Quando nenhum contato passa nos filtros, a lista mostra
+            <strong>Nenhum contato com estes filtros.</strong>
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#lista-de-contatos">Lista de contatos</a></li>
+            <li><a href="#sem-cliente">Contatos sem cliente</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="cadastrar-contato">
+          <h2>Cadastrar contato</h2>
+          <p>
+            Cria um contato com nome, cargo, telefone, e-mail e, se quiser, o cliente. Só o nome é
+            obrigatório. Nome e cargo aceitam até 120 caracteres, telefone até 40 e e-mail até 254;
+            o e-mail, quando preenchido, precisa ser válido.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na aba <strong>Contatos</strong>, clique no <strong>+</strong> ao lado de
+              <strong>Cadastrados</strong>.
+              <figure>
+                <img
+                  src="img/contatos/cadastrar-01-botao.webp"
+                  alt="Botão + de novo contato destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Novo contato</strong>, preencha <strong>Nome</strong>,
+              <strong>Cargo</strong>, <strong>Telefone</strong> e <strong>E-mail</strong> e escolha
+              o <strong>Cliente</strong>, ou deixe <strong>Sem cliente</strong>.
+              <figure>
+                <img
+                  src="img/contatos/cadastrar-02-formulario.webp"
+                  alt="Janela Novo contato preenchida"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Salvar</strong>. O contato entra na lista e o aviso
+              <strong>Contato cadastrado.</strong> confirma.
+              <figure>
+                <img
+                  src="img/contatos/cadastrar-03-salvo.webp"
+                  alt="Contato novo na lista, com o aviso Contato cadastrado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Os botões de WhatsApp e de e-mail só aparecem no contato que tem telefone com DDD e
+            e-mail.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Para cadastrar já dentro de um cliente, use a
+              <a href="#aba-do-cliente">aba Contatos do cliente</a>.
+            </li>
+            <li>
+              Também dá para cadastrar sem sair de um lembrete, em
+              <a href="lembretes-e-notificacoes.html#contatos-em-copia">Contatos em cópia</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="aba-do-cliente">
+          <h2>Aba Contatos do cliente</h2>
+          <p>
+            No cadastro do cliente, a aba <strong>Contatos</strong> mostra só os contatos dele, sem
+            filtros e sem repetir o nome do cliente na linha. O contato criado por ela já nasce
+            desse cliente: o campo Cliente nem aparece na janela.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Em <strong>Clientes</strong>, escolha o cliente e clique na aba
+              <strong>Contatos</strong>. Sem nenhum, aparece
+              <strong>Nenhum contato vinculado a este cliente.</strong>
+              <figure>
+                <img
+                  src="img/contatos/aba-do-cliente-01-aba.webp"
+                  alt="Aba Contatos da Fazenda Boa Vista destacada, com dois contatos"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para cadastrar, clique no <strong>+</strong>, preencha os campos e clique em
+              <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/contatos/aba-do-cliente-02-novo.webp"
+                  alt="Janela Novo contato aberta pela aba do cliente, sem o campo Cliente"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-contatos"
+                >Configurações › Acessos › Contatos</a
+              >
+              (cadastro do cliente): desmarcado, a aba Contatos some do cliente.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="clientes.html#lista-e-detalhe">Lista e detalhe do cliente</a></li>
+            <li>
+              A <a href="buscas-e-atalhos.html#abrir-item">busca rápida</a> abre o contato nesta
+              aba; o contato sem cliente abre na aba Contatos do menu, já filtrado pelo nome.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="editar-e-excluir">
+          <h2>Editar e excluir contato</h2>
+          <p>
+            Altera os dados do contato ou o apaga. Pela aba Contatos do menu dá para trocar ou tirar
+            o cliente; pela aba do cliente, o campo Cliente fica escondido e o contato continua
+            dele. Excluir não tem volta, e os lembretes que mandavam cópia para o contato deixam de
+            mandar.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do contato, clique no lápis.
+              <figure>
+                <img
+                  src="img/contatos/editar-01-botao.webp"
+                  alt="Botão Editar contato destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Editar contato</strong>, altere o que precisar e clique em
+              <strong>Salvar</strong>. O aviso <strong>Contato atualizado.</strong> confirma.
+              <figure>
+                <img
+                  src="img/contatos/editar-02-formulario.webp"
+                  alt="Janela Editar contato com o cargo alterado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para excluir, clique na lixeira vermelha da linha.
+              <figure>
+                <img
+                  src="img/contatos/excluir-01-botao.webp"
+                  alt="Botão Excluir contato destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Excluir contato</strong>, clique em <strong>Excluir</strong>. O
+              aviso <strong>Contato excluído.</strong> confirma.
+              <figure>
+                <img
+                  src="img/contatos/excluir-02-confirmar.webp"
+                  alt="Janela de confirmação da exclusão do contato"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#lista-de-contatos">Lista de contatos</a> ou
+              <a href="#aba-do-cliente">aba Contatos do cliente</a>
+            </li>
+            <li>
+              Afeta:
+              <a href="lembretes-e-notificacoes.html#contatos-em-copia">contatos em cópia</a> dos
+              lembretes.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="whatsapp">
+          <h2>Conversar no WhatsApp</h2>
+          <p>
+            Abre no WhatsApp Web a conversa com o telefone do contato. O botão só aparece quando o
+            telefone tem pelo menos DDD e número. Número com 10 ou 11 dígitos, sem <code>+</code>,
+            ganha o código 55 do Brasil; começando com <code>+</code>, vale o código de país
+            digitado. No aplicativo, a conversa abre no painel do WhatsApp da barra de comunicação,
+            por cima das guias; no navegador, numa aba nova.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do contato, no menu ou na aba do cliente, clique no balão
+              <strong>Conversar no WhatsApp</strong>.
+              <figure>
+                <img
+                  src="img/contatos/whatsapp-01-botao.webp"
+                  alt="Botão Conversar no WhatsApp destacado na linha da Marina Duarte"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O WhatsApp Web abre na conversa com o contato. Sem login no WhatsApp Web, aparece
+              antes o QR code para entrar.
+              <!-- print-pendente: terceiros: WhatsApp Web aberto na conversa com o contato -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#outras-botoes-da-barra"
+                >Engrenagem da barra de comunicação › Botões da barra › WhatsApp</a
+              >: desligado, a conversa não abre no painel e segue para onde os links abrem.
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-abrir-os-links-em"
+                >Configurações › Geral › Abrir os links em</a
+              >: vale quando o WhatsApp está desligado na barra.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>Telefone preenchido no <a href="#cadastrar-contato">cadastro do contato</a></li>
+            <li><a href="comunicacao.html#whatsapp">WhatsApp Web</a> na barra de comunicação</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="email">
+          <h2>Escrever e-mail</h2>
+          <p>
+            Abre no Gmail a tela de e-mail novo, já com o contato no campo Para. O botão só aparece
+            quando o contato tem e-mail. O e-mail sai da sua conta Google, não do servidor de e-mail
+            das Configurações. No aplicativo, abre no painel do Gmail da barra de comunicação, e
+            enviar ou descartar o rascunho volta o painel para a caixa de entrada; no navegador,
+            abre numa aba nova.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do contato, clique no envelope <strong>Escrever e-mail</strong>.
+              <figure>
+                <img
+                  src="img/contatos/email-01-botao.webp"
+                  alt="Botão Escrever e-mail destacado na linha da Marina Duarte"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O Gmail abre em <strong>Nova mensagem</strong>, endereçada ao contato. Escreva e envie
+              por ali.
+              <!-- print-pendente: terceiros: Gmail com a Nova mensagem endereçada ao contato -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#outras-botoes-da-barra"
+                >Engrenagem da barra de comunicação › Botões da barra › Gmail</a
+              >: desligado, o e-mail novo não abre no painel e segue para onde os links abrem.
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-abrir-os-links-em"
+                >Configurações › Geral › Abrir os links em</a
+              >: vale quando o Gmail está desligado na barra.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>E-mail preenchido no <a href="#cadastrar-contato">cadastro do contato</a></li>
+            <li><a href="comunicacao.html#gmail">Gmail</a> na barra de comunicação</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="sem-cliente">
+          <h2>Contatos sem cliente</h2>
+          <p>
+            Excluir um cliente não apaga os contatos dele: eles passam a ficar sem cliente e
+            continuam na aba Contatos do menu. O mesmo vale para o cliente apagado fora do HUB SNK,
+            como numa pasta de dados sincronizada com outra máquina.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na aba <strong>Contatos</strong>, escolha <strong>Sem cliente</strong> no filtro de
+              cliente. Para vinculá-los de novo, edite cada um e escolha o cliente.
+              <figure>
+                <img
+                  src="img/contatos/sem-cliente-01-filtro.webp"
+                  alt="Filtro Sem cliente mostrando a Renata Campos depois da exclusão da Indústria Alfa"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="clientes.html#excluir">Excluir cliente</a></li>
+            <li>
+              <a href="#filtrar">Filtrar por cliente</a> e
+              <a href="#editar-e-excluir">editar o contato</a>
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

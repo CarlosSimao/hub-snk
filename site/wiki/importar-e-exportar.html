@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Importar e exportar · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como trazer bases dos favoritos do navegador, repositórios Git da máquina e cadastros de outro HUB SNK, e como exportar os cadastros para arquivo, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Importar e exportar</h1>
+        <p class="introducao">
+          Em vez de cadastrar cliente por cliente, o HUB SNK traz de uma vez as bases que já estão
+          nos favoritos do navegador, os repositórios Git clonados na máquina e os cadastros
+          exportados por outro HUB SNK. No caminho inverso, a exportação gera um arquivo de texto
+          com os cadastros de vários clientes, pronto para mandar a um colega.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#abrir-importacao">Abrir o assistente de importação</a></li>
+            <li><a href="#importar-favoritos">Importar favoritos do navegador</a></li>
+            <li><a href="#conferir-favoritos">Conferir as bases dos favoritos</a></li>
+            <li><a href="#importar-repositorios">Importar repositórios locais</a></li>
+            <li><a href="#importar-cadastros">Importar cadastros de arquivo</a></li>
+            <li><a href="#bases-ja-cadastradas">Decidir bases já cadastradas</a></li>
+            <li><a href="#exportar-cadastros">Exportar cadastros</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="abrir-importacao">
+          <h2>Abrir o assistente de importação</h2>
+          <p>
+            O assistente <strong>Importar</strong> pergunta o que você quer trazer e segue por
+            etapas: favoritos do navegador, repositórios locais ou cadastros de arquivo do HUB SNK.
+            Toda abertura começa do zero, sem o que foi escolhido da vez anterior. No rodapé,
+            <strong>Voltar</strong> retorna à etapa anterior sem perder o que já foi marcado,
+            <strong>Avançar</strong> segue e <strong>Concluir</strong>, na última etapa, grava.
+            <strong>Cancelar</strong> fecha sem importar nada.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Em <strong>Clientes</strong>, clique em <strong>Importar</strong>, no pé da lista. Com
+              o cadastro vazio, o botão também aparece ao lado de
+              <strong>Cadastrar cliente</strong>.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/abrir-01-botao.webp"
+                  alt="Botão Importar destacado no pé da lista de clientes"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Marque uma das opções e clique em <strong>Avançar</strong>.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/abrir-02-origem.webp"
+                  alt="Janela Importar com as três opções e o botão Avançar destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="clientes.html#lista-e-detalhe">Lista de clientes</a> e
+              <a href="clientes.html#primeiro-uso">primeira abertura, sem clientes</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="importar-favoritos">
+          <h2>Importar favoritos do navegador</h2>
+          <p>
+            Cada favorito escolhido vira uma base de um cliente. O assistente lê o arquivo de
+            favoritos do Chrome, do Edge e do Opera (o arquivo <code>Bookmarks</code> do perfil ou o
+            HTML exportado), do Firefox (HTML ou backup <code>.json</code>) e do Safari (HTML),
+            reconhecendo o formato pelo conteúdo. O arquivo é lido na própria tela; nada vai ao
+            servidor antes do <strong>Concluir</strong>. O backup <code>.jsonlz4</code> do Firefox
+            não é aceito: exporte para HTML.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No navegador, exporte os favoritos para um arquivo HTML. No Chrome e no Edge, dá para
+              usar direto o arquivo <code>Bookmarks</code> da pasta do perfil, como
+              <code>%LOCALAPPDATA%\Google\Chrome\User Data\Default</code>.
+              <!-- print-pendente: terceiros: exportar favoritos no Chrome/Edge/Firefox -->
+            </li>
+            <li>
+              No assistente, marque
+              <strong>Importar base de cliente dos favoritos do navegador</strong> e clique em
+              <strong>Avançar</strong>. Arraste o arquivo para a área tracejada ou clique nela para
+              escolher o arquivo.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/favoritos-01-arquivo.webp"
+                  alt="Área Arraste o arquivo de favoritos aqui destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: sistema: seletor de arquivo do Windows escolhendo o arquivo de favoritos -->
+            </li>
+            <li>
+              Lido o arquivo, o assistente mostra os favoritos em árvore, com as pastas do
+              navegador. Favorito que não é endereço http ou https fica bloqueado.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/favoritos-02-arvore.webp"
+                  alt="Árvore de favoritos com as pastas Clientes e Ferramentas"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Marque os favoritos que devem virar bases. A caixa de uma pasta marca tudo o que está
+              dentro dela; <strong>Marcar todos</strong> e <strong>Desmarcar todos</strong> valem
+              para a árvore inteira. Clique em <strong>Avançar</strong>.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/favoritos-03-marcar.webp"
+                  alt="Pasta Clientes marcada e o botão Avançar destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              <a href="#conferir-favoritos">Confira as bases</a> e clique em
+              <strong>Concluir</strong>. As bases e os clientes que ainda não existiam são gravados
+              de uma vez, ou nada é gravado, e o aviso diz quantos entraram.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/favoritos-04-concluido.webp"
+                  alt="Cliente novo na lista, com o aviso 4 bases importadas, 1 cliente criado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#abrir-importacao">Abrir o assistente de importação</a></li>
+            <li><a href="#conferir-favoritos">Conferir as bases dos favoritos</a></li>
+            <li>
+              As bases criadas seguem as regras do
+              <a href="bases.html#cadastrar-base">cadastro de bases</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="conferir-favoritos">
+          <h2>Conferir as bases dos favoritos</h2>
+          <p>
+            Antes de gravar, cada favorito marcado vira uma linha com
+            <strong>Nome do cliente</strong>, <strong>URL</strong>, <strong>Tipo de base</strong>,
+            <strong>Usuário (opcional)</strong> e <strong>Senha (opcional)</strong>. O marcador de
+            ambiente no nome do favorito, como <code>PROD</code>, <code>P</code>,
+            <code>TESTE</code>, <code>HML</code>, <code>[T]</code> ou <code>(P)</code>, vira o tipo
+            da base e sai do nome do cliente: "Agropecuária Santa Clara - PROD" vira o cliente
+            "Agropecuária Santa Clara", base de Produção. Se já existe um cliente com nome
+            equivalente, sem contar maiúsculas, acentos e separadores, a linha já vem com o nome do
+            cadastro. Favoritos repetidos, com o mesmo nome e a mesma URL, viram uma linha só, e um
+            aviso diz quantos.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Confira o nome do cliente e o tipo deduzidos do favorito e, se quiser, informe usuário
+              e senha da base.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/conferir-01-linhas.webp"
+                  alt="Linha da conferência com o nome do cliente e o tipo Produção destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Linha com problema mostra o motivo em vermelho: nome vazio, URL que não é http ou
+              https, tipo não escolhido, base com a mesma URL e o mesmo tipo já cadastrada no
+              cliente, ou duas linhas iguais. Enquanto houver erro, <strong>Concluir</strong> fica
+              bloqueado.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/conferir-02-erro.webp"
+                  alt="Linha da Cooperativa Vale do Café com o aviso Selecione o tipo da base"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Corrija a linha, aqui escolhendo o tipo, e clique em <strong>Concluir</strong>.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/conferir-03-completar.webp"
+                  alt="Tipo Outro escolhido e o botão Concluir destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#importar-favoritos">Importar favoritos do navegador</a></li>
+            <li><a href="clientes.html#cadastrar">Cadastro de clientes</a> (nome equivalente)</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="importar-repositorios">
+          <h2>Importar repositórios locais</h2>
+          <p>
+            Procura os repositórios Git já clonados dentro das pastas que você aponta e cadastra os
+            escolhidos no cliente de cada um, existente ou novo. A busca desce até 6 níveis, para em
+            500 repositórios e pula pastas pesadas como <code>node_modules</code> e
+            <code>target</code>. Cada repositório vem com a URL do remoto e a branch; o remoto SSH é
+            convertido para https. Repositório sem remoto http ou https não pode ser importado.
+            Precisa do <code>git</code> instalado na máquina.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No assistente, marque <strong>Importar repositórios locais</strong>, clique em
+              <strong>Avançar</strong> e depois em <strong>Selecionar pasta</strong>.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/repositorios-01-pastas.webp"
+                  alt="Botão Selecionar pasta destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Escolha a pasta no seletor de pastas do sistema. No Linux, o seletor precisa do
+              <code>zenity</code> ou do <code>kdialog</code>.
+              <!-- print-pendente: sistema: seletor de pasta do Windows -->
+            </li>
+            <li>
+              A pasta entra na lista. Repita para outras pastas, até 20;
+              <strong>Remover</strong> tira uma da lista. Clique em <strong>Avançar</strong> para
+              procurar os repositórios.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/repositorios-02-pasta-escolhida.webp"
+                  alt="Pasta C:\Workspace\clientes na lista e o botão Avançar destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Cada repositório encontrado aparece com o caminho, o remoto e a branch. O
+              <strong>Cliente</strong> já vem sugerido quando o nome da pasta começa com o nome de
+              um cliente cadastrado, como <code>construtora-horizonte-medicoes</code> para a
+              Construtora Horizonte. O sem remoto fica bloqueado, e um aviso conta quantos ficaram
+              de fora.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/repositorios-03-encontrados.webp"
+                  alt="Repositórios encontrados, com o cliente sugerido em cada um"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Marque os repositórios, ou use <strong>Marcar todos</strong>. Em
+              <strong>Cliente</strong>, mantenha a sugestão, escolha outro ou escolha
+              <strong>Novo cliente…</strong> e digite o nome. Depois, clique em
+              <strong>Concluir</strong>.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/repositorios-04-clientes.webp"
+                  alt="Marcar todos e o campo Novo cliente com Pecuária Três Irmãos destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O aviso diz quantos repositórios entraram e quantos clientes foram criados. Os
+              repositórios aparecem na aba Git de cada cliente.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/repositorios-05-concluido.webp"
+                  alt="Aviso 3 repositórios importados, 1 cliente criado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            O <strong>Concluir</strong> recusa cliente em branco, repositório cuja URL o cliente já
+            tem e dois repositórios com o mesmo cliente e a mesma URL; cada caso aparece em vermelho
+            no repositório.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#abrir-importacao">Abrir o assistente de importação</a></li>
+            <li>
+              Os repositórios entram como no
+              <a href="repositorios-git.html#cadastrar-repositorio">cadastro de repositório</a> e
+              passam pelo <a href="repositorios-git.html#diagnostico">diagnóstico do Git</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="importar-cadastros">
+          <h2>Importar cadastros de arquivo</h2>
+          <p>
+            Lê o <code>.txt</code> gerado pelo <a href="#exportar-cadastros">Exportar</a> ou pelo
+            <a href="clientes.html#compartilhar-bases">Compartilhar</a> de outro HUB SNK e cria os
+            clientes e as bases que faltam. O cliente é reconhecido pelo nome, sem contar
+            maiúsculas, acentos e separadores. O que não dá para aproveitar não derruba o arquivo:
+            vira aviso, e o resto entra. Arquivo sem nada aproveitável é recusado.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No assistente, marque <strong>Importar cadastros de arquivo do HUB SNK</strong>,
+              clique em <strong>Avançar</strong> e arraste o arquivo para a área tracejada, ou
+              clique nela para escolher o arquivo.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/cadastros-01-arquivo.webp"
+                  alt="Área Arraste o arquivo de cadastros aqui destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: sistema: seletor de arquivo do Windows escolhendo o .txt de cadastros -->
+            </li>
+            <li>
+              Confira o resumo e os blocos.
+              <strong>O arquivo tem coisas que ficaram de fora</strong> lista o que foi ignorado,
+              como bloco sem <code>Cliente:</code>, base sem URL, banco incompleto ou URL repetida,
+              e avisa a base sem tipo, que entra como Outro. <strong>Entra direto</strong> lista os
+              clientes novos e as bases de URL que ninguém tem. Bases já cadastradas aparecem em
+              cartões, para você <a href="#bases-ja-cadastradas">decidir qual fica</a>.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/cadastros-02-conferir.webp"
+                  alt="Resumo, bloco do que ficou de fora e bloco Entra direto destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Concluir</strong>. Tudo é gravado de uma vez, ou nada é, e o aviso
+              conta o que aconteceu: clientes criados, bases importadas, substituídas e mantidas.
+              Sem mudança nenhuma, o aviso é <strong>Nada mudou no cadastro.</strong>
+              <figure>
+                <img
+                  src="img/importar-e-exportar/cadastros-03-concluido.webp"
+                  alt="Cliente novo na lista, com o aviso do que foi importado e substituído"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Cada importação aceita até 300 clientes e 600 bases. O arquivo leva senhas sem máscara
+            quando foi exportado com credenciais: apague-o depois de importar.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              O arquivo sai de <a href="#exportar-cadastros">Exportar cadastros</a> ou de
+              <a href="clientes.html#compartilhar-bases">Compartilhar bases</a>.
+            </li>
+            <li><a href="#bases-ja-cadastradas">Decidir bases já cadastradas</a></li>
+            <li>
+              O banco vem junto quando foi exportado; veja
+              <a href="bases.html#vincular-banco">banco de dados vinculado</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="bases-ja-cadastradas">
+          <h2>Decidir bases já cadastradas</h2>
+          <p>
+            Quando a URL de uma base do arquivo já existe no cliente, o assistente mostra o cadastro
+            atual e o importado lado a lado, com tipo, usuário, senha mascarada e banco, e a marca
+            <strong>diferente</strong> no que muda. Toda decisão começa em
+            <strong>Manter o atual</strong>. <strong>Usar o importado</strong> troca só o que o
+            arquivo trouxe: arquivo sem credenciais preserva o usuário e a senha, e arquivo sem
+            banco preserva o banco.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Em cada cartão, escolha <strong>Manter o atual</strong> ou
+              <strong>Usar o importado</strong>.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/ja-cadastradas-01-cartao.webp"
+                  alt="Cartão da base de produção da Fazenda Boa Vista com Usar o importado escolhido"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Com duas ou mais bases nessa situação, <strong>Manter todos os atuais</strong> e
+              <strong>Substituir todos</strong> decidem todas de uma vez. Depois, clique em
+              <strong>Concluir</strong>.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/ja-cadastradas-02-em-bloco.webp"
+                  alt="Botões Manter todos os atuais e Substituir todos destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#importar-cadastros">Importar cadastros de arquivo</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="exportar-cadastros">
+          <h2>Exportar cadastros</h2>
+          <p>
+            Gera um texto com os cadastros de vários clientes, no mesmo formato do Compartilhar: um
+            bloco por base, com o nome do cliente, o tipo e a URL. Credenciais e banco só vão quando
+            você marca. Cliente sem base sai só com o nome. O texto pode ser copiado ou baixado como
+            <code>Cadastros HUB SNK.txt</code>, ou <code>Acessos - &lt;cliente&gt;.txt</code> quando
+            só um cliente foi escolhido.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Em <strong>Clientes</strong>, clique em <strong>Exportar</strong>, no pé da lista. Sem
+              cliente cadastrado, o botão fica bloqueado.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/exportar-01-botao.webp"
+                  alt="Botão Exportar destacado no pé da lista de clientes"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Todos os clientes vêm marcados, cada um com o resumo das bases. Ajuste a seleção, ou
+              use <strong>Marcar todos</strong> e <strong>Desmarcar todos</strong>, e clique em
+              <strong>Avançar</strong>.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/exportar-02-clientes.webp"
+                  alt="Lista de clientes a exportar com dois marcados e o botão Avançar"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Marque <strong>Credenciais</strong> (usuário e senha das bases) e
+              <strong>Banco</strong> (host, porta, serviço, usuário e senha do banco) em cada
+              cliente. As duas vêm desmarcadas, e ficam bloqueadas no cliente que não tem o dado.
+              Com mais de um cliente, a linha <strong>Marcar todos</strong> marca a coluna inteira.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/exportar-03-colunas.webp"
+                  alt="Colunas Credenciais e Banco por cliente, com a linha Marcar todos"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Copiar</strong> para levar o texto para a área de transferência. O
+              aviso <strong>Cadastros copiados.</strong> confirma.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/exportar-04-copiar.webp"
+                  alt="Botão Copiar destacado, com o aviso Cadastros copiados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Ou clique em <strong>Baixar .txt</strong>. O aviso
+              <strong>Arquivo de exportação gerado.</strong> confirma. No aplicativo, o arquivo vai
+              direto para a pasta Downloads, sem perguntar onde salvar, e entra na lista de
+              downloads; no navegador, segue o download normal. <strong>Fechar</strong> encerra a
+              janela.
+              <figure>
+                <img
+                  src="img/importar-e-exportar/exportar-05-baixar.webp"
+                  alt="Botão Baixar .txt destacado, com o aviso Arquivo de exportação gerado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: sistema: Explorador de arquivos na pasta Downloads com o arquivo exportado -->
+            </li>
+          </ol>
+          <p class="nota">
+            Com credenciais ou banco marcados, o texto leva as senhas sem máscara. Mande só por um
+            canal em que você confie.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="bases.html#cadastrar-base">Bases</a> e
+              <a href="bases.html#vincular-banco">banco de dados vinculado</a>
+            </li>
+            <li>
+              Do outro lado, o arquivo entra por
+              <a href="#importar-cadastros">Importar cadastros de arquivo</a>.
+            </li>
+            <li>
+              Para as bases de um cliente só, use
+              <a href="clientes.html#compartilhar-bases">Compartilhar bases</a>.
+            </li>
+            <li><a href="guias-e-navegacao.html#downloads">Downloads</a> do aplicativo</li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

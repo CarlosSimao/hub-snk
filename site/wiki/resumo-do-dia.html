@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resumo do dia · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="O Resumo do dia do HUB SNK: agenda, lembretes, OS não concluídas, repositórios com pendência e versão nova numa tela só, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Resumo do dia</h1>
+        <p class="introducao">
+          O Resumo é a primeira tela do Painel: junta o que pede atenção hoje, a agenda, os
+          lembretes, as OS ainda não concluídas, os repositórios com pendência e a versão nova do
+          HUB SNK. Cada seção leva ao lugar onde o assunto se resolve.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#abrir-resumo">Abrir e atualizar o Resumo</a></li>
+            <li><a href="#agenda-de-hoje">Agenda de hoje</a></li>
+            <li><a href="#sem-tarefa-na-experience">Selo "Sem tarefa na Experience"</a></li>
+            <li><a href="#lembretes-de-hoje">Lembretes de hoje</a></li>
+            <li><a href="#os-nao-concluidas">OS não concluídas</a></li>
+            <li><a href="#repositorios-com-pendencia">Repositórios com pendência</a></li>
+            <li><a href="#versao-nova">Aviso de versão nova</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="abrir-resumo">
+          <h2>Abrir e atualizar o Resumo</h2>
+          <p>
+            O HUB SNK já abre no Resumo, com a data de hoje por extenso. Cada seção carrega por
+            conta própria, mostrando <strong>Carregando…</strong> enquanto isso: as OS, que demoram
+            mais, não seguram as outras. Seção que falha mostra
+            <strong>Não foi possível carregar:</strong> e o motivo no lugar dela, às vezes com o
+            atalho <strong>Abrir configuração</strong>. O Resumo também se redesenha sozinho quando
+            chega uma notificação ou o cadastro muda.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Para voltar ao Resumo, ou atualizá-lo, clique em <strong>Resumo</strong> no topo do
+              Painel. Clicar com ele já aberto refaz todas as seções e busca as OS de novo; não há
+              outro botão de atualizar.
+              <figure>
+                <img
+                  src="img/resumo-do-dia/abrir-01-resumo.webp"
+                  alt="Aba Resumo destacada, com as seções Agenda de hoje e Lembretes de hoje"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-agenda">Configurações › Acessos › Agenda</a>,
+              <a href="configuracoes.html#acessos-lembretes">Lembretes</a>,
+              <a href="configuracoes.html#acessos-os">OS</a> e
+              <a href="configuracoes.html#acessos-cliente-git">Git</a> (cadastro do cliente): cada
+              seção some junto com a funcionalidade dela, e a aba Resumo some quando as quatro estão
+              ocultas.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              As seções: <a href="#agenda-de-hoje">Agenda de hoje</a>,
+              <a href="#lembretes-de-hoje">Lembretes de hoje</a>,
+              <a href="#os-nao-concluidas">OS não concluídas</a>,
+              <a href="#repositorios-com-pendencia">Repositórios com pendência</a> e
+              <a href="#versao-nova">versão nova</a>.
+            </li>
+            <li>
+              As notificações chegam pelo
+              <a href="lembretes-e-notificacoes.html#painel-de-notificacoes">sino</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="agenda-de-hoje">
+          <h2>Agenda de hoje</h2>
+          <p>
+            Lista os eventos de hoje da Agenda de Recursos, inclusive os de vários dias que passam
+            por hoje, em ordem de início. Cada evento traz o código e o nome do parceiro, o horário,
+            ou <strong>Dia todo</strong>, e a descrição. A seção lê o que ficou guardado da última
+            consulta da Agenda, sem ir ao Sankhya; para trazer o que mudou lá, abra a Agenda. Sem
+            eventos, aparece <strong>Nenhum evento hoje na agenda.</strong>
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Veja a seção <strong>Agenda de hoje</strong>, a primeira do Resumo.
+              <figure>
+                <img
+                  src="img/resumo-do-dia/agenda-01-secao.webp"
+                  alt="Seção Agenda de hoje destacada, com três eventos"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Quando o parceiro do evento está vinculado a um cliente do HUB SNK pelos nomes
+              completos, o título vira link. Clique nele.
+              <figure>
+                <img
+                  src="img/resumo-do-dia/agenda-02-titulo.webp"
+                  alt="Título do evento da Fazenda Boa Vista destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O cadastro do cliente abre na tela Clientes.
+              <figure>
+                <img
+                  src="img/resumo-do-dia/agenda-03-cliente.webp"
+                  alt="Cliente Fazenda Boa Vista aberto pela agenda"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              De volta ao Resumo, a seta do evento, <strong>Abrir na Agenda</strong>, leva à Agenda
+              de Recursos, que mostra o mês e atualiza os dados com o Sankhya.
+              <figure>
+                <img
+                  src="img/resumo-do-dia/agenda-04-abrir-na-agenda.webp"
+                  alt="Seta Abrir na Agenda destacada no primeiro evento"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-agenda">Configurações › Acessos › Agenda</a>
+              (menu principal): desmarcado, a seção some.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado, a seção some.
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-codigo-de-usuario"
+                >Configurações › Sankhya ID › Meu código de usuário SankhyaOm</a
+              >: sem ele, a Agenda não é consultada, e a seção fica vazia.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="agenda-de-recursos.html#atualizar-da-sankhya">Atualizar da Sankhya</a>, que
+              guarda os eventos lidos aqui
+            </li>
+            <li>
+              <a href="clientes.html#nomes-completos">Nomes completos no Sankhya</a> e
+              <a href="agenda-de-recursos.html#vincular-parceiro"
+                >vincular o parceiro a um cliente</a
+              >, para o título virar link
+            </li>
+            <li><a href="agenda-de-recursos.html#visao-geral">Agenda de Recursos</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="sem-tarefa-na-experience">
+          <h2>Selo "Sem tarefa na Experience"</h2>
+          <p>
+            O evento de hoje que o alerta da agenda apontou sem tarefa nem OS na Experience ganha o
+            selo vermelho <strong>Sem tarefa na Experience</strong>. O selo depende do alerta: com
+            ele desligado, nenhum evento tem selo, o que não quer dizer que todos tenham tarefa.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Com o alerta ligado, depois da verificação, o selo aparece ao lado do parceiro na
+              <strong>Agenda de hoje</strong>, junto da notificação no sino.
+              <figure>
+                <img
+                  src="img/resumo-do-dia/sem-tarefa-01-selo.webp"
+                  alt="Selo Sem tarefa na Experience destacado no evento da Indústria Alfa"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#avisos-ligado">Configurações › Avisos › Ligado</a>:
+              desligado, não há selo.
+            </li>
+            <li>
+              <a href="configuracoes.html#avisos-periodicidade"
+                >Configurações › Avisos › Periodicidade (minutos)</a
+              >: de quanto em quanto tempo a agenda é conferida.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="lembretes-e-notificacoes.html#alerta-da-agenda"
+                >Alerta "Agenda sem tarefa na Experience"</a
+              >
+            </li>
+            <li>
+              <a href="sankhya-id.html#login-automatico">Login automático</a> no SankhyaOm e na
+              Experience, que a verificação usa
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="lembretes-de-hoje">
+          <h2>Lembretes de hoje</h2>
+          <p>
+            Lista os lembretes ligados que ainda vão disparar hoje ou que já dispararam hoje, com o
+            resumo, a situação (<strong>Próximo:</strong> ou <strong>Disparado em</strong>, com data
+            e hora) e o cliente e o projeto, quando houver. Sem nenhum, aparece
+            <strong>Nenhum lembrete para hoje.</strong>
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Veja a seção <strong>Lembretes de hoje</strong>.
+              <figure>
+                <img
+                  src="img/resumo-do-dia/lembretes-01-secao.webp"
+                  alt="Seção Lembretes de hoje destacada, com dois lembretes"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para ajustar um lembrete, clique no lápis da linha.
+              <figure>
+                <img
+                  src="img/resumo-do-dia/lembretes-02-editar.webp"
+                  alt="Botão Editar lembrete destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A janela <strong>Editar lembrete</strong> abre direto do Resumo. Altere o texto, o
+              horário ou desligue o lembrete e clique em <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/resumo-do-dia/lembretes-03-janela.webp"
+                  alt="Janela Editar lembrete aberta pelo Resumo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-lembretes">Configurações › Acessos › Lembretes</a>
+              (menu principal): desmarcado, a seção some.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="lembretes-e-notificacoes.html#criar-lembrete">Criar lembrete</a> e
+              <a href="lembretes-e-notificacoes.html#editar-desligar-e-excluir"
+                >editar, desligar e excluir</a
+              >
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="os-nao-concluidas">
+          <h2>OS não concluídas</h2>
+          <p>
+            Consulta na Experience as suas OS do mês atual e do anterior e lista as que ainda não
+            têm o status de aceite <strong>Concluído</strong>, da mais recente para a mais antiga.
+            Cada linha traz o número e o tipo da OS, a empresa, o dia e as horas, o erro, quando
+            houver, e o selo do status com as mesmas cores da aba OS. Sem nenhuma, aparece
+            <strong>Nenhuma OS sem conclusão no mês atual e no anterior.</strong> A consulta só
+            funciona no aplicativo, com a sessão da Experience; sem ela, a seção mostra o erro com
+            <strong>Abrir configuração</strong>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Veja a seção <strong>OS não concluídas (mês atual e anterior)</strong>. Ela pode
+              aparecer depois das outras.
+              <figure>
+                <img
+                  src="img/resumo-do-dia/os-01-secao.webp"
+                  alt="Seção OS não concluídas destacada, com três OS"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A seta da linha, <strong>Abrir na aba OS</strong>, leva à lista completa de OS do mês.
+              <figure>
+                <img
+                  src="img/resumo-do-dia/os-02-abrir.webp"
+                  alt="Seta Abrir na aba OS destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-os">Configurações › Acessos › OS</a> (menu
+              principal): desmarcado, a seção some.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado, a seção some.
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-usuario-e-senha"
+                >Configurações › Sankhya ID › Usuário e Senha</a
+              >
+              e
+              <a href="configuracoes.html#sankhya-id-sessao-experience">sessão da Experience</a>:
+              sem eles, a consulta falha.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="ordens-de-servico.html#visao-geral">Minhas OS</a></li>
+            <li>
+              <a href="sankhya-id.html#sessao-da-experience"
+                >Sessão da Experience em segundo plano</a
+              >
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="repositorios-com-pendencia">
+          <h2>Repositórios com pendência</h2>
+          <p>
+            Lista todo repositório que o diagnóstico do Git achou com alguma pendência, os mais
+            graves primeiro, como "Cliente › repositório", com o selo da situação (<strong
+              >Precisa de ação</strong
+            >
+            ou <strong>Pendência</strong>) e cada pendência numa linha. Sem nenhum, aparece
+            <strong>Nenhum repositório com pendência.</strong>
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Veja a seção <strong>Repositórios com pendência</strong>.
+              <figure>
+                <img
+                  src="img/resumo-do-dia/repositorios-01-secao.webp"
+                  alt="Seção Repositórios com pendência destacada, com três repositórios"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique na seta da linha, <strong>Abrir no cliente</strong>. O cadastro do cliente abre
+              na aba Git, com a pendência e os comandos que a resolvem.
+              <figure>
+                <img
+                  src="img/resumo-do-dia/repositorios-02-abrir.webp"
+                  alt="Seta Abrir no cliente destacada no repositório da Transportadora Rota Sul"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-git">Configurações › Acessos › Git</a>
+              (cadastro do cliente): desmarcado, a seção some.
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-intervalo-de-execucao-automatica"
+                >Configurações › Geral › Intervalo de execução automática</a
+              >: de quanto em quanto tempo o diagnóstico é refeito.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="repositorios-git.html#diagnostico">Diagnóstico do Git</a> e
+              <a href="repositorios-git.html#pendencias">pendências e comandos sugeridos</a>
+            </li>
+            <li><a href="clientes.html#atualizacao-automatica">Atualização automática</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="versao-nova">
+          <h2>Aviso de versão nova</h2>
+          <p>
+            Quando sai uma versão nova do HUB SNK, o Resumo ganha a seção
+            <strong>HUB SNK</strong>, com <strong>Versão X disponível</strong>. No aplicativo, ela é
+            baixada sozinha e instalada ao reiniciar. Sem versão nova, ou sem internet, a seção não
+            aparece.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na seção <strong>HUB SNK</strong>, clique na seta, <strong>Ver a versão nova</strong>.
+              <figure>
+                <img
+                  src="img/resumo-do-dia/versao-01-secao.webp"
+                  alt="Seção HUB SNK com Versão disponível e a seta Ver a versão nova destacadas"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A página da versão abre no GitHub, com o que mudou.
+              <!-- print-pendente: terceiros: página da release no GitHub -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-abrir-os-links-em"
+                >Configurações › Geral › Abrir os links em</a
+              >: no aplicativo, decide se a página abre numa guia do HUB SNK ou no navegador padrão.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="primeiros-passos.html#atualizacao-automatica">Atualizar o HUB SNK</a></li>
+            <li>
+              <a href="suporte.html#versao-instalada">Versão instalada e versão nova</a>
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

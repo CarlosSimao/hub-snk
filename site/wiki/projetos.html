@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Projetos · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como cadastrar, organizar e excluir os projetos do cliente no HUB SNK, com anotações e links, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Projetos</h1>
+        <p class="introducao">
+          O projeto agrupa o que é de uma entrega do cliente: anotações, links e o kanban das
+          tarefas. Os projetos ficam na aba Projetos do cliente, cada um num cartão que abre e
+          fecha. O kanban tem a sua página.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#cadastrar-projeto">Cadastrar projeto</a></li>
+            <li><a href="#expandir-projeto">Exibir e ocultar o projeto</a></li>
+            <li><a href="#renomear-projeto">Renomear projeto</a></li>
+            <li><a href="#anotacoes-do-projeto">Anotações do projeto</a></li>
+            <li><a href="#links-do-projeto">Links do projeto</a></li>
+            <li><a href="#excluir-projeto">Excluir projeto (com ou sem kanban)</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="cadastrar-projeto">
+          <h2>Cadastrar projeto</h2>
+          <p>
+            Cria um projeto no cliente. O projeto só tem nome, com até 120 caracteres, e o nome não
+            pode repetir o de outro projeto do mesmo cliente; maiúsculas e espaços nas pontas não
+            contam como diferença. Cliente sem projeto mostra
+            <strong>Nenhum projeto cadastrado para este cliente.</strong>
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Selecione o cliente, clique na aba <strong>Projetos</strong> e no <strong>+</strong>.
+              <figure>
+                <img
+                  src="img/projetos/cadastrar-01-botao.webp"
+                  alt="Aba Projetos e botão + de adicionar projeto destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Cadastrar projeto</strong>, preencha o
+              <strong>Nome do projeto</strong>.
+              <figure>
+                <img
+                  src="img/projetos/cadastrar-02-formulario.webp"
+                  alt="Janela Cadastrar projeto com o nome preenchido"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Salvar</strong>. O projeto entra no fim da lista, fechado, e o aviso
+              <strong>Projeto cadastrado.</strong> confirma.
+              <figure>
+                <img
+                  src="img/projetos/cadastrar-03-salvo.webp"
+                  alt="Projeto Painel de vendas novo na lista, com o aviso Projeto cadastrado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-projetos"
+                >Configurações › Acessos › Cadastro do cliente › Projetos</a
+              >: desmarcada, somem as abas Projetos e Kanban do cliente, junto com tudo desta
+              página.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="clientes.html#lista-e-detalhe">Lista e detalhe do cliente</a></li>
+            <li>
+              É usado por: <a href="kanban.html#criar-kanban">Criar kanban</a> e
+              <a href="lembretes-e-notificacoes.html#criar-lembrete">Criar lembrete</a>, que pode
+              ser ligado a um projeto.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="expandir-projeto">
+          <h2>Exibir e ocultar o projeto</h2>
+          <p>
+            O cartão do projeto começa fechado, só com o nome. Aberto, mostra as anotações, os links
+            e o kanban do projeto. O cartão fica como você deixou enquanto o Painel estiver aberto.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique na seta à esquerda do nome do projeto.
+              <figure>
+                <img
+                  src="img/projetos/expandir-01-seta.webp"
+                  alt="Seta Exibir informações do projeto destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O cartão abre com as anotações, os <strong>Links do projeto</strong> e o
+              <strong>Kanban</strong>. Clique de novo na seta para fechá-lo.
+              <figure>
+                <img
+                  src="img/projetos/expandir-02-aberto.webp"
+                  alt="Cartão do projeto Pesagem de rebanho aberto"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-projeto">Cadastrar projeto</a></li>
+            <li>
+              A <a href="buscas-e-atalhos.html#abrir-item">busca rápida</a> leva ao projeto com o
+              cartão já aberto.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="renomear-projeto">
+          <h2>Renomear projeto</h2>
+          <p>
+            Troca o nome do projeto, com a mesma regra de nome único do cadastro. O kanban do
+            projeto não tem nome próprio: passa a mostrar o nome novo no quadro, no arquivo de
+            tarefas e para os agentes de IA.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No cartão do projeto, clique no lápis.
+              <figure>
+                <img
+                  src="img/projetos/renomear-01-botao.webp"
+                  alt="Botão Editar projeto destacado no cartão"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Editar projeto</strong>, altere o <strong>Nome do projeto</strong> e
+              clique em <strong>Salvar</strong>. O aviso
+              <strong>Projeto atualizado.</strong> confirma.
+              <figure>
+                <img
+                  src="img/projetos/renomear-02-formulario.webp"
+                  alt="Janela Editar projeto com o nome alterado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-projeto">Cadastrar projeto</a></li>
+            <li>
+              Afeta: <a href="kanban.html#abrir-quadro">o quadro</a>, o
+              <a href="kanban.html#arquivo-de-tarefas">arquivo de tarefas</a> e
+              <a href="mcp.html#agente-no-kanban">o que o agente vê no kanban</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="anotacoes-do-projeto">
+          <h2>Anotações do projeto</h2>
+          <p>
+            Caixa de texto livre do projeto, com até 5000 caracteres. Funciona como as anotações do
+            cliente: não há botão de salvar, o texto é gravado ao sair do campo e um aviso confirma.
+            Se a gravação falhar, o texto continua no campo e o aviso explica o motivo.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Com o projeto aberto, clique na caixa de texto do alto do cartão e escreva.
+              <figure>
+                <img
+                  src="img/projetos/anotacoes-01-campo.webp"
+                  alt="Campo de anotações do projeto destacado, com uma linha nova"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique fora do campo, ou aperte <kbd>Tab</kbd>. O aviso
+              <strong>Anotações do projeto salvas.</strong> confirma a gravação.
+              <figure>
+                <img
+                  src="img/projetos/anotacoes-02-salvas.webp"
+                  alt="Aviso Anotações do projeto salvas no canto da tela"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#expandir-projeto">Exibir e ocultar o projeto</a></li>
+            <li>Mesmo funcionamento das <a href="clientes.html#anotacoes">anotações gerais</a>.</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="links-do-projeto">
+          <h2>Links do projeto</h2>
+          <p>
+            Endereços do projeto, separados dos links gerais do cliente: a especificação, a pasta da
+            entrega, o chamado. Seguem as regras dos links gerais: nome e URL http ou https
+            obrigatórios, e a mesma URL não repete dentro do projeto. Cada link tem os botões de
+            copiar, editar e excluir, e o nome abre o endereço como um link geral. Projeto sem link
+            mostra <strong>Nenhum link cadastrado para este projeto.</strong>
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Com o projeto aberto, clique no <strong>+</strong> de
+              <strong>Links do projeto</strong>.
+              <figure>
+                <img
+                  src="img/projetos/links-01-botao.webp"
+                  alt="Botão + de adicionar link destacado em Links do projeto"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Cadastrar link</strong>, que mostra o cliente e o projeto, preencha
+              o <strong>Nome do link</strong> e a <strong>URL</strong> e clique em
+              <strong>Salvar</strong>. O aviso <strong>Link cadastrado.</strong> confirma.
+              <figure>
+                <img
+                  src="img/projetos/links-02-formulario.webp"
+                  alt="Janela Cadastrar link com o cliente e o projeto no subtítulo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique no nome para abrir o endereço. Os botões à direita copiam a URL (aviso
+              <strong>Link copiado.</strong>), editam o link na janela
+              <strong>Editar link</strong> e o excluem depois da confirmação na janela
+              <strong>Excluir link</strong>.
+              <figure>
+                <img
+                  src="img/projetos/links-03-linha.webp"
+                  alt="Link do projeto com o nome e os botões de copiar, editar e excluir destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: terceiros: site do link do projeto aberto na guia do HUB SNK -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-abrir-os-links-em"
+                >Configurações › Geral › Abrir os links em</a
+              >: no aplicativo, abre numa guia do HUB SNK, com o nome do cliente, do projeto e do
+              link, ou no navegador padrão.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#expandir-projeto">Exibir e ocultar o projeto</a></li>
+            <li>
+              Abre como os <a href="links-gerais.html#abrir-link">links gerais</a>; veja também
+              <a href="guias-e-navegacao.html#onde-os-links-abrem">Onde os links abrem</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="excluir-projeto">
+          <h2>Excluir projeto (com ou sem kanban)</h2>
+          <p>
+            Apaga o projeto com as anotações e os links. Projeto sem kanban pede só a confirmação.
+            Projeto com kanban pergunta o que fazer com ele: <strong>manter</strong> leva as tarefas
+            e o documento para o quadro sem projeto do cliente, na aba Kanban, e, se esse quadro já
+            existir, as tarefas se juntam às dele; <strong>excluir junto</strong> apaga as tarefas e
+            o documento.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No cartão do projeto, clique na lixeira vermelha.
+              <figure>
+                <img
+                  src="img/projetos/excluir-01-botao.webp"
+                  alt="Botão Excluir projeto destacado no cartão"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Sem kanban, a janela <strong>Excluir projeto</strong> só pede a confirmação. Clique em
+              <strong>Excluir</strong>; o aviso <strong>Projeto excluído.</strong> confirma. Não há
+              como desfazer.
+              <figure>
+                <img
+                  src="img/projetos/excluir-02-confirmar.webp"
+                  alt="Janela de confirmação da exclusão de projeto sem kanban"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Com kanban, a lixeira abre outra janela.
+              <figure>
+                <img
+                  src="img/projetos/excluir-03-com-kanban-botao.webp"
+                  alt="Botão Excluir projeto destacado no projeto Pesagem de rebanho, que tem kanban"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Em <strong>Kanban do projeto</strong>, escolha
+              <strong
+                >Manter no cliente, na aba Kanban (as tarefas vão para o quadro do cliente)</strong
+              >, que já vem marcada, ou
+              <strong>Excluir junto, com as tarefas e o documento</strong>.
+              <figure>
+                <img
+                  src="img/projetos/excluir-04-com-kanban.webp"
+                  alt="Janela Excluir projeto perguntando o que fazer com o kanban"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O botão muda com a escolha: <strong>Excluir projeto e manter kanban</strong> ou
+              <strong>Excluir projeto e kanban</strong>. Clique nele.
+              <figure>
+                <img
+                  src="img/projetos/excluir-05-excluir-junto.webp"
+                  alt="Opção Excluir junto marcada e o botão Excluir projeto e kanban destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O aviso confirma o que aconteceu:
+              <strong>Projeto excluído. O kanban está na aba Kanban do cliente.</strong> ou
+              <strong>Projeto e kanban excluídos.</strong>
+              <figure>
+                <img
+                  src="img/projetos/excluir-06-mantido.webp"
+                  alt="Aviso Projeto excluído. O kanban está na aba Kanban do cliente"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#cadastrar-projeto">Cadastrar projeto</a> e, para a pergunta,
+              <a href="kanban.html#criar-kanban">Criar kanban</a>.
+            </li>
+            <li>
+              O kanban mantido vai para a
+              <a href="kanban.html#aba-do-cliente">aba Kanban do cliente</a>.
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

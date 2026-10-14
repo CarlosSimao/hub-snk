@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Backup e Google Drive · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como manter uma cópia dos dados do HUB SNK no Google Drive, fazer backup numa pasta do computador e restaurar, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Backup e Google Drive</h1>
+        <p class="introducao">
+          Tudo o que você cadastra no HUB SNK fica num lugar só, a pasta de dados. A aba
+          <strong>Backup</strong> das Configurações guarda cópias dela no Google Drive e numa pasta
+          do computador, e traz qualquer cópia de volta. Nada ali espera um Salvar: cada caixa e
+          cada campo grava na hora.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#conectar-google-drive">Conectar ao Google Drive</a></li>
+            <li><a href="#copia-no-google-drive">Cópia sempre atual e Enviar agora</a></li>
+            <li><a href="#desconectar-google-drive">Desconectar o Google Drive</a></li>
+            <li><a href="#backup-periodico">Backup periódico numa pasta</a></li>
+            <li><a href="#fazer-backup-agora">Fazer backup agora</a></li>
+            <li><a href="#restaurar-do-google-drive">Restaurar do Google Drive</a></li>
+            <li><a href="#restaurar-de-arquivo">Restaurar de um arquivo</a></li>
+            <li><a href="#reiniciar-para-restaurar">Reiniciar ou cancelar a restauração</a></li>
+            <li><a href="#o-que-vai-no-backup">O que vai no backup</a></li>
+            <li><a href="#falha-no-backup">Falha no backup</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="conectar-google-drive">
+          <h2>Conectar ao Google Drive</h2>
+          <p>
+            Liga o HUB SNK à sua conta do Google para guardar no Drive uma cópia dos dados. A
+            permissão pedida é a mínima: o HUB SNK só enxerga e altera os arquivos que ele mesmo
+            criou, nunca o resto do seu Drive. A autorização fica guardada no cofre do sistema, não
+            na pasta de dados. Só funciona no aplicativo desktop.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as <strong>Configurações</strong> (engrenagem no topo), aba
+              <strong>Backup</strong>, e clique em <strong>Conectar ao Google Drive</strong>.
+              <figure>
+                <img
+                  src="img/backup/conectar-01-botao.webp"
+                  alt="Aba Backup com o botão Conectar ao Google Drive destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A tela do Google abre no seu navegador padrão, e não numa guia do HUB SNK: o Google
+              recusa login dentro de aplicativo. Enquanto isso, o cartão fica
+              <strong>Aguardando a autorização</strong>. Se a tela não abriu ou foi fechada, use
+              <strong>Abrir a tela de novo</strong> ou <strong>Copiar o link</strong> e cole no
+              navegador; <strong>Cancelar</strong> desiste.
+              <figure>
+                <img
+                  src="img/backup/conectar-02-aguardando.webp"
+                  alt="Cartão Google Drive aguardando a autorização, com os botões Abrir a tela de novo, Copiar o link e Cancelar"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              No navegador, escolha a conta e autorize, deixando marcada a permissão de guardar os
+              arquivos.
+              <!-- print-pendente: terceiros: login do Google e tela de consentimento -->
+            </li>
+            <li>
+              De volta ao HUB SNK, o cartão confere a cada 2 segundos e muda sozinho para
+              <strong>Conectado</strong>, com a conta. Um aviso confirma.
+              <figure>
+                <img
+                  src="img/backup/conectar-03-conectado.webp"
+                  alt="Cartão Google Drive conectado, com a conta e o aviso Google Drive conectado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Se a permissão de guardar os arquivos for desmarcada na tela do Google, a conta conecta,
+            mas nada é enviado: o cartão avisa, e é preciso desconectar e conectar de novo deixando
+            a permissão marcada.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#backup-google-drive"
+                >Configurações › Backup › Conectar ao Google Drive</a
+              >: padrão desconectado.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Libera: <a href="#copia-no-google-drive">Cópia sempre atual</a> e
+              <a href="#restaurar-do-google-drive">Restaurar do Google Drive</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="copia-no-google-drive">
+          <h2>Cópia sempre atual e Enviar agora</h2>
+          <p>
+            Com a cópia ligada, o HUB SNK envia os dados ao Drive alguns minutos depois de cada
+            mudança, quando eles param de mudar, e só se estiverem diferentes do último envio; no
+            máximo um envio a cada 10 minutos. Vai tudo num arquivo só,
+            <code>hub-snk-dados-&lt;computador&gt;.zip</code>, na pasta <strong>HUB SNK</strong> do
+            seu Drive, substituído a cada envio; o histórico fica nas versões do próprio Drive. Cada
+            computador tem o seu arquivo, e o caminho é de mão única: mudar o arquivo no Drive não
+            muda nada no HUB SNK.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Com o Drive conectado, marque
+              <strong>Manter no Google Drive uma cópia sempre atual dos dados</strong>. O aviso
+              <strong>Cópia no Google Drive ligada.</strong> confirma.
+              <figure>
+                <img
+                  src="img/backup/copia-01-ligar.webp"
+                  alt="Caixa Manter no Google Drive uma cópia sempre atual dos dados marcada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para mandar na hora, mudando ou não os dados, clique em <strong>Enviar agora</strong>.
+              Abaixo da caixa ficam o nome do arquivo e quando foi a última cópia.
+              <figure>
+                <img
+                  src="img/backup/copia-02-enviar-agora.webp"
+                  alt="Botão Enviar agora destacado e a linha com o arquivo e a última cópia"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              No Drive, o arquivo aparece na pasta <strong>HUB SNK</strong>.
+              <!-- print-pendente: terceiros: pasta "HUB SNK" no Google Drive -->
+            </li>
+          </ol>
+          <p class="nota">
+            As senhas do cadastro vão dentro do arquivo. Não compartilhe a pasta HUB SNK do Drive.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#backup-copia-sempre-atual"
+                >Configurações › Backup › Manter no Google Drive uma cópia sempre atual dos dados</a
+              >: padrão desligado.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#conectar-google-drive">Conectar ao Google Drive</a></li>
+            <li><a href="#o-que-vai-no-backup">O que vai no backup</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="desconectar-google-drive">
+          <h2>Desconectar o Google Drive</h2>
+          <p>
+            Revoga a autorização no Google e a apaga do cofre do sistema. A cópia para de ser
+            enviada; o arquivo que já está no Drive continua lá. Depois, dá para conectar de novo,
+            com a mesma conta ou com outra.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No cartão <strong>Google Drive</strong>, clique em <strong>Desconectar</strong>. O
+              aviso <strong>Google Drive desconectado.</strong> confirma, e o cartão volta a mostrar
+              <strong>Conectar ao Google Drive</strong>.
+              <figure>
+                <img
+                  src="img/backup/desconectar-01.webp"
+                  alt="Cartão Google Drive desconectado, com o botão Conectar ao Google Drive de volta"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#backup-google-drive"
+                >Configurações › Backup › Desconectar</a
+              >
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Desliga: <a href="#copia-no-google-drive">Cópia sempre atual</a> e
+              <a href="#restaurar-do-google-drive">Restaurar do Google Drive</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="backup-periodico">
+          <h2>Backup periódico numa pasta</h2>
+          <p>
+            Grava de tempos em tempos um <code>hub-snk-backup-AAAA-MM-DD-HHmm.zip</code> na pasta
+            que você escolher: outro disco, uma pasta de rede ou do OneDrive. Só grava quando algo
+            mudou desde o backup anterior, e guarda as últimas cópias, apagando as mais antigas. Só
+            arquivos com esse nome são apagados; o resto da pasta não é tocado.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No cartão <strong>Backup neste computador</strong>, marque
+              <strong>Fazer backup periodicamente</strong>.
+              <figure>
+                <img
+                  src="img/backup/periodico-01-ligar.webp"
+                  alt="Caixa Fazer backup periodicamente destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Sem pasta escolhida, o seletor de pastas do sistema abre na hora. Escolha a pasta.
+              <!-- print-pendente: sistema: seletor de pasta -->
+            </li>
+            <li>
+              O cartão passa a <strong>Ligado</strong>, com a pasta no campo, e o aviso
+              <strong>Pasta do backup salva.</strong> confirma. Para trocar a pasta depois, use
+              <strong>Escolher pasta</strong>.
+              <figure>
+                <img
+                  src="img/backup/periodico-02-pasta.webp"
+                  alt="Cartão Backup neste computador ligado, com a pasta D:\Backups\HUB SNK"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Ajuste <strong>a cada</strong> (1 a 720 horas) e <strong>manter as últimas</strong> (1
+              a 365 cópias). Cada campo grava ao sair dele; número fora da faixa é recusado e o
+              valor anterior volta.
+              <figure>
+                <img
+                  src="img/backup/periodico-03-intervalo.webp"
+                  alt="Campos a cada 12 h e manter as últimas 10 cópias destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#backup-periodico"
+                >Configurações › Backup › Fazer backup periodicamente</a
+              >: padrão desligado.
+            </li>
+            <li>
+              <a href="configuracoes.html#backup-intervalo">Configurações › Backup › a cada N h</a>:
+              padrão de 24 horas.
+            </li>
+            <li>
+              <a href="configuracoes.html#backup-copias-mantidas"
+                >Configurações › Backup › manter as últimas N cópias</a
+              >: padrão de 10.
+            </li>
+            <li>
+              <a href="configuracoes.html#backup-pasta">Configurações › Backup › Pasta do backup</a
+              >: sem pasta, o backup não roda.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#o-que-vai-no-backup">O que vai no backup</a> e
+              <a href="#falha-no-backup">Falha no backup</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="fazer-backup-agora">
+          <h2>Fazer backup agora</h2>
+          <p>
+            Grava um backup na pasta na hora, tenham os dados mudado ou não. Bom antes de uma
+            mudança grande ou de levar o cadastro para outra máquina.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No cartão <strong>Backup neste computador</strong>, clique em
+              <strong>Fazer backup agora</strong>; ele fica bloqueado enquanto não há pasta. O aviso
+              <strong>Backup gravado.</strong> confirma, e a linha ao lado passa a dizer quando foi
+              o último backup.
+              <figure>
+                <img
+                  src="img/backup/agora-01.webp"
+                  alt="Botão Fazer backup agora destacado e a linha Último backup em"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#backup-pasta">Configurações › Backup › Pasta do backup</a
+              >: obrigatória.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>A pasta é a do <a href="#backup-periodico">backup periódico</a>, ligado ou não.</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="restaurar-do-google-drive">
+          <h2>Restaurar do Google Drive</h2>
+          <p>
+            Lista as cópias guardadas na conta, uma por computador que a usa, e prepara a escolhida
+            para substituir os dados. A troca só acontece no próximo reinício do HUB SNK.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No cartão <strong>Restaurar</strong>, clique em
+              <strong>Restaurar do Google Drive</strong>. Aparecem as cópias, com a data e o
+              tamanho; sem nenhuma, o cartão diz
+              <strong>Nenhuma cópia dos dados nesta conta do Google Drive.</strong>
+              <figure>
+                <img
+                  src="img/backup/restaurar-drive-01-copias.webp"
+                  alt="Lista de cópias do Google Drive com o botão Restaurar esta em cada uma"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Restaurar esta</strong> na cópia que quer trazer de volta. O cartão
+              passa a <strong>À espera do reinício</strong>; siga em
+              <a href="#reiniciar-para-restaurar">Reiniciar ou cancelar a restauração</a>.
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#backup-google-drive"
+                >Configurações › Backup › Google Drive</a
+              >: o botão fica bloqueado sem o Drive conectado com a permissão de guardar os
+              arquivos.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#conectar-google-drive">Conectar ao Google Drive</a> e
+              <a href="#copia-no-google-drive">Cópia sempre atual</a>, que gera as cópias.
+            </li>
+            <li><a href="#reiniciar-para-restaurar">Reiniciar ou cancelar a restauração</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="restaurar-de-arquivo">
+          <h2>Restaurar de um arquivo</h2>
+          <p>
+            Traz de volta um <code>.zip</code> de backup do computador, como os do
+            <a href="#backup-periodico">backup periódico</a> ou uma cópia baixada do Drive. O
+            arquivo é conferido antes: se não for um backup do HUB SNK que dê para restaurar, a tela
+            diz o motivo e nada muda.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No cartão <strong>Restaurar</strong>, clique em
+              <strong>Restaurar de um arquivo de backup</strong>.
+              <figure>
+                <img
+                  src="img/backup/restaurar-arquivo-01-botao.webp"
+                  alt="Botão Restaurar de um arquivo de backup destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Escolha o <code>.zip</code> no seletor de arquivos do sistema. Conferido o arquivo, o
+              cartão passa a <strong>À espera do reinício</strong>; siga em
+              <a href="#reiniciar-para-restaurar">Reiniciar ou cancelar a restauração</a>.
+              <!-- print-pendente: sistema: seletor de arquivo -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#reiniciar-para-restaurar">Reiniciar ou cancelar a restauração</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="reiniciar-para-restaurar">
+          <h2>Reiniciar ou cancelar a restauração</h2>
+          <p>
+            Com um backup à espera, a troca acontece quando o HUB SNK abre de novo: antes, os dados
+            de agora são guardados num <code>antes-da-restauracao-&lt;data&gt;.zip</code> (ficam os
+            três últimos), e então a pasta de dados volta ao que era no backup. Uma notificação
+            conta como foi. Backup feito por uma versão mais nova do HUB SNK é recusado, e os dados
+            ficam como estavam.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No cartão <strong>Restaurar</strong>, clique em
+              <strong>Reiniciar o HUB SNK agora</strong> para aplicar, ou em
+              <strong>Cancelar a restauração</strong> para desistir. Sem reiniciar agora, a troca
+              acontece na próxima vez que o HUB SNK abrir.
+              <figure>
+                <img
+                  src="img/backup/reiniciar-01-pendente.webp"
+                  alt="Cartão Restaurar à espera do reinício, com os botões Reiniciar o HUB SNK agora e Cancelar a restauração"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Cancelando, o aviso <strong>Restauração cancelada.</strong> confirma, e o cartão volta
+              ao normal.
+              <figure>
+                <img
+                  src="img/backup/reiniciar-02-cancelada.webp"
+                  alt="Cartão Restaurar de volta ao normal, com o aviso Restauração cancelada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            O reinício pela tela precisa do aplicativo desktop. Com o Painel aberto fora dele, a
+            tela pede: <strong>Feche o HUB SNK e abra de novo para concluir a restauração.</strong>
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#restaurar-do-google-drive">Restaurar do Google Drive</a> ou
+              <a href="#restaurar-de-arquivo">Restaurar de um arquivo</a>.
+            </li>
+            <li>
+              O resultado chega no
+              <a href="lembretes-e-notificacoes.html#painel-de-notificacoes">sino</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="o-que-vai-no-backup">
+          <h2>O que vai no backup</h2>
+          <p>
+            O mesmo pacote <code>.zip</code> serve ao backup na pasta e à cópia no Drive. Ele leva:
+          </p>
+          <ul>
+            <li>
+              todos os arquivos da pasta de dados, com as subpastas: clientes, contatos, lembretes,
+              notificações, configurações e o resto do cadastro;
+            </li>
+            <li>um retrato íntegro do banco do kanban e da agenda (<code>sankhya.db</code>);</li>
+            <li>um manifesto, <code>hub-snk-backup.json</code>, com a data e a versão.</li>
+          </ul>
+          <p>
+            Ficam de fora os logs, os arquivos temporários e os auxiliares do banco, que o retrato
+            dispensa. O Sankhya ID e a autorização do Google também não vão: ficam no cofre do
+            sistema, fora da pasta de dados.
+          </p>
+          <p class="nota">
+            As senhas das bases e dos bancos vão no pacote sem cifra. Guarde os backups e a pasta
+            HUB SNK do Drive como guardaria as próprias senhas.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              É o que gravam o <a href="#backup-periodico">backup periódico</a>, o
+              <a href="#fazer-backup-agora">Fazer backup agora</a> e a
+              <a href="#copia-no-google-drive">cópia no Drive</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="falha-no-backup">
+          <h2>Falha no backup</h2>
+          <p>
+            Quando o backup automático na pasta ou o envio automático ao Drive falha, o motivo fica
+            no cartão até o próximo dar certo, uma notificação avisa (uma por dia para cada tipo) e
+            a próxima tentativa espera 10 minutos. Essas notificações não vão por e-mail.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra a aba <strong>Backup</strong>: o cartão
+              <strong>Backup neste computador</strong> mostra
+              <strong>O último backup falhou</strong> e o cartão
+              <strong>Google Drive</strong> mostra <strong>A última tentativa falhou</strong>, cada
+              um com o motivo.
+              <figure>
+                <img
+                  src="img/backup/falha-01-cartao.webp"
+                  alt="Mensagens de falha nos cartões Google Drive e Backup neste computador"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              No sino, a notificação <strong>O backup dos dados não foi feito</strong> ou
+              <strong>A cópia no Google Drive não foi atualizada</strong> traz o mesmo motivo. No
+              aplicativo, ela também aparece como aviso do Windows.
+              <!-- print-pendente: sistema: aviso do Windows da falha do backup -->
+              <figure>
+                <img
+                  src="img/backup/falha-02-notificacao.webp"
+                  alt="Notificação O backup dos dados não foi feito no painel do sino"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#backup-pasta">Configurações › Backup › Pasta do backup</a
+              >: pasta fora do ar (disco desconectado, rede caída) é a causa mais comum.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#backup-periodico">Backup periódico</a> e
+              <a href="#copia-no-google-drive">Cópia sempre atual</a>
+            </li>
+            <li>
+              <a href="lembretes-e-notificacoes.html#painel-de-notificacoes"
+                >Sino e painel de notificações</a
+              >
+              e <a href="lembretes-e-notificacoes.html#aviso-do-windows">aviso do Windows</a>
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

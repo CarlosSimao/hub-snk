@@ -227,13 +227,21 @@ function gravar(pasta, arquivo, chave, conteudo) {
   );
 }
 
-/** Recria a pasta de dados e os repositórios do zero e devolve o caminho dos dados. */
-export function prepararDados(raiz) {
+/**
+ * Recria a pasta de dados e os repositórios do zero e devolve o caminho dos dados.
+ *
+ * Os repositórios ficam fora da pasta temporária, numa pasta de nome neutro: o caminho
+ * aparece na tela (aba Git), e o da pasta temporária traz o nome do usuário da máquina.
+ * Cada instância da captura tem a sua, porque elas rodam ao mesmo tempo e esta pasta é
+ * apagada a cada rodada.
+ */
+export function prepararDados(raiz, pastaDosRepositorios) {
   rmSync(raiz, { recursive: true, force: true });
+  rmSync(pastaDosRepositorios, { recursive: true, force: true });
   const pastaDeDados = join(raiz, 'dados');
   mkdirSync(pastaDeDados, { recursive: true });
 
-  gravar(pastaDeDados, 'clientes.json', 'clientes', montarClientes(join(raiz, 'Workspace')));
+  gravar(pastaDeDados, 'clientes.json', 'clientes', montarClientes(pastaDosRepositorios));
   gravar(pastaDeDados, 'contatos.json', 'contatos', contatos);
   gravar(pastaDeDados, 'configuracao.json', 'configuracao', configuracao);
   return pastaDeDados;

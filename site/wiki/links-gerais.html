@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Links gerais · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como guardar, abrir, copiar, editar e excluir os links gerais do cliente no HUB SNK, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Links gerais</h1>
+        <p class="introducao">
+          Os links gerais guardam os endereços avulsos do cliente, como o portal de chamados, a
+          pasta de arquivos e a documentação, a um clique de distância. Ficam na aba Geral do
+          cliente, abaixo das anotações. Os links de um projeto ficam no próprio projeto.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#ver-links">Ver os links gerais</a></li>
+            <li><a href="#cadastrar-link">Cadastrar link geral</a></li>
+            <li><a href="#abrir-link">Abrir link</a></li>
+            <li><a href="#copiar-editar-e-excluir">Copiar, editar e excluir link</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="ver-links">
+          <h2>Ver os links gerais</h2>
+          <p>
+            A seção <strong>Links gerais</strong> mostra cada link pelo nome, com os botões de
+            copiar, editar e excluir ao lado. Cliente sem link mostra
+            <strong>Nenhum link cadastrado para este cliente.</strong> Com anotações ou links
+            gerais, o cliente já abre na aba Geral.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Selecione o cliente e, se ele não abrir na aba <strong>Geral</strong>, clique nela. A
+              seção <strong>Links gerais</strong> fica abaixo de <strong>Anotações gerais</strong>.
+              <figure>
+                <img
+                  src="img/links-gerais/ver-01-secao.webp"
+                  alt="Seção Links gerais destacada na aba Geral da Fazenda Boa Vista"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="clientes.html#lista-e-detalhe">Lista e detalhe do cliente</a></li>
+            <li>
+              Divide a aba Geral com as <a href="clientes.html#anotacoes">anotações gerais</a>.
+            </li>
+            <li>
+              Os links de um projeto ficam em
+              <a href="projetos.html#links-do-projeto">Links do projeto</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="cadastrar-link">
+          <h2>Cadastrar link geral</h2>
+          <p>
+            Guarda um endereço com um nome. O <strong>Nome do link</strong> tem até 120 caracteres e
+            a <strong>URL</strong>, http ou https, até 300; os dois são obrigatórios. A mesma URL
+            não pode repetir entre os links gerais do cliente.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na seção <strong>Links gerais</strong>, clique no <strong>+</strong>.
+              <figure>
+                <img
+                  src="img/links-gerais/cadastrar-01-botao.webp"
+                  alt="Botão + de adicionar link destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Cadastrar link</strong>, preencha o <strong>Nome do link</strong> e
+              a <strong>URL</strong>.
+              <figure>
+                <img
+                  src="img/links-gerais/cadastrar-02-formulario.webp"
+                  alt="Janela Cadastrar link com o nome e a URL preenchidos"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Salvar</strong>. O link entra no fim da lista, e o aviso
+              <strong>Link cadastrado.</strong> confirma.
+              <figure>
+                <img
+                  src="img/links-gerais/cadastrar-03-salvo.webp"
+                  alt="Link novo no fim da lista, com o aviso Link cadastrado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#ver-links">Ver os links gerais</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="abrir-link">
+          <h2>Abrir link</h2>
+          <p>
+            O nome do link é clicável. No aplicativo, com os links abrindo no navegador do HUB SNK
+            (o padrão), ele abre numa guia própria, com o nome do cliente e do link, sem preencher
+            login. Se já houver uma guia aberta no mesmo site, como a de uma base do cliente, essa
+            guia vai até o endereço do link. Com os links abrindo no navegador padrão, o link abre
+            lá, com a sessão que o navegador já tiver. Isso vale mesmo para um link que aponte para
+            uma tela da base: ele abre como link, sem o login automático da base.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na seção <strong>Links gerais</strong>, clique no nome do link.
+              <figure>
+                <img
+                  src="img/links-gerais/abrir-01-nome.webp"
+                  alt="Nome do link Portal de chamados destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O site abre numa guia nova do HUB SNK ou no navegador padrão.
+              <!-- print-pendente: terceiros: site do link aberto na guia do HUB SNK -->
+            </li>
+          </ol>
+          <p class="nota">
+            A guia própria é do aplicativo desktop. Com o Painel aberto num navegador comum, o link
+            abre numa aba nova desse navegador.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-abrir-os-links-em"
+                >Configurações › Geral › Abrir os links em</a
+              >: <strong>Navegador do HUB SNK</strong> ou <strong>Navegador padrão</strong>. Vale no
+              próximo clique.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-link">Cadastrar link geral</a></li>
+            <li><a href="guias-e-navegacao.html#onde-os-links-abrem">Onde os links abrem</a></li>
+            <li>Mesma guia que a <a href="bases.html#abrir-base">base aberta</a> no mesmo site.</li>
+            <li>
+              Também abre pela <a href="buscas-e-atalhos.html#abrir-item">busca rápida</a>, com
+              <kbd>Enter</kbd> num link.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="copiar-editar-e-excluir">
+          <h2>Copiar, editar e excluir link</h2>
+          <p>
+            Os três botões à direita do link copiam a URL para a área de transferência, abrem a
+            edição do nome e da URL, com as mesmas regras do cadastro, e excluem o link do cliente.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Para copiar a URL, clique no primeiro botão. O aviso <strong>Link copiado.</strong>
+              confirma.
+              <figure>
+                <img
+                  src="img/links-gerais/copiar-01.webp"
+                  alt="Botão Copiar link destacado, com o aviso Link copiado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para editar, clique no lápis.
+              <figure>
+                <img
+                  src="img/links-gerais/editar-01-botao.webp"
+                  alt="Botão Editar link destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Editar link</strong>, altere o nome ou a URL e clique em
+              <strong>Salvar</strong>. O aviso <strong>Link atualizado.</strong> confirma.
+              <figure>
+                <img
+                  src="img/links-gerais/editar-02-formulario.webp"
+                  alt="Janela Editar link com o nome alterado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para excluir, clique na lixeira vermelha.
+              <figure>
+                <img
+                  src="img/links-gerais/excluir-01-botao.webp"
+                  alt="Botão Excluir link destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Excluir link</strong>, clique em <strong>Excluir</strong>. Não há
+              como desfazer.
+              <figure>
+                <img
+                  src="img/links-gerais/excluir-02-confirmar.webp"
+                  alt="Janela de confirmação da exclusão do link"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-link">Cadastrar link geral</a></li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

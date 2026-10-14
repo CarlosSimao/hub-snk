@@ -1,0 +1,1251 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kanban · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como criar o kanban de um projeto, gerar as tarefas com a IA a partir do documento de escopo e acompanhar o quadro no HUB SNK, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Kanban</h1>
+        <p class="introducao">
+          Cada projeto do cliente pode ter um kanban: um quadro com as tarefas da entrega,
+          distribuídas em colunas. O quadro começa vazio ou a partir do documento de escopo, que a
+          IA decompõe em tarefas. Cada cliente tem ainda um quadro sem projeto, e o Kanban do topo
+          junta os quadros de todos os clientes num só.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#criar-kanban">Criar kanban (vazio ou com documento)</a></li>
+            <li><a href="#gerar-tarefas-com-ia">Gerar tarefas com a IA</a></li>
+            <li><a href="#documento-de-escopo">Documento de escopo</a></li>
+            <li><a href="#abrir-quadro">Abrir o quadro</a></li>
+            <li><a href="#nova-tarefa">Nova tarefa</a></li>
+            <li><a href="#mover-tarefa">Mover tarefa entre colunas</a></li>
+            <li><a href="#editar-tarefa">Editar e excluir tarefa</a></li>
+            <li><a href="#lista-de-verificacao">Lista de verificação</a></li>
+            <li><a href="#trocar-cliente-ou-projeto">Levar a tarefa para outro quadro</a></li>
+            <li><a href="#editar-kanban">Editar, vincular e excluir o kanban</a></li>
+            <li><a href="#arquivo-de-tarefas">Arquivo de tarefas para agentes</a></li>
+            <li><a href="#aba-do-cliente">Aba Kanban do cliente</a></li>
+            <li><a href="#visao-geral">Kanban do menu (quadro Interno)</a></li>
+            <li><a href="#colunas-e-tipos">Colunas e tipos de tarefa</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="criar-kanban">
+          <h2>Criar kanban (vazio ou com documento)</h2>
+          <p>
+            Cria o kanban de um projeto. Cada projeto tem um kanban só: depois de criado, o
+            <strong>+</strong> da seção some. Ele pode começar com o quadro vazio, para você lançar
+            as tarefas à mão, ou com o documento de escopo (.docx, .pdf, .md ou .txt, até 20 MB),
+            para a IA gerar as tarefas. O .doc do Word antigo é recusado: salve como .docx ou .pdf.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No cliente, abra a aba <strong>Projetos</strong> e exiba o projeto pela seta ao lado
+              do nome. Na seção <strong>Kanban</strong>, clique no <strong>+</strong>.
+              <figure>
+                <img
+                  src="img/kanban/criar-kanban-01-botao.webp"
+                  alt="Botão + Novo kanban destacado na seção Kanban do projeto Portal do produtor"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Novo kanban</strong>, escolha em <strong>Como começar</strong>:
+              <strong>Com o documento de escopo</strong> ou
+              <strong>Sem documento, com o quadro vazio</strong>, que já vem marcado.
+              <figure>
+                <img
+                  src="img/kanban/criar-kanban-02-como-comecar.webp"
+                  alt="Janela Novo kanban com o grupo Como começar destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Sem documento, você pode já informar a <strong>Pasta do arquivo de tarefas</strong>,
+              digitando o caminho ou clicando em <strong>Escolher…</strong>. É opcional; veja
+              <a href="#arquivo-de-tarefas">Arquivo de tarefas para agentes</a>.
+              <figure>
+                <img
+                  src="img/kanban/criar-kanban-03-pasta.webp"
+                  alt="Campo Pasta do arquivo de tarefas destacado na janela Novo kanban"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Com documento, escolha o arquivo em <strong>Documento</strong> e deixe marcado
+              <strong>Gerar as tarefas com a IA logo após o envio</strong> para a IA trabalhar em
+              seguida. O botão vira <strong>Enviar e gerar tarefas</strong> (ou só
+              <strong>Enviar</strong>, com a caixa desmarcada).
+              <figure>
+                <img
+                  src="img/kanban/criar-kanban-04-com-documento.webp"
+                  alt="Documento de escopo escolhido e a caixa Gerar as tarefas com a IA marcada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Criar kanban</strong>. O aviso
+              <strong>Kanban criado.</strong> confirma e o quadro abre na hora, vazio. Com
+              documento, o quadro se enche sozinho quando a IA termina; veja
+              <a href="#gerar-tarefas-com-ia">Gerar tarefas com a IA</a>.
+              <figure>
+                <img
+                  src="img/kanban/criar-kanban-05-quadro-vazio.webp"
+                  alt="Quadro novo do Portal do produtor, com as colunas vazias"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Para um kanban fora dos projetos, use o <strong>+</strong> da aba Kanban do cliente;
+            veja <a href="#aba-do-cliente">Aba Kanban do cliente</a>. O
+            <strong>Escolher…</strong> abre o seletor de pastas do sistema; no Linux, ele precisa do
+            zenity ou do kdialog instalado.
+          </p>
+          <!-- print-pendente: sistema: seletor de pasta (Escolher…) -->
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#kanban-colunas">Configurações › Kanban › Colunas</a>: as
+              colunas do quadro novo.
+            </li>
+            <li>
+              <a href="configuracoes.html#ia-assistente">Configurações › IA › Assistente</a>: quem
+              gera as tarefas quando o kanban nasce com documento.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-projetos"
+                >Configurações › Acessos › Projetos</a
+              >
+              (cadastro do cliente): desmarcado, a aba Projetos e todo o kanban somem.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="projetos.html#cadastrar-projeto">Cadastrar projeto</a> e
+              <a href="projetos.html#expandir-projeto">exibir o projeto</a>
+            </li>
+            <li>
+              <a href="#gerar-tarefas-com-ia">Gerar tarefas com a IA</a> (com documento) e
+              <a href="#arquivo-de-tarefas">Arquivo de tarefas</a> (opcional)
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="gerar-tarefas-com-ia">
+          <h2>Gerar tarefas com a IA</h2>
+          <p>
+            Um assistente de IA de linha de comando instalado no computador (Claude Code, Codex,
+            OpenCode, Gemini CLI ou Cursor Agent) lê o documento de escopo e devolve as tarefas, já
+            com tipo, prioridade, estimativa, grupo e critérios de aceite, além de um resumo e dos
+            pontos a esclarecer com o cliente. As tarefas entram na primeira coluna. A análise roda
+            em segundo plano, por até 8 minutos, e a tela se atualiza sozinha enquanto ela dura.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Ao criar o kanban com documento (ou ao inserir o documento depois), deixe marcado
+              <strong>Gerar as tarefas com a IA logo após o envio</strong> e clique em
+              <strong>Enviar e gerar tarefas</strong>.
+              <figure>
+                <img
+                  src="img/kanban/gerar-tarefas-com-ia-01-enviar.webp"
+                  alt="Caixa Gerar as tarefas com a IA e o botão Enviar e gerar tarefas destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A linha do kanban mostra <strong>Analisando com a IA…</strong>, e o aviso diz que o
+              quadro se atualiza sozinho. Você pode continuar usando o HUB SNK.
+              <figure>
+                <img
+                  src="img/kanban/gerar-tarefas-com-ia-02-analisando.webp"
+                  alt="Selo Analisando com a IA na linha do kanban e o aviso de documento enviado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Quando a IA termina, o selo vira <strong>Tarefas geradas</strong> e a linha resume as
+              tarefas, as horas e o nome do documento. Se der errado, o selo vira
+              <strong>Análise falhou</strong>, com o motivo logo abaixo da linha.
+              <figure>
+                <img
+                  src="img/kanban/gerar-tarefas-com-ia-03-tarefas-geradas.webp"
+                  alt="Linha do kanban com o selo Tarefas geradas"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Abra o quadro. As tarefas estão na primeira coluna, e o topo diz quem as gerou:
+              <strong>Gerado por</strong>, com o assistente e o modelo.
+              <figure>
+                <img
+                  src="img/kanban/gerar-tarefas-com-ia-04-quadro.webp"
+                  alt="Quadro com as tarefas geradas na coluna Backlog e a linha Gerado por Claude Code"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Resumo da IA e pontos a esclarecer</strong> para ler o resumo do
+              escopo e as dúvidas a levar ao cliente.
+              <figure>
+                <img
+                  src="img/kanban/gerar-tarefas-com-ia-05-resumo.webp"
+                  alt="Bloco Resumo da IA e pontos a esclarecer aberto no quadro"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para refazer a análise, clique em <strong>Analisar de novo</strong> no topo do quadro.
+              Só são trocadas as tarefas que continuam na primeira coluna; as que você já moveu
+              ficam como estão.
+              <figure>
+                <img
+                  src="img/kanban/gerar-tarefas-com-ia-06-analisar-de-novo.webp"
+                  alt="Botão Analisar de novo destacado no topo do quadro"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Documento enviado sem a IA, ou com análise que falhou, ganha o botão
+              <strong>Gerar tarefas</strong> na linha do kanban (no quadro, o botão é
+              <strong>Gerar tarefas com a IA</strong>).
+              <figure>
+                <img
+                  src="img/kanban/gerar-tarefas-com-ia-07-documento-parado.webp"
+                  alt="Botão Gerar tarefas destacado na linha de um kanban com Documento enviado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            O assistente roda numa pasta temporária, sem poder alterar arquivos nem executar
+            comandos. Enquanto a análise dura, não dá para trocar ou remover o documento, nem
+            excluir o kanban.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#ia-assistente">Configurações › IA › Assistente</a>: qual
+              assistente analisa; no automático, o primeiro instalado.
+            </li>
+            <li>
+              <a href="configuracoes.html#ia-modelo">Configurações › IA › Modelo</a> e
+              <a href="configuracoes.html#ia-nivel-de-raciocinio">Nível de raciocínio</a>: aparecem
+              em <strong>Gerado por</strong>.
+            </li>
+            <li>
+              <a href="configuracoes.html#kanban-tipos">Configurações › Kanban › Tipos</a>: a IA
+              escolhe o tipo de cada tarefa entre estes.
+            </li>
+            <li>
+              <a href="configuracoes.html#kanban-colunas">Configurações › Kanban › Colunas</a>: a
+              primeira coluna recebe as tarefas da IA.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="mcp.html#assistente-de-ia">Assistente de IA que gera as tarefas</a>,
+              instalado no computador
+            </li>
+            <li>
+              <a href="#criar-kanban">Criar kanban</a> ou
+              <a href="#documento-de-escopo">inserir o documento de escopo</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="documento-de-escopo">
+          <h2>Documento de escopo</h2>
+          <p>
+            O documento pode ser inserido depois num kanban criado vazio, trocado por outro, lido no
+            próprio HUB SNK e removido. Trocar o documento mantém as tarefas que já saíram da
+            primeira coluna. O arquivo original fica guardado na pasta de dados do HUB SNK.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do kanban, clique no botão de envio (<strong
+                >Inserir documento para gerar as tarefas</strong
+              >; com documento, ele vira <strong>Trocar o documento</strong>).
+              <figure>
+                <img
+                  src="img/kanban/documento-de-escopo-01-inserir.webp"
+                  alt="Botão Inserir documento para gerar as tarefas destacado na linha do kanban"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Escolha o arquivo em <strong>Documento</strong>. Marque
+              <strong>Gerar as tarefas com a IA logo após o envio</strong> se quiser a análise na
+              hora e clique em <strong>Enviar e gerar tarefas</strong>, ou desmarque e clique em
+              <strong>Enviar</strong>.
+              <figure>
+                <img
+                  src="img/kanban/documento-de-escopo-02-janela.webp"
+                  alt="Janela Inserir documento com o arquivo escolhido e a caixa da IA desmarcada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A linha passa a mostrar o nome do documento e a situação
+              <strong>Documento enviado</strong>.
+              <figure>
+                <img
+                  src="img/kanban/documento-de-escopo-03-enviado.webp"
+                  alt="Linha do kanban com o selo Documento enviado e o nome do arquivo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para ler o documento, clique em <strong>Ver o documento</strong> na linha (ou em
+              <strong>Ver documento</strong>, no quadro). A janela mostra o texto extraído; no PDF,
+              a aba <strong>Original</strong> mostra o próprio arquivo.
+              <figure>
+                <img
+                  src="img/kanban/documento-de-escopo-04-ver.webp"
+                  alt="Janela com o texto extraído do documento de escopo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para guardar uma cópia do arquivo enviado, clique em
+              <strong>Baixar original</strong>.
+              <figure>
+                <img
+                  src="img/kanban/documento-de-escopo-05-baixar.webp"
+                  alt="Link Baixar original destacado no rodapé da janela do documento"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para tirar o documento, abra <strong>Editar o kanban</strong> (lápis da linha) e
+              clique em <strong>Remover documento</strong> e, depois, em
+              <strong>Confirmar: tirar o documento</strong>. O aviso
+              <strong>Documento removido. As tarefas continuam no quadro.</strong> confirma.
+              <figure>
+                <img
+                  src="img/kanban/documento-de-escopo-06-remover.webp"
+                  alt="Botão Confirmar: tirar o documento destacado na janela Editar kanban"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <!-- print-pendente: sistema: seletor de arquivo (Documento) -->
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#ia-assistente">Configurações › IA › Assistente</a>: só
+              quando o envio já gera as tarefas.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#criar-kanban">Criar kanban</a></li>
+            <li><a href="#gerar-tarefas-com-ia">Gerar tarefas com a IA</a></li>
+            <li>O original vai junto no <a href="backup.html#o-que-vai-no-backup">backup</a>.</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="abrir-quadro">
+          <h2>Abrir o quadro</h2>
+          <p>
+            O quadro mostra as colunas cadastradas, da esquerda para a direita, com um cartão por
+            tarefa. O título é o nome do projeto e o subtítulo, o cliente. O topo resume o progresso
+            (tarefas concluídas e horas concluídas sobre o total), e cada coluna mostra quantas
+            tarefas e quantas horas tem. Concluída é a tarefa da última coluna.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do kanban, clique na seta <strong>Abrir o quadro</strong>. A própria linha já
+              mostra o resumo, como <em>1/6 concluídas · 40 h</em>.
+              <figure>
+                <img
+                  src="img/kanban/abrir-quadro-01-botao.webp"
+                  alt="Botão Abrir o quadro destacado na linha do kanban"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Acompanhe o progresso no topo e no cabeçalho de cada coluna. <strong>Fechar</strong>,
+              no rodapé, fecha o quadro.
+              <figure>
+                <img
+                  src="img/kanban/abrir-quadro-02-progresso.webp"
+                  alt="Quadro com o progresso no topo e a contagem de tarefas e horas da coluna Concluído"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O quadro se atualiza sozinho quando algo muda fora dele (um agente de IA, o arquivo de
+              tarefas, a IA ou outra janela). Para reler na hora, clique no botão de recarregar.
+              <figure>
+                <img
+                  src="img/kanban/abrir-quadro-03-recarregar.webp"
+                  alt="Botão Recarregar o quadro destacado no topo do quadro"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#kanban-colunas">Configurações › Kanban › Colunas</a>: as
+              colunas e qual delas conta como concluída (a última).
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#criar-kanban">Criar kanban</a></li>
+            <li>
+              Atualizado por: <a href="#arquivo-de-tarefas">arquivo de tarefas</a>,
+              <a href="mcp.html#agente-no-kanban">agentes de IA por MCP</a> e
+              <a href="#gerar-tarefas-com-ia">IA do escopo</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="nova-tarefa">
+          <h2>Nova tarefa</h2>
+          <p>
+            Cria uma tarefa à mão, na coluna escolhida (a primeira, se você não mudar). No quadro do
+            projeto, ela nasce no projeto; o título é obrigatório, com até 200 caracteres.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No quadro, clique em <strong>Nova tarefa</strong>.
+              <figure>
+                <img
+                  src="img/kanban/nova-tarefa-01-botao.webp"
+                  alt="Botão Nova tarefa destacado no topo do quadro"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Preencha ao menos o <strong>Título</strong>. <strong>Coluna</strong>,
+              <strong>Tipo</strong>, <strong>Prioridade</strong> (Média, se não mudar),
+              <strong>Estimativa (h)</strong>, <strong>Grupo</strong> e os demais campos são
+              opcionais. Clique em <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/kanban/nova-tarefa-02-formulario.webp"
+                  alt="Janela Nova tarefa preenchida, com o título e a coluna destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O cartão aparece na coluna escolhida, com o tipo, a prioridade, as horas e o grupo.
+              <figure>
+                <img
+                  src="img/kanban/nova-tarefa-03-cartao.webp"
+                  alt="Cartão da tarefa nova na coluna Backlog"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#kanban-colunas">Configurações › Kanban › Colunas</a> e
+              <a href="configuracoes.html#kanban-tipos">Tipos</a>: as opções de Coluna e Tipo.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#abrir-quadro">Abrir o quadro</a>, a
+              <a href="#aba-do-cliente">aba Kanban do cliente</a> ou o
+              <a href="#visao-geral">Kanban do menu</a>
+            </li>
+            <li>Os campos são os de <a href="#editar-tarefa">Editar tarefa</a>.</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="mover-tarefa">
+          <h2>Mover tarefa entre colunas</h2>
+          <p>
+            Arrastar o cartão muda a tarefa de coluna, ou de posição na mesma coluna. A tela já
+            mostra a mudança e o HUB SNK confirma em seguida; se não conseguir gravar, o cartão
+            volta e um aviso explica. Funciona igual no quadro do projeto, no do cliente e no Kanban
+            do menu.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no cartão e segure.
+              <figure>
+                <img
+                  src="img/kanban/mover-tarefa-01-arrastar.webp"
+                  alt="Cartão Relatório de evolução de peso por lote destacado na coluna Backlog"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Solte na coluna de destino, acima do cartão em que ele deve ficar ou no fim. Coluna
+              vazia mostra <strong>Arraste uma tarefa para cá.</strong>
+              <figure>
+                <img
+                  src="img/kanban/mover-tarefa-02-solta.webp"
+                  alt="O mesmo cartão já na coluna A fazer"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Sem arrastar, dá para trocar a <strong>Coluna</strong> na janela da tarefa; veja
+            <a href="#editar-tarefa">Editar tarefa</a>.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#kanban-colunas">Configurações › Kanban › Colunas</a>
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#abrir-quadro">Abrir o quadro</a> ou o
+              <a href="#visao-geral">Kanban do menu</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="editar-tarefa">
+          <h2>Editar e excluir tarefa</h2>
+          <p>
+            A janela da tarefa guarda o <strong>Título</strong>, a <strong>Descrição</strong>, a
+            <strong>Coluna</strong>, o <strong>Tipo</strong>, a <strong>Prioridade</strong> (Alta,
+            Média ou Baixa), a <strong>Estimativa (h)</strong>, o <strong>Grupo</strong> (a
+            funcionalidade a que a tarefa pertence), os <strong>Critérios de aceite</strong> (um por
+            linha), a <a href="#lista-de-verificacao">lista de verificação</a> e as
+            <strong>Notas</strong>. Trocar a Coluna move a tarefa.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no cartão (ou selecione-o com <kbd>Tab</kbd> e aperte <kbd>Enter</kbd>). Altere
+              os campos e clique em <strong>Salvar</strong>. Sem título, a janela pede
+              <strong>Informe o título da tarefa.</strong>; estimativa que não é número, também é
+              recusada.
+              <figure>
+                <img
+                  src="img/kanban/editar-tarefa-01-janela.webp"
+                  alt="Janela Tarefa aberta, com o título e a coluna destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para apagar a tarefa, clique em <strong>Excluir</strong>, no canto esquerdo do rodapé,
+              e depois em <strong>Confirmar exclusão</strong>. O aviso
+              <strong>Tarefa excluída.</strong> confirma. Não há como desfazer.
+              <figure>
+                <img
+                  src="img/kanban/editar-tarefa-02-excluir.webp"
+                  alt="Botão Confirmar exclusão destacado no rodapé da janela da tarefa"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#kanban-colunas">Configurações › Kanban › Colunas</a> e
+              <a href="configuracoes.html#kanban-tipos">Tipos</a>: as opções de Coluna e Tipo.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#abrir-quadro">Abrir o quadro</a></li>
+            <li>
+              <a href="#lista-de-verificacao">Lista de verificação</a> e
+              <a href="#trocar-cliente-ou-projeto">Cliente e Projeto da tarefa</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="lista-de-verificacao">
+          <h2>Lista de verificação</h2>
+          <p>
+            Os passos da tarefa, para marcar à medida que são feitos: até 50 itens, com 300
+            caracteres cada. A janela mostra quantos estão feitos e o cartão ganha o selo
+            <strong>✓</strong> com a contagem, destacado quando todos estão marcados. Nada é gravado
+            até o <strong>Salvar</strong> da tarefa.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na janela da tarefa, digite o passo em <strong>Novo item — Enter adiciona</strong> e
+              aperte <kbd>Enter</kbd> (ou clique em <strong>Adicionar</strong>). Marque a caixa do
+              item feito. O texto do item pode ser corrigido no próprio lugar, e a lixeira
+              <strong>Tirar o item</strong> o remove. Clique em <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/kanban/lista-de-verificacao-01-itens.webp"
+                  alt="Lista de verificação com três itens, um marcado, e o campo Novo item"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O cartão passa a mostrar os itens marcados sobre o total.
+              <figure>
+                <img
+                  src="img/kanban/lista-de-verificacao-02-cartao.webp"
+                  alt="Selo ✓ 1/3 destacado no cartão da tarefa"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#editar-tarefa">Editar tarefa</a></li>
+            <li>
+              Os itens também podem ser marcados por
+              <a href="mcp.html#agente-no-kanban">agentes de IA por MCP</a> e pelo
+              <a href="#arquivo-de-tarefas">arquivo de tarefas</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="trocar-cliente-ou-projeto">
+          <h2>Levar a tarefa para outro quadro</h2>
+          <p>
+            Os campos <strong>Cliente</strong> e <strong>Projeto</strong> da janela da tarefa a
+            levam para o quadro daquele cliente e projeto, que é criado se ainda não existir. O
+            cliente <strong>Interno</strong>, das tarefas que não são de cliente nenhum, só tem
+            <strong>Sem projeto</strong>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na janela da tarefa, troque o <strong>Cliente</strong> (o Projeto volta para
+              <strong>Sem projeto</strong>) e escolha o <strong>Projeto</strong>. Clique em
+              <strong>Salvar</strong>: a tarefa sai deste quadro e vai para o outro.
+              <figure>
+                <img
+                  src="img/kanban/trocar-cliente-ou-projeto-01-campos.webp"
+                  alt="Campos Cliente e Projeto destacados no alto da janela da tarefa"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#editar-tarefa">Editar tarefa</a></li>
+            <li>
+              O destino aparece na <a href="#aba-do-cliente">aba Kanban do cliente</a> ou, no
+              Interno, no <a href="#visao-geral">Kanban do menu</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="editar-kanban">
+          <h2>Editar, vincular e excluir o kanban</h2>
+          <p>
+            A janela <strong>Editar kanban</strong> reúne o projeto do kanban, a pasta do arquivo de
+            tarefas, a liberação para agentes de IA e a remoção do documento. Trocar o
+            <strong>Projeto</strong> leva o quadro para dentro de outro projeto do mesmo cliente (só
+            os projetos sem kanban ficam disponíveis); <strong>Sem projeto</strong> o leva para a
+            aba Kanban do cliente. Se o cliente já tem quadro sem projeto, as tarefas se juntam a
+            ele.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do kanban, clique no lápis <strong>Editar o kanban</strong>.
+              <figure>
+                <img
+                  src="img/kanban/editar-kanban-01-botao.webp"
+                  alt="Botão Editar o kanban destacado na linha do kanban"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Ajuste o <strong>Projeto</strong>, a <strong>Pasta do arquivo de tarefas</strong> e
+              <strong>Disponível para agentes de IA por MCP</strong>. No quadro sem projeto, há
+              também o <strong>Nome do kanban</strong> (até 120 caracteres); vinculado a um projeto,
+              o kanban leva o nome dele. Clique em <strong>Salvar</strong>. O aviso diz o que
+              aconteceu: <strong>Kanban salvo.</strong>,
+              <strong>Kanban vinculado ao projeto.</strong>,
+              <strong>Kanban desvinculado: está na aba Kanban.</strong> ou
+              <strong>As tarefas foram para o quadro do cliente, na aba Kanban.</strong>
+              <figure>
+                <img
+                  src="img/kanban/editar-kanban-02-janela.webp"
+                  alt="Janela Editar kanban com o campo Projeto e a caixa Disponível por MCP destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para apagar o kanban, clique na lixeira <strong>Excluir o kanban</strong> e confirme
+              em <strong>Excluir</strong>. Saem todas as tarefas, o histórico e o documento; o
+              projeto fica, e o <strong>+</strong> volta a aparecer. Não há como desfazer.
+              <figure>
+                <img
+                  src="img/kanban/editar-kanban-03-excluir.webp"
+                  alt="Janela Excluir kanban com o botão Excluir destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Durante a análise da IA, o kanban não pode ser excluído. Excluir o projeto ou o cliente
+            também mexe no kanban; veja
+            <a href="projetos.html#excluir-projeto">Excluir projeto</a> e
+            <a href="clientes.html#excluir">Excluir cliente</a>.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#mcp-kanbans-disponiveis"
+                >Configurações › MCP › Kanbans disponíveis</a
+              >: lista os kanbans com a caixa do MCP marcada.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="mcp.html#liberar-kanban">Liberar um kanban para os agentes</a>
+            </li>
+            <li>
+              <a href="#arquivo-de-tarefas">Arquivo de tarefas</a> e
+              <a href="#documento-de-escopo">Remover documento</a>
+            </li>
+            <li><a href="#aba-do-cliente">Aba Kanban do cliente</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="arquivo-de-tarefas">
+          <h2>Arquivo de tarefas para agentes</h2>
+          <p>
+            Com uma pasta escolhida, o HUB SNK cria nela a subpasta <code>Tarefas</code> com um
+            arquivo JSON das tarefas do kanban e o regrava a cada mudança no quadro. Um agente de IA
+            que edita arquivos (ou você, num editor) pode mudar o <code>estado</code> e as
+            <code>notas</code> de uma tarefa e marcar os itens da lista; o HUB SNK confere o arquivo
+            a cada 1,5 segundo e leva a mudança para o quadro, mesmo a feita com ele fechado.
+            Título, estimativa e o resto não voltam do arquivo. Numa pasta de repositório Git, a
+            subpasta <code>Tarefas</code> entra no <code>.gitignore</code>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Em <strong>Novo kanban</strong> (sem documento) ou em <strong>Editar kanban</strong>,
+              preencha a <strong>Pasta do arquivo de tarefas</strong> com o caminho completo, ou
+              clique em <strong>Escolher…</strong>, e salve. A linha do kanban ganha o selo
+              <strong>Arquivo</strong>: verde quando está tudo certo, vermelho com erro. Passe o
+              mouse sobre ele para ver o caminho, a hora da última gravação e o erro, se houver.
+              <figure>
+                <img
+                  src="img/kanban/arquivo-de-tarefas-01-selo.webp"
+                  alt="Selo Arquivo destacado na linha do kanban do Portal do produtor"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Em <strong>Editar kanban</strong>, a linha abaixo da pasta mostra o arquivo, a hora em
+              que foi gravado e quantas mudanças vieram dele.
+              <figure>
+                <img
+                  src="img/kanban/arquivo-de-tarefas-02-pasta.webp"
+                  alt="Pasta do arquivo de tarefas e a situação do arquivo destacadas na janela Editar kanban"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              No agente de IA, peça para ler o arquivo da pasta <code>Tarefas</code> e atualizar o
+              andamento. O próprio arquivo explica ao agente o que ele pode mudar.
+            </li>
+            <!-- print-pendente: sistema: Explorador de arquivos com a subpasta Tarefas e o arquivo aberto no editor do agente -->
+          </ol>
+          <p class="nota">
+            Tirar a pasta, ou excluir o kanban, apaga o arquivo. A pasta precisa existir; no Linux,
+            o <strong>Escolher…</strong> precisa do zenity ou do kdialog instalado.
+          </p>
+          <!-- print-pendente: sistema: seletor de pasta (Escolher…) -->
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#criar-kanban">Criar kanban</a> ou <a href="#editar-kanban">Editar kanban</a>
+            </li>
+            <li>
+              Para agentes que falam MCP, veja
+              <a href="mcp.html#kanban-por-mcp">Ligar o agente ao kanban por MCP</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="aba-do-cliente">
+          <h2>Aba Kanban do cliente</h2>
+          <p>
+            A aba Kanban do cadastro do cliente resume todas as tarefas dele, com e sem projeto, e
+            abre o quadro do cliente, que junta tudo. Cada cliente pode ter também um quadro sem
+            projeto, para o que não pertence a projeto nenhum; é para ele que vai o kanban mantido
+            ao excluir um projeto.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No cliente, clique na aba <strong>Kanban</strong>.
+              <figure>
+                <img
+                  src="img/kanban/aba-do-cliente-01-aba.webp"
+                  alt="Aba Kanban destacada no detalhe do cliente"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A linha resume as tarefas do cliente. Quando há quadro sem projeto, ela traz também os
+              botões dele: documento, edição e exclusão, iguais aos da linha do projeto.
+              <figure>
+                <img
+                  src="img/kanban/aba-do-cliente-02-resumo.webp"
+                  alt="Seção Kanban do cliente com o resumo das tarefas"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique na seta <strong>Abrir o quadro</strong>. O quadro do cliente traz as tarefas de
+              todos os projetos, cada cartão com a origem no alto. Use o seletor ao lado do título
+              para ver <strong>Todos os projetos</strong>, só <strong>Sem projeto</strong> ou um
+              projeto. Documento, análise e resumo da IA só aparecem olhando um kanban só.
+              <figure>
+                <img
+                  src="img/kanban/aba-do-cliente-03-quadro.webp"
+                  alt="Quadro do cliente com o seletor Todos os projetos e a origem no cartão"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Sem quadro sem projeto, clique no <strong>+</strong> (<strong
+                >Novo kanban sem projeto</strong
+              >) e siga como em <a href="#criar-kanban">Criar kanban</a>. Basta também criar uma
+              tarefa no quadro do cliente com o filtro em Sem projeto: o quadro nasce com ela.
+              <figure>
+                <img
+                  src="img/kanban/aba-do-cliente-04-sem-projeto.webp"
+                  alt="Botão + Novo kanban sem projeto destacado na aba Kanban"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-projetos"
+                >Configurações › Acessos › Projetos</a
+              >
+              (cadastro do cliente): desmarcado, a aba Kanban some junto com a Projetos.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="clientes.html#lista-e-detalhe">Lista e detalhe do cliente</a></li>
+            <li>
+              <a href="#editar-kanban">Vincular o quadro sem projeto a um projeto</a> e
+              <a href="projetos.html#excluir-projeto">Excluir projeto mantendo o kanban</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="visao-geral">
+          <h2>Kanban do menu (quadro Interno)</h2>
+          <p>
+            A aba <strong>Kanban</strong> do topo mostra num quadro só as tarefas de todos os
+            clientes e as do quadro <strong>Interno</strong>, para o que não é de cliente nenhum.
+            Cada cartão diz de onde vem (<em>Cliente · Projeto</em>), e o subtítulo resume o
+            progresso. A tela é relida sempre que a aba abre.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No topo do Painel, clique em <strong>Kanban</strong>.
+              <figure>
+                <img
+                  src="img/kanban/visao-geral-01-aba.webp"
+                  alt="Aba Kanban destacada no topo do Painel"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O quadro junta todos os kanbans. O cartão traz o cliente e o projeto no alto.
+              <figure>
+                <img
+                  src="img/kanban/visao-geral-02-quadro.webp"
+                  alt="Kanban do menu com o progresso no subtítulo e a origem no cartão"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Em <strong>Filtrar por cliente</strong>, escolha <strong>Todos os clientes</strong>,
+              <strong>Interno</strong> ou um cliente. Com um cliente escolhido, aparece o segundo
+              filtro, com <strong>Todos os projetos</strong>, <strong>Sem projeto</strong> ou um
+              projeto com kanban. O botão de recarregar relê todos os quadros.
+              <figure>
+                <img
+                  src="img/kanban/visao-geral-03-filtros.webp"
+                  alt="Filtros de cliente e de projeto destacados no Kanban do menu"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              <strong>Nova tarefa</strong> cria a tarefa no cliente e no projeto do filtro; sem
+              cliente filtrado, ela vai para o <strong>Interno</strong>. Os campos
+              <strong>Cliente</strong> e <strong>Projeto</strong> da janela mudam o destino.
+              <figure>
+                <img
+                  src="img/kanban/visao-geral-04-nova-tarefa.webp"
+                  alt="Janela Nova tarefa com o campo Cliente em Interno destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-kanban">Configurações › Acessos › Kanban</a>
+              (menu principal) e
+              <a href="configuracoes.html#acessos-cliente-projetos">Projetos</a> (cadastro do
+              cliente): a aba do topo só aparece com as duas marcadas.
+            </li>
+            <li>
+              <a href="configuracoes.html#kanban-colunas">Configurações › Kanban › Colunas</a>
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#mover-tarefa">Mover tarefa</a>, <a href="#editar-tarefa">editar tarefa</a> e
+              <a href="#trocar-cliente-ou-projeto">levar a tarefa para outro quadro</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="colunas-e-tipos">
+          <h2>Colunas e tipos de tarefa</h2>
+          <p>
+            As colunas e os tipos valem para todos os quadros e ficam em Configurações › Kanban. A
+            primeira coluna recebe as tarefas novas e as geradas pela IA; a última é a das
+            concluídas. Os tipos são os que a IA usa ao classificar as tarefas do escopo. Tudo é
+            gravado na hora, sem o Salvar das Configurações, e os quadros abertos acompanham.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as <strong>Configurações</strong> (engrenagem no topo), aba
+              <strong>Kanban</strong>. A primeira coluna traz a marca <em>novas</em> e a última,
+              <em>concluídas</em>.
+              <figure>
+                <img
+                  src="img/kanban/colunas-e-tipos-01-aba.webp"
+                  alt="Aba Kanban das Configurações com as colunas destacadas"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para incluir, digite o nome (até 60 caracteres) em <strong>Nova coluna</strong> e
+              clique em <strong>Adicionar</strong> ou aperte <kbd>Enter</kbd>. A coluna nova entra
+              no fim, e por isso passa a ser a das concluídas.
+              <figure>
+                <img
+                  src="img/kanban/colunas-e-tipos-02-nova-coluna.webp"
+                  alt="Coluna Homologação incluída no fim da lista"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique numa coluna para mexer nela: renomeie no campo e clique em
+              <strong>Salvar</strong>, ou use <strong>Mover para a esquerda</strong> e
+              <strong>Mover para a direita</strong>. <strong>Cancelar</strong> volta ao modo de
+              incluir.
+              <figure>
+                <img
+                  src="img/kanban/colunas-e-tipos-03-mover.webp"
+                  alt="Coluna Homologação escolhida, com os botões de mover e o campo de edição"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              <strong>Excluir</strong> só apaga a coluna sem cartões. Com cartões, a aba lista até
+              cinco deles, com o cliente e o quadro: mova-os no quadro e tente de novo. O quadro
+              precisa de pelo menos uma coluna.
+              <figure>
+                <img
+                  src="img/kanban/colunas-e-tipos-04-em-uso.webp"
+                  alt="Aviso de coluna em uso com os cartões que impedem a exclusão"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Os <strong>Tipos</strong> funcionam igual, em <strong>Novo tipo</strong>, sem ordem.
+              Tipo usado por algum cartão também não pode ser excluído.
+              <figure>
+                <img
+                  src="img/kanban/colunas-e-tipos-05-tipos.webp"
+                  alt="Lista de tipos com o tipo Migração incluído"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Vêm de fábrica as colunas Backlog, A fazer, Em andamento, Em revisão e Concluído, e os
+            tipos Backend, Frontend, Dados, Relatório, BI, Integração, Configuração, Teste,
+            Documentação e Outro.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#kanban-colunas">Configurações › Kanban › Colunas</a> e
+              <a href="configuracoes.html#kanban-tipos">Tipos</a>
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-projetos"
+                >Configurações › Acessos › Projetos</a
+              >
+              (cadastro do cliente): desmarcado, a aba Kanban das Configurações some.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Afeta: <a href="#abrir-quadro">o quadro</a>,
+              <a href="#gerar-tarefas-com-ia">as tarefas da IA</a> e o que os
+              <a href="mcp.html#agente-no-kanban">agentes de IA</a> enxergam.
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

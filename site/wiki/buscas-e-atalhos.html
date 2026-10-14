@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Buscas e atalhos · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Busca rápida (Ctrl+K), busca na página (Ctrl+F), atalhos de programas e teclas de atalho do HUB SNK, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Buscas e atalhos</h1>
+        <p class="introducao">
+          A busca rápida acha qualquer coisa do cadastro sem navegar pelas telas, e a busca na
+          página procura texto na guia aberta. Os atalhos de programas iniciam, pelo botão de raio,
+          as ferramentas que você usa no dia a dia. No fim, a lista das teclas de atalho.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#busca-rapida">Busca rápida (Ctrl+K)</a></li>
+            <li><a href="#abrir-item">Abrir o item encontrado (Enter)</a></li>
+            <li><a href="#abrir-cliente-do-item">Abrir o cliente do item (Ctrl+Enter)</a></li>
+            <li><a href="#acoes-do-repositorio">Pasta, terminal e IDE pela busca</a></li>
+            <li><a href="#recentes">Itens usados por último</a></li>
+            <li><a href="#atalho-global">Atalho global Ctrl+Shift+Espaço</a></li>
+            <li><a href="#buscar-na-pagina">Buscar na página (Ctrl+F)</a></li>
+            <li><a href="#cadastrar-atalhos">Cadastrar atalhos de programas</a></li>
+            <li><a href="#lista-de-atalhos">Iniciar um programa pelo raio</a></li>
+            <li><a href="#teclas-de-atalho">Lista de teclas de atalho</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="busca-rapida">
+          <h2>Busca rápida (Ctrl+K)</h2>
+          <p>
+            Uma caixa só que procura em todo o cadastro: clientes, bases, repositórios, links
+            gerais, projetos, links de projeto, contatos, atalhos e bases locais. Procura no nome e
+            também na URL e no usuário da base, no caminho e na URL do repositório, nos nomes
+            completos do cliente e no cargo, telefone e e-mail do contato. Acentos e maiúsculas não
+            contam, e cada palavra digitada precisa aparecer no item. Vêm até 30 resultados:
+            primeiro os que começam com o que você digitou e, no empate, os usados por último.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Tecle <kbd>Ctrl</kbd>+<kbd>K</kbd> ou clique na lupa do topo. No aplicativo, o
+              <kbd>Ctrl</kbd>+<kbd>K</kbd> funciona em qualquer guia e traz o Painel para a frente.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/busca-rapida-01-lupa.webp"
+                  alt="Lupa da busca rápida destacada no topo do Painel"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A busca abre com o campo vazio, pronto para digitar.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/busca-rapida-02-aberta.webp"
+                  alt="Busca rápida aberta com o campo destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Digite. A lista é refeita a cada tecla, com o tipo de cada item à esquerda e o detalhe
+              abaixo do título. Sem resultado, aparece <strong>Nada encontrado.</strong>
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/busca-rapida-03-resultados.webp"
+                  alt="Resultados da busca por alfa: repositório, cliente, bases e contato"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Use <kbd>↑</kbd> e <kbd>↓</kbd> para escolher a linha; a dica no rodapé lembra as
+              teclas. <kbd>Esc</kbd> ou um clique fora da caixa fecha a busca.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/busca-rapida-04-navegar.webp"
+                  alt="Linha selecionada com as setas e a dica de teclas no rodapé"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">Abrir a busca fecha a lista de atalhos do raio, se estiver aberta.</p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-funcionalidades">Configurações › Acessos</a>: o
+              que está oculto não aparece na busca.
+              <a href="configuracoes.html#acessos-cliente-bases">Bases</a>,
+              <a href="configuracoes.html#acessos-cliente-git">Git</a> e
+              <a href="configuracoes.html#acessos-cliente-projetos">Projetos</a> do cadastro do
+              cliente tiram os itens deles; <a href="configuracoes.html#acessos-local">Local</a>
+              tira as bases locais; o contato só aparece com a aba
+              <a href="configuracoes.html#acessos-cliente-contatos">Contatos</a> do cliente ou o
+              menu <a href="configuracoes.html#acessos-contatos">Contatos</a> visível.
+            </li>
+            <li>
+              <a href="configuracoes.html#atalhos-nome-do-atalho">Configurações › Atalhos</a>: os
+              atalhos cadastrados entram na busca.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#abrir-item">Abrir o item encontrado</a> e
+              <a href="#abrir-cliente-do-item">abrir o cliente do item</a>
+            </li>
+            <li>Fora do HUB SNK: <a href="#atalho-global">Atalho global Ctrl+Shift+Espaço</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="abrir-item">
+          <h2>Abrir o item encontrado (Enter)</h2>
+          <p>
+            <kbd>Enter</kbd>, ou um clique na linha, faz a ação do tipo do item. Cliente: abre o
+            cliente. Base: abre como no cadastro, com o login preenchido. Repositório: abre na IDE
+            configurada; sem IDE, a pasta; sem pasta local, a página do remoto. Link e link de
+            projeto: abrem o endereço. Projeto: abre o cliente na aba Projetos, com o projeto
+            aberto. Contato: abre a aba Contatos do cliente, ou, sem cliente, o menu Contatos
+            filtrado pelo nome. Atalho: inicia o programa. Base local: abre o SankhyaOm local.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na busca, deixe selecionada a linha do item.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/abrir-item-01-cliente.webp"
+                  alt="Cliente Fazenda Boa Vista selecionado nos resultados da busca"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Tecle <kbd>Enter</kbd>. Um cliente abre na tela Clientes.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/abrir-item-02-aberto.webp"
+                  alt="Cliente Fazenda Boa Vista aberto na tela Clientes"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Um atalho inicia o programa e avisa <strong>&lt;nome&gt; iniciado.</strong>
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/abrir-item-03-atalho.webp"
+                  alt="Aviso DataGrip iniciado depois de abrir o atalho pela busca"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: sistema: programa do atalho aberto -->
+            </li>
+            <li>
+              Uma base abre na guia dela, com o login preenchido; um repositório, na IDE ou no
+              Explorador de arquivos.
+              <!-- print-pendente: terceiros: SankhyaOm da base aberto pela busca -->
+              <!-- print-pendente: sistema: IDE ou Explorador de arquivos aberto pela busca -->
+            </li>
+          </ol>
+          <p class="nota">
+            Se faltar uma configuração (a IDE, por exemplo), o aviso de erro traz o atalho
+            <strong>Abrir configuração</strong>.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-abrir-os-links-em"
+                >Configurações › Geral › Abrir os links em</a
+              >: no aplicativo, base e links abrem na guia do HUB SNK ou no navegador padrão.
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-executavel-da-ide"
+                >Configurações › Geral › Executável da IDE</a
+              >: sem ele, o repositório abre a pasta.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="bases.html#abrir-base">Abrir a base</a>,
+              <a href="repositorios-git.html#abrir-pasta-terminal-ou-ide"
+                >abrir a pasta, o terminal ou a IDE</a
+              >, <a href="links-gerais.html#abrir-link">abrir link</a>,
+              <a href="projetos.html#expandir-projeto">exibir o projeto</a>,
+              <a href="contatos.html#aba-do-cliente">contatos do cliente</a> e
+              <a href="ambiente-local.html#abrir-sankhyaom">SankhyaOm local</a>
+            </li>
+            <li><a href="#lista-de-atalhos">Iniciar um programa pelo raio</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="abrir-cliente-do-item">
+          <h2>Abrir o cliente do item (Ctrl+Enter)</h2>
+          <p>
+            Em vez da ação do item, abre o cliente dono dele, já na aba certa: Bases para base, Git
+            para repositório, Geral para link, Projetos para projeto e link de projeto, Contatos
+            para contato. <kbd>Ctrl</kbd>+clique na linha faz o mesmo.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na busca, selecione o item, por exemplo uma base.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/abrir-cliente-do-item-01-base.webp"
+                  alt="Base Indústria Alfa — Teste selecionada na busca"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Tecle <kbd>Ctrl</kbd>+<kbd>Enter</kbd>. O cliente abre na tela Clientes, na aba do
+              item.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/abrir-cliente-do-item-02-bases.webp"
+                  alt="Cliente Indústria Alfa aberto na aba Bases"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-funcionalidades"
+                >Configurações › Acessos › Cadastro do cliente</a
+              >: com a aba do item oculta, o cliente abre em outra.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="clientes.html#lista-e-detalhe">Lista e detalhe do cliente</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="acoes-do-repositorio">
+          <h2>Pasta, terminal e IDE pela busca</h2>
+          <p>
+            Na linha de um repositório com pasta local, três botões fazem o mesmo que os da aba Git
+            do cliente, sem abrir o cadastro: <strong>Abrir a pasta</strong>,
+            <strong>Abrir o terminal</strong> e <strong>Abrir a IDE</strong>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Busque o repositório e clique no ícone de pasta, de terminal ou de
+              <code>{ }</code> à direita da linha. A busca fecha e o programa abre.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/acoes-do-repositorio-01-botoes.webp"
+                  alt="Botões de pasta, terminal e IDE destacados na linha do repositório"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: sistema: Explorador de arquivos, terminal ou IDE aberto pela busca -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-executavel-da-ide"
+                >Configurações › Geral › Executável da IDE</a
+              >: usado por <strong>Abrir a IDE</strong>.
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-script-padrao"
+                >Configurações › Geral › Script padrão</a
+              >: rodado ao abrir o terminal.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="repositorios-git.html#abrir-pasta-terminal-ou-ide"
+                >Abrir a pasta, o terminal ou a IDE</a
+              >
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="recentes">
+          <h2>Itens usados por último</h2>
+          <p>
+            Aberta sem nada digitado, a busca mostra os até 10 itens que você abriu por ela por
+            último. Sem histórico, ela diz
+            <strong
+              >Digite para buscar. O que você abrir por aqui passa a aparecer nesta lista.</strong
+            >
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra a busca sem digitar: os últimos itens abertos vêm no topo. Escolha um e tecle
+              <kbd>Enter</kbd>.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/recentes-01-lista.webp"
+                  alt="Busca vazia com os itens abertos por último"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            O histórico fica só neste computador, fora da pasta de dados: não vai para o backup.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#abrir-item">Abrir o item encontrado</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="atalho-global">
+          <h2>Atalho global Ctrl+Shift+Espaço</h2>
+          <p>
+            Com qualquer programa na frente, e até com o HUB SNK escondido na bandeja,
+            <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Espaço</kbd> traz a janela do HUB SNK na guia
+            Painel, com a busca rápida aberta. Só no aplicativo desktop. No Ubuntu, depende do
+            sistema liberar a tecla (KDE ou GNOME 48 em diante).
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Em qualquer programa, tecle <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Espaço</kbd> e
+              digite o que procura.
+            </li>
+            <li>
+              Para desligar, e devolver a combinação a outro programa, clique com o botão direito no
+              ícone do HUB SNK na bandeja e desmarque
+              <strong>Atalho global (Ctrl+Shift+Space)</strong>. Se outro programa já usa a
+              combinação, o item diz <strong>— em uso por outro programa</strong>; marcar de novo
+              tenta outra vez. O mesmo menu tem o item <strong>Busca rápida</strong>.
+              <!-- print-pendente: sistema: menu da bandeja com o item Atalho global -->
+            </li>
+            <li>
+              No Ubuntu sem o recurso (o item diz <strong>— o sistema não liberou a tecla</strong>),
+              crie em Configurações › Teclado › Atalhos de teclado › Atalhos personalizados um
+              atalho com o comando <code>hub-snk-desktop --busca-rapida</code>.
+              <!-- print-pendente: sistema: Configurações › Teclado do GNOME com o atalho personalizado -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#outras-atalho-global"
+                >Bandeja › Atalho global (Ctrl+Shift+Space)</a
+              >: ligado por padrão.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#busca-rapida">Busca rápida</a></li>
+            <li><a href="bandeja.html#menu-da-bandeja">Menu do ícone da bandeja</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="buscar-na-pagina">
+          <h2>Buscar na página (Ctrl+F)</h2>
+          <p>
+            Uma barra no canto superior direito da guia aberta, como a do Chrome, procura texto em
+            qualquer guia: Painel, SankhyaOm, Experience, bases e guias novas, inclusive dentro das
+            telas do Sankhya. Mostra a ocorrência atual e o total. Reaberta, traz o último texto;
+            trocar de guia a fecha. Não acha texto de tela Flash. Só no aplicativo desktop.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Tecle <kbd>Ctrl</kbd>+<kbd>F</kbd>, ou clique no menu <strong>☰</strong> e em
+              <strong>Buscar na página</strong>.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/buscar-na-pagina-01-menu.webp"
+                  alt="Item Buscar na página destacado no menu do aplicativo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Digite o texto. <kbd>Enter</kbd> vai para a próxima ocorrência, <kbd>Shift</kbd>+<kbd
+                >Enter</kbd
+              >
+              para a anterior (ou use as setas da barra). <kbd>Esc</kbd> ou o
+              <strong>×</strong> fecha.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/buscar-na-pagina-02-barra.webp"
+                  alt="Barra de busca na página com Boa Vista encontrado na lista de clientes"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="guias-e-navegacao.html#menu-do-aplicativo">Menu ☰</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="cadastrar-atalhos">
+          <h2>Cadastrar atalhos de programas</h2>
+          <p>
+            Cada atalho tem um <strong>Nome do atalho</strong> (até 60 caracteres) e o
+            <strong>Caminho do executável</strong> (até 400). Vale <code>.exe</code>,
+            <code>.lnk</code>, <code>.bat</code> ou qualquer arquivo com programa associado, como
+            uma planilha. O caminho só é conferido na hora de iniciar. O programa roda na sua
+            máquina, com as suas permissões.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as <strong>Configurações</strong> (engrenagem no topo) e clique na aba
+              <strong>Atalhos</strong>.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/cadastrar-atalhos-01-aba.webp"
+                  alt="Aba Atalhos das Configurações com os atalhos cadastrados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Adicionar atalho</strong> e preencha o nome e o caminho.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/cadastrar-atalhos-02-linha.webp"
+                  alt="Linha nova com o atalho Planilha de horas preenchido"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para não digitar o caminho, clique no ícone de pasta (<strong
+                >Escolher o executável</strong
+              >) e escolha o arquivo; cancelar mantém o que estava escrito. A lixeira (<strong
+                >Remover atalho</strong
+              >) tira a linha.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/cadastrar-atalhos-03-escolher-e-remover.webp"
+                  alt="Botões Escolher o executável e Remover atalho destacados na linha"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: sistema: seletor de arquivo "Selecione o executável" -->
+            </li>
+            <li>
+              Clique em <strong>Salvar</strong>. Inclusões e remoções só valem depois disso; linha
+              toda em branco é descartada, e linha com nome sem caminho (ou o contrário) é recusada
+              com o motivo.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/cadastrar-atalhos-04-salvo.webp"
+                  alt="Aviso Configurações salvas"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#atalhos-nome-do-atalho"
+                >Configurações › Atalhos › Nome do atalho</a
+              >
+              e
+              <a href="configuracoes.html#atalhos-caminho-do-executavel">Caminho do executável</a>
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Usado por: <a href="#lista-de-atalhos">lista do raio</a> e
+              <a href="#busca-rapida">busca rápida</a>.
+            </li>
+            <li><a href="configuracoes.html#abrir-e-salvar">Abrir e salvar as Configurações</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="lista-de-atalhos">
+          <h2>Iniciar um programa pelo raio</h2>
+          <p>
+            O botão de raio no topo abre a lista dos atalhos cadastrados. Com mais de cinco, ela
+            ganha o campo <strong>Buscar atalho</strong>, que procura no nome e no caminho. Sem
+            nenhum atalho, a lista diz <strong>Cadastre em Configurações › Atalhos.</strong>, com o
+            atalho <strong>Abrir configuração</strong>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no raio, no topo do Painel.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/lista-de-atalhos-01-raio.webp"
+                  alt="Botão de raio destacado no topo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A lista abre por cima da tela; passe o mouse num atalho para ver o caminho completo.
+              Ela fecha com um clique fora, com <kbd>Esc</kbd> ou no raio de novo.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/lista-de-atalhos-02-lista.webp"
+                  alt="Lista de atalhos aberta com o campo Buscar atalho"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Com muitos atalhos, digite parte do nome ou da pasta em
+              <strong>Buscar atalho</strong>.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/lista-de-atalhos-03-buscar.webp"
+                  alt="Lista filtrada pelo texto data"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique no atalho. A lista fecha, o programa abre e o aviso
+              <strong>&lt;nome&gt; iniciado.</strong> confirma. Se o arquivo não existir mais, o
+              aviso de erro diz isso.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/lista-de-atalhos-04-iniciado.webp"
+                  alt="Aviso DataGrip iniciado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: sistema: programa iniciado pelo atalho -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#atalhos-nome-do-atalho">Configurações › Atalhos</a>
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-atalhos">Cadastrar atalhos de programas</a></li>
+            <li>Também pela <a href="#abrir-item">busca rápida</a>.</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="teclas-de-atalho">
+          <h2>Lista de teclas de atalho</h2>
+          <p>
+            Uma janela com todas as teclas de atalho do aplicativo: as do menu ☰, o atalho global
+            da busca e as teclas da busca rápida e da busca na página. Não confundir com o botão de
+            raio, que inicia programas. Só no aplicativo desktop.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no menu <strong>☰</strong> e, em <strong>Ajuda</strong>, em
+              <strong>Atalhos</strong>.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/teclas-de-atalho-01-menu.webp"
+                  alt="Item Atalhos destacado na seção Ajuda do menu"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Consulte a lista. <kbd>Esc</kbd> fecha a janela.
+              <figure>
+                <img
+                  src="img/buscas-e-atalhos/teclas-de-atalho-02-lista.webp"
+                  alt="Janela Atalhos com as teclas do menu, da busca rápida e da busca na página"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#outras-atalho-global"
+                >Bandeja › Atalho global (Ctrl+Shift+Space)</a
+              >: desligado, a lista avisa.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="guias-e-navegacao.html#menu-do-aplicativo">Menu ☰</a></li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

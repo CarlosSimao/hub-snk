@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bases · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como cadastrar, abrir e acompanhar as bases do cliente no HUB SNK, com o banco de dados de cada uma, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Bases</h1>
+        <p class="introducao">
+          A base é o acesso ao SankhyaOm do cliente: a URL, o tipo e, se quiser, o usuário e a senha
+          do login. Ficam na aba Bases do cliente, que também mostra se cada base está no ar e
+          guarda os dados de conexão do banco de dados dela.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#aba-bases">Ver as bases do cliente</a></li>
+            <li><a href="#cadastrar-base">Cadastrar base</a></li>
+            <li><a href="#editar-e-excluir">Editar e excluir base</a></li>
+            <li><a href="#senha-da-base">Ver e copiar a senha</a></li>
+            <li><a href="#abrir-base">Abrir a base com login automático</a></li>
+            <li><a href="#situacao">Situação, uptime e versão da base</a></li>
+            <li><a href="#vincular-banco">Vincular banco de dados</a></li>
+            <li><a href="#copiar-dados-do-banco">Copiar os dados do banco</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="aba-bases">
+          <h2>Ver as bases do cliente</h2>
+          <p>
+            A aba <strong>Bases</strong> lista as bases do cliente em ordem de tipo: Produção, Teste
+            e Outro; dentro do mesmo tipo, na ordem em que foram cadastradas. Cada linha traz o selo
+            do tipo, a URL com a seta de abrir, o usuário e a senha mascarada, a versão da
+            plataforma, a situação com o gráfico de uptime e os botões de banco, editar e excluir.
+            Cliente sem base mostra <strong>Nenhuma base cadastrada para este cliente.</strong>
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Selecione o cliente na lista e clique na aba <strong>Bases</strong>. Cliente sem
+              anotações nem links gerais já abre nela.
+              <figure>
+                <img
+                  src="img/bases/aba-bases-01-aba.webp"
+                  alt="Aba Bases destacada no detalhe da Indústria Alfa"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Cada base ocupa uma linha, com tudo o que você precisa para usá-la.
+              <figure>
+                <img
+                  src="img/bases/aba-bases-02-lista.webp"
+                  alt="Lista com uma base de produção e uma de teste"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-bases"
+                >Configurações › Acessos › Cadastro do cliente › Bases</a
+              >: desmarcada, a aba some, e a busca rápida deixa de achar as bases.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="clientes.html#lista-e-detalhe">Lista e detalhe do cliente</a></li>
+            <li><a href="#cadastrar-base">Cadastrar base</a></li>
+            <li><a href="#situacao">Situação, uptime e versão da base</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="cadastrar-base">
+          <h2>Cadastrar base</h2>
+          <p>
+            Guarda um acesso ao SankhyaOm do cliente. A <strong>URL</strong> é obrigatória, http ou
+            https, com até 300 caracteres. O <strong>Tipo de base</strong> pode ser Produção (o
+            padrão), Teste ou Outro: ele define o selo, a ordem da lista e o nome da guia da base.
+            <strong>Usuário</strong> e <strong>Senha</strong> são opcionais, porque há base que
+            serve só para abrir a URL; com eles, o aplicativo faz o login sozinho. A mesma URL pode
+            repetir no cliente desde que o usuário seja outro, como um acesso de administrador e um
+            de consulta.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na aba <strong>Bases</strong> do cliente, clique no <strong>+</strong>.
+              <figure>
+                <img
+                  src="img/bases/cadastrar-01-botao.webp"
+                  alt="Botão + de adicionar base destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Cadastrar base</strong>, preencha a <strong>URL</strong>, escolha o
+              <strong>Tipo de base</strong> e, se quiser, o <strong>Usuário (opcional)</strong> e a
+              <strong>Senha (opcional)</strong>.
+              <figure>
+                <img
+                  src="img/bases/cadastrar-02-formulario.webp"
+                  alt="Janela Cadastrar base com a URL preenchida e o tipo Teste escolhido"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para conferir a senha digitada, clique no olho ao lado do campo; outro clique a
+              esconde. A janela sempre abre com a senha escondida.
+              <figure>
+                <img
+                  src="img/bases/cadastrar-03-senha.webp"
+                  alt="Senha visível na janela, com o botão de olho destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Salvar</strong>. A base entra na lista, no lugar do tipo dela, e o
+              aviso <strong>Base cadastrada.</strong> confirma.
+              <figure>
+                <img
+                  src="img/bases/cadastrar-04-salva.webp"
+                  alt="Base nova na lista, logo abaixo da outra base de teste"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="clientes.html#lista-e-detalhe">Lista e detalhe do cliente</a></li>
+            <li>
+              Para trazer várias de uma vez, veja
+              <a href="importar-e-exportar.html#importar-favoritos">Importar favoritos</a> e
+              <a href="importar-e-exportar.html#importar-cadastros">Importar cadastros</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="editar-e-excluir">
+          <h2>Editar e excluir base</h2>
+          <p>
+            Na edição, URL, tipo, usuário e senha mudam com as mesmas regras do cadastro. A exclusão
+            tira a base do cliente junto com o banco de dados vinculado a ela.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha da base, clique no lápis.
+              <figure>
+                <img
+                  src="img/bases/editar-01-botao.webp"
+                  alt="Botão Editar base destacado na linha da base"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Editar base</strong>, altere o que precisar e clique em
+              <strong>Salvar</strong>. O aviso <strong>Base atualizada.</strong> confirma.
+              <figure>
+                <img
+                  src="img/bases/editar-02-formulario.webp"
+                  alt="Janela Editar base"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para excluir, clique na lixeira vermelha da linha.
+              <figure>
+                <img
+                  src="img/bases/excluir-01-botao.webp"
+                  alt="Botão Excluir base destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Confira a URL na janela <strong>Excluir base</strong> e clique em
+              <strong>Excluir</strong>. Não há como desfazer.
+              <figure>
+                <img
+                  src="img/bases/excluir-02-confirmar.webp"
+                  alt="Janela de confirmação da exclusão da base"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-base">Cadastrar base</a></li>
+            <li>Excluir leva junto o <a href="#vincular-banco">banco de dados vinculado</a>.</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="senha-da-base">
+          <h2>Ver e copiar a senha</h2>
+          <p>
+            Na linha da base, a senha aparece mascarada. O olho mostra e esconde de novo, e a
+            escolha vale enquanto a tela estiver aberta. O botão de copiar leva a senha para a área
+            de transferência sem precisar mostrá-la. Base sem senha mostra um traço, sem os botões.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no olho ao lado da senha.
+              <figure>
+                <img
+                  src="img/bases/senha-01-mostrar.webp"
+                  alt="Botão Mostrar senha destacado na linha da base"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A senha aparece no lugar da máscara. Clique de novo no olho para escondê-la.
+              <figure>
+                <img
+                  src="img/bases/senha-02-revelada.webp"
+                  alt="Usuário e senha da base visíveis"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para copiar, clique no ícone de copiar ao lado. O aviso
+              <strong>Senha copiada.</strong> confirma.
+              <figure>
+                <img
+                  src="img/bases/senha-03-copiar.webp"
+                  alt="Botão Copiar senha destacado, com o aviso Senha copiada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-base">Cadastrar base</a>, com a senha preenchida</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="abrir-base">
+          <h2>Abrir a base com login automático</h2>
+          <p>
+            A seta ao lado da URL abre a base. No aplicativo, com os links abrindo no navegador do
+            HUB SNK (o padrão), ela abre numa guia própria, separada das outras, com o nome do
+            cliente; base de teste leva <strong>· teste</strong> depois do nome. O usuário e a senha
+            são preenchidos sozinhos, inclusive no login em duas etapas. Se a guia daquela base já
+            estiver aberta, ela só vem para a frente. Com os links abrindo no navegador padrão, a
+            base abre lá, sem preenchimento.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha da base, clique na seta à direita da URL.
+              <figure>
+                <img
+                  src="img/bases/abrir-01-seta.webp"
+                  alt="Seta Abrir em nova aba destacada ao lado da URL"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A guia da base aparece na barra de guias e o login é feito sozinho.
+              <!-- print-pendente: terceiros: SankhyaOm da base na guia própria, com o login preenchido -->
+            </li>
+          </ol>
+          <p class="nota">
+            A guia própria e o login automático são do aplicativo desktop. Com o Painel aberto num
+            navegador comum, a seta abre a base numa aba nova desse navegador.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-abrir-os-links-em"
+                >Configurações › Geral › Abrir os links em</a
+              >: <strong>Navegador do HUB SNK</strong> abre na guia própria, com o login;
+              <strong>Navegador padrão</strong> abre no navegador do sistema, sem preencher nada.
+              Vale no próximo clique.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-base">Cadastrar base</a>, com usuário e senha para o login</li>
+            <li><a href="guias-e-navegacao.html#onde-os-links-abrem">Onde os links abrem</a></li>
+            <li>
+              Também abre pela <a href="buscas-e-atalhos.html#abrir-item">busca rápida</a>, com
+              <kbd>Enter</kbd> numa base.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="situacao">
+          <h2>Situação, uptime e versão da base</h2>
+          <p>
+            Cada base mostra se está no ar: <strong>Verificando…</strong> até a primeira resposta,
+            depois <strong>Operacional</strong>, quando a URL respondeu dentro do tempo limite, ou
+            <strong>Não responde</strong>. Abaixo do selo, uma barra por conferência forma o gráfico
+            de uptime; passe o mouse numa barra para ver a data, a hora e o resultado. Quando a
+            página de login informa, a linha mostra também a <strong>Versão</strong> da plataforma.
+            A conferência é feita ao selecionar o cliente e a cada intervalo da atualização
+            automática. O histórico guarda as últimas 200 conferências e recomeça quando o HUB SNK é
+            reaberto.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na aba <strong>Bases</strong>, olhe o selo e as barras ao lado de cada base.
+              <figure>
+                <img
+                  src="img/bases/situacao-01-selo.webp"
+                  alt="Selo Operacional e gráfico de uptime destacados na base de produção"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para conferir na hora, sem esperar o intervalo, clique nas setas dentro do selo. A
+              nova conferência entra no gráfico.
+              <figure>
+                <img
+                  src="img/bases/situacao-02-atualizar.webp"
+                  alt="Botão Atualizar status agora destacado dentro do selo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Quem confere é o HUB SNK, do seu computador. Base que só responde pela VPN do cliente
+            aparece como <strong>Não responde</strong> com a VPN desligada.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-intervalo-de-execucao-automatica"
+                >Configurações › Geral › Intervalo de execução automática</a
+              >: de quanto em quanto tempo a conferência se repete.
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-tempo-limite"
+                >Configurações › Geral › Tempo limite para timeout</a
+              >: quanto a conferência espera antes de dar a base como <strong>Não responde</strong>.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="clientes.html#atualizacao-automatica">Atualização automática</a></li>
+            <li>
+              <a href="clientes.html#recarregar">Recarregar o cliente</a> confere todas as bases de
+              uma vez.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="vincular-banco">
+          <h2>Vincular banco de dados</h2>
+          <p>
+            Guarda os dados de conexão do banco da base, no máximo um por base:
+            <strong>SGBD</strong> (Oracle ou SQL Server), <strong>Identificação</strong> (Service
+            Name ou SID, só no Oracle), <strong>Host</strong>, <strong>Port</strong>, o serviço,
+            <strong>User</strong> e <strong>Password</strong>, todos obrigatórios. O campo do
+            serviço muda de nome com a escolha: <strong>Service Name</strong>,
+            <strong>SID</strong> ou <strong>Database</strong>. Com banco vinculado, o botão de banco
+            da linha fica verde.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha da base, clique no ícone de banco de dados.
+              <figure>
+                <img
+                  src="img/bases/banco-01-botao.webp"
+                  alt="Botão Vincular banco de dados destacado na base de teste"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Vincular banco de dados</strong>, escolha o <strong>SGBD</strong> e,
+              no Oracle, a <strong>Identificação</strong>. Preencha os demais campos; o olho ao lado
+              de <strong>Password</strong> mostra a senha digitada.
+              <figure>
+                <img
+                  src="img/bases/banco-02-formulario.webp"
+                  alt="Janela Vincular banco de dados preenchida para Oracle com Service Name"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Ao trocar o SGBD, a porta vai sozinha para a padrão (1521 no Oracle, 1433 no SQL
+              Server), a não ser que você tenha digitado outra. No SQL Server, a Identificação some
+              e o campo do serviço vira <strong>Database</strong>.
+              <figure>
+                <img
+                  src="img/bases/banco-03-sql-server.webp"
+                  alt="SQL Server escolhido, com a porta 1433 e o campo Database destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Salvar</strong>. O aviso <strong>Banco de dados salvo.</strong>
+              confirma, e o botão de banco da linha fica verde.
+              <figure>
+                <img
+                  src="img/bases/banco-04-salvo.webp"
+                  alt="Botão de banco destacado em verde na base de teste"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para alterar, clique de novo no botão de banco: a janela vira
+              <strong>Editar banco de dados</strong>. <strong>Desvincular</strong>, à esquerda,
+              apaga o banco na hora, sem outra confirmação; a base continua cadastrada.
+              <figure>
+                <img
+                  src="img/bases/banco-05-desvincular.webp"
+                  alt="Janela Editar banco de dados com o botão Desvincular destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-base">Cadastrar base</a></li>
+            <li>
+              É usado por: <a href="clientes.html#compartilhar-bases">Compartilhar bases</a>,
+              <a href="importar-e-exportar.html#exportar-cadastros">Exportar cadastros</a> e o
+              <a href="repositorios-git.html#mcp-do-repositorio"
+                ><code>.sankhya-mcp.env</code> do repositório</a
+              >.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="copiar-dados-do-banco">
+          <h2>Copiar os dados do banco</h2>
+          <p>
+            Cada campo da janela do banco tem um botão de copiar, para colar no programa de banco de
+            dados sem digitar: Host, Port, o serviço, User e Password. Campo vazio não copia e avisa
+            que está vazio.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra a janela do banco pelo botão de banco da base e clique no ícone de copiar à
+              direita do campo. O aviso confirma o que foi copiado, como
+              <strong>Host copiado.</strong>
+              <figure>
+                <img
+                  src="img/bases/copiar-01-host.webp"
+                  alt="Botão de copiar o Host destacado, com o aviso Host copiado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#vincular-banco">Vincular banco de dados</a></li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

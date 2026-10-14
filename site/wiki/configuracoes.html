@@ -1,0 +1,1334 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Configurações · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Referência de todas as configurações do HUB SNK: cada aba da engrenagem, cada campo, o padrão e o que ele afeta."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Configurações</h1>
+        <p class="introducao">
+          Referência de tudo o que se ajusta no HUB SNK: cada aba da engrenagem, campo a campo, com
+          o padrão, onde fica guardado e o que muda em outras telas. O passo a passo de cada recurso
+          fica na página dele, nos links "Afeta".
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#abrir-e-salvar">Abrir e salvar as Configurações</a></li>
+            <li>
+              <a href="#abrir-configuracao-pelo-erro">Atalho "Abrir configuração" num erro</a>
+            </li>
+            <li><a href="#geral">Aba Geral</a></li>
+            <li><a href="#sankhya-id">Aba Sankhya ID</a></li>
+            <li><a href="#smtp">Aba SMTP</a></li>
+            <li><a href="#atalhos">Aba Atalhos</a></li>
+            <li><a href="#avisos">Aba Avisos</a></li>
+            <li><a href="#kanban">Aba Kanban</a></li>
+            <li><a href="#mcp">Aba MCP</a></li>
+            <li><a href="#ia">Aba IA</a></li>
+            <li><a href="#acessos">Aba Acessos</a></li>
+            <li><a href="#backup">Aba Backup</a></li>
+            <li><a href="#sobre">Aba Sobre</a></li>
+            <li><a href="#outras-preferencias">Outras preferências</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="abrir-e-salvar">
+          <h2>Abrir e salvar as Configurações</h2>
+          <p>
+            As Configurações valem para todos os clientes. Abrem sempre na aba Geral, com os valores
+            gravados. Há dois jeitos de gravar: nas abas Geral, SMTP, Atalhos, Avisos, MCP, IA,
+            Acessos e Sobre, nada vale até o <strong>Salvar</strong> do rodapé, que grava todas
+            essas abas de uma vez; nas abas Sankhya ID, Kanban e Backup, cada botão e cada campo
+            grava na hora, e o rodapé só tem <strong>Fechar</strong>. O tema, na aba Geral, também
+            muda na hora.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No topo do Painel, clique na engrenagem <strong>Configurações</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/abrir-e-salvar-01-engrenagem.webp"
+                  alt="Engrenagem Configurações destacada no topo do Painel"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Escolha a aba. Cada uma tem a sua seção nesta página.
+              <figure>
+                <img
+                  src="img/configuracoes/abrir-e-salvar-02-abas.webp"
+                  alt="Janela Configurações aberta na aba Geral, com as abas destacadas"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Ajuste os campos e clique em <strong>Salvar</strong>. Se algum campo estiver errado, a
+              janela volta para a aba dele e mostra o erro no pé. <strong>Cancelar</strong>
+              descarta o que não foi salvo.
+              <figure>
+                <img
+                  src="img/configuracoes/abrir-e-salvar-03-salvar.webp"
+                  alt="Botão Salvar destacado no rodapé da janela Configurações"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O aviso <strong>Configurações salvas.</strong> confirma. Se o perfil, o Terceiro ou
+              alguma caixa da aba Acessos mudou, o aviso é
+              <strong>Acessos salvos. Recarregando o painel…</strong> e o Painel recarrega sozinho.
+              <figure>
+                <img
+                  src="img/configuracoes/abrir-e-salvar-04-salvas.webp"
+                  alt="Aviso Configurações salvas no canto da tela"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Nas abas que gravam na hora, o rodapé só tem <strong>Fechar</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/abrir-e-salvar-05-fechar.webp"
+                  alt="Aba Kanban com o botão Fechar destacado no rodapé"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Se o HUB SNK não conseguir ler a configuração, a janela não abre e um aviso diz o
+            motivo.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="#acessos-perfil">Acessos › Perfil</a>,
+              <a href="#acessos-terceiro">Acessos › Terceiro</a> e
+              <a href="#acessos-funcionalidades">Acessos › caixas</a>: mudar e salvar recarrega o
+              Painel. Elas também escondem abas desta janela.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <p>Nada.</p>
+        </section>
+
+        <section class="funcionalidade" id="abrir-configuracao-pelo-erro">
+          <h2>Atalho "Abrir configuração" num erro</h2>
+          <p>
+            Quando algo falha porque falta uma configuração, a mensagem de erro traz o link
+            <strong>Abrir configuração</strong>. Ele faz a engrenagem do topo piscar, para você
+            saber onde achar da próxima vez, e abre a aba certa com o cursor no campo que falta:
+          </p>
+          <ul>
+            <li>
+              código de usuário do SankhyaOm (Agenda de Recursos):
+              <a href="#sankhya-id-codigo-de-usuario">Sankhya ID › Meu código de usuário</a>;
+            </li>
+            <li>
+              login no SankhyaOm (Agenda de Recursos):
+              <a href="#sankhya-id-usuario-e-senha">Sankhya ID › Usuário</a>;
+            </li>
+            <li>
+              sessão da Experience (OS):
+              <a href="#sankhya-id-sessao-experience">Sankhya ID › Capturar sessão da Experience</a
+              >;
+            </li>
+            <li>
+              IDE (botão Abrir IDE):
+              <a href="#geral-executavel-da-ide">Geral › Executável da IDE</a>;
+            </li>
+            <li>
+              atalhos (lista do raio vazia):
+              <a href="#atalhos-nome-do-atalho">Atalhos › Adicionar atalho</a>;
+            </li>
+            <li>e-mail do lembrete sem SMTP: <a href="#smtp-host">SMTP › Host</a>;</li>
+            <li>
+              token do GitLab (Merge Request do Git AutoSync): a
+              <a href="#outras-gitlab">engrenagem da aba Git AutoSync</a>.
+            </li>
+          </ul>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na mensagem de erro, clique em <strong>Abrir configuração</strong>. No exemplo, a
+              lista do raio, ainda sem atalhos.
+              <figure>
+                <img
+                  src="img/configuracoes/abrir-configuracao-pelo-erro-01-link.webp"
+                  alt="Lista de atalhos vazia com o link Abrir configuração destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              As Configurações abrem na aba que resolve o erro. Preencha e salve.
+              <figure>
+                <img
+                  src="img/configuracoes/abrir-configuracao-pelo-erro-02-aba.webp"
+                  alt="Configurações abertas na aba Atalhos, com Adicionar atalho destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma: é só o caminho até elas.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Os erros que trazem o link:
+              <a href="agenda-de-recursos.html#avisos-de-erro">Agenda de Recursos</a>,
+              <a href="ordens-de-servico.html#sem-o-aplicativo">Ordens de Serviço</a>,
+              <a href="resumo-do-dia.html#os-nao-concluidas">OS do Resumo</a>,
+              <a href="repositorios-git.html#abrir-pasta-terminal-ou-ide">Abrir IDE</a>,
+              <a href="buscas-e-atalhos.html#lista-de-atalhos">lista de atalhos</a>,
+              <a href="lembretes-e-notificacoes.html#enviar-por-email">lembrete por e-mail</a> e
+              <a href="git-autosync.html#merge-request">Merge Request</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="geral">
+          <h2>Aba Geral</h2>
+          <p>
+            Quem você é e como o HUB SNK se comporta na sua máquina. Grava no
+            <strong>Salvar</strong> do rodapé, menos o tema.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as Configurações. A aba <strong>Geral</strong> é a primeira.
+              <figure>
+                <img
+                  src="img/configuracoes/geral-01-aba.webp"
+                  alt="Aba Geral com nome, empresa, time, e-mail, script padrão, intervalos, IDE e destino dos links"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Campos</h3>
+          <dl>
+            <dt id="geral-tema"><strong>Tema</strong> (botão sol/lua)</dt>
+            <dd>
+              Alterna entre o tema claro e o escuro. Muda e grava na hora, sem o Salvar. Padrão:
+              escuro. Fica guardado neste aplicativo (no navegador, se você abriu o Painel num),
+              fora do <code>configuracao.json</code>. Não vale para a janela de log da base local.
+              Afeta: <a href="primeiros-passos.html#tema-claro-e-escuro">todo o Painel</a>.
+            </dd>
+
+            <dt id="geral-nome"><strong>Nome do usuário</strong></dt>
+            <dd>
+              Seu nome, até 120 caracteres. Vai junto com o relato ao suporte e no rodapé dos
+              e-mails que o HUB SNK manda. Padrão: vazio. Afeta:
+              <a href="suporte.html#reportar-problema">Reportar problema</a> (obrigatório),
+              <a href="lembretes-e-notificacoes.html#enviar-por-email">e-mail do lembrete</a>,
+              <a href="lembretes-e-notificacoes.html#servidor-de-email">e-mail de teste</a> e
+              <a href="lembretes-e-notificacoes.html#alerta-da-agenda">e-mail do alerta da agenda</a
+              >.
+            </dd>
+
+            <dt id="geral-empresa"><strong>Empresa</strong></dt>
+            <dd>
+              A empresa onde você trabalha (não é cliente), até 120 caracteres. Padrão: vazio. Afeta
+              o mesmo que o <a href="#geral-nome">Nome do usuário</a>.
+            </dd>
+
+            <dt id="geral-time"><strong>Time</strong></dt>
+            <dd>
+              O seu time, até 120 caracteres. Padrão: vazio. Afeta o mesmo que o
+              <a href="#geral-nome">Nome do usuário</a>.
+            </dd>
+
+            <dt id="geral-email"><strong>E-mail</strong></dt>
+            <dd>
+              O seu e-mail, válido ou vazio. Vai junto com o relato ao suporte. Não é remetente nem
+              destinatário de nada: quem manda e recebe os e-mails é o <a href="#smtp">SMTP</a>.
+              Padrão: vazio. Afeta:
+              <a href="suporte.html#reportar-problema">Reportar problema</a> (obrigatório).
+            </dd>
+
+            <dt id="geral-script-padrao"><strong>Script padrão</strong> (opcional)</dt>
+            <dd>
+              Linha que o terminal executa ao abrir na pasta de um repositório, na sua máquina e com
+              as suas permissões; por exemplo, <code>claude</code>. Até 500 caracteres. Padrão:
+              vazio. Afeta:
+              <a href="repositorios-git.html#abrir-pasta-terminal-ou-ide">terminal do repositório</a
+              >,
+              <a href="buscas-e-atalhos.html#acoes-do-repositorio">terminal pela busca rápida</a> e
+              <a href="git-autosync.html#como-resolver">terminal do Git AutoSync</a>.
+            </dd>
+
+            <dt id="geral-intervalo-de-execucao-automatica">
+              <strong>Intervalo de execução automática (segundos)</strong>
+            </dt>
+            <dd>
+              De quanto em quanto tempo, com a janela à vista, o HUB SNK refaz sozinho o diagnóstico
+              do Git, a situação das bases do cliente escolhido e a das bases e bancos locais. De 5
+              a 3600. Padrão: 30. Afeta:
+              <a href="clientes.html#atualizacao-automatica">atualização automática</a>,
+              <a href="clientes.html#situacao-do-git">bolinhas do Git</a>,
+              <a href="clientes.html#filtrar-pela-situacao-do-git">filtro pela situação do Git</a>,
+              <a href="repositorios-git.html#diagnostico">diagnóstico do Git</a>,
+              <a href="bases.html#situacao">situação das bases</a>,
+              <a href="ambiente-local.html#situacao-da-base">base local</a>,
+              <a href="ambiente-local.html#situacao-do-banco">banco local</a> e
+              <a href="resumo-do-dia.html#repositorios-com-pendencia">repositórios com pendência</a
+              >.
+            </dd>
+
+            <dt id="geral-tempo-limite">
+              <strong>Tempo limite para timeout (segundos)</strong>
+            </dt>
+            <dd>
+              Quanto cada conferência de situação espera antes de dar o alvo como fora do ar: URL da
+              base do cliente, WildFly local e Docker do banco local. Não vale para o Git. De 1 a
+              60. Padrão: 5. Aumente se a rede até os clientes for lenta. Afeta:
+              <a href="clientes.html#atualizacao-automatica">atualização automática</a>,
+              <a href="bases.html#situacao">situação das bases</a>,
+              <a href="ambiente-local.html#situacao-da-base">base local</a> e
+              <a href="ambiente-local.html#situacao-do-banco">banco local</a>.
+            </dd>
+
+            <dt id="geral-executavel-da-ide">
+              <strong>Executável da IDE</strong> (opcional) e <strong>Escolher o executável</strong>
+            </dt>
+            <dd>
+              O programa que abre a pasta do repositório como projeto: IntelliJ IDEA, VS Code,
+              WebStorm ou qualquer IDE que aceite a pasta na linha de comando. Digite o caminho ou
+              escolha o arquivo pelo botão de pasta. Vazio desliga o botão Abrir IDE. Padrão: vazio.
+              Afeta:
+              <a href="repositorios-git.html#abrir-pasta-terminal-ou-ide">Abrir IDE</a>,
+              <a href="buscas-e-atalhos.html#abrir-item">Enter num repositório na busca</a> e
+              <a href="buscas-e-atalhos.html#acoes-do-repositorio">IDE pela busca rápida</a>.
+            </dd>
+            <!-- print-pendente: sistema: seletor de arquivo do Escolher o executável -->
+
+            <dt id="geral-abrir-os-links-em"><strong>Abrir os links em</strong></dt>
+            <dd>
+              <strong>Navegador do HUB SNK</strong> abre bases, repositórios e links numa guia do
+              aplicativo, com as bases isoladas e o login preenchido.
+              <strong>Navegador padrão</strong> abre no navegador do sistema, com a sua sessão e o
+              seu SSO, mas sem preencher o login das bases. Vale no próximo clique. Só no aplicativo
+              desktop. Padrão: Navegador do HUB SNK. Afeta:
+              <a href="guias-e-navegacao.html#onde-os-links-abrem">onde os links abrem</a>,
+              <a href="bases.html#abrir-base">abrir a base</a>,
+              <a href="links-gerais.html#abrir-link">links gerais</a>,
+              <a href="projetos.html#links-do-projeto">links do projeto</a>,
+              <a href="buscas-e-atalhos.html#abrir-item">itens da busca rápida</a> e
+              <a href="resumo-do-dia.html#versao-nova">aviso de versão nova</a>.
+            </dd>
+          </dl>
+        </section>
+
+        <section class="funcionalidade" id="sankhya-id">
+          <h2>Aba Sankhya ID</h2>
+          <p>
+            O usuário e a senha que o HUB SNK usa para entrar sozinho no SankhyaOm e na Experience,
+            e o seu código de usuário. Tudo grava na hora, cada coisa no seu botão. Só no aplicativo
+            desktop. A aba some com <a href="#acessos-terceiro">Terceiro</a> marcado. O passo a
+            passo fica em <a href="sankhya-id.html">Sankhya ID e login automático</a>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as Configurações, aba <strong>Sankhya ID</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/sankhya-id-01-aba.webp"
+                  alt="Aba Sankhya ID com o código de usuário, o cartão Usuário e senha e os cartões SankhyaOm e Experience com sessão ativa"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Campos</h3>
+          <dl>
+            <dt id="sankhya-id-codigo-de-usuario">
+              <strong>Meu código de usuário SankhyaOm</strong> e <strong>Salvar</strong>
+            </dt>
+            <dd>
+              O seu <code>CODUSU</code> no SankhyaOm, só números. Recorta a Agenda de Recursos para
+              você. Grava no Salvar ao lado, com o aviso
+              <strong>Código de usuário do SankhyaOm salvo.</strong> Padrão: vazio. Afeta:
+              <a href="sankhya-id.html#codigo-de-usuario">código de usuário</a>,
+              <a href="agenda-de-recursos.html#visao-geral">Agenda de Recursos</a>,
+              <a href="agenda-de-recursos.html#atualizar-da-sankhya">atualizar da Sankhya</a>,
+              <a href="agenda-de-recursos.html#lancar-ocorrencia">lançar ocorrência</a>,
+              <a href="agenda-de-recursos.html#aba-do-cliente">Agenda do cliente</a>,
+              <a href="resumo-do-dia.html#agenda-de-hoje">agenda de hoje</a> e
+              <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a>.
+            </dd>
+
+            <dt id="sankhya-id-usuario-e-senha">
+              <strong>Usuário</strong> e <strong>Senha</strong>, com
+              <strong>Salvar Sankhya ID</strong> e <strong>Remover</strong>
+            </dt>
+            <dd>
+              Um usuário e uma senha só, para o SankhyaOm e a Experience. Salvar grava e já faz o
+              login nos dois; Remover apaga. O selo diz <strong>Salvo</strong> ou
+              <strong>Sem Sankhya ID</strong>. Fica no cofre do aplicativo (cifrado pelo sistema; no
+              Linux, precisa do chaveiro), fora do <code>configuracao.json</code>. Padrão: vazio.
+              Afeta: <a href="sankhya-id.html#salvar-sankhya-id">salvar o Sankhya ID</a>,
+              <a href="sankhya-id.html#login-automatico">login automático</a>,
+              <a href="sankhya-id.html#sessao-da-experience">sessão da Experience</a>,
+              <a href="sankhya-id.html#bloqueio-de-conta">proteção contra bloqueio</a>,
+              <a href="guias-e-navegacao.html#guias-fixas">guias SankhyaOm e Experience</a>,
+              <a href="agenda-de-recursos.html">Agenda de Recursos</a>,
+              <a href="ordens-de-servico.html">Ordens de Serviço</a> e
+              <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a>.
+            </dd>
+
+            <dt id="sankhya-id-sessao-sankhyaom">
+              Cartão <strong>SankhyaOm</strong>: <strong>Abrir guia</strong> e
+              <strong>Capturar sessão</strong>
+            </dt>
+            <dd>
+              Reserva para quando o login automático falha: abra a guia, entre à mão e capture a
+              sessão. O selo mostra <strong>Sessão ativa até …</strong>,
+              <strong>Sankhya ID salvo, sem sessão capturada</strong> ou
+              <strong>Sem Sankhya ID</strong>. Fica no cofre do aplicativo. Afeta:
+              <a href="sankhya-id.html#capturar-sessao">capturar sessão</a>,
+              <a href="agenda-de-recursos.html#atualizar-da-sankhya">atualizar da Sankhya</a> e
+              <a href="agenda-de-recursos.html#lancar-ocorrencia">lançar ocorrência</a>.
+            </dd>
+
+            <dt id="sankhya-id-sessao-experience">
+              Cartão <strong>Experience</strong>: <strong>Abrir guia</strong> e
+              <strong>Capturar sessão</strong>
+            </dt>
+            <dd>
+              O mesmo, para a Experience. Ao capturar, o HUB SNK descobre também quem você é na
+              Experience, sem campo na tela; sem isso, as OS não carregam. Fica no cofre do
+              aplicativo e no <code>configuracao.json</code>. Afeta:
+              <a href="sankhya-id.html#capturar-sessao">capturar sessão</a>,
+              <a href="ordens-de-servico.html">Ordens de Serviço</a>,
+              <a href="resumo-do-dia.html#os-nao-concluidas">OS não concluídas</a> e
+              <a href="agenda-de-recursos.html#situacao-no-experience">situação no Experience</a>.
+            </dd>
+          </dl>
+          <p class="nota">
+            Com o Painel aberto fora do aplicativo, a aba avisa que as credenciais e as guias do
+            Sankhya só funcionam com o painel aberto por ele.
+          </p>
+        </section>
+
+        <section class="funcionalidade" id="smtp">
+          <h2>Aba SMTP</h2>
+          <p>
+            O servidor de e-mail de tudo o que o HUB SNK manda por e-mail. Sem host, nada sai. O
+            e-mail só é considerado configurado com host, remetente e destinatário. Grava no
+            <strong>Salvar</strong> do rodapé. Avisos de backup, de atualização e de falha da agenda
+            nunca vão por e-mail. O passo a passo fica em
+            <a href="lembretes-e-notificacoes.html#servidor-de-email">Configurar o e-mail</a>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as Configurações, aba <strong>SMTP</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/smtp-01-aba.webp"
+                  alt="Aba SMTP preenchida, com o resultado do e-mail de teste enviado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Campos</h3>
+          <p>
+            Todos afetam:
+            <a href="lembretes-e-notificacoes.html#servidor-de-email">configurar o e-mail</a>,
+            <a href="lembretes-e-notificacoes.html#enviar-por-email">e-mail do lembrete</a> e
+            <a href="lembretes-e-notificacoes.html#alerta-da-agenda">e-mail do alerta da agenda</a>.
+          </p>
+          <dl>
+            <dt id="smtp-host"><strong>Host</strong></dt>
+            <dd>
+              O servidor, como <code>smtp.office365.com</code>. Vazio desliga todo envio de e-mail.
+              Padrão: vazio.
+            </dd>
+
+            <dt id="smtp-porta"><strong>Porta</strong></dt>
+            <dd>De 1 a 65535. Padrão: 587.</dd>
+
+            <dt id="smtp-seguranca"><strong>Segurança</strong></dt>
+            <dd>
+              <strong>STARTTLS</strong>, o comum na porta 587 (Office 365, Gmail);
+              <strong>SSL/TLS</strong>, na 465; <strong>Sem TLS</strong>, só para servidor da rede
+              local. Padrão: STARTTLS.
+            </dd>
+
+            <dt id="smtp-usuario"><strong>Usuário</strong> (opcional)</dt>
+            <dd>Vazio envia sem autenticação. Padrão: vazio.</dd>
+
+            <dt id="smtp-senha"><strong>Senha</strong></dt>
+            <dd>
+              O olho ao lado mostra a senha. Fica no <code>configuracao.json</code> sem cifra.
+              Padrão: vazio.
+            </dd>
+
+            <dt id="smtp-remetente"><strong>Remetente</strong></dt>
+            <dd>Quem aparece como remetente de todos os e-mails. Obrigatório. Padrão: vazio.</dd>
+
+            <dt id="smtp-destinatario"><strong>Destinatário</strong></dt>
+            <dd>
+              Para quem vão todos os e-mails; em geral, você mesmo. Obrigatório. Padrão: vazio.
+            </dd>
+
+            <dt id="smtp-enviar-email-de-teste"><strong>Enviar e-mail de teste</strong></dt>
+            <dd>
+              Manda um e-mail com o que está na tela, antes de salvar, e mostra o resultado na
+              própria aba: <strong>E-mail de teste enviado para …</strong>, em verde, ou o erro do
+              servidor, em vermelho. Nada é gravado. Afeta:
+              <a href="lembretes-e-notificacoes.html#servidor-de-email">configurar o e-mail</a>.
+            </dd>
+          </dl>
+        </section>
+
+        <section class="funcionalidade" id="atalhos">
+          <h2>Aba Atalhos</h2>
+          <p>
+            Os programas que o botão de raio da barra do topo inicia, na sua máquina e com as suas
+            permissões. Cada linha é um atalho. Grava no <strong>Salvar</strong> do rodapé; linha em
+            branco é descartada. Padrão: nenhum atalho. O passo a passo fica em
+            <a href="buscas-e-atalhos.html#cadastrar-atalhos">Cadastrar atalhos de programas</a>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as Configurações, aba <strong>Atalhos</strong>.
+              <strong>Adicionar atalho</strong> cria uma linha; a lixeira
+              <strong>Remover atalho</strong> tira.
+              <figure>
+                <img
+                  src="img/configuracoes/atalhos-01-aba.webp"
+                  alt="Aba Atalhos com os atalhos DataGrip e SQL Developer"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Campos</h3>
+          <dl>
+            <dt id="atalhos-nome-do-atalho"><strong>Nome do atalho</strong></dt>
+            <dd>
+              O nome na lista do raio e na busca rápida, até 60 caracteres. Obrigatório: sem ele, o
+              Salvar avisa <strong>Informe o nome do atalho.</strong> Afeta:
+              <a href="buscas-e-atalhos.html#cadastrar-atalhos">cadastrar atalhos</a>,
+              <a href="buscas-e-atalhos.html#lista-de-atalhos">lista do raio</a> e
+              <a href="buscas-e-atalhos.html#busca-rapida">busca rápida</a>.
+            </dd>
+
+            <dt id="atalhos-caminho-do-executavel">
+              <strong>Caminho do executável</strong> e <strong>Escolher o executável</strong>
+            </dt>
+            <dd>
+              O programa a iniciar, digitado ou escolhido pelo botão de pasta. Até 400 caracteres.
+              Só é conferido ao iniciar o atalho. Obrigatório. Afeta:
+              <a href="buscas-e-atalhos.html#cadastrar-atalhos">cadastrar atalhos</a> e
+              <a href="buscas-e-atalhos.html#lista-de-atalhos">lista do raio</a>.
+            </dd>
+            <!-- print-pendente: sistema: seletor de arquivo do Escolher o executável -->
+          </dl>
+        </section>
+
+        <section class="funcionalidade" id="avisos">
+          <h2>Aba Avisos</h2>
+          <p>
+            O alerta <strong>Agenda sem tarefa na Experience</strong>: na periodicidade escolhida, o
+            HUB SNK confere os eventos de hoje na sua Agenda de Recursos e avisa quando o dia de um
+            cliente não tem tarefa nem OS na Experience. Precisa do código de usuário e do login, os
+            dois na aba <a href="#sankhya-id">Sankhya ID</a>. Grava no <strong>Salvar</strong> do
+            rodapé. A aba some com <a href="#acessos-terceiro">Terceiro</a> marcado. O passo a passo
+            fica em <a href="lembretes-e-notificacoes.html#alerta-da-agenda">Alerta da agenda</a>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as Configurações, aba <strong>Avisos</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/avisos-01-aba.webp"
+                  alt="Aba Avisos com o alerta ligado e o envio por e-mail marcado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Campos</h3>
+          <dl>
+            <dt id="avisos-periodicidade"><strong>Periodicidade (minutos)</strong></dt>
+            <dd>
+              De quanto em quanto tempo a conferência roda. De 1 a 1440. Padrão: 120. A primeira
+              roda uns 2 minutos depois de o HUB SNK abrir. Afeta:
+              <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a>.
+            </dd>
+
+            <dt id="avisos-ligado"><strong>Ligado</strong></dt>
+            <dd>
+              Liga a conferência. Com Terceiro marcado, não roda nem ligada. Padrão: desligado.
+              Afeta: <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a> e
+              <a href="resumo-do-dia.html#sem-tarefa-na-experience"
+                >selo "Sem tarefa na Experience"</a
+              >.
+            </dd>
+
+            <dt id="avisos-proximo-dia-util">
+              <strong>Monitorar também o próximo dia útil</strong>
+            </dt>
+            <dd>
+              Confere também o próximo dia útil, que pula sábado e domingo, mas não feriados.
+              Padrão: desmarcado. Afeta:
+              <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a>.
+            </dd>
+
+            <dt id="avisos-repetir-o-aviso">
+              <strong>Repetir o aviso a cada execução enquanto a pendência existir</strong>
+            </dt>
+            <dd>
+              Sem ela, cada evento avisa uma vez só. Padrão: desmarcado. Afeta:
+              <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a>.
+            </dd>
+
+            <dt id="avisos-enviar-por-email"><strong>Enviar por e-mail</strong></dt>
+            <dd>
+              Manda o aviso também por e-mail, pelo <a href="#smtp">SMTP</a>. Padrão: desmarcado.
+              Afeta: <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a>.
+            </dd>
+          </dl>
+        </section>
+
+        <section class="funcionalidade" id="kanban">
+          <h2>Aba Kanban</h2>
+          <p>
+            As colunas e os tipos de tarefa de todos os quadros. Cada botão grava na hora, e o
+            rodapé só tem <strong>Fechar</strong>. Fica no banco do HUB SNK
+            (<code>sankhya.db</code>), fora do <code>configuracao.json</code>. A aba some com
+            <a href="#acessos-cliente-projetos">Acessos › Projetos</a> desmarcado. O passo a passo
+            fica em <a href="kanban.html#colunas-e-tipos">Colunas e tipos de tarefa</a>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as Configurações, aba <strong>Kanban</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/kanban-01-aba.webp"
+                  alt="Aba Kanban com as colunas e os tipos padrão"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Campos</h3>
+          <dl>
+            <dt id="kanban-colunas"><strong>Colunas</strong></dt>
+            <dd>
+              Valem para todos os quadros, da esquerda para a direita. A primeira recebe as tarefas
+              novas e as geradas pela IA; a última é a das concluídas. Digite em
+              <strong>Nova coluna</strong> e clique em <strong>Adicionar</strong>; clique numa
+              coluna para renomear (<strong>Salvar</strong>), mover (setas),
+              <strong>Excluir</strong> ou <strong>Cancelar</strong>. Coluna com tarefa não pode ser
+              excluída. Padrão: Backlog, A fazer, Em andamento, Em revisão e Concluído. Afeta:
+              <a href="kanban.html#colunas-e-tipos">colunas e tipos</a>,
+              <a href="kanban.html#abrir-quadro">quadro</a>,
+              <a href="kanban.html#nova-tarefa">nova tarefa</a>,
+              <a href="kanban.html#mover-tarefa">mover tarefa</a>,
+              <a href="kanban.html#editar-tarefa">editar tarefa</a>,
+              <a href="kanban.html#gerar-tarefas-com-ia">tarefas da IA</a> e
+              <a href="mcp.html#agente-no-kanban">agentes por MCP</a>.
+            </dd>
+
+            <dt id="kanban-tipos"><strong>Tipos</strong></dt>
+            <dd>
+              O tipo de cada tarefa; a IA escolhe entre estes. Mesmos botões das colunas, sem ordem.
+              Tipo em uso não pode ser excluído. Padrão: Backend, Frontend, Dados, Relatório, BI,
+              Integração, Configuração, Teste, Documentação e Outro. Afeta:
+              <a href="kanban.html#colunas-e-tipos">colunas e tipos</a>,
+              <a href="kanban.html#editar-tarefa">editar tarefa</a> e
+              <a href="kanban.html#gerar-tarefas-com-ia">tarefas da IA</a>.
+            </dd>
+          </dl>
+        </section>
+
+        <section class="funcionalidade" id="mcp">
+          <h2>Aba MCP</h2>
+          <p>
+            Dois grupos que se abrem com um clique no título. <strong>sankhya-schema</strong>
+            prepara o servidor MCP externo que dá aos agentes de IA acesso ao banco, e some com
+            <a href="#acessos-cliente-git">Acessos › Git</a> desmarcado.
+            <strong>Kanban por MCP</strong> liga os agentes aos kanbans do HUB SNK, e some com
+            <a href="#acessos-cliente-projetos">Acessos › Projetos</a> desmarcado. Sem os dois, a
+            aba some. O sankhya-schema grava no <strong>Salvar</strong> do rodapé. O passo a passo
+            fica em <a href="mcp.html">MCP e agentes de IA</a>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as Configurações, aba <strong>MCP</strong>, e clique em
+              <strong>sankhya-schema</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/mcp-01-sankhya-schema.webp"
+                  alt="Grupo sankhya-schema aberto, com o caminho e as variáveis do banco"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Kanban por MCP</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/mcp-02-kanban-por-mcp.webp"
+                  alt="Grupo Kanban por MCP aberto, com o bloco de configuração e um kanban disponível"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Campos</h3>
+          <dl>
+            <dt id="mcp-importar-env"><strong>Importar .env</strong></dt>
+            <dd>
+              Escolha o <code>.env</code> da pasta do sankhya-schema-mcp: o caminho e as variáveis
+              são preenchidos com o que ele tem. Nada é gravado até o Salvar. Afeta:
+              <a href="mcp.html#sankhya-schema">sankhya-schema-mcp</a>.
+            </dd>
+            <!-- print-pendente: sistema: seletor de arquivo do Importar .env -->
+
+            <dt id="mcp-caminho-sankhya-schema-mcp"><strong>Caminho sankhya-schema-mcp</strong></dt>
+            <dd>
+              A pasta onde o sankhya-schema-mcp está instalado. Vazio, as variáveis abaixo não são
+              gravadas; com variáveis e sem caminho, o Salvar recusa. Pasta inexistente também é
+              recusada, e nada é salvo. Padrão: vazio. Afeta:
+              <a href="mcp.html#sankhya-schema">sankhya-schema-mcp</a>.
+            </dd>
+
+            <dt id="mcp-sankhya-db-host"><strong>SANKHYA_DB_HOST</strong></dt>
+            <dd>
+              Endereço do banco que os agentes consultam. Fica no <code>.env</code> da pasta do
+              sankhya-schema-mcp. Afeta: <a href="mcp.html#sankhya-schema">sankhya-schema-mcp</a>.
+            </dd>
+
+            <dt id="mcp-sankhya-db-port"><strong>SANKHYA_DB_PORT</strong></dt>
+            <dd>
+              Porta do banco, de 1 a 65535. Fica no <code>.env</code>. Afeta:
+              <a href="mcp.html#sankhya-schema">sankhya-schema-mcp</a>.
+            </dd>
+
+            <dt id="mcp-sankhya-db-service-name"><strong>SANKHYA_DB_SERVICE_NAME</strong></dt>
+            <dd>
+              Serviço do Oracle. Fica no <code>.env</code>. Afeta:
+              <a href="mcp.html#sankhya-schema">sankhya-schema-mcp</a>.
+            </dd>
+
+            <dt id="mcp-sankhya-db-user"><strong>SANKHYA_DB_USER</strong></dt>
+            <dd>
+              Usuário do banco. Fica no <code>.env</code>. Afeta:
+              <a href="mcp.html#sankhya-schema">sankhya-schema-mcp</a>.
+            </dd>
+
+            <dt id="mcp-sankhya-db-password"><strong>SANKHYA_DB_PASSWORD</strong></dt>
+            <dd>
+              Senha do banco; o olho mostra. Fica no <code>.env</code>. Afeta:
+              <a href="mcp.html#sankhya-schema">sankhya-schema-mcp</a>.
+            </dd>
+
+            <dt id="mcp-copiar-configuracao"><strong>Copiar configuração</strong></dt>
+            <dd>
+              Copia o bloco <code>mcpServers</code> mostrado acima dele, para colar na configuração
+              MCP do agente (Claude Code, Codex, Cursor, Copilot). Nada é gravado. O HUB SNK precisa
+              estar aberto para o agente usar. Afeta:
+              <a href="mcp.html#kanban-por-mcp">ligar o agente ao kanban</a>.
+            </dd>
+
+            <dt id="mcp-kanbans-disponiveis">
+              <strong>Kanbans disponíveis</strong> e <strong>Tirar do MCP</strong>
+            </dt>
+            <dd>
+              Os kanbans liberados para os agentes, com cliente, projeto, número de tarefas e id.
+              <strong>Tirar do MCP</strong> fecha o kanban para os agentes na hora. Fica no banco do
+              HUB SNK. Padrão: nenhum liberado. Afeta:
+              <a href="mcp.html#kanbans-disponiveis">kanbans disponíveis</a>,
+              <a href="mcp.html#liberar-kanban">liberar um kanban</a> e
+              <a href="kanban.html#editar-kanban">editar o kanban</a>.
+            </dd>
+          </dl>
+        </section>
+
+        <section class="funcionalidade" id="ia">
+          <h2>Aba IA</h2>
+          <p>
+            O assistente de linha de comando, instalado na sua máquina, que lê o documento de escopo
+            e devolve as tarefas do kanban. Ele roda numa pasta temporária, sem poder alterar
+            arquivos nem executar comandos. Ao abrir a aba, o HUB SNK procura os assistentes
+            instalados. Grava no <strong>Salvar</strong> do rodapé. A aba some com
+            <a href="#acessos-cliente-projetos">Acessos › Projetos</a> desmarcado. O passo a passo
+            fica em <a href="mcp.html#assistente-de-ia">Assistente de IA</a>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as Configurações, aba <strong>IA</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/ia-01-aba.webp"
+                  alt="Aba IA com Claude Code, modelo opus e nível de raciocínio Muito alto"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Campos</h3>
+          <p>
+            Todos afetam: <a href="mcp.html#assistente-de-ia">assistente de IA</a>,
+            <a href="kanban.html#gerar-tarefas-com-ia">gerar tarefas com a IA</a>,
+            <a href="kanban.html#criar-kanban">criar kanban com documento</a> e
+            <a href="kanban.html#documento-de-escopo">documento de escopo</a>.
+          </p>
+          <dl>
+            <dt id="ia-assistente"><strong>Assistente</strong></dt>
+            <dd>
+              <strong>Automático (o primeiro instalado)</strong>, Claude Code, Codex, OpenCode,
+              Gemini CLI ou Cursor Agent. Assistente ausente aparece como
+              <strong>(não instalado)</strong> e não pode ser escolhido. Padrão: Automático.
+            </dd>
+
+            <dt id="ia-modelo"><strong>Modelo</strong> e <strong>Nome do modelo</strong></dt>
+            <dd>
+              O modelo do assistente escolhido, ou <strong>Outro modelo…</strong>, que abre
+              <strong>Nome do modelo</strong> para digitar. Bloqueado em Automático; trocar de
+              assistente volta ao padrão. O modelo usado fica registrado no kanban. Padrão: o do
+              assistente.
+            </dd>
+
+            <dt id="ia-nivel-de-raciocinio"><strong>Nível de raciocínio</strong></dt>
+            <dd>
+              Só aparece quando o modelo tem níveis. Mais alto pensa mais e demora mais. Gemini CLI
+              e Cursor Agent não têm. Padrão: o do modelo.
+            </dd>
+
+            <dt id="ia-procurar-de-novo"><strong>Procurar de novo</strong></dt>
+            <dd>
+              Procura de novo os assistentes instalados, por exemplo depois de instalar um. A linha
+              ao lado diz onde ele está, o modelo padrão e se ele lê PDF sozinho. Afeta:
+              <a href="mcp.html#assistente-de-ia">assistente de IA</a>.
+            </dd>
+          </dl>
+        </section>
+
+        <section class="funcionalidade" id="acessos">
+          <h2>Aba Acessos</h2>
+          <p>
+            O que aparece na tela. Desmarcar só esconde: nenhum dado é apagado, e marcar de novo
+            traz tudo de volta. Não é controle de permissão. Grava no <strong>Salvar</strong> do
+            rodapé, e o Painel recarrega quando algo aqui muda. A tela Clientes e a aba Geral do
+            cliente não podem ser ocultadas.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as Configurações, aba <strong>Acessos</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/acessos-01-aba.webp"
+                  alt="Aba Acessos com o perfil Desenvolvedor, a caixa Terceiro e as caixas do Menu principal e do Cadastro do cliente"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Campos</h3>
+          <dl>
+            <dt id="acessos-perfil"><strong>Perfil</strong></dt>
+            <dd>
+              Consultor, Analista, Gerente de Projetos ou Desenvolvedor. Trocar marca as caixas do
+              perfil; depois, ajuste como quiser. Desenvolvedor não oculta nada; Consultor e
+              Analista ocultam Git, Git AutoSync e AutoSync (na aba Git); Gerente de Projetos também
+              Local. Vai junto com o relato ao suporte. Padrão: Desenvolvedor; o assistente de
+              boas-vindas sugere Consultor. Afeta: <a href="#acessos-funcionalidades">as caixas</a>,
+              <a href="suporte.html#reportar-problema">Reportar problema</a> e
+              <a href="primeiros-passos.html#boas-vindas">boas-vindas</a>.
+            </dd>
+
+            <dt id="acessos-terceiro"><strong>Terceiro</strong></dt>
+            <dd>
+              Para quem não tem acesso ao SankhyaOm nem à Experience. Esconde a aba Sankhya ID, a
+              aba Avisos e o alerta da agenda, os nomes completos do cliente e as guias SankhyaOm e
+              Experience, e desliga o login automático. As caixas Agenda e OS ficam bloqueadas.
+              Padrão: desmarcado. Afeta:
+              <a href="sankhya-id.html#sem-login-no-sankhya">Terceiro</a>,
+              <a href="sankhya-id.html#login-automatico">login automático</a>,
+              <a href="sankhya-id.html#sessao-da-experience">sessão da Experience</a>,
+              <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a>,
+              <a href="agenda-de-recursos.html">Agenda de Recursos</a>,
+              <a href="ordens-de-servico.html">Ordens de Serviço</a>,
+              <a href="resumo-do-dia.html#agenda-de-hoje">agenda de hoje</a>,
+              <a href="resumo-do-dia.html#os-nao-concluidas">OS não concluídas</a>,
+              <a href="clientes.html#nomes-completos">nomes completos</a>,
+              <a href="clientes.html#primeiro-uso">primeira abertura</a>,
+              <a href="clientes.html#lista-e-detalhe">abas do cliente</a>,
+              <a href="guias-e-navegacao.html#guias-fixas">guias fixas</a> e
+              <a href="guias-e-navegacao.html#mostrar-e-esconder-guias">mostrar e esconder guias</a
+              >.
+            </dd>
+
+            <dt id="acessos-funcionalidades">
+              Caixas de <strong>Menu principal</strong> e <strong>Cadastro do cliente</strong>
+            </dt>
+            <dd>
+              Desmarcada, a funcionalidade some da tela. Padrão: todas marcadas. A tela Resumo some
+              quando Agenda, Lembretes, OS e Git do cliente estão todos desmarcados.
+              <ul>
+                <li id="acessos-local">
+                  Menu principal › <strong>Local</strong>: a tela Local e as bases locais na busca.
+                  Afeta: <a href="ambiente-local.html">Ambiente local</a> e
+                  <a href="buscas-e-atalhos.html#busca-rapida">busca rápida</a>.
+                </li>
+                <li id="acessos-agenda">
+                  Menu principal › <strong>Agenda</strong>: a tela Agenda e a agenda do Resumo.
+                  Afeta: <a href="agenda-de-recursos.html#visao-geral">Agenda de Recursos</a> e
+                  <a href="resumo-do-dia.html#agenda-de-hoje">agenda de hoje</a>.
+                </li>
+                <li id="acessos-kanban">
+                  Menu principal › <strong>Kanban</strong>: a tela Kanban do menu, que precisa
+                  também de Projetos. Afeta: <a href="kanban.html#visao-geral">Kanban do menu</a>.
+                </li>
+                <li id="acessos-os">
+                  Menu principal › <strong>OS</strong>: a tela OS e as OS do Resumo. Afeta:
+                  <a href="ordens-de-servico.html#visao-geral">Minhas OS</a> e
+                  <a href="resumo-do-dia.html#os-nao-concluidas">OS não concluídas</a>.
+                </li>
+                <li id="acessos-lembretes">
+                  Menu principal › <strong>Lembretes</strong>: a tela Lembretes e os lembretes do
+                  Resumo. Afeta:
+                  <a href="lembretes-e-notificacoes.html#lista-de-lembretes">lista de lembretes</a>
+                  e <a href="resumo-do-dia.html#lembretes-de-hoje">lembretes de hoje</a>.
+                </li>
+                <li id="acessos-contatos">
+                  Menu principal › <strong>Contatos</strong>: a tela Contatos. Afeta:
+                  <a href="contatos.html#lista-de-contatos">lista de contatos</a>.
+                </li>
+                <li id="acessos-git-autosync">
+                  Menu principal › <strong>Git AutoSync</strong>, só no Windows: a tela Git
+                  AutoSync. Afeta: <a href="git-autosync.html#visao-geral">Git AutoSync</a>.
+                </li>
+                <li id="acessos-cliente-bases">
+                  Cadastro do cliente › <strong>Bases</strong>: a aba Bases. Afeta:
+                  <a href="bases.html#aba-bases">Bases</a> e
+                  <a href="buscas-e-atalhos.html#busca-rapida">busca rápida</a>.
+                </li>
+                <li id="acessos-cliente-git">
+                  Cadastro do cliente › <strong>Git</strong>: a aba Git e o que só faz sentido com
+                  repositórios: filtro e bolinhas do Git, indicador do topo, repositórios com
+                  pendência no Resumo, grupo sankhya-schema da aba MCP e seção AutoSync. Afeta:
+                  <a href="repositorios-git.html">Repositórios Git</a>,
+                  <a href="clientes.html#filtrar-pela-situacao-do-git">filtro</a>,
+                  <a href="clientes.html#situacao-do-git">bolinhas</a>,
+                  <a href="resumo-do-dia.html#repositorios-com-pendencia"
+                    >repositórios com pendência</a
+                  >, <a href="mcp.html#sankhya-schema">sankhya-schema-mcp</a>,
+                  <a href="git-autosync.html#aba-git-do-cliente">AutoSync do cliente</a> e
+                  <a href="buscas-e-atalhos.html#busca-rapida">busca rápida</a>.
+                </li>
+                <li id="acessos-cliente-projetos">
+                  Cadastro do cliente › <strong>Projetos</strong>: as abas Projetos e Kanban do
+                  cliente, a tela Kanban do menu, as abas <a href="#kanban">Kanban</a> e
+                  <a href="#ia">IA</a> destas Configurações e o grupo Kanban por MCP. Afeta:
+                  <a href="projetos.html">Projetos</a>, <a href="kanban.html">Kanban</a>,
+                  <a href="mcp.html#kanban-por-mcp">kanban por MCP</a> e
+                  <a href="mcp.html#assistente-de-ia">assistente de IA</a>.
+                </li>
+                <li id="acessos-cliente-agenda">
+                  Cadastro do cliente › <strong>Agenda</strong>: a aba Agenda do cliente. Afeta:
+                  <a href="agenda-de-recursos.html#aba-do-cliente">Agenda do cliente</a>.
+                </li>
+                <li id="acessos-cliente-os">
+                  Cadastro do cliente › <strong>OS</strong>: a aba OS do cliente. Afeta:
+                  <a href="ordens-de-servico.html#aba-do-cliente">OS do cliente</a>.
+                </li>
+                <li id="acessos-cliente-contatos">
+                  Cadastro do cliente › <strong>Contatos</strong>: a aba Contatos do cliente. Afeta:
+                  <a href="contatos.html#aba-do-cliente">Contatos do cliente</a>.
+                </li>
+                <li id="acessos-cliente-autosync">
+                  Cadastro do cliente › <strong>AutoSync (na aba Git)</strong>, só no Windows: a
+                  seção AutoSync da aba Git. Afeta:
+                  <a href="git-autosync.html#aba-git-do-cliente">AutoSync do cliente</a>.
+                </li>
+              </ul>
+            </dd>
+          </dl>
+        </section>
+
+        <section class="funcionalidade" id="backup">
+          <h2>Aba Backup</h2>
+          <p>
+            A cópia no Google Drive, o backup numa pasta do computador e a restauração. Cada caixa e
+            cada campo grava na hora; os números, ao sair do campo. O rodapé só tem
+            <strong>Fechar</strong>. O Google Drive só funciona no aplicativo desktop. O passo a
+            passo fica em <a href="backup.html">Backup e Google Drive</a>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as Configurações, aba <strong>Backup</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/backup-01-aba.webp"
+                  alt="Aba Backup com o Google Drive conectado, o backup periódico ligado e o cartão Restaurar"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Campos</h3>
+          <dl>
+            <dt id="backup-google-drive">
+              <strong>Conectar ao Google Drive</strong> e <strong>Desconectar</strong>
+            </dt>
+            <dd>
+              Liga a sua conta do Google; o HUB SNK só enxerga os arquivos que ele mesmo criou. A
+              autorização fica no cofre do aplicativo. Padrão: não conectado. Afeta:
+              <a href="backup.html#conectar-google-drive">conectar</a>,
+              <a href="backup.html#desconectar-google-drive">desconectar</a>,
+              <a href="backup.html#copia-no-google-drive">cópia no Drive</a> e
+              <a href="backup.html#restaurar-do-google-drive">restaurar do Drive</a>.
+            </dd>
+
+            <dt id="backup-copia-sempre-atual">
+              <strong>Manter no Google Drive uma cópia sempre atual dos dados</strong>
+            </dt>
+            <dd>
+              Depois de cada mudança, envia os dados para a pasta "HUB SNK" do seu Drive, no máximo
+              uma vez a cada 10 minutos. Só com a conta conectada e a permissão dada. Padrão:
+              desmarcado. Afeta: <a href="backup.html#copia-no-google-drive">cópia no Drive</a>.
+            </dd>
+
+            <dt id="backup-periodico"><strong>Fazer backup periodicamente</strong></dt>
+            <dd>
+              Grava um <code>.zip</code> com todos os dados na pasta escolhida, só quando algo
+              mudou. Marcar sem pasta abre a escolha da pasta. Padrão: desmarcado. Afeta:
+              <a href="backup.html#backup-periodico">backup periódico</a>.
+            </dd>
+
+            <dt id="backup-intervalo"><strong>a cada</strong> N <strong>h</strong></dt>
+            <dd>
+              De quanto em quanto tempo, de 1 a 720 horas. Padrão: 24. Afeta:
+              <a href="backup.html#backup-periodico">backup periódico</a>.
+            </dd>
+
+            <dt id="backup-copias-mantidas">
+              <strong>manter as últimas</strong> N <strong>cópias</strong>
+            </dt>
+            <dd>
+              Quantos backups ficam na pasta; os mais antigos são apagados. De 1 a 365. Padrão: 10.
+              Afeta: <a href="backup.html#backup-periodico">backup periódico</a>.
+            </dd>
+
+            <dt id="backup-pasta">Pasta do backup e <strong>Escolher pasta</strong></dt>
+            <dd>
+              Onde os backups ficam: outro disco, a rede, o OneDrive. Sem pasta, o backup periódico
+              não roda e <strong>Fazer backup agora</strong> fica bloqueado. Padrão: vazio. Afeta:
+              <a href="backup.html#backup-periodico">backup periódico</a> e
+              <a href="backup.html#fazer-backup-agora">fazer backup agora</a>.
+            </dd>
+            <!-- print-pendente: sistema: seletor de pasta do Escolher pasta -->
+          </dl>
+        </section>
+
+        <section class="funcionalidade" id="sobre">
+          <h2>Aba Sobre</h2>
+          <p>A versão instalada e o canal com o suporte. Não tem campo.</p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as Configurações, aba <strong>Sobre</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/sobre-01-aba.webp"
+                  alt="Aba Sobre com a versão instalada, o aviso de versão nova e o botão Reportar problema ou sugerir"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Campos</h3>
+          <dl>
+            <dt id="sobre-versao">
+              <strong>HUB SNK v</strong>versão e <strong>disponível</strong>
+            </dt>
+            <dd>
+              A versão instalada, com link para o repositório no GitHub. Quando há versão mais nova
+              publicada, aparece ao lado o link "<em>versão</em> disponível", para a página dela.
+              Afeta: <a href="suporte.html#versao-instalada">versão instalada e versão nova</a>.
+            </dd>
+
+            <dt id="sobre-reportar-problema"><strong>Reportar problema ou sugerir</strong></dt>
+            <dd>
+              Abre o relato ao suporte. Exige nome, empresa, time e e-mail da
+              <a href="#geral">aba Geral</a>. Afeta:
+              <a href="suporte.html#reportar-problema">Reportar problema ou sugerir</a>.
+            </dd>
+          </dl>
+        </section>
+
+        <section class="funcionalidade" id="outras-preferencias">
+          <h2>Outras preferências</h2>
+          <p>
+            Preferências que ficam fora da engrenagem, no aplicativo desktop. Todas gravam na hora,
+            na pasta do aplicativo (<code>%APPDATA%\HUB SNK</code> no Windows), fora do
+            <code>configuracao.json</code>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No canto de cima, à esquerda, clique no menu <strong>☰</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/outras-01-menu.webp"
+                  alt="Menu do aplicativo aberto, com Compatibilidade com Flash, Mostrar na barra e Atualizar automaticamente destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na barra de comunicação, à esquerda, clique na engrenagem
+              <strong>Escolher os botões da barra</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/outras-02-barra-de-comunicacao.webp"
+                  alt="Menu da engrenagem da barra de comunicação, com os botões e Carregar WhatsApp e Google Chat"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na tela <strong>Git AutoSync</strong>, clique na engrenagem
+              <strong>Configurações do Git AutoSync</strong>.
+              <figure>
+                <img
+                  src="img/configuracoes/outras-03-engrenagem-do-autosync.webp"
+                  alt="Engrenagem Configurações do Git AutoSync destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A janela traz o host e o token do GitLab.
+              <figure>
+                <img
+                  src="img/configuracoes/outras-04-gitlab.webp"
+                  alt="Janela Configurações do Git AutoSync com o host do GitLab e um token gravado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na bandeja do sistema, clique com o botão direito no ícone do HUB SNK.
+              <!-- print-pendente: sistema: menu do ícone do HUB SNK na bandeja -->
+            </li>
+          </ol>
+
+          <h3>Campos</h3>
+          <dl>
+            <dt id="outras-atualizar-automaticamente">
+              ☰ › Ajuda › <strong>Atualizar automaticamente</strong>
+            </dt>
+            <dd>
+              Baixa as versões novas sozinho e instala ao reiniciar. Desligado, fica só o aviso de
+              versão nova. Fica em <code>atualizacao.json</code>. Padrão: ligado. Afeta:
+              <a href="primeiros-passos.html#atualizacao-automatica">atualizar o HUB SNK</a>.
+            </dd>
+
+            <dt id="outras-atalho-global">
+              Bandeja › <strong>Atalho global (Ctrl+Shift+Space)</strong>
+            </dt>
+            <dd>
+              Abre a busca rápida de qualquer programa, com
+              <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Espaço</kbd>. Fica em
+              <code>atalho-global.json</code>. Padrão: ligado. Afeta:
+              <a href="buscas-e-atalhos.html#atalho-global">atalho global</a>.
+            </dd>
+
+            <dt id="outras-iniciar-automaticamente">
+              Bandeja › <strong>Iniciar HUB SNK automaticamente</strong>
+            </dt>
+            <dd>
+              Abre o HUB SNK ao entrar no sistema. Fica no registro do Windows (no Linux, em
+              <code>~/.config/autostart</code>). Padrão: desligado. Afeta:
+              <a href="bandeja.html#iniciar-com-o-windows">iniciar automaticamente</a>.
+            </dd>
+
+            <dt id="outras-mostrar-na-barra">☰ › Guias › <strong>Mostrar na barra</strong></dt>
+            <dd>
+              Uma caixa por guia (Painel, SankhyaOm, Experience); desmarcada, a guia sai da barra do
+              topo. O menu não fecha a cada caixa. Fica em <code>guias.json</code>. Padrão: todas
+              visíveis. Afeta:
+              <a href="guias-e-navegacao.html#mostrar-e-esconder-guias">mostrar e esconder guias</a
+              >.
+            </dd>
+
+            <dt id="outras-ruffle">
+              ☰ › Hub › <strong>Compatibilidade com Flash (Ruffle)</strong>
+            </dt>
+            <dd>
+              Abre as telas antigas em Flash do SankhyaOm pelo Ruffle. Fica em
+              <code>ruffle.json</code>. Padrão: desligado. Afeta:
+              <a href="guias-e-navegacao.html#flash-ruffle">telas Flash</a>.
+            </dd>
+
+            <dt id="outras-botoes-da-barra">
+              Engrenagem da barra de comunicação › <strong>Botões da barra</strong>
+            </dt>
+            <dd>
+              WhatsApp, Gmail, Google Chat, Google Agenda e Google Meet: desmarcado, o botão some da
+              barra. Fica em <code>comunicacao.json</code>. Padrão: todos ligados. Afeta:
+              <a href="comunicacao.html#escolher-botoes">escolher os botões</a>,
+              <a href="contatos.html#whatsapp">WhatsApp do contato</a> e
+              <a href="contatos.html#email">e-mail do contato</a>.
+            </dd>
+
+            <dt id="outras-carregar-ao-abrir">
+              Engrenagem da barra de comunicação › Ao abrir o HUB SNK ›
+              <strong>Carregar WhatsApp e Google Chat</strong>
+            </dt>
+            <dd>
+              Carrega os dois em segundo plano ao abrir o HUB SNK, para os avisos de mensagem
+              chegarem sem você abrir o painel. Pesa na memória: o WhatsApp Web sozinho passa de 600
+              MB. Fica em <code>comunicacao.json</code>. Padrão: desligado. Afeta:
+              <a href="comunicacao.html#escolher-botoes">escolher os botões</a> e
+              <a href="comunicacao.html#avisos-de-mensagem">avisos de mensagem</a>.
+            </dd>
+
+            <dt id="outras-gitlab">
+              Engrenagem do Git AutoSync › <strong>Host do GitLab</strong> e
+              <strong>Token</strong>
+            </dt>
+            <dd>
+              O GitLab e o token, com escopo <code>api</code>, que o Git AutoSync usa para criar
+              Merge Request. O token gravado nunca é mostrado: em branco, fica o atual;
+              <strong>Remover token</strong> apaga. Ficam nas variáveis de ambiente do seu usuário
+              do Windows (<code>GIT_AUTOSYNC_GITLAB_HOST</code> e
+              <code>GIT_AUTOSYNC_GITLAB_TOKEN</code>). Grava no Salvar da janela. Padrão: vazio.
+              Afeta: <a href="git-autosync.html#merge-request">Merge Request</a> e
+              <a href="git-autosync.html#como-resolver">como resolver uma falha</a>.
+            </dd>
+          </dl>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

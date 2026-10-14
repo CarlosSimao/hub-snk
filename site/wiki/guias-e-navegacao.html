@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Guias e navegação · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="As guias do aplicativo HUB SNK: Painel, SankhyaOm e Experience, guias novas, menu ☰, downloads, pop-ups e telas Flash."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Guias e navegação</h1>
+        <p class="introducao">
+          O aplicativo desktop do HUB SNK é também um navegador: o Painel, o SankhyaOm, a
+          Experience, as bases dos clientes e qualquer outro site abrem em guias na mesma janela.
+          Esta página cobre a barra de guias, o menu ☰ e o que acontece com pop-ups e downloads.
+          Tudo aqui é só do aplicativo, no Windows e no Ubuntu.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#guias-fixas">Painel, SankhyaOm e Experience</a></li>
+            <li><a href="#onde-os-links-abrem">Guia do HUB ou navegador padrão</a></li>
+            <li><a href="#nova-guia">Nova guia, endereço e voltar</a></li>
+            <li><a href="#fechar-e-recarregar">Fechar e recarregar guias</a></li>
+            <li><a href="#mostrar-e-esconder-guias">Mostrar e esconder guias</a></li>
+            <li><a href="#menu-do-aplicativo">Menu ☰</a></li>
+            <li><a href="#pop-ups-e-sso">Pop-ups e login com Microsoft/Google</a></li>
+            <li><a href="#downloads">Downloads</a></li>
+            <li><a href="#flash-ruffle">Telas Flash (Ruffle)</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="guias-fixas">
+          <h2>Painel, SankhyaOm e Experience</h2>
+          <p>
+            As três primeiras guias são fixas e não fecham. <strong>Painel</strong> é o HUB SNK:
+            cadastro, Resumo do dia, agenda e configurações; link de fora clicado nele nunca o tira
+            da tela, abre em outra guia. <strong>SankhyaOm</strong> abre o ERP e
+            <strong>Experience</strong> abre a Sankhya Experience, as duas já logadas com o seu
+            Sankhya ID.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no nome da guia, na barra do alto da janela. Pelo menu
+              <strong>☰</strong>, em <strong>Guias</strong>, há também
+              <strong>Ir para o Painel</strong>, <strong>Ir para o SankhyaOm</strong> e
+              <strong>Ir para a Experience</strong>.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/guias-fixas-01-barra.webp"
+                  alt="Guias Painel, SankhyaOm e Experience destacadas na barra de guias"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na guia SankhyaOm ou Experience, o login é feito sozinho e a tela inicial abre.
+              <!-- print-pendente: terceiros: SankhyaOm na guia SankhyaOm -->
+              <!-- print-pendente: terceiros: Experience na guia Experience -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-usuario-e-senha"
+                >Configurações › Sankhya ID › Usuário e Senha</a
+              >: o login automático das duas guias.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado, SankhyaOm e Experience saem da barra, do menu e dos atalhos.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="sankhya-id.html#login-automatico">Login automático</a></li>
+            <li>
+              <a href="sankhya-id.html#sem-login-no-sankhya">Terceiro (sem login no Sankhya)</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="onde-os-links-abrem">
+          <h2>Guia do HUB ou navegador padrão</h2>
+          <p>
+            Por padrão, o que você abre pelo Painel abre numa guia do próprio HUB SNK. Cada base
+            ganha a sua guia, com o login preenchido. Links gerais, links de projeto e o endereço do
+            repositório abrem numa guia com o nome "Cliente · Link", sem preenchimento; um link do
+            mesmo site de uma guia já aberta reaproveita essa guia. Cada uma dessas guias tem os
+            próprios cookies, separados das outras. Link que não é do cadastro vai para o navegador
+            do computador.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Para escolher, abra as <strong>Configurações</strong> (engrenagem no topo do Painel),
+              aba <strong>Geral</strong>, e mude <strong>Abrir os links em</strong> para
+              <strong>Navegador do HUB SNK</strong> ou <strong>Navegador padrão</strong>. Depois,
+              clique em <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/onde-os-links-abrem-01-configuracao.webp"
+                  alt="Campo Abrir os links em destacado na aba Geral das Configurações"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Com <strong>Navegador do HUB SNK</strong>, clique num link do cliente: ele abre numa
+              guia nova da barra, com o nome do cliente e do link.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/onde-os-links-abrem-02-guia.webp"
+                  alt="Guia Fazenda Boa Vista · Portal de chamados aberta na barra"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Com <strong>Navegador padrão</strong>, bases e links abrem no navegador do computador,
+              sem o login preenchido.
+              <!-- print-pendente: sistema: link aberto no navegador padrão do computador -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-abrir-os-links-em"
+                >Configurações › Geral › Abrir os links em</a
+              >: Navegador do HUB SNK, por padrão.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Vale para: <a href="bases.html#abrir-base">abrir a base</a>,
+              <a href="links-gerais.html#abrir-link">abrir link</a>,
+              <a href="projetos.html#links-do-projeto">links do projeto</a> e
+              <a href="buscas-e-atalhos.html#abrir-item">a busca rápida</a>.
+            </li>
+            <li><a href="#fechar-e-recarregar">Fechar e recarregar guias</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="nova-guia">
+          <h2>Nova guia, endereço e voltar</h2>
+          <p>
+            O <strong>+</strong> abre uma guia de navegação livre, no Google, com a barra de
+            endereço logo abaixo das guias. O login feito numa guia nova vale para as outras guias
+            novas e continua depois de fechar o aplicativo, mas elas nunca enxergam o login do
+            Sankhya. As guias novas não voltam ao reabrir o HUB SNK. Site que abre uma janela
+            (pop-up) a partir dela gera outra guia nova.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no <strong>+</strong> no fim da barra de guias, ou tecle
+              <kbd>Ctrl</kbd>+<kbd>T</kbd>.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/nova-guia-01-botao.webp"
+                  alt="Botão + de nova guia destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: terceiros: Google na guia nova -->
+            </li>
+            <li>
+              A guia já abre com o cursor no endereço. Digite e tecle <kbd>Enter</kbd>: um endereço
+              completo abre como está, um domínio (<code>github.com</code>,
+              <code>localhost:8080/mge</code>) ganha o <code>https://</code>, e o resto vira busca
+              no Google. Endereços de arquivo (<code>file:</code>) são recusados.
+              <kbd>Esc</kbd> desfaz o que foi digitado.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/nova-guia-02-endereco.webp"
+                  alt="Barra de endereço da guia nova destacada, com uma página aberta"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Use as setas ao lado do endereço para voltar e avançar, ou
+              <kbd>Alt</kbd>+<kbd>←</kbd> e <kbd>Alt</kbd>+<kbd>→</kbd>. Elas só existem na guia
+              nova: no SankhyaOm e na Experience, voltar derrubaria a tela aberta.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/nova-guia-03-voltar.webp"
+                  alt="Botões Voltar e Avançar destacados ao lado do endereço"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            A página que abre um pop-up numa guia nova perde o vínculo com ele: login de site que
+            depende de pop-up pode não concluir ali.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#fechar-e-recarregar">Fechar e recarregar guias</a></li>
+            <li><a href="#downloads">Downloads</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="fechar-e-recarregar">
+          <h2>Fechar e recarregar guias</h2>
+          <p>
+            Guias de base, de link e novas fecham pelo <strong>×</strong> ao lado do nome; fechar a
+            guia que está na tela volta ao Painel. As três fixas não fecham. Recarregar relê a guia;
+            recarregar sem cache busca tudo de novo no servidor, como o <kbd>Ctrl</kbd>+<kbd
+              >F5</kbd
+            >
+            do Chrome.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Para fechar, clique no <strong>×</strong> da guia. Para recarregar a guia na tela,
+              clique nas setas circulares no canto direito da barra, ou tecle
+              <kbd>Ctrl</kbd>+<kbd>R</kbd>. Sem cache: <kbd>Shift</kbd>+clique nas setas,
+              <kbd>Ctrl</kbd>+<kbd>F5</kbd> ou <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/fechar-e-recarregar-01-botoes.webp"
+                  alt="Botão × da guia e botão Recarregar destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para recarregar outra guia sem trocar de tela, clique com o botão direito no nome dela
+              e escolha <strong>Recarregar</strong> ou <strong>Recarregar sem cache</strong>.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/fechar-e-recarregar-02-menu.webp"
+                  alt="Menu do clique direito numa guia, com Recarregar e Recarregar sem cache"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Pelo menu <strong>☰</strong>, em <strong>Hub</strong>, também há
+            <strong>Recarregar a guia atual</strong> e <strong>Recarregar sem cache</strong>.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#menu-do-aplicativo">Menu ☰</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="mostrar-e-esconder-guias">
+          <h2>Mostrar e esconder guias</h2>
+          <p>
+            Cada guia pode sair da barra sem fechar: a página continua carregada e volta na hora. A
+            escolha das três fixas vale também nas próximas aberturas do aplicativo. Abrir de novo
+            uma guia escondida, por um atalho ou pelo cadastro do cliente, a devolve à barra.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no menu <strong>☰</strong> e, em <strong>Guias</strong> ›
+              <strong>Mostrar na barra</strong>, desmarque a guia que quer esconder. O menu continua
+              aberto para você marcar ou desmarcar outras; <kbd>Esc</kbd> fecha.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/mostrar-e-esconder-guias-01-caixas.webp"
+                  alt="Caixas Painel, SankhyaOm e Experience destacadas em Mostrar na barra"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A guia some da barra. Para trazer de volta, marque a caixa de novo.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/mostrar-e-esconder-guias-02-escondida.webp"
+                  alt="Barra de guias sem a guia Experience"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#outras-mostrar-na-barra">☰ › Guias › Mostrar na barra</a
+              >: todas visíveis por padrão.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado, SankhyaOm e Experience nem aparecem na lista.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#menu-do-aplicativo">Menu ☰</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="menu-do-aplicativo">
+          <h2>Menu ☰</h2>
+          <p>
+            O menu do aplicativo fica no botão <strong>☰</strong>, à esquerda da guia Painel. Tem
+            quatro seções: <strong>Hub</strong> (recarregar, busca rápida, buscar na página, Flash e
+            <strong>Sair</strong>), <strong>Guias</strong> (ir para as fixas, nova guia, voltar,
+            avançar e mostrar na barra), <strong>Janela</strong> (<strong>Minimizar</strong>,
+            <strong>Tela cheia</strong> e as ferramentas de desenvolvedor) e
+            <strong>Ajuda</strong> (lista de atalhos, atualização e versão). Cada item mostra a
+            tecla de atalho dele.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no <strong>☰</strong>.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/menu-do-aplicativo-01-botao.webp"
+                  alt="Botão ☰ destacado à esquerda da guia Painel"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique no item. Caixas de marcar deixam o menu aberto; os outros itens o fecham.
+              <kbd>Esc</kbd> ou um clique fora fecha sem escolher.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/menu-do-aplicativo-02-menu.webp"
+                  alt="Menu do aplicativo aberto com as seções Hub, Guias, Janela e Ajuda"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            As ferramentas de desenvolvedor abrem pelo menu ou por <kbd>F12</kbd> (guia atual) e
+            <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> (barra de guias).
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#outras-atualizar-automaticamente"
+                >☰ › Ajuda › Atualizar automaticamente</a
+              >
+            </li>
+            <li>
+              <a href="configuracoes.html#outras-ruffle"
+                >☰ › Hub › Compatibilidade com Flash (Ruffle)</a
+              >
+            </li>
+            <li>
+              <a href="configuracoes.html#outras-mostrar-na-barra">☰ › Guias › Mostrar na barra</a>
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Itens do menu: <a href="buscas-e-atalhos.html#busca-rapida">Busca rápida</a>,
+              <a href="buscas-e-atalhos.html#buscar-na-pagina">Buscar na página</a>,
+              <a href="buscas-e-atalhos.html#teclas-de-atalho">lista de atalhos</a>,
+              <a href="primeiros-passos.html#atualizacao-automatica">atualização</a> e
+              <a href="bandeja.html#sair">Sair</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="pop-ups-e-sso">
+          <h2>Pop-ups e login com Microsoft/Google</h2>
+          <p>
+            Nas guias SankhyaOm, Experience e de base, a janela que o site abre (pop-up) fica dentro
+            do HUB SNK quando é de um endereço autorizado: o próprio Sankhya, o login da Microsoft,
+            o login do Google, a AWS ou o servidor da própria base. É assim que o login com conta
+            Microsoft ou Google conclui. O pop-up que só serve para baixar um arquivo fecha sozinho
+            ao terminar. Pop-up de outro site abre no navegador do computador.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na tela de login, escolha entrar com Microsoft ou Google. A janela de login abre por
+              cima do HUB SNK; ao concluir, ela fecha e a guia segue logada.
+              <!-- print-pendente: terceiros: janela de login da Microsoft aberta pelo SankhyaOm -->
+              <!-- print-pendente: terceiros: janela de login do Google aberta pelo SankhyaOm -->
+            </li>
+            <li>
+              Telas do SankhyaOm que abrem em janela própria também ficam dentro do HUB SNK.
+              <!-- print-pendente: terceiros: tela do SankhyaOm aberta em janela própria -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#guias-fixas">Painel, SankhyaOm e Experience</a></li>
+            <li><a href="#downloads">Downloads</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="downloads">
+          <h2>Downloads</h2>
+          <p>
+            Todo download, de qualquer guia, vai direto para a pasta Downloads do computador, sem
+            perguntar onde salvar. Um arquivo com nome repetido não substitui o outro: ganha "(1)",
+            "(2)" no nome. Depois do primeiro download aparece o botão
+            <strong>Downloads</strong> na barra, que se mexe enquanto baixa.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Baixe o arquivo como numa página qualquer e clique em <strong>Downloads</strong>, no
+              canto direito da barra de guias.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/downloads-01-botao.webp"
+                  alt="Botão Downloads destacado no canto direito da barra"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A lista mostra os últimos 30 arquivos, com o andamento. Clique no arquivo para
+              abri-lo; o ícone de pasta o mostra no Explorador de arquivos.
+              <strong>Limpar lista</strong> tira os concluídos (o arquivo continua na pasta).
+              Arquivo apagado da pasta aparece como sumido.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/downloads-02-lista.webp"
+                  alt="Lista de downloads com um PDF baixado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: sistema: Explorador de arquivos com o arquivo baixado selecionado -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#pop-ups-e-sso">Pop-ups de download</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="flash-ruffle">
+          <h2>Telas Flash (Ruffle)</h2>
+          <p>
+            As telas antigas do SankhyaOm feitas em Flash, que pedem o Flash Player, podem abrir
+            pelo Ruffle, um emulador de Flash. Vale nas guias SankhyaOm e de base e nas janelas
+            abertas por elas. Vem desligado.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no menu <strong>☰</strong> e, em <strong>Hub</strong>, marque
+              <strong>Compatibilidade com Flash (Ruffle)</strong>.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/flash-ruffle-01-caixa.webp"
+                  alt="Caixa Compatibilidade com Flash (Ruffle) destacada no menu"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Abra a tela Flash. Se ela já estava aberta, recarregue a guia: a mudança vale para as
+              telas abertas depois.
+              <!-- print-pendente: terceiros: tela Flash do SankhyaOm rodando no Ruffle -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#outras-ruffle"
+                >☰ › Hub › Compatibilidade com Flash (Ruffle)</a
+              >: desligado por padrão.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#guias-fixas">Guia SankhyaOm</a> ou a guia da
+              <a href="bases.html#abrir-base">base</a>
+            </li>
+            <li><a href="#fechar-e-recarregar">Recarregar a guia</a></li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

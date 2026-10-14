@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sankhya ID e login automático · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como salvar o Sankhya ID no HUB SNK para entrar sozinho no SankhyaOm e no Experience, capturar a sessão à mão e evitar o bloqueio da conta, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Sankhya ID e login automático</h1>
+        <p class="introducao">
+          O Sankhya ID é um usuário e uma senha só, que o aplicativo usa para entrar sozinho no
+          SankhyaOm e no Experience: nas guias, ao abrir o HUB SNK e sempre que a sessão expirar, e
+          nas consultas da <a href="agenda-de-recursos.html">Agenda de Recursos</a> e das
+          <a href="ordens-de-servico.html">Ordens de Serviço</a>. Tudo fica na aba
+          <strong>Sankhya ID</strong> das Configurações, que grava na hora, sem o
+          <strong>Salvar</strong> do rodapé. Login automático e sessões só existem no aplicativo
+          desktop.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#salvar-sankhya-id">Salvar e remover o Sankhya ID</a></li>
+            <li><a href="#codigo-de-usuario">Meu código de usuário SankhyaOm</a></li>
+            <li><a href="#login-automatico">Login automático</a></li>
+            <li><a href="#capturar-sessao">Abrir guia e capturar sessão</a></li>
+            <li><a href="#sessao-da-experience">Sessão da Experience em segundo plano</a></li>
+            <li><a href="#bloqueio-de-conta">Proteção contra bloqueio da conta</a></li>
+            <li><a href="#sem-login-no-sankhya">Terceiro (sem login no Sankhya)</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="salvar-sankhya-id">
+          <h2>Salvar e remover o Sankhya ID</h2>
+          <p>
+            Guarda o usuário e a senha cifrados pelo próprio sistema operacional, nunca em texto
+            puro. No Ubuntu, isso exige o chaveiro do sistema (gnome-keyring ou kwallet): sem ele, o
+            aplicativo recusa gravar e diz o que instalar. Salvar já dispara o login automático no
+            SankhyaOm e no Experience.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as <strong>Configurações</strong> (engrenagem no topo) e clique na aba
+              <strong>Sankhya ID</strong>.
+              <figure>
+                <img
+                  src="img/sankhya-id/salvar-01-aba.webp"
+                  alt="Configurações com a aba Sankhya ID destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              No cartão <strong>Usuário e senha</strong>, preencha o <strong>Usuário</strong> e a
+              <strong>Senha</strong> do Sankhya e clique em <strong>Salvar Sankhya ID</strong>. O
+              olho ao lado da senha mostra o que foi digitado.
+              <figure>
+                <img
+                  src="img/sankhya-id/salvar-02-preencher.webp"
+                  alt="Usuário e senha preenchidos e o botão Salvar Sankhya ID destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O aviso <strong>Sankhya ID salvo. Logando automaticamente…</strong> aparece, e o
+              aplicativo entra nos dois sistemas. O cartão passa a mostrar <strong>Salvo</strong>, e
+              os cartões SankhyaOm e Experience, <strong>Sessão ativa até</strong> a data e a hora
+              em que a sessão vence.
+              <figure>
+                <img
+                  src="img/sankhya-id/salvar-03-salvo.webp"
+                  alt="Selos Salvo e Sessão ativa destacados nos três cartões"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para apagar o usuário, a senha e as sessões, clique em <strong>Remover</strong>. Sem o
+              Sankhya ID, não há login automático, e as consultas da Agenda são recusadas.
+              <figure>
+                <img
+                  src="img/sankhya-id/salvar-04-remover.webp"
+                  alt="Botão Remover destacado no cartão Usuário e senha"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-usuario-e-senha"
+                >Configurações › Sankhya ID › Usuário e senha</a
+              >: os campos desta seção.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado, a aba Sankhya ID some.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              É usado por: <a href="#login-automatico">login automático</a>,
+              <a href="#sessao-da-experience">sessão da Experience</a>,
+              <a href="agenda-de-recursos.html#visao-geral">Agenda de Recursos</a> e
+              <a href="ordens-de-servico.html#visao-geral">Ordens de Serviço</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="codigo-de-usuario">
+          <h2>Meu código de usuário SankhyaOm</h2>
+          <p>
+            É o seu <code>CODUSU</code> no SankhyaOm, diferente do usuário do Experience (que o
+            aplicativo descobre sozinho junto com a sessão). Ele recorta a Agenda de Recursos só
+            para você e garante que a ocorrência lançada e o alerta da agenda sejam do seu próprio
+            usuário. Aceita só números.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na aba <strong>Sankhya ID</strong> das Configurações, preencha
+              <strong>Meu código de usuário SankhyaOm</strong> e clique em <strong>Salvar</strong>,
+              ao lado do campo.
+              <figure>
+                <img
+                  src="img/sankhya-id/codigo-01-preencher.webp"
+                  alt="Campo Meu código de usuário SankhyaOm e o botão Salvar destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Um aviso confirma: <strong>Código de usuário do SankhyaOm salvo.</strong>
+              <figure>
+                <img
+                  src="img/sankhya-id/codigo-02-salvo.webp"
+                  alt="Aviso Código de usuário do SankhyaOm salvo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-codigo-de-usuario"
+                >Configurações › Sankhya ID › Meu código de usuário SankhyaOm</a
+              >: o campo desta seção.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              É usado por:
+              <a href="agenda-de-recursos.html#visao-geral">Agenda de Recursos</a>,
+              <a href="agenda-de-recursos.html#lancar-ocorrencia">Lançar ocorrência</a> e
+              <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="login-automatico">
+          <h2>Login automático</h2>
+          <p>
+            Quando a guia SankhyaOm ou a guia Experience cai na tela de login (ao abrir o aplicativo
+            ou quando a sessão expira), o HUB SNK preenche o Sankhya ID e entra sozinho, sem trocar
+            a guia que você está vendo. Ao abrir o aplicativo sem sessão guardada, ele já entra de
+            saída. Não há nada para clicar: basta o Sankhya ID estar salvo.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra a guia <strong>SankhyaOm</strong>: ela já chega no workspace, sem pedir login.
+              <!-- print-pendente: terceiros: SankhyaOm (tela de login preenchida e workspace) -->
+            </li>
+            <li>
+              Abra a guia <strong>Experience</strong>: ela também já chega logada.
+              <!-- print-pendente: terceiros: Experience e login.sankhya.com.br -->
+            </li>
+          </ol>
+          <p class="nota">
+            Se o login automático não conseguir entrar (por exemplo, com verificação em duas etapas
+            ou login por SSO), use <a href="#capturar-sessao">Abrir guia e Capturar sessão</a>.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-usuario-e-senha"
+                >Configurações › Sankhya ID › Usuário e senha</a
+              >: o login usado.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado, não há login automático.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#salvar-sankhya-id">Salvar o Sankhya ID</a></li>
+            <li><a href="#bloqueio-de-conta">Proteção contra bloqueio da conta</a></li>
+            <li>
+              <a href="guias-e-navegacao.html#guias-fixas">Guias SankhyaOm e Experience</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="capturar-sessao">
+          <h2>Abrir guia e capturar sessão</h2>
+          <p>
+            É a saída para quando o login automático falha: você entra à mão na guia do sistema e o
+            HUB SNK guarda a sessão. Cada cartão mostra a situação da sessão:
+            <strong>Sessão ativa até</strong> a data e a hora,
+            <strong>Sankhya ID salvo, sem sessão capturada</strong> ou
+            <strong>Sem Sankhya ID</strong>. Capturar a sessão do Experience também ensina ao
+            aplicativo qual é o seu usuário lá, o que as Ordens de Serviço precisam.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na aba <strong>Sankhya ID</strong> das Configurações, no cartão
+              <strong>SankhyaOm</strong> ou <strong>Experience</strong>, clique em
+              <strong>Abrir guia</strong>.
+              <figure>
+                <img
+                  src="img/sankhya-id/capturar-01-cartao.webp"
+                  alt="Cartão Experience sem sessão capturada, com Abrir guia e Capturar sessão"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O aplicativo mostra a guia do sistema. Faça o login nela.
+              <!-- print-pendente: terceiros: SankhyaOm e Experience (tela de login na guia) -->
+            </li>
+            <li>
+              Volte à guia <strong>Painel</strong>; as Configurações continuam abertas. Clique em
+              <strong>Capturar sessão</strong> no mesmo cartão. O aviso
+              <strong>Sessão capturada.</strong> aparece, e o cartão passa a
+              <strong>Sessão ativa até</strong>.
+              <figure>
+                <img
+                  src="img/sankhya-id/capturar-02-capturada.webp"
+                  alt="Selo Sessão ativa destacado no cartão Experience"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-sessao-sankhyaom"
+                >Configurações › Sankhya ID › SankhyaOm</a
+              >
+              e
+              <a href="configuracoes.html#sankhya-id-sessao-experience">Experience</a>: os cartões
+              desta seção.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="guias-e-navegacao.html#guias-fixas">Guias SankhyaOm e Experience</a>
+            </li>
+            <li>
+              É usado por: <a href="ordens-de-servico.html#visao-geral">Ordens de Serviço</a> e
+              <a href="agenda-de-recursos.html#atualizar-da-sankhya">Agenda de Recursos</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="sessao-da-experience">
+          <h2>Sessão da Experience em segundo plano</h2>
+          <p>
+            Uma janela invisível do aplicativo entra no Experience com o Sankhya ID, renova a sessão
+            10 minutos antes de ela vencer e a repassa ao Painel a cada 15 segundos. Por isso as
+            Ordens de Serviço e a situação dos eventos da Agenda funcionam mesmo com a guia
+            Experience deslogada ou fechada.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Não há nada para fazer. Para conferir, veja o selo do cartão
+              <strong>Experience</strong> na aba Sankhya ID: <strong>Sessão ativa até</strong> a
+              data e a hora em que a sessão vence.
+              <figure>
+                <img
+                  src="img/sankhya-id/sessao-experience-01.webp"
+                  alt="Selo Sessão ativa do cartão Experience destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-usuario-e-senha"
+                >Configurações › Sankhya ID › Usuário e senha</a
+              >: o login usado pela janela invisível.
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-sessao-experience"
+                >Configurações › Sankhya ID › Experience</a
+              >: onde a sessão aparece.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado, a janela invisível não roda.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#salvar-sankhya-id">Salvar o Sankhya ID</a></li>
+            <li>
+              É usado por: <a href="ordens-de-servico.html#visao-geral">Ordens de Serviço</a> e
+              <a href="agenda-de-recursos.html#situacao-no-experience"
+                >situação do evento no Experience</a
+              >.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="bloqueio-de-conta">
+          <h2>Proteção contra bloqueio da conta</h2>
+          <p>
+            Se a senha foi trocada fora do HUB SNK, o login automático repetiria a senha antiga até
+            o Sankhya bloquear a conta. Para evitar isso, depois de duas recusas seguidas da senha
+            todo login automático para: nas guias, na Agenda e na sessão do Experience. Ele volta
+            quando você salva o Sankhya ID de novo ou reabre o aplicativo.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na Agenda, a mensagem acima do calendário avisa que o
+              <strong>login automático</strong> foi <strong>suspenso</strong>.
+              <figure>
+                <img
+                  src="img/sankhya-id/bloqueio-01-agenda.webp"
+                  alt="Mensagem de login automático suspenso acima do calendário da Agenda"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Confira o usuário e a senha e <a href="#salvar-sankhya-id">salve o Sankhya ID</a> de
+              novo. O login automático volta na hora.
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-usuario-e-senha"
+                >Configurações › Sankhya ID › Usuário e senha</a
+              >: salvar de novo destrava o login automático.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#login-automatico">Login automático</a></li>
+            <li>
+              <a href="agenda-de-recursos.html#avisos-de-erro">Avisos da Agenda de Recursos</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="sem-login-no-sankhya">
+          <h2>Terceiro (sem login no Sankhya)</h2>
+          <p>
+            Para quem não tem acesso ao SankhyaOm nem ao Experience. Marcado, esconde o que depende
+            deles: a aba Sankhya ID, a aba Avisos (o alerta da agenda), a Agenda e as OS do topo e
+            do cadastro do cliente, os nomes completos do cliente e as guias SankhyaOm e Experience
+            do aplicativo. O login automático e a sessão da Experience param. As caixas Agenda e OS
+            de Acessos ficam travadas, e o que estava marcado nelas não muda.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Nas <strong>Configurações</strong>, aba <strong>Acessos</strong>, marque
+              <strong>Terceiro</strong> e clique em <strong>Salvar</strong>. O Painel recarrega já
+              sem as partes do Sankhya.
+              <figure>
+                <img
+                  src="img/sankhya-id/terceiro-01-marcar.webp"
+                  alt="Caixa Terceiro marcada e as caixas Agenda e OS travadas"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            A mesma escolha aparece no assistente de boas-vindas, na pergunta sobre o login no
+            Sankhya.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              a caixa desta seção.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="primeiros-passos.html#boas-vindas">Assistente de boas-vindas</a></li>
+            <li>
+              <a href="configuracoes.html#abrir-e-salvar">Abrir e salvar as Configurações</a>
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

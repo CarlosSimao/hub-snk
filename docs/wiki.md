@@ -33,9 +33,23 @@ não cresce, por mais que os prints mudem.
 ## Capturador (`ferramentas/captura-wiki`)
 
 Sobe o HUB SNK desktop isolado do instalado (perfil, pasta de dados, portas 4120/4123 e IPC
-próprios), recria os dados fictícios (`preparar-dados.mjs`) e roda os roteiros
-(`roteiros/<macro>.mjs`) duas vezes, uma em cada tema. Cada roteiro clica pela tela e
-chama `print(nome, { destacando })`; o contorno laranja marca o que o passo manda clicar.
+próprios) e roda cada roteiro (`roteiros/<macro>.mjs`) num aplicativo novo, uma vez em cada
+tema, sempre a partir dos mesmos dados fictícios (`preparar-dados.mjs`; os repositórios Git
+ficam em `C:\Workspace-demo`, para o caminho na tela não trazer o nome do usuário). Cada
+roteiro clica pela tela e chama `print(nome, { destacando })`; o contorno laranja marca o
+que o passo manda clicar.
+
+- **Dados só de uma página:** o roteiro exporta `semear(pastaDeDados)`, que grava os
+  arquivos extras (lembretes, kanban, base local...) antes de o aplicativo abrir.
+- **O que viria de fora** (SankhyaOm, Experience, Docker, WildFly, Git AutoSync, Google
+  Drive, assistentes de IA, versão nova no GitHub) é respondido por rota
+  (`painel.route('**/api/...')`), no formato que o código espera. Nada é enviado de verdade:
+  nem e-mail, nem relato ao suporte, nem push.
+- **Telas de terceiros e do sistema** (WhatsApp, Google, SankhyaOm, Experience, aviso do
+  Windows, Explorador, seletor de arquivo...) não são capturadas: o passo fica sem print e com
+  o comentário `<!-- print-pendente: ... -->` no HTML, para a fase da `wiki-img`.
+- **Várias capturas ao mesmo tempo:** `CAPTURA_INSTANCIA=<n>` separa portas e pastas
+  (`4120 + 10n`). A 7 não serve: cai na porta 4190, que o Chromium bloqueia.
 
 ```bash
 cd ferramentas/captura-wiki

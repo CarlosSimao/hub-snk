@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Repositórios Git · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como cadastrar os repositórios Git de cada cliente no HUB SNK, ler o diagnóstico e resolver as pendências, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Repositórios Git</h1>
+        <p class="introducao">
+          A aba Git do cliente guarda os repositórios dele, cada um com a pasta do clone na sua
+          máquina e o endereço do remoto. O HUB SNK confere sozinho se cada um está em dia e diz o
+          que fazer quando não está.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#aba-git">Ver os repositórios do cliente</a></li>
+            <li><a href="#cadastrar-repositorio">Cadastrar repositório</a></li>
+            <li><a href="#editar-e-excluir">Editar e excluir repositório</a></li>
+            <li><a href="#diagnostico">Diagnóstico do Git</a></li>
+            <li><a href="#pendencias">Pendências e comandos sugeridos</a></li>
+            <li><a href="#abrir-pasta-terminal-ou-ide">Abrir a pasta, o terminal ou a IDE</a></li>
+            <li>
+              <a href="#mcp-do-repositorio"><code>.sankhya-mcp.env</code> do repositório</a>
+            </li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="aba-git">
+          <h2>Ver os repositórios do cliente</h2>
+          <p>
+            A seção <strong>Repositórios</strong>, na aba <strong>Git</strong> do cliente, lista
+            cada repositório com o nome da pasta do clone, o endereço do remoto, o caminho local e a
+            situação do Git. Logo abaixo fica a seção do
+            <a href="git-autosync.html#aba-git-do-cliente">Git AutoSync</a>. Sem repositório, a
+            seção diz <strong>Nenhum repositório cadastrado para este cliente.</strong>
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na tela <strong>Clientes</strong>, escolha o cliente e clique na aba
+              <strong>Git</strong>.
+              <figure>
+                <img
+                  src="img/repositorios-git/aba-git-01-aba.webp"
+                  alt="Aba Git do cliente destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Cada linha mostra o repositório; a seta ao lado do endereço abre o remoto, e os botões
+              à direita editam, excluem e abrem a pasta, o terminal, a IDE e o MCP.
+              <figure>
+                <img
+                  src="img/repositorios-git/aba-git-02-lista.webp"
+                  alt="Seção Repositórios da aba Git destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-git"
+                >Configurações › Acessos › Cadastro do cliente › Git</a
+              >: desmarcado, a aba Git some, e com ela o diagnóstico, as bolinhas da lista de
+              clientes e a seção do Git AutoSync.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-perfil">Configurações › Acessos › Perfil</a>: os
+              perfis Consultor, Analista e Gerente de Projetos já vêm com a aba Git oculta.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="clientes.html#lista-e-detalhe">Lista e detalhe do cliente</a></li>
+            <li>
+              Para trazer de uma vez os clones que já estão na máquina, use
+              <a href="importar-e-exportar.html#importar-repositorios"
+                >Importar repositórios locais</a
+              >.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="cadastrar-repositorio">
+          <h2>Cadastrar repositório</h2>
+          <p>
+            Vincula um repositório ao cliente com dois campos obrigatórios: o
+            <strong>Caminho local</strong>, a pasta absoluta do clone (até 400 caracteres), e a
+            <strong>URL do repositório</strong>, http ou https (até 300 caracteres). A pasta pode
+            ainda não existir. O mesmo cliente não aceita a mesma URL duas vezes.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na aba <strong>Git</strong>, clique no <strong>+</strong> (<strong
+                >Adicionar repositório</strong
+              >).
+              <figure>
+                <img
+                  src="img/repositorios-git/cadastrar-repositorio-01-botao.webp"
+                  alt="Botão Adicionar repositório destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Cadastrar repositório</strong>, preencha o
+              <strong>Caminho local</strong> e a <strong>URL do repositório</strong>. O botão de
+              pasta ao lado do caminho abre o seletor de pastas do sistema; o campo continua
+              editável.
+              <!-- print-pendente: sistema: seletor de pasta do Windows -->
+              <figure>
+                <img
+                  src="img/repositorios-git/cadastrar-repositorio-02-formulario.webp"
+                  alt="Janela Cadastrar repositório preenchida"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Salvar</strong>. O repositório entra na lista, já com o diagnóstico,
+              e o aviso <strong>Repositório cadastrado.</strong> confirma.
+              <figure>
+                <img
+                  src="img/repositorios-git/cadastrar-repositorio-03-salvo.webp"
+                  alt="Repositório novo na lista do cliente"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Cadastrar no cliente não põe o repositório no Git AutoSync: isso é feito à parte, na
+            <a href="git-autosync.html#aba-git-do-cliente">seção AutoSync</a>. No Linux, o seletor
+            de pastas precisa do zenity ou do kdialog.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#aba-git">Ver os repositórios do cliente</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="editar-e-excluir">
+          <h2>Editar e excluir repositório</h2>
+          <p>
+            Troca o caminho local ou a URL, com as mesmas regras do cadastro, ou tira o repositório
+            do cliente. Excluir não apaga a pasta do clone nem o tira do Git AutoSync.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do repositório, clique no lápis (<strong>Editar repositório</strong>).
+              <figure>
+                <img
+                  src="img/repositorios-git/editar-e-excluir-01-editar.webp"
+                  alt="Botão Editar repositório destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Editar repositório</strong>, ajuste e clique em
+              <strong>Salvar</strong>. O aviso <strong>Repositório atualizado.</strong> confirma.
+              <figure>
+                <img
+                  src="img/repositorios-git/editar-e-excluir-02-formulario.webp"
+                  alt="Janela Editar repositório"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para excluir, clique na lixeira (<strong>Excluir repositório</strong>) e confirme em
+              <strong>Excluir</strong>. Não há como desfazer; o aviso
+              <strong>Repositório excluído.</strong> confirma.
+              <figure>
+                <img
+                  src="img/repositorios-git/editar-e-excluir-03-confirmar.webp"
+                  alt="Janela de confirmação Excluir repositório"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-repositorio">Cadastrar repositório</a></li>
+            <li>
+              Para tirar também do Git AutoSync, use a
+              <a href="git-autosync.html#aba-git-do-cliente">seção AutoSync</a> antes de excluir.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="diagnostico">
+          <h2>Diagnóstico do Git</h2>
+          <p>
+            Todo repositório com pasta local ganha um selo com a bolinha da situação, a branch atual
+            e a pendência mais grave, com <strong>+N</strong> quando há outras. Verde está
+            sincronizado com o remoto, amarelo tem pendência, vermelho precisa de ação e cinza não
+            pôde ser verificado. O diagnóstico só lê o disco: não acessa a rede nem pede senha, e
+            compara com a última posição do remoto que o clone conhece (a do último
+            <code>fetch</code>).
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra a aba <strong>Git</strong> do cliente: o selo aparece sozinho. Passe o mouse
+              sobre ele para ver a situação, o provedor (GitHub ou GitLab) e a hora da verificação.
+              <figure>
+                <img
+                  src="img/repositorios-git/diagnostico-01-verde.webp"
+                  alt="Selo verde Sem pendências destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Em amarelo, há algo a fazer, como arquivo alterado e não commitado ou commit ainda não
+              enviado.
+              <figure>
+                <img
+                  src="img/repositorios-git/diagnostico-02-amarelo.webp"
+                  alt="Selo amarelo com arquivo alterado e não commitado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Em vermelho, o repositório precisa de ação: pasta que não existe, repositório sem
+              remoto, conflito, operação pela metade ou <code>.sankhya-mcp.env</code> rastreado pelo
+              Git.
+              <figure>
+                <img
+                  src="img/repositorios-git/diagnostico-03-vermelho.webp"
+                  alt="Selo vermelho de repositório sem remoto"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Para ver na hora um commit feito fora do HUB SNK, use o
+            <a href="clientes.html#recarregar">Recarregar o cliente</a>, que ignora o resultado
+            guardado.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-intervalo-de-execucao-automatica"
+                >Configurações › Geral › Intervalo de execução automática</a
+              >: de quanto em quanto tempo o diagnóstico é refeito. O resultado fica guardado por
+              até 30 segundos.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-git"
+                >Configurações › Acessos › Cadastro do cliente › Git</a
+              >
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-repositorio">Cadastrar repositório</a> com caminho local</li>
+            <li>
+              Alimenta: <a href="clientes.html#situacao-do-git">bolinhas da situação do Git</a>,
+              <a href="clientes.html#filtrar-pela-situacao-do-git">filtro pela situação do Git</a> e
+              <a href="resumo-do-dia.html#repositorios-com-pendencia">repositórios com pendência</a>
+              do Resumo.
+            </li>
+            <li><a href="clientes.html#atualizacao-automatica">Atualização automática</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="pendencias">
+          <h2>Pendências e comandos sugeridos</h2>
+          <p>
+            Quando há pendência, o selo vira botão e abre a lista completa, da mais grave para a
+            mais leve. Cada item traz a explicação e, quando existe, o comando Git que resolve,
+            pronto para copiar. Nada é executado pelo HUB SNK.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no selo. A lista abre embaixo dele; outro clique fecha.
+              <figure>
+                <img
+                  src="img/repositorios-git/pendencias-01-lista.webp"
+                  alt="Lista de pendências aberta, com o comando git clone sugerido"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Copiar comando</strong> ao lado do comando e cole no terminal, na
+              pasta do repositório. O aviso <strong>Comando copiado.</strong> confirma.
+              <figure>
+                <img
+                  src="img/repositorios-git/pendencias-02-copiar.webp"
+                  alt="Botão Copiar comando destacado, com o aviso Comando copiado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Vermelho: pasta inexistente ou que não é repositório, sem remoto, merge, rebase,
+            cherry-pick ou revert pela metade, conflito e <code>.sankhya-mcp.env</code> rastreado.
+            Amarelo: remoto diferente da URL cadastrada, arquivos alterados ou novos fora do
+            <code>.gitignore</code>, commits não enviados, branch sem upstream, stash e repositório
+            sem commits.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#diagnostico">Diagnóstico do Git</a></li>
+            <li>
+              O terminal na pasta abre por
+              <a href="#abrir-pasta-terminal-ou-ide">Abrir a pasta, o terminal ou a IDE</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="abrir-pasta-terminal-ou-ide">
+          <h2>Abrir a pasta, o terminal ou a IDE</h2>
+          <p>
+            Três botões na linha do repositório agem sobre a pasta do clone: a pasta abre no
+            gerenciador de arquivos; o terminal abre já na pasta e roda o script padrão, se houver;
+            a IDE abre a pasta como projeto. Só aparecem em repositório com caminho local.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique na pasta (<strong>Abrir a pasta</strong>), no <code>&gt;_</code> (<strong
+                >Abrir o terminal</strong
+              >) ou no <code>{ }</code> (<strong>Abrir IDE</strong>).
+              <figure>
+                <img
+                  src="img/repositorios-git/abrir-pasta-terminal-ou-ide-01-botoes.webp"
+                  alt="Botões de pasta, terminal e IDE destacados na linha do repositório"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A pasta, o terminal ou a IDE abrem fora do HUB SNK.
+              <!-- print-pendente: sistema: Explorador de arquivos, terminal e IDE abertos na pasta do repositório -->
+            </li>
+            <li>
+              Sem IDE configurada, um aviso explica e traz o link
+              <strong>Abrir configuração</strong>, que leva ao campo da IDE.
+              <figure>
+                <img
+                  src="img/repositorios-git/abrir-pasta-terminal-ou-ide-02-sem-ide.webp"
+                  alt="Aviso Nenhuma IDE configurada com o link Abrir configuração"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            No Windows, o terminal é o Windows Terminal quando instalado, com o PowerShell 7, o
+            Windows PowerShell ou o Prompt de Comando, nessa ordem. No Linux, a pasta abre pelo
+            <code>xdg-open</code> e o terminal é o primeiro encontrado entre os mais comuns. O
+            script padrão roda com as suas permissões.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-script-padrao"
+                >Configurações › Geral › Script padrão</a
+              >: o que roda ao abrir o terminal.
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-executavel-da-ide"
+                >Configurações › Geral › Executável da IDE</a
+              >: obrigatório para o botão da IDE.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-repositorio">Cadastrar repositório</a> com caminho local</li>
+            <li>
+              Os mesmos botões aparecem na
+              <a href="buscas-e-atalhos.html#acoes-do-repositorio">busca rápida</a>.
+            </li>
+            <li>
+              <a href="configuracoes.html#abrir-configuracao-pelo-erro"
+                >Atalho Abrir configuração num erro</a
+              >
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="mcp-do-repositorio">
+          <h2><code>.sankhya-mcp.env</code> do repositório</h2>
+          <p>
+            Grava, na raiz do clone, o arquivo <code>.sankhya-mcp.env</code> com o banco que o
+            sankhya-schema-mcp deve usar: host, porta, service name, usuário e senha. Os dados podem
+            ser importados do banco vinculado a uma base do mesmo cliente e não vão para o cadastro.
+            A tomada fica verde quando o arquivo tem as cinco variáveis preenchidas.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do repositório, clique na tomada (<strong
+                >Banco de dados do MCP Claude</strong
+              >).
+              <figure>
+                <img
+                  src="img/repositorios-git/mcp-do-repositorio-01-botao.webp"
+                  alt="Botão do MCP do repositório destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Banco de dados do MCP Claude</strong>, o subtítulo diz se o arquivo
+              foi lido ou será criado. Escolha a base na lista e clique em <strong>Importar</strong>
+              para preencher os campos. Sem base com banco vinculado, a lista diz
+              <strong>Nenhuma base com banco configurado</strong>.
+              <figure>
+                <img
+                  src="img/repositorios-git/mcp-do-repositorio-02-importar.webp"
+                  alt="Base escolhida e botão Importar destacados, com os campos preenchidos"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Confira os campos e clique em <strong>Salvar</strong>. A tomada fica verde e um aviso
+              diz onde o arquivo foi gravado.
+              <figure>
+                <img
+                  src="img/repositorios-git/mcp-do-repositorio-03-salvo.webp"
+                  alt="Botão do MCP verde depois de salvar"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            O arquivo leva a senha do banco. Ponha <code>.sankhya-mcp.env</code> no
+            <code>.gitignore</code>: rastreado pelo Git, ele vira pendência vermelha no
+            <a href="#diagnostico">diagnóstico</a>, porque iria para o remoto no próximo push.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="bases.html#vincular-banco">Banco de dados vinculado</a> a uma base do
+              cliente, origem do Importar.
+            </li>
+            <li>
+              É lido pelo <a href="mcp.html#sankhya-schema">sankhya-schema-mcp</a>. O mesmo arquivo,
+              para base local, está em <a href="ambiente-local.html#mcp-da-base">Ambiente local</a>.
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>
