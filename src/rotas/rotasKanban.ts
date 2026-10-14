@@ -25,6 +25,7 @@ import {
   CadastroEmUsoError,
   DadosDoKanbanInvalidosError,
   DemandaNaoEncontradaError,
+  TAMANHO_MAXIMO_DO_GRUPO,
   TarefaNaoEncontradaError,
   type ConteudoDoDocumento,
   type DocumentoRecebido,
@@ -185,7 +186,13 @@ const esquemaDeDadosDeTarefa = z.object({
       `O título deve ter no máximo ${TAMANHO_MAXIMO_DO_TITULO} caracteres.`,
     ),
   descricao: z.string().max(TAMANHO_MAXIMO_DO_TEXTO, 'A descrição é longa demais.').optional(),
-  grupo: z.string().max(TAMANHO_MAXIMO_DO_NOME, 'O grupo é longo demais.').optional(),
+  grupo: z
+    .string()
+    .max(
+      TAMANHO_MAXIMO_DO_GRUPO,
+      `O grupo deve ter no máximo ${TAMANHO_MAXIMO_DO_GRUPO} caracteres.`,
+    )
+    .optional(),
   tipo: z.string().optional(),
   estimativaHoras: z.coerce
     .number({ error: 'A estimativa deve ser um número de horas.' })
