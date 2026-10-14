@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MCP e agentes de IA · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como ligar agentes de IA (Claude Code, Codex, Cursor, Copilot) aos kanbans do HUB SNK por MCP, configurar o sankhya-schema-mcp e escolher o assistente que gera as tarefas."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>MCP e agentes de IA</h1>
+        <p class="introducao">
+          O HUB SNK conversa com agentes de IA de duas formas. Pelo MCP, agentes como Claude Code,
+          Codex, Cursor e Copilot leem e atualizam os kanbans que você liberar, e o
+          sankhya-schema-mcp dá a eles acesso ao banco do Sankhya. Na outra ponta, um assistente de
+          IA instalado no computador lê o documento de escopo e gera as tarefas do kanban.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#kanban-por-mcp">Ligar o agente ao kanban por MCP</a></li>
+            <li><a href="#liberar-kanban">Liberar um kanban para os agentes</a></li>
+            <li><a href="#kanbans-disponiveis">Kanbans disponíveis e Tirar do MCP</a></li>
+            <li><a href="#agente-no-kanban">O que o agente faz no kanban</a></li>
+            <li><a href="#sankhya-schema">sankhya-schema-mcp (banco para agentes)</a></li>
+            <li><a href="#assistente-de-ia">Assistente de IA que gera as tarefas</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="kanban-por-mcp">
+          <h2>Ligar o agente ao kanban por MCP</h2>
+          <p>
+            O HUB SNK traz um servidor MCP próprio, o <code>hub-snk-kanban</code>, que o agente de
+            IA roda quando precisa ler ou mexer num kanban. Para o agente conhecê-lo, basta colar na
+            configuração MCP dele o bloco <code>mcpServers</code> que as Configurações mostram, já
+            com o caminho deste computador. Nada é gravado no HUB SNK. O servidor só funciona com o
+            HUB SNK aberto.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as <strong>Configurações</strong> (engrenagem no topo) e clique na aba
+              <strong>MCP</strong>.
+              <figure>
+                <img
+                  src="img/mcp/kanban-por-mcp-01-aba.webp"
+                  alt="Aba MCP destacada nas Configurações"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Abra o grupo <strong>Kanban por MCP</strong>. O bloco traz o comando, o servidor e as
+              variáveis <code>HUB_SNK_URL</code> e <code>HUB_SNK_TOKEN_FILE</code>; no aplicativo, o
+              comando é o próprio HUB SNK.
+              <figure>
+                <img
+                  src="img/mcp/kanban-por-mcp-02-bloco.webp"
+                  alt="Bloco mcpServers destacado no grupo Kanban por MCP"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Copiar configuração</strong>. O aviso
+              <strong>Configuração do MCP copiada.</strong> confirma. Se a cópia falhar, selecione o
+              bloco e copie com <kbd>Ctrl</kbd>+<kbd>C</kbd>.
+              <figure>
+                <img
+                  src="img/mcp/kanban-por-mcp-03-copiar.webp"
+                  alt="Botão Copiar configuração destacado e o aviso de configuração copiada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Cole o bloco na configuração MCP do agente (o arquivo de servidores MCP do Claude
+              Code, do Codex, do Cursor ou do Copilot) e reinicie o agente.
+            </li>
+            <!-- print-pendente: terceiros: arquivo de configuração MCP do agente (Claude Code, Codex, Cursor, Copilot) -->
+          </ol>
+          <p class="nota">
+            O agente só enxerga os kanbans liberados; veja
+            <a href="#liberar-kanban">Liberar um kanban para os agentes</a>. Depois de reinstalar o
+            HUB SNK em outra pasta, copie o bloco de novo.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#mcp-copiar-configuracao"
+                >Configurações › MCP › Copiar configuração</a
+              >
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-projetos"
+                >Configurações › Acessos › Projetos</a
+              >
+              (cadastro do cliente): desmarcado, o grupo Kanban por MCP some. A aba MCP só some com
+              Projetos e Git desmarcados.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#liberar-kanban">Liberar um kanban para os agentes</a></li>
+            <li><a href="#agente-no-kanban">O que o agente faz no kanban</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="liberar-kanban">
+          <h2>Liberar um kanban para os agentes</h2>
+          <p>
+            Nenhum kanban fica visível aos agentes sem você liberar. A liberação é por kanban, na
+            janela de edição dele, e não depende do arquivo de tarefas.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do kanban (aba Projetos do cliente, ou aba Kanban para o quadro sem projeto),
+              clique no lápis <strong>Editar o kanban</strong>.
+              <figure>
+                <img
+                  src="img/mcp/liberar-kanban-01-editar.webp"
+                  alt="Botão Editar o kanban destacado na linha do kanban Pesagem de rebanho"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Marque <strong>Disponível para agentes de IA por MCP</strong> e clique em
+              <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/mcp/liberar-kanban-02-caixa.webp"
+                  alt="Caixa Disponível para agentes de IA por MCP marcada na janela Editar kanban"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A linha do kanban ganha o selo <strong>MCP</strong>. Para desligar, desmarque a caixa
+              ou use <a href="#kanbans-disponiveis">Tirar do MCP</a>.
+              <figure>
+                <img
+                  src="img/mcp/liberar-kanban-03-selo.webp"
+                  alt="Selo MCP destacado na linha do kanban"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#mcp-kanbans-disponiveis"
+                >Configurações › MCP › Kanbans disponíveis</a
+              >: o kanban liberado entra na lista.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="kanban.html#editar-kanban">Editar o kanban</a> e
+              <a href="kanban.html#criar-kanban">Criar kanban</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="kanbans-disponiveis">
+          <h2>Kanbans disponíveis e Tirar do MCP</h2>
+          <p>
+            A lista mostra todos os kanbans liberados para os agentes, com o cliente, o projeto (ou
+            <em>sem projeto</em>), a quantidade de tarefas e o id que o agente usa. Dali mesmo dá
+            para tirar um kanban do MCP.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Em <strong>Configurações</strong> › <strong>MCP</strong>, abra
+              <strong>Kanban por MCP</strong> e veja <strong>Kanbans disponíveis</strong>. Sem
+              nenhum, a lista explica como liberar.
+              <figure>
+                <img
+                  src="img/mcp/kanbans-disponiveis-01-lista.webp"
+                  alt="Lista Kanbans disponíveis com dois kanbans liberados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Tirar do MCP</strong> na linha do kanban.
+              <figure>
+                <img
+                  src="img/mcp/kanbans-disponiveis-02-tirar.webp"
+                  alt="Botão Tirar do MCP destacado na linha da Integração com transportadora"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O kanban sai da lista, e o aviso diz que ele não está mais disponível por MCP. Os
+              agentes deixam de vê-lo na hora.
+              <figure>
+                <img
+                  src="img/mcp/kanbans-disponiveis-03-tirado.webp"
+                  alt="Lista com um kanban só e o aviso de que o outro não está mais disponível por MCP"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#mcp-kanbans-disponiveis"
+                >Configurações › MCP › Kanbans disponíveis</a
+              >
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#liberar-kanban">Liberar um kanban para os agentes</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="agente-no-kanban">
+          <h2>O que o agente faz no kanban</h2>
+          <p>
+            Com o servidor <code>hub-snk-kanban</code> configurado, o agente lista os kanbans
+            liberados, lê as tarefas e o resumo do escopo, consulta o que mudou desde um momento,
+            move tarefas entre colunas, registra o andamento nas notas, mexe na lista de verificação
+            e cria tarefas novas, que entram sempre na primeira coluna. As notas novas são
+            acrescentadas às que já existem. Tudo segue o mesmo caminho da tela, e o quadro aberto
+            no HUB SNK acompanha sozinho.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Libere o kanban e configure o agente (seções acima). Com o HUB SNK aberto, peça ao
+              agente, em linguagem natural, para ler o kanban e atualizar as tarefas conforme
+              trabalha. Ferramentas que ele recebe: <code>listar_kanbans</code>,
+              <code>ler_kanban</code>, <code>mudancas_desde</code>, <code>mover_tarefa</code>,
+              <code>anotar_tarefa</code>, <code>criar_tarefa</code>,
+              <code>adicionar_item_da_lista</code>, <code>alterar_item_da_lista</code>,
+              <code>marcar_item_da_lista</code> e <code>remover_item_da_lista</code>.
+            </li>
+            <!-- print-pendente: terceiros: terminal do agente de IA (Claude Code, Codex) usando o hub-snk-kanban -->
+            <li>
+              Deixe o quadro aberto no HUB SNK. Antes do agente agir, a tarefa está onde você a
+              deixou.
+              <figure>
+                <img
+                  src="img/mcp/agente-no-kanban-01-antes.webp"
+                  alt="Cartão Leitura do peso pela balança Coimma destacado na coluna Em andamento"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Quando o agente move a tarefa e marca os passos, o cartão muda de coluna e de contagem
+              sozinho, em segundos.
+              <figure>
+                <img
+                  src="img/mcp/agente-no-kanban-02-depois.webp"
+                  alt="O mesmo cartão já na coluna Em revisão, com o selo ✓ 2/3"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Abra a tarefa para ler o que o agente registrou nas <strong>Notas</strong> e na
+              <strong>Lista de verificação</strong>.
+              <figure>
+                <img
+                  src="img/mcp/agente-no-kanban-03-notas.webp"
+                  alt="Janela da tarefa com a lista de verificação e as notas escritas pelo agente"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            O agente não vê os kanbans que não foram liberados, nem os outros dados do HUB SNK. Com
+            o HUB SNK fechado, o servidor responde que o aplicativo precisa estar aberto.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#kanban-colunas">Configurações › Kanban › Colunas</a> e
+              <a href="configuracoes.html#kanban-tipos">Tipos</a>: as colunas e os tipos que o
+              agente recebe; a primeira coluna recebe as tarefas que ele cria.
+            </li>
+            <li>
+              <a href="configuracoes.html#mcp-kanbans-disponiveis"
+                >Configurações › MCP › Kanbans disponíveis</a
+              >
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#kanban-por-mcp">Ligar o agente ao kanban por MCP</a> e
+              <a href="#liberar-kanban">liberar o kanban</a>
+            </li>
+            <li>
+              Aparece em <a href="kanban.html#abrir-quadro">Abrir o quadro</a>. Agente sem MCP pode
+              usar o <a href="kanban.html#arquivo-de-tarefas">arquivo de tarefas</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="sankhya-schema">
+          <h2>sankhya-schema-mcp (banco para agentes)</h2>
+          <p>
+            O sankhya-schema-mcp é um servidor MCP de terceiros que dá aos agentes de IA acesso ao
+            dicionário e às consultas do banco do Sankhya. O HUB SNK guarda onde ele está instalado
+            e grava as cinco variáveis <code>SANKHYA_DB_*</code> no <code>.env</code> da pasta dele.
+            As credenciais ficam só nesse <code>.env</code>, fora das configurações do HUB SNK.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Em <strong>Configurações</strong> › <strong>MCP</strong>, abra o grupo
+              <strong>sankhya-schema</strong>. Se já existe um <code>.env</code>, clique em
+              <strong>Importar .env</strong> e escolha o arquivo: o caminho e as variáveis se
+              preenchem sozinhos. O link <strong>Sobre</strong> abre a página do projeto.
+              <figure>
+                <img
+                  src="img/mcp/sankhya-schema-01-grupo.webp"
+                  alt="Grupo sankhya-schema aberto, com o botão Importar .env destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <!-- print-pendente: sistema: seletor de arquivo (Importar .env) -->
+            <!-- print-pendente: terceiros: GitHub frshaka/sankhya-schema-mcp (link Sobre) -->
+            <li>
+              Preencha ou confira o <strong>Caminho sankhya-schema-mcp</strong> e
+              <strong>SANKHYA_DB_HOST</strong>, <strong>SANKHYA_DB_PORT</strong>,
+              <strong>SANKHYA_DB_SERVICE_NAME</strong>, <strong>SANKHYA_DB_USER</strong> e
+              <strong>SANKHYA_DB_PASSWORD</strong>. Clique em <strong>Salvar</strong>, no rodapé das
+              Configurações: o <code>.env</code> é gravado na pasta.
+              <figure>
+                <img
+                  src="img/mcp/sankhya-schema-02-campos.webp"
+                  alt="Caminho e variáveis SANKHYA_DB preenchidos no grupo sankhya-schema"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Com o caminho preenchido, as variáveis são obrigatórias; pasta que não existe é recusada
+            com <strong>Pasta não encontrada</strong>, e nada é salvo. Caminho em branco não grava
+            <code>.env</code> nenhum. O <strong>Importar .env</strong> só aceita um arquivo chamado
+            <code>.env</code> e não grava nada antes do Salvar.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#mcp-caminho-sankhya-schema-mcp"
+                >Configurações › MCP › Caminho sankhya-schema-mcp</a
+              >, <a href="configuracoes.html#mcp-sankhya-db-host">SANKHYA_DB_HOST</a>,
+              <a href="configuracoes.html#mcp-sankhya-db-port">SANKHYA_DB_PORT</a>,
+              <a href="configuracoes.html#mcp-sankhya-db-service-name">SANKHYA_DB_SERVICE_NAME</a>,
+              <a href="configuracoes.html#mcp-sankhya-db-user">SANKHYA_DB_USER</a> e
+              <a href="configuracoes.html#mcp-sankhya-db-password">SANKHYA_DB_PASSWORD</a>
+            </li>
+            <li>
+              <a href="configuracoes.html#mcp-importar-env">Configurações › MCP › Importar .env</a>
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-git">Configurações › Acessos › Git</a>
+              (cadastro do cliente): desmarcado, o grupo sankhya-schema some.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              O sankhya-schema-mcp instalado no computador, fora do HUB SNK, e registrado no agente
+              de IA.
+            </li>
+            <li>
+              Não confundir com o <code>.sankhya-mcp.env</code> de cada
+              <a href="repositorios-git.html#mcp-do-repositorio">repositório</a> e de cada
+              <a href="ambiente-local.html#mcp-da-base">base local</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="assistente-de-ia">
+          <h2>Assistente de IA que gera as tarefas</h2>
+          <p>
+            Define qual assistente de linha de comando instalado no computador lê o documento de
+            escopo e gera as tarefas do kanban: Claude Code, Codex, OpenCode, Gemini CLI ou Cursor
+            Agent. No <strong>Automático</strong>, vale o primeiro instalado, com o modelo padrão
+            dele. O assistente roda numa pasta temporária, sem poder alterar arquivos nem executar
+            comandos.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Em <strong>Configurações</strong>, clique na aba <strong>IA</strong>. Ao abrir, ela
+              procura os assistentes instalados. Em <strong>Assistente</strong>, os que não estão
+              instalados aparecem com <em>(não instalado)</em> e não podem ser escolhidos.
+              <figure>
+                <img
+                  src="img/mcp/assistente-de-ia-01-aba.webp"
+                  alt="Aba IA com o campo Assistente em Automático destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Escolha o assistente e, em <strong>Modelo</strong>, um da lista ou
+              <strong>Padrão do assistente</strong>. Quando o modelo aceita, aparece o
+              <strong>Nível de raciocínio</strong>: mais alto pensa mais e demora mais. O Gemini CLI
+              e o Cursor Agent não têm níveis, nem o Haiku no Claude Code. Abaixo, a linha de
+              situação diz onde o assistente está instalado e se ele lê PDF sozinho; se não lê, o
+              HUB SNK extrai o texto do PDF e manda junto.
+              <figure>
+                <img
+                  src="img/mcp/assistente-de-ia-02-modelo.webp"
+                  alt="Assistente Claude Code, modelo claude-sonnet-5-5 e nível Alto destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para um modelo fora da lista, escolha <strong>Outro modelo…</strong> e digite em
+              <strong>Nome do modelo</strong> o nome exato que o assistente aceita. Trocar de
+              assistente esvazia o modelo.
+              <figure>
+                <img
+                  src="img/mcp/assistente-de-ia-03-outro-modelo.webp"
+                  alt="Campo Nome do modelo destacado depois de escolher Outro modelo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Instalou um assistente com as Configurações abertas? Clique em
+              <strong>Procurar de novo</strong>. Depois, clique em <strong>Salvar</strong>, no
+              rodapé.
+              <figure>
+                <img
+                  src="img/mcp/assistente-de-ia-04-procurar.webp"
+                  alt="Botão Procurar de novo e a linha de situação do assistente destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            O assistente e o modelo de cada análise ficam registrados no quadro, em
+            <strong>Gerado por</strong>. Assistente gravado que sumiu do computador faz a análise
+            falhar até ser instalado de novo.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#ia-assistente">Configurações › IA › Assistente</a>
+              (padrão: Automático),
+              <a href="configuracoes.html#ia-modelo">Modelo</a>,
+              <a href="configuracoes.html#ia-nivel-de-raciocinio">Nível de raciocínio</a> e
+              <a href="configuracoes.html#ia-procurar-de-novo">Procurar de novo</a>
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-projetos"
+                >Configurações › Acessos › Projetos</a
+              >
+              (cadastro do cliente): desmarcado, a aba IA some.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>Um dos assistentes de linha de comando instalado no computador.</li>
+            <li>
+              É usado por: <a href="kanban.html#gerar-tarefas-com-ia">Gerar tarefas com a IA</a>,
+              <a href="kanban.html#criar-kanban">Criar kanban</a> e
+              <a href="kanban.html#documento-de-escopo">Documento de escopo</a>.
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

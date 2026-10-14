@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ordens de Serviço · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como ver as suas Ordens de Serviço do Sankhya Experience no HUB SNK, filtrar por status e somar as horas do mês, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Ordens de Serviço</h1>
+        <p class="introducao">
+          As suas Ordens de Serviço do Sankhya Experience, mês a mês, em todos os projetos. As OS
+          vêm ao vivo do Experience a cada abertura: nada fica guardado no HUB SNK. A consulta é
+          feita pelo aplicativo desktop, com a sessão do Experience mantida pelo
+          <a href="sankhya-id.html">Sankhya ID</a>.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#visao-geral">Minhas OS (menu)</a></li>
+            <li><a href="#navegar-entre-meses">Navegar entre meses</a></li>
+            <li><a href="#filtrar-por-status">Filtrar por status e somar horas</a></li>
+            <li><a href="#dados-da-os">Dados de uma OS</a></li>
+            <li><a href="#atualizar">Atualizar as OS</a></li>
+            <li><a href="#sem-o-aplicativo">Sem o aplicativo e sessão expirada</a></li>
+            <li><a href="#aba-do-cliente">Aba OS do cliente</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="visao-geral">
+          <h2>Minhas OS (menu)</h2>
+          <p>
+            Lista as OS do mês em todos os projetos do seu usuário no Experience, da mais recente
+            para a mais antiga: pela data de conclusão e, no mesmo dia, pelo horário de início. OS
+            sem data de conclusão vão para o fim. Só funciona no aplicativo desktop.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No topo do Painel, clique em <strong>OS</strong>.
+              <figure>
+                <img
+                  src="img/ordens-de-servico/visao-geral-01-botao.webp"
+                  alt="Topo do Painel com a aba OS destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A tela <strong>Minhas OS</strong> abre no mês atual. Enquanto a consulta roda, a lista
+              fica coberta por <strong>Atualizando da Sankhya…</strong>.
+              <figure>
+                <img
+                  src="img/ordens-de-servico/visao-geral-02-lista.webp"
+                  alt="Lista de OS do mês destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            As OS que ainda não foram concluídas também aparecem no
+            <a href="resumo-do-dia.html#os-nao-concluidas">Resumo do dia</a>.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-sessao-experience"
+                >Configurações › Sankhya ID › Experience</a
+              >: sem a sessão do Experience capturada, a lista não carrega.
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-usuario-e-senha"
+                >Configurações › Sankhya ID › Usuário e senha</a
+              >: o login que mantém a sessão do Experience.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-os">Configurações › Acessos › OS</a>: desmarcada,
+              a aba OS some do topo.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado, as OS somem do topo e do cadastro do cliente.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="sankhya-id.html#sessao-da-experience"
+                >Sessão da Experience em segundo plano</a
+              >
+            </li>
+            <li>
+              <a href="sankhya-id.html#capturar-sessao">Capturar sessão</a>, quando o login
+              automático não dá conta
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="navegar-entre-meses">
+          <h2>Navegar entre meses</h2>
+          <p>
+            Troca o mês e busca as OS dele no Experience. Os status marcados no filtro continuam
+            marcados, menos os que não existem no mês novo.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique em <strong>‹</strong> ou <strong>›</strong>, ao lado do nome do mês.
+              <figure>
+                <img
+                  src="img/ordens-de-servico/navegar-01-mes-anterior.webp"
+                  alt="Navegação de mês destacada, com as OS do mês anterior"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#visao-geral">Minhas OS</a> ou
+              <a href="#aba-do-cliente">aba OS do cliente</a>
+            </li>
+            <li><a href="#filtrar-por-status">Filtrar por status</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="filtrar-por-status">
+          <h2>Filtrar por status e somar horas</h2>
+          <p>
+            Acima da lista, cada status do mês vira um botão com a quantidade de OS e uma cor
+            própria: <strong>Concluído</strong> em verde, <strong>Gerado</strong> em azul e os
+            demais com outras cores, em ordem alfabética. OS sem status entram em
+            <strong>Sem status</strong>. À direita, o total mostra quantas OS estão na lista e a
+            soma das horas delas, como em
+            <em>7 OS neste mês · 49:00 horas lançadas.</em>
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Veja os status do mês e o total de horas, acima da lista.
+              <figure>
+                <img
+                  src="img/ordens-de-servico/filtrar-01-agrupadores.webp"
+                  alt="Botões de status e o total de OS e horas destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique num status para ver só as OS dele. O total passa a somar só as OS da lista. Dá
+              para marcar mais de um; clique de novo para tirar o filtro.
+              <figure>
+                <img
+                  src="img/ordens-de-servico/filtrar-02-gerado.webp"
+                  alt="Status Gerado marcado e o total recalculado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Os botões de status sempre contam o mês inteiro, mesmo com filtro. OS sem horas lançadas
+            ficam fora da soma.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#visao-geral">Minhas OS</a> ou
+              <a href="#aba-do-cliente">aba OS do cliente</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="dados-da-os">
+          <h2>Dados de uma OS</h2>
+          <p>
+            Cada linha traz o número e o tipo da OS, o selo do status, a empresa, o erro da OS
+            (quando há um), as tarefas realizadas e uma linha de detalhes: data de conclusão,
+            horário, intervalo, horas, <strong>Horas excedidas</strong>, etapa, processos, pedido,
+            coordenador e status Sankhya. A linha é só para leitura: para mudar a OS, use o
+            Experience.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na lista, leia os dados da OS.
+              <figure>
+                <img
+                  src="img/ordens-de-servico/dados-01-linha.webp"
+                  alt="Uma OS da lista destacada, com status, empresa, tarefas e detalhes"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#visao-geral">Minhas OS</a> ou
+              <a href="#aba-do-cliente">aba OS do cliente</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="atualizar">
+          <h2>Atualizar as OS</h2>
+          <p>
+            Busca de novo, no Experience, as OS do mês que está na tela, e atualiza a data e a hora
+            de <strong>Atualizado em</strong>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Em <strong>Minhas OS</strong>, clique no botão de recarregar no canto superior direito
+              (<strong>Atualizar da Sankhya</strong>).
+              <figure>
+                <img
+                  src="img/ordens-de-servico/atualizar-01-botao.webp"
+                  alt="Botão Atualizar da Sankhya e o texto Atualizado em destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-sessao-experience"
+                >Configurações › Sankhya ID › Experience</a
+              >: a sessão que a consulta usa.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#visao-geral">Minhas OS</a></li>
+            <li><a href="#sem-o-aplicativo">Sem o aplicativo e sessão expirada</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="sem-o-aplicativo">
+          <h2>Sem o aplicativo e sessão expirada</h2>
+          <p>
+            Sem a sessão do Experience, ou com ela expirada, a consulta falha com uma mensagem
+            vermelha e o atalho <strong>Abrir configuração</strong>. Com o Painel aberto num
+            navegador comum, fora do aplicativo, a tela avisa:
+            <em
+              >A consulta ao Sankhya precisa do aplicativo HUB SNK aberto, com a sessão do Sankhya
+              Experience capturada (Sankhya ID).</em
+            >
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Leia a mensagem acima da lista. Sem sessão capturada, ela diz
+              <strong>Capture a sessão do Sankhya Experience em Sankhya ID.</strong>
+              <figure>
+                <img
+                  src="img/ordens-de-servico/sem-sessao-01-erro.webp"
+                  alt="Mensagem de sessão do Experience ausente com o atalho Abrir configuração"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Abrir configuração</strong>. As Configurações abrem na aba
+              <strong>Sankhya ID</strong>, no cartão <strong>Experience</strong>, onde fica o
+              <a href="sankhya-id.html#capturar-sessao">Capturar sessão</a>.
+              <figure>
+                <img
+                  src="img/ordens-de-servico/sem-sessao-02-configuracao.webp"
+                  alt="Configurações abertas na aba Sankhya ID com o cartão Experience destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-sessao-experience"
+                >Configurações › Sankhya ID › Experience</a
+              >: o cartão para onde o atalho leva.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#abrir-configuracao-pelo-erro"
+                >Atalho "Abrir configuração" num erro</a
+              >
+            </li>
+            <li><a href="sankhya-id.html#capturar-sessao">Capturar sessão</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="aba-do-cliente">
+          <h2>Aba OS do cliente</h2>
+          <p>
+            No cadastro do cliente, a aba <strong>OS</strong> mostra as mesmas OS, só as da empresa
+            que bate com os <a href="clientes.html#nomes-completos">nomes completos</a> do cliente
+            (ou com o nome do cadastro, quando não há nenhum). Tem a mesma navegação de mês, os
+            mesmos filtros de status e o mesmo total de horas. Não há botão de atualizar: a aba
+            consulta ao abrir e a cada troca de mês.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Em <strong>Clientes</strong>, selecione o cliente e clique na aba <strong>OS</strong>.
+              <figure>
+                <img
+                  src="img/ordens-de-servico/aba-do-cliente-01.webp"
+                  alt="Aba OS da Fazenda Boa Vista com as OS do cliente"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-os"
+                >Configurações › Acessos › Cadastro do cliente › OS</a
+              >: desmarcada, a aba some do cadastro.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado, a aba some.
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-sessao-experience"
+                >Configurações › Sankhya ID › Experience</a
+              >: a sessão que a consulta usa.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="clientes.html#nomes-completos">Nomes completos no Sankhya</a></li>
+            <li><a href="#filtrar-por-status">Filtrar por status e somar horas</a></li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

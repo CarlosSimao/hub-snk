@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Suporte · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como relatar um problema ou sugerir uma melhoria, ver o que é enviado ao suporte, conferir a versão do HUB SNK e achar os logs."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Suporte</h1>
+        <p class="introducao">
+          Problemas, dúvidas e ideias chegam a quem mantém o HUB SNK por dentro do próprio
+          aplicativo, sem conta em lugar nenhum. Esta página cobre o relato, o que vai junto dele, a
+          versão instalada e onde ficam os logs.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#reportar-problema">Reportar problema ou sugerir</a></li>
+            <li><a href="#ver-o-que-sera-enviado">Ver o que será enviado</a></li>
+            <li><a href="#relato-sem-conexao">Relato sem conexão</a></li>
+            <li><a href="#versao-instalada">Versão instalada e versão nova</a></li>
+            <li><a href="#logs-do-aplicativo">Logs do aplicativo</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="reportar-problema">
+          <h2>Reportar problema ou sugerir</h2>
+          <p>
+            Envia ao suporte do HUB SNK um relato do tipo Problema, Sugestão de melhoria, Dúvida,
+            Elogio ou Outro, com até 5000 caracteres. É a única tela do HUB SNK que manda dados para
+            fora da máquina, e nada sai antes de você clicar em <strong>Enviar</strong>. Seu nome,
+            empresa, time e e-mail, de Configurações, seguem junto e são obrigatórios.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as <strong>Configurações</strong> (engrenagem no topo), aba
+              <strong>Sobre</strong>, e clique em <strong>Reportar problema ou sugerir</strong>.
+              <figure>
+                <img
+                  src="img/suporte/reportar-01-botao.webp"
+                  alt="Aba Sobre com o botão Reportar problema ou sugerir destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Escolha o <strong>Tipo</strong>, conte em <strong>O que aconteceu?</strong> o que você
+              fazia, o que esperava e o que aconteceu, e, se quiser resposta por e-mail, preencha
+              <strong>E-mail para resposta (opcional)</strong>.
+              <figure>
+                <img
+                  src="img/suporte/reportar-02-formulario.webp"
+                  alt="Janela Reportar problema ou sugerir com tipo, descrição e e-mail preenchidos"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Deixe marcada a caixa do log de diagnóstico para mandar junto o final dos logs e os
+              dados técnicos (versões do HUB SNK e do Windows, perfil). Tokens, senhas, e-mails e o
+              nome da sua conta do Windows são mascarados antes do envio; nomes de clientes e de
+              servidores podem aparecer.
+              <figure>
+                <img
+                  src="img/suporte/reportar-03-log.webp"
+                  alt="Caixa Incluir o log de diagnóstico e os dados técnicos destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Enviar</strong>. O aviso
+              <strong>Relato enviado. Obrigado!</strong> confirma; feche com
+              <strong>Fechar</strong>.
+              <figure>
+                <img
+                  src="img/suporte/reportar-04-enviado.webp"
+                  alt="Aviso Relato enviado. Obrigado! na janela do relato"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Faltando nome, empresa, time ou e-mail, o envio para e a janela diz o que preencher:
+            <strong>Preencha em Configurações antes de enviar: …</strong>
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-nome">Configurações › Geral › Nome do usuário</a>,
+              <a href="configuracoes.html#geral-empresa">Empresa</a>,
+              <a href="configuracoes.html#geral-time">Time</a> e
+              <a href="configuracoes.html#geral-email">E-mail</a>: obrigatórios para enviar.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-perfil">Configurações › Acessos › Perfil</a>: vai
+              nos dados técnicos.
+            </li>
+            <li>
+              <a href="configuracoes.html#sobre-reportar-problema"
+                >Configurações › Sobre › Reportar problema ou sugerir</a
+              >
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Os dados de quem relata vêm do
+              <a href="primeiros-passos.html#boas-vindas">assistente de boas-vindas</a>.
+            </li>
+            <li>
+              <a href="#ver-o-que-sera-enviado">Ver o que será enviado</a>,
+              <a href="#relato-sem-conexao">Relato sem conexão</a> e
+              <a href="#logs-do-aplicativo">Logs do aplicativo</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="ver-o-que-sera-enviado">
+          <h2>Ver o que será enviado</h2>
+          <p>
+            Mostra, antes do envio, os dados técnicos e o log exatamente como sairiam, já
+            mascarados. No log, viram marcadores os tokens, as senhas, os cabeçalhos de autorização
+            e de cookie, os e-mails e o nome da conta nas pastas do usuário
+            (<code>C:\Users\[usuario]</code>). A prévia mostra o final do log, até 200 mil
+            caracteres; o envio leva o texto inteiro.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na janela do relato, clique em <strong>Ver o que será enviado</strong>. Aparecem os
+              <strong>Dados técnicos</strong> e o <strong>Log de diagnóstico</strong>. Desmarcar a
+              caixa do log atualiza a prévia; um novo clique no botão a esconde.
+              <figure>
+                <img
+                  src="img/suporte/previa-01.webp"
+                  alt="Prévia com os dados técnicos e o começo do log de diagnóstico"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-nome">Configurações › Geral › Nome do usuário</a>,
+              <a href="configuracoes.html#geral-empresa">Empresa</a>,
+              <a href="configuracoes.html#geral-time">Time</a> e
+              <a href="configuracoes.html#geral-email">E-mail</a>: aparecem nos dados técnicos.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#reportar-problema">Reportar problema ou sugerir</a> e
+              <a href="#logs-do-aplicativo">Logs do aplicativo</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="relato-sem-conexao">
+          <h2>Relato sem conexão</h2>
+          <p>
+            Sem internet ou com o suporte fora do ar, o relato não se perde: fica guardado no
+            computador, até 20 deles, e é enviado sozinho na próxima abertura do HUB SNK, sem chegar
+            em dobro. Um relato que o suporte recusa de vez não fica na fila: a janela mostra o
+            motivo.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Envie o relato normalmente. Sem conexão, a janela avisa
+              <strong
+                >Sem conexão com o suporte agora. O relato ficou guardado e será enviado na próxima
+                abertura do HUB SNK.</strong
+              >
+              <figure>
+                <img
+                  src="img/suporte/sem-conexao-01.webp"
+                  alt="Aviso de relato guardado para envio na próxima abertura"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#reportar-problema">Reportar problema ou sugerir</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="versao-instalada">
+          <h2>Versão instalada e versão nova</h2>
+          <p>
+            A aba Sobre mostra a versão instalada, útil para citar num relato. Ao abrir o Painel, o
+            HUB SNK consulta a última versão publicada no GitHub; havendo uma mais nova, aparece o
+            link <strong>X disponível</strong> ao lado, e o sino recebe uma notificação
+            <strong>Versão X disponível</strong>, uma vez por versão.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as <strong>Configurações</strong>, aba <strong>Sobre</strong>. Em
+              <strong>Versão</strong>, <strong>HUB SNK vX.Y.Z</strong> leva ao repositório no GitHub
+              e <strong>X disponível</strong>, quando existe, à página da versão nova.
+              <figure>
+                <img
+                  src="img/suporte/versao-01-sobre.webp"
+                  alt="Bloco Versão com a versão instalada e o link da versão disponível destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na página da versão, no GitHub, estão as novidades e os instaladores.
+              <!-- print-pendente: terceiros: página da release no GitHub -->
+            </li>
+          </ol>
+          <p class="nota">
+            No aplicativo, a versão nova é baixada sozinha e instalada ao reiniciar. A versão
+            instalada também aparece no menu ☰, em Ajuda.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sobre-versao">Configurações › Sobre › Versão</a>
+            </li>
+            <li>
+              <a href="configuracoes.html#outras-atualizar-automaticamente"
+                >☰ › Ajuda › Atualizar automaticamente</a
+              >: decide se a versão nova é baixada sozinha.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="primeiros-passos.html#atualizacao-automatica">Atualizar o HUB SNK</a>
+            </li>
+            <li>
+              O mesmo aviso aparece no <a href="resumo-do-dia.html#versao-nova">Resumo do dia</a> e
+              no <a href="lembretes-e-notificacoes.html#painel-de-notificacoes">sino</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="logs-do-aplicativo">
+          <h2>Logs do aplicativo</h2>
+          <p>
+            O aplicativo grava dois logs: o <code>desktop.log</code>, da janela e das guias, e o
+            <code>backend.log</code>, do servidor por trás do Painel. Ficam em
+            <code>%APPDATA%\HUB SNK\log</code> no Windows e em <code>~/.config/HUB SNK/log</code> no
+            Linux. Passando de 5 MB, o log vira <code>.1</code> na abertura seguinte, e ficam os
+            três anteriores. O relato de problema anexa o final dos dois.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No Windows, aperte <kbd>Win</kbd>+<kbd>R</kbd>, digite
+              <code>%APPDATA%\HUB SNK\log</code> e aperte <kbd>Enter</kbd>. A pasta abre no
+              Explorador de arquivos.
+              <!-- print-pendente: sistema: Explorador de arquivos na pasta de log -->
+            </li>
+          </ol>
+          <p class="nota">
+            O <code>desktop.log</code> já é gravado sem senhas e tokens; o
+            <code>backend.log</code> não. Antes de mandar um log por outro caminho que não o relato,
+            confira o que vai nele.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Vão no <a href="#reportar-problema">relato de problema</a>, mascarados, como mostra
+              <a href="#ver-o-que-sera-enviado">Ver o que será enviado</a>.
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

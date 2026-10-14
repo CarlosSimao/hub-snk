@@ -1,0 +1,965 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Git AutoSync · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como instalar e usar o Git AutoSync pelo HUB SNK: commit e push automáticos, horários, mensagem com IA, política e como resolver falhas, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Git AutoSync</h1>
+        <p class="introducao">
+          O Git AutoSync faz commit e push dos seus repositórios sozinho, nos horários que você
+          escolher. É uma ferramenta à parte, com licença e repositório próprios; o HUB SNK instala,
+          configura e mostra o que ela fez. Só existe no Windows: em outro sistema, a aba e a seção
+          do cliente não aparecem.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#visao-geral">Aba Git AutoSync</a></li>
+            <li><a href="#instalar">Instalar o Git AutoSync</a></li>
+            <li><a href="#estado-e-bandeja">Estado e ícone na bandeja</a></li>
+            <li><a href="#horarios-e-agendamento">Horários e agendamento</a></li>
+            <li><a href="#rodar-agora">Rodar agora</a></li>
+            <li><a href="#mensagem-com-ia">Mensagem do commit com IA</a></li>
+            <li><a href="#repositorios-e-pastas">Repositórios e pastas-raiz</a></li>
+            <li><a href="#commit-push-e-sincronizar">Commit, push e sincronizar</a></li>
+            <li><a href="#merge-request">Merge Request no GitLab</a></li>
+            <li><a href="#historico">Histórico de commits</a></li>
+            <li><a href="#politica">Política do repositório</a></li>
+            <li><a href="#como-resolver">Como resolver uma falha</a></li>
+            <li><a href="#log">Log do AutoSync</a></li>
+            <li><a href="#aba-git-do-cliente">AutoSync na aba Git do cliente</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="visao-geral">
+          <h2>Aba Git AutoSync</h2>
+          <p>
+            A aba tem cinco seções: Estado, Quando roda, Mensagem do commit, Repositórios e o log.
+            No cabeçalho ficam a hora da última leitura, o botão de informação (Sobre), o de
+            atualizar e a engrenagem do <a href="#merge-request">token do GitLab</a>. O HUB SNK
+            nunca edita os arquivos do Git AutoSync: toda mudança feita aqui é um comando dele.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No topo do Painel, clique em <strong>Git AutoSync</strong>.
+              <figure>
+                <img
+                  src="img/git-autosync/visao-geral-01-aba.webp"
+                  alt="Topo do Painel com a aba Git AutoSync destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O cabeçalho diz <strong>Atualizado às</strong> e a hora; as setas circulares
+              (<strong>Atualizar</strong>) leem tudo de novo.
+              <figure>
+                <img
+                  src="img/git-autosync/visao-geral-02-tela.webp"
+                  alt="Aba Git AutoSync com a hora da leitura e o botão Atualizar destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O botão de informação (<strong>Sobre o Git AutoSync</strong>) explica o que é a
+              ferramenta. <strong>Abrir o repositório</strong> leva à página dela no GitHub.
+              <figure>
+                <img
+                  src="img/git-autosync/visao-geral-03-sobre.webp"
+                  alt="Janela Sobre o Git AutoSync com o botão Abrir o repositório destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: terceiros: GitHub FlavianoRS/git-autosync -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-git-autosync"
+                >Configurações › Acessos › Menu principal › Git AutoSync</a
+              >: desmarcado, a aba some do topo.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-perfil">Configurações › Acessos › Perfil</a>: os
+              perfis Consultor, Analista e Gerente de Projetos já vêm com o Git AutoSync oculto.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#instalar">Instalar o Git AutoSync</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="instalar">
+          <h2>Instalar o Git AutoSync</h2>
+          <p>
+            Sem o Git AutoSync, a aba mostra as mesmas seções, acinzentadas e sem clique, e o botão
+            <strong>Instalar o Git AutoSync</strong>. A instalação baixa a versão mais recente da
+            página de releases do Git AutoSync no GitHub e instala em
+            <code>%USERPROFILE%\.git-autosync</code>. O Git precisa estar instalado antes.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na aba <strong>Git AutoSync</strong>, clique em
+              <strong>Instalar o Git AutoSync</strong>.
+              <figure>
+                <img
+                  src="img/git-autosync/instalar-01-previa.webp"
+                  alt="Aba Git AutoSync sem a ferramenta, com o botão Instalar o Git AutoSync destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Se o Git não for encontrado, a janela <strong>O Git não está instalado</strong> manda
+              baixá-lo em git-scm.com. Instale e clique em <strong>Verificar de novo</strong>. Se o
+              Git já estava instalado e não foi achado, reinicie o HUB SNK.
+              <figure>
+                <img
+                  src="img/git-autosync/instalar-02-sem-git.webp"
+                  alt="Janela O Git não está instalado com o botão Verificar de novo destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: terceiros: página de download do git-scm.com -->
+            </li>
+            <li>
+              Na janela <strong>Instalar o Git AutoSync</strong>, escolha o
+              <strong>Horário da rodada automática</strong> (vem 17:30) e marque o que quiser:
+              <strong>Ícone na bandeja ao entrar no Windows</strong>,
+              <strong>Atalhos na área de trabalho e no menu Iniciar</strong> (vem marcado),
+              <strong>Skill para Claude Code e Codex</strong> e
+              <strong>Adicionar ao PATH do usuário</strong>.
+              <figure>
+                <img
+                  src="img/git-autosync/instalar-03-opcoes.webp"
+                  alt="Janela Instalar o Git AutoSync com as opções destacadas"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Instalar</strong>. O aviso <strong>Git AutoSync instalado.</strong>
+              confirma e a aba passa a funcionar.
+              <figure>
+                <img
+                  src="img/git-autosync/instalar-04-instalado.webp"
+                  alt="Aba Git AutoSync instalada, com o aviso Git AutoSync instalado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Instalado pelo HUB SNK, o Git AutoSync pode sair junto quando você
+            <a href="primeiros-passos.html#desinstalar">desinstalar o HUB SNK</a>. Instalado por
+            fora, ele nunca é removido.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>Git instalado na máquina e acesso ao GitHub para baixar a versão.</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="estado-e-bandeja">
+          <h2>Estado e ícone na bandeja</h2>
+          <p>
+            A seção <strong>Estado</strong> mostra a versão instalada, a
+            <strong>Última rodada geral</strong> e cada tarefa do Agendador do Windows, com a
+            próxima execução e o último resultado. Horário configurado sem tarefa aparece em
+            vermelho como <strong>Horário configurado, tarefa não instalada</strong>, com o botão
+            <strong>Criar tarefa</strong>. Ali também se decide se o ícone do Git AutoSync abre
+            junto com o login.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Confira a versão, a última rodada e a tarefa agendada na seção
+              <strong>Estado</strong>.
+              <figure>
+                <img
+                  src="img/git-autosync/estado-e-bandeja-01-estado.webp"
+                  alt="Seção Estado destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Ligar bandeja</strong> e confirme em <strong>Ligar</strong>. Se já
+              houver um ícone do Git AutoSync aberto, ele abre outro: feche o antigo.
+              <figure>
+                <img
+                  src="img/git-autosync/estado-e-bandeja-02-confirmar.webp"
+                  alt="Janela Ligar a bandeja com o botão Ligar destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O botão vira <strong>Desligar bandeja</strong>, que desliga sem perguntar.
+              <figure>
+                <img
+                  src="img/git-autosync/estado-e-bandeja-03-ligada.webp"
+                  alt="Botão Desligar bandeja destacado depois de ligar"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: sistema: ícone do Git AutoSync na bandeja do Windows -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#instalar">Instalar o Git AutoSync</a></li>
+            <li>
+              <a href="#horarios-e-agendamento">Desativar o agendamento</a> também desliga a bandeja
+              no login.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="horarios-e-agendamento">
+          <h2>Horários e agendamento</h2>
+          <p>
+            A rodada automática roda de 1 a 6 vezes por dia, nos mesmos horários todo dia. Salvar os
+            horários reinstala a tarefa do Agendador junto.
+            <strong>Desativar agendamento</strong> tira a tarefa do Agendador e a bandeja do login,
+            mas mantém os horários e os repositórios; <strong>Ativar agendamento</strong> põe a
+            tarefa de volta.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na seção <strong>Quando roda</strong>, escolha a hora no campo e clique em
+              <strong>Incluir</strong>. O <strong>✕</strong> de cada horário o tira da lista.
+              <figure>
+                <img
+                  src="img/git-autosync/horarios-e-agendamento-01-incluir.webp"
+                  alt="Horários 12:30 e 17:30 na edição destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Salvar horários</strong>, que só se habilita com mudança e ao menos
+              um horário. A próxima execução da tarefa já reflete os horários novos.
+              <figure>
+                <img
+                  src="img/git-autosync/horarios-e-agendamento-02-salvar.webp"
+                  alt="Horários salvos, com a próxima execução da tarefa atualizada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para parar a rodada automática, clique em <strong>Desativar agendamento</strong> e
+              confirme em <strong>Desativar</strong>.
+              <figure>
+                <img
+                  src="img/git-autosync/horarios-e-agendamento-03-desativar.webp"
+                  alt="Janela Desativar o agendamento com o botão Desativar destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#estado-e-bandeja">Estado</a>, onde aparece a tarefa agendada.</li>
+            <li>
+              A rodada passa pelos <a href="#repositorios-e-pastas">repositórios ativos</a>, com a
+              <a href="#mensagem-com-ia">mensagem do commit</a> escolhida.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="rodar-agora">
+          <h2>Rodar agora</h2>
+          <p>
+            Faz na hora o que a rodada automática faria: commit e push em todos os repositórios
+            ativos, com a mensagem que o Git AutoSync escrever. Pode levar alguns minutos.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na seção <strong>Quando roda</strong>, clique em <strong>Rodar agora</strong> e
+              confirme em <strong>Rodar agora</strong>.
+              <figure>
+                <img
+                  src="img/git-autosync/rodar-agora-01-confirmar.webp"
+                  alt="Janela Rodar agora com o botão de confirmação destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Ao terminar, um aviso traz o resultado, e a lista de repositórios mostra o último
+              resultado de cada um.
+              <figure>
+                <img
+                  src="img/git-autosync/rodar-agora-02-concluido.webp"
+                  alt="Aviso de conclusão da rodada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#repositorios-e-pastas">Repositórios e pastas-raiz</a></li>
+            <li><a href="#mensagem-com-ia">Mensagem do commit com IA</a></li>
+            <li>Se algum falhar, veja <a href="#como-resolver">Como resolver uma falha</a>.</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="mensagem-com-ia">
+          <h2>Mensagem do commit com IA</h2>
+          <p>
+            Desligada, o commit sai com a mensagem fixa
+            <code>chore: auto-commit AAAA-MM-DD HH:MM</code> e nada sai da máquina. Ligada, o diff
+            das alterações vai para o agente escolhido, que escreve a mensagem: Automático (o
+            primeiro instalado), Claude, Codex ou OpenCode. Se o agente falhar, vale a mensagem
+            fixa.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na seção <strong>Mensagem do commit</strong>, marque
+              <strong>Escrever a mensagem com IA</strong> e confirme em <strong>Ligar</strong>.
+              <figure>
+                <img
+                  src="img/git-autosync/mensagem-com-ia-01-confirmar.webp"
+                  alt="Janela Escrever a mensagem com IA com o botão Ligar destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Escolha o agente na lista ao lado. Desmarcar a caixa desliga sem perguntar.
+              <figure>
+                <img
+                  src="img/git-autosync/mensagem-com-ia-02-agente.webp"
+                  alt="Lista de agentes de IA destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Se o Git AutoSync tiver um agente fixado só para a rodada agendada, a seção avisa qual.
+            O agente precisa estar instalado na máquina.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Cada repositório pode ligar ou desligar a IA só para ele, na
+              <a href="#politica">política do repositório</a>.
+            </li>
+            <li>
+              Vale para <a href="#commit-push-e-sincronizar">Commit e Sincronizar</a> com a mensagem
+              em branco e para o <a href="#rodar-agora">Rodar agora</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="repositorios-e-pastas">
+          <h2>Repositórios e pastas-raiz</h2>
+          <p>
+            A seção <strong>Repositórios</strong> lista o que o Git AutoSync acompanha. Cada linha
+            diz de onde o repositório vem (<strong>Ativo</strong>, <strong>Desligado</strong>,
+            <strong>Ativo pela pasta</strong> ou <strong>Excluído da pasta</strong>), de que cliente
+            é e o último resultado, com a hora do último push ao passar o mouse. Uma pasta-raiz
+            cobre todas as subpastas diretas que são repositório, inclusive as clonadas depois.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              <strong>Adicionar todos os repositórios dos clientes</strong> põe, um a um, os
+              repositórios de clientes com pasta local que estão fora; um aviso resume quantos
+              entraram. Quando 3 ou mais desses repositórios estão na mesma pasta, aparece a
+              sugestão de cadastrá-la como pasta-raiz, com <strong>Cadastrar a pasta</strong>.
+              <figure>
+                <img
+                  src="img/git-autosync/repositorios-e-pastas-01-lista.webp"
+                  alt="Botão Adicionar todos os repositórios dos clientes e a sugestão Cadastrar a pasta destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A linha da pasta-raiz diz quantos repositórios ela cobre e quantos estão ativos.
+              <strong>Tirar a pasta</strong> tira todos da rodada automática, depois de confirmar;
+              os repositórios e o histórico ficam.
+              <figure>
+                <img
+                  src="img/git-autosync/repositorios-e-pastas-02-raiz.webp"
+                  alt="Linha da pasta-raiz com o botão Tirar a pasta destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Em cada repositório, os botões de baixo abrem o
+              <a href="#historico">histórico</a> e a <a href="#politica">política</a>.
+              <strong>Desativar</strong> tira o repositório da rodada automática;
+              <strong>Ativar</strong> põe de volta.
+              <figure>
+                <img
+                  src="img/git-autosync/repositorios-e-pastas-03-linha.webp"
+                  alt="Selos e botões de um repositório destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Pasta-raiz pega também repositório que você não queria sincronizar: desative esse, e ele
+            fica como Excluído da pasta. O Git AutoSync commita tudo o que não está no
+            <code>.gitignore</code>; revise a política de cada repositório que entrar.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="repositorios-git.html#cadastrar-repositorio">Repositórios dos clientes</a>
+              com caminho local.
+            </li>
+            <li><a href="#aba-git-do-cliente">AutoSync na aba Git do cliente</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="commit-push-e-sincronizar">
+          <h2>Commit, push e sincronizar</h2>
+          <p>
+            Quatro botões em cada repositório, na aba Git AutoSync e na aba Git do cliente.
+            <strong>Commit</strong> grava as alterações fora do <code>.gitignore</code>, sem enviar.
+            <strong>Push</strong> envia o que já foi commitado. <strong>Sincronizar</strong> faz os
+            dois. O Git AutoSync recusa o commit inteiro com arquivo sensível, arquivo acima do
+            tamanho máximo, segredo no conteúdo, branch fora da política, HEAD destacado, operação
+            pela metade ou conflito.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do repositório, clique em <strong>Commit</strong>, <strong>Push</strong> ou
+              <strong>Sincronizar</strong>. Enquanto a ação roda, a linha diz o que está em
+              andamento.
+              <figure>
+                <img
+                  src="img/git-autosync/commit-push-e-sincronizar-01-botoes.webp"
+                  alt="Botões Commit, Push, Sincronizar e Merge Request destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              No Commit, escreva a <strong>Mensagem do commit</strong> ou deixe em branco para o Git
+              AutoSync escrever. <strong>Gerar prévia</strong> mostra a mensagem que ele usaria, sem
+              gravar nada; sem alteração, avisa que não há o que commitar.
+              <figure>
+                <img
+                  src="img/git-autosync/commit-push-e-sincronizar-02-previa.webp"
+                  alt="Janela Commit com a prévia da mensagem"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Commit</strong>. Um aviso traz o resultado e o selo do último
+              resultado é atualizado.
+              <figure>
+                <img
+                  src="img/git-autosync/commit-push-e-sincronizar-03-commit.webp"
+                  alt="Último resultado commit feito, push pendente, com o aviso de conclusão"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O <strong>Sincronizar</strong> abre a mesma janela e faz commit e push. O
+              <strong>Push</strong> não tem janela: envia direto.
+              <figure>
+                <img
+                  src="img/git-autosync/commit-push-e-sincronizar-04-sincronizar.webp"
+                  alt="Janela Sincronizar"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#mensagem-com-ia">Mensagem do commit com IA</a></li>
+            <li><a href="#politica">Política do repositório</a></li>
+            <li>Se falhar, veja <a href="#como-resolver">Como resolver uma falha</a>.</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="merge-request">
+          <h2>Merge Request no GitLab</h2>
+          <p>
+            Cria o Merge Request do repositório no GitLab. Só funciona com GitLab, e o host e o
+            token ficam na engrenagem da aba Git AutoSync, gravados nas variáveis de ambiente do seu
+            usuário do Windows, não no arquivo de dados do HUB SNK.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do repositório, clique em <strong>Merge Request</strong>. Todos os campos são
+              opcionais: em branco, o <strong>Título</strong> vira origem → destino, a
+              <strong>Branch de destino</strong> é a padrão do Git AutoSync e a
+              <strong>Branch de origem</strong> é a atual. Clique em
+              <strong>Criar Merge Request</strong>.
+              <figure>
+                <img
+                  src="img/git-autosync/merge-request-01-formulario.webp"
+                  alt="Janela Merge Request preenchida"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: terceiros: Merge Request criado no GitLab -->
+            </li>
+            <li>
+              Para informar o token, clique na engrenagem do cabeçalho (<strong
+                >Configurações do Git AutoSync</strong
+              >).
+              <figure>
+                <img
+                  src="img/git-autosync/merge-request-02-engrenagem.webp"
+                  alt="Engrenagem Configurações do Git AutoSync destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Preencha o <strong>Host do GitLab</strong>, sem protocolo, e o <strong>Token</strong>,
+              um Personal Access Token com escopo api. Clique em <strong>Salvar</strong>. O token
+              gravado nunca volta à tela: deixe o campo em branco para manter o atual, ou use
+              <strong>Remover token</strong>.
+              <figure>
+                <img
+                  src="img/git-autosync/merge-request-03-token.webp"
+                  alt="Janela Configurações do Git AutoSync com o host e o token do GitLab"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: terceiros: criação do Personal Access Token no GitLab -->
+            </li>
+          </ol>
+          <p class="nota">
+            O host precisa ser o mesmo do remoto do repositório. A bandeja do Git AutoSync já aberta
+            só enxerga o token novo depois de reaberta.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#outras-gitlab"
+                >Engrenagem da aba Git AutoSync › Host do GitLab e Token</a
+              >
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#repositorios-e-pastas">Repositório no Git AutoSync</a> com remoto no GitLab
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="historico">
+          <h2>Histórico de commits</h2>
+          <p>Mostra os últimos 20 commits do repositório, com o hash curto, a data e a mensagem.</p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do repositório, clique no botão de documento (<strong
+                >Histórico de commits</strong
+              >). <strong>Fechar</strong> fecha a janela.
+              <figure>
+                <img
+                  src="img/git-autosync/historico-01-lista.webp"
+                  alt="Janela Histórico de commits com a lista destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#repositorios-e-pastas">Repositórios e pastas-raiz</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="politica">
+          <h2>Política do repositório</h2>
+          <p>
+            Regras de cada repositório: <strong>Só estes arquivos</strong> (arquivo fora da lista
+            bloqueia o commit inteiro, não é ignorado), <strong>Arquivos proibidos</strong>,
+            <strong>Branches permitidas</strong>,
+            <strong>Tamanho máximo por arquivo, em bytes</strong> (padrão de 5 MB) e
+            <strong>Mensagem por IA</strong> (igual à configuração geral, ligada ou desligada neste
+            repositório). As listas levam um padrão por linha.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do repositório, clique na engrenagem (<strong>Política do repositório</strong
+              >), ajuste os campos e clique em <strong>Salvar</strong>. O aviso
+              <strong>Política gravada.</strong> confirma.
+              <figure>
+                <img
+                  src="img/git-autosync/politica-01-formulario.webp"
+                  alt="Janela Política do repositório com os campos destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Só o que mudou é gravado. O Git AutoSync ainda não permite esvaziar uma lista já
+            gravada: deixe ao menos um padrão.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Vale para <a href="#commit-push-e-sincronizar">Commit e Sincronizar</a> e para o
+              <a href="#rodar-agora">Rodar agora</a>.
+            </li>
+            <li>
+              Também abre pelo bloco <a href="#como-resolver">Como resolver</a>, quando a falha foi
+              de arquivo ou branch fora da política.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="como-resolver">
+          <h2>Como resolver uma falha</h2>
+          <p>
+            Quando uma ação falha, a linha do repositório ganha o bloco
+            <strong>Como resolver</strong>: a explicação e os comandos que resolvem, para copiar. O
+            HUB SNK reconhece push rejeitado, branch sem upstream, remoto à frente, falta do token
+            do GitLab, remoto inacessível, credencial recusada, HEAD destacado, operação ou conflito
+            pendente, branch ou arquivo fora da política e branch sem remoto de push. Nada é
+            executado pela tela: quem roda os comandos é você, no terminal.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Leia a explicação e use <strong>Copiar comando</strong> em cada comando, na ordem.
+              <strong>Abrir terminal na pasta</strong> abre o terminal já no repositório. Conforme o
+              erro, aparecem também <strong>Configurar o GitLab</strong> e
+              <strong>Política do repositório</strong>.
+              <figure>
+                <img
+                  src="img/git-autosync/como-resolver-01-bloco.webp"
+                  alt="Bloco Como resolver de um push rejeitado destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: sistema: terminal aberto na pasta do repositório -->
+            </li>
+            <li>
+              Em <strong>Saída completa do Git AutoSync</strong> está o texto original do erro.
+              Resolvido, clique em <strong>Dispensar</strong>; a próxima ação que der certo também
+              tira o bloco.
+              <figure>
+                <img
+                  src="img/git-autosync/como-resolver-02-saida.webp"
+                  alt="Saída completa do Git AutoSync aberta e o botão Dispensar destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Erro que o HUB SNK não reconhece mostra só a saída completa, para você resolver pelo
+            terminal. O texto da sugestão de falta do token cita “Configurações › Git”; o lugar
+            certo é a engrenagem da aba Git AutoSync, para onde o botão
+            <strong>Configurar o GitLab</strong> já leva.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-script-padrao"
+                >Configurações › Geral › Script padrão</a
+              >: roda no terminal aberto pelo bloco.
+            </li>
+            <li>
+              <a href="configuracoes.html#outras-gitlab"
+                >Engrenagem da aba Git AutoSync › Host do GitLab e Token</a
+              >
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#commit-push-e-sincronizar">Commit, push e sincronizar</a></li>
+            <li>
+              <a href="#merge-request">Token do GitLab</a> e
+              <a href="#politica">política do repositório</a>
+            </li>
+            <li>
+              <a href="repositorios-git.html#abrir-pasta-terminal-ou-ide">Terminal na pasta</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="log">
+          <h2>Log do AutoSync</h2>
+          <p>
+            As últimas 200 linhas do log do Git AutoSync, com o que cada rodada fez em cada
+            repositório. O log é lido ao abrir o grupo.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No fim da aba, clique em
+              <strong>Log do Git AutoSync (últimas 200 linhas)</strong>.
+              <strong>Atualizar o log</strong> lê de novo.
+              <figure>
+                <img
+                  src="img/git-autosync/log-01-linhas.webp"
+                  alt="Grupo Log do Git AutoSync aberto com as linhas destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#visao-geral">Aba Git AutoSync</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="aba-git-do-cliente">
+          <h2>AutoSync na aba Git do cliente</h2>
+          <p>
+            No fim da aba Git do cliente, a seção <strong>AutoSync</strong> lista os repositórios
+            dele com pasta local e onde cada um está: <strong>Fora do Git AutoSync</strong>,
+            <strong>No Git AutoSync</strong> (ou pela pasta-raiz),
+            <strong>Excluído da pasta</strong>, <strong>Desligado no Git AutoSync</strong>,
+            <strong>A pasta não existe</strong> ou
+            <strong>A pasta não é um repositório Git</strong>. Cadastrar ou excluir o repositório no
+            cliente não mexe no Git AutoSync: entrar e sair é sempre por aqui ou pela aba Git
+            AutoSync.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na aba <strong>Git</strong> do cliente, desça até <strong>AutoSync</strong> e clique
+              em <strong>Adicionar ao Git AutoSync</strong>. Repositório excluído ou desligado
+              mostra <strong>Reativar no Git AutoSync</strong>.
+              <figure>
+                <img
+                  src="img/git-autosync/aba-git-do-cliente-01-secao.webp"
+                  alt="Seção AutoSync do cliente com o botão Adicionar ao Git AutoSync destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O selo passa a <strong>No Git AutoSync</strong> e o botão vira
+              <strong>Tirar do Git AutoSync</strong>. As setas da seção (<strong
+                >Atualizar o Git AutoSync</strong
+              >) leem de novo.
+              <figure>
+                <img
+                  src="img/git-autosync/aba-git-do-cliente-02-adicionado.webp"
+                  alt="Selo No Git AutoSync destacado depois de adicionar"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Sem o Git AutoSync instalado, a seção avisa e manda instalar pela aba Git AutoSync.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-autosync"
+                >Configurações › Acessos › Cadastro do cliente › AutoSync (na aba Git)</a
+              >: desmarcado, a seção some.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-git"
+                >Configurações › Acessos › Cadastro do cliente › Git</a
+              >: sem a aba Git, a seção some junto.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="repositorios-git.html#cadastrar-repositorio">Cadastrar repositório</a> com
+              caminho local
+            </li>
+            <li><a href="#instalar">Instalar o Git AutoSync</a></li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

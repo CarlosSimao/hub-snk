@@ -12,7 +12,7 @@
  * janela na tela.
  */
 import { _electron } from 'playwright-core';
-import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,7 +21,20 @@ import { prepararDados } from './preparar-dados.mjs';
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const RAIZ_DO_REPOSITORIO = resolve(AQUI, '..', '..');
 const PASTA_DAS_IMAGENS = join(RAIZ_DO_REPOSITORIO, 'site', 'wiki', 'img');
-const RAIZ_DA_CAPTURA = join(tmpdir(), 'hub-snk-captura');
+const VERSAO_DO_HUB = JSON.parse(
+  readFileSync(join(RAIZ_DO_REPOSITORIO, 'package.json'), 'utf8'),
+).version;
+/**
+ * `CAPTURA_INSTANCIA` (0 por padrão) separa portas e pastas, para mais de uma captura rodar
+ * ao mesmo tempo na máquina — cada uma com o seu Electron, o seu backend e os seus dados.
+ */
+const INSTANCIA = Number(process.env['CAPTURA_INSTANCIA'] ?? 0);
+const RAIZ_DA_CAPTURA = join(tmpdir(), `hub-snk-captura-${INSTANCIA}`);
+// No Windows, uma pasta de nome neutro na raiz do disco (veja `prepararDados`).
+const PASTA_DOS_REPOSITORIOS =
+  process.platform === 'win32'
+    ? join('C:\\', `Workspace-demo${INSTANCIA ? `-${INSTANCIA}` : ''}`)
+    : join(RAIZ_DA_CAPTURA, 'Workspace');
 const ELECTRON = join(
   RAIZ_DO_REPOSITORIO,
   'desktop',
@@ -32,8 +45,12 @@ const ELECTRON = join(
 );
 
 // Portas fora das do HUB SNK instalado (4100 e 4103), para os dois conviverem.
-const PORTA_DO_PAINEL = 4120;
-const PORTA_DA_PONTE = 4123;
+const PORTA_DO_PAINEL = 4120 + INSTANCIA * 10;
+const PORTA_DA_PONTE = 4123 + INSTANCIA * 10;
+// A 4190 (sieve) está na lista de portas que o Chromium recusa: o painel nunca abriria.
+if (PORTA_DO_PAINEL === 4190) {
+  throw new Error('CAPTURA_INSTANCIA=7 cai na porta 4190, bloqueada pelo Chromium: use outra.');
+}
 const QUALIDADE_WEBP = 0.85;
 const ESPERA_DO_PAINEL_MS = 30_000;
 // Área da janela fixa, a do aplicativo aberto pela primeira vez (1280x860 com a borda): sem
@@ -62,8 +79,13 @@ const TEMAS = [
 ];
 const CHAVE_DO_TEMA_NO_PAINEL = 'hub-snk:tema';
 
-async function abrirAplicativo(tema) {
-  const pastaDeDados = prepararDados(RAIZ_DA_CAPTURA);
+/**
+ * Cada roteiro pode exportar `semear(pastaDeDados)`, que grava na pasta de dados fictícia
+ * o que só a página dele usa (lembretes, kanban, base local...), antes de o aplicativo abrir.
+ */
+async function abrirAplicativo(tema, roteiros) {
+  const pastaDeDados = prepararDados(RAIZ_DA_CAPTURA, PASTA_DOS_REPOSITORIOS);
+  for (const { semear } of roteiros) await semear?.(pastaDeDados);
   const aplicativo = await _electron.launch({
     executablePath: ELECTRON,
     args: [
@@ -107,6 +129,19 @@ async function abrirAplicativo(tema) {
     .find((p) => p.url().startsWith('file:'));
   await painel.route('**/api/clientes/*/bases/*/situacao', (rota) =>
     rota.fulfill({ json: respostaDeBaseOperacional() }),
+  );
+  // Sem versão nova: a consulta real ao GitHub poria uma notificação no sino conforme o dia
+  // da captura. O roteiro que quiser mostrar a versão nova registra a própria rota, que vale
+  // por cima desta.
+  await painel.route('**/api/sistema/atualizacao', (rota) =>
+    rota.fulfill({
+      json: {
+        versaoInstalada: VERSAO_DO_HUB,
+        ultimaVersao: VERSAO_DO_HUB,
+        atualizacaoDisponivel: false,
+        url: null,
+      },
+    }),
   );
   await painel.waitForSelector('#btn-visualizacao-clientes');
   await painel.evaluate(
@@ -165,8 +200,9 @@ async function comporWebp(moldura, { largura, altura, camadas }) {
 }
 
 /**
- * Contorno chamativo em volta do que o passo manda clicar. Vai para dentro do `<dialog>`
- * aberto quando o alvo está num: fora dele, ficaria atrás do fundo escurecido do modal.
+ * Contorno chamativo em volta do que o passo manda clicar. Vai para dentro do `<dialog>` ou
+ * do popover (os avisos) aberto quando o alvo está num: fora dele, ficaria atrás do fundo
+ * escurecido do modal ou do próprio aviso, que estão na camada de cima da tela.
  */
 async function destacar(painel, alvo) {
   const localizador = typeof alvo === 'string' ? painel.locator(alvo).first() : alvo;
@@ -187,7 +223,7 @@ async function destacar(painel, alvo) {
       pointerEvents: 'none',
       zIndex: '2147483647',
     });
-    (alvo.closest('dialog[open]') ?? document.body).append(marca);
+    (alvo.closest('dialog[open], :popover-open') ?? document.body).append(marca);
   });
 }
 
@@ -224,18 +260,19 @@ async function main() {
     ? pedidas
     : readdirSync(join(AQUI, 'roteiros')).map((arquivo) => arquivo.replace(/\.mjs$/, ''));
 
-  // Um aplicativo novo por tema: os roteiros mudam o cadastro, e cada tema precisa partir
-  // dos mesmos dados para os dois prints mostrarem a mesma coisa.
-  for (const { tema, sufixo } of TEMAS) {
-    const { aplicativo, painel, moldura } = await abrirAplicativo(tema);
-    try {
-      for (const macro of macros) {
-        console.log(`${macro} (${tema})`);
-        const { roteiro } = await import(`./roteiros/${macro}.mjs`);
-        await roteiro(criarContexto(aplicativo, painel, moldura, macro, sufixo));
+  // Um aplicativo novo por página e por tema: os roteiros mudam o cadastro, e cada um precisa
+  // partir dos mesmos dados — para os dois temas mostrarem a mesma coisa e para uma página
+  // não depender do que a anterior deixou na tela.
+  for (const macro of macros) {
+    const modulo = await import(`./roteiros/${macro}.mjs`);
+    for (const { tema, sufixo } of TEMAS) {
+      console.log(`${macro} (${tema})`);
+      const { aplicativo, painel, moldura } = await abrirAplicativo(tema, [modulo]);
+      try {
+        await modulo.roteiro(criarContexto(aplicativo, painel, moldura, macro, sufixo));
+      } finally {
+        await aplicativo.close();
       }
-    } finally {
-      await aplicativo.close();
     }
   }
 }

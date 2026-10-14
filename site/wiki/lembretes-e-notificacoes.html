@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lembretes e notificações · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como usar o sino de notificações, cadastrar lembretes, receber por e-mail e configurar o SMTP e o alerta da agenda no HUB SNK."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Lembretes e notificações</h1>
+        <p class="introducao">
+          Tudo o que o HUB SNK tem a avisar chega ao sino do topo: os lembretes que você cadastra, o
+          alerta de agenda sem tarefa na Experience e os avisos do próprio aplicativo. Os lembretes
+          podem sair também por e-mail, pelo servidor SMTP que você configura.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#painel-de-notificacoes">Sino e painel de notificações</a></li>
+            <li><a href="#marcar-como-lida-e-limpar">Marcar como lida e limpar</a></li>
+            <li><a href="#aviso-do-windows">Aviso do Windows</a></li>
+            <li><a href="#lista-de-lembretes">Lista de lembretes</a></li>
+            <li><a href="#criar-lembrete">Criar lembrete</a></li>
+            <li><a href="#recorrente">Lembrete recorrente</a></li>
+            <li><a href="#enviar-por-email">Enviar o lembrete por e-mail</a></li>
+            <li><a href="#contatos-em-copia">Contatos em cópia</a></li>
+            <li><a href="#editar-desligar-e-excluir">Editar, desligar e excluir lembrete</a></li>
+            <li><a href="#disparo">Quando o lembrete dispara</a></li>
+            <li><a href="#servidor-de-email">Configurar o e-mail (SMTP)</a></li>
+            <li><a href="#alerta-da-agenda">Alerta "Agenda sem tarefa na Experience"</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="painel-de-notificacoes">
+          <h2>Sino e painel de notificações</h2>
+          <p>
+            O sino no topo do Painel abre, à direita, a lista das notificações, das mais recentes
+            para as mais antigas. Cada uma traz a etiqueta de origem (<strong>padrão</strong> para
+            lembretes, <strong>OS</strong> para o alerta da agenda e
+            <strong>atualização</strong> para versão nova do HUB SNK), a data e a hora, o título em
+            destaque e a mensagem. As notificações chegam na hora, sem recarregar a página: o
+            contador sobe e um som curto toca. O som não tem ajuste.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Com notificação não lida, o sino mostra quantas são (acima de 99, "99+") e pisca até
+              você abrir o painel. Clique no sino.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/painel-de-notificacoes-01-sino.webp"
+                  alt="Sino do topo destacado, com o contador de não lidas"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Leia as notificações no painel <strong>Notificações</strong>. Feche pelo
+              <strong>✕</strong>, com um clique fora dele ou com <kbd>Esc</kbd>. Sem nenhuma, o
+              painel diz <strong>Nenhuma notificação.</strong>
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/painel-de-notificacoes-02-lista.webp"
+                  alt="Painel Notificações aberto com lembretes e o alerta da agenda"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              O que chega: <a href="#disparo">lembretes</a>,
+              <a href="#alerta-da-agenda">alerta da agenda</a>,
+              <a href="backup.html#falha-no-backup">falha no backup</a> e
+              <a href="suporte.html#versao-instalada">versão nova</a>.
+            </li>
+            <li>
+              No aplicativo, cada notificação vira também um
+              <a href="#aviso-do-windows">aviso do Windows</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="marcar-como-lida-e-limpar">
+          <h2>Marcar como lida e limpar</h2>
+          <p>
+            Notificação não lida fica destacada e conta no sino. Lida, perde o destaque e sai do
+            contador; com todas lidas, o sino para de piscar. <strong>Limpar</strong> apaga a lista
+            inteira, sem confirmação.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Para marcar uma só, clique nela no painel.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/marcar-como-lida-e-limpar-01-uma.webp"
+                  alt="Notificação não lida destacada no painel"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para marcar todas de uma vez, clique em <strong>Marcar todas como lidas</strong>. O
+              contador some do sino.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/marcar-como-lida-e-limpar-02-todas.webp"
+                  alt="Botão Marcar todas como lidas destacado, com o sino sem contador"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para esvaziar o painel, clique em <strong>Limpar</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/marcar-como-lida-e-limpar-03-limpar.webp"
+                  alt="Botão Limpar destacado e o painel com Nenhuma notificação"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Limpar não faz o mesmo aviso voltar: o HUB SNK lembra por sete dias o que já notificou.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#painel-de-notificacoes">Sino e painel de notificações</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="aviso-do-windows">
+          <h2>Aviso do Windows</h2>
+          <p>
+            No aplicativo desktop, toda notificação nova aparece também como aviso do sistema, no
+            canto da tela, com o nome e o ícone do HUB SNK, em qualquer guia e com a janela
+            minimizada. O aviso é mudo: quem toca o som é o Painel. Com a janela minimizada, atrás
+            de outra ou sem foco, o ícone do HUB SNK pisca na barra de tarefas até a janela ser
+            usada. No navegador comum não há aviso do sistema.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Quando o aviso aparecer, clique nele. A janela do HUB SNK vem para a frente, na guia
+              Painel, com o painel de notificações aberto.
+              <!-- print-pendente: sistema: aviso do Windows com uma notificação do HUB SNK -->
+            </li>
+            <li>
+              Se você não estava usando a janela, o ícone do HUB SNK pisca na barra de tarefas até
+              você voltar a ela.
+              <!-- print-pendente: sistema: ícone do HUB SNK piscando na barra de tarefas -->
+            </li>
+          </ol>
+          <p class="nota">
+            Se os avisos não aparecem, confira se as notificações do HUB SNK estão permitidas nas
+            configurações de notificação do Windows (ou do Ubuntu).
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma no HUB SNK.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#painel-de-notificacoes">Sino e painel de notificações</a></li>
+            <li>
+              Com a janela fechada na bandeja, os avisos continuam:
+              <a href="bandeja.html#fechar-para-a-bandeja">Fechar esconde na bandeja</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="lista-de-lembretes">
+          <h2>Lista de lembretes</h2>
+          <p>
+            A aba <strong>Lembretes</strong> mostra os lembretes cadastrados, primeiro os que vão
+            disparar antes; desligados e já concluídos ficam no fim, esmaecidos os desligados. Cada
+            linha traz o resumo, o texto, "Uma vez, em …" ou "Recorrente: …", a situação
+            (<strong>Próximo:</strong>, <strong>Disparado em</strong>, <strong>Desligado</strong> ou
+            <strong>Sem próxima ocorrência</strong>), o cliente e o projeto, e o selo
+            <strong>E-mail</strong> quando ele sai também por e-mail.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No topo do Painel, clique em <strong>Lembretes</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/lista-de-lembretes-01-aba.webp"
+                  alt="Aba Lembretes destacada na barra do topo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Veja os lembretes em <strong>Cadastrados</strong>. Sem nenhum, a lista diz
+              <strong>Nenhum lembrete cadastrado.</strong>
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/lista-de-lembretes-02-lista.webp"
+                  alt="Lista de lembretes cadastrados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-lembretes"
+                >Configurações › Acessos › Menu principal › Lembretes</a
+              >: desmarcado, a aba some.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Os lembretes do dia aparecem também no
+              <a href="resumo-do-dia.html#lembretes-de-hoje">Resumo do dia</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="criar-lembrete">
+          <h2>Criar lembrete</h2>
+          <p>
+            Um lembrete tem um <strong>Resumo</strong> (até 120 caracteres), que é o destaque da
+            notificação e o assunto do e-mail, e o texto do <strong>Lembrete</strong> (até 1000
+            caracteres). Os dois são obrigatórios. Ele dispara uma vez, numa data e hora, ou é
+            <a href="#recorrente">recorrente</a>. A data já vem sugerida na próxima hora cheia.
+            Cliente e projeto são opcionais e aparecem como "Cliente › Projeto" na lista, na
+            notificação e no e-mail.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na aba <strong>Lembretes</strong>, clique no <strong>+</strong> de
+              <strong>Novo lembrete</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/criar-lembrete-01-botao.webp"
+                  alt="Botão Novo lembrete destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Preencha <strong>Resumo</strong> e <strong>Lembrete</strong>, deixe
+              <strong>Uma vez</strong> marcado e ajuste <strong>Data e hora</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/criar-lembrete-02-formulario.webp"
+                  alt="Janela Novo lembrete com resumo, texto e data preenchidos"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Se quiser, escolha o <strong>Cliente</strong> e depois o <strong>Projeto</strong>. O
+              Projeto fica bloqueado sem cliente ou com cliente sem projetos, e trocar o cliente
+              limpa o projeto.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/criar-lembrete-03-cliente.webp"
+                  alt="Campos Cliente e Projeto preenchidos"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Salvar</strong>. O aviso <strong>Lembrete cadastrado.</strong>
+              confirma, e ele entra na lista. Faltando resumo, texto ou data, a janela diz o que
+              falta.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/criar-lembrete-04-salvo.webp"
+                  alt="Lembrete novo destacado na lista, com o aviso Lembrete cadastrado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="clientes.html#cadastrar">Cadastrar cliente</a> e
+              <a href="projetos.html#cadastrar-projeto">Cadastrar projeto</a> (opcionais)
+            </li>
+            <li>
+              <a href="#recorrente">Lembrete recorrente</a> e
+              <a href="#enviar-por-email">Enviar o lembrete por e-mail</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="recorrente">
+          <h2>Lembrete recorrente</h2>
+          <p>
+            Com <strong>Recorrente</strong>, o lembrete repete conforme uma expressão cron de cinco
+            campos: minuto, hora, dia do mês, mês e dia da semana (0 = domingo). O campo
+            <strong>Modelo</strong> traz as mais comuns prontas: todo dia às 09:00, dias úteis às
+            09:00, toda segunda às 09:00, toda sexta às 17:00, todo dia 1º do mês às 09:00 e a cada
+            30 minutos, das 8h às 18h, em dias úteis. O <strong>?</strong> ao lado da expressão
+            explica a sintaxe.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No <strong>Novo lembrete</strong> (ou ao editar), marque <strong>Recorrente</strong> e
+              escolha um <strong>Modelo</strong>, ou digite a <strong>Expressão cron</strong>. Logo
+              abaixo aparecem as próximas ocorrências; expressão errada mostra
+              <strong>Expressão cron inválida</strong> com o motivo. Depois, clique em
+              <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/recorrente-01-modelo.webp"
+                  alt="Recorrente marcado, modelo Dias úteis às 09:00 e a prévia das próximas ocorrências"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Com o HUB SNK fechado, as ocorrências perdidas de um recorrente não se acumulam: ao
+            abrir, ele dispara uma vez só.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#criar-lembrete">Criar lembrete</a></li>
+            <li><a href="#disparo">Quando o lembrete dispara</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="enviar-por-email">
+          <h2>Enviar o lembrete por e-mail</h2>
+          <p>
+            Com <strong>Enviar também por e-mail</strong>, o disparo manda, além da notificação, um
+            e-mail para o <strong>Destinatário</strong> do SMTP, com os
+            <a href="#contatos-em-copia">contatos em cópia</a>. O assunto é
+            <code>[HUB SNK] Lembrete - &lt;resumo&gt;</code>, e o corpo traz o resumo, o texto, o
+            cliente e o projeto e o horário previsto. Se o e-mail falhar, a notificação aparece
+            assim mesmo, com o motivo.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No formulário do lembrete, marque <strong>Enviar também por e-mail</strong>. Sem o
+              SMTP configurado, a janela avisa
+              <strong>Configure o SMTP (host, remetente e destinatário) para o e-mail sair.</strong
+              >; <strong>Abrir configuração</strong> leva direto à aba SMTP. Depois, clique em
+              <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/enviar-por-email-01-caixa.webp"
+                  alt="Caixa Enviar também por e-mail marcada e o aviso de SMTP não configurado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na hora do lembrete, o e-mail chega assim.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/enviar-por-email-02-email.webp"
+                  alt="E-mail do lembrete com a logo do HUB SNK, o resumo, o texto e o horário previsto"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: terceiros: e-mail do lembrete recebido no Gmail/Outlook -->
+            </li>
+            <li>
+              Se o envio falhar, a notificação traz <strong>O e-mail não foi enviado:</strong> com o
+              motivo e o atalho <strong>Abrir configuração</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/enviar-por-email-03-falha.webp"
+                  alt="Notificação com o aviso de e-mail não enviado destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            O e-mail termina com "Este é um e-mail automático enviado pela ferramenta HUB SNK" e o
+            seu nome, empresa e time, como preenchidos nas Configurações.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#smtp-host">Configurações › SMTP</a>: sem
+              <strong>Host</strong>, <strong>Remetente</strong> e <strong>Destinatário</strong>,
+              nada é enviado.
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-nome">Configurações › Geral › Nome do usuário</a>,
+              <a href="configuracoes.html#geral-empresa">Empresa</a> e
+              <a href="configuracoes.html#geral-time">Time</a>: vão no rodapé do e-mail.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#servidor-de-email">Configurar o e-mail (SMTP)</a></li>
+            <li><a href="#contatos-em-copia">Contatos em cópia</a></li>
+            <li>
+              <a href="configuracoes.html#abrir-configuracao-pelo-erro"
+                >Atalho "Abrir configuração" num erro</a
+              >
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="contatos-em-copia">
+          <h2>Contatos em cópia</h2>
+          <p>
+            Com o e-mail ligado, o lembrete pode copiar contatos cadastrados. Só aparecem contatos
+            com e-mail; com cliente escolhido no lembrete, os sem cliente e os desse cliente. Trocar
+            o cliente tira da cópia quem é de outro.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Em <strong>Contatos em cópia</strong>, clique em <strong>Adicionar contato</strong> e
+              escolha um da lista. Se a pessoa não estiver cadastrada,
+              <strong>Cadastrar contato novo</strong> abre o cadastro, e o contato salvo já entra na
+              cópia.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/contatos-em-copia-01-lista.webp"
+                  alt="Lista de contatos com e-mail aberta por Adicionar contato"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O contato escolhido aparece com nome e e-mail; o <strong>✕</strong> tira da cópia.
+              Depois, clique em <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/contatos-em-copia-02-escolhido.webp"
+                  alt="Contato Paulo Henrique Lima em cópia no lembrete"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#enviar-por-email">Enviar o lembrete por e-mail</a></li>
+            <li><a href="contatos.html#cadastrar-contato">Cadastrar contato</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="editar-desligar-e-excluir">
+          <h2>Editar, desligar e excluir lembrete</h2>
+          <p>
+            Editar abre o mesmo formulário, preenchido. Mudar a data, a expressão ou o tipo rearma o
+            lembrete; corrigir só o texto não o faz disparar de novo. Desmarcar
+            <strong>Ativo</strong> desliga sem apagar: ele para de disparar até ser religado, e o
+            recorrente religado conta a partir dali, sem disparar o que perdeu. Excluir apaga de
+            vez.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do lembrete, clique no lápis.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/editar-desligar-e-excluir-01-editar.webp"
+                  alt="Botão Editar lembrete destacado na linha"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Altere o que precisar. Para desligar, desmarque <strong>Ativo</strong>. Clique em
+              <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/editar-desligar-e-excluir-02-ativo.webp"
+                  alt="Janela Editar lembrete com a caixa Ativo desmarcada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O aviso <strong>Lembrete atualizado.</strong> confirma. Desligado, ele vai para o fim
+              da lista, esmaecido, com <strong>Desligado</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/editar-desligar-e-excluir-03-desligado.webp"
+                  alt="Lembrete desligado destacado no fim da lista"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para excluir, clique na lixeira vermelha da linha.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/editar-desligar-e-excluir-04-excluir.webp"
+                  alt="Botão Excluir lembrete destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Excluir</strong> para confirmar. Não há como desfazer.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/editar-desligar-e-excluir-05-confirmar.webp"
+                  alt="Janela de confirmação Excluir lembrete"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Também dá para editar pelo lápis dos
+            <a href="resumo-do-dia.html#lembretes-de-hoje">Lembretes de hoje</a>, no Resumo do dia.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#lista-de-lembretes">Lista de lembretes</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="disparo">
+          <h2>Quando o lembrete dispara</h2>
+          <p>
+            Com o HUB SNK aberto, os lembretes são conferidos a cada 30 segundos. Na hora, sai a
+            notificação: o resumo em destaque e, abaixo, o texto e o cliente. Se o HUB SNK estava
+            fechado na hora marcada, o lembrete dispara assim que ele abre, com a linha "Atrasado:
+            era para …". O de uma vez passa a mostrar <strong>Disparado em</strong> na lista.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na hora marcada, o sino conta mais uma, o som toca e, no aplicativo, aparece o aviso
+              do Windows. Abra o sino para ler; o lembrete atrasado diz para quando era.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/disparo-01-atrasado.webp"
+                  alt="Notificação de lembrete disparado com atraso destacada no painel"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Quem confere é o próprio HUB SNK: escondido na bandeja, ele continua disparando;
+            encerrado de vez, só dispara ao abrir de novo. Com a mesma pasta de dados em dois
+            computadores, os dois disparam.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#criar-lembrete">Criar lembrete</a></li>
+            <li>
+              <a href="#painel-de-notificacoes">Sino e painel de notificações</a> e
+              <a href="#aviso-do-windows">aviso do Windows</a>
+            </li>
+            <li><a href="#enviar-por-email">E-mail do lembrete</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="servidor-de-email">
+          <h2>Configurar o e-mail (SMTP)</h2>
+          <p>
+            O servidor SMTP envia todo e-mail do HUB SNK: os lembretes e o alerta da agenda. Ele só
+            é considerado configurado com <strong>Host</strong>, <strong>Remetente</strong> e
+            <strong>Destinatário</strong>; sem host, nada é enviado e as notificações ficam só no
+            sino. O destinatário é você: o HUB SNK não manda e-mail para outra pessoa, a não ser os
+            contatos em cópia de um lembrete.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as <strong>Configurações</strong> (engrenagem no topo) e clique na aba
+              <strong>SMTP</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/servidor-de-email-01-aba.webp"
+                  alt="Aba SMTP das Configurações destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Preencha <strong>Host</strong>, <strong>Porta</strong> (587 por padrão),
+              <strong>Segurança</strong> (STARTTLS, SSL/TLS ou Sem TLS),
+              <strong>Usuário</strong> (opcional; vazio envia sem autenticação),
+              <strong>Senha</strong>, <strong>Remetente</strong> e <strong>Destinatário</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/servidor-de-email-02-campos.webp"
+                  alt="Campos do servidor de e-mail preenchidos"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Enviar e-mail de teste</strong>. O teste usa o que está na tela,
+              antes de salvar, e o resultado fica logo abaixo: verde com o destinatário, ou vermelho
+              com o erro do servidor, para você corrigir o campo vendo a mensagem. Depois, clique em
+              <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/servidor-de-email-03-teste.webp"
+                  alt="Resultado E-mail de teste enviado abaixo do botão Enviar e-mail de teste"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Confira a caixa de entrada do destinatário: o assunto é
+              <code>[HUB SNK] E-mail de teste</code>.
+              <!-- print-pendente: terceiros: e-mail de teste recebido no Gmail/Outlook -->
+            </li>
+          </ol>
+          <p class="nota">
+            A senha do SMTP fica gravada sem criptografia no arquivo de configuração do HUB SNK. Se
+            o servidor permitir, prefira uma senha de aplicativo, só para isso.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#smtp-host">Host</a>,
+              <a href="configuracoes.html#smtp-porta">Porta</a>,
+              <a href="configuracoes.html#smtp-seguranca">Segurança</a>,
+              <a href="configuracoes.html#smtp-usuario">Usuário</a>,
+              <a href="configuracoes.html#smtp-senha">Senha</a>,
+              <a href="configuracoes.html#smtp-remetente">Remetente</a>,
+              <a href="configuracoes.html#smtp-destinatario">Destinatário</a> e
+              <a href="configuracoes.html#smtp-enviar-email-de-teste">Enviar e-mail de teste</a>
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Usado por: <a href="#enviar-por-email">e-mail do lembrete</a> e
+              <a href="#alerta-da-agenda">alerta da agenda</a>. Falha no backup, versão nova e falha
+              ao conferir a agenda não mandam e-mail.
+            </li>
+            <li><a href="configuracoes.html#abrir-e-salvar">Abrir e salvar as Configurações</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="alerta-da-agenda">
+          <h2>Alerta "Agenda sem tarefa na Experience"</h2>
+          <p>
+            Ligado, o HUB SNK confere de tempos em tempos os eventos de hoje da sua Agenda de
+            Recursos e, para cada evento de cliente, se o dia tem tarefa ou OS na Experience. Sem
+            nenhuma das duas, chega a notificação <strong>Agenda sem tarefa na Experience</strong>,
+            com a etiqueta OS, o parceiro e o horário. Cada evento avisa uma vez por dia, a não ser
+            que a repetição esteja marcada. Se a sessão do Sankhya tiver caído, chega uma vez por
+            dia <strong>Não foi possível conferir as tarefas da agenda</strong>, pedindo para
+            conferir o login. Só funciona no aplicativo desktop.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as <strong>Configurações</strong>, aba <strong>Avisos</strong>. Em
+              <strong>Agenda sem tarefa na Experience</strong>, marque <strong>Ligado</strong> e
+              ajuste a <strong>Periodicidade (minutos)</strong> (120 por padrão, de 1 a 1440). Se
+              quiser, marque <strong>Monitorar também o próximo dia útil</strong> (pula sábado e
+              domingo, mas não feriados),
+              <strong>Repetir o aviso a cada execução enquanto a pendência existir</strong> e
+              <strong>Enviar por e-mail</strong>. Clique em <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/alerta-da-agenda-01-avisos.webp"
+                  alt="Grupo Agenda sem tarefa na Experience na aba Avisos, com Ligado marcado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A primeira conferência é dois minutos depois de abrir o HUB SNK. Quando faltar tarefa
+              ou OS, o aviso chega ao sino e ao Windows.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/alerta-da-agenda-02-notificacao.webp"
+                  alt="Notificação Agenda sem tarefa na Experience destacada no painel"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+              <!-- print-pendente: sistema: aviso do Windows com o alerta da agenda -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#avisos-ligado">Configurações › Avisos › Ligado</a>,
+              <a href="configuracoes.html#avisos-periodicidade">Periodicidade (minutos)</a>,
+              <a href="configuracoes.html#avisos-proximo-dia-util"
+                >Monitorar também o próximo dia útil</a
+              >, <a href="configuracoes.html#avisos-repetir-o-aviso">Repetir o aviso</a> e
+              <a href="configuracoes.html#avisos-enviar-por-email">Enviar por e-mail</a>
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-codigo-de-usuario"
+                >Configurações › Sankhya ID › Meu código de usuário SankhyaOm</a
+              >
+              e <a href="configuracoes.html#sankhya-id-usuario-e-senha">Usuário e Senha</a>: sem
+              eles, a agenda e a Experience não são lidas.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado, a aba Avisos some e o alerta não roda.
+            </li>
+            <li><a href="configuracoes.html#smtp-host">Configurações › SMTP</a>: para o e-mail.</li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="sankhya-id.html#codigo-de-usuario">Meu código de usuário SankhyaOm</a>,
+              <a href="sankhya-id.html#login-automatico">login automático</a> e
+              <a href="sankhya-id.html#sessao-da-experience">sessão da Experience</a>
+            </li>
+            <li><a href="agenda-de-recursos.html#visao-geral">Agenda de Recursos</a></li>
+            <li>
+              Aparece também no Resumo do dia:
+              <a href="resumo-do-dia.html#sem-tarefa-na-experience"
+                >selo "Sem tarefa na Experience"</a
+              >.
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

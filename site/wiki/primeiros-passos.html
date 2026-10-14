@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Primeiros passos · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como instalar, configurar na primeira abertura, conhecer a tela, atualizar e desinstalar o HUB SNK."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Primeiros passos</h1>
+        <p class="introducao">
+          Da instalação até a tela principal: como instalar no Windows e no Ubuntu, o que o
+          assistente de boas-vindas pergunta, o que tem em cada parte da tela, como trocar o tema e
+          como o HUB SNK se atualiza e se desinstala.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#instalar-no-windows">Instalar no Windows</a></li>
+            <li><a href="#instalar-no-linux">Instalar no Ubuntu (.deb)</a></li>
+            <li><a href="#boas-vindas">Assistente de boas-vindas</a></li>
+            <li><a href="#conhecer-o-painel">Conhecer a tela</a></li>
+            <li><a href="#tema-claro-e-escuro">Tema claro e escuro</a></li>
+            <li><a href="#atualizacao-automatica">Atualizar o HUB SNK</a></li>
+            <li><a href="#desinstalar">Desinstalar</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="instalar-no-windows">
+          <h2>Instalar no Windows</h2>
+          <p>
+            O instalador <code>HUB-SNK-Setup.exe</code> instala o HUB SNK só para o seu usuário, em
+            <code>%LOCALAPPDATA%\Programs\HUB SNK</code>, sem pedir senha de administrador, e cria
+            atalhos no menu Iniciar e na área de trabalho. Se houver na máquina a versão antiga do
+            HUB SNK, a que abria numa janela do Edge, ela é removida na instalação, e o cadastro
+            continua onde estava.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na página do HUB SNK, clique em <a href="../#instalacao">Baixar para Windows</a>. O
+              link sempre traz a versão mais recente. Se o navegador disser que o arquivo não é
+              baixado com frequência, escolha <strong>Manter</strong>.
+              <!-- print-pendente: terceiros: aviso de download do navegador (GitHub Releases) -->
+            </li>
+            <li>
+              Rode o <code>HUB-SNK-Setup.exe</code>. O instalador ainda não tem assinatura digital:
+              se aparecer <strong>O Windows protegeu o computador</strong>, clique em
+              <strong>Mais informações</strong> e depois em <strong>Executar assim mesmo</strong>.
+              <!-- print-pendente: sistema: SmartScreen "O Windows protegeu o computador" -->
+            </li>
+            <li>
+              Siga o assistente. A pasta de instalação pode ser trocada; o padrão serve para quase
+              todo mundo.
+              <!-- print-pendente: sistema: assistente do instalador -->
+            </li>
+            <li>
+              Abra o HUB SNK pelo atalho da área de trabalho ou do menu Iniciar. Na primeira
+              abertura, o <a href="#boas-vindas">assistente de boas-vindas</a> aparece.
+              <!-- print-pendente: sistema: atalhos no menu Iniciar e na área de trabalho -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Em seguida: <a href="#boas-vindas">Assistente de boas-vindas</a> e
+              <a href="sankhya-id.html#salvar-sankhya-id">Salvar o Sankhya ID</a>.
+            </li>
+            <li>Versões novas chegam sozinhas: <a href="#atualizacao-automatica">Atualizar</a>.</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="instalar-no-linux">
+          <h2>Instalar no Ubuntu (.deb)</h2>
+          <p>
+            No Ubuntu, no Debian e nos derivados, o HUB SNK vem num pacote <code>.deb</code>,
+            testado no Ubuntu 24.04. Ele instala em <code>/opt/HUB SNK</code>, coloca o HUB SNK no
+            menu de aplicativos e traz junto o chaveiro do sistema, onde ficam as senhas. O Git
+            AutoSync não existe no Linux.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Baixe o <a href="../#instalacao">pacote .deb</a> na página do HUB SNK.
+              <!-- print-pendente: terceiros: download do pacote .deb (GitHub Releases) -->
+            </li>
+            <li>
+              No terminal, na pasta do download, rode
+              <code>sudo apt install ./hub-snk-amd64.deb</code>.
+              <!-- print-pendente: sistema: terminal com o sudo apt install -->
+            </li>
+            <li>
+              Abra o HUB SNK pelo menu de aplicativos. Daqui em diante, os passos são os mesmos do
+              Windows, a começar pelo <a href="#boas-vindas">assistente de boas-vindas</a>.
+              <!-- print-pendente: sistema: menu de aplicativos do GNOME -->
+            </li>
+          </ol>
+          <p class="nota">
+            Sem o chaveiro do sistema funcionando, o HUB SNK se recusa a guardar o Sankhya ID: no
+            Linux, a senha só é gravada cifrada pelo chaveiro.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="sankhya-id.html#salvar-sankhya-id">Salvar o Sankhya ID</a>, que precisa do
+              chaveiro.
+            </li>
+            <li>
+              Fica de fora no Linux: <a href="git-autosync.html#visao-geral">Git AutoSync</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="boas-vindas">
+          <h2>Assistente de boas-vindas</h2>
+          <p>
+            Na primeira abertura, quatro passos rápidos deixam o HUB SNK com a sua cara: quem é
+            você, o seu perfil e se você tem login no Sankhya. Todo passo já vem respondido, então
+            dá para concluir só clicando em <strong>Próximo</strong>. <kbd>Esc</kbd> não fecha o
+            assistente: sem concluir, ele volta na próxima abertura. Tudo pode ser mudado depois em
+            Configurações.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Preencha <strong>Nome</strong>, <strong>Empresa</strong>, <strong>Time</strong> e
+              <strong>E-mail</strong>. São opcionais aqui, mas seguem nos relatos de problema ao
+              suporte e nos e-mails do HUB SNK. E-mail inválido trava o passo; corrija ou deixe em
+              branco. Clique em <strong>Próximo</strong>.
+              <figure>
+                <img
+                  src="img/primeiros-passos/boas-vindas-01-identificacao.webp"
+                  alt="Passo 1 de 4 com nome, empresa, time e e-mail preenchidos"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Escolha o perfil: <strong>Consultor</strong> (já vem marcado),
+              <strong>Analista</strong>, <strong>Gerente de Projetos</strong> ou
+              <strong>Desenvolvedor</strong>. O perfil define o que aparece no menu: Consultor e
+              Analista escondem os repositórios Git e o Git AutoSync; Gerente de Projetos esconde
+              também a aba Local; Desenvolvedor mostra tudo.
+              <figure>
+                <img
+                  src="img/primeiros-passos/boas-vindas-02-perfil.webp"
+                  alt="Passo 2 de 4 com o perfil Desenvolvedor marcado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Responda se você tem login no SankhyaOm e na Experience. <strong>Sim</strong> deixa
+              disponíveis a Agenda, as OS e as guias do SankhyaOm e da Experience;
+              <strong>Não, sou terceiro</strong> esconde tudo o que depende desse login.
+              <figure>
+                <img
+                  src="img/primeiros-passos/boas-vindas-03-login-no-sankhya.webp"
+                  alt="Passo 3 de 4 com a opção Sim marcada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Confira o resumo; o que ficou em branco aparece como “não informado”. Use
+              <strong>Voltar</strong> para corrigir, ou clique em <strong>Começar</strong>.
+              <figure>
+                <img
+                  src="img/primeiros-passos/boas-vindas-04-resumo.webp"
+                  alt="Passo 4 de 4 com o resumo das respostas e o botão Começar"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Com o cadastro ainda vazio, o HUB SNK abre em seguida a tela Clientes e, para quem
+            respondeu Sim no passo 3, a aba Sankhya ID das Configurações.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-nome">Configurações › Geral › Nome do usuário</a>,
+              <a href="configuracoes.html#geral-empresa">Empresa</a>,
+              <a href="configuracoes.html#geral-time">Time</a> e
+              <a href="configuracoes.html#geral-email">E-mail</a>: recebem as respostas do passo 1.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-perfil">Configurações › Acessos › Perfil</a>:
+              recebe o perfil do passo 2, e as caixas de
+              <a href="configuracoes.html#acessos-funcionalidades">Acessos</a> são marcadas conforme
+              ele.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado quando a resposta do passo 3 é <strong>Não, sou terceiro</strong>.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Em seguida: <a href="clientes.html#primeiro-uso">Primeira abertura, sem clientes</a> e
+              <a href="sankhya-id.html#salvar-sankhya-id">Salvar o Sankhya ID</a>.
+            </li>
+            <li>
+              O que muda para quem não tem login:
+              <a href="sankhya-id.html#sem-login-no-sankhya">Terceiro (sem login no Sankhya)</a>.
+            </li>
+            <li>
+              Os seus dados seguem em:
+              <a href="suporte.html#reportar-problema">Reportar problema</a> e
+              <a href="lembretes-e-notificacoes.html#enviar-por-email">lembretes por e-mail</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="conhecer-o-painel">
+          <h2>Conhecer a tela</h2>
+          <p>
+            A janela do HUB SNK tem, no alto, a barra de guias, com o <strong>Painel</strong>, o
+            SankhyaOm, a Experience e as guias que você abrir; à esquerda, a barra de comunicação. O
+            Painel é o ponto de partida: abre no <strong>Resumo</strong> do dia, e a barra do topo
+            leva a cada parte do HUB SNK.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique na guia <strong>Painel</strong> para voltar a ele de qualquer outra guia.
+              <figure>
+                <img
+                  src="img/primeiros-passos/painel-01-guia-painel.webp"
+                  alt="Guia Painel destacada na barra de guias"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Use o menu do topo para trocar de tela: <strong>Resumo</strong>,
+              <strong>Clientes</strong>, <strong>Kanban</strong>, <strong>Local</strong>,
+              <strong>Agenda</strong>, <strong>OS</strong>, <strong>Contatos</strong>,
+              <strong>Lembretes</strong> e <strong>Git AutoSync</strong> (só no Windows). O que o
+              seu perfil ou as suas escolhas em Acessos esconderem não aparece.
+              <figure>
+                <img
+                  src="img/primeiros-passos/painel-02-menu.webp"
+                  alt="Menu do topo do Painel destacado, com Resumo selecionado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              À direita ficam, nesta ordem: a lupa da busca rápida (<kbd>Ctrl</kbd>+<kbd>K</kbd>), o
+              sino das notificações, a engrenagem das Configurações, o raio dos atalhos de programas
+              e a bolinha com a situação do Git de todos os clientes.
+              <figure>
+                <img
+                  src="img/primeiros-passos/painel-03-botoes.webp"
+                  alt="Lupa, sino, engrenagem, raio e bolinha do Git destacados no topo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-funcionalidades">Configurações › Acessos</a>:
+              Kanban, Local, Agenda, OS, Contatos, Lembretes e Git AutoSync podem ser ocultados; o
+              Resumo some quando tudo o que ele mostra está oculto. Clientes sempre aparece.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-perfil">Configurações › Acessos › Perfil</a>: o
+              perfil já vem com alguns itens ocultos.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Cada item do menu tem a sua página:
+              <a href="resumo-do-dia.html#abrir-resumo">Resumo</a>,
+              <a href="clientes.html#lista-e-detalhe">Clientes</a>,
+              <a href="kanban.html#visao-geral">Kanban</a>,
+              <a href="ambiente-local.html#visao-geral">Local</a>,
+              <a href="agenda-de-recursos.html#visao-geral">Agenda</a>,
+              <a href="ordens-de-servico.html#visao-geral">OS</a>,
+              <a href="contatos.html#lista-de-contatos">Contatos</a>,
+              <a href="lembretes-e-notificacoes.html#lista-de-lembretes">Lembretes</a> e
+              <a href="git-autosync.html#visao-geral">Git AutoSync</a>.
+            </li>
+            <li>
+              Botões do topo: <a href="buscas-e-atalhos.html#busca-rapida">busca rápida</a>,
+              <a href="lembretes-e-notificacoes.html#painel-de-notificacoes">notificações</a>,
+              <a href="configuracoes.html#abrir-e-salvar">Configurações</a>,
+              <a href="buscas-e-atalhos.html#lista-de-atalhos">atalhos de programas</a> e
+              <a href="clientes.html#situacao-do-git">situação do Git</a>.
+            </li>
+            <li>
+              Fora do Painel: <a href="guias-e-navegacao.html#guias-fixas">guias</a>,
+              <a href="guias-e-navegacao.html#menu-do-aplicativo">menu ☰</a> e
+              <a href="comunicacao.html#barra-de-comunicacao">barra de comunicação</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="tema-claro-e-escuro">
+          <h2>Tema claro e escuro</h2>
+          <p>
+            O Painel abre no tema escuro. O botão de tema troca entre escuro e claro na hora, sem
+            precisar salvar, e a escolha fica guardada para as próximas aberturas. A janela de log
+            da base local não segue essa escolha.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as <strong>Configurações</strong> (engrenagem no topo), aba
+              <strong>Geral</strong>, e clique no botão de <strong>Tema</strong>, o sol ou a lua no
+              alto da aba. O ícone mostra o tema para o qual vai trocar: sol no escuro, lua no
+              claro.
+              <figure>
+                <img
+                  src="img/primeiros-passos/tema-01-botao.webp"
+                  alt="Botão de tema destacado no alto da aba Geral das Configurações"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-tema">Configurações › Geral › Tema</a>: padrão
+              escuro.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Não vale para o
+              <a href="ambiente-local.html#log-da-base">log ao vivo da base local</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="atualizacao-automatica">
+          <h2>Atualizar o HUB SNK</h2>
+          <p>
+            O aplicativo procura versão nova 30 segundos depois de abrir e, depois, a cada 6 horas.
+            Achando, baixa em segundo plano e avisa quando ela está pronta. Quem fecha o HUB SNK sem
+            reiniciar recebe a versão nova na saída, sem aviso. O cadastro não é tocado. Com a
+            atualização automática desligada, nada é baixado: fica só o aviso de versão nova no
+            Painel, e a atualização é rodar o instalador novo.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Quando aparecer o aviso <strong>Versão X pronta</strong>, clique nele: o HUB SNK
+              fecha, instala a versão nova e abre de novo.
+              <!-- print-pendente: sistema: aviso do Windows "Versão X pronta" -->
+            </li>
+            <li>
+              Para ligar ou desligar a atualização automática, clique no menu ☰, no canto esquerdo
+              da barra de guias.
+              <figure>
+                <img
+                  src="img/primeiros-passos/atualizacao-01-menu.webp"
+                  alt="Botão do menu ☰ destacado no canto da barra de guias"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Em <strong>Ajuda</strong>, marque ou desmarque
+              <strong>Atualizar automaticamente</strong>. Com uma versão já baixada, o mesmo grupo
+              mostra <strong>Reiniciar para atualizar para a versão X</strong>, que faz o mesmo que
+              o aviso.
+              <figure>
+                <img
+                  src="img/primeiros-passos/atualizacao-02-ajuda.webp"
+                  alt="Menu ☰ aberto com a caixa Atualizar automaticamente destacada em Ajuda"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            No Linux, se a versão nova não chegar sozinha, instale o <code>.deb</code> novo com o
+            mesmo comando da <a href="#instalar-no-linux">instalação</a>.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#outras-atualizar-automaticamente"
+                >☰ › Ajuda › Atualizar automaticamente</a
+              >: padrão ligado. Desligar também cancela a instalação de uma versão já baixada.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              O aviso de versão nova do Painel: <a href="suporte.html#versao-instalada">Sobre</a> e
+              <a href="resumo-do-dia.html#versao-nova">Resumo do dia</a>.
+            </li>
+            <li><a href="guias-e-navegacao.html#menu-do-aplicativo">Menu ☰</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="desinstalar">
+          <h2>Desinstalar</h2>
+          <p>
+            Remove o programa, mas não apaga o cadastro nem as preferências: reinstalando, tudo
+            volta como estava. No Windows, também tira o HUB SNK do início automático e, se o Git
+            AutoSync foi instalado pelo HUB SNK, pergunta se ele sai junto.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No Windows, abra <strong>Configurações › Aplicativos</strong>, encontre o
+              <strong>HUB SNK</strong> e clique em <strong>Desinstalar</strong>.
+              <!-- print-pendente: sistema: Configurações › Aplicativos do Windows -->
+            </li>
+            <li>
+              Se o Git AutoSync foi instalado pelo HUB SNK, responda se ele também deve ser
+              removido. Os repositórios cadastrados nele, o histórico e os logs ficam.
+              <!-- print-pendente: sistema: caixa "Remover também o Git AutoSync?" -->
+            </li>
+            <li>
+              No Linux, rode <code>sudo apt remove hub-snk-desktop</code> no terminal.
+              <!-- print-pendente: sistema: terminal com o apt remove -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#outras-iniciar-automaticamente"
+                >Bandeja › Iniciar HUB SNK automaticamente</a
+              >: desligado pela desinstalação no Windows.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="git-autosync.html#instalar">Instalar o Git AutoSync</a> (só o instalado pelo
+              HUB SNK é oferecido para remoção).
+            </li>
+            <li>
+              Para levar o cadastro para outra máquina antes, veja
+              <a href="backup.html#fazer-backup-agora">Fazer backup agora</a>.
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

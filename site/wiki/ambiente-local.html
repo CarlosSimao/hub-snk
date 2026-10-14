@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ambiente local · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como cadastrar, ligar, parar e acompanhar as bases WildFly e os bancos Docker da sua máquina no HUB SNK, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Ambiente local</h1>
+        <p class="introducao">
+          A tela Local reúne o que roda na sua própria máquina: as bases Sankhya num WildFly e os
+          bancos Oracle em container Docker. Dali você liga e para cada um, acompanha a situação e o
+          log, e aponta o MCP para o banco certo.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#visao-geral">Tela Local</a></li>
+            <li><a href="#cadastrar-base">Cadastrar base local (WildFly)</a></li>
+            <li><a href="#editar-e-excluir-base">Editar e excluir base local</a></li>
+            <li><a href="#iniciar-e-parar-base">Iniciar, reiniciar e parar a base</a></li>
+            <li><a href="#abrir-sankhyaom">Abrir o SankhyaOm local</a></li>
+            <li><a href="#log-da-base">Log ao vivo da base</a></li>
+            <li>
+              <a href="#mcp-da-base"><code>.sankhya-mcp.env</code> da base local</a>
+            </li>
+            <li><a href="#situacao-da-base">Situação e uptime da base</a></li>
+            <li><a href="#cadastrar-banco">Cadastrar banco local (Docker)</a></li>
+            <li><a href="#editar-e-excluir-banco">Ver senha, editar e excluir banco</a></li>
+            <li><a href="#ligar-e-parar-banco">Ligar, reiniciar e parar o banco</a></li>
+            <li><a href="#situacao-do-banco">Situação e uptime do banco</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="visao-geral">
+          <h2>Tela Local</h2>
+          <p>
+            A tela tem duas seções: <strong>Bases</strong>, com as bases do WildFly, e
+            <strong>Bancos de dados</strong>, com os containers Docker. Cada uma tem o seu botão
+            <strong>+</strong> de adicionar. Ao abrir a tela, o HUB SNK confere na hora a situação
+            de todas as bases e bancos. Sem nada cadastrado, as seções dizem
+            <strong>Nenhuma base local cadastrada.</strong> e
+            <strong>Nenhum banco de dados local cadastrado.</strong>
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No topo do Painel, clique em <strong>Local</strong>.
+              <figure>
+                <img
+                  src="img/ambiente-local/visao-geral-01-aba-local.webp"
+                  alt="Topo do Painel com a aba Local destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              As bases ficam em cima e os bancos embaixo. Cada linha traz a situação, o gráfico de
+              uptime e os botões de ação.
+              <figure>
+                <img
+                  src="img/ambiente-local/visao-geral-02-tela.webp"
+                  alt="Tela Local com as seções Bases e Bancos de dados destacadas"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            As ações rodam no computador onde o HUB SNK está instalado: é ali que precisam estar o
+            WildFly e o Docker.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-local">Configurações › Acessos › Local</a>:
+              desmarcado, a aba Local some do topo.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-perfil">Configurações › Acessos › Perfil</a>: o
+              perfil Gerente de Projetos já vem com a aba Local oculta.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#situacao-da-base">Situação da base</a> e
+              <a href="#situacao-do-banco">situação do banco</a>, conferidas ao abrir.
+            </li>
+            <li>
+              As bases locais também aparecem na
+              <a href="buscas-e-atalhos.html#busca-rapida">busca rápida</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="cadastrar-base">
+          <h2>Cadastrar base local (WildFly)</h2>
+          <p>
+            Registra uma base Sankhya instalada num WildFly da sua máquina, com nome (até 120
+            caracteres), pasta do WildFly e porta HTTP (de 1 a 65535). Os três campos são
+            obrigatórios.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na seção <strong>Bases</strong>, clique no <strong>+</strong> (<strong
+                >Adicionar base</strong
+              >).
+              <figure>
+                <img
+                  src="img/ambiente-local/cadastrar-base-01-botao.webp"
+                  alt="Botão Adicionar base destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Cadastrar base</strong>, preencha o <strong>Nome</strong>, o
+              <strong>Caminho do WildFly</strong> e a <strong>Port</strong>. O botão de pasta ao
+              lado do caminho abre o seletor de pastas do sistema; o campo continua editável.
+              <!-- print-pendente: sistema: seletor de pasta do Windows -->
+              <figure>
+                <img
+                  src="img/ambiente-local/cadastrar-base-02-formulario.webp"
+                  alt="Janela Cadastrar base preenchida"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Salvar</strong>. A base entra na lista e o aviso
+              <strong>Base cadastrada.</strong> confirma.
+              <figure>
+                <img
+                  src="img/ambiente-local/cadastrar-base-03-salva.webp"
+                  alt="Base nova na lista, com o aviso Base cadastrada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">No Linux, o seletor de pastas precisa do zenity ou do kdialog.</p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#visao-geral">Tela Local</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="editar-e-excluir-base">
+          <h2>Editar e excluir base local</h2>
+          <p>
+            Altera o nome, a pasta do WildFly e a porta, ou tira a base do cadastro. Excluir não
+            mexe na pasta do WildFly nem no que está instalado nela.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha da base, clique no lápis (<strong>Editar base</strong>).
+              <figure>
+                <img
+                  src="img/ambiente-local/editar-e-excluir-base-01-editar.webp"
+                  alt="Botão Editar base destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Editar base</strong>, ajuste o que precisar e clique em
+              <strong>Salvar</strong>. O aviso <strong>Base atualizada.</strong> confirma.
+              <figure>
+                <img
+                  src="img/ambiente-local/editar-e-excluir-base-02-formulario.webp"
+                  alt="Janela Editar base com a porta alterada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para excluir, clique na lixeira (<strong>Excluir base</strong>).
+              <figure>
+                <img
+                  src="img/ambiente-local/editar-e-excluir-base-03-excluir.webp"
+                  alt="Botão Excluir base destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Confirme em <strong>Excluir</strong>. Não há como desfazer; o aviso
+              <strong>Base excluída.</strong> confirma.
+              <figure>
+                <img
+                  src="img/ambiente-local/editar-e-excluir-base-04-confirmar.webp"
+                  alt="Janela de confirmação Excluir base"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-base">Cadastrar base local</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="iniciar-e-parar-base">
+          <h2>Iniciar, reiniciar e parar a base</h2>
+          <p>
+            <strong>Iniciar</strong> sobe o WildFly com o script <code>standalone</code> da pasta
+            cadastrada. <strong>Parar</strong> desliga de forma limpa pelo <code>jboss-cli</code>,
+            na porta de management 9990. <strong>Reiniciar</strong> desliga, espera as portas caírem
+            e sobe de novo. Ao terminar, a situação da base é conferida outra vez.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha da base, clique no play (<strong>Iniciar</strong>). Com o serviço já de pé, o
+              botão fica bloqueado.
+              <figure>
+                <img
+                  src="img/ambiente-local/iniciar-e-parar-base-01-iniciar.webp"
+                  alt="Botão Iniciar destacado numa base parada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Quando o WildFly responde, a situação passa a <strong>Operacional</strong> e a versão
+              aparece na linha.
+              <figure>
+                <img
+                  src="img/ambiente-local/iniciar-e-parar-base-02-operacional.webp"
+                  alt="Situação Operacional destacada depois de iniciar"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Use as setas circulares (<strong>Reiniciar</strong>) ou o quadrado
+              (<strong>Parar</strong>). O Parar fica bloqueado quando a última conferência já viu o
+              serviço parado.
+              <figure>
+                <img
+                  src="img/ambiente-local/iniciar-e-parar-base-03-reiniciar-e-parar.webp"
+                  alt="Botões Reiniciar e Parar destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            No Linux, os scripts <code>standalone.sh</code> e <code>jboss-cli.sh</code> precisam ter
+            permissão de execução.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#cadastrar-base">Cadastrar base local</a> e
+              <a href="#situacao-da-base">situação da base</a>
+            </li>
+            <li>Para acompanhar a subida, abra o <a href="#log-da-base">log ao vivo</a>.</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="abrir-sankhyaom">
+          <h2>Abrir o SankhyaOm local</h2>
+          <p>
+            Abre <code>http://localhost:&lt;porta&gt;/mge</code> da base. No aplicativo desktop, o
+            endereço da própria máquina abre numa guia do HUB SNK chamada
+            <strong>Local · localhost:&lt;porta&gt;</strong>, sem preenchimento de login. No
+            navegador, abre numa aba nova.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Com a base de pé, clique na seta (<strong>Abrir SankhyaOm</strong>) na linha dela.
+              <figure>
+                <img
+                  src="img/ambiente-local/abrir-sankhyaom-01-botao.webp"
+                  alt="Botão Abrir SankhyaOm destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O SankhyaOm da base abre na guia nova.
+              <!-- print-pendente: terceiros: SankhyaOm local na guia Local · localhost:8080 -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-abrir-os-links-em"
+                >Configurações › Geral › Abrir os links em</a
+              >: não vale aqui. No aplicativo, o endereço da própria máquina sempre abre numa guia
+              do HUB SNK.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#iniciar-e-parar-base">Iniciar a base</a></li>
+            <li>
+              <a href="guias-e-navegacao.html#fechar-e-recarregar">Fechar e recarregar guias</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="log-da-base">
+          <h2>Log ao vivo da base</h2>
+          <p>
+            Abre o <code>server.log</code> do WildFly numa janela própria, que acompanha o arquivo
+            em tempo real: mostra o final do log e o que for sendo escrito. Se o log ainda não
+            existe, a janela avisa e fica esperando por ele.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha da base, clique no botão de documento (<strong>Abrir log</strong>).
+              <figure>
+                <img
+                  src="img/ambiente-local/log-da-base-01-botao.webp"
+                  alt="Botão Abrir log destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A janela <strong>Log — &lt;nome da base&gt;</strong> abre acompanhando em tempo real.
+              <strong>Rolagem automática</strong> mantém a tela no fim do log; rolar para cima
+              desliga, e um clique no botão religa. <strong>Pausar</strong> para o acompanhamento e
+              vira <strong>Retomar</strong>, que continua de onde parou. <strong>Baixar</strong>
+              baixa o arquivo inteiro, não só o que está na tela.
+              <figure>
+                <img
+                  src="img/ambiente-local/log-da-base-02-janela.webp"
+                  alt="Janela de log da base com as linhas do server.log"
+                  width="944"
+                  height="576"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">A janela de log não segue o tema claro ou escuro do Painel.</p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#cadastrar-base">Cadastrar base local</a>: o log é lido de
+              <code>standalone\log\server.log</code>, dentro da pasta do WildFly.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="mcp-da-base">
+          <h2><code>.sankhya-mcp.env</code> da base local</h2>
+          <p>
+            Grava, na pasta do WildFly da base, o arquivo <code>.sankhya-mcp.env</code> com o banco
+            que o sankhya-schema-mcp deve usar: host, porta, service name, usuário e senha. Os dados
+            podem ser importados de um banco local cadastrado. O botão de tomada fica verde quando o
+            arquivo tem as cinco variáveis preenchidas.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha da base, clique na tomada (<strong>Banco de dados do MCP Claude</strong>).
+              <figure>
+                <img
+                  src="img/ambiente-local/mcp-da-base-01-botao.webp"
+                  alt="Botão do MCP da base local destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Banco de dados do MCP Claude</strong>, o subtítulo diz se o arquivo
+              foi lido ou será criado. Para não digitar, escolha um banco local na lista e clique em
+              <strong>Importar</strong>: os campos são preenchidos, mas nada é gravado ainda.
+              <figure>
+                <img
+                  src="img/ambiente-local/mcp-da-base-02-importar.webp"
+                  alt="Banco local escolhido e botão Importar destacados, com os campos preenchidos"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Confira os campos <strong>SANKHYA_DB_HOST</strong>, <strong>SANKHYA_DB_PORT</strong>,
+              <strong>SANKHYA_DB_SERVICE_NAME</strong>, <strong>SANKHYA_DB_USER</strong> e
+              <strong>SANKHYA_DB_PASSWORD</strong> e clique em <strong>Salvar</strong>. O botão de
+              tomada fica verde.
+              <figure>
+                <img
+                  src="img/ambiente-local/mcp-da-base-03-salvo.webp"
+                  alt="Botão do MCP verde depois de salvar, com o aviso de arquivo gravado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            O arquivo leva a senha do banco sem máscara. Variáveis extras que já estivessem nele são
+            mantidas no fim.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-banco">Cadastrar banco local</a>, origem do Importar.</li>
+            <li>
+              É lido pelo <a href="mcp.html#sankhya-schema">sankhya-schema-mcp</a>. O mesmo arquivo,
+              para repositório de cliente, está em
+              <a href="repositorios-git.html#mcp-do-repositorio">Repositórios Git</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="situacao-da-base">
+          <h2>Situação e uptime da base</h2>
+          <p>
+            Cada base tem um selo de situação: <strong>Operacional</strong> quando o WildFly está de
+            pé e <code>/mge/</code> responde,
+            <strong>Serviço ativo, HTTP não responde</strong> quando só o serviço está de pé, e
+            <strong>Serviço parado</strong>. Até a primeira resposta, o selo diz
+            <strong>Verificando…</strong>. Com a base no ar, a linha mostra a
+            <strong>Versão</strong> da plataforma. Embaixo do selo, o gráfico de uptime tem uma
+            barra por conferência, da mais antiga à esquerda, em verde, amarelo ou vermelho.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Leia o selo e passe o mouse nas barras do gráfico para ver a data, a hora e a situação
+              de cada conferência. Sem conferência ainda, o gráfico diz
+              <strong>Sem histórico ainda</strong>.
+              <figure>
+                <img
+                  src="img/ambiente-local/situacao-da-base-01-selo.webp"
+                  alt="Selo Operacional e gráfico de uptime da base destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para conferir fora do intervalo automático, clique nas setas dentro do selo (<strong
+                >Atualizar status agora</strong
+              >). A conferência vira mais uma barra no gráfico.
+              <figure>
+                <img
+                  src="img/ambiente-local/situacao-da-base-02-atualizar.webp"
+                  alt="Botão Atualizar status agora destacado no selo da base"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            O histórico fica na memória, com até 200 conferências por base, e recomeça quando o HUB
+            SNK é reiniciado.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-intervalo-de-execucao-automatica"
+                >Configurações › Geral › Intervalo de execução automática</a
+              >: de quanto em quanto tempo a situação é refeita, só com a janela à vista.
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-tempo-limite"
+                >Configurações › Geral › Tempo limite para timeout</a
+              >: quanto cada conferência espera pela resposta.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#visao-geral">Tela Local</a></li>
+            <li><a href="clientes.html#atualizacao-automatica">Atualização automática</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="cadastrar-banco">
+          <h2>Cadastrar banco local (Docker)</h2>
+          <p>
+            Registra um banco Oracle que roda num container Docker da sua máquina: nome do
+            container, host, porta, service name, usuário e senha, todos obrigatórios. A porta já
+            vem com 1521.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na seção <strong>Bancos de dados</strong>, clique no <strong>+</strong> (<strong
+                >Adicionar banco</strong
+              >).
+              <figure>
+                <img
+                  src="img/ambiente-local/cadastrar-banco-01-botao.webp"
+                  alt="Botão Adicionar banco destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Cadastrar banco de dados</strong>, preencha
+              <strong>Container</strong>, <strong>Host</strong>, <strong>Port</strong>,
+              <strong>Service Name</strong>, <strong>User</strong> e <strong>Password</strong>. O
+              olho ao lado da senha mostra o que foi digitado.
+              <figure>
+                <img
+                  src="img/ambiente-local/cadastrar-banco-02-formulario.webp"
+                  alt="Janela Cadastrar banco de dados preenchida"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Salvar</strong>. O banco entra na lista e o aviso
+              <strong>Banco cadastrado.</strong> confirma.
+              <figure>
+                <img
+                  src="img/ambiente-local/cadastrar-banco-03-salvo.webp"
+                  alt="Banco novo na lista, com o aviso Banco cadastrado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#visao-geral">Tela Local</a></li>
+            <li>É a origem do Importar do <a href="#mcp-da-base">MCP da base local</a>.</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="editar-e-excluir-banco">
+          <h2>Ver senha, editar e excluir banco</h2>
+          <p>
+            A linha do banco mostra <code>host:porta/serviço</code> e o usuário com a senha
+            mascarada, com botões para mostrar e copiar a senha. Dali também se altera os dados de
+            conexão ou se tira o banco do cadastro. Excluir não apaga o container.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no olho (<strong>Mostrar senha</strong>) para ver a senha e, de novo (<strong
+                >Ocultar senha</strong
+              >), para escondê-la. O botão ao lado (<strong>Copiar senha</strong>) copia sem
+              mostrar; o aviso <strong>Senha copiada.</strong> confirma.
+              <figure>
+                <img
+                  src="img/ambiente-local/editar-e-excluir-banco-01-senha.webp"
+                  alt="Senha do banco à mostra, com o aviso Senha copiada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para alterar, clique no lápis (<strong>Editar banco</strong>).
+              <figure>
+                <img
+                  src="img/ambiente-local/editar-e-excluir-banco-02-editar.webp"
+                  alt="Botão Editar banco destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Editar banco de dados</strong>, ajuste e clique em
+              <strong>Salvar</strong>. O aviso <strong>Banco atualizado.</strong> confirma.
+              <figure>
+                <img
+                  src="img/ambiente-local/editar-e-excluir-banco-03-formulario.webp"
+                  alt="Janela Editar banco de dados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para excluir, clique na lixeira (<strong>Excluir banco</strong>) e confirme em
+              <strong>Excluir</strong>. Não há como desfazer; o aviso
+              <strong>Banco excluído.</strong> confirma.
+              <figure>
+                <img
+                  src="img/ambiente-local/editar-e-excluir-banco-04-confirmar.webp"
+                  alt="Janela de confirmação Excluir banco"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#cadastrar-banco">Cadastrar banco local</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="ligar-e-parar-banco">
+          <h2>Ligar, reiniciar e parar o banco</h2>
+          <p>
+            <strong>Iniciar</strong>, <strong>Reiniciar</strong> e <strong>Parar</strong> rodam
+            <code>docker start</code>, <code>docker restart</code> e <code>docker stop</code> no
+            container. Se o Docker não estiver respondendo ao iniciar ou reiniciar, o HUB SNK abre
+            sozinho o Docker Desktop e espera ele atender antes de seguir; a primeira subida demora.
+            Sem Docker Desktop instalado, um aviso explica o erro.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do banco, clique no play (<strong>Iniciar</strong>). Com o container já
+              rodando, o botão fica bloqueado.
+              <!-- print-pendente: sistema: Docker Desktop abrindo sozinho -->
+              <figure>
+                <img
+                  src="img/ambiente-local/ligar-e-parar-banco-01-iniciar.webp"
+                  alt="Botão Iniciar destacado num banco parado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Quando o banco aceita o login, a situação passa a <strong>Operacional</strong>.
+              <figure>
+                <img
+                  src="img/ambiente-local/ligar-e-parar-banco-02-operacional.webp"
+                  alt="Situação Operacional do banco destacada depois de iniciar"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Use as setas circulares (<strong>Reiniciar</strong>) ou o quadrado
+              (<strong>Parar</strong>). O Parar fica bloqueado quando a última conferência já viu o
+              container parado.
+              <figure>
+                <img
+                  src="img/ambiente-local/ligar-e-parar-banco-03-reiniciar-e-parar.webp"
+                  alt="Botões Reiniciar e Parar do banco destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            No Linux, em vez do Docker Desktop, o HUB SNK tenta subir o Docker como serviço do
+            usuário (<code>systemctl --user</code>). Se o Docker Engine roda como serviço do
+            sistema, suba-o você mesmo com <code>sudo systemctl start docker</code>.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#cadastrar-banco">Cadastrar banco local</a> e
+              <a href="#situacao-do-banco">situação do banco</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="situacao-do-banco">
+          <h2>Situação e uptime do banco</h2>
+          <p>
+            O selo do banco diz <strong>Operacional</strong> quando o login com o usuário e a senha
+            cadastrados funciona dentro do container,
+            <strong>Container ativo, banco não responde</strong> quando o container está de pé mas o
+            login falha, e <strong>Container parado</strong>. O gráfico de uptime funciona como o da
+            base: uma barra por conferência, com data, hora e situação ao passar o mouse.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Leia o selo e o gráfico na linha do banco. As setas dentro do selo (<strong
+                >Atualizar status agora</strong
+              >) conferem na hora.
+              <figure>
+                <img
+                  src="img/ambiente-local/situacao-do-banco-01-selo.webp"
+                  alt="Selo Operacional e gráfico de uptime do banco destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            O login é testado com o <code>sqlplus</code> de dentro do container: imagem sem ele
+            nunca chega a Operacional.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-intervalo-de-execucao-automatica"
+                >Configurações › Geral › Intervalo de execução automática</a
+              >
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-tempo-limite"
+                >Configurações › Geral › Tempo limite para timeout</a
+              >
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#visao-geral">Tela Local</a></li>
+            <li><a href="clientes.html#atualizacao-automatica">Atualização automática</a></li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

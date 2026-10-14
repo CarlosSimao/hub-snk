@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agenda de Recursos · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como ver a Agenda de Recursos do SankhyaOm no HUB SNK, conferir a situação de cada evento no Experience e lançar ocorrências, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Agenda de Recursos</h1>
+        <p class="introducao">
+          A sua Agenda de Recursos do SankhyaOm, num calendário do mês, com a situação de cada
+          evento no Experience ao lado. A consulta ao Sankhya é feita pelo aplicativo desktop, que
+          entra sozinho com o seu <a href="sankhya-id.html">Sankhya ID</a>; não há tela do SankhyaOm
+          para abrir.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#visao-geral">Agenda de Recursos (menu)</a></li>
+            <li><a href="#navegar-no-calendario">Navegar no calendário e ver o dia</a></li>
+            <li><a href="#atualizar-da-sankhya">Atualizar da Sankhya</a></li>
+            <li><a href="#situacao-no-experience">Situação do evento no Experience</a></li>
+            <li><a href="#abrir-cliente-do-evento">Abrir o cliente pelo evento</a></li>
+            <li><a href="#vincular-parceiro">Vincular o parceiro a um cliente</a></li>
+            <li>
+              <a href="#lancar-ocorrencia">Lançar ocorrência (férias, folga, atestado)</a>
+            </li>
+            <li><a href="#aba-do-cliente">Aba Agenda do cliente</a></li>
+            <li><a href="#avisos-de-erro">Sem o aplicativo e erros de configuração</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="visao-geral">
+          <h2>Agenda de Recursos (menu)</h2>
+          <p>
+            Mostra o calendário do mês com os seus eventos da Agenda de Recursos: só os do seu
+            código de usuário, nunca os de outros consultores. O que já foi consultado fica guardado
+            no computador e aparece na hora; em seguida, o HUB SNK consulta o Sankhya e atualiza o
+            mês. A consulta só funciona no aplicativo desktop.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No topo do Painel, clique em <strong>Agenda</strong>.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/visao-geral-01-botao.webp"
+                  alt="Topo do Painel com a aba Agenda destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A tela <strong>Agenda de Recursos</strong> abre no mês atual, com o dia de hoje
+              selecionado e os eventos dele logo abaixo da grade.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/visao-geral-02-tela.webp"
+                  alt="Calendário do mês com os dias que têm eventos marcados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Para ser avisado quando um dia da agenda ficar sem tarefa nem OS no Experience, ligue o
+            <a href="lembretes-e-notificacoes.html#alerta-da-agenda"
+              >alerta "Agenda sem tarefa na Experience"</a
+            >.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-codigo-de-usuario"
+                >Configurações › Sankhya ID › Meu código de usuário SankhyaOm</a
+              >: obrigatório; é ele que recorta a agenda só para você.
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-usuario-e-senha"
+                >Configurações › Sankhya ID › Usuário e senha</a
+              >: o login que o aplicativo usa para consultar o SankhyaOm.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-agenda">Configurações › Acessos › Agenda</a>:
+              desmarcada, a aba Agenda some do topo.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado, a Agenda some do topo e do cadastro do cliente.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="sankhya-id.html#salvar-sankhya-id">Sankhya ID salvo</a> e
+              <a href="sankhya-id.html#codigo-de-usuario">código de usuário SankhyaOm</a>
+            </li>
+            <li><a href="#atualizar-da-sankhya">Atualizar da Sankhya</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="navegar-no-calendario">
+          <h2>Navegar no calendário e ver o dia</h2>
+          <p>
+            Cada dia com evento traz um selo verde com a quantidade. Um evento de vários dias, como
+            férias ou um treinamento de uma semana, aparece em todos os dias que ocupa. Ao clicar
+            num dia, a lista de eventos dele aparece abaixo da grade: o código e o nome do parceiro
+            (ou a descrição, num evento sem parceiro, como uma folga), a descrição completa e o
+            horário, ou <strong>Dia todo</strong>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Use <strong>‹</strong> e <strong>›</strong> para ir ao mês anterior ou ao seguinte.
+              Abaixo do nome do mês aparece quantos eventos ele tem.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/navegar-01-mes.webp"
+                  alt="Botões de mês anterior e seguinte destacados acima do calendário"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique num dia. A borda verde passa para ele, e os eventos do dia aparecem abaixo da
+              grade.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/navegar-02-dia.webp"
+                  alt="Dia selecionado no calendário e os eventos dele abaixo da grade"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#visao-geral">Agenda de Recursos (menu)</a> ou
+              <a href="#aba-do-cliente">aba Agenda do cliente</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="atualizar-da-sankhya">
+          <h2>Atualizar da Sankhya</h2>
+          <p>
+            Consulta de novo, no SankhyaOm, o mês que está na tela e guarda o resultado no
+            computador. Abrir a Agenda e trocar de mês já fazem essa consulta sozinhos; o botão
+            serve para buscar de novo na hora. Enquanto ela roda, a grade continua à vista, coberta
+            por <strong>Atualizando da Sankhya…</strong>. Se a consulta falhar, o que já estava
+            guardado continua na tela.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na Agenda, clique no botão de recarregar no canto superior direito (<strong
+                >Atualizar da Sankhya</strong
+              >).
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/atualizar-01-botao.webp"
+                  alt="Botão Atualizar da Sankhya destacado, com a hora da última atualização"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Aguarde a camada <strong>Atualizando da Sankhya…</strong> sumir.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/atualizar-02-atualizando.webp"
+                  alt="Calendário coberto pela camada Atualizando da Sankhya"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Ao lado do botão, <strong>Atualizado em</strong> mostra a data e a hora da consulta.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/atualizar-03-atualizado.webp"
+                  alt="Texto Atualizado em destacado ao lado do botão de recarregar"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-codigo-de-usuario"
+                >Configurações › Sankhya ID › Meu código de usuário SankhyaOm</a
+              >: sem ele, a consulta é recusada.
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-usuario-e-senha"
+                >Configurações › Sankhya ID › Usuário e senha</a
+              >: sem eles, a consulta é recusada.
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-sessao-sankhyaom"
+                >Configurações › Sankhya ID › SankhyaOm</a
+              >: a sessão do SankhyaOm que a consulta usa.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="sankhya-id.html#login-automatico">Login automático</a></li>
+            <li><a href="#avisos-de-erro">Erros de configuração</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="situacao-no-experience">
+          <h2>Situação do evento no Experience</h2>
+          <p>
+            Ao lado do horário de cada evento com parceiro, um selo diz se você já registrou o dia
+            no Experience: <strong>Sem tarefa aberta no Experience</strong> (vermelho),
+            <strong>Tarefa aberta no Experience</strong> (amarelo) ou <strong>OS nº</strong> com o
+            número da OS (verde). A OS lançada traz também o status dela e um quadro com início,
+            fim, intervalo, tempo realizado, pedido e as tarefas realizadas. Só funciona no
+            aplicativo desktop.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Selecione um dia com evento. O selo começa em
+              <strong>Verificando situação no Experience…</strong> e muda sozinho quando a consulta
+              termina. Parado sobre o selo, o mouse mostra as negociações (FAP) do cliente
+              consultadas, ou <strong>Cliente sem FAP de implantação.</strong>
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/situacao-01-selos.webp"
+                  alt="Eventos do dia com os selos OS lançada e Tarefa aberta no Experience"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para consultar de novo um evento, clique no botão de recarregar ao lado do selo
+              (<strong>Atualizar situação no Experience</strong>). Trocar de dia no calendário
+              também refaz a consulta.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/situacao-02-atualizar.webp"
+                  alt="Botão Atualizar situação no Experience destacado ao lado do selo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Se a consulta falhar, o selo vira
+            <strong>Não verifiquei a situação no Experience</strong>, e o motivo aparece com o mouse
+            parado sobre ele.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-sessao-experience"
+                >Configurações › Sankhya ID › Experience</a
+              >: a sessão do Experience que a consulta usa.
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-usuario-e-senha"
+                >Configurações › Sankhya ID › Usuário e senha</a
+              >: as negociações do cliente vêm do SankhyaOm.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#navegar-no-calendario">Ver os eventos do dia</a></li>
+            <li>
+              <a href="sankhya-id.html#sessao-da-experience"
+                >Sessão da Experience em segundo plano</a
+              >
+            </li>
+            <li>
+              As cores dos status são as mesmas das
+              <a href="ordens-de-servico.html#filtrar-por-status">Ordens de Serviço</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="abrir-cliente-do-evento">
+          <h2>Abrir o cliente pelo evento</h2>
+          <p>
+            Quando o parceiro do evento já está vinculado a um cliente do HUB SNK, o nome dele vira
+            link para o cadastro desse cliente.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Nos eventos do dia, clique no nome do parceiro.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/abrir-cliente-01-titulo.webp"
+                  alt="Nome do parceiro destacado no evento do dia"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              O Painel vai para Clientes, com o cliente selecionado.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/abrir-cliente-02-cadastro.webp"
+                  alt="Tela Clientes com a Fazenda Boa Vista selecionada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#vincular-parceiro">Vincular o parceiro a um cliente</a></li>
+            <li><a href="clientes.html#nomes-completos">Nomes completos no Sankhya</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="vincular-parceiro">
+          <h2>Vincular o parceiro a um cliente</h2>
+          <p>
+            Liga o nome do parceiro no Sankhya a um cliente do HUB SNK, gravando esse nome nos
+            <a href="clientes.html#nomes-completos">nomes completos</a> do cliente. Se o nome já
+            estava em outro cliente, sai de lá. O botão de corrente ao lado do parceiro fica verde
+            quando o vínculo já existe; nesse caso, clicar nele troca o cliente.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Nos eventos do dia, clique no botão de corrente ao lado do nome do parceiro (<strong
+                >Vincular a um cliente do HUB (ou cadastrar novo)</strong
+              >).
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/vincular-01-botao.webp"
+                  alt="Botão de vincular destacado ao lado do parceiro sem vínculo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Abre um painel com a lista de clientes. O cliente vinculado no momento, se houver,
+              traz a marca <strong>vinculado</strong>.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/vincular-02-painel.webp"
+                  alt="Painel de vínculo com a lista de clientes e o campo de cliente novo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Digite em <strong>Buscar cliente do HUB…</strong> para filtrar e clique no cliente.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/vincular-03-buscar.webp"
+                  alt="Busca filtrando a lista, com o cliente Distribuidora Norte Verde destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Um aviso confirma o vínculo, e o botão de corrente fica verde.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/vincular-04-vinculado.webp"
+                  alt="Aviso de parceiro vinculado e o botão de corrente verde"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Se o cliente ainda não existe, use o campo do pé do painel, que já vem com o nome do
+            Sankhya: ajuste o nome e clique em <strong>Cadastrar e vincular</strong> (ou tecle
+            <kbd>Enter</kbd>). O cliente é criado já vinculado. <kbd>Esc</kbd> ou um clique fora
+            fecham o painel.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="clientes.html#nomes-completos">Nomes completos no Sankhya</a></li>
+            <li><a href="clientes.html#cadastrar">Cadastrar cliente</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="lancar-ocorrencia">
+          <h2>Lançar ocorrência (férias, folga, atestado)</h2>
+          <p>
+            Grava uma ocorrência na sua agenda direto no SankhyaOm, pelo mesmo botão de criar
+            ocorrência do ERP, sem abrir o SankhyaOm. A ocorrência é sempre do usuário do Sankhya
+            ID: se o login salvo for de outro código de usuário que não o configurado, o lançamento
+            é bloqueado. Só funciona no aplicativo desktop.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na Agenda, selecione o dia em que a ocorrência começa e clique em
+              <strong>Lançar ocorrência</strong>.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/ocorrencia-01-botao.webp"
+                  alt="Botão Lançar ocorrência destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Confira, no alto da janela, para quem vai a ocorrência. Ajuste a
+              <strong>Data inicial</strong> e a <strong>Data final</strong> (vêm com o dia
+              selecionado, das 08:00 às 18:00) e escolha o <strong>Motivo</strong>: Férias,
+              Treinamento, Folga, Atestado Médico, Day Off, Feriado e outros. O padrão é Serviços
+              Gerais.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/ocorrencia-02-formulario.webp"
+                  alt="Janela Lançar ocorrência com o usuário e o motivo Folga destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Lançar</strong>. <strong>Cancelar</strong> fecha sem gravar.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/ocorrencia-03-lancar.webp"
+                  alt="Botão Lançar destacado na janela"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Um aviso traz a resposta do SankhyaOm. A grade vai para o dia inicial da ocorrência e
+              consulta o mês de novo, para ela aparecer.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/ocorrencia-04-lancada.webp"
+                  alt="Aviso de ocorrência criada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Se quiser, confira a ocorrência gravada no SankhyaOm.
+              <!-- print-pendente: terceiros: SankhyaOm (ocorrência gravada na Agenda de Recursos) -->
+            </li>
+          </ol>
+          <p class="nota">
+            A data final tem que ser depois da inicial. Se o aplicativo não conseguir identificar o
+            seu usuário no SankhyaOm, o botão <strong>Lançar</strong> fica travado e a janela diz o
+            motivo.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-usuario-e-senha"
+                >Configurações › Sankhya ID › Usuário e senha</a
+              >: a ocorrência é gravada com esse login.
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-codigo-de-usuario"
+                >Configurações › Sankhya ID › Meu código de usuário SankhyaOm</a
+              >: tem que ser o mesmo do login salvo, ou o lançamento é bloqueado.
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-sessao-sankhyaom"
+                >Configurações › Sankhya ID › SankhyaOm</a
+              >: a sessão do SankhyaOm que grava a ocorrência.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="sankhya-id.html#salvar-sankhya-id">Sankhya ID salvo</a> e
+              <a href="sankhya-id.html#codigo-de-usuario">código de usuário SankhyaOm</a>
+            </li>
+            <li><a href="#atualizar-da-sankhya">Atualizar da Sankhya</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="aba-do-cliente">
+          <h2>Aba Agenda do cliente</h2>
+          <p>
+            No cadastro do cliente, a aba <strong>Agenda</strong> mostra o mesmo calendário, só com
+            os eventos dos parceiros cujo nome bate com o nome do cliente ou com os
+            <a href="clientes.html#nomes-completos">nomes completos</a> dele. Ela mostra na hora o
+            que já está guardado e consulta o mês no Sankhya em segundo plano; aqui não há botão de
+            atualizar.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Em <strong>Clientes</strong>, selecione o cliente e clique na aba
+              <strong>Agenda</strong>. Navegue pelos meses e clique nos dias como na Agenda do menu.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/aba-do-cliente-01.webp"
+                  alt="Aba Agenda da Fazenda Boa Vista com os eventos do cliente"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-cliente-agenda"
+                >Configurações › Acessos › Cadastro do cliente › Agenda</a
+              >: desmarcada, a aba some do cadastro.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado, a aba some.
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-codigo-de-usuario"
+                >Configurações › Sankhya ID › Meu código de usuário SankhyaOm</a
+              >
+              e
+              <a href="configuracoes.html#sankhya-id-usuario-e-senha">Usuário e senha</a>: para a
+              consulta em segundo plano.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="clientes.html#nomes-completos">Nomes completos no Sankhya</a></li>
+            <li><a href="#navegar-no-calendario">Navegar no calendário e ver o dia</a></li>
+            <li><a href="#situacao-no-experience">Situação do evento no Experience</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="avisos-de-erro">
+          <h2>Sem o aplicativo e erros de configuração</h2>
+          <p>
+            Quando a consulta falha porque falta uma configuração (o código de usuário, o Sankhya ID
+            ou a sessão do Experience), a mensagem vermelha acima do calendário vem com
+            <strong>Abrir configuração</strong>, que leva direto ao campo que falta. Com o Painel
+            aberto num navegador comum, fora do aplicativo, a Agenda avisa:
+            <em
+              >A consulta ao Sankhya precisa do aplicativo HUB SNK aberto, com login feito na guia
+              SankhyaOm.</em
+            >
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Leia a mensagem acima do calendário. Sem o código de usuário, por exemplo, ela pede
+              para informar o <strong>Meu código de usuário SankhyaOm</strong>; sem o Sankhya ID,
+              para salvar o usuário e a senha.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/avisos-01-erro.webp"
+                  alt="Mensagem de erro com o atalho Abrir configuração acima do calendário"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Abrir configuração</strong>. A engrenagem do topo pisca e as
+              Configurações abrem na aba <strong>Sankhya ID</strong>, no campo que falta.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/avisos-02-configuracao.webp"
+                  alt="Configurações abertas na aba Sankhya ID com o campo do código de usuário destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-codigo-de-usuario"
+                >Configurações › Sankhya ID › Meu código de usuário SankhyaOm</a
+              >, <a href="configuracoes.html#sankhya-id-usuario-e-senha">Usuário e senha</a> e
+              <a href="configuracoes.html#sankhya-id-sessao-experience">Experience</a>: os campos
+              para onde o atalho leva.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#abrir-configuracao-pelo-erro"
+                >Atalho "Abrir configuração" num erro</a
+              >
+            </li>
+            <li>
+              <a href="sankhya-id.html#bloqueio-de-conta">Proteção contra bloqueio da conta</a>:
+              outro aviso que aparece no mesmo lugar.
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>
