@@ -18,3 +18,9 @@ release/
 # Credencial OAuth do Google (cliente "App para computador"): entra no instalador pelo
 # empacotamento e não vai para o repositório. Veja docs/manutencao.md.
 credencial-google.json
+
+# Gerados na publicação do site (.github/workflows/site.yml), e não versionados: os prints
+# da wiki saem do capturador e da branch wiki-img, e o ícone vem de desktop/assets. Veja
+# docs/wiki.md.
+site/wiki/img/
+site/img/

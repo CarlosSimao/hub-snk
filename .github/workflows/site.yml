@@ -1,40 +1,100 @@
 name: Site
 
-# Publica a página do projeto (pasta `site/`) no GitHub Pages, em
-# https://carlossimao.github.io/hub-snk/.
+# Publica a página do projeto e a wiki (pasta `site/`) no GitHub Pages, em
+# https://carlossimao.github.io/hub-snk/. Como tudo isso é mantido está em docs/wiki.md.
 #
-# Os prints e o ícone não são copiados para `site/`: vêm de `docs/img` e
-# `desktop/assets` na hora da publicação, para existir um arquivo só de cada.
+# Nenhuma imagem da wiki fica na `main`. Elas vêm de dois lugares, na hora da publicação:
+#
+#   - os prints do HUB SNK são gerados aqui, pelo `ferramentas/captura-wiki`, rodando o
+#     aplicativo de verdade sobre dados fictícios. Mudou a tela, o print acompanha;
+#   - os prints de telas de terceiros (WhatsApp, Google, SankhyaOm, Experience), que
+#     dependem de uma sessão de verdade e não dá para gerar aqui, vêm da branch órfã
+#     `wiki-img`, de um commit só, sobrescrita a cada atualização.
+#
+# Os prints e o ícone da página inicial também não são copiados para `site/`: vêm de
+# `docs/img` e `desktop/assets`, para existir um arquivo só de cada.
 on:
   push:
-    branches: [main]
+    branches: [main, 'teste/wiki-ci']
     paths:
       - 'site/**'
+      - 'public/**'
+      - 'desktop/**'
+      - 'ferramentas/captura-wiki/**'
       - 'docs/img/resumo.png'
       - 'docs/img/cliente.png'
-      - 'desktop/assets/hub-snk.png'
       - '.github/workflows/site.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # Duas publicações seguidas não se atropelam: a mais nova espera a anterior.
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  # Windows porque é o sistema do usuário: a fonte (Segoe UI) e o desenho das janelas
+  # saem iguais aos do aplicativo instalado.
+  capturar:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: Instalar o backend, o desktop e o capturador
+        shell: bash
+        run: |
+          npm ci
+          npm --prefix desktop ci
+          # O binário do Electron vem do script de instalação do pacote, que o npm pode
+          # pular conforme a política de scripts; chamado direto, ele sempre roda.
+          node desktop/node_modules/electron/install.js
+          npm --prefix desktop run build
+          npm --prefix ferramentas/captura-wiki ci
+
+      - name: Gerar os prints da wiki
+        shell: bash
+        run: node ferramentas/captura-wiki/capturar.mjs
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: prints-da-wiki
+          path: site/wiki/img
+          if-no-files-found: error
+
   publicar:
+    needs: capturar
+    # A branch de teste só gera os prints, para conferir no artefato: quem publica é a main.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.publicacao.outputs.page_url }}
 
     steps:
       - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: prints-da-wiki
+          path: site/wiki/img
+
+      - name: Juntar os prints de terceiros da branch wiki-img
+        run: |
+          if git fetch --depth 1 origin wiki-img; then
+            git archive FETCH_HEAD | tar -x -C site/wiki/img
+          else
+            echo "Sem a branch wiki-img: a wiki sai só com os prints do HUB SNK."
+          fi
 
       - name: Montar o site
         run: |

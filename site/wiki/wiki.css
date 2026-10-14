@@ -1,0 +1,330 @@
+/* Wiki do HUB SNK: as mesmas cores e fontes da página inicial (`site/index.html`). */
+:root {
+  --marca: #66cb66;
+  --marca-forte: #4fb84f;
+  --destaque: #f59e0b;
+  --bg: #070b14;
+  --bg-soft: #0d1425;
+  --surface: #131c30;
+  --border: rgba(148, 163, 184, 0.14);
+  --border-strong: rgba(148, 163, 184, 0.26);
+  --text: #e8eefc;
+  --text-dim: #97a5c0;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --sans: 'Segoe UI', Arial, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  --largura-do-menu: 250px;
+  color-scheme: dark;
+}
+
+/* O tema vem do ../tema.js, que segue o sistema até o usuário escolher no botão. */
+:root[data-theme='light'] {
+  --marca-forte: #2f8f2f;
+  --bg: #f1f5f9;
+  --bg-soft: #e8eef7;
+  --surface: #ffffff;
+  --border: rgba(15, 23, 42, 0.1);
+  --border-strong: rgba(15, 23, 42, 0.18);
+  --text: #0f172a;
+  --text-dim: #475569;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  line-height: 1.6;
+}
+
+a {
+  color: var(--marca-forte);
+}
+
+code,
+kbd {
+  font-size: 0.9em;
+  padding: 1px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg-soft);
+}
+
+header.topo {
+  border-bottom: 1px solid var(--border);
+}
+
+header.topo .conteudo,
+.wiki {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+header.topo .conteudo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 1.15rem;
+}
+
+.logo img {
+  width: 32px;
+  height: 32px;
+}
+
+.logo span {
+  font-weight: 300;
+}
+
+header.topo nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+header.topo nav a {
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+header.topo nav a:hover {
+  color: var(--text);
+}
+
+.botao-tema {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.botao-tema:hover {
+  color: var(--text);
+}
+
+.botao-tema svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wiki {
+  display: grid;
+  grid-template-columns: var(--largura-do-menu) minmax(0, 1fr);
+  gap: 40px;
+  padding-top: 32px;
+  padding-bottom: 64px;
+}
+
+/* Menu das macro funcionalidades, montado pelo wiki.js. */
+.menu-da-wiki {
+  position: sticky;
+  top: 16px;
+  align-self: start;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  font-size: 0.92rem;
+}
+
+.menu-da-wiki h2 {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.menu-da-wiki ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.menu-da-wiki a,
+.menu-da-wiki span {
+  display: block;
+  padding: 5px 10px;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.menu-da-wiki a:hover {
+  background: var(--surface);
+}
+
+.menu-da-wiki a[aria-current='page'] {
+  background: var(--surface);
+  color: var(--marca-forte);
+  font-weight: 600;
+}
+
+/* Página ainda não escrita: aparece no menu, para se ver o tamanho da wiki, mas sem link. */
+.menu-da-wiki span {
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+main h1 {
+  margin: 0 0 8px;
+  font-size: 2rem;
+}
+
+.introducao {
+  margin: 0 0 24px;
+  color: var(--text-dim);
+  font-size: 1.05rem;
+}
+
+.nesta-pagina {
+  margin-bottom: 40px;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+
+.nesta-pagina h2 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.nesta-pagina ol {
+  margin: 0;
+  padding-left: 20px;
+  columns: 2;
+}
+
+.funcionalidade {
+  margin-bottom: 48px;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  scroll-margin-top: 16px;
+}
+
+.funcionalidade:target {
+  border-color: var(--marca-forte);
+}
+
+.funcionalidade h2 {
+  margin: 0 0 8px;
+  font-size: 1.4rem;
+}
+
+.funcionalidade h3 {
+  margin: 28px 0 10px;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.passos {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.passos > li {
+  margin-bottom: 24px;
+}
+
+.passos > li::marker {
+  font-weight: 700;
+  color: var(--marca-forte);
+}
+
+.passos figure {
+  margin: 12px 0 0;
+}
+
+.passos img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: zoom-in;
+}
+
+.nota {
+  margin: 16px 0 0;
+  padding: 12px 16px;
+  border-left: 3px solid var(--destaque);
+  border-radius: 6px;
+  background: var(--bg-soft);
+  color: var(--text-dim);
+}
+
+/* Print ampliado ao clicar. */
+dialog.ampliacao {
+  max-width: 96vw;
+  max-height: 96vh;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-out;
+}
+
+dialog.ampliacao::backdrop {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+dialog.ampliacao img {
+  display: block;
+  max-width: 96vw;
+  max-height: 96vh;
+}
+
+footer {
+  padding: 24px 16px;
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .wiki {
+    grid-template-columns: 1fr;
+  }
+
+  .menu-da-wiki {
+    position: static;
+    max-height: none;
+  }
+
+  .nesta-pagina ol {
+    columns: 1;
+  }
+
+  .funcionalidade {
+    padding: 20px;
+  }
+}
