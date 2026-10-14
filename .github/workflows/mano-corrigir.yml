@@ -135,7 +135,7 @@ jobs:
           path: mano-artefato
 
       - name: Abrir o pull request
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           ID: ${{ inputs.id }}
           PEDIDO: ${{ inputs.pedido }}

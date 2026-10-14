@@ -59,7 +59,7 @@ jobs:
 
       - name: Conferir o pull request e os testes
         id: pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           PR: ${{ inputs.pr }}
           ACAO: ${{ inputs.acao }}
@@ -95,7 +95,7 @@ jobs:
 
       - name: Esperar os testes da versão
         if: ${{ steps.versao.outputs.numero != '' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           PR: ${{ inputs.pr }}
           ACAO: publicar
@@ -111,7 +111,7 @@ jobs:
       - name: Fazer o merge
         id: merge
         if: ${{ steps.versao.outputs.numero != '' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           PR: ${{ inputs.pr }}
           ACAO: publicar
