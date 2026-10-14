@@ -36,6 +36,11 @@ const PORTA_DO_PAINEL = 4120;
 const PORTA_DA_PONTE = 4123;
 const QUALIDADE_WEBP = 0.85;
 const ESPERA_DO_PAINEL_MS = 30_000;
+// Área da janela fixa, a do aplicativo aberto pela primeira vez (1280x860 com a borda): sem
+// isto, numa tela menor (o runner do Actions tem 1024x768) a janela encolhe e o painel
+// muda de layout.
+const LARGURA_DA_JANELA = 1264;
+const ALTURA_DA_JANELA = 821;
 
 /** Situação fixa das bases: os endereços `.example` não respondem, e o print sairia vermelho. */
 function respostaDeBaseOperacional() {
@@ -87,6 +92,14 @@ async function abrirAplicativo(tema) {
         .find((p) => p.url().includes(`:${PORTA_DO_PAINEL}/`)),
     );
   if (!painel) throw new Error('A guia Painel não abriu.');
+  await aplicativo.evaluate(
+    ({ BrowserWindow }, [largura, altura]) => {
+      const janela = BrowserWindow.getAllWindows().find((j) => j.isVisible());
+      janela.unmaximize();
+      janela.setContentSize(largura, altura);
+    },
+    [LARGURA_DA_JANELA, ALTURA_DA_JANELA],
+  );
 
   const moldura = aplicativo
     .context()
