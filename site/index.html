@@ -362,6 +362,34 @@
         gap: 18px;
       }
 
+      dialog.suporte {
+        max-width: 420px;
+        padding: 24px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius);
+        background: var(--surface);
+        color: var(--text);
+      }
+
+      dialog.suporte::backdrop {
+        background: rgba(0, 0, 0, 0.55);
+      }
+
+      dialog.suporte form {
+        margin-top: 16px;
+        text-align: right;
+      }
+
+      dialog.suporte button {
+        padding: 6px 16px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        cursor: pointer;
+      }
+
       @media (max-width: 600px) {
         nav.links {
           display: none;
@@ -683,9 +711,24 @@
           <a href="https://github.com/CarlosSimao/hub-snk">Código no GitHub</a>
           <a href="https://github.com/CarlosSimao/hub-snk/blob/main/CHANGELOG.md">O que mudou</a>
           <a href="https://github.com/CarlosSimao/hub-snk/releases">Todas as versões</a>
-          <a href="mailto:carlos.snuk@gmail.com">Ajuda e Suporte</a>
+          <a
+            href="#suporte"
+            onclick="
+              event.preventDefault();
+              suporte.showModal();
+            "
+            >Ajuda e Suporte</a
+          >
         </nav>
       </div>
     </footer>
+
+    <dialog id="suporte" class="suporte" closedby="any">
+      <p>
+        Entre em contato pelo email
+        <a href="mailto:carlos.snuk@gmail.com">carlos.snuk@gmail.com</a> e descreva sua dúvida.
+      </p>
+      <form method="dialog"><button>Fechar</button></form>
+    </dialog>
   </body>
 </html>
