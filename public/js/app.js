@@ -6987,7 +6987,7 @@ function visualizacaoVisivel(chave) {
     return ['agenda', 'lembretes', 'os', FUNCIONALIDADE_REPOSITORIOS].some(funcionalidadeVisivel);
   }
   if (chave === 'kanban') {
-    return funcionalidadeVisivel('cliente.projetos');
+    return funcionalidadeVisivel('kanban') && funcionalidadeVisivel('cliente.projetos');
   }
   return funcionalidadeVisivel(chave);
 }

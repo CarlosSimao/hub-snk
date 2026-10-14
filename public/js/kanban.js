@@ -205,6 +205,7 @@ export function iniciarKanban(dependencias) {
     situacaoGeral: el('situacao-kanban-geral'),
     campoClienteGeral: el('campo-kanban-geral-cliente'),
     campoProjetoGeral: el('campo-kanban-geral-projeto'),
+    botaoRecarregarGeral: el('btn-kanban-geral-recarregar'),
     botaoNovaTarefaGeral: el('btn-kanban-geral-nova-tarefa'),
     colunasGeral: el('colunas-kanban-geral'),
 
@@ -1756,6 +1757,20 @@ export function iniciarKanban(dependencias) {
     });
   }
 
+  /** O ícone gira e o botão fica travado até a releitura terminar. */
+  function ligarBotaoDeRecarregar(botao, recarregarQuadro) {
+    botao.addEventListener('click', async () => {
+      botao.disabled = true;
+      botao.classList.add('recarregando');
+      try {
+        await recarregarQuadro();
+      } finally {
+        botao.classList.remove('recarregando');
+        botao.disabled = false;
+      }
+    });
+  }
+
   // --- eventos --------------------------------------------------------------------
 
   elementos.campoDemanda.addEventListener('change', () => {
@@ -1763,17 +1778,8 @@ export function iniciarKanban(dependencias) {
     quadro.demandaId = valor === TODAS_AS_DEMANDAS || valor === SEM_PROJETO ? valor : Number(valor);
     desenharQuadro();
   });
-  elementos.botaoRecarregar.addEventListener('click', async () => {
-    const botao = elementos.botaoRecarregar;
-    botao.disabled = true;
-    botao.classList.add('recarregando');
-    try {
-      await recarregar();
-    } finally {
-      botao.classList.remove('recarregando');
-      botao.disabled = false;
-    }
-  });
+  ligarBotaoDeRecarregar(elementos.botaoRecarregar, recarregar);
+  ligarBotaoDeRecarregar(elementos.botaoRecarregarGeral, carregarGeral);
   elementos.botaoNovaTarefa.addEventListener('click', () => abrirTarefa(null, contextoDoModal));
   elementos.campoClienteGeral.addEventListener('change', () => {
     geral.filtro = elementos.campoClienteGeral.value;

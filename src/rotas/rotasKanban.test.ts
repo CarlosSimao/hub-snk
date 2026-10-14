@@ -371,6 +371,22 @@ describe('rotas do kanban', () => {
     assert.equal(geral.tarefas.length, 2);
   });
 
+  it('grava o grupo inteiro até o limite e recusa o que passa dele', async () => {
+    const { servidor } = await criarCenario();
+    const criar = (grupo: string) =>
+      servidor.inject({
+        method: 'POST',
+        url: '/api/kanban/tarefas',
+        payload: { titulo: 'X', grupo },
+      });
+
+    const noLimite = 'g'.repeat(100);
+    const criada = await criar(noLimite);
+    assert.equal(criada.statusCode, 201);
+    assert.equal(criada.json<TarefaDoKanban>().grupo, noLimite);
+    assert.equal((await criar('g'.repeat(101))).statusCode, 400);
+  });
+
   it('recusa um segundo kanban no mesmo projeto', async () => {
     const { servidor, idDoCliente, idDoProjeto } = await criarCenario();
     const novo = () =>

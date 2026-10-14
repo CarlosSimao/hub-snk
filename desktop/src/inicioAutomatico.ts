@@ -2,10 +2,9 @@
  * Início do HUB SNK junto com o sistema, que a bandeja liga e desliga.
  *
  * No Windows quem guarda a escolha é o próprio Windows — a chave `Run` do usuário, sem
- * administrador —, e é dele que o estado é lido: desligar pelo Gerenciador de Tarefas ›
- * Inicializar aparece aqui também. A entrada leva o id do app como nome, então a versão
- * instalada e a de desenvolvimento não se sobrescrevem. A desinstalação apaga a entrada
- * (`assets/installer.nsh`).
+ * administrador —, e é dele que o estado é lido. A entrada leva o id do app como nome, então
+ * a versão instalada e a de desenvolvimento não se sobrescrevem. A desinstalação apaga a
+ * entrada (`assets/installer.nsh`).
  *
  * No Linux o Electron não tem início automático: é um `.desktop` na pasta de autostart do
  * freedesktop, que o GNOME e o KDE leem no login. Ligado é o arquivo existir.
@@ -67,13 +66,14 @@ function definirAutostartDoLinux(ligado: boolean): void {
   writeFileSync(arquivo, conteudoDoAutostart(), 'utf8');
 }
 
-/** No Windows, ligado é ter a entrada com o nome do app e aprovada — não desligada no Gerenciador. */
+/**
+ * No Windows o `openAtLogin` procura a entrada pelo AppUserModelID, que é o id do app
+ * (`definirIdentidadeNasNotificacoes` no `main.ts`). Não usa `launchItems`, que no Electron
+ * 44 vem sempre vazio: por isso não vê o desligamento feito no Gerenciador de Tarefas.
+ */
 export function inicioAutomaticoLigado(): boolean {
   if (process.platform === 'linux') return existsSync(arquivoDeAutostartDoLinux());
-
-  const { launchItems, openAtLogin } = app.getLoginItemSettings(opcoesDaEntrada());
-  if (process.platform !== 'win32') return openAtLogin;
-  return launchItems.some((entrada) => entrada.name === ID_DO_APP_WINDOWS && entrada.enabled);
+  return app.getLoginItemSettings(opcoesDaEntrada()).openAtLogin;
 }
 
 export function definirInicioAutomatico(ligado: boolean): void {
