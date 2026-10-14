@@ -99,7 +99,6 @@ jobs:
       - name: Montar o site
         run: |
           mkdir -p site/img
-          cp docs/img/resumo.png docs/img/cliente.png site/img/
           cp desktop/assets/hub-snk.png site/img/icone.png
 
       - uses: actions/configure-pages@v6
