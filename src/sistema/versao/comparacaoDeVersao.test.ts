@@ -54,6 +54,10 @@ describe('versaoEhMaisNova', () => {
     assert.equal(versaoEhMaisNova('v1.1.0-beta.1', '1.0.0'), false);
   });
 
+  it('avisa da estável a quem roda a beta do mesmo número', () => {
+    assert.equal(versaoEhMaisNova('v1.1.0', '1.1.0-beta.2'), true);
+  });
+
   it('não avisa quando algum dos lados é ilegível', () => {
     assert.equal(versaoEhMaisNova('release-2024', '1.0.0'), false);
     assert.equal(versaoEhMaisNova('v1.1.0', 'desenvolvimento'), false);

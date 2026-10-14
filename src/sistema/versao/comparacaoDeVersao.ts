@@ -63,5 +63,11 @@ export function versaoEhMaisNova(candidata: string, atual: string): boolean {
     return nova.menor > corrente.menor;
   }
 
-  return nova.correcao > corrente.correcao;
+  if (nova.correcao !== corrente.correcao) {
+    return nova.correcao > corrente.correcao;
+  }
+
+  // A estável sai com o mesmo número da beta: sem isto, quem testou a beta nunca seria
+  // avisado dela — e no Mac o aviso é o único caminho de atualização.
+  return corrente.ehPreLancamento;
 }
