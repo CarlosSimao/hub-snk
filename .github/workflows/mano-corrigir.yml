@@ -103,7 +103,7 @@ jobs:
           git diff --cached --name-only > "$RUNNER_TEMP/mano-artefato/arquivos.txt"
           echo "arquivos alterados: $(wc -l < "$RUNNER_TEMP/mano-artefato/arquivos.txt")"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: mano-artefato
           path: ${{ runner.temp }}/mano-artefato
