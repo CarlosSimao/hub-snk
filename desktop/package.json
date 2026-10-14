@@ -27,7 +27,7 @@
     "electron@44.4.1": true
   },
   "dependencies": {
-    "@ruffle-rs/ruffle": "^0.6.0",
+    "@ruffle-rs/ruffle": "^0.7.1",
     "electron-updater": "^6.8.9"
   }
 }
