@@ -17,6 +17,7 @@
     <meta property="og:url" content="https://carlossimao.github.io/hub-snk/" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="img/icone.png" />
+    <script src="tema.js"></script>
     <style>
       :root {
         --marca: #66cb66;
@@ -36,18 +37,17 @@
         color-scheme: dark;
       }
 
-      @media (prefers-color-scheme: light) {
-        :root:not([data-theme='dark']) {
-          --marca-forte: #2f8f2f;
-          --bg: #f1f5f9;
-          --bg-soft: #e8eef7;
-          --surface: #ffffff;
-          --border: rgba(15, 23, 42, 0.1);
-          --border-strong: rgba(15, 23, 42, 0.18);
-          --text: #0f172a;
-          --text-dim: #475569;
-          color-scheme: light;
-        }
+      /* O tema vem do tema.js, que segue o sistema até o usuário escolher no botão. */
+      :root[data-theme='light'] {
+        --marca-forte: #2f8f2f;
+        --bg: #f1f5f9;
+        --bg-soft: #e8eef7;
+        --surface: #ffffff;
+        --border: rgba(15, 23, 42, 0.1);
+        --border-strong: rgba(15, 23, 42, 0.18);
+        --text: #0f172a;
+        --text-dim: #475569;
+        color-scheme: light;
       }
 
       * {
@@ -115,6 +115,37 @@
 
       nav.links a:hover {
         color: var(--text);
+      }
+
+      nav.links {
+        align-items: center;
+      }
+
+      .botao-tema {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        border: 1px solid var(--border-strong);
+        border-radius: 10px;
+        background: transparent;
+        color: var(--text-dim);
+        cursor: pointer;
+      }
+
+      .botao-tema:hover {
+        color: var(--text);
+      }
+
+      .botao-tema svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
       }
 
       .abertura {
@@ -425,6 +456,7 @@
         <nav class="links">
           <a href="#funcionalidades">Funcionalidades</a>
           <a href="#instalacao">Instalação</a>
+          <a href="wiki/">Wiki</a>
           <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
         </nav>
       </div>
@@ -530,6 +562,7 @@
                 repositórios Git, links, contatos e anotações de cada cliente. E controle por
                 projeto também: cada projeto do cliente com anotações, links e lembretes próprios.
               </p>
+              <p><a href="wiki/clientes.html">Passo a passo na wiki</a></p>
             </div>
           </article>
           <article class="funcionalidade">

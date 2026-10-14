@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Clientes · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como cadastrar, encontrar, editar e compartilhar clientes no HUB SNK, passo a passo."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Clientes</h1>
+        <p class="introducao">
+          O cliente é o centro do HUB SNK: reúne as bases, os repositórios, os links, os projetos e
+          os contatos de cada empresa que você atende. Esta página cobre a lista de clientes e o
+          cadastro em si; cada aba do cliente tem a sua página.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#lista-e-detalhe">Lista e detalhe do cliente</a></li>
+            <li><a href="#primeiro-uso">Primeira abertura, sem clientes</a></li>
+            <li><a href="#cadastrar">Cadastrar cliente</a></li>
+            <li><a href="#nomes-completos">Nomes completos no Sankhya</a></li>
+            <li><a href="#editar">Editar cliente</a></li>
+            <li><a href="#excluir">Excluir cliente</a></li>
+            <li><a href="#filtrar-por-nome">Filtrar pelo nome</a></li>
+            <li><a href="#filtrar-pela-situacao-do-git">Filtrar pela situação do Git</a></li>
+            <li><a href="#situacao-do-git">Bolinhas da situação do Git</a></li>
+            <li><a href="#anotacoes">Anotações gerais</a></li>
+            <li><a href="#compartilhar-bases">Compartilhar bases</a></li>
+            <li><a href="#recarregar">Recarregar o cliente</a></li>
+            <li><a href="#atualizacao-automatica">Atualização automática</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="lista-e-detalhe">
+          <h2>Lista e detalhe do cliente</h2>
+          <p>
+            A tela <strong>Clientes</strong> tem a lista à esquerda, em ordem alfabética, e o
+            detalhe do cliente escolhido à direita. O detalhe é dividido em abas: Geral, Bases, Git,
+            Projetos, Kanban, Agenda, OS e Contatos. Ao trocar de cliente, ele abre na aba Geral
+            quando há anotações ou links gerais, e na aba Bases quando não há.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No topo do Painel, clique em <strong>Clientes</strong>.
+              <figure>
+                <img
+                  src="img/clientes/lista-01-aba-clientes.webp"
+                  alt="Topo do Painel com a aba Clientes destacada"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              A lista mostra todos os clientes cadastrados. Enquanto nenhum é escolhido, o detalhe
+              pede que você escolha um.
+              <figure>
+                <img
+                  src="img/clientes/lista-02-lista.webp"
+                  alt="Lista de clientes destacada, com o detalhe vazio ao lado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique no nome do cliente. Ele fica destacado e o detalhe abre ao lado.
+              <figure>
+                <img
+                  src="img/clientes/lista-03-selecionar.webp"
+                  alt="Cliente Fazenda Boa Vista selecionado na lista"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Use as abas logo abaixo do nome para navegar pelo cadastro.
+              <figure>
+                <img
+                  src="img/clientes/lista-04-abas.webp"
+                  alt="Abas do detalhe do cliente destacadas"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-funcionalidades">Configurações › Acessos</a>: cada
+              aba do cliente, menos a Geral, pode ser ocultada. Aba oculta não aparece; a Kanban
+              some junto com a Projetos.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-perfil">Configurações › Acessos › Perfil</a>: o
+              perfil já vem com algumas abas ocultas.
+            </li>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              oculta as abas Agenda e OS.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Cada aba tem a sua página: <a href="bases.html">Bases</a>,
+              <a href="repositorios-git.html">Repositórios Git</a>,
+              <a href="projetos.html">Projetos</a>, <a href="kanban.html">Kanban</a>,
+              <a href="agenda-de-recursos.html">Agenda de Recursos</a>,
+              <a href="ordens-de-servico.html">Ordens de Serviço</a> e
+              <a href="contatos.html">Contatos</a>.
+            </li>
+            <li>
+              Para achar um cliente sem rolar a lista, use a
+              <a href="buscas-e-atalhos.html#busca-rapida">busca rápida</a>
+              (<kbd>Ctrl</kbd>+<kbd>K</kbd>).
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="primeiro-uso">
+          <h2>Primeira abertura, sem clientes</h2>
+          <p>
+            Com o cadastro vazio, o HUB SNK abre direto na tela Clientes. Para quem usa o Sankhya,
+            ele abre antes a aba <strong>Sankhya ID</strong> das Configurações, onde ficam o usuário
+            e a senha do login automático.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na primeira abertura, preencha o Sankhya ID e salve, ou clique em
+              <strong>Cancelar</strong> para fazer isso depois.
+              <figure>
+                <img
+                  src="img/clientes/primeiro-uso-01-sankhya-id.webp"
+                  alt="Configurações abertas na aba Sankhya ID"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na tela vazia, comece por <strong>Cadastrar cliente</strong> ou traga de uma vez os
+              favoritos do navegador e os repositórios clonados com <strong>Importar</strong>.
+              <figure>
+                <img
+                  src="img/clientes/primeiro-uso-02-vazio.webp"
+                  alt="Tela Clientes vazia com os botões Cadastrar cliente e Importar"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado, a aba Sankhya ID não é aberta.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="sankhya-id.html">Sankhya ID e login automático</a></li>
+            <li><a href="#cadastrar">Cadastrar cliente</a></li>
+            <li>
+              <a href="importar-e-exportar.html#importar-favoritos">Importar favoritos</a> e
+              <a href="importar-e-exportar.html#importar-repositorios"
+                >importar repositórios locais</a
+              >
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="cadastrar">
+          <h2>Cadastrar cliente</h2>
+          <p>
+            Cria um cliente pelo nome, com até 120 caracteres. O nome não pode repetir o de outro
+            cliente; maiúsculas e espaços nas pontas não contam como diferença. Os
+            <a href="#nomes-completos">nomes completos no Sankhya</a> são opcionais e podem ser
+            preenchidos na mesma janela.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no <strong>+</strong> ao lado do campo de filtro.
+              <figure>
+                <img
+                  src="img/clientes/cadastrar-01-botao.webp"
+                  alt="Botão + de cadastrar cliente destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Na janela <strong>Cadastrar cliente</strong>, preencha o
+              <strong>Nome do cliente</strong>.
+              <figure>
+                <img
+                  src="img/clientes/cadastrar-02-nome.webp"
+                  alt="Janela Cadastrar cliente com o nome preenchido"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Salvar</strong>. O cliente novo entra na lista já selecionado, e um
+              aviso confirma o cadastro.
+              <figure>
+                <img
+                  src="img/clientes/cadastrar-03-salvo.webp"
+                  alt="Cliente novo selecionado na lista, com o aviso Cliente cadastrado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#nomes-completos">Nomes completos no Sankhya</a> (opcional)</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="nomes-completos">
+          <h2>Nomes completos no Sankhya</h2>
+          <p>
+            São as razões sociais do cliente como aparecem no SankhyaOm e na Experience, que quase
+            nunca batem com o nome do cadastro. É por elas que a Agenda de Recursos e as Ordens de
+            Serviço reconhecem o cliente; sem nenhuma, vale o nome do cadastro. Cada cliente aceita
+            até 20, com 120 caracteres cada. Linhas em branco e repetidas são descartadas ao salvar.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Em <strong>Cadastrar cliente</strong> ou <strong>Editar cliente</strong>, clique em
+              <strong>Adicionar nome completo</strong> e digite a razão social. Repita para cada
+              uma; a lixeira ao lado tira a linha. Depois, clique em <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/clientes/nomes-completos-01.webp"
+                  alt="Duas razões sociais preenchidas em Nomes completos no Sankhya"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Também dá para criar o vínculo pela Agenda de Recursos, a partir de um evento: o nome do
+            parceiro entra aqui e sai do cliente que o tivesse antes.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-terceiro">Configurações › Acessos › Terceiro</a>:
+              marcado, o bloco inteiro some, porque só serve à Agenda e às OS.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              É usado por:
+              <a href="agenda-de-recursos.html#vincular-parceiro">Agenda de Recursos</a> e
+              <a href="ordens-de-servico.html#aba-do-cliente">Ordens de Serviço do cliente</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="editar">
+          <h2>Editar cliente</h2>
+          <p>
+            Renomeia o cliente e altera os nomes completos, com a mesma regra de nome único do
+            cadastro.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Com o cliente selecionado, clique no lápis no alto do detalhe.
+              <figure>
+                <img
+                  src="img/clientes/editar-01-botao.webp"
+                  alt="Botão Editar cliente destacado no cabeçalho do detalhe"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Altere o nome ou os nomes completos e clique em <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/clientes/editar-02-formulario.webp"
+                  alt="Janela Editar cliente"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#nomes-completos">Nomes completos no Sankhya</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="excluir">
+          <h2>Excluir cliente</h2>
+          <p>
+            Apaga o cliente com as bases, os repositórios, os links, os projetos e os kanbans dele.
+            Os contatos do cliente não são apagados: passam a ficar sem cliente. Nada no disco é
+            tocado, nem as pastas dos repositórios nem o que estiver no Git AutoSync.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Com o cliente selecionado, clique na lixeira vermelha no alto do detalhe.
+              <figure>
+                <img
+                  src="img/clientes/excluir-01-botao.webp"
+                  alt="Botão Excluir cliente destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Se o cliente tem bases, a janela diz quantas saem junto. Clique em
+              <strong>Excluir</strong> para confirmar. Não há como desfazer.
+              <figure>
+                <img
+                  src="img/clientes/excluir-02-confirmar.webp"
+                  alt="Janela de confirmação da exclusão do cliente"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Afeta: <a href="contatos.html#sem-cliente">Contatos</a> (ficam sem cliente) e
+              <a href="kanban.html">Kanban</a> (os quadros do cliente são apagados).
+            </li>
+            <li>
+              Para guardar uma cópia antes, veja
+              <a href="importar-e-exportar.html#exportar-cadastros">Exportar cadastros</a> e
+              <a href="backup.html">Backup</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="filtrar-por-nome">
+          <h2>Filtrar pelo nome</h2>
+          <p>
+            Reduz a lista aos clientes cujo nome contém o texto digitado, sem diferenciar
+            maiúsculas. Só o nome do cadastro entra no filtro; para procurar também em bases,
+            repositórios, contatos e links, use a
+            <a href="buscas-e-atalhos.html#busca-rapida">busca rápida</a>.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Digite parte do nome em <strong>Filtrar clientes…</strong>. A lista filtra a cada
+              tecla; apague o texto para ver todos de novo.
+              <figure>
+                <img
+                  src="img/clientes/filtro-nome-01.webp"
+                  alt="Lista filtrada pelo texto vale"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Soma com o <a href="#filtrar-pela-situacao-do-git">filtro pela situação do Git</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="filtrar-pela-situacao-do-git">
+          <h2>Filtrar pela situação do Git</h2>
+          <p>
+            O funil mostra só os clientes numa ou em várias situações do Git: Verde, Amarelo,
+            Vermelho, Não verificado ou Sem Git. Cada opção traz quantos clientes estão nela. Com
+            filtro ativo, o funil fica marcado.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no funil, ao lado do campo de filtro.
+              <figure>
+                <img
+                  src="img/clientes/filtro-git-01-painel.webp"
+                  alt="Painel Situação do Git aberto pelo botão de funil"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique numa ou mais situações; um segundo clique desmarca.
+              <strong>Limpar</strong> desmarca todas, e <kbd>Esc</kbd> ou um clique fora fecha o
+              painel.
+              <figure>
+                <img
+                  src="img/clientes/filtro-git-02-amarelo.webp"
+                  alt="Situação Amarelo marcada no filtro"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-funcionalidades">Configurações › Acessos › Git</a>
+              (cadastro do cliente): desmarcado, o funil some.
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-intervalo-de-execucao-automatica"
+                >Configurações › Geral › Intervalo de execução automática</a
+              >: de quanto em quanto tempo a situação é refeita.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="repositorios-git.html#diagnostico">Diagnóstico dos repositórios Git</a>, que
+              dá a situação de cada repositório.
+            </li>
+            <li><a href="#situacao-do-git">Bolinhas da situação do Git</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="situacao-do-git">
+          <h2>Bolinhas da situação do Git</h2>
+          <p>
+            Cada cliente com repositório verificado ganha uma bolinha na lista com a pior situação
+            entre os repositórios dele: vermelho precisa de ação, amarelo tem pendência, verde está
+            sincronizado com o remoto e cinza não pôde ser verificado. A bolinha no canto direito do
+            topo resume todos os clientes: pisca em vermelho ou amarelo quando algum repositório
+            pede atenção e fica verde quando todos estão em dia.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Passe o mouse sobre a bolinha para ler o que ela significa. O detalhe de cada
+              pendência fica na aba Git do cliente.
+              <figure>
+                <img
+                  src="img/clientes/git-01-bolinhas.webp"
+                  alt="Lista de clientes com as bolinhas de situação e o indicador global no topo"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-funcionalidades">Configurações › Acessos › Git</a>
+              (cadastro do cliente): desmarcado, as bolinhas somem.
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-intervalo-de-execucao-automatica"
+                >Configurações › Geral › Intervalo de execução automática</a
+              >
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="repositorios-git.html#diagnostico">Diagnóstico dos repositórios Git</a>: só
+              repositório com pasta local é verificado.
+            </li>
+            <li><a href="#atualizacao-automatica">Atualização automática</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="anotacoes">
+          <h2>Anotações gerais</h2>
+          <p>
+            Caixa de texto livre na aba Geral do cliente, com até 5000 caracteres, para
+            particularidades, combinados e o que mais for. Não há botão de salvar: o texto é gravado
+            ao sair do campo, e um aviso confirma. Se a gravação falhar, o texto continua no campo e
+            o aviso explica o motivo.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na aba <strong>Geral</strong> do cliente, clique em
+              <strong>Anotações gerais</strong> e escreva.
+              <figure>
+                <img
+                  src="img/clientes/anotacoes-01-campo.webp"
+                  alt="Campo Anotações gerais destacado na aba Geral"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique fora do campo, ou aperte <kbd>Tab</kbd>. O aviso
+              <strong>Anotações salvas.</strong> confirma a gravação.
+              <figure>
+                <img
+                  src="img/clientes/anotacoes-02-salvas.webp"
+                  alt="Aviso Anotações salvas no canto da tela"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>Fica na aba Geral, junto dos <a href="links-gerais.html">links gerais</a>.</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="compartilhar-bases">
+          <h2>Compartilhar bases</h2>
+          <p>
+            Monta um texto com os acessos das bases do cliente para mandar a alguém. Em cada base,
+            você escolhe o que vai junto: <strong>SankhyaOm</strong> (tipo, URL, usuário e senha) e
+            <strong>Banco de Dados</strong> (SGBD, host, porta, serviço, usuário e senha). O texto
+            pode ser copiado ou baixado como <code>Acessos - &lt;cliente&gt;.txt</code>, e é o mesmo
+            formato que a importação de cadastros lê do outro lado.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Com o cliente selecionado, clique no botão de compartilhar no alto do detalhe. Ele
+              fica bloqueado em cliente sem base.
+              <figure>
+                <img
+                  src="img/clientes/compartilhar-01-botao.webp"
+                  alt="Botão Compartilhar informações de bases destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Marque o que sai de cada base. Com mais de uma base, a linha
+              <strong>Marcar todas</strong> marca a coluna inteira. Base sem banco vinculado fica
+              com a coluna Banco de Dados bloqueada.
+              <figure>
+                <img
+                  src="img/clientes/compartilhar-02-escolher.webp"
+                  alt="Janela Compartilhar bases com as colunas SankhyaOm e Banco de Dados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique em <strong>Copiar</strong> ou em <strong>Baixar .txt</strong>.
+              <figure>
+                <img
+                  src="img/clientes/compartilhar-03-copiar.webp"
+                  alt="Aviso Informações das bases copiadas"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            O texto leva as senhas sem máscara. Mande só por um canal em que você confie.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="bases.html#cadastrar-base">Bases</a> e
+              <a href="bases.html#vincular-banco">banco de dados vinculado</a>
+            </li>
+            <li>
+              Do outro lado, o arquivo entra por
+              <a href="importar-e-exportar.html#importar-cadastros">Importar cadastros</a>. Para
+              vários clientes de uma vez, use
+              <a href="importar-e-exportar.html#exportar-cadastros">Exportar cadastros</a>.
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="recarregar">
+          <h2>Recarregar o cliente</h2>
+          <p>
+            Relê o cliente, refaz as consultas de Agenda e OS do detalhe, confere de novo se as
+            bases respondem e refaz o diagnóstico do Git sem usar o resultado guardado dos últimos
+            30 segundos. Serve para ver na hora uma mudança feita fora do HUB SNK, como um commit no
+            terminal.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Com o cliente selecionado, clique nas setas circulares, o primeiro botão no alto do
+              detalhe. O aviso <strong>Informações recarregadas.</strong> confirma.
+              <figure>
+                <img
+                  src="img/clientes/recarregar-01.webp"
+                  alt="Botão Recarregar informações do cliente destacado, com o aviso de confirmação"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="bases.html#situacao">Situação das bases</a>,
+              <a href="repositorios-git.html#diagnostico">diagnóstico do Git</a>,
+              <a href="agenda-de-recursos.html#aba-do-cliente">Agenda</a> e
+              <a href="ordens-de-servico.html#aba-do-cliente">OS</a> do cliente
+            </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="atualizacao-automatica">
+          <h2>Atualização automática</h2>
+          <p>
+            Com a janela à vista, o HUB SNK refaz sozinho, a cada intervalo, o diagnóstico do Git, a
+            situação das bases do cliente selecionado e a das bases e bancos locais. Cada rodada
+            também alimenta o gráfico de disponibilidade das bases. Com a janela em segundo plano, a
+            atualização para.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra as <strong>Configurações</strong> (engrenagem no topo), aba
+              <strong>Geral</strong>, e ajuste <strong>Intervalo de execução automática</strong> (5
+              a 3600 segundos) e <strong>Tempo limite para timeout</strong> (1 a 60 segundos).
+              Depois, clique em <strong>Salvar</strong>.
+              <figure>
+                <img
+                  src="img/clientes/atualizacao-01-configuracao.webp"
+                  alt="Campos Intervalo de execução automática e Tempo limite destacados na aba Geral"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#geral-intervalo-de-execucao-automatica"
+                >Configurações › Geral › Intervalo de execução automática</a
+              >: padrão de 30 segundos.
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-tempo-limite"
+                >Configurações › Geral › Tempo limite para timeout</a
+              >: quanto cada conferência espera antes de dar a base como fora do ar; padrão de 5
+              segundos. Aumente se a rede até os clientes for lenta.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              Atualiza: <a href="#situacao-do-git">bolinhas do Git</a>,
+              <a href="bases.html#situacao">situação das bases</a> e
+              <a href="ambiente-local.html">ambiente local</a>.
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

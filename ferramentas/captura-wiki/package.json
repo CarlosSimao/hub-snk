@@ -1,0 +1,13 @@
+{
+  "name": "captura-wiki",
+  "private": true,
+  "description": "Gera os prints da wiki do site rodando o HUB SNK desktop sobre dados fictícios.",
+  "type": "module",
+  "scripts": {
+    "capturar": "node capturar.mjs",
+    "verificar-links": "node verificar-links.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.56.0"
+  }
+}
