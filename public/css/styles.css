@@ -4077,6 +4077,8 @@ button.selo-situacao:focus-visible {
 
 .cartao-kanban {
   display: grid;
+  /* Sem isto a coluna do grid cresce até o texto mais longo e o conteúdo sai do cartão. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   padding: 9px 10px;
   background: var(--surface-solid);
@@ -4126,13 +4128,7 @@ button.selo-situacao:focus-visible {
   color: var(--text-dim);
   border: 1px solid var(--border);
   border-radius: 999px;
-}
-
-.selo-kanban.grupo {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .selo-kanban.prioridade-alta {
