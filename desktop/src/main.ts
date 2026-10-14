@@ -534,9 +534,9 @@ app.whenReady().then(async () => {
   criarBandejaDoApp();
   comunicacao?.carregarAoAbrirSeEscolhido();
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) criarJanela();
-  });
+  // Clique no ícone do Dock (Mac). O X só esconde a janela, e as janelas ocultas da agenda
+  // e da Experience contam como abertas: perguntar se há janela nunca a traria de volta.
+  app.on('activate', () => mostrarJanela());
 });
 
 app.on('before-quit', (evento) => {

@@ -4,17 +4,46 @@
  * Substitui o menu padrão do Electron (File/Edit/View/Window, em inglês e cheio de itens
  * que não significam nada aqui) por um menu que fala das guias do hub.
  */
-import { Menu, app, type BrowserWindow, type MenuItem } from 'electron';
+import {
+  Menu,
+  app,
+  type BrowserWindow,
+  type MenuItem,
+  type MenuItemConstructorOptions,
+} from 'electron';
 import type { SituacaoDoAtalhoGlobal } from './atalhoGlobal';
 import { abrirJanelaDeAtalhos } from './janelaDeAtalhos';
+import { ID_DO_MENU_EDITAR } from './menuFlutuante';
 import { alternarRuffle, ruffleLigado } from './ruffle';
 import {
+  ATUALIZACAO_AUTOMATICA_SUPORTADA,
   alternarAtualizacaoAutomatica,
   atualizacaoAutomaticaLigada,
   reiniciarParaAtualizar,
   versaoProntaParaInstalar,
 } from '../atualizacao';
 import type { TabManager } from './tabs';
+
+const EH_MAC = process.platform === 'darwin';
+
+/**
+ * No Mac as teclas passam pelo menu antes de chegar à página: sem um item com o papel de
+ * copiar, colar e companhia, Cmd+C e Cmd+V não fazem nada nos campos de texto. No Windows
+ * e no Linux o Chromium as trata sozinho.
+ */
+const MENU_EDITAR: MenuItemConstructorOptions = {
+  id: ID_DO_MENU_EDITAR,
+  label: 'Editar',
+  submenu: [
+    { label: 'Desfazer', role: 'undo' },
+    { label: 'Refazer', role: 'redo' },
+    { type: 'separator' },
+    { label: 'Recortar', role: 'cut' },
+    { label: 'Copiar', role: 'copy' },
+    { label: 'Colar', role: 'paste' },
+    { label: 'Selecionar tudo', role: 'selectAll' },
+  ],
+};
 
 /** O que o menu aciona fora dele: as duas buscas e o estado do atalho global. */
 export interface AcoesDoMenu {
@@ -41,9 +70,10 @@ export function montarMenu(
           accelerator: 'CmdOrCtrl+R',
           click: () => tabs()?.recarregar(),
         },
+        // No Mac o Cmd+F5 liga o VoiceOver e nunca chega ao app.
         {
           label: 'Recarregar sem cache',
-          accelerator: 'CmdOrCtrl+F5',
+          accelerator: EH_MAC ? 'Cmd+Shift+R' : 'CmdOrCtrl+F5',
           click: () => tabs()?.recarregarSemCache(),
         },
         // Segunda tecla do mesmo comando, como no Chrome: o Electron aceita uma só por item,
@@ -80,6 +110,7 @@ export function montarMenu(
         { label: 'Sair', role: 'quit' },
       ],
     },
+    ...(EH_MAC ? [MENU_EDITAR] : []),
     {
       label: 'Guias',
       submenu: [
@@ -103,9 +134,18 @@ export function montarMenu(
           accelerator: 'CmdOrCtrl+T',
           click: () => tabs()?.abrirAbaAvulsa(),
         },
-        // Só agem na guia avulsa: o resto das guias ignora.
-        { label: 'Voltar', accelerator: 'Alt+Left', click: () => tabs()?.voltar() },
-        { label: 'Avançar', accelerator: 'Alt+Right', click: () => tabs()?.avancar() },
+        // Só agem na guia avulsa: o resto das guias ignora. No Mac, Option+seta pula
+        // palavra nos campos de texto: o menu a roubaria de todas as guias.
+        {
+          label: 'Voltar',
+          accelerator: EH_MAC ? 'Cmd+[' : 'Alt+Left',
+          click: () => tabs()?.voltar(),
+        },
+        {
+          label: 'Avançar',
+          accelerator: EH_MAC ? 'Cmd+]' : 'Alt+Right',
+          click: () => tabs()?.avancar(),
+        },
         { type: 'separator' },
         { label: 'Mostrar na barra', enabled: false },
         // Uma caixa por guia: marcada = aparece na barra. Esconder nao fecha nem
@@ -161,6 +201,7 @@ export function montarMenu(
         },
         {
           label: 'Atualizar automaticamente',
+          visible: ATUALIZACAO_AUTOMATICA_SUPORTADA,
           type: 'checkbox',
           checked: atualizacaoAutomaticaLigada(),
           click: () => alternarAtualizacaoAutomatica(),

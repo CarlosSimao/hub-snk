@@ -256,6 +256,8 @@ function pastaDeDadosInstalada(): string {
     const pastaDeEstado = pastaDeEstadoDoInstalador();
     return pastaDeDadosEscolhidaNaVersaoPwa(pastaDeEstado) || join(pastaDeEstado, 'dados');
   }
+  // `~/Library/Application Support/HUB SNK/dados`: no Mac o XDG não é convenção.
+  if (process.platform === 'darwin') return join(app.getPath('userData'), 'dados');
   return join(
     process.env['XDG_DATA_HOME'] ?? join(homedir(), '.local', 'share'),
     'hub-snk',
@@ -296,6 +298,13 @@ export const ICONE = join(
   // imagem que ele carrega), então é o mesmo desenho nos dois sistemas.
   process.platform === 'win32' ? 'hub-snk.ico' : 'hub-snk.png',
 );
+
+/**
+ * A barra de menus do Mac desenha o ícone no tamanho do arquivo: o de 256 px ocuparia a
+ * barra inteira. O Electron pega sozinho o `@2x` ao lado, para tela Retina.
+ */
+export const ICONE_DA_BANDEJA =
+  process.platform === 'darwin' ? join(__dirname, '..', 'assets', 'hub-snk-bandeja.png') : ICONE;
 
 /**
  * User agent das abas remotas, sem `Electron/x.y.z` nem o nome do app.

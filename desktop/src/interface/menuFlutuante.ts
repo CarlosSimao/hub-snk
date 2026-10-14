@@ -27,9 +27,17 @@ type ObterMenu = () => Menu | null;
 /** Transparente: só o cartão do menu aparece, e o resto da camada é "clique fora". */
 const FUNDO_TRANSPARENTE = '#00000000';
 
-/** `CmdOrCtrl+K` → `Ctrl+K`: o shell só é distribuído para Windows e Linux. */
+/**
+ * Menu Editar, só no Mac (`menu.ts`). Fica fora do menu flutuante: os itens agem na página
+ * com foco, e com o menu aberto o foco é dele.
+ */
+export const ID_DO_MENU_EDITAR = 'editar';
+
+const TECLA_DE_COMANDO = process.platform === 'darwin' ? 'Cmd+' : 'Ctrl+';
+
+/** `CmdOrCtrl+K` → `Ctrl+K`, ou `Cmd+K` no Mac. */
 export function atalhoLegivel(acelerador: string | null | undefined): string {
-  return (acelerador ?? '').replace(/^(CmdOrCtrl|CommandOrControl)\+/, 'Ctrl+');
+  return (acelerador ?? '').replace(/^(CmdOrCtrl|CommandOrControl)\+/, TECLA_DE_COMANDO);
 }
 
 function tipoDoItem(item: MenuItem): ItemDoMenu['tipo'] {
@@ -40,7 +48,7 @@ function tipoDoItem(item: MenuItem): ItemDoMenu['tipo'] {
 /** Submenu vira seção com título: o menu flutuante é uma lista só, sem cascata. */
 function itensDoMenu(menu: Menu, prefixo = ''): ItemDoMenu[] {
   return menu.items.flatMap((item, indice): ItemDoMenu[] => {
-    if (!item.visible || item.type === 'separator') return [];
+    if (!item.visible || item.type === 'separator' || item.id === ID_DO_MENU_EDITAR) return [];
     const id = prefixo ? `${prefixo}.${indice}` : String(indice);
     if (item.submenu) {
       const titulo: ItemDoMenu = {

@@ -7,7 +7,8 @@
  * entrada (`assets/installer.nsh`).
  *
  * No Linux o Electron não tem início automático: é um `.desktop` na pasta de autostart do
- * freedesktop, que o GNOME e o KDE leem no login. Ligado é o arquivo existir.
+ * freedesktop, que o GNOME e o KDE leem no login. No Mac, um LaunchAgent do usuário. Nos
+ * dois, ligado é o arquivo existir.
  */
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -66,6 +67,51 @@ function definirAutostartDoLinux(ligado: boolean): void {
   writeFileSync(arquivo, conteudoDoAutostart(), 'utf8');
 }
 
+function arquivoDoLaunchAgent(): string {
+  return join(homedir(), 'Library', 'LaunchAgents', `${ID_DO_APP_WINDOWS}.plist`);
+}
+
+function textoDoPlist(texto: string): string {
+  return texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function conteudoDoLaunchAgent(): string {
+  const { path, args } = opcoesDaEntrada();
+  const programa = [path, ...args].map((parte) => `    <string>${textoDoPlist(parte)}</string>`);
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">',
+    '<plist version="1.0">',
+    '<dict>',
+    '  <key>Label</key>',
+    `  <string>${ID_DO_APP_WINDOWS}</string>`,
+    '  <key>ProgramArguments</key>',
+    '  <array>',
+    ...programa,
+    '  </array>',
+    '  <key>RunAtLoad</key>',
+    '  <true/>',
+    '</dict>',
+    '</plist>',
+    '',
+  ].join('\n');
+}
+
+/**
+ * No Mac o item de login do Electron não repassa argumento (o `args` é só do Windows), e
+ * o app não saberia que deve subir escondido. O LaunchAgent do usuário repassa, e o
+ * `launchd` o lê no próximo login.
+ */
+function definirLaunchAgent(ligado: boolean): void {
+  const arquivo = arquivoDoLaunchAgent();
+  if (!ligado) {
+    rmSync(arquivo, { force: true });
+    return;
+  }
+  mkdirSync(dirname(arquivo), { recursive: true });
+  writeFileSync(arquivo, conteudoDoLaunchAgent(), 'utf8');
+}
+
 /**
  * No Windows o `openAtLogin` procura a entrada pelo AppUserModelID, que é o id do app
  * (`definirIdentidadeNasNotificacoes` no `main.ts`). Não usa `launchItems`, que no Electron
@@ -73,6 +119,7 @@ function definirAutostartDoLinux(ligado: boolean): void {
  */
 export function inicioAutomaticoLigado(): boolean {
   if (process.platform === 'linux') return existsSync(arquivoDeAutostartDoLinux());
+  if (process.platform === 'darwin') return existsSync(arquivoDoLaunchAgent());
   return app.getLoginItemSettings(opcoesDaEntrada()).openAtLogin;
 }
 
@@ -80,6 +127,8 @@ export function definirInicioAutomatico(ligado: boolean): void {
   try {
     if (process.platform === 'linux') {
       definirAutostartDoLinux(ligado);
+    } else if (process.platform === 'darwin') {
+      definirLaunchAgent(ligado);
     } else {
       app.setLoginItemSettings({
         ...opcoesDaEntrada(),

@@ -9,6 +9,23 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.11.0-beta.1] - 2026-10-14
+
+Versão de teste (pre-release): o aviso de versão nova e a atualização automática a ignoram.
+
+### Adicionado
+
+- **HUB SNK para Mac** (chip Apple, M1 em diante), em `.dmg`. Não é assinado pela Apple: a
+  primeira abertura precisa ser liberada em Ajustes do Sistema › Privacidade e Segurança, e
+  a cada versão nova o macOS pede permissão para o HUB SNK usar as senhas guardadas. Não
+  há atualização automática no Mac: o Painel avisa da versão nova, e o `.dmg` novo é
+  instalado por cima. O Git AutoSync não existe no Mac.
+
+### Corrigido
+
+- **Aviso de versão nova para quem usa a beta**: a versão estável com o mesmo número da beta
+  (2.11.0 depois da 2.11.0-beta.1) não era avisada.
+
 ## [2.10.1] - 2026-10-14
 
 ### Corrigido
@@ -766,7 +783,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.1...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.11.0-beta.1...HEAD
+[2.11.0-beta.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.1...v2.11.0-beta.1
 [2.10.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.0...v2.10.1
 [2.10.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.9.0...v2.10.0
 [2.9.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.8.0...v2.9.0
