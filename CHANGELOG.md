@@ -9,6 +9,29 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.10.0] - 2026-10-14
+
+### Adicionado
+
+- **Kanban nos Acessos**: caixa própria em Configurações › Acessos, no menu principal.
+  Desmarcada, esconde a aba Kanban do topo. Nenhum perfil vem com ela oculta.
+- **Recarregar no Kanban geral**: botão que relê o quadro, igual ao do quadro do projeto e
+  do cliente.
+
+### Alterado
+
+- **Botão de recarregar do kanban só com o ícone**: no quadro do projeto e do cliente, o
+  texto "Recarregar" saiu; a dica continua ao passar o mouse.
+
+### Corrigido
+
+- **Iniciar HUB SNK automaticamente**: a caixa do menu da bandeja não ficava marcada no
+  Windows, embora o início automático fosse gravado.
+- **Grupo longo no cartão do kanban**: o texto saía da borda do cartão. Agora quebra linha
+  e aparece inteiro, assim como o tipo.
+- **Grupo cortado sem aviso**: o campo aceitava 120 caracteres, mas só 100 eram gravados.
+  O limite agora é 100 em todo lugar, e o que passa dele é recusado com mensagem.
+
 ## [2.9.0] - 2026-10-13
 
 ### Adicionado
@@ -735,7 +758,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.9.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.0...HEAD
+[2.10.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.9.0...v2.10.0
 [2.9.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.7.0...v2.8.0
 [2.7.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.6.0...v2.7.0
