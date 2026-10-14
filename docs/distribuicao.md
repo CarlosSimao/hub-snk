@@ -279,3 +279,4 @@ Gatekeeper diz de uma cópia em quarentena, abre o app empacotado, espera o `/ap
 guarda print e logs no artefato `teste-mac`. Ele não prova o Gatekeeper com clique, o
 pedido do Keychain (o do runner está desbloqueado), a bandeja nem o atalho global: isso só
 com um Mac de verdade, numa versão beta (tag com hífen, que sai como pre-release).
+Roteiro desse teste: [teste-mac.md](teste-mac.md).
