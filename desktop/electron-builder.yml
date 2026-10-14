@@ -111,6 +111,25 @@ deb:
     - gnome-keyring
     - git
 
+mac:
+  # Só Apple Silicon por enquanto: é a arquitetura do runner do Actions, onde o pacote é
+  # testado. Mac Intel entra quando houver quem teste.
+  target:
+    - target: dmg
+      arch: [arm64]
+  # O `.icns` exige imagem de pelo menos 512x512: este é o `hub-snk.png` ampliado.
+  icon: assets/hub-snk-mac.png
+  category: public.app-category.developer-tools
+  # Assinatura ad-hoc, sem certificado da Apple: no Apple Silicon um app sem assinatura
+  # nenhuma nem abre ("está danificado"). Sem Developer ID não há notarização, então o
+  # Gatekeeper bloqueia o primeiro uso e a atualização automática fica desligada
+  # (desktop/src/atualizacao.ts).
+  identity: '-'
+  # Com assinatura ad-hoc, o hardened runtime recusa o framework do Electron, que vem
+  # assinado por outro time, e o app não abre.
+  hardenedRuntime: false
+  artifactName: HUB-SNK-${version}-${arch}.${ext}
+
 # Atualização automática (desktop/src/atualizacao.ts): o `electron-updater` lê o
 # `latest.yml` da release mais recente deste repositório, público, sem token. Com isto o
 # electron-builder grava o `app-update.yml` dentro do app e gera o `latest.yml` e o

@@ -244,4 +244,38 @@ O que muda em relação ao Windows:
 - O shell lê o PATH do shell de login da pessoa na abertura (`desktop/src/pathDoShell.ts`):
   aberto pelo menu, ele herdaria o PATH da sessão gráfica, sem nvm nem `~/.local/bin`.
 
-O macOS ainda não tem pacote.
+## Mac
+
+O pacote do Mac é o `HUB-SNK-<versão>-arm64.dmg`, só Apple Silicon: é a arquitetura do
+runner `macos-latest`, onde ele é gerado e testado. Mac Intel entra quando houver quem
+teste. O ícone (`assets/hub-snk-mac.png`, 1024 px) é o `hub-snk.png` ampliado: o
+electron-builder exige pelo menos 512 px.
+
+Sem conta paga da Apple não há Developer ID nem notarização. O app sai com assinatura
+ad-hoc (`identity: '-'`, com `hardenedRuntime: false`), sem a qual o Apple Silicon diz que
+ele "está danificado". Consequências:
+
+- O Gatekeeper bloqueia a primeira abertura (liberação na wiki, `primeiros-passos.html#instalar-no-mac`).
+- Sem atualização automática: o Squirrel.Mac confere a assinatura da versão nova contra a
+  da instalada, e a ad-hoc muda a cada build. `ATUALIZACAO_AUTOMATICA_SUPORTADA` desliga o
+  `electron-updater` e a caixa do menu; fica o aviso de versão nova do Painel.
+- A chave do `safeStorage` (item _HUB SNK Safe Storage_ do Keychain) fica presa à
+  assinatura: a cada versão nova o macOS pede permissão de novo. Recusada, a decriptação
+  falha e as guias não fazem login sozinhas, mas o cofre não é apagado.
+
+O que muda no shell:
+
+- Menu **Editar** (só no Mac): sem os `role` de copiar e colar, Cmd+C e Cmd+V não chegam
+  aos campos de texto. Voltar e Avançar usam Cmd+[ e Cmd+], porque Option+seta é pular
+  palavra; Recarregar sem cache usa Cmd+Shift+R, porque Cmd+F5 liga o VoiceOver.
+- Bandeja na barra de menus com ícone de 16 px (`hub-snk-bandeja.png` e `@2x`) e menu
+  fixado, como no Linux. O clique no Dock traz a janela escondida pelo X.
+- Início automático por LaunchAgent (`~/Library/LaunchAgents/<appId>.plist`): o item de
+  login do Electron não repassa o argumento que faz o app subir escondido.
+- Cadastro em `~/Library/Application Support/HUB SNK/dados`.
+
+O job `mac` da `Distribuição` confere a assinatura (`codesign --verify`), registra o que o
+Gatekeeper diz de uma cópia em quarentena, abre o app empacotado, espera o `/api/healthz` e
+guarda print e logs no artefato `teste-mac`. Ele não prova o Gatekeeper com clique, o
+pedido do Keychain (o do runner está desbloqueado), a bandeja nem o atalho global: isso só
+com um Mac de verdade, numa versão beta (tag com hífen, que sai como pre-release).

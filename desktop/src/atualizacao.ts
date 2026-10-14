@@ -19,6 +19,13 @@ import { logEvento } from './log';
 const ESPERA_PARA_A_PRIMEIRA_CONSULTA_MS = 30_000;
 const INTERVALO_ENTRE_CONSULTAS_MS = 6 * 60 * 60 * 1000;
 
+/**
+ * No Mac o Squirrel confere a assinatura da versão nova contra a da instalada, e sem
+ * Developer ID (assinatura ad-hoc) a conferência sempre falha. Lá a atualização é manual,
+ * pelo aviso de versão nova do Painel.
+ */
+export const ATUALIZACAO_AUTOMATICA_SUPORTADA = process.platform !== 'darwin';
+
 let ligada: boolean | null = null;
 let versaoPronta: string | null = null;
 let temporizadores: NodeJS.Timeout[] = [];
@@ -118,7 +125,7 @@ function registrarEventos(): void {
 
 /** @param quandoMudar Chamado quando uma versão fica pronta: o menu passa a oferecê-la. */
 export function iniciarAtualizacaoAutomatica(quandoMudar: () => void): void {
-  if (!app.isPackaged) return;
+  if (!app.isPackaged || !ATUALIZACAO_AUTOMATICA_SUPORTADA) return;
   aoMudar = quandoMudar;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = atualizacaoAutomaticaLigada();

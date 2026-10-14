@@ -43,6 +43,7 @@
           <ol>
             <li><a href="#instalar-no-windows">Instalar no Windows</a></li>
             <li><a href="#instalar-no-linux">Instalar no Ubuntu (.deb)</a></li>
+            <li><a href="#instalar-no-mac">Instalar no Mac</a></li>
             <li><a href="#boas-vindas">Assistente de boas-vindas</a></li>
             <li><a href="#conhecer-o-painel">Conhecer a tela</a></li>
             <li><a href="#tema-claro-e-escuro">Tema claro e escuro</a></li>
@@ -143,6 +144,64 @@
             <li>
               Fica de fora no Linux: <a href="git-autosync.html#visao-geral">Git AutoSync</a>.
             </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="instalar-no-mac">
+          <h2>Instalar no Mac</h2>
+          <p>
+            O HUB SNK para Mac roda nos Macs com chip Apple (M1 em diante). Ele não é assinado pela
+            Apple: o macOS bloqueia a primeira abertura, e é preciso liberá-la uma vez. As versões
+            novas não se instalam sozinhas: o Painel avisa, e o <code>.dmg</code> novo é instalado
+            por cima. O Git AutoSync não existe no Mac.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Baixe o <a href="../#instalacao">HUB-SNK.dmg</a> na página do HUB SNK.
+              <!-- print-pendente: terceiros: download do .dmg (GitHub Releases) -->
+            </li>
+            <li>
+              Abra o <code>.dmg</code> e arraste o <strong>HUB SNK</strong> para a pasta
+              <strong>Aplicativos</strong>.
+              <!-- print-pendente: sistema: janela do .dmg com a pasta Aplicativos -->
+            </li>
+            <li>
+              Abra o HUB SNK pela pasta Aplicativos. O macOS avisa que não pôde verificar o app:
+              clique em <strong>Concluído</strong>.
+              <!-- print-pendente: sistema: aviso do Gatekeeper -->
+            </li>
+            <li>
+              Em <strong>Ajustes do Sistema › Privacidade e Segurança</strong>, desça até o aviso
+              sobre o HUB SNK, clique em <strong>Abrir Mesmo Assim</strong> e confirme com a senha
+              do Mac. Daqui em diante, os passos são os mesmos do Windows, a começar pelo
+              <a href="#boas-vindas">assistente de boas-vindas</a>.
+              <!-- print-pendente: sistema: Privacidade e Segurança com o Abrir Mesmo Assim -->
+            </li>
+          </ol>
+          <p class="nota">
+            Sem o botão <strong>Abrir Mesmo Assim</strong> (comum em Mac da empresa), rode no
+            Terminal <code>xattr -dr com.apple.quarantine "/Applications/HUB SNK.app"</code> e abra
+            o HUB SNK de novo.
+          </p>
+          <p class="nota">
+            Depois de cada versão nova, o macOS pergunta se o HUB SNK pode usar a chave
+            <strong>HUB SNK Safe Storage</strong>: digite a senha do Mac e clique em
+            <strong>Sempre Permitir</strong>. Recusando, as guias não fazem login sozinhas até a
+            próxima abertura, quando a pergunta volta.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="sankhya-id.html#salvar-sankhya-id">Salvar o Sankhya ID</a>, guardado nas
+              chaves do macOS.
+            </li>
+            <li>Fica de fora no Mac: <a href="git-autosync.html#visao-geral">Git AutoSync</a>.</li>
           </ul>
         </section>
 
@@ -451,6 +510,11 @@
             No Linux, se a versão nova não chegar sozinha, instale o <code>.deb</code> novo com o
             mesmo comando da <a href="#instalar-no-linux">instalação</a>.
           </p>
+          <p class="nota">
+            No Mac não há atualização automática, nem a caixa no menu: quando o Painel avisar, baixe
+            o <code>.dmg</code> novo e arraste o HUB SNK para Aplicativos, substituindo o antigo,
+            como na <a href="#instalar-no-mac">instalação</a>.
+          </p>
 
           <h3>Configurações que dependem ou alteram</h3>
           <ul>
@@ -494,6 +558,12 @@
             <li>
               No Linux, rode <code>sudo apt remove hub-snk-desktop</code> no terminal.
               <!-- print-pendente: sistema: terminal com o apt remove -->
+            </li>
+            <li>
+              No Mac, feche o HUB SNK (ícone da barra de menus › Sair) e arraste-o da pasta
+              Aplicativos para o Lixo. O cadastro fica em
+              <code>~/Library/Application Support/HUB SNK</code>.
+              <!-- print-pendente: sistema: Finder com o HUB SNK indo para o Lixo -->
             </li>
           </ol>
 

@@ -1,7 +1,7 @@
 name: Distribuição
 
-# Gera o instalador do Windows e o pacote .deb do Linux a cada tag de versão e anexa
-# os dois à release correspondente.
+# Gera o instalador do Windows, o pacote .deb do Linux e o .dmg do Mac a cada tag de versão
+# e anexa os três à release correspondente.
 #
 # Um workflow só, com um job de publicação no fim: dois workflows disparados
 # pela mesma tag disputariam a criação da release.
@@ -116,8 +116,90 @@ jobs:
             release/latest-linux.yml
           if-no-files-found: error
 
+  # Só Apple Silicon, que é a arquitetura do runner. Sem Mac para testar, o teste de fumaça
+  # daqui é o que garante que o pacote ao menos abre (docs/distribuicao.md).
+  mac:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Conferir a versão da tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          esperada="${GITHUB_REF_NAME#v}"
+          for arquivo in package.json desktop/package.json; do
+            versao=$(node -p "require('./$arquivo').version")
+            if [ "$versao" != "$esperada" ]; then
+              echo "$arquivo está na versão $versao, e a tag é $esperada."
+              exit 1
+            fi
+          done
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Instalar dependências
+        run: |
+          npm ci
+          npm --prefix desktop ci
+          node desktop/node_modules/electron/install.js
+
+      - name: Gerar o .dmg
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          HUB_EXIGIR_CREDENCIAL_GOOGLE: ${{ startsWith(github.ref, 'refs/tags/v') && '1' || '0' }}
+        run: npm run empacotar-desktop
+
+      # Assinatura ad-hoc quebrada é o "app danificado" do Apple Silicon: o app nem abre.
+      - name: Conferir a assinatura
+        run: codesign --verify --deep --strict --verbose=2 "release/mac-arm64/HUB SNK.app"
+
+      # Só registra: sem notarização a recusa é o esperado, e é ela que a página de
+      # instalação ensina a contornar.
+      - name: O que o Gatekeeper diz do app baixado
+        run: |
+          copia="$RUNNER_TEMP/quarentena/HUB SNK.app"
+          mkdir -p "$(dirname "$copia")"
+          cp -R "release/mac-arm64/HUB SNK.app" "$copia"
+          xattr -w com.apple.quarantine "0081;$(printf %x "$(date +%s)");Safari;" "$copia"
+          spctl --assess --type execute -vv "$copia" || true
+
+      # Abre o app empacotado, com pasta de dados vazia, e espera o backend responder.
+      - name: Abrir o app
+        env:
+          HUB_DADOS_DIR: ${{ runner.temp }}/dados
+        run: |
+          "release/mac-arm64/HUB SNK.app/Contents/MacOS/HUB SNK" > "$RUNNER_TEMP/app.log" 2>&1 &
+          for _ in $(seq 60); do
+            curl -fs http://127.0.0.1:4100/api/healthz && break
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:4100/api/healthz
+          # Tempo para a janela desenhar o painel antes do print.
+          sleep 15
+          screencapture -x "$RUNNER_TEMP/tela.png" || echo "O print da tela falhou."
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: teste-mac
+          path: |
+            ${{ runner.temp }}/app.log
+            ${{ runner.temp }}/tela.png
+            ~/Library/Application Support/HUB SNK/log/
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pacote-mac
+          path: release/HUB-SNK-*-arm64.dmg
+          if-no-files-found: error
+
   publicar:
-    needs: [windows, linux]
+    needs: [windows, linux, mac]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
@@ -125,6 +207,8 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: artefatos
+          # Sem o `teste-mac`, que é o print e os logs do teste de fumaça.
+          pattern: '{instalador-windows,pacote-*}'
           merge-multiple: true
 
       - name: Anexar o instalador à release
@@ -133,11 +217,12 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           # Cópias com nome sem versão: são elas que os links
-          # `releases/latest/download/HUB-SNK-Setup.exe` e `.../hub-snk-amd64.deb` da
+          # `releases/latest/download/HUB-SNK-Setup.exe`, `.../hub-snk-amd64.deb` e `.../HUB-SNK.dmg` da
           # página do projeto baixam, sem precisar mudar a cada versão.
           # O `latest.yml` e o `latest-linux.yml` apontam para os nomes com versão.
           cp artefatos/HUB-SNK-Setup-*.exe artefatos/HUB-SNK-Setup.exe
           cp artefatos/hub-snk-*-amd64.deb artefatos/hub-snk-amd64.deb
+          cp artefatos/HUB-SNK-*-arm64.dmg artefatos/HUB-SNK.dmg
           ls -lh artefatos
 
           # A tag pode chegar antes de a release existir — nesse caso, cria.

@@ -13,8 +13,8 @@ mantenedor é o relato de problema, que leva seu nome, empresa, time e e-mail (d
 Configurações), e só quando você clica em **Enviar** — veja
 [Relato de problema](docs/manutencao.md#relato-de-problema).
 
-É um aplicativo desktop (Electron) para Windows e Ubuntu (`.deb`). Ainda não há
-versão para macOS.
+É um aplicativo desktop (Electron) para Windows, Ubuntu (`.deb`) e Mac com chip Apple
+(`.dmg`).
 
 Funcionalidades e download também em
 **[carlossimao.github.io/hub-snk](https://carlossimao.github.io/hub-snk/)**.
@@ -61,6 +61,24 @@ Windows:
   personalizados_ o comando `hub-snk-desktop --busca-rapida` com a combinação que
   preferir.
 - Para desinstalar: `sudo apt remove hub-snk-desktop`. O cadastro não é apagado.
+
+### Mac
+
+Só Mac com chip Apple (M1 em diante). Baixe o `HUB-SNK-<versão>-arm64.dmg` na
+[página de releases](https://github.com/CarlosSimao/hub-snk/releases), abra e arraste o
+**HUB SNK** para Aplicativos.
+
+O app não é assinado nem notarizado pela Apple (exige conta paga):
+
+- A primeira abertura é bloqueada. Libere em _Ajustes do Sistema_ › _Privacidade e
+  Segurança_ › _Abrir Mesmo Assim_, ou no Terminal:
+  `xattr -dr com.apple.quarantine "/Applications/HUB SNK.app"`.
+- Não há atualização automática: o Painel avisa da versão nova, e o `.dmg` novo é
+  instalado por cima.
+- A cada versão nova o macOS pergunta se o HUB SNK pode usar a chave _HUB SNK Safe
+  Storage_, onde ficam as senhas: responda _Sempre Permitir_.
+- O cadastro fica em `~/Library/Application Support/HUB SNK/dados`. O **Git AutoSync**
+  não aparece.
 
 ### Primeiro uso
 

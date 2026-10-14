@@ -1,5 +1,6 @@
 /**
- * Ícone do HUB SNK na bandeja (Windows) ou na área de indicadores (Linux).
+ * Ícone do HUB SNK na bandeja (Windows), na área de indicadores (Linux) ou na barra de
+ * menus (Mac).
  *
  * Com ele, fechar a janela só a esconde: o app continua no ar para o atalho global da
  * busca rápida e para os avisos de mensagem nova do painel de comunicação. Sair de
@@ -15,7 +16,7 @@ import { join } from 'node:path';
 import { Menu, Notification, Tray, app, type MenuItemConstructorOptions } from 'electron';
 import type { SituacaoDoAtalhoGlobal } from './atalhoGlobal';
 import { ATALHO_GLOBAL_DA_BUSCA } from './buscaRapida';
-import { ICONE } from '../config';
+import { ICONE, ICONE_DA_BANDEJA } from '../config';
 import { logEvento } from '../log';
 import { atalhoLegivel } from './menuFlutuante';
 
@@ -102,9 +103,10 @@ function fixarMenuNoLinux(bandeja: Tray, acoes: AcoesDaBandeja): void {
 }
 
 export function criarBandeja(acoes: AcoesDaBandeja): Tray {
-  const bandeja = new Tray(ICONE);
+  const bandeja = new Tray(ICONE_DA_BANDEJA);
   bandeja.setToolTip(app.getName());
-  if (process.platform === 'linux') {
+  // No Mac o clique esquerdo no ícone abre o menu, como no Linux: é a convenção da barra.
+  if (process.platform !== 'win32') {
     fixarMenuNoLinux(bandeja, acoes);
     return bandeja;
   }
@@ -126,9 +128,9 @@ export function avisarQueContinuaNaBandeja(): void {
   new Notification({
     title: 'O HUB SNK continua aberto',
     body:
-      process.platform === 'linux'
-        ? 'Ele fica no ícone do canto superior direito da tela. Para encerrar, clique no ícone e escolha Sair.'
-        : 'Ele fica na bandeja, perto do relógio. Para encerrar, clique com o botão direito no ícone e escolha Sair.',
+      process.platform === 'win32'
+        ? 'Ele fica na bandeja, perto do relógio. Para encerrar, clique com o botão direito no ícone e escolha Sair.'
+        : 'Ele fica no ícone do canto superior direito da tela. Para encerrar, clique no ícone e escolha Sair.',
     icon: ICONE,
   }).show();
 
