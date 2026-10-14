@@ -1,6 +1,7 @@
 /**
- * Tema claro/escuro do site e da wiki, escolhido pelo botão do topo e lembrado no
- * navegador. Sem escolha gravada, vale o tema do sistema.
+ * Tema claro/escuro do site e da wiki. Toda visita começa no escuro, o tema do aplicativo;
+ * o claro escolhido no botão do topo vale até fechar a aba (`sessionStorage`), para não
+ * voltar ao escuro a cada página da wiki.
  *
  * Carregado no `<head>`, sem `defer`: o tema precisa estar no `<html>` antes da página
  * aparecer, senão ela pisca no tema errado a cada abertura. O botão só é montado quando
@@ -9,9 +10,7 @@
 const CHAVE_DO_TEMA = 'hub-snk:tema';
 
 function temaInicial() {
-  const salvo = localStorage.getItem(CHAVE_DO_TEMA);
-  if (salvo === 'light' || salvo === 'dark') return salvo;
-  return matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  return sessionStorage.getItem(CHAVE_DO_TEMA) === 'light' ? 'light' : 'dark';
 }
 
 document.documentElement.dataset.theme = temaInicial();
@@ -39,7 +38,7 @@ function montarBotaoDoTema() {
   botao.addEventListener('click', () => {
     const novo = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
     document.documentElement.dataset.theme = novo;
-    localStorage.setItem(CHAVE_DO_TEMA, novo);
+    sessionStorage.setItem(CHAVE_DO_TEMA, novo);
     atualizarBotao(botao);
     // A wiki escuta para trocar os prints pelos do tema novo.
     document.dispatchEvent(new Event('mudanca-de-tema'));

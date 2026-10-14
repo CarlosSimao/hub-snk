@@ -37,7 +37,7 @@
         color-scheme: dark;
       }
 
-      /* O tema vem do tema.js, que segue o sistema até o usuário escolher no botão. */
+      /* O tema vem do tema.js: escuro, até o usuário escolher o claro no botão. */
       :root[data-theme='light'] {
         --marca-forte: #2f8f2f;
         --bg: #f1f5f9;
@@ -174,16 +174,17 @@
         gap: 10px;
         padding: 14px 28px;
         border-radius: var(--radius-sm);
-        background: var(--marca);
-        color: var(--text-no-botao);
+        background: transparent;
+        color: var(--marca-forte);
+        box-shadow: inset 0 0 0 2px var(--marca-forte);
         font-weight: 700;
         font-size: 1.05rem;
         text-decoration: none;
       }
 
       .botao-download:hover {
-        background: var(--marca-forte);
-        color: #fff;
+        background: var(--marca);
+        color: var(--text-no-botao);
       }
 
       .downloads {
@@ -193,21 +194,10 @@
         gap: 12px;
       }
 
-      .botao-download.secundario {
-        background: transparent;
-        color: var(--marca-forte);
-        box-shadow: inset 0 0 0 2px var(--marca-forte);
-      }
-
       .em-breve {
         margin: 14px 0 0;
         color: var(--text-dim);
         font-size: 0.95rem;
-      }
-
-      .botao-download.secundario:hover {
-        background: var(--marca);
-        color: var(--text-no-botao);
       }
 
       .botao-download svg {
@@ -454,7 +444,7 @@
             Baixar para Windows
           </a>
           <a
-            class="botao-download secundario"
+            class="botao-download"
             href="https://github.com/CarlosSimao/hub-snk/releases/latest/download/hub-snk-amd64.deb"
           >
             <svg
@@ -473,7 +463,7 @@
             Baixar para Linux (.deb)
           </a>
           <a
-            class="botao-download secundario"
+            class="botao-download"
             href="https://github.com/CarlosSimao/hub-snk/releases/download/v2.11.0-beta.1/HUB-SNK.dmg"
           >
             <svg
