@@ -55,7 +55,7 @@ jobs:
       resultado: ${{ steps.claude.outputs.structured_output }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Num ajuste, continua do branch do pull request.
           ref: ${{ inputs.pr != '' && format('mano/{0}', inputs.id) || '' }}
@@ -124,7 +124,7 @@ jobs:
       actions: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.pr != '' && format('mano/{0}', inputs.id) || '' }}
 
