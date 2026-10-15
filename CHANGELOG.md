@@ -9,6 +9,19 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.12.0] - 2026-10-15
+
+### Adicionado
+
+- **Lembrete vira tarefa no kanban**: botão "Virar tarefa no kanban" na linha do lembrete,
+  que abre a tarefa nova já preenchida com o resumo, o texto, o cliente e o projeto do
+  lembrete. Sem cliente, a tarefa vai para o quadro Interno. O lembrete continua como
+  está.
+- **Atualizar agora**: na notificação de versão nova, no Resumo do dia e na aba Sobre das
+  Configurações. No Windows e no Linux, o HUB SNK baixa a versão, se ainda não baixou, e
+  reinicia instalando, mesmo com a atualização automática desligada. No Mac, abre a página
+  da versão para baixar o instalador.
+
 ## [2.11.0] - 2026-10-15
 
 ### Adicionado
@@ -820,7 +833,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.11.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.12.0...HEAD
+[2.12.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.11.0...v2.12.0
 [2.11.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.1...v2.11.0
 [2.11.0-beta.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.1...v2.11.0-beta.1
 [2.10.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.0...v2.10.1
