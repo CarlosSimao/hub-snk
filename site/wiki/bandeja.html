@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bandeja e segundo plano · Wiki do HUB SNK</title>
+    <meta
+      name="description"
+      content="Como o HUB SNK continua aberto na bandeja depois de fechar a janela, o menu do ícone, o início automático com o Windows, o que segue rodando em segundo plano e como sair de vez."
+    />
+    <link rel="icon" href="../img/icone.png" />
+    <script src="../tema.js"></script>
+    <link rel="stylesheet" href="wiki.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="conteudo">
+        <a class="logo" href="../">
+          <img src="../img/icone.png" alt="" />
+          <strong>HUB</strong><span>SNK</span>
+        </a>
+        <nav>
+          <a href="./">Wiki</a>
+          <a href="../#instalacao">Baixar</a>
+          <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="wiki">
+      <nav class="menu-da-wiki" aria-label="Páginas da wiki"></nav>
+
+      <main>
+        <h1>Bandeja e segundo plano</h1>
+        <p class="introducao">
+          No aplicativo desktop, fechar a janela não encerra o HUB SNK: ele fica num ícone perto do
+          relógio, na bandeja do Windows, e continua trabalhando — avisos de mensagem nova,
+          lembretes, atalho global da busca, login automático no Sankhya. No Ubuntu, o ícone fica na
+          área de indicadores, no canto superior direito; no Mac, na barra de menus.
+        </p>
+
+        <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
+          <h2 id="titulo-nesta-pagina">Nesta página</h2>
+          <ol>
+            <li><a href="#fechar-para-a-bandeja">Fechar esconde na bandeja</a></li>
+            <li><a href="#menu-da-bandeja">Menu do ícone da bandeja</a></li>
+            <li><a href="#iniciar-com-o-windows">Iniciar com o Windows</a></li>
+            <li><a href="#segundo-plano">O que continua rodando</a></li>
+            <li><a href="#sair">Sair</a></li>
+          </ol>
+        </nav>
+
+        <section class="funcionalidade" id="fechar-para-a-bandeja">
+          <h2>Fechar esconde na bandeja</h2>
+          <p>
+            O X da janela só a esconde. Na primeira vez, um aviso do Windows diz onde o HUB SNK foi
+            parar. Abrir o HUB SNK de novo, pelo atalho ou pelo menu Iniciar, traz a mesma janela,
+            com o aviso <strong>O HUB SNK já está aberto</strong>: não abre um segundo. Desligar o
+            computador ou sair da conta do Windows encerra o HUB SNK normalmente.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique no X da janela. Na primeira vez, aparece o aviso
+              <strong>O HUB SNK continua aberto</strong>, dizendo que ele está na bandeja, perto do
+              relógio.
+              <!-- print-pendente: sistema: aviso do Windows "O HUB SNK continua aberto" -->
+            </li>
+            <li>
+              Para trazer a janela de volta, clique no ícone do HUB SNK na bandeja. Se ele não
+              estiver à vista, clique na setinha <strong>^</strong> ao lado do relógio, que mostra
+              os ícones escondidos. No Ubuntu e no Mac, clique no ícone e escolha
+              <strong>Abrir o HUB SNK</strong>.
+              <!-- print-pendente: sistema: ícone do HUB SNK na bandeja do Windows -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma no HUB SNK.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>Aplicativo desktop</li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="menu-da-bandeja">
+          <h2>Menu do ícone da bandeja</h2>
+          <p>
+            No Windows, o botão direito no ícone abre o menu; no Ubuntu e no Mac, qualquer clique
+            abre o mesmo menu. As duas caixas do menu valem na hora e ficam para as próximas vezes.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique com o botão direito no ícone do HUB SNK na bandeja. O menu tem:
+              <ul>
+                <li><strong>Abrir o HUB SNK</strong>: traz a janela.</li>
+                <li>
+                  <strong>Busca rápida</strong>: abre a
+                  <a href="buscas-e-atalhos.html#busca-rapida">busca rápida</a>; mostra a tecla
+                  quando o atalho global está valendo.
+                </li>
+                <li>
+                  <strong>Atalho global (Ctrl+Shift+Space)</strong>: liga e desliga o
+                  <a href="buscas-e-atalhos.html#atalho-global">atalho global</a>. Se outro programa
+                  já usa a combinação, o item ganha <strong>— em uso por outro programa</strong>. No
+                  Mac, a tecla é Cmd+Shift+Space.
+                </li>
+                <li>
+                  <strong>Iniciar HUB SNK automaticamente</strong>: veja
+                  <a href="#iniciar-com-o-windows">Iniciar com o Windows</a>.
+                </li>
+                <li><strong>Sair</strong>: encerra o HUB SNK de vez.</li>
+              </ul>
+              <!-- print-pendente: sistema: menu do ícone da bandeja do Windows -->
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#outras-atalho-global">Bandeja › Atalho global</a>: a caixa
+              do menu.
+            </li>
+            <li>
+              <a href="configuracoes.html#outras-iniciar-automaticamente"
+                >Bandeja › Iniciar HUB SNK automaticamente</a
+              >: a caixa do menu.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#fechar-para-a-bandeja">Ícone na bandeja</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="iniciar-com-o-windows">
+          <h2>Iniciar com o Windows</h2>
+          <p>
+            Abre o HUB SNK a cada login no Windows, já escondido na bandeja: o login automático no
+            Sankhya, os avisos e o atalho global ficam prontos sem janela na frente. Vem desligado e
+            não pede administrador. A escolha também aparece no
+            <strong>Gerenciador de Tarefas</strong> › <strong>Aplicativos de inicialização</strong>:
+            desligar por lá desmarca a caixa. Atualizar o HUB SNK mantém a escolha; desinstalar
+            apaga a entrada.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              No <a href="#menu-da-bandeja">menu do ícone da bandeja</a>, marque
+              <strong>Iniciar HUB SNK automaticamente</strong>. Para desligar, desmarque.
+              <!-- print-pendente: sistema: caixa Iniciar HUB SNK automaticamente no menu da bandeja -->
+            </li>
+          </ol>
+          <p class="nota">
+            No Ubuntu, a caixa grava o arquivo
+            <code>~/.config/autostart/br.dev.hubsnk.desktop.desktop</code>, que o GNOME e o KDE leem
+            no login; apagar o arquivo desliga. No Mac, o arquivo é
+            <code>~/Library/LaunchAgents/br.dev.hubsnk.desktop.plist</code>.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#outras-iniciar-automaticamente"
+                >Bandeja › Iniciar HUB SNK automaticamente</a
+              >: a caixa desta seção.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#menu-da-bandeja">Menu do ícone da bandeja</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="segundo-plano">
+          <h2>O que continua rodando</h2>
+          <p>Com a janela escondida na bandeja, o HUB SNK segue fazendo:</p>
+          <ul>
+            <li>
+              <a href="comunicacao.html#avisos-de-mensagem">Avisos de mensagem nova</a> do Gmail e,
+              depois de carregados, do WhatsApp e do Google Chat.
+            </li>
+            <li>
+              <a href="lembretes-e-notificacoes.html#aviso-do-windows">Avisos do Windows</a> dos
+              lembretes e das notificações do HUB SNK.
+            </li>
+            <li>
+              <a href="buscas-e-atalhos.html#atalho-global">Atalho global</a> da busca rápida, que
+              traz a janela já com a busca aberta.
+            </li>
+            <li>
+              <a href="sankhya-id.html#login-automatico">Login automático</a> no SankhyaOm e no
+              Experience e a
+              <a href="sankhya-id.html#sessao-da-experience">sessão da Experience</a> renovada.
+            </li>
+            <li>
+              <a href="primeiros-passos.html#atualizacao-automatica">Atualização automática</a>,
+              fora do Mac: a versão nova é baixada e um aviso pede para reiniciar.
+            </li>
+          </ul>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#outras-carregar-ao-abrir"
+                >Engrenagem da barra de comunicação › Carregar WhatsApp e Google Chat</a
+              >: os avisos do WhatsApp e do Chat sem abrir o painel.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#fechar-para-a-bandeja">Janela escondida na bandeja</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="sair">
+          <h2>Sair</h2>
+          <p>
+            Encerra o HUB SNK de vez: fecha a janela, as guias e o serviço interno do aplicativo. Os
+            avisos e o atalho global param até ele ser aberto de novo.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Clique com o botão direito no ícone da bandeja e escolha <strong>Sair</strong>.
+              <!-- print-pendente: sistema: item Sair do menu da bandeja -->
+            </li>
+            <li>
+              Com a janela aberta, o mesmo está no menu ☰ › <strong>Hub</strong> ›
+              <strong>Sair</strong>.
+              <figure>
+                <img
+                  src="img/bandeja/sair-01-menu.webp"
+                  alt="Item Sair destacado no grupo Hub do menu ☰"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma no HUB SNK.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="guias-e-navegacao.html#menu-do-aplicativo">Menu ☰ do aplicativo</a></li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>HUB SNK · licença MIT</footer>
+
+    <script src="wiki.js"></script>
+  </body>
+</html>

@@ -2,9 +2,13 @@
  * Prints da página Contatos da wiki (`site/wiki/contatos.html`). A ordem importa: cada
  * passo parte do estado que o anterior deixou na tela.
  *
- * Os botões de WhatsApp e e-mail só são destacados, nunca clicados: abririam o WhatsApp Web
- * e o Gmail, telas de terceiros que ficam fora do capturador.
+ * Os botões de WhatsApp e e-mail abrem o painel da barra de comunicação com as telas
+ * fictícias de `comunicacao-ficticia.mjs`, no lugar do WhatsApp Web e do Gmail.
  */
+import { servirComunicacaoFicticia } from '../comunicacao-ficticia.mjs';
+
+const ESPERA_DO_PAINEL_MS = 10_000;
+
 const NOVO_CONTATO = {
   nome: 'Juliana Prado',
   cargo: 'Analista de suporte',
@@ -13,7 +17,29 @@ const NOVO_CONTATO = {
   cliente: 'Construtora Horizonte',
 };
 
-export async function roteiro({ painel, print }) {
+/** Abre o painel com o botão do contato e espera a tela fictícia do serviço carregar. */
+async function abrirNoPainel(aplicativo, painel, botao, host, tela) {
+  await botao.click();
+  const limite = Date.now() + ESPERA_DO_PAINEL_MS;
+  let pagina;
+  while (!pagina) {
+    if (Date.now() > limite) throw new Error(`O painel de ${host} não abriu.`);
+    await painel.waitForTimeout(100);
+    pagina = aplicativo
+      .context()
+      .pages()
+      .find((p) => p.url().startsWith('https://') && new URL(p.url()).hostname === host);
+  }
+  await pagina.waitForSelector(tela);
+  await painel.waitForTimeout(600);
+}
+
+export async function roteiro({ aplicativo, painel, print }) {
+  await servirComunicacaoFicticia(aplicativo);
+  const moldura = aplicativo
+    .context()
+    .pages()
+    .find((p) => p.url().startsWith('file:') && p.url().split('?')[0].endsWith('/index.html'));
   const linhaDoContato = (nome) => painel.locator('.linha-recurso', { hasText: nome });
   const botaoDoContato = (nome, rotulo) => linhaDoContato(nome).locator(`[aria-label="${rotulo}"]`);
   const listaDoMenu = painel.locator('#mount-contatos');
@@ -48,13 +74,21 @@ export async function roteiro({ painel, print }) {
   await print('cadastrar-03-salvo', { destacando: [linhaDoContato(NOVO_CONTATO.nome)] });
   await fecharAvisos();
 
-  // WhatsApp e e-mail: só o botão dentro do HUB SNK
+  // WhatsApp e e-mail: o botão e o painel que ele abre
   await print('whatsapp-01-botao', {
     destacando: [botaoDoContato('Marina Duarte', 'Conversar no WhatsApp')],
   });
+  const botaoDoWhatsapp = botaoDoContato('Marina Duarte', 'Conversar no WhatsApp');
+  await abrirNoPainel(aplicativo, painel, botaoDoWhatsapp, 'web.whatsapp.com', '#whatsapp.ativa');
+  await print('whatsapp-02-conversa');
+  await moldura.click('#servicos [data-servico="whatsapp"]');
   await print('email-01-botao', {
     destacando: [botaoDoContato('Marina Duarte', 'Escrever e-mail')],
   });
+  const botaoDoEmail = botaoDoContato('Marina Duarte', 'Escrever e-mail');
+  await abrirNoPainel(aplicativo, painel, botaoDoEmail, 'mail.google.com', '#gmail.compondo');
+  await print('email-02-novo');
+  await moldura.click('#servicos [data-servico="gmail"]');
 
   // Editar e excluir (o contato recém-criado, para a lista voltar ao que era)
   await print('editar-01-botao', {
