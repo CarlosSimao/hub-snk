@@ -26,7 +26,6 @@ describe('RepositorioConfiguracaoArquivo', () => {
   it('devolve os padrões quando o arquivo ainda não existe', async () => {
     const configuracao = await repositorio.ler();
 
-    assert.equal(configuracao.scriptPadrao, '');
     assert.equal(configuracao.intervaloDeExecucaoAutomaticaSegundos, 30);
     assert.equal(configuracao.tempoLimiteSegundos, 5);
     assert.deepEqual(configuracao.atalhos, []);
@@ -41,7 +40,6 @@ describe('RepositorioConfiguracaoArquivo', () => {
 
   it('grava nome, empresa e time sem espaços sobrando e os preserva quando ausentes', async () => {
     const base = {
-      scriptPadrao: '',
       intervaloDeExecucaoAutomaticaSegundos: 30,
       tempoLimiteSegundos: 5,
       caminhoDoSchemaMcp: '',
@@ -66,9 +64,47 @@ describe('RepositorioConfiguracaoArquivo', () => {
     assert.equal(configuracao.timeDoUsuario, 'Suporte');
   });
 
+  it('grava o assistente do repositório à parte do kanban e o preserva quando ausente', async () => {
+    const base = {
+      intervaloDeExecucaoAutomaticaSegundos: 30,
+      tempoLimiteSegundos: 5,
+      caminhoDoSchemaMcp: '',
+      atalhos: [],
+      destinoDosLinks: 'hub' as const,
+      caminhoDoExecutavelDaIde: '',
+    };
+    assert.deepEqual((await repositorio.ler()).assistenteDoRepositorio, {
+      assistente: 'auto',
+      modelo: '',
+      raciocinio: '',
+      opcoes: '',
+    });
+
+    await repositorio.salvar({
+      ...base,
+      assistenteDeIa: { assistente: 'codex', modelo: '', raciocinio: '' },
+      assistenteDoRepositorio: {
+        assistente: 'claude',
+        modelo: ' opus ',
+        raciocinio: 'high',
+        opcoes: '  --dangerously-skip-permissions ',
+      },
+    });
+    await repositorio.salvar(base);
+
+    repositorio.descartarCache();
+    const configuracao = await repositorio.ler();
+    assert.equal(configuracao.assistenteDeIa.assistente, 'codex');
+    assert.deepEqual(configuracao.assistenteDoRepositorio, {
+      assistente: 'claude',
+      modelo: 'opus',
+      raciocinio: 'high',
+      opcoes: '--dangerously-skip-permissions',
+    });
+  });
+
   it('grava dentro do envelope e relê o que gravou', async () => {
     await repositorio.salvar({
-      scriptPadrao: '  git fetch --all  ',
       intervaloDeExecucaoAutomaticaSegundos: 60,
       tempoLimiteSegundos: 10,
       caminhoDoSchemaMcp: '  C:\\Workspace\\mcp  ',
@@ -83,7 +119,6 @@ describe('RepositorioConfiguracaoArquivo', () => {
     repositorio.descartarCache();
     const configuracao = await repositorio.ler();
 
-    assert.equal(configuracao.scriptPadrao, 'git fetch --all');
     assert.equal(configuracao.caminhoDoSchemaMcp, 'C:\\Workspace\\mcp');
     assert.equal(configuracao.atalhos[0]?.nome, 'DataGrip');
     assert.equal(configuracao.destinoDosLinks, 'navegador-padrao');
@@ -92,7 +127,6 @@ describe('RepositorioConfiguracaoArquivo', () => {
 
   it('dá um id ao atalho cadastrado sem id', async () => {
     const configuracao = await repositorio.salvar({
-      scriptPadrao: '',
       intervaloDeExecucaoAutomaticaSegundos: 30,
       tempoLimiteSegundos: 5,
       caminhoDoSchemaMcp: '',
@@ -108,7 +142,6 @@ describe('RepositorioConfiguracaoArquivo', () => {
     await repositorio.definirExperiencePersonId('99999');
 
     await repositorio.salvar({
-      scriptPadrao: '',
       intervaloDeExecucaoAutomaticaSegundos: 30,
       tempoLimiteSegundos: 5,
       caminhoDoSchemaMcp: '',
@@ -126,7 +159,6 @@ describe('RepositorioConfiguracaoArquivo', () => {
     await repositorio.definirSankhyaOmCodUsu('  4817  ');
 
     await repositorio.salvar({
-      scriptPadrao: '',
       intervaloDeExecucaoAutomaticaSegundos: 30,
       tempoLimiteSegundos: 5,
       caminhoDoSchemaMcp: '',
@@ -180,7 +212,6 @@ describe('RepositorioConfiguracaoArquivo com arquivo no formato antigo', () => {
       JSON.stringify({
         versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
         configuracao: {
-          scriptPadrao: '',
           destinoDosLinks: 'firefox',
         },
       }),
@@ -193,14 +224,14 @@ describe('RepositorioConfiguracaoArquivo com arquivo no formato antigo', () => {
   });
 
   it('migra o arquivo e guarda o original', async () => {
-    const conteudoAntigo = { scriptPadrao: 'git status', atalhos: [] };
+    const conteudoAntigo = { caminhoDoExecutavelDaIde: 'C:\\idea64.exe', atalhos: [] };
     await writeFile(caminhoDoArquivo(), JSON.stringify(conteudoAntigo), 'utf8');
 
     await repositorio.ler();
 
     const gravado = JSON.parse(await readFile(caminhoDoArquivo(), 'utf8'));
     assert.equal(gravado.versaoDoEsquema, VERSAO_ATUAL_DO_ESQUEMA);
-    assert.equal(gravado.configuracao.scriptPadrao, 'git status');
+    assert.equal(gravado.configuracao.caminhoDoExecutavelDaIde, 'C:\\idea64.exe');
 
     const copia = JSON.parse(await readFile(`${caminhoDoArquivo()}.esquema0`, 'utf8'));
     assert.deepEqual(copia, conteudoAntigo);
@@ -209,7 +240,6 @@ describe('RepositorioConfiguracaoArquivo com arquivo no formato antigo', () => {
 
 describe('RepositorioConfiguracaoArquivo — acessos', () => {
   const CONFIGURACAO_SEM_ACESSOS = {
-    scriptPadrao: '',
     intervaloDeExecucaoAutomaticaSegundos: 30,
     tempoLimiteSegundos: 5,
     caminhoDoSchemaMcp: '',
@@ -327,7 +357,6 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
 
   it('preserva o SMTP gravado quando a tela não o manda', async () => {
     const base = {
-      scriptPadrao: '',
       intervaloDeExecucaoAutomaticaSegundos: 30,
       tempoLimiteSegundos: 5,
       caminhoDoSchemaMcp: '',
@@ -440,7 +469,6 @@ describe('RepositorioConfiguracaoArquivo — boas-vindas', () => {
     await repositorio.concluirBoasVindas(RESPOSTAS);
 
     await repositorio.salvar({
-      scriptPadrao: '',
       intervaloDeExecucaoAutomaticaSegundos: 30,
       tempoLimiteSegundos: 5,
       caminhoDoSchemaMcp: '',

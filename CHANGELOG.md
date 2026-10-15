@@ -9,6 +9,43 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.11.0] - 2026-10-15
+
+### Adicionado
+
+- **Assistente de IA no repositório**: botão da estrela no cartão do repositório e na busca
+  rápida (Ctrl+K). Abre uma janela nova do terminal na pasta do repositório já rodando o
+  assistente (Claude Code, Codex, OpenCode, Gemini CLI ou Cursor Agent). Ao sair do
+  assistente, o terminal continua aberto na pasta.
+- **Configuração própria do assistente do repositório**: a aba Configurações › IA ganha o
+  grupo "Assistente do botão do repositório", separado do assistente do kanban, com
+  assistente, modelo, nível de raciocínio e **Opções**, argumentos a mais na linha do
+  assistente, como `--dangerously-skip-permissions`.
+- **Link para a wiki na aba Sobre** das Configurações.
+- **HUB SNK para Mac (beta)** (chip Apple, M1 em diante), em `.dmg`. Não é assinado pela
+  Apple: a primeira abertura precisa ser liberada em Ajustes do Sistema › Privacidade e
+  Segurança, e a cada versão nova o macOS pede permissão para o HUB SNK usar as senhas
+  guardadas. Não há atualização automática no Mac: o Painel avisa da versão nova, e o
+  `.dmg` novo é instalado por cima. O Git AutoSync não existe no Mac.
+
+### Alterado
+
+- **Script padrão removido**: o campo saiu de Configurações › Geral, e os botões de
+  terminal (do repositório, da busca rápida e do Git AutoSync) só abrem o shell na pasta.
+  Quem usava o campo para abrir o Claude Code ou outro assistente passa a usar a estrela,
+  configurada em Configurações › IA.
+- **Aba IA com Repositórios**: a aba aparece também para quem tem Repositórios e não tem
+  Projetos; cada grupo segue a sua funcionalidade em Configurações › Acessos.
+
+### Corrigido
+
+- **Compartilhar a tela no Meet**: apresentar uma reunião aberta pelo HUB SNK dava "Algo
+  deu errado ao compartilhar a tela". Agora abre um menu com as telas e as janelas para
+  escolher.
+- **Tela apagando durante a reunião**: o Meet não conseguia manter a tela acesa.
+- **Aviso de versão nova para quem usa a beta**: a versão estável com o mesmo número da beta
+  (2.11.0 depois da 2.11.0-beta.1) não era avisada.
+
 ## [2.11.0-beta.1] - 2026-10-14
 
 Versão de teste (pre-release): o aviso de versão nova e a atualização automática a ignoram.
@@ -783,7 +820,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.11.0-beta.1...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.11.0...HEAD
+[2.11.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.1...v2.11.0
 [2.11.0-beta.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.1...v2.11.0-beta.1
 [2.10.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.0...v2.10.1
 [2.10.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.9.0...v2.10.0

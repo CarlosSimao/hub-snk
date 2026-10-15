@@ -40,7 +40,6 @@ cadastro.
 {
   "versaoDoEsquema": 1,
   "configuracao": {
-    "scriptPadrao": "git fetch --all",
     "intervaloDeExecucaoAutomaticaSegundos": 30,
     "tempoLimiteSegundos": 5,
     "caminhoDoSchemaMcp": "",
@@ -69,6 +68,12 @@ cadastro.
     },
     "alertaDaAgenda": { "ativo": true, "toleranciaMinutos": 30, "enviarEmail": true },
     "assistenteDeIa": { "assistente": "auto", "modelo": "", "raciocinio": "" },
+    "assistenteDoRepositorio": {
+      "assistente": "claude",
+      "modelo": "opus",
+      "raciocinio": "medium",
+      "opcoes": "--dangerously-skip-permissions"
+    },
     "nomeDoUsuario": "Ana Souza",
     "empresaDoUsuario": "Acme",
     "timeDoUsuario": "Suporte"
@@ -121,6 +126,11 @@ desligado.
 `raciocinio` é o nível de raciocínio do modelo (`low`, `high`, `max`...), vazio
 para o padrão dele. Arquivo de antes do campo, ou com assistente desconhecido, vale
 `auto`.
+
+`assistenteDoRepositorio` tem o mesmo formato e é independente do anterior: é quem o
+botão do assistente abre no terminal, na pasta do repositório. `opcoes` são argumentos a
+mais na linha do assistente, separados por espaço (aspas duplas juntam um valor com
+espaço); cada um vai citado, sem o shell interpretar. Vazio não acrescenta nada.
 
 `nomeDoUsuario`, `empresaDoUsuario` e `timeDoUsuario` são os campos de **Configurações ›
 Geral** que dizem quem usa o aplicativo (a empresa é a da pessoa, e não um cliente do

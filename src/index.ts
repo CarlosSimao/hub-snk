@@ -274,10 +274,7 @@ async function iniciarServidor(): Promise<void> {
         pastaDoInstalador: configuracao.pastaDoInstalador,
       }),
       listarClientes: () => repositorioDeClientes.listar(),
-      abrirTerminal: async (caminho) => {
-        const { scriptPadrao } = await repositorioDeConfiguracao.ler();
-        await abrirShellNaPasta(caminho, scriptPadrao);
-      },
+      abrirTerminal: (caminho) => abrirShellNaPasta(caminho),
     }),
   );
   let observadorDosDados: FSWatcher | null = null;

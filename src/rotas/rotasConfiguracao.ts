@@ -20,7 +20,6 @@ import { DESTINOS_DE_LINK, FUNCIONALIDADES, PERFIS_PROFISSIONAIS } from '../tipo
 import { esquemaDeConfiguracaoMcp } from './comum/esquemaDeConfiguracaoMcp.ts';
 import { esquemaDeAlertaDaAgenda, esquemaDeSmtp } from './comum/esquemaDeNotificacoes.ts';
 
-const TAMANHO_MAXIMO_DO_SCRIPT = 500;
 const TAMANHO_MAXIMO_DO_CAMINHO = 400;
 const TAMANHO_MAXIMO_DO_NOME_DO_ATALHO = 60;
 const INTERVALO_MINIMO_DE_EXECUCAO_AUTOMATICA_S = 5;
@@ -28,6 +27,7 @@ const INTERVALO_MAXIMO_DE_EXECUCAO_AUTOMATICA_S = 3600;
 const TEMPO_LIMITE_MINIMO_S = 1;
 const TEMPO_LIMITE_MAXIMO_S = 60;
 const TAMANHO_MAXIMO_DO_MODELO = 120;
+const TAMANHO_MAXIMO_DAS_OPCOES_DO_ASSISTENTE = 300;
 const TAMANHO_MAXIMO_DA_IDENTIFICACAO = 120;
 
 /*
@@ -97,12 +97,6 @@ const esquemaDeEmail = esquemaDeIdentificacao('O e-mail').refine(
 );
 
 const esquemaDeConfiguracao = z.object({
-  scriptPadrao: z
-    .string({ error: 'Informe o script padrão.' })
-    .max(
-      TAMANHO_MAXIMO_DO_SCRIPT,
-      `O script deve ter no máximo ${TAMANHO_MAXIMO_DO_SCRIPT} caracteres.`,
-    ),
   intervaloDeExecucaoAutomaticaSegundos: z.coerce
     .number({ error: 'O intervalo deve ser um número.' })
     .int('O intervalo deve ser um número inteiro de segundos.')
@@ -165,6 +159,18 @@ const esquemaDeConfiguracao = z.object({
   alertaDaAgenda: esquemaDeAlertaDaAgenda.optional(),
   /* Ausente, preserva o assistente escolhido, pelo mesmo motivo dos acessos. */
   assistenteDeIa: esquemaDoAssistenteDeIa.optional(),
+  assistenteDoRepositorio: esquemaDoAssistenteDeIa
+    .extend({
+      opcoes: z
+        .string()
+        .trim()
+        .max(
+          TAMANHO_MAXIMO_DAS_OPCOES_DO_ASSISTENTE,
+          `As opções devem ter no máximo ${TAMANHO_MAXIMO_DAS_OPCOES_DO_ASSISTENTE} caracteres.`,
+        )
+        .default(''),
+    })
+    .optional(),
   /* Ausentes, preservam o que está gravado; o preenchimento só é cobrado ao abrir um relato. */
   nomeDoUsuario: esquemaDeIdentificacao('O nome do usuário').optional(),
   empresaDoUsuario: esquemaDeIdentificacao('A empresa').optional(),

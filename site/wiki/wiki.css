@@ -343,3 +343,10 @@ footer {
     padding: 20px;
   }
 }
+
+/* No celular os quatro links não cabem ao lado do logo; a página principal fica a um clique pelo logo. */
+@media (max-width: 600px) {
+  header.topo nav a[href='../#funcionalidades'] {
+    display: none;
+  }
+}

@@ -27,6 +27,7 @@ export interface ConfiguracaoParaSalvar extends Omit<
   | 'smtp'
   | 'alertaDaAgenda'
   | 'assistenteDeIa'
+  | 'assistenteDoRepositorio'
   | 'nomeDoUsuario'
   | 'empresaDoUsuario'
   | 'timeDoUsuario'
@@ -42,6 +43,7 @@ export interface ConfiguracaoParaSalvar extends Omit<
   alertaDaAgenda?: ConfiguracaoGlobal['alertaDaAgenda'];
   /** Ausente, preserva o assistente escolhido: uma tela antiga não manda o campo. */
   assistenteDeIa?: ConfiguracaoGlobal['assistenteDeIa'];
+  assistenteDoRepositorio?: ConfiguracaoGlobal['assistenteDoRepositorio'];
   /** Ausentes, preservam o que está gravado: uma tela antiga não manda os campos. */
   nomeDoUsuario?: ConfiguracaoGlobal['nomeDoUsuario'];
   empresaDoUsuario?: ConfiguracaoGlobal['empresaDoUsuario'];

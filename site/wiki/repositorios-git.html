@@ -20,6 +20,7 @@
           <strong>HUB</strong><span>SNK</span>
         </a>
         <nav>
+          <a href="../#funcionalidades">Funcionalidades</a>
           <a href="./">Wiki</a>
           <a href="../#instalacao">Baixar</a>
           <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
@@ -46,7 +47,11 @@
             <li><a href="#editar-e-excluir">Editar e excluir repositório</a></li>
             <li><a href="#diagnostico">Diagnóstico do Git</a></li>
             <li><a href="#pendencias">Pendências e comandos sugeridos</a></li>
-            <li><a href="#abrir-pasta-terminal-ou-ide">Abrir a pasta, o terminal ou a IDE</a></li>
+            <li>
+              <a href="#abrir-pasta-terminal-ou-ide"
+                >Abrir a pasta, o terminal, a IDE ou o assistente</a
+              >
+            </li>
             <li>
               <a href="#mcp-do-repositorio"><code>.sankhya-mcp.env</code> do repositório</a>
             </li>
@@ -398,11 +403,12 @@
         </section>
 
         <section class="funcionalidade" id="abrir-pasta-terminal-ou-ide">
-          <h2>Abrir a pasta, o terminal ou a IDE</h2>
+          <h2>Abrir a pasta, o terminal, a IDE ou o assistente</h2>
           <p>
-            Três botões na linha do repositório agem sobre a pasta do clone: a pasta abre no
-            gerenciador de arquivos; o terminal abre já na pasta e roda o script padrão, se houver;
-            a IDE abre a pasta como projeto. Só aparecem em repositório com caminho local.
+            Quatro botões na linha do repositório agem sobre a pasta do clone: a pasta abre no
+            gerenciador de arquivos; o terminal abre já na pasta; a IDE abre a pasta como projeto; e
+            a estrela abre um terminal novo na pasta já rodando o assistente de IA, que continua
+            aberto quando você sai dele. Só aparecem em repositório com caminho local.
           </p>
 
           <h3>Passo a passo</h3>
@@ -410,11 +416,13 @@
             <li>
               Clique na pasta (<strong>Abrir a pasta</strong>), no <code>&gt;_</code> (<strong
                 >Abrir o terminal</strong
-              >) ou no <code>{ }</code> (<strong>Abrir IDE</strong>).
+              >), no <code>{ }</code> (<strong>Abrir IDE</strong>) ou na estrela (<strong
+                >Abrir o assistente</strong
+              >).
               <figure>
                 <img
                   src="img/repositorios-git/abrir-pasta-terminal-ou-ide-01-botoes.webp"
-                  alt="Botões de pasta, terminal e IDE destacados na linha do repositório"
+                  alt="Botões de pasta, terminal, IDE e assistente destacados na linha do repositório"
                   width="1264"
                   height="821"
                   loading="lazy"
@@ -422,7 +430,9 @@
               </figure>
             </li>
             <li>
-              A pasta, o terminal ou a IDE abrem fora do HUB SNK.
+              A pasta, o terminal, a IDE ou o assistente abrem fora do HUB SNK. O assistente é o de
+              Configurações › IA › Assistente do botão do repositório, com o modelo, o raciocínio e
+              as opções escolhidos lá.
               <!-- print-pendente: sistema: Explorador de arquivos, terminal e IDE abertos na pasta do repositório -->
             </li>
             <li>
@@ -443,15 +453,15 @@
             No Windows, o terminal é o Windows Terminal quando instalado, com o PowerShell 7, o
             Windows PowerShell ou o Prompt de Comando, nessa ordem. No Linux, a pasta abre pelo
             <code>xdg-open</code> e o terminal é o primeiro encontrado entre os mais comuns. O
-            script padrão roda com as suas permissões.
+            assistente roda com as suas permissões, como se você o abrisse no terminal.
           </p>
 
           <h3>Configurações que dependem ou alteram</h3>
           <ul>
             <li>
-              <a href="configuracoes.html#geral-script-padrao"
-                >Configurações › Geral › Script padrão</a
-              >: o que roda ao abrir o terminal.
+              <a href="configuracoes.html#ia-assistente-do-repositorio"
+                >Configurações › IA › Assistente do botão do repositório</a
+              >: o assistente, o modelo e o raciocínio que a estrela abre.
             </li>
             <li>
               <a href="configuracoes.html#geral-executavel-da-ide"

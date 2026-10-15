@@ -20,6 +20,7 @@
           <strong>HUB</strong><span>SNK</span>
         </a>
         <nav>
+          <a href="../#funcionalidades">Funcionalidades</a>
           <a href="./">Wiki</a>
           <a href="../#instalacao">Baixar</a>
           <a href="https://github.com/CarlosSimao/hub-snk">GitHub</a>
@@ -254,7 +255,7 @@
               <figure>
                 <img
                   src="img/configuracoes/geral-01-aba.webp"
-                  alt="Aba Geral com nome, empresa, time, e-mail, script padrão, intervalos, IDE e destino dos links"
+                  alt="Aba Geral com nome, empresa, time, e-mail, intervalos, IDE e destino dos links"
                   width="1264"
                   height="821"
                   loading="lazy"
@@ -302,17 +303,6 @@
               destinatário de nada: quem manda e recebe os e-mails é o <a href="#smtp">SMTP</a>.
               Padrão: vazio. Afeta:
               <a href="suporte.html#reportar-problema">Reportar problema</a> (obrigatório).
-            </dd>
-
-            <dt id="geral-script-padrao"><strong>Script padrão</strong> (opcional)</dt>
-            <dd>
-              Linha que o terminal executa ao abrir na pasta de um repositório, na sua máquina e com
-              as suas permissões; por exemplo, <code>claude</code>. Até 500 caracteres. Padrão:
-              vazio. Afeta:
-              <a href="repositorios-git.html#abrir-pasta-terminal-ou-ide">terminal do repositório</a
-              >,
-              <a href="buscas-e-atalhos.html#acoes-do-repositorio">terminal pela busca rápida</a> e
-              <a href="git-autosync.html#como-resolver">terminal do Git AutoSync</a>.
             </dd>
 
             <dt id="geral-intervalo-de-execucao-automatica">
@@ -842,12 +832,14 @@
         <section class="funcionalidade" id="ia">
           <h2>Aba IA</h2>
           <p>
-            O assistente de linha de comando, instalado na sua máquina, que lê o documento de escopo
-            e devolve as tarefas do kanban. Ele roda numa pasta temporária, sem poder alterar
-            arquivos nem executar comandos. Ao abrir a aba, o HUB SNK procura os assistentes
-            instalados. Grava no <strong>Salvar</strong> do rodapé. A aba some com
-            <a href="#acessos-cliente-projetos">Acessos › Projetos</a> desmarcado. O passo a passo
-            fica em <a href="mcp.html#assistente-de-ia">Assistente de IA</a>.
+            Dois assistentes de linha de comando, instalados na sua máquina, cada um com a sua
+            escolha. O <strong>assistente que gera as tarefas do kanban</strong> lê o documento de
+            escopo numa pasta temporária, sem poder alterar arquivos nem executar comandos; some com
+            <a href="#acessos-cliente-projetos">Acessos › Projetos</a> desmarcado. O
+            <strong>assistente do botão do repositório</strong> é o que a estrela do repositório
+            abre num terminal novo; some com Acessos › Repositórios desmarcado. Ao abrir a aba, o
+            HUB SNK procura os assistentes instalados. Grava no <strong>Salvar</strong> do rodapé. O
+            passo a passo fica em <a href="mcp.html#assistente-de-ia">Assistente de IA</a>.
           </p>
 
           <h3>Passo a passo</h3>
@@ -857,7 +849,7 @@
               <figure>
                 <img
                   src="img/configuracoes/ia-01-aba.webp"
-                  alt="Aba IA com Claude Code, modelo opus e nível de raciocínio Muito alto"
+                  alt="Aba IA com o assistente do kanban (Claude Code, opus, Muito alto) e o do botão do repositório (Claude Code, opus, Médio, com a opção --dangerously-skip-permissions)"
                   width="1264"
                   height="821"
                   loading="lazy"
@@ -868,7 +860,7 @@
 
           <h3>Campos</h3>
           <p>
-            Todos afetam: <a href="mcp.html#assistente-de-ia">assistente de IA</a>,
+            Os do kanban afetam: <a href="mcp.html#assistente-de-ia">assistente de IA</a>,
             <a href="kanban.html#gerar-tarefas-com-ia">gerar tarefas com a IA</a>,
             <a href="kanban.html#criar-kanban">criar kanban com documento</a> e
             <a href="kanban.html#documento-de-escopo">documento de escopo</a>.
@@ -893,6 +885,21 @@
             <dd>
               Só aparece quando o modelo tem níveis. Mais alto pensa mais e demora mais. Gemini CLI
               e Cursor Agent não têm. Padrão: o do modelo.
+            </dd>
+
+            <dt id="ia-assistente-do-repositorio">
+              <strong>Assistente do botão do repositório</strong>
+            </dt>
+            <dd>
+              Os mesmos campos (Assistente, Modelo e Nível de raciocínio), gravados à parte do
+              kanban. O modelo e o raciocínio vão na abertura da sessão; o OpenCode e o Gemini CLI
+              levam só o modelo. <strong>Opções</strong> (opcional, até 300 caracteres) são
+              argumentos a mais na linha do assistente, como
+              <code>--dangerously-skip-permissions</code>; aspas duplas juntam um valor com espaço,
+              e o shell não as executa. Padrão: Automático, sem opções. Afeta:
+              <a href="repositorios-git.html#abrir-pasta-terminal-ou-ide"
+                >assistente do repositório</a
+              >.
             </dd>
 
             <dt id="ia-procurar-de-novo"><strong>Procurar de novo</strong></dt>
@@ -1134,7 +1141,7 @@
 
         <section class="funcionalidade" id="sobre">
           <h2>Aba Sobre</h2>
-          <p>A versão instalada e o canal com o suporte. Não tem campo.</p>
+          <p>O link para esta wiki, a versão instalada e o canal com o suporte. Não tem campo.</p>
 
           <h3>Passo a passo</h3>
           <ol class="passos">
@@ -1143,7 +1150,7 @@
               <figure>
                 <img
                   src="img/configuracoes/sobre-01-aba.webp"
-                  alt="Aba Sobre com a versão instalada, o aviso de versão nova e o botão Reportar problema ou sugerir"
+                  alt="Aba Sobre com o link para a wiki, a versão instalada, o aviso de versão nova e o botão Reportar problema ou sugerir"
                   width="1264"
                   height="821"
                   loading="lazy"
@@ -1154,6 +1161,9 @@
 
           <h3>Campos</h3>
           <dl>
+            <dt id="sobre-wiki"><strong>Wiki do HUB SNK</strong></dt>
+            <dd>Abre esta wiki no navegador do sistema.</dd>
+
             <dt id="sobre-versao">
               <strong>HUB SNK v</strong>versão e <strong>disponível</strong>
             </dt>

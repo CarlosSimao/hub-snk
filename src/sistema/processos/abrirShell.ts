@@ -7,8 +7,8 @@ import { garantirQueEhPasta } from '../pasta.ts';
  * executando um script.
  *
  * Diferente de `abrirPastaNoSistema`, aqui o script **é** interpretado pelo
- * shell — é essa a função do recurso. O texto vem da configuração que o próprio
- * usuário digitou e roda com os privilégios dele, na máquina dele.
+ * shell — é essa a função do recurso. Só o HUB SNK o monta (a chamada do
+ * assistente de IA, com cada parte citada), nunca a partir de texto da requisição.
  */
 
 export class TerminalIndisponivelError extends Error {
@@ -29,7 +29,7 @@ function escaparParaAppleScript(valor: string): string {
 
 /**
  * O `wt.exe` lê `;` como separador de subcomandos — "nova aba", "dividir painel". Sem o
- * escape, um script padrão como `git fetch; git status` era partido, e o terminal abria
+ * escape, um script como `git fetch; git status` era partido, e o terminal abria
  * com um pedaço do script e uma aba a mais.
  */
 function escaparParaOWindowsTerminal(argumento: string): string {
@@ -48,7 +48,16 @@ function existeNoWindows(executavel: string): Promise<boolean> {
   });
 }
 
-async function montarLancamentoDoWindows(pasta: string, script: string): Promise<Candidato> {
+interface OpcoesDoShell {
+  /** Força janela própria no Windows Terminal, em vez de uma guia na janela já aberta. */
+  janelaNova?: boolean;
+}
+
+async function montarLancamentoDoWindows(
+  pasta: string,
+  script: string,
+  { janelaNova = false }: OpcoesDoShell,
+): Promise<Candidato> {
   const shells: Candidato[] = [
     { comando: 'pwsh.exe', argumentos: script ? ['-NoExit', '-Command', script] : ['-NoExit'] },
     {
@@ -72,6 +81,7 @@ async function montarLancamentoDoWindows(pasta: string, script: string): Promise
     return {
       comando: 'wt.exe',
       argumentos: [
+        ...(janelaNova ? ['-w', 'new'] : []),
         '-d',
         pasta,
         shellEscolhido.comando,
@@ -132,12 +142,16 @@ function montarLancamentosDoLinux(pasta: string, script: string): Candidato[] {
   ];
 }
 
-export async function abrirShellNaPasta(pasta: string, script: string): Promise<void> {
+export async function abrirShellNaPasta(
+  pasta: string,
+  script = '',
+  opcoes: OpcoesDoShell = {},
+): Promise<void> {
   await garantirQueEhPasta(pasta);
 
   const candidatos =
     process.platform === 'win32'
-      ? [await montarLancamentoDoWindows(pasta, script)]
+      ? [await montarLancamentoDoWindows(pasta, script, opcoes)]
       : process.platform === 'darwin'
         ? montarLancamentosDoMac(pasta, script)
         : montarLancamentosDoLinux(pasta, script);

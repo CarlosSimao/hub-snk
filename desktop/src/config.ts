@@ -171,13 +171,14 @@ export const LARGURA_MINIMA_PAINEL_COMUNICACAO = 480;
 /**
  * Sem handler, o Electron concede qualquer permissão pedida. Só o que os três serviços
  * usam: notificação de mensagem, microfone/câmera (áudio do WhatsApp, chamada do Chat),
- * cópia para a área de transferência e tela cheia de vídeo.
+ * cópia para a área de transferência, tela cheia de vídeo e tela acesa durante a reunião.
  */
 export const PERMISSOES_COMUNICACAO: ReadonlySet<string> = new Set([
   'notifications',
   'media',
   'clipboard-sanitized-write',
   'fullscreen',
+  'screen-wake-lock',
 ]);
 
 /**

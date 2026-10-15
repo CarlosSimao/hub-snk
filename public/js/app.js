@@ -186,6 +186,7 @@ const ICONES = {
   terminal: 'M4 17l6-6-6-6 M12 19h8',
   /* Chaves de bloco de código: o botão que abre o projeto na IDE. */
   ide: 'M10 4h-.5a2 2 0 0 0-2 2v3.2a2 2 0 0 1-2 2 2 2 0 0 1 2 2V17a2 2 0 0 0 2 2h.5 M14 4h.5a2 2 0 0 1 2 2v3.2a2 2 0 0 0 2 2 2 2 0 0 0-2 2V17a2 2 0 0 1-2 2H14',
+  assistente: 'M12 3l2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2z',
   banco:
     'M12 8c4.97 0 9-1.34 9-3s-4.03-3-9-3-9 1.34-9 3 4.03 3 9 3z M3 5v7c0 1.66 4.03 3 9 3s9-1.34 9-3V5 M3 12v7c0 1.66 4.03 3 9 3s9-1.34 9-3v-7',
   plugue: 'M9 2v6 M15 2v6 M6 8h12v3a6 6 0 0 1-12 0z M12 17v5',
@@ -302,6 +303,8 @@ const estado = {
   atalhos: [],
   /* Com IDE configurada, Enter num repositório da busca rápida abre a IDE; sem ela, a pasta. */
   ideConfigurada: false,
+  /* Assistente do repositório (Configurações › IA), que dá nome ao botão do assistente. */
+  assistenteDoRepositorio: 'auto',
   /*
    * Busca rápida. `itens` é o índice montado ao abrir, `resultados` o que casa
    * com o texto digitado e `indiceSelecionado` a linha destacada nos resultados.
@@ -631,6 +634,16 @@ const elementos = {
   campoRaciocinioIa: document.getElementById('campo-raciocinio-ia'),
   blocoRaciocinioIa: document.getElementById('bloco-raciocinio-ia'),
   situacaoAssistenteIa: document.getElementById('situacao-assistente-ia'),
+  grupoAssistenteIaKanban: document.getElementById('grupo-assistente-ia-kanban'),
+  grupoAssistenteIaRepositorio: document.getElementById('grupo-assistente-ia-repositorio'),
+  campoAssistenteIaRepositorio: document.getElementById('campo-assistente-ia-repositorio'),
+  campoModeloIaRepositorio: document.getElementById('campo-modelo-ia-repositorio'),
+  campoModeloIaOutroRepositorio: document.getElementById('campo-modelo-ia-outro-repositorio'),
+  blocoModeloIaOutroRepositorio: document.getElementById('bloco-modelo-ia-outro-repositorio'),
+  campoRaciocinioIaRepositorio: document.getElementById('campo-raciocinio-ia-repositorio'),
+  blocoRaciocinioIaRepositorio: document.getElementById('bloco-raciocinio-ia-repositorio'),
+  situacaoAssistenteIaRepositorio: document.getElementById('situacao-assistente-ia-repositorio'),
+  campoOpcoesIaRepositorio: document.getElementById('campo-opcoes-ia-repositorio'),
   botaoAtualizarAssistentesIa: document.getElementById('btn-atualizar-assistentes-ia'),
   campoGitlabHost: document.getElementById('campo-gitlab-host'),
   campoGitlabToken: document.getElementById('campo-gitlab-token'),
@@ -669,7 +682,6 @@ const elementos = {
   ),
   listaDeAtalhosDaConfiguracao: document.getElementById('lista-atalhos-config'),
   botaoAdicionarAtalho: document.getElementById('btn-adicionar-atalho'),
-  campoScriptPadrao: document.getElementById('campo-script-padrao'),
   campoIntervaloDeExecucaoAutomatica: document.getElementById(
     'campo-intervalo-execucao-automatica',
   ),
@@ -1088,6 +1100,12 @@ const api = {
     requisitar(`${CAMINHO_DA_API}/${idDoCliente}/repositorios/${idDoRepositorio}/abrir-ide`, {
       metodo: 'POST',
     }),
+
+  abrirAssistenteDoRepositorio: (idDoCliente, idDoRepositorio) =>
+    requisitar(
+      `${CAMINHO_DA_API}/${idDoCliente}/repositorios/${idDoRepositorio}/abrir-assistente`,
+      { metodo: 'POST' },
+    ),
 
   /* `forcar` ignora o cache do servidor: é o que o botão de recarregar usa. */
   lerSituacaoGit: (forcar) =>
@@ -1734,6 +1752,17 @@ function criarAcoesDeUsoDoRepositorio(cliente, repositorio) {
       ),
   );
 
+  const botaoDeAssistente = criarBotaoDeIcone(
+    'btn tiny',
+    ICONES.assistente,
+    `Abrir o ${nomeDoAssistenteConfigurado()} em ${repositorio.caminhoLocal}`,
+    () =>
+      executarAcaoDoSistema(
+        () => api.abrirAssistenteDoRepositorio(cliente.id, repositorio.id),
+        botaoDeAssistente,
+      ),
+  );
+
   const situacao = situacaoDoMcp(repositorio);
   const botaoDeMcp = criarBotaoDeIcone(
     situacao.classe ? `btn tiny ${situacao.classe}` : 'btn tiny',
@@ -1742,7 +1771,14 @@ function criarAcoesDeUsoDoRepositorio(cliente, repositorio) {
     () => abrirModalDeMcp(alvoDoMcpDoRepositorio(cliente, repositorio)),
   );
 
-  return [botaoDeArquivos, botaoDeShell, botaoDeIde, botaoDeMcp];
+  return [botaoDeArquivos, botaoDeShell, botaoDeIde, botaoDeAssistente, botaoDeMcp];
+}
+
+/* No automático o assistente só se decide no clique: o primeiro instalado na máquina. */
+function nomeDoAssistenteConfigurado() {
+  return estado.assistenteDoRepositorio === 'auto'
+    ? 'assistente de IA'
+    : (NOMES_DOS_ASSISTENTES_DE_IA[estado.assistenteDoRepositorio] ?? 'assistente de IA');
 }
 
 /* --------------------------- situação do Git ------------------------------ */
@@ -6329,7 +6365,6 @@ async function abrirModalDeConfiguracao() {
     elementos.botaoVerSenhaConfigMcp,
     false,
   );
-  elementos.campoScriptPadrao.value = '';
   elementos.campoIntervaloDeExecucaoAutomatica.value = INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S;
   elementos.campoTempoLimite.value = TEMPO_LIMITE_PADRAO_S;
   elementos.campoDestinoDosLinks.value = DESTINO_DOS_LINKS_PADRAO;
@@ -6343,11 +6378,18 @@ async function abrirModalDeConfiguracao() {
   preencherNotificacoesDaConfiguracao(SMTP_PADRAO, ALERTA_DA_AGENDA_PADRAO);
   exibirResultadoDoTesteDoSmtp(null);
   definirVisibilidadeDoCampo(elementos.campoSmtpSenha, elementos.botaoVerSenhaSmtp, false);
-  preencherAssistenteDeIaDaConfiguracao(ASSISTENTE_DE_IA_PADRAO);
+  preencherAssistenteDeIaDaConfiguracao(
+    ASSISTENTES_DA_CONFIGURACAO.kanban,
+    ASSISTENTE_DE_IA_PADRAO,
+  );
+  preencherAssistenteDeIaDaConfiguracao(
+    ASSISTENTES_DA_CONFIGURACAO.repositorio,
+    ASSISTENTE_DE_IA_PADRAO,
+  );
+  elementos.campoOpcoesIaRepositorio.value = '';
 
   try {
     const configuracao = await api.lerConfiguracao();
-    elementos.campoScriptPadrao.value = configuracao.scriptPadrao ?? '';
     elementos.campoIntervaloDeExecucaoAutomatica.value =
       configuracao.intervaloDeExecucaoAutomaticaSegundos ??
       INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S;
@@ -6369,7 +6411,15 @@ async function abrirModalDeConfiguracao() {
       configuracao.smtp ?? SMTP_PADRAO,
       configuracao.alertaDaAgenda ?? ALERTA_DA_AGENDA_PADRAO,
     );
-    preencherAssistenteDeIaDaConfiguracao(configuracao.assistenteDeIa ?? ASSISTENTE_DE_IA_PADRAO);
+    preencherAssistenteDeIaDaConfiguracao(
+      ASSISTENTES_DA_CONFIGURACAO.kanban,
+      configuracao.assistenteDeIa ?? ASSISTENTE_DE_IA_PADRAO,
+    );
+    preencherAssistenteDeIaDaConfiguracao(
+      ASSISTENTES_DA_CONFIGURACAO.repositorio,
+      configuracao.assistenteDoRepositorio ?? ASSISTENTE_DE_IA_PADRAO,
+    );
+    elementos.campoOpcoesIaRepositorio.value = configuracao.assistenteDoRepositorio?.opcoes ?? '';
   } catch (erro) {
     exibirAviso(`Não foi possível carregar as configurações: ${erro.message}`, 'erro');
     return;
@@ -6389,7 +6439,7 @@ async function abrirModalDeConfiguracao() {
   // Recolhido a cada abertura: o que ficou expandido da última vez não conta.
   elementos.grupoSankhyaSchema.open = false;
   elementos.modalConfiguracao.showModal();
-  elementos.campoScriptPadrao.focus();
+  elementos.campoNomeDoUsuario.focus();
 }
 
 /* ------------------------ configuração inicial pendente ------------------- */
@@ -6440,6 +6490,11 @@ const DESTINOS_DE_CONFIGURACAO_PENDENTE = {
     botao: () => elementos.botaoConfiguracao,
     abrir: () =>
       abrirConfiguracaoNaAba(elementos.abaConfiguracaoGeral, elementos.campoCaminhoExecutavelDaIde),
+  },
+  'assistente-de-ia': {
+    botao: () => elementos.botaoConfiguracao,
+    abrir: () =>
+      abrirConfiguracaoNaAba(elementos.abaConfiguracaoIa, elementos.campoAssistenteIaRepositorio),
   },
   atalhos: {
     botao: () => elementos.botaoConfiguracao,
@@ -6581,7 +6636,6 @@ async function salvarConfiguracao(evento) {
     const salva = await api.salvarConfiguracao({
       caminhoDoSchemaMcp,
       mcp,
-      scriptPadrao: elementos.campoScriptPadrao.value.trim(),
       intervaloDeExecucaoAutomaticaSegundos: Number(
         elementos.campoIntervaloDeExecucaoAutomatica.value,
       ),
@@ -6594,7 +6648,11 @@ async function salvarConfiguracao(evento) {
       terceiro: elementos.campoTerceiro.checked,
       smtp: lerSmtpDaConfiguracao(),
       alertaDaAgenda: lerAlertaDaAgendaDaConfiguracao(),
-      assistenteDeIa: lerAssistenteDeIaDaConfiguracao(),
+      assistenteDeIa: lerAssistenteDeIaDaConfiguracao(ASSISTENTES_DA_CONFIGURACAO.kanban),
+      assistenteDoRepositorio: {
+        ...lerAssistenteDeIaDaConfiguracao(ASSISTENTES_DA_CONFIGURACAO.repositorio),
+        opcoes: elementos.campoOpcoesIaRepositorio.value.trim(),
+      },
       nomeDoUsuario: elementos.campoNomeDoUsuario.value.trim(),
       empresaDoUsuario: elementos.campoEmpresaDoUsuario.value.trim(),
       timeDoUsuario: elementos.campoTimeDoUsuario.value.trim(),
@@ -6612,6 +6670,7 @@ async function salvarConfiguracao(evento) {
     /* A resposta traz os ids gerados: é dela que a barra passa a viver. */
     estado.atalhos = salva.atalhos ?? [];
     estado.ideConfigurada = Boolean(salva.caminhoDoExecutavelDaIde);
+    estado.assistenteDoRepositorio = salva.assistenteDoRepositorio?.assistente ?? 'auto';
     renderizarListaDeAtalhos();
   } catch (erro) {
     exibirErro(elementos.erroConfiguracao, erro.message);
@@ -6620,9 +6679,9 @@ async function salvarConfiguracao(evento) {
   }
 }
 
-/* ------------------------- assistente de IA do kanban ---------------------- */
+/* ------------------------ assistentes de IA da aba IA ---------------------- */
 
-const ASSISTENTE_DE_IA_PADRAO = { assistente: 'auto', modelo: '' };
+const ASSISTENTE_DE_IA_PADRAO = { assistente: 'auto', modelo: '', raciocinio: '' };
 
 const NOMES_DOS_ASSISTENTES_DE_IA = {
   auto: 'Automático (o primeiro instalado)',
@@ -6634,13 +6693,48 @@ const NOMES_DOS_ASSISTENTES_DE_IA = {
 };
 
 /*
+ * Os dois assistentes da aba IA, cada um com a sua escolha: o que gera as tarefas do
+ * kanban e o que o botão do repositório abre no terminal. `modelo` e `raciocinio` ficam à
+ * parte dos campos: a lista de modelos só chega depois que a aba IA abre, e redesenhar o
+ * `<select>` antes disso perderia o que estava gravado.
+ */
+const ASSISTENTES_DA_CONFIGURACAO = {
+  kanban: {
+    campoAssistente: elementos.campoAssistenteIa,
+    campoModelo: elementos.campoModeloIa,
+    campoModeloOutro: elementos.campoModeloIaOutro,
+    blocoModeloOutro: elementos.blocoModeloIaOutro,
+    campoRaciocinio: elementos.campoRaciocinioIa,
+    blocoRaciocinio: elementos.blocoRaciocinioIa,
+    situacao: elementos.situacaoAssistenteIa,
+    naoInstalado: 'Não encontrado nesta máquina: a análise vai falhar até ele ser instalado.',
+    falaDoPdf: true,
+    modelo: '',
+    raciocinio: '',
+  },
+  repositorio: {
+    campoAssistente: elementos.campoAssistenteIaRepositorio,
+    campoModelo: elementos.campoModeloIaRepositorio,
+    campoModeloOutro: elementos.campoModeloIaOutroRepositorio,
+    blocoModeloOutro: elementos.blocoModeloIaOutroRepositorio,
+    campoRaciocinio: elementos.campoRaciocinioIaRepositorio,
+    blocoRaciocinio: elementos.blocoRaciocinioIaRepositorio,
+    situacao: elementos.situacaoAssistenteIaRepositorio,
+    naoInstalado: 'Não encontrado nesta máquina: o botão vai avisar até ele ser instalado.',
+    falaDoPdf: false,
+    modelo: '',
+    raciocinio: '',
+  },
+};
+
+/*
  * Os assistentes da máquina, lidos ao abrir a aba IA: listar os modelos roda o CLI de
  * cada um e leva alguns segundos, o que não pode atrasar a abertura das configurações.
  */
 let assistentesDeIaDaMaquina = null;
 let consultaDosAssistentesDeIa = null;
 
-function preencherOpcoesDosAssistentesDeIa(selecionado) {
+function preencherOpcoesDosAssistentesDeIa(grupo, selecionado) {
   const opcoes = Object.entries(NOMES_DOS_ASSISTENTES_DE_IA).map(([id, nome]) => {
     const situacao = assistentesDeIaDaMaquina?.find((assistente) => assistente.id === id);
     const naoInstalado = situacao && !situacao.instalado;
@@ -6649,19 +6743,12 @@ function preencherOpcoesDosAssistentesDeIa(selecionado) {
     opcao.disabled = Boolean(naoInstalado) && id !== selecionado;
     return opcao;
   });
-  elementos.campoAssistenteIa.replaceChildren(...opcoes);
-  elementos.campoAssistenteIa.value = selecionado;
+  grupo.campoAssistente.replaceChildren(...opcoes);
+  grupo.campoAssistente.value = selecionado;
 }
 
 /* Valor da opção que abre o campo para digitar um modelo fora da lista. */
 const OUTRO_MODELO_DE_IA = '__outro__';
-
-/*
- * O modelo escolhido, guardado à parte do campo: a lista de modelos só chega depois que
- * a aba IA abre, e redesenhar o `<select>` antes disso perderia o que estava gravado.
- */
-let modeloDeIaEscolhido = '';
-let raciocinioDeIaEscolhido = '';
 
 const ROTULOS_DOS_NIVEIS_DE_RACIOCINIO = {
   minimal: 'Mínimo',
@@ -6673,20 +6760,20 @@ const ROTULOS_DOS_NIVEIS_DE_RACIOCINIO = {
   ultra: 'Ultra',
 };
 
-function preencherAssistenteDeIaDaConfiguracao(configuracao) {
-  preencherOpcoesDosAssistentesDeIa(configuracao.assistente);
-  modeloDeIaEscolhido = configuracao.modelo;
-  raciocinioDeIaEscolhido = configuracao.raciocinio ?? '';
-  aplicarAssistenteEscolhido();
+function preencherAssistenteDeIaDaConfiguracao(grupo, configuracao) {
+  preencherOpcoesDosAssistentesDeIa(grupo, configuracao.assistente);
+  grupo.modelo = configuracao.modelo;
+  grupo.raciocinio = configuracao.raciocinio ?? '';
+  aplicarAssistenteEscolhido(grupo);
 }
 
-function lerAssistenteDeIaDaConfiguracao() {
-  const assistente = elementos.campoAssistenteIa.value;
+function lerAssistenteDeIaDaConfiguracao(grupo) {
+  const assistente = grupo.campoAssistente.value;
   const automatico = assistente === 'auto';
   return {
     assistente,
-    modelo: automatico ? '' : modeloDeIaEscolhido.trim(),
-    raciocinio: automatico || elementos.blocoRaciocinioIa.hidden ? '' : raciocinioDeIaEscolhido,
+    modelo: automatico ? '' : grupo.modelo.trim(),
+    raciocinio: automatico || grupo.blocoRaciocinio.hidden ? '' : grupo.raciocinio,
   };
 }
 
@@ -6698,7 +6785,7 @@ function rotuloDoModeloDeIa(modelo) {
 }
 
 /* Lista do assistente, mais "Padrão" e "Outro modelo…"; o gravado fora da lista vai para o Outro. */
-function desenharModelosDeIa(situacao, automatico) {
+function desenharModelosDeIa(grupo, situacao, automatico) {
   const modelos = situacao?.modelos ?? [];
   const padrao = situacao?.modeloPadrao
     ? `Padrão do assistente (${situacao.modeloPadrao})`
@@ -6710,80 +6797,80 @@ function desenharModelosDeIa(situacao, automatico) {
   if (!automatico) {
     opcoes.push(new Option('Outro modelo…', OUTRO_MODELO_DE_IA));
   }
-  elementos.campoModeloIa.replaceChildren(...opcoes);
+  grupo.campoModelo.replaceChildren(...opcoes);
 
-  const naLista = modeloDeIaEscolhido === '' || modelos.includes(modeloDeIaEscolhido);
-  elementos.campoModeloIa.value = naLista ? modeloDeIaEscolhido : OUTRO_MODELO_DE_IA;
-  elementos.campoModeloIaOutro.value = naLista ? '' : modeloDeIaEscolhido;
-  elementos.blocoModeloIaOutro.hidden = naLista;
+  const naLista = grupo.modelo === '' || modelos.includes(grupo.modelo);
+  grupo.campoModelo.value = naLista ? grupo.modelo : OUTRO_MODELO_DE_IA;
+  grupo.campoModeloOutro.value = naLista ? '' : grupo.modelo;
+  grupo.blocoModeloOutro.hidden = naLista;
 }
 
 /*
  * Os níveis do modelo escolhido. Modelo digitado em "Outro" fica com os níveis gerais do
  * assistente, quando ele tem (o Claude Code aceita o `--effort` em qualquer modelo).
  */
-function niveisDoModeloDeIa(situacao) {
+function niveisDoModeloDeIa(grupo, situacao) {
   const porModelo = situacao?.raciocinio ?? {};
-  const modelo = modeloDeIaEscolhido.trim();
+  const modelo = grupo.modelo.trim();
   // Modelo da lista sem níveis (o Haiku) não tem a opção; só o digitado herda os gerais.
   const digitado = modelo !== '' && !(situacao?.modelos ?? []).includes(modelo);
   return porModelo[modelo] ?? (digitado && situacao?.id === 'claude' ? porModelo[''] : null);
 }
 
-function desenharRaciocinioDeIa(situacao, automatico) {
-  const niveis = automatico ? null : niveisDoModeloDeIa(situacao);
-  elementos.blocoRaciocinioIa.hidden = !niveis?.niveis.length;
+function desenharRaciocinioDeIa(grupo, situacao, automatico) {
+  const niveis = automatico ? null : niveisDoModeloDeIa(grupo, situacao);
+  grupo.blocoRaciocinio.hidden = !niveis?.niveis.length;
   if (!niveis?.niveis.length) {
     return;
   }
-  if (!niveis.niveis.includes(raciocinioDeIaEscolhido)) {
-    raciocinioDeIaEscolhido = '';
+  if (!niveis.niveis.includes(grupo.raciocinio)) {
+    grupo.raciocinio = '';
   }
   const rotulo = (nivel) =>
     ROTULOS_DOS_NIVEIS_DE_RACIOCINIO[nivel]
       ? `${ROTULOS_DOS_NIVEIS_DE_RACIOCINIO[nivel]} (${nivel})`
       : nivel;
   const padrao = niveis.padrao ? `Padrão do modelo: ${rotulo(niveis.padrao)}` : 'Padrão do modelo';
-  elementos.campoRaciocinioIa.replaceChildren(
+  grupo.campoRaciocinio.replaceChildren(
     new Option(padrao, ''),
     ...niveis.niveis.map((nivel) => new Option(rotulo(nivel), nivel)),
   );
-  elementos.campoRaciocinioIa.value = raciocinioDeIaEscolhido;
+  grupo.campoRaciocinio.value = grupo.raciocinio;
 }
 
-function situacaoDoAssistenteDeIaEscolhido() {
-  const id = elementos.campoAssistenteIa.value;
+function situacaoDoAssistenteDeIaEscolhido(grupo) {
+  const id = grupo.campoAssistente.value;
   return assistentesDeIaDaMaquina?.find((assistente) => assistente.id === id);
 }
 
 /* Troca de assistente esvazia o modelo: o nome de um não vale para outro. */
-function aplicarAssistenteEscolhido({ trocouDeAssistente = false } = {}) {
-  const id = elementos.campoAssistenteIa.value;
+function aplicarAssistenteEscolhido(grupo, { trocouDeAssistente = false } = {}) {
+  const id = grupo.campoAssistente.value;
   const automatico = id === 'auto';
   if (automatico || trocouDeAssistente) {
-    modeloDeIaEscolhido = '';
-    raciocinioDeIaEscolhido = '';
+    grupo.modelo = '';
+    grupo.raciocinio = '';
   }
-  const situacao = assistentesDeIaDaMaquina?.find((assistente) => assistente.id === id);
-  desenharModelosDeIa(situacao, automatico);
-  desenharRaciocinioDeIa(situacao, automatico);
-  elementos.campoModeloIa.disabled = automatico;
-  elementos.situacaoAssistenteIa.textContent = assistentesDeIaDaMaquina
-    ? descreverAssistenteDeIa(id)
+  const situacao = situacaoDoAssistenteDeIaEscolhido(grupo);
+  desenharModelosDeIa(grupo, situacao, automatico);
+  desenharRaciocinioDeIa(grupo, situacao, automatico);
+  grupo.campoModelo.disabled = automatico;
+  grupo.situacao.textContent = assistentesDeIaDaMaquina
+    ? descreverAssistenteDeIa(grupo, id)
     : 'Abrindo a lista de assistentes instalados…';
 }
 
-function aplicarModeloEscolhido() {
-  const outro = elementos.campoModeloIa.value === OUTRO_MODELO_DE_IA;
-  elementos.blocoModeloIaOutro.hidden = !outro;
-  modeloDeIaEscolhido = outro ? elementos.campoModeloIaOutro.value : elementos.campoModeloIa.value;
-  desenharRaciocinioDeIa(situacaoDoAssistenteDeIaEscolhido(), false);
+function aplicarModeloEscolhido(grupo) {
+  const outro = grupo.campoModelo.value === OUTRO_MODELO_DE_IA;
+  grupo.blocoModeloOutro.hidden = !outro;
+  grupo.modelo = outro ? grupo.campoModeloOutro.value : grupo.campoModelo.value;
+  desenharRaciocinioDeIa(grupo, situacaoDoAssistenteDeIaEscolhido(grupo), false);
   if (outro) {
-    elementos.campoModeloIaOutro.focus();
+    grupo.campoModeloOutro.focus();
   }
 }
 
-function descreverAssistenteDeIa(id) {
+function descreverAssistenteDeIa(grupo, id) {
   if (!assistentesDeIaDaMaquina) {
     return '';
   }
@@ -6795,35 +6882,42 @@ function descreverAssistenteDeIa(id) {
   }
   const assistente = assistentesDeIaDaMaquina.find((item) => item.id === id);
   if (!assistente?.instalado) {
-    return 'Não encontrado nesta máquina: a análise vai falhar até ele ser instalado.';
+    return grupo.naoInstalado;
   }
   const partes = [`Instalado em ${assistente.caminho}.`];
   if (assistente.modeloPadrao) {
     partes.push(`Modelo padrão: ${assistente.modeloPadrao}.`);
   }
-  partes.push(
-    assistente.lePdf
-      ? 'Lê o PDF do escopo sozinho.'
-      : 'Não lê PDF: o HUB SNK extrai o texto do PDF e manda junto.',
-  );
+  if (grupo.falaDoPdf) {
+    partes.push(
+      assistente.lePdf
+        ? 'Lê o PDF do escopo sozinho.'
+        : 'Não lê PDF: o HUB SNK extrai o texto do PDF e manda junto.',
+    );
+  }
   return partes.join(' ');
 }
 
 async function carregarAssistentesDeIa(forcar = false) {
+  const grupos = Object.values(ASSISTENTES_DA_CONFIGURACAO);
   if (assistentesDeIaDaMaquina && !forcar) {
-    aplicarAssistenteEscolhido();
+    grupos.forEach((grupo) => aplicarAssistenteEscolhido(grupo));
     return;
   }
   if (!consultaDosAssistentesDeIa) {
     elementos.botaoAtualizarAssistentesIa.disabled = true;
-    elementos.situacaoAssistenteIa.textContent = 'Procurando os assistentes instalados…';
+    for (const grupo of grupos) {
+      grupo.situacao.textContent = 'Procurando os assistentes instalados…';
+    }
     consultaDosAssistentesDeIa = api
       .assistentesDeIa()
       .then(({ assistentes }) => {
         assistentesDeIaDaMaquina = assistentes;
       })
       .catch((erro) => {
-        elementos.situacaoAssistenteIa.textContent = `Não foi possível procurar os assistentes: ${erro.message}`;
+        for (const grupo of grupos) {
+          grupo.situacao.textContent = `Não foi possível procurar os assistentes: ${erro.message}`;
+        }
       })
       .finally(() => {
         consultaDosAssistentesDeIa = null;
@@ -6832,9 +6926,25 @@ async function carregarAssistentesDeIa(forcar = false) {
   }
   await consultaDosAssistentesDeIa;
   if (assistentesDeIaDaMaquina) {
-    preencherOpcoesDosAssistentesDeIa(elementos.campoAssistenteIa.value);
-    aplicarAssistenteEscolhido();
+    for (const grupo of grupos) {
+      preencherOpcoesDosAssistentesDeIa(grupo, grupo.campoAssistente.value);
+      aplicarAssistenteEscolhido(grupo);
+    }
   }
+}
+
+function ouvirCamposDoAssistenteDeIa(grupo) {
+  grupo.campoAssistente.addEventListener('change', () =>
+    aplicarAssistenteEscolhido(grupo, { trocouDeAssistente: true }),
+  );
+  grupo.campoModelo.addEventListener('change', () => aplicarModeloEscolhido(grupo));
+  grupo.campoModeloOutro.addEventListener('input', () => {
+    grupo.modelo = grupo.campoModeloOutro.value;
+    desenharRaciocinioDeIa(grupo, situacaoDoAssistenteDeIaEscolhido(grupo), false);
+  });
+  grupo.campoRaciocinio.addEventListener('change', () => {
+    grupo.raciocinio = grupo.campoRaciocinio.value;
+  });
 }
 
 /* ----------------------------- token do GitLab ---------------------------- */
@@ -7073,8 +7183,10 @@ function aplicarAcessos({ perfil, funcionalidadesOcultas = [], terceiro = false 
   elementos.abaConfiguracaoMcp.hidden = !repositoriosVisiveis && !projetosVisiveis;
   elementos.grupoSankhyaSchema.hidden = !repositoriosVisiveis;
   elementos.grupoKanbanMcp.hidden = !projetosVisiveis;
-  // O assistente de IA só gera as tarefas do kanban, que mora em Projetos, como as colunas e tipos.
-  elementos.abaConfiguracaoIa.hidden = !projetosVisiveis;
+  // Um assistente gera as tarefas do kanban, que mora em Projetos; o outro abre no repositório.
+  elementos.abaConfiguracaoIa.hidden = !repositoriosVisiveis && !projetosVisiveis;
+  elementos.grupoAssistenteIaKanban.hidden = !projetosVisiveis;
+  elementos.grupoAssistenteIaRepositorio.hidden = !repositoriosVisiveis;
   elementos.abaConfiguracaoKanban.hidden = !projetosVisiveis;
   if (!repositoriosVisiveis) {
     // Filtro marcado e escondido sumiria com clientes sem o usuário ter como desfazer.
@@ -10281,7 +10393,9 @@ function criarAcoesDoRepositorioNaBusca({ cliente, repositorio }) {
   const acao = (executar) => (evento) => {
     evento.stopPropagation();
     elementos.modalBuscaRapida.close();
-    executar().catch((erro) => exibirAviso(erro.message, 'erro'));
+    executar().catch((erro) =>
+      exibirAviso(erro.message, 'erro', criarLinkDaConfiguracaoDoErro(erro)),
+    );
   };
 
   const acoes = criarElemento('span', 'busca-rapida-acoes');
@@ -10303,6 +10417,12 @@ function criarAcoesDoRepositorioNaBusca({ cliente, repositorio }) {
       ICONES.ide,
       'Abrir a IDE',
       acao(() => api.abrirIdeDoRepositorio(cliente.id, repositorio.id)),
+    ),
+    criarBotaoDeIcone(
+      'btn tiny',
+      ICONES.assistente,
+      `Abrir o ${nomeDoAssistenteConfigurado()}`,
+      acao(() => api.abrirAssistenteDoRepositorio(cliente.id, repositorio.id)),
     ),
   );
   return acoes;
@@ -12265,17 +12385,7 @@ function registrarEventos() {
     selecionarAbaDaConfiguracao(elementos.abaConfiguracaoIa);
     void carregarAssistentesDeIa();
   });
-  elementos.campoAssistenteIa.addEventListener('change', () =>
-    aplicarAssistenteEscolhido({ trocouDeAssistente: true }),
-  );
-  elementos.campoModeloIa.addEventListener('change', aplicarModeloEscolhido);
-  elementos.campoModeloIaOutro.addEventListener('input', () => {
-    modeloDeIaEscolhido = elementos.campoModeloIaOutro.value;
-    desenharRaciocinioDeIa(situacaoDoAssistenteDeIaEscolhido(), false);
-  });
-  elementos.campoRaciocinioIa.addEventListener('change', () => {
-    raciocinioDeIaEscolhido = elementos.campoRaciocinioIa.value;
-  });
+  Object.values(ASSISTENTES_DA_CONFIGURACAO).forEach(ouvirCamposDoAssistenteDeIa);
   elementos.botaoAtualizarAssistentesIa.addEventListener('click', () =>
     carregarAssistentesDeIa(true),
   );
@@ -12607,6 +12717,7 @@ async function iniciar() {
     );
     estado.atalhos = configuracao.atalhos ?? [];
     estado.ideConfigurada = Boolean(configuracao.caminhoDoExecutavelDaIde);
+    estado.assistenteDoRepositorio = configuracao.assistenteDoRepositorio?.assistente ?? 'auto';
     aplicarAcessos(configuracao);
   } catch {
     // Sem a configuração, vale o padrão — não é motivo para outro aviso na tela.

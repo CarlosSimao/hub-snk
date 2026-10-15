@@ -1,11 +1,15 @@
 import type { ConfiguracaoDoAssistenteDeIa } from './kanban/tiposDoKanban.ts';
 
 /**
+ * `opcoes` são argumentos a mais na linha do assistente, digitados como no terminal
+ * (`--dangerously-skip-permissions`, por exemplo). Vazio não acrescenta nada.
+ */
+export interface ConfiguracaoDoAssistenteDoRepositorio extends ConfiguracaoDoAssistenteDeIa {
+  opcoes: string;
+}
+
+/**
  * Ajustes que valem para o HUB SNK inteiro, não para um cliente específico.
- *
- * `scriptPadrao` é uma linha de comando executada pelo shell ao abrir o
- * terminal de um repositório. É interpretada pelo shell por definição — é esse
- * o propósito do campo.
  *
  * `intervaloDeExecucaoAutomaticaSegundos` é a frequência de tudo que a tela
  * refaz sozinha enquanto está aberta: o diagnóstico Git dos repositórios, a
@@ -66,7 +70,6 @@ import type { ConfiguracaoDoAssistenteDeIa } from './kanban/tiposDoKanban.ts';
  * pergunta a identificação, o perfil e o Terceiro no primeiro uso.
  */
 export interface ConfiguracaoGlobal {
-  scriptPadrao: string;
   intervaloDeExecucaoAutomaticaSegundos: number;
   tempoLimiteSegundos: number;
   caminhoDoSchemaMcp: string;
@@ -83,6 +86,8 @@ export interface ConfiguracaoGlobal {
   alertaDaAgenda: AlertaDaAgenda;
   /** Quem gera as tarefas do kanban a partir do documento de escopo. */
   assistenteDeIa: ConfiguracaoDoAssistenteDeIa;
+  /** Quem o botão do assistente abre no terminal, na pasta do repositório. */
+  assistenteDoRepositorio: ConfiguracaoDoAssistenteDoRepositorio;
   nomeDoUsuario: string;
   empresaDoUsuario: string;
   timeDoUsuario: string;

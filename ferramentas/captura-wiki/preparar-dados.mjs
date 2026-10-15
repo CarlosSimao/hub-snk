@@ -202,7 +202,6 @@ const contatos = [
 }));
 
 const configuracao = {
-  scriptPadrao: 'git fetch --all',
   intervaloDeExecucaoAutomaticaSegundos: 30,
   tempoLimiteSegundos: 5,
   caminhoDoSchemaMcp: '',

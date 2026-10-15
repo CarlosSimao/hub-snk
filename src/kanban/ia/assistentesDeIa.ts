@@ -24,6 +24,7 @@ import {
   ASSISTENTES_DE_IA,
   ESCOLHAS_DE_ASSISTENTE,
   type AssistenteDeIa,
+  type ConfiguracaoDoAssistenteDeIa,
   type EscolhaDeAssistente,
 } from '../tiposDoKanban.ts';
 
@@ -698,6 +699,49 @@ export function resolverAssistente(escolha: EscolhaDeAssistente): AssistenteDeIa
     );
   }
   return instalado;
+}
+
+/**
+ * Modelo e raciocínio na abertura da sessão interativa, com as mesmas opções do modo não
+ * interativo. O OpenCode e o Gemini CLI não têm raciocínio na sessão (o `--variant` do
+ * OpenCode é só do `run`).
+ */
+export function argumentosDaSessao(
+  id: AssistenteDeIa,
+  { modelo, raciocinio }: Pick<ConfiguracaoDoAssistenteDeIa, 'modelo' | 'raciocinio'>,
+): string[] {
+  switch (id) {
+    case 'claude':
+      return [
+        ...argumentoDeModelo('--model', modelo),
+        ...argumentoDeRaciocinio('--effort', raciocinio),
+      ];
+    case 'codex':
+      // Sem aspas no valor do `-c`: elas não sobrevivem ao shell, e o Codex lê o texto que não
+      // é TOML como string.
+      return [
+        ...argumentoDeModelo('-m', modelo),
+        ...(raciocinio.trim() ? ['-c', `model_reasoning_effort=${raciocinio.trim()}`] : []),
+      ];
+    case 'cursor':
+      return argumentoDeModelo('--model', modelo);
+    default:
+      return argumentoDeModelo('-m', modelo);
+  }
+}
+
+/** Executável e argumentos para abrir o assistente numa sessão interativa, no terminal. */
+export function comandoInterativoDoAssistente(
+  configuracao: ConfiguracaoDoAssistenteDeIa,
+): string[] {
+  const id = resolverAssistente(configuracao.assistente);
+  const comando = ADAPTADORES[id].localizar() as Comando;
+  // No automático o modelo gravado é sempre vazio: o nome de um não vale para outro.
+  return [
+    comando.executavel,
+    ...comando.argumentosIniciais,
+    ...argumentosDaSessao(id, configuracao),
+  ];
 }
 
 /** Pede ao assistente e devolve o texto da resposta, já sem espaços nas pontas. */

@@ -314,6 +314,11 @@ export async function roteiro({ painel, aplicativo, print, printDoSistema }) {
   await painel.selectOption('#campo-modelo-ia', 'opus');
   await painel.waitForSelector('#bloco-raciocinio-ia:not([hidden])');
   await painel.selectOption('#campo-raciocinio-ia', 'xhigh');
+  await painel.selectOption('#campo-assistente-ia-repositorio', 'claude');
+  await painel.selectOption('#campo-modelo-ia-repositorio', 'opus');
+  await painel.waitForSelector('#bloco-raciocinio-ia-repositorio:not([hidden])');
+  await painel.selectOption('#campo-raciocinio-ia-repositorio', 'medium');
+  await painel.fill('#campo-opcoes-ia-repositorio', '--dangerously-skip-permissions');
   await printDaAba('ia', '01-aba');
 
   // Acessos

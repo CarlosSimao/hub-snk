@@ -63,7 +63,7 @@ export interface DependenciasDoServicoDoAutosync {
   listarClientes: () => Promise<Cliente[]>;
   listarDaRaiz?: (raiz: string) => Promise<string[]>;
   inspecionar?: (caminho: string) => SituacaoDaPasta;
-  /** Abre o terminal preferido na pasta, com o script padrão das configurações. */
+  /** Abre o terminal preferido na pasta. */
   abrirTerminal?: (caminho: string) => Promise<void>;
 }
 
