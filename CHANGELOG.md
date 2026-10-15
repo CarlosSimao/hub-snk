@@ -9,6 +9,15 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.13.0] - 2026-10-15
+
+### Adicionado
+
+- **Agenda do backup**: além de "a cada N horas", o backup periódico pode rodar todo dia,
+  toda semana (num dia da semana) ou todo mês (num dia de 1 a 28), num horário. Com o HUB
+  SNK fechado no horário, o backup sai assim que ele abrir. Quem já usava o backup continua
+  no intervalo em horas.
+
 ## [2.12.0] - 2026-10-15
 
 ### Adicionado
@@ -833,7 +842,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.12.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.13.0...HEAD
+[2.13.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.12.0...v2.13.0
 [2.12.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.11.0...v2.12.0
 [2.11.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.1...v2.11.0
 [2.11.0-beta.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.1...v2.11.0-beta.1
