@@ -148,7 +148,6 @@ describe('PUT /api/backup/configuracao', () => {
     await salvar(configuracaoValida());
 
     await configuracao.salvar({
-      scriptPadrao: '',
       intervaloDeExecucaoAutomaticaSegundos: 30,
       tempoLimiteSegundos: 5,
       caminhoDoSchemaMcp: '',

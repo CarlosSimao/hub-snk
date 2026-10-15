@@ -212,7 +212,7 @@ Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 | **Lembretes**               | Aba própria no menu: numa data ou recorrentes (cron), ligados a um cliente ou projeto, com aviso e e-mail opcional                   |
 | **Kanban**                  | Quadro por projeto e por cliente, mais um Kanban geral; colunas e tipos cadastráveis; a IA gera as tarefas do escopo. JSON e MCP     |
 | **Importação de favoritos** | Transforma favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, deduzindo Produção ou Teste do nome                         |
-| **Botões do repositório**   | Abrem a pasta, o terminal (rodando o script padrão) e a IDE configurada; e editam o `.sankhya-mcp.env` do MCP Claude                 |
+| **Botões do repositório**   | Abrem a pasta, o terminal, a IDE configurada e o assistente de IA (num terminal novo); e editam o `.sankhya-mcp.env` do MCP Claude   |
 | **Busca rápida**            | `Ctrl+K` no aplicativo ou `Ctrl+Shift+Espaço` em qualquer programa: acha cliente, base, repositório, link, contato ou atalho e abre  |
 | **Buscar na página**        | `Ctrl+F` em qualquer guia, inclusive na Experience e no SankhyaOm: destaca as ocorrências e anda entre elas, como no Chrome          |
 | **Comunicação**             | WhatsApp Web, Gmail, Google Chat, Google Agenda e Meet na barra lateral; o contato abre a conversa ou um e-mail já endereçado        |

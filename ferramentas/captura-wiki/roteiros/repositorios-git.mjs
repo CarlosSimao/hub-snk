@@ -57,12 +57,13 @@ export async function roteiro({ painel, print }) {
   // Diagnóstico
   await print('diagnostico-01-verde', { destacando: [boaVista.locator('.situacao-git')] });
 
-  // Pasta, terminal e IDE: só a IDE é clicada, e responde por rota.
+  // Pasta, terminal, IDE e assistente: só a IDE é clicada, e responde por rota.
   await print('abrir-pasta-terminal-ou-ide-01-botoes', {
     destacando: [
       boaVista.locator('[aria-label^="Abrir a pasta"]'),
       boaVista.locator('[aria-label^="Abrir o terminal"]'),
       boaVista.locator('[aria-label^="Abrir IDE"]'),
+      boaVista.locator('[aria-label^="Abrir o assistente"]'),
     ],
   });
   await boaVista.locator('[aria-label^="Abrir IDE"]').click();

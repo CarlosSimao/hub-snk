@@ -12,6 +12,8 @@ import {
   IdeNaoConfiguradaError,
 } from '../sistema/processos/abrirIde.ts';
 import { abrirShellNaPasta, TerminalIndisponivelError } from '../sistema/processos/abrirShell.ts';
+import { abrirAssistenteNaPasta } from '../sistema/processos/abrirAssistente.ts';
+import { AssistenteIndisponivelError } from '../kanban/ia/assistentesDeIa.ts';
 import {
   estadoDoArquivoMcp,
   gravarConfiguracaoMcp,
@@ -1185,11 +1187,7 @@ export function registrarRotasDeClientes(
     },
   );
 
-  /*
-   * Abre o terminal do sistema na pasta do repositório. O script executado é o
-   * "Script padrão" da configuração global — nunca um comando vindo da
-   * requisição, que só informa qual repositório abrir.
-   */
+  /* Abre o terminal do sistema na pasta do repositório, sem rodar nada. */
   servidor.post(
     '/api/clientes/:id/repositorios/:idRepositorio/abrir-shell',
     async (requisicao, resposta) => {
@@ -1208,14 +1206,58 @@ export function registrarRotasDeClientes(
       }
 
       const caminhoLocal = repositorioGit.caminhoLocal as string;
-      const { scriptPadrao } = await repositorioDeConfiguracao.ler();
 
       try {
-        await abrirShellNaPasta(caminhoLocal, scriptPadrao);
+        await abrirShellNaPasta(caminhoLocal);
         return resposta.status(204).send();
       } catch (erro) {
         if (erro instanceof PastaNaoEncontradaError) {
           return resposta.status(404).send({ mensagem: `Pasta não encontrada: ${caminhoLocal}` });
+        }
+        if (erro instanceof TerminalIndisponivelError) {
+          return resposta.status(503).send({ mensagem: erro.message });
+        }
+        throw erro;
+      }
+    },
+  );
+
+  /*
+   * Abre um terminal novo na pasta do repositório com o assistente de IA do
+   * repositório (Configurações › IA) já rodando. A requisição só informa qual
+   * repositório abrir.
+   */
+  servidor.post(
+    '/api/clientes/:id/repositorios/:idRepositorio/abrir-assistente',
+    async (requisicao, resposta) => {
+      const parametros = esquemaDeParametrosDeRepositorio.safeParse(requisicao.params);
+      if (!parametros.success) {
+        return responderErroDeValidacao(resposta, parametros.error);
+      }
+
+      const repositorioGit = await localizarRepositorioComPasta(
+        parametros.data.id,
+        parametros.data.idRepositorio,
+        resposta,
+      );
+      if (!repositorioGit) {
+        return resposta;
+      }
+
+      const caminhoLocal = repositorioGit.caminhoLocal as string;
+      const { assistenteDoRepositorio } = await repositorioDeConfiguracao.ler();
+
+      try {
+        await abrirAssistenteNaPasta(assistenteDoRepositorio, caminhoLocal);
+        return resposta.status(204).send();
+      } catch (erro) {
+        if (erro instanceof PastaNaoEncontradaError) {
+          return resposta.status(404).send({ mensagem: `Pasta não encontrada: ${caminhoLocal}` });
+        }
+        if (erro instanceof AssistenteIndisponivelError) {
+          return resposta
+            .status(503)
+            .send({ mensagem: erro.message, configuracaoPendente: 'assistente-de-ia' });
         }
         if (erro instanceof TerminalIndisponivelError) {
           return resposta.status(503).send({ mensagem: erro.message });

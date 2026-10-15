@@ -1323,28 +1323,6 @@
               </div>
             </div>
 
-            <div class="campo">
-              <label for="campo-script-padrao">
-                Script padrão
-                <span class="opcional">opcional</span>
-                <span class="dica" tabindex="0"
-                  >?<span class="dica-texto" role="tooltip"
-                    >Este texto é executado pelo shell ao abrir o terminal de um repositório, na sua
-                    máquina e com as suas permissões. Digite aqui só o que você mesmo rodaria no
-                    terminal.</span
-                  ></span
-                >
-              </label>
-              <input
-                id="campo-script-padrao"
-                type="text"
-                maxlength="500"
-                autocomplete="off"
-                spellcheck="false"
-                placeholder="Ex.: claude (para já executar o claude code)"
-              />
-            </div>
-
             <div class="grade-de-campos">
               <div class="campo">
                 <label for="campo-intervalo-execucao-automatica">
@@ -1945,7 +1923,7 @@
             aria-labelledby="aba-configuracao-ia"
             hidden
           >
-            <fieldset class="grupo-de-acessos">
+            <fieldset class="grupo-de-acessos" id="grupo-assistente-ia-kanban">
               <legend>
                 Assistente que gera as tarefas do kanban
                 <span class="dica" tabindex="0"
@@ -1987,13 +1965,86 @@
                 />
               </div>
 
-              <div class="linha-do-token-gitlab">
-                <p class="texto-auxiliar" id="situacao-assistente-ia"></p>
-                <button class="btn tiny" type="button" id="btn-atualizar-assistentes-ia">
-                  Procurar de novo
-                </button>
-              </div>
+              <p class="texto-auxiliar" id="situacao-assistente-ia"></p>
             </fieldset>
+
+            <fieldset class="grupo-de-acessos" id="grupo-assistente-ia-repositorio">
+              <legend>
+                Assistente do botão do repositório
+                <span class="dica" tabindex="0"
+                  >?<span class="dica-texto" role="tooltip"
+                    >O assistente que o botão da estrela abre num terminal novo, na pasta do
+                    repositório. Lá ele trabalha como no terminal: com as suas permissões e o que
+                    você pedir.</span
+                  ></span
+                >
+              </legend>
+
+              <div class="grade-tres-colunas">
+                <div class="campo">
+                  <label for="campo-assistente-ia-repositorio">Assistente</label>
+                  <select id="campo-assistente-ia-repositorio"></select>
+                </div>
+
+                <div class="campo">
+                  <label for="campo-modelo-ia-repositorio">Modelo</label>
+                  <select id="campo-modelo-ia-repositorio"></select>
+                </div>
+                <div class="campo" id="bloco-raciocinio-ia-repositorio" hidden>
+                  <label
+                    for="campo-raciocinio-ia-repositorio"
+                    title="Mais alto pensa mais e demora mais"
+                    >Nível de raciocínio</label
+                  >
+                  <select id="campo-raciocinio-ia-repositorio"></select>
+                </div>
+              </div>
+
+              <div class="campo" id="bloco-modelo-ia-outro-repositorio" hidden>
+                <label for="campo-modelo-ia-outro-repositorio">Nome do modelo</label>
+                <input
+                  id="campo-modelo-ia-outro-repositorio"
+                  type="text"
+                  maxlength="120"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="O nome exato que o assistente aceita no --model"
+                />
+              </div>
+
+              <div class="campo">
+                <label for="campo-opcoes-ia-repositorio">
+                  Opções
+                  <span class="opcional">opcional</span>
+                  <span class="dica" tabindex="0"
+                    >?<span class="dica-texto" role="tooltip"
+                      >Argumentos a mais na linha do assistente, como no terminal. Use aspas duplas
+                      para um valor com espaço. Vão como texto para o assistente: o shell não os
+                      executa. Cuidado com as que tiram as confirmações, como
+                      --dangerously-skip-permissions: o assistente passa a alterar arquivos e rodar
+                      comandos sem perguntar.</span
+                    ></span
+                  >
+                </label>
+                <input
+                  id="campo-opcoes-ia-repositorio"
+                  type="text"
+                  maxlength="300"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="Ex.: --dangerously-skip-permissions"
+                />
+              </div>
+
+              <p class="texto-auxiliar" id="situacao-assistente-ia-repositorio"></p>
+            </fieldset>
+
+            <div class="linha-do-token-gitlab">
+              <p class="texto-auxiliar">Instalou um assistente com esta tela aberta?</p>
+              <button class="btn tiny" type="button" id="btn-atualizar-assistentes-ia">
+                Procurar de novo
+              </button>
+            </div>
           </div>
 
           <div
@@ -2104,6 +2155,20 @@
             aria-labelledby="aba-configuracao-sobre"
             hidden
           >
+            <section class="bloco-sobre">
+              <h3 class="bloco-sobre-titulo">Wiki</h3>
+              <div class="bloco-sobre-corpo em-linhas">
+                <a
+                  class="bloco-sobre-destaque"
+                  href="https://carlossimao.github.io/hub-snk/wiki/"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Wiki do HUB SNK</a
+                >
+                <span>Passo a passo de cada funcionalidade, com prints.</span>
+              </div>
+            </section>
+
             <section class="bloco-sobre">
               <h3 class="bloco-sobre-titulo">Versão</h3>
               <div class="bloco-sobre-corpo">

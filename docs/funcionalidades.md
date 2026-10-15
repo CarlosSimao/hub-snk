@@ -206,11 +206,11 @@ arquivo entra normalmente.
 
 ## Os botões do repositório
 
-Repositório com **caminho local** cadastrado ganha quatro botões na própria
+Repositório com **caminho local** cadastrado ganha cinco botões na própria
 linha: **Arquivos** abre a pasta no gerenciador de arquivos, **Shell** abre o
 terminal já posicionado nela, **Abrir IDE** (`{ }`) abre a pasta como projeto
-na IDE configurada em _Configurações_ e a **tomada** edita o
-`.sankhya-mcp.env`.
+na IDE configurada em _Configurações_, a **estrela** abre o assistente de IA
+num terminal novo na pasta e a **tomada** edita o `.sankhya-mcp.env`.
 
 O botão **Abrir IDE** chama o executável cadastrado no campo **Executável da
 IDE** (_Configurações_ › _Geral_), passando a pasta do repositório como
@@ -218,14 +218,12 @@ argumento de linha de comando — funciona com qualquer IDE que aceite esse
 contrato (IntelliJ IDEA, VS Code, WebStorm, Rider e outras). Sem executável
 cadastrado, o botão responde com aviso pedindo para configurar.
 
-Se o **Script padrão** estiver preenchido em _Configurações_ (engrenagem no
-topo), o botão Shell o executa assim que o terminal abre, e a janela continua
-aberta depois para você ler a saída.
-
-> O **Script padrão** é interpretado pelo shell — é essa a função do campo. Ele
-> roda na sua máquina, com as suas permissões, na pasta do repositório. Vale o
-> mesmo critério de digitar um comando direto no terminal: só coloque ali o que
-> você mesmo executaria.
+A **estrela** abre uma janela nova do terminal na pasta, já rodando o
+assistente escolhido em _Configurações_ › _IA_ › **Assistente do botão do
+repositório** (Claude Code, Codex, OpenCode, Gemini CLI ou Cursor Agent, com o
+modelo, o raciocínio e as opções escolhidos, como `--dangerously-skip-permissions`; no automático, o primeiro instalado). Essa
+escolha é separada da do kanban. Ao sair do assistente, o terminal continua
+aberto na pasta. Assistente não instalado responde com aviso que leva à aba IA.
 
 ### Que programa é chamado
 
@@ -850,7 +848,7 @@ pendente.
 
 A linha do repositório ganha o bloco **Como resolver**: a explicação, os comandos para
 copiar, um por linha, e **Abrir terminal na pasta**, que abre o terminal como o botão
-Shell do repositório, com o Script padrão. **Nada é executado pela tela**: um
+Shell do repositório. **Nada é executado pela tela**: um
 `git pull --rebase` reescreve commits locais e pode parar em conflito, e quem decide é
 você, vendo o terminal. A saída completa do Git AutoSync fica recolhida no fim do
 bloco, e **Dispensar** o esconde.

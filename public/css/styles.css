@@ -2727,6 +2727,11 @@ button.selo-situacao:focus-visible {
   border-radius: 8px;
 }
 
+/* O `display: grid` acima venceria o `hidden`: a aba IA esconde o grupo de quem não o vê. */
+.grupo-de-acessos[hidden] {
+  display: none;
+}
+
 .grupo-de-acessos legend {
   padding: 0 4px;
   font-size: 11px;

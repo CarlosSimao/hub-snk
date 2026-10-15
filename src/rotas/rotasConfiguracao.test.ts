@@ -8,7 +8,6 @@ import { RepositorioConfiguracaoArquivo } from '../repositorio/arquivo/repositor
 import { registrarRotasDeConfiguracao } from './rotasConfiguracao.ts';
 
 const CONFIGURACAO_SEM_DESTINO_DOS_LINKS = {
-  scriptPadrao: '',
   intervaloDeExecucaoAutomaticaSegundos: 30,
   tempoLimiteSegundos: 5,
 };

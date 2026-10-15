@@ -17,6 +17,7 @@ import {
   type AlertaDaAgenda,
   type Atalho,
   type ConfiguracaoDeBackup,
+  type ConfiguracaoDoAssistenteDoRepositorio,
   type ConfiguracaoGlobal,
   type ConfiguracaoSmtp,
   type DestinoDeLink,
@@ -86,7 +87,6 @@ export const BACKUP_INICIAL: ConfiguracaoDeBackup = {
 };
 
 const CONFIGURACAO_INICIAL: ConfiguracaoGlobal = {
-  scriptPadrao: '',
   intervaloDeExecucaoAutomaticaSegundos: INTERVALO_DE_EXECUCAO_AUTOMATICA_PADRAO_S,
   tempoLimiteSegundos: TEMPO_LIMITE_PADRAO_S,
   caminhoDoSchemaMcp: '',
@@ -98,6 +98,7 @@ const CONFIGURACAO_INICIAL: ConfiguracaoGlobal = {
   smtp: SMTP_INICIAL,
   alertaDaAgenda: ALERTA_DA_AGENDA_INICIAL,
   assistenteDeIa: ASSISTENTE_DE_IA_INICIAL,
+  assistenteDoRepositorio: { ...ASSISTENTE_DE_IA_INICIAL, opcoes: '' },
   nomeDoUsuario: '',
   empresaDoUsuario: '',
   timeDoUsuario: '',
@@ -254,6 +255,13 @@ function lerAssistenteDeIa(valor: unknown): ConfiguracaoDoAssistenteDeIa {
   };
 }
 
+function lerAssistenteDoRepositorio(valor: unknown): ConfiguracaoDoAssistenteDoRepositorio {
+  return {
+    ...lerAssistenteDeIa(valor),
+    opcoes: ehObjeto(valor) ? textoOuPadrao(valor.opcoes, '').trim() : '',
+  };
+}
+
 /** Arquivo de antes do backup não tem a chave: nasce desligado. Número fora do aceito volta ao padrão. */
 function lerBackup(valor: unknown): ConfiguracaoDeBackup {
   if (!ehObjeto(valor)) {
@@ -329,7 +337,6 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
 
     const dados = (conteudo.corpo ?? {}) as Partial<ConfiguracaoGlobal> & ConfiguracaoAnterior;
     this.#configuracao = {
-      scriptPadrao: dados.scriptPadrao ?? '',
       // Arquivo de antes desta versão traz o campo com o nome antigo, ou nenhum dos dois.
       intervaloDeExecucaoAutomaticaSegundos:
         dados.intervaloDeExecucaoAutomaticaSegundos ??
@@ -350,6 +357,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       smtp: lerSmtp(dados.smtp),
       alertaDaAgenda: lerAlertaDaAgenda(dados.alertaDaAgenda),
       assistenteDeIa: lerAssistenteDeIa(dados.assistenteDeIa),
+      assistenteDoRepositorio: lerAssistenteDoRepositorio(dados.assistenteDoRepositorio),
       // Idem: arquivo de antes desta versão não tem quem usa o aplicativo.
       nomeDoUsuario: textoOuPadrao(dados.nomeDoUsuario, '').trim(),
       empresaDoUsuario: textoOuPadrao(dados.empresaDoUsuario, '').trim(),
@@ -381,7 +389,6 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
     const atual = await this.#carregar();
 
     const normalizada: ConfiguracaoGlobal = {
-      scriptPadrao: configuracao.scriptPadrao.trim(),
       intervaloDeExecucaoAutomaticaSegundos: configuracao.intervaloDeExecucaoAutomaticaSegundos,
       tempoLimiteSegundos: configuracao.tempoLimiteSegundos,
       caminhoDoSchemaMcp: configuracao.caminhoDoSchemaMcp.trim(),
@@ -400,6 +407,9 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       assistenteDeIa: configuracao.assistenteDeIa
         ? lerAssistenteDeIa(configuracao.assistenteDeIa)
         : atual.assistenteDeIa,
+      assistenteDoRepositorio: configuracao.assistenteDoRepositorio
+        ? lerAssistenteDoRepositorio(configuracao.assistenteDoRepositorio)
+        : atual.assistenteDoRepositorio,
       nomeDoUsuario: configuracao.nomeDoUsuario?.trim() ?? atual.nomeDoUsuario,
       empresaDoUsuario: configuracao.empresaDoUsuario?.trim() ?? atual.empresaDoUsuario,
       timeDoUsuario: configuracao.timeDoUsuario?.trim() ?? atual.timeDoUsuario,

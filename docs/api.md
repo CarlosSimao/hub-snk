@@ -55,70 +55,71 @@ Invoke-RestMethod http://127.0.0.1:4100/api/clientes -Headers @{ 'x-hub-token' =
 
 ## Rotas
 
-| Método   | Rota                                                        | Resposta                                                                                   |
-| -------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `GET`    | `/api/clientes`                                             | `200` — lista ordenada por nome, com as bases                                              |
-| `POST`   | `/api/clientes`                                             | `201` — cliente criado                                                                     |
-| `PUT`    | `/api/clientes/:id`                                         | `200` — cliente atualizado                                                                 |
-| `GET`    | `/api/clientes/:id`                                         | `200` — um cliente, com a situação do MCP de cada repositório                              |
-| `PUT`    | `/api/clientes/:id/anotacoes`                               | `200` — cliente com as anotações gravadas                                                  |
-| `PUT`    | `/api/clientes/:id/nomes-completos`                         | `200` — cliente com os `{ nomesCompletos }` (razões sociais) gravados                      |
-| `DELETE` | `/api/clientes/:id`                                         | `204` — sem conteúdo                                                                       |
-| `POST`   | `/api/clientes/importacao`                                  | `201` — bases criadas a partir dos favoritos do navegador                                  |
-| `POST`   | `/api/clientes/importacao-de-repositorios`                  | `201` — repositórios criados a partir da varredura de pastas                               |
-| `POST`   | `/api/clientes/importacao-de-cadastros`                     | `201` — clientes e bases lidos de um arquivo de cadastros do HUB SNK                       |
-| `POST`   | `/api/clientes/:id/bases`                                   | `201` — base criada                                                                        |
-| `PUT`    | `/api/clientes/:id/bases/:idBase`                           | `200` — base atualizada                                                                    |
-| `DELETE` | `/api/clientes/:id/bases/:idBase`                           | `204` — sem conteúdo                                                                       |
-| `GET`    | `/api/clientes/:id/bases/:idBase/situacao`                  | `200` — `{ urlOk, versaoDaPlataforma, historico }` da URL da base                          |
-| `PUT`    | `/api/clientes/:id/bases/:idBase/banco`                     | `200` — banco vinculado ou substituído                                                     |
-| `DELETE` | `/api/clientes/:id/bases/:idBase/banco`                     | `204` — banco desvinculado                                                                 |
-| `POST`   | `/api/clientes/:id/repositorios`                            | `201` — repositório criado                                                                 |
-| `PUT`    | `/api/clientes/:id/repositorios/:idRepositorio`             | `200` — repositório atualizado                                                             |
-| `DELETE` | `/api/clientes/:id/repositorios/:idRepositorio`             | `204` — sem conteúdo                                                                       |
-| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-pasta` | `204` — pasta aberta; `503` quando o gerenciador falta                                     |
-| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-shell` | `204` — terminal aberto; `503` quando nenhum abre                                          |
-| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-ide`   | `204` — projeto aberto; `503` sem IDE configurada ou indisponível                          |
-| `GET`    | `/api/clientes/:id/repositorios/:idRepositorio/mcp`         | `200` — conteúdo do `.sankhya-mcp.env`                                                     |
-| `PUT`    | `/api/clientes/:id/repositorios/:idRepositorio/mcp`         | `204` — arquivo criado ou sobrescrito                                                      |
-| `POST`   | `/api/clientes/:id/links`                                   | `201` — link criado                                                                        |
-| `PUT`    | `/api/clientes/:id/links/:idLink`                           | `200` — link atualizado                                                                    |
-| `DELETE` | `/api/clientes/:id/links/:idLink`                           | `204` — sem conteúdo                                                                       |
-| `POST`   | `/api/clientes/:id/projetos`                                | `201` — projeto criado                                                                     |
-| `PUT`    | `/api/clientes/:id/projetos/:idProjeto`                     | `200` — projeto atualizado                                                                 |
-| `DELETE` | `/api/clientes/:id/projetos/:idProjeto`                     | `204` — sem conteúdo; com kanban, exige `?kanbans=manter` ou `excluir` (`409` sem ele)     |
-| `PUT`    | `/api/clientes/:id/projetos/:idProjeto/anotacoes`           | `200` — projeto com as anotações gravadas                                                  |
-| `POST`   | `/api/clientes/:id/projetos/:idProjeto/links`               | `201` — link do projeto criado                                                             |
-| `PUT`    | `/api/clientes/:id/projetos/:idProjeto/links/:idLink`       | `200` — link do projeto atualizado                                                         |
-| `DELETE` | `/api/clientes/:id/projetos/:idProjeto/links/:idLink`       | `204` — sem conteúdo                                                                       |
-| `GET`    | `/api/situacao-git?forcar=true`                             | `200` — situação Git dos repositórios com pasta local, indexada pelo id                    |
-| `GET`    | `/api/configuracao`                                         | `200` — configuração global                                                                |
-| `PUT`    | `/api/configuracao`                                         | `200` — configuração salva                                                                 |
-| `GET`    | `/api/configuracao/perfis`                                  | `200` — funcionalidades ocultas no preset de cada perfil                                   |
-| `GET`    | `/api/configuracao/assistentes-de-ia`                       | `200` — `{ assistentes }`: instalado, caminho, modelos e se lê PDF, de cada assistente     |
-| `PUT`    | `/api/configuracao/sankhya-om-codusu`                       | `200` — grava só o `{ sankhyaOmCodUsu }`, fora do formulário                               |
-| `GET`    | `/api/configuracao/mcp`                                     | `200` — `{ configuracao, existe }` do `.env` do sankhya-schema-mcp                         |
-| `POST`   | `/api/configuracao/mcp/importar`                            | `200` — `{ caminhoDoSchemaMcp, configuracao }` do `.env` escolhido; `204` quando cancelado |
-| `POST`   | `/api/atalhos/selecionar-executavel`                        | `200` — caminho escolhido; `204` quando cancelado                                          |
-| `POST`   | `/api/atalhos/:id/abrir`                                    | `204` — programa iniciado; `503` se ele não subir                                          |
-| `GET`    | `/api/sistema/versao`                                       | `200` — `{ "versao": "1.0.0" }`, a mesma exibida no rodapé                                 |
-| `GET`    | `/api/sistema/atualizacao`                                  | `200` — comparação com a última release publicada no GitHub                                |
-| `POST`   | `/api/sistema/selecionar-pasta`                             | `200` — `{ caminho }` escolhido no seletor do sistema; `204` quando cancelado              |
-| `POST`   | `/api/sistema/repositorios-locais`                          | `200` — `{ repositorios }` Git encontrados nas `{ pastas }` do corpo                       |
-| `GET`    | `/api/notificacoes`                                         | `200` — `{ notificacoes, naoLidas }`, da mais recente para a mais antiga                   |
-| `GET`    | `/api/notificacoes/fluxo`                                   | SSE — evento `notificacao` com cada notificação nova                                       |
-| `POST`   | `/api/notificacoes/lidas`                                   | `200` — marca as `{ ids }` como lidas; sem `ids`, todas                                    |
-| `DELETE` | `/api/notificacoes`                                         | `204` — esvazia o painel (as chaves emitidas continuam guardadas)                          |
-| `POST`   | `/api/notificacoes/email-de-teste`                          | `200` — e-mail enviado com o `{ smtp }` do corpo; `502` se o SMTP falha                    |
-| `GET`    | `/api/lembretes`                                            | `200` — `{ lembretes }`, cada um com o `proximoDisparo`                                    |
-| `POST`   | `/api/lembretes`                                            | `201` — lembrete criado                                                                    |
-| `PUT`    | `/api/lembretes/:id`                                        | `200` — lembrete atualizado                                                                |
-| `DELETE` | `/api/lembretes/:id`                                        | `204` — sem conteúdo                                                                       |
-| `GET`    | `/api/lembretes/previa?expressao=`                          | `200` — `{ ocorrencias }`, as três próximas; `400` com o cron inválido                     |
-| `GET`    | `/api/contatos`                                             | `200` — `{ contatos }`                                                                     |
-| `POST`   | `/api/contatos`                                             | `201` — contato criado                                                                     |
-| `PUT`    | `/api/contatos/:id`                                         | `200` — contato atualizado                                                                 |
-| `DELETE` | `/api/contatos/:id`                                         | `204` — sem conteúdo                                                                       |
+| Método   | Rota                                                             | Resposta                                                                                                                                              |
+| -------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/clientes`                                                  | `200` — lista ordenada por nome, com as bases                                                                                                         |
+| `POST`   | `/api/clientes`                                                  | `201` — cliente criado                                                                                                                                |
+| `PUT`    | `/api/clientes/:id`                                              | `200` — cliente atualizado                                                                                                                            |
+| `GET`    | `/api/clientes/:id`                                              | `200` — um cliente, com a situação do MCP de cada repositório                                                                                         |
+| `PUT`    | `/api/clientes/:id/anotacoes`                                    | `200` — cliente com as anotações gravadas                                                                                                             |
+| `PUT`    | `/api/clientes/:id/nomes-completos`                              | `200` — cliente com os `{ nomesCompletos }` (razões sociais) gravados                                                                                 |
+| `DELETE` | `/api/clientes/:id`                                              | `204` — sem conteúdo                                                                                                                                  |
+| `POST`   | `/api/clientes/importacao`                                       | `201` — bases criadas a partir dos favoritos do navegador                                                                                             |
+| `POST`   | `/api/clientes/importacao-de-repositorios`                       | `201` — repositórios criados a partir da varredura de pastas                                                                                          |
+| `POST`   | `/api/clientes/importacao-de-cadastros`                          | `201` — clientes e bases lidos de um arquivo de cadastros do HUB SNK                                                                                  |
+| `POST`   | `/api/clientes/:id/bases`                                        | `201` — base criada                                                                                                                                   |
+| `PUT`    | `/api/clientes/:id/bases/:idBase`                                | `200` — base atualizada                                                                                                                               |
+| `DELETE` | `/api/clientes/:id/bases/:idBase`                                | `204` — sem conteúdo                                                                                                                                  |
+| `GET`    | `/api/clientes/:id/bases/:idBase/situacao`                       | `200` — `{ urlOk, versaoDaPlataforma, historico }` da URL da base                                                                                     |
+| `PUT`    | `/api/clientes/:id/bases/:idBase/banco`                          | `200` — banco vinculado ou substituído                                                                                                                |
+| `DELETE` | `/api/clientes/:id/bases/:idBase/banco`                          | `204` — banco desvinculado                                                                                                                            |
+| `POST`   | `/api/clientes/:id/repositorios`                                 | `201` — repositório criado                                                                                                                            |
+| `PUT`    | `/api/clientes/:id/repositorios/:idRepositorio`                  | `200` — repositório atualizado                                                                                                                        |
+| `DELETE` | `/api/clientes/:id/repositorios/:idRepositorio`                  | `204` — sem conteúdo                                                                                                                                  |
+| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-pasta`      | `204` — pasta aberta; `503` quando o gerenciador falta                                                                                                |
+| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-shell`      | `204` — terminal aberto; `503` quando nenhum abre                                                                                                     |
+| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-ide`        | `204` — projeto aberto; `503` sem IDE configurada ou indisponível                                                                                     |
+| `POST`   | `/api/clientes/:id/repositorios/:idRepositorio/abrir-assistente` | `204` — terminal novo com o assistente do repositório; `503` assistente não instalado (`configuracaoPendente: 'assistente-de-ia'`) ou nenhum terminal |
+| `GET`    | `/api/clientes/:id/repositorios/:idRepositorio/mcp`              | `200` — conteúdo do `.sankhya-mcp.env`                                                                                                                |
+| `PUT`    | `/api/clientes/:id/repositorios/:idRepositorio/mcp`              | `204` — arquivo criado ou sobrescrito                                                                                                                 |
+| `POST`   | `/api/clientes/:id/links`                                        | `201` — link criado                                                                                                                                   |
+| `PUT`    | `/api/clientes/:id/links/:idLink`                                | `200` — link atualizado                                                                                                                               |
+| `DELETE` | `/api/clientes/:id/links/:idLink`                                | `204` — sem conteúdo                                                                                                                                  |
+| `POST`   | `/api/clientes/:id/projetos`                                     | `201` — projeto criado                                                                                                                                |
+| `PUT`    | `/api/clientes/:id/projetos/:idProjeto`                          | `200` — projeto atualizado                                                                                                                            |
+| `DELETE` | `/api/clientes/:id/projetos/:idProjeto`                          | `204` — sem conteúdo; com kanban, exige `?kanbans=manter` ou `excluir` (`409` sem ele)                                                                |
+| `PUT`    | `/api/clientes/:id/projetos/:idProjeto/anotacoes`                | `200` — projeto com as anotações gravadas                                                                                                             |
+| `POST`   | `/api/clientes/:id/projetos/:idProjeto/links`                    | `201` — link do projeto criado                                                                                                                        |
+| `PUT`    | `/api/clientes/:id/projetos/:idProjeto/links/:idLink`            | `200` — link do projeto atualizado                                                                                                                    |
+| `DELETE` | `/api/clientes/:id/projetos/:idProjeto/links/:idLink`            | `204` — sem conteúdo                                                                                                                                  |
+| `GET`    | `/api/situacao-git?forcar=true`                                  | `200` — situação Git dos repositórios com pasta local, indexada pelo id                                                                               |
+| `GET`    | `/api/configuracao`                                              | `200` — configuração global                                                                                                                           |
+| `PUT`    | `/api/configuracao`                                              | `200` — configuração salva                                                                                                                            |
+| `GET`    | `/api/configuracao/perfis`                                       | `200` — funcionalidades ocultas no preset de cada perfil                                                                                              |
+| `GET`    | `/api/configuracao/assistentes-de-ia`                            | `200` — `{ assistentes }`: instalado, caminho, modelos e se lê PDF, de cada assistente                                                                |
+| `PUT`    | `/api/configuracao/sankhya-om-codusu`                            | `200` — grava só o `{ sankhyaOmCodUsu }`, fora do formulário                                                                                          |
+| `GET`    | `/api/configuracao/mcp`                                          | `200` — `{ configuracao, existe }` do `.env` do sankhya-schema-mcp                                                                                    |
+| `POST`   | `/api/configuracao/mcp/importar`                                 | `200` — `{ caminhoDoSchemaMcp, configuracao }` do `.env` escolhido; `204` quando cancelado                                                            |
+| `POST`   | `/api/atalhos/selecionar-executavel`                             | `200` — caminho escolhido; `204` quando cancelado                                                                                                     |
+| `POST`   | `/api/atalhos/:id/abrir`                                         | `204` — programa iniciado; `503` se ele não subir                                                                                                     |
+| `GET`    | `/api/sistema/versao`                                            | `200` — `{ "versao": "1.0.0" }`, a mesma exibida no rodapé                                                                                            |
+| `GET`    | `/api/sistema/atualizacao`                                       | `200` — comparação com a última release publicada no GitHub                                                                                           |
+| `POST`   | `/api/sistema/selecionar-pasta`                                  | `200` — `{ caminho }` escolhido no seletor do sistema; `204` quando cancelado                                                                         |
+| `POST`   | `/api/sistema/repositorios-locais`                               | `200` — `{ repositorios }` Git encontrados nas `{ pastas }` do corpo                                                                                  |
+| `GET`    | `/api/notificacoes`                                              | `200` — `{ notificacoes, naoLidas }`, da mais recente para a mais antiga                                                                              |
+| `GET`    | `/api/notificacoes/fluxo`                                        | SSE — evento `notificacao` com cada notificação nova                                                                                                  |
+| `POST`   | `/api/notificacoes/lidas`                                        | `200` — marca as `{ ids }` como lidas; sem `ids`, todas                                                                                               |
+| `DELETE` | `/api/notificacoes`                                              | `204` — esvazia o painel (as chaves emitidas continuam guardadas)                                                                                     |
+| `POST`   | `/api/notificacoes/email-de-teste`                               | `200` — e-mail enviado com o `{ smtp }` do corpo; `502` se o SMTP falha                                                                               |
+| `GET`    | `/api/lembretes`                                                 | `200` — `{ lembretes }`, cada um com o `proximoDisparo`                                                                                               |
+| `POST`   | `/api/lembretes`                                                 | `201` — lembrete criado                                                                                                                               |
+| `PUT`    | `/api/lembretes/:id`                                             | `200` — lembrete atualizado                                                                                                                           |
+| `DELETE` | `/api/lembretes/:id`                                             | `204` — sem conteúdo                                                                                                                                  |
+| `GET`    | `/api/lembretes/previa?expressao=`                               | `200` — `{ ocorrencias }`, as três próximas; `400` com o cron inválido                                                                                |
+| `GET`    | `/api/contatos`                                                  | `200` — `{ contatos }`                                                                                                                                |
+| `POST`   | `/api/contatos`                                                  | `201` — contato criado                                                                                                                                |
+| `PUT`    | `/api/contatos/:id`                                              | `200` — contato atualizado                                                                                                                            |
+| `DELETE` | `/api/contatos/:id`                                              | `204` — sem conteúdo                                                                                                                                  |
 
 A situação da base cadastrada é um nível só: a URL responde ou não dentro do
 `tempoLimiteSegundos` da configuração. `versaoDaPlataforma` vem nula quando a
@@ -259,7 +260,7 @@ chamado sem shell. O que a tela faz com cada rota está em
 | `POST /api/autosync/push`                    | `{ caminho }`                                              | Push do que já foi commitado                                                      |
 | `POST /api/autosync/sincronizar`             | `{ caminho?, mensagem? }`                                  | Commit e push; sem `caminho`, `sync --all`                                        |
 | `POST /api/autosync/merge-request`           | `{ caminho, titulo?, destino?, origem? }`                  | Merge Request no GitLab                                                           |
-| `POST /api/autosync/terminal`                | `{ caminho }`                                              | `204` — terminal aberto na pasta, com o Script padrão; nenhum comando é rodado    |
+| `POST /api/autosync/terminal`                | `{ caminho }`                                              | `204` — terminal aberto na pasta; nenhum comando é rodado                         |
 | `GET /api/autosync/historico`                | `?caminho=&limite=20`                                      | `{ commits }`                                                                     |
 | `GET /api/autosync/log`                      | `?limite=200`                                              | `{ linhas }` do `autosync.log`                                                    |
 | `GET /api/autosync/diagnostico`              | `?rede=true`                                               | Saída do `doctor`                                                                 |
