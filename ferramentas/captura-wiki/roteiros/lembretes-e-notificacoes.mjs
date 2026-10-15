@@ -224,7 +224,7 @@ async function printDoEmail(aplicativo, painel, nome) {
   console.log(`  lembretes-e-notificacoes/${nome}${claro ? '-claro' : ''}.webp (e-mail)`);
 }
 
-export async function roteiro({ painel, aplicativo, print }) {
+export async function roteiro({ painel, aplicativo, print, printDoSistema }) {
   const itemDaNotificacao = (texto) => painel.locator('.item-notificacao', { hasText: texto });
   const linhaDoLembrete = (texto) =>
     painel.locator('#mount-lembretes .linha-recurso', { hasText: texto });
@@ -385,4 +385,17 @@ export async function roteiro({ painel, aplicativo, print }) {
 
   // O e-mail que o lembrete manda
   await printDoEmail(aplicativo, painel, 'enviar-por-email-02-email');
+
+  // Aviso do Windows e barra de tarefas, na área de trabalho fictícia
+  await printDoSistema('aviso-do-windows-01-aviso', {
+    cena: 'aviso',
+    titulo: 'Relatório de horas',
+    corpo: 'Enviar o relatório de horas da semana ao coordenador.',
+  });
+  await printDoSistema('aviso-do-windows-02-piscando', { cena: 'piscando' });
+  await printDoSistema('alerta-da-agenda-03-aviso-do-windows', {
+    cena: 'aviso',
+    titulo: 'Agenda sem tarefa na Experience',
+    corpo: 'FAZENDA BOA VISTA AGROPECUARIA LTDA (hoje, 08:00–12:00): nenhuma tarefa nem OS no dia.',
+  });
 }

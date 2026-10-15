@@ -80,7 +80,7 @@ function contornarItensDoMenu(menu, rotulos) {
   }, rotulos);
 }
 
-export async function roteiro({ aplicativo, painel, print }) {
+export async function roteiro({ aplicativo, painel, print, printDoSistema }) {
   await servirComunicacaoFicticia(aplicativo);
   const moldura = await paginaDoAplicativo(aplicativo, 'index.html');
   const botao = (servico) => `#servicos [data-servico="${servico}"]`;
@@ -154,4 +154,11 @@ export async function roteiro({ aplicativo, painel, print }) {
   await contornarItensDoMenu(menu, ['Carregar WhatsApp e Google Chat']);
   await print('escolher-02-carregar-ao-abrir');
   await menu.evaluate(() => window.menuHub.fechar());
+
+  // Aviso do Windows, na área de trabalho fictícia
+  await printDoSistema('avisos-02-aviso-do-windows', {
+    cena: 'aviso',
+    titulo: 'Gmail · Renata Campos',
+    corpo: 'Rejeição 539 na NF-e 48.211',
+  });
 }

@@ -49,9 +49,12 @@ que o passo manda clicar.
   são respondidos, nas partições deles, pelas telas fictícias de `comunicacao-ficticia.html`
   (`servirComunicacaoFicticia(aplicativo)`, de `comunicacao-ficticia.mjs`), com contagem de
   não lidas para acender os botões. A página diz que essas telas são ilustrações.
+- **Bandeja, aviso do Windows e barra de tarefas:** `printDoSistema(nome, { cena, ... })`
+  renderiza uma área de trabalho fictícia do Windows 11 (`sistema-ficticio.html`), no tema da
+  captura, com o ícone, o menu da bandeja ou o aviso do HUB SNK e o contorno no que o passo
+  pede. As cenas estão no comentário do topo do arquivo.
 - **As outras telas de terceiros e as do sistema** (SankhyaOm, Experience, login do WhatsApp
-  e do Google, aviso do Windows, bandeja, Explorador, seletor de arquivo...) não são
-  capturadas: o passo fica sem print e com o comentário `<!-- print-pendente: ... -->` no
+  e do Google, Explorador, seletor de arquivo, instalador...) não são capturadas: o passo fica sem print e com o comentário `<!-- print-pendente: ... -->` no
   HTML, para a fase da `wiki-img`.
 - **Várias capturas ao mesmo tempo:** `CAPTURA_INSTANCIA=<n>` separa portas e pastas
   (`4120 + 10n`). A 7 não serve: cai na porta 4190, que o Chromium bloqueia.

@@ -1,8 +1,8 @@
 /**
  * Prints da página Bandeja e segundo plano da wiki (`site/wiki/bandeja.html`).
  *
- * O ícone da bandeja, o menu dele e o aviso do Windows são do sistema e ficam fora do
- * capturador: só o Sair do menu ☰, que é da moldura do aplicativo, sai daqui.
+ * O ícone da bandeja, o menu dele e o aviso do Windows são do sistema: saem da área de
+ * trabalho fictícia (`printDoSistema`). O Sair do menu ☰ é da moldura do aplicativo.
  */
 const ESPERA_DA_TELA_MS = 5_000;
 const INTERVALO_DE_PROCURA_MS = 100;
@@ -21,7 +21,7 @@ async function paginaDoAplicativo(aplicativo, arquivo) {
   throw new Error(`A tela ${arquivo} do aplicativo não abriu.`);
 }
 
-export async function roteiro({ aplicativo, painel, print }) {
+export async function roteiro({ aplicativo, painel, print, printDoSistema }) {
   const moldura = await paginaDoAplicativo(aplicativo, 'index.html');
   await moldura.click('#menu');
   await painel.waitForTimeout(600);
@@ -40,6 +40,21 @@ export async function roteiro({ aplicativo, painel, print }) {
       });
     }
   });
-  await print('sair-01-menu');
+  await print('sair-02-menu');
   await menu.evaluate(() => window.menuHub.fechar());
+
+  // Telas do sistema: área de trabalho fictícia do Windows
+  await printDoSistema('fechar-01-aviso', {
+    cena: 'aviso',
+    titulo: 'O HUB SNK continua aberto',
+    corpo:
+      'Ele fica na bandeja, perto do relógio. Para encerrar, clique com o botão direito no ícone e escolha Sair.',
+  });
+  await printDoSistema('fechar-02-icone', { cena: 'bandeja' });
+  await printDoSistema('menu-01-menu', { cena: 'menu' });
+  await printDoSistema('iniciar-01-caixa', {
+    cena: 'menu',
+    destaque: 'Iniciar HUB SNK automaticamente',
+  });
+  await printDoSistema('sair-01-bandeja', { cena: 'menu', destaque: 'Sair' });
 }

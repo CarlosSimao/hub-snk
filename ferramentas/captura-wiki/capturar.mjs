@@ -15,7 +15,7 @@ import { _electron } from 'playwright-core';
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { prepararDados } from './preparar-dados.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -233,7 +233,35 @@ async function limparDestaques(painel) {
   );
 }
 
-function criarContexto(aplicativo, painel, moldura, macro, sufixo) {
+/**
+ * Renderiza uma cena de `sistema-ficticio.html` (área de trabalho fictícia do Windows) numa
+ * janela escondida do tamanho da do aplicativo, para os passos que mostram o sistema.
+ */
+async function capturarCenaDoSistema(aplicativo, parametros) {
+  const url = new URL(pathToFileURL(join(AQUI, 'sistema-ficticio.html')));
+  for (const [chave, valor] of Object.entries(parametros)) url.searchParams.set(chave, valor);
+  return aplicativo.evaluate(
+    async ({ BrowserWindow }, [endereco, largura, altura]) => {
+      const janela = new BrowserWindow({
+        show: false,
+        width: largura,
+        height: altura,
+        useContentSize: true,
+      });
+      try {
+        await janela.loadURL(endereco);
+        await janela.webContents.executeJavaScript('document.fonts.ready.then(() => true)');
+        const imagem = (await janela.webContents.capturePage()).toDataURL();
+        return { largura, altura, camadas: [{ imagem, x: 0, y: 0, largura, altura }] };
+      } finally {
+        janela.destroy();
+      }
+    },
+    [url.href, LARGURA_DA_JANELA, ALTURA_DA_JANELA],
+  );
+}
+
+function criarContexto(aplicativo, painel, moldura, macro, tema, sufixo) {
   const pasta = join(PASTA_DAS_IMAGENS, macro);
   mkdirSync(pasta, { recursive: true });
 
@@ -249,6 +277,15 @@ function criarContexto(aplicativo, painel, moldura, macro, sufixo) {
       const arquivo = join(pasta, `${nome}${sufixo}.webp`);
       writeFileSync(arquivo, await comporWebp(moldura, await capturarCamadas(aplicativo)));
       await limparDestaques(painel);
+      console.log(`  ${macro}/${nome}${sufixo}.webp`);
+    },
+    /**
+     * Grava `<nome>.webp` com uma cena da área de trabalho fictícia do Windows, no tema da
+     * captura: `{ cena: 'aviso' | 'bandeja' | 'menu' | 'piscando', titulo, corpo, destaque }`.
+     */
+    async printDoSistema(nome, parametros) {
+      const camadas = await capturarCenaDoSistema(aplicativo, { tema, ...parametros });
+      writeFileSync(join(pasta, `${nome}${sufixo}.webp`), await comporWebp(moldura, camadas));
       console.log(`  ${macro}/${nome}${sufixo}.webp`);
     },
   };
@@ -269,7 +306,7 @@ async function main() {
       console.log(`${macro} (${tema})`);
       const { aplicativo, painel, moldura } = await abrirAplicativo(tema, [modulo]);
       try {
-        await modulo.roteiro(criarContexto(aplicativo, painel, moldura, macro, sufixo));
+        await modulo.roteiro(criarContexto(aplicativo, painel, moldura, macro, tema, sufixo));
       } finally {
         await aplicativo.close();
       }
