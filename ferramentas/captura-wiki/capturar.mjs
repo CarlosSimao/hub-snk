@@ -247,11 +247,21 @@ async function capturarCenaDoSistema(aplicativo, parametros) {
         width: largura,
         height: altura,
         useContentSize: true,
+        // Sem isto, numa tela menor (o runner do Actions tem 1024x768) a janela encolhe e a
+        // cena sai esticada no print.
+        enableLargerThanScreen: true,
       });
+      janela.setContentSize(largura, altura);
       try {
         await janela.loadURL(endereco);
         await janela.webContents.executeJavaScript('document.fonts.ready.then(() => true)');
-        const imagem = (await janela.webContents.capturePage()).toDataURL();
+        const captura = await janela.webContents.capturePage({
+          x: 0,
+          y: 0,
+          width: largura,
+          height: altura,
+        });
+        const imagem = captura.toDataURL();
         return { largura, altura, camadas: [{ imagem, x: 0, y: 0, largura, altura }] };
       } finally {
         janela.destroy();
