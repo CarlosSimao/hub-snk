@@ -1168,6 +1168,16 @@ export function iniciarKanban(dependencias) {
     elementos.campoTarefaTitulo.focus();
   }
 
+  /** Tarefa nova já preenchida, como a que nasce de um lembrete. Sem cliente, vai ao Interno. */
+  function abrirTarefaPreenchida({ titulo, descricao, clienteId, projetoId }, aoCriar) {
+    abrirTarefa(null, {
+      destino: () => ({ clienteId: clienteId ?? CLIENTE_INTERNO, projetoId: projetoId ?? '' }),
+      recarregar: aoCriar,
+    });
+    elementos.campoTarefaTitulo.value = titulo;
+    elementos.campoTarefaDescricao.value = descricao;
+  }
+
   async function salvarTarefa(evento) {
     evento.preventDefault();
     const titulo = elementos.campoTarefaTitulo.value.trim();
@@ -1854,6 +1864,7 @@ export function iniciarKanban(dependencias) {
     mostrarGeral,
     pedirExclusaoDeProjeto,
     carregarMcpDaConfiguracao,
+    abrirTarefaPreenchida,
     /** O cadastro mudou (projeto renomeado, cliente trocado): relê na próxima montagem. */
     descartar: () => {
       clearTimeout(cache.temporizador);

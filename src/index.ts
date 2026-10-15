@@ -296,6 +296,7 @@ async function iniciarServidor(): Promise<void> {
     arquivoTokenDoDesktop: configuracao.ponteDoDesktopTokenFile,
     encerrar: encerrarOHub,
     emitirNotificacao: (dados) => centralDeNotificacoes.emitir(dados),
+    atualizarAgora: () => ponteDoDesktop.requisitar('/app/atualizar', { method: 'POST' }),
   });
   registrarRotasDeSankhya(
     servidor,

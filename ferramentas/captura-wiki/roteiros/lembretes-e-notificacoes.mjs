@@ -272,6 +272,16 @@ export async function roteiro({ painel, aplicativo, print, printDoSistema }) {
   await linhaDoLembrete('Relatório de horas').waitFor();
   await print('lista-de-lembretes-02-lista', { destacando: ['#mount-lembretes'] });
 
+  // Virar tarefa no kanban: o modal abre preenchido e é cancelado, sem criar a tarefa
+  const virarTarefa = botaoDaLinha('Relatório de horas', 'Virar tarefa no kanban');
+  await print('virar-tarefa-01-botao', { destacando: [virarTarefa] });
+  await virarTarefa.click();
+  await painel.waitForSelector('#modal-kanban-tarefa[open]');
+  await print('virar-tarefa-02-modal', {
+    destacando: ['#campo-kanban-tarefa-titulo', '#campo-kanban-tarefa-descricao'],
+  });
+  await painel.click('#btn-cancelar-kanban-tarefa');
+
   // Criar lembrete, com cliente, projeto, e-mail e contato em cópia
   const botaoNovo = painel.locator('#mount-lembretes [aria-label="Novo lembrete"]');
   await print('criar-lembrete-01-botao', { destacando: [botaoNovo] });

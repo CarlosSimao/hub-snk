@@ -295,6 +295,10 @@ export async function roteiro({ painel, print }) {
   // Versão nova
   await versaoNova.scrollIntoViewIfNeeded();
   await print('versao-01-secao', {
-    destacando: [versaoNova, versaoNova.locator('[aria-label="Ver a versão nova"]')],
+    destacando: [
+      versaoNova,
+      versaoNova.getByRole('button', { name: 'Atualizar agora' }),
+      versaoNova.locator('[aria-label="Ver a versão nova"]'),
+    ],
   });
 }

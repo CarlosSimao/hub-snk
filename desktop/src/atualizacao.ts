@@ -30,6 +30,8 @@ let ligada: boolean | null = null;
 let versaoPronta: string | null = null;
 let temporizadores: NodeJS.Timeout[] = [];
 let aoMudar: () => void = () => {};
+/** O "Atualizar agora" do Painel pediu antes de a versão terminar de baixar. */
+let instalarAoBaixar = false;
 /** Referência forte: sem ela o coletor de lixo pode levar a notificação e o clique nela. */
 let notificacao: Notification | null = null;
 
@@ -104,21 +106,53 @@ function avisarVersaoPronta(versao: string): void {
  */
 export function reiniciarParaAtualizar(): void {
   if (!versaoProntaParaInstalar()) return;
+  instalarAgora();
+}
+
+function instalarAgora(): void {
   logEvento('atualizacao-reiniciar', { versao: versaoPronta });
   autoUpdater.quitAndInstall(true, true);
+}
+
+export type SituacaoDoAtualizarAgora = 'reiniciando' | 'baixando' | 'indisponivel';
+
+/**
+ * O "Atualizar agora" do Painel. É pedido explícito: vale também com a atualização
+ * automática desligada. Versão já baixada reinicia na hora; senão baixa e reinicia ao
+ * terminar. No Mac e em desenvolvimento não há instalador para trocar.
+ */
+export function atualizarAgora(): SituacaoDoAtualizarAgora {
+  if (!app.isPackaged || !ATUALIZACAO_AUTOMATICA_SUPORTADA) return 'indisponivel';
+  logEvento('atualizacao-agora-pedida', { versaoPronta });
+  if (versaoPronta) {
+    // Depois da resposta à ponte: a saída derruba o servidor que a responderia.
+    setImmediate(instalarAgora);
+    return 'reiniciando';
+  }
+  instalarAoBaixar = true;
+  consultar();
+  return 'baixando';
 }
 
 function registrarEventos(): void {
   autoUpdater.on('update-available', ({ version }) => {
     logEvento('atualizacao-disponivel', { versao: version });
   });
+  autoUpdater.on('update-not-available', () => {
+    instalarAoBaixar = false;
+  });
   autoUpdater.on('update-downloaded', ({ version }) => {
     logEvento('atualizacao-baixada', { versao: version });
     versaoPronta = version;
     aoMudar();
+    if (instalarAoBaixar) {
+      instalarAgora();
+      return;
+    }
     avisarVersaoPronta(version);
   });
   autoUpdater.on('error', (err) => {
+    instalarAoBaixar = false;
     logEvento('atualizacao-falhou', { erro: err.message });
   });
 }

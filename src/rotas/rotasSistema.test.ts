@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { PonteDoDesktopIndisponivelError } from '../sankhya/ponteDoDesktop.ts';
 import { registrarRotasDeSistema } from './rotasSistema.ts';
 
 const TOKEN_DO_SHELL = 'token-do-shell';
@@ -71,5 +72,38 @@ describe('POST /api/sistema/encerrar', () => {
     assert.equal(semToken.statusCode, 401);
     assert.equal(tokenErrado.statusCode, 401);
     assert.equal(pedidosDeEncerramento(), 0);
+  });
+});
+
+describe('POST /api/sistema/atualizar', () => {
+  function servidorQueAtualiza(atualizarAgora?: () => Promise<{ situacao: 'baixando' }>) {
+    const servidor = Fastify();
+    registrarRotasDeSistema(servidor, {
+      arquivoTokenDoDesktop: arquivoDeToken,
+      encerrar: () => {},
+      ...(atualizarAgora ? { atualizarAgora } : {}),
+    });
+    return servidor;
+  }
+
+  it('repassa a situação que o shell devolve', async () => {
+    const servidor = servidorQueAtualiza(async () => ({ situacao: 'baixando' }));
+
+    const resposta = await servidor.inject({ method: 'POST', url: '/api/sistema/atualizar' });
+
+    assert.equal(resposta.statusCode, 200);
+    assert.deepEqual(resposta.json(), { situacao: 'baixando' });
+  });
+
+  it('sem o shell desktop, responde indisponível', async () => {
+    const semShell = servidorQueAtualiza();
+    const shellForaDoAr = servidorQueAtualiza(async () => {
+      throw new PonteDoDesktopIndisponivelError('shell fora do ar');
+    });
+
+    for (const servidor of [semShell, shellForaDoAr]) {
+      const resposta = await servidor.inject({ method: 'POST', url: '/api/sistema/atualizar' });
+      assert.deepEqual(resposta.json(), { situacao: 'indisponivel' });
+    }
   });
 });

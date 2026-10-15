@@ -3236,6 +3236,21 @@ button.selo-situacao:focus-visible {
   cursor: pointer;
 }
 
+/* O Atualizar agora é irmão do cartão (botão não entra em botão), posto no canto de baixo. */
+.notificacao-com-acao {
+  position: relative;
+}
+
+.item-notificacao.com-acao {
+  padding-bottom: 44px;
+}
+
+.notificacao-com-acao > .btn {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+}
+
 .notificacao-conteudo {
   display: grid;
   gap: 4px;
