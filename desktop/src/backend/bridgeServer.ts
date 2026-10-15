@@ -9,6 +9,7 @@ import { app, dialog } from 'electron';
 import { BRIDGE_HOST, BRIDGE_PORT } from '../config';
 import { garantirToken } from './tokenStore';
 import { logEvento } from '../log';
+import { atualizarAgora } from '../atualizacao';
 import * as cofre from '../sankhya/cofreCredenciais';
 import * as segredos from './cofreDeSegredos';
 import * as navegador from '../sankhya/navegador';
@@ -291,6 +292,11 @@ export function criarBridgeServer(
           app.relaunch();
           app.quit();
         });
+        return;
+      }
+
+      if (req.method === 'POST' && req.url === '/app/atualizar') {
+        responderJson(res, 200, { situacao: atualizarAgora() });
         return;
       }
 

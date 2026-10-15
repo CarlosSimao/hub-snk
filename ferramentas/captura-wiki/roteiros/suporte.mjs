@@ -95,7 +95,11 @@ export async function roteiro({ painel, print }) {
   await painel.click('#aba-configuracao-sobre');
   await painel.waitForSelector('#rodape-atualizacao:not([hidden])');
   await print('versao-01-sobre', {
-    destacando: ['.bloco-sobre-destaque', '#rodape-atualizacao'],
+    destacando: [
+      painel.locator('.bloco-sobre-destaque', { has: painel.locator('#rodape-versao') }),
+      '#rodape-atualizacao',
+      painel.locator('#painel-configuracao-sobre').getByRole('button', { name: 'Atualizar agora' }),
+    ],
   });
 
   // Reportar problema ou sugerir

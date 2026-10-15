@@ -187,6 +187,7 @@ const ICONES = {
   /* Chaves de bloco de código: o botão que abre o projeto na IDE. */
   ide: 'M10 4h-.5a2 2 0 0 0-2 2v3.2a2 2 0 0 1-2 2 2 2 0 0 1 2 2V17a2 2 0 0 0 2 2h.5 M14 4h.5a2 2 0 0 1 2 2v3.2a2 2 0 0 0 2 2 2 2 0 0 0-2 2V17a2 2 0 0 1-2 2H14',
   assistente: 'M12 3l2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2z',
+  tarefa: 'M9 11l3 3L22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
   banco:
     'M12 8c4.97 0 9-1.34 9-3s-4.03-3-9-3-9 1.34-9 3 4.03 3 9 3z M3 5v7c0 1.66 4.03 3 9 3s9-1.34 9-3V5 M3 12v7c0 1.66 4.03 3 9 3s9-1.34 9-3v-7',
   plugue: 'M9 2v6 M15 2v6 M6 8h12v3a6 6 0 0 1-12 0z M12 17v5',
@@ -305,6 +306,11 @@ const estado = {
   ideConfigurada: false,
   /* Assistente do repositório (Configurações › IA), que dá nome ao botão do assistente. */
   assistenteDoRepositorio: 'auto',
+  /*
+   * Versão publicada mais nova que a instalada, ou vazio. Só a notificação dela ganha o
+   * Atualizar agora: as de versões antigas ficam como registro.
+   */
+  versaoDisponivel: '',
   /*
    * Busca rápida. `itens` é o índice montado ao abrir, `resultados` o que casa
    * com o texto digitado e `indiceSelecionado` a linha destacada nos resultados.
@@ -1126,6 +1132,7 @@ const api = {
 
   lerVersao: () => requisitar(`${CAMINHO_DO_SISTEMA}/versao`),
   lerAtualizacao: () => requisitar(`${CAMINHO_DO_SISTEMA}/atualizacao`),
+  atualizarAgora: () => requisitar(`${CAMINHO_DO_SISTEMA}/atualizar`, { metodo: 'POST' }),
   selecionarPasta: () => requisitar(`${CAMINHO_DO_SISTEMA}/selecionar-pasta`, { metodo: 'POST' }),
   varrerRepositoriosLocais: (pastas) =>
     requisitar(`${CAMINHO_DO_SISTEMA}/repositorios-locais`, {
@@ -4239,6 +4246,11 @@ function criarSecaoDosRepositoriosDoResumo() {
 async function criarSecaoDaVersaoDoResumo() {
   const { atualizacaoDisponivel, ultimaVersao, url } = await api.lerAtualizacao();
   if (!atualizacaoDisponivel) return null;
+  const acoes = criarElemento('div', 'recurso-acoes-linha');
+  acoes.append(
+    criarBotaoDeAtualizarAgora(),
+    criarLinkDeIcone('btn tiny', ICONES.seta, 'Ver a versão nova', url),
+  );
   return criarSecaoDoResumo(
     'HUB SNK',
     [
@@ -4246,7 +4258,7 @@ async function criarSecaoDaVersaoDoResumo() {
         titulo: `Versão ${ultimaVersao} disponível`,
         detalhes: ['No aplicativo, ela é baixada sozinha e instalada ao reiniciar.'],
         selo: null,
-        acao: criarLinkDeIcone('btn tiny', ICONES.seta, 'Ver a versão nova', url),
+        acao: acoes,
       }),
     ],
     '',
@@ -9407,7 +9419,49 @@ function criarItemDeNotificacao(notificacao) {
   item.title = notificacao.lida ? '' : 'Marcar como lida';
   item.append(criarConteudoDaNotificacao(notificacao));
   item.addEventListener('click', () => marcarNotificacaoComoLida(notificacao));
-  return item;
+  if (notificacao.chave !== `atualizacao:${estado.versaoDisponivel}`) {
+    return item;
+  }
+  // Botão dentro de botão não vale: o Atualizar agora fica ao lado, desenhado dentro do cartão.
+  item.classList.add('com-acao');
+  const cartao = criarElemento('div', 'notificacao-com-acao');
+  cartao.append(item, criarBotaoDeAtualizarAgora());
+  return cartao;
+}
+
+function criarBotaoDeAtualizarAgora() {
+  const botao = criarElemento('button', 'btn tiny primario', 'Atualizar agora');
+  botao.type = 'button';
+  botao.addEventListener('click', () => void atualizarAgora(botao));
+  return botao;
+}
+
+/*
+ * No aplicativo do Windows e do Linux, o shell baixa (se ainda não baixou) e reinicia
+ * instalando. Sem atualização automática (Mac, navegador), abre a página da versão.
+ */
+async function atualizarAgora(botao) {
+  botao.disabled = true;
+  try {
+    const { situacao } = await api.atualizarAgora();
+    if (situacao === 'reiniciando') {
+      exibirAviso('Reiniciando o HUB SNK para instalar a versão nova…');
+      return;
+    }
+    if (situacao === 'baixando') {
+      exibirAviso('Baixando a versão nova. O HUB SNK reinicia sozinho quando terminar.');
+      return;
+    }
+    const { url } = await api.lerAtualizacao();
+    exibirAviso('Aqui a atualização é manual: baixe o instalador na página da versão.');
+    if (url) {
+      window.open(url, '_blank', 'noopener');
+    }
+    botao.disabled = false;
+  } catch (erro) {
+    exibirAviso(`Não foi possível atualizar: ${erro.message}`, 'erro');
+    botao.disabled = false;
+  }
 }
 
 function renderizarNotificacoes() {
@@ -9687,6 +9741,7 @@ function criarLinhaDeLembrete(lembrete) {
   linha.append(
     info,
     criarAcoesDeRecurso({
+      antesDeEditar: visualizacaoVisivel('kanban') ? [criarBotaoDeVirarTarefa(lembrete)] : [],
       rotuloDeEdicao: 'Editar lembrete',
       aoEditar: () => abrirModalDeLembrete(lembrete),
       rotuloDeExclusao: 'Excluir lembrete',
@@ -9694,6 +9749,32 @@ function criarLinhaDeLembrete(lembrete) {
     }),
   );
   return linha;
+}
+
+/* O título da tarefa vai até 200 caracteres; o texto do lembrete, até 1000. */
+const TAMANHO_MAXIMO_DO_TITULO_DA_TAREFA = 200;
+
+/*
+ * O lembrete fica como está: a tarefa é uma cópia que segue no kanban. Lembrete de antes
+ * do resumo vira tarefa com a primeira linha do texto no título e o texto inteiro na
+ * descrição.
+ */
+function criarBotaoDeVirarTarefa(lembrete) {
+  const titulo = (lembrete.resumo || lembrete.texto.split('\n')[0]).slice(
+    0,
+    TAMANHO_MAXIMO_DO_TITULO_DA_TAREFA,
+  );
+  return criarBotaoDeIcone('btn tiny', ICONES.tarefa, 'Virar tarefa no kanban', () =>
+    kanban.abrirTarefaPreenchida(
+      {
+        titulo,
+        descricao: lembrete.texto === titulo ? '' : lembrete.texto,
+        clienteId: lembrete.clienteId,
+        projetoId: lembrete.projetoId,
+      },
+      async () => exibirAviso('Tarefa criada no kanban.'),
+    ),
+  );
 }
 
 function renderizarLembretes() {
@@ -12679,9 +12760,12 @@ async function exibirAvisoDeVersaoNova() {
       return;
     }
 
+    estado.versaoDisponivel = ultimaVersao;
+    renderizarNotificacoes();
     elementos.rodapeAtualizacao.textContent = `${ultimaVersao} disponível`;
     elementos.rodapeAtualizacao.href = url;
     elementos.rodapeAtualizacao.hidden = false;
+    elementos.rodapeAtualizacao.after(criarBotaoDeAtualizarAgora());
   } catch {
     // Sem internet ou sem release publicada: o rodapé segue sem o aviso.
   }

@@ -46,6 +46,7 @@
             <li><a href="#marcar-como-lida-e-limpar">Marcar como lida e limpar</a></li>
             <li><a href="#aviso-do-windows">Aviso do Windows</a></li>
             <li><a href="#lista-de-lembretes">Lista de lembretes</a></li>
+            <li><a href="#virar-tarefa">Virar tarefa no kanban</a></li>
             <li><a href="#criar-lembrete">Criar lembrete</a></li>
             <li><a href="#recorrente">Lembrete recorrente</a></li>
             <li><a href="#enviar-por-email">Enviar o lembrete por e-mail</a></li>
@@ -65,7 +66,11 @@
             lembretes, <strong>OS</strong> para o alerta da agenda e
             <strong>atualização</strong> para versão nova do HUB SNK), a data e a hora, o título em
             destaque e a mensagem. As notificações chegam na hora, sem recarregar a página: o
-            contador sobe e um som curto toca. O som não tem ajuste.
+            contador sobe e um som curto toca. O som não tem ajuste. A notificação da versão nova
+            traz o botão <strong>Atualizar agora</strong>, que instala a versão (<a
+              href="suporte.html#versao-instalada"
+              >versão instalada e versão nova</a
+            >).
           </p>
 
           <h3>Passo a passo</h3>
@@ -290,6 +295,58 @@
               Os lembretes do dia aparecem também no
               <a href="resumo-do-dia.html#lembretes-de-hoje">Resumo do dia</a>.
             </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="virar-tarefa">
+          <h2>Virar tarefa no kanban</h2>
+          <p>
+            O botão <strong>Virar tarefa no kanban</strong>, na linha do lembrete, abre a tarefa
+            nova do kanban já preenchida: o resumo no título, o texto na descrição, o cliente e o
+            projeto do lembrete. Sem cliente, a tarefa vai para o quadro Interno. O lembrete fica
+            como está. Lembrete sem resumo leva ao título a primeira linha do texto.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Na linha do lembrete, clique em <strong>Virar tarefa no kanban</strong>.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/virar-tarefa-01-botao.webp"
+                  alt="Botão Virar tarefa no kanban destacado na linha do lembrete"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Confira o título e a descrição, ajuste o que quiser e clique em
+              <strong>Salvar</strong>. A tarefa entra no kanban do cliente e do projeto.
+              <figure>
+                <img
+                  src="img/lembretes-e-notificacoes/virar-tarefa-02-modal.webp"
+                  alt="Tarefa nova do kanban preenchida com o resumo e o texto do lembrete"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos">Configurações › Acessos</a>: o botão só aparece
+              com o Kanban e os Projetos visíveis.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="kanban.html#nova-tarefa">Nova tarefa no kanban</a></li>
           </ul>
         </section>
 

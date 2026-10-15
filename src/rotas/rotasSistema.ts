@@ -12,6 +12,7 @@ import {
 import { consultarUltimaVersaoPublicada } from '../sistema/versao/ultimaVersaoPublicada.ts';
 import { varrerRepositoriosLocais } from '../git/varreduraDeRepositorios.ts';
 import { requisicaoVeioDoShell } from './seguranca/autenticacaoDoShell.ts';
+import { PonteDoDesktopIndisponivelError } from '../sankhya/ponteDoDesktop.ts';
 
 const TAMANHO_MAXIMO_DO_CAMINHO = 400;
 const QUANTIDADE_MAXIMA_DE_PASTAS_VARRIDAS = 20;
@@ -41,7 +42,16 @@ export interface EncerramentoPeloShell {
   encerrar: () => void;
   /** Emite a notificação de versão nova; sem ela (testes), a rota só responde. */
   emitirNotificacao?: (dados: DadosDeNotificacao) => Promise<unknown>;
+  /** Pede ao shell desktop que atualize agora. Sem shell (navegador, testes), não há. */
+  atualizarAgora?: () => Promise<{ situacao: SituacaoDoAtualizarAgora }>;
 }
+
+/**
+ * `reiniciando`: a versão já estava baixada e o aplicativo fecha para instalar.
+ * `baixando`: reinicia sozinho quando terminar de baixar. `indisponivel`: sem atualização
+ * automática (Mac, navegador, desenvolvimento); quem pediu baixa a versão pela página dela.
+ */
+export type SituacaoDoAtualizarAgora = 'reiniciando' | 'baixando' | 'indisponivel';
 
 /**
  * Recursos do sistema operacional que não pertencem a nenhum cadastro.
@@ -116,6 +126,24 @@ export function registrarRotasDeSistema(
       atualizacaoDisponivel,
       url: atualizacaoDisponivel ? publicada.url : null,
     };
+  });
+
+  /*
+   * O "Atualizar agora" da notificação de versão nova. Quem troca o instalado é o shell:
+   * fora dele, ou sem conseguir falar com ele, a resposta é `indisponivel`.
+   */
+  servidor.post('/api/sistema/atualizar', async () => {
+    if (!encerramento.atualizarAgora) {
+      return { situacao: 'indisponivel' };
+    }
+    try {
+      return await encerramento.atualizarAgora();
+    } catch (erro) {
+      if (erro instanceof PonteDoDesktopIndisponivelError) {
+        return { situacao: 'indisponivel' };
+      }
+      throw erro;
+    }
   });
 
   /*
