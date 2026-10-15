@@ -99,10 +99,14 @@ export interface ConfiguracaoGlobal {
 /**
  * Cópia de segurança da pasta de dados.
  *
- * `ativo`, `pasta`, `intervaloHoras` e `copiasMantidas` são do backup periódico numa
- * pasta do computador; sem pasta escolhida ele não roda, mesmo ligado. O backup só é
- * gravado quando os dados mudaram desde o anterior: cópias idênticas empurrariam as
- * versões diferentes para fora das mantidas.
+ * `ativo`, `pasta`, `copiasMantidas` e a agenda são do backup periódico numa pasta do
+ * computador; sem pasta escolhida ele não roda, mesmo ligado. O backup só é gravado quando
+ * os dados mudaram desde o anterior: cópias idênticas empurrariam as versões diferentes
+ * para fora das mantidas.
+ *
+ * A agenda: `frequencia` `intervalo` roda a cada `intervaloHoras`; `diaria`, `semanal` e
+ * `mensal` rodam no `horario` (`HH:MM`, hora local), no `diaDaSemana` (0 é domingo) ou no
+ * `diaDoMes` (1 a 28, que existem em todo mês).
  *
  * `espelharNoDrive` mantém no Google Drive conectado uma cópia sempre atual. A conta
  * conectada não fica aqui: o token mora no cofre do shell desktop, fora da pasta de dados.
@@ -110,10 +114,18 @@ export interface ConfiguracaoGlobal {
 export interface ConfiguracaoDeBackup {
   ativo: boolean;
   pasta: string;
+  frequencia: FrequenciaDoBackup;
   intervaloHoras: number;
+  horario: string;
+  diaDaSemana: number;
+  diaDoMes: number;
   copiasMantidas: number;
   espelharNoDrive: boolean;
 }
+
+export const FREQUENCIAS_DO_BACKUP = ['intervalo', 'diaria', 'semanal', 'mensal'] as const;
+
+export type FrequenciaDoBackup = (typeof FREQUENCIAS_DO_BACKUP)[number];
 
 /**
  * `ssl`: TLS desde a conexão (porta 465, em geral). `starttls`: conexão aberta que

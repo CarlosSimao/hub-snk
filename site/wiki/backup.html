@@ -252,10 +252,12 @@
         <section class="funcionalidade" id="backup-periodico">
           <h2>Backup periódico numa pasta</h2>
           <p>
-            Grava de tempos em tempos um <code>hub-snk-backup-AAAA-MM-DD-HHmm.zip</code> na pasta
-            que você escolher: outro disco, uma pasta de rede ou do OneDrive. Só grava quando algo
-            mudou desde o backup anterior, e guarda as últimas cópias, apagando as mais antigas. Só
-            arquivos com esse nome são apagados; o resto da pasta não é tocado.
+            Grava um <code>hub-snk-backup-AAAA-MM-DD-HHmm.zip</code> na pasta que você escolher
+            (outro disco, uma pasta de rede ou do OneDrive), a cada tantas horas ou num horário:
+            todo dia, toda semana ou todo mês. Com o HUB SNK fechado no horário, o backup sai assim
+            que ele abrir. Só grava quando algo mudou desde o backup anterior, e guarda as últimas
+            cópias, apagando as mais antigas. Só arquivos com esse nome são apagados; o resto da
+            pasta não é tocado.
           </p>
 
           <h3>Passo a passo</h3>
@@ -292,13 +294,15 @@
               </figure>
             </li>
             <li>
-              Ajuste <strong>a cada</strong> (1 a 720 horas) e <strong>manter as últimas</strong> (1
-              a 365 cópias). Cada campo grava ao sair dele; número fora da faixa é recusado e o
-              valor anterior volta.
+              Escolha a frequência: <strong>A cada</strong> N horas (1 a 720),
+              <strong>Todo dia</strong>, <strong>Toda semana</strong> (com o dia da semana) ou
+              <strong>Todo mês</strong> (com o dia, de 1 a 28), sempre <strong>às</strong> um
+              horário. Ajuste também <strong>manter as últimas</strong> (1 a 365 cópias). Cada campo
+              grava ao sair dele; número fora da faixa é recusado e o valor anterior volta.
               <figure>
                 <img
                   src="img/backup/periodico-03-intervalo.webp"
-                  alt="Campos a cada 12 h e manter as últimas 10 cópias destacados"
+                  alt="Agenda Toda semana na sexta às 18:00 e manter as últimas 10 cópias destacados"
                   width="1264"
                   height="821"
                   loading="lazy"
@@ -315,8 +319,8 @@
               >: padrão desligado.
             </li>
             <li>
-              <a href="configuracoes.html#backup-intervalo">Configurações › Backup › a cada N h</a>:
-              padrão de 24 horas.
+              <a href="configuracoes.html#backup-intervalo">Configurações › Backup › frequência</a>:
+              padrão a cada 24 horas.
             </li>
             <li>
               <a href="configuracoes.html#backup-copias-mantidas"

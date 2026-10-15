@@ -17,10 +17,13 @@ import {
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
 import { SeletorDeArquivoIndisponivelError } from '../sistema/processos/selecionarArquivo.ts';
 import { responderErroDoShell } from './comum/respostasDoShell.ts';
+import { FREQUENCIAS_DO_BACKUP } from '../tipos.ts';
 
 const TAMANHO_MAXIMO_DO_CAMINHO = 400;
 const INTERVALO_MAXIMO_H = 24 * 30;
 const MAXIMO_DE_COPIAS_MANTIDAS = 365;
+const ULTIMO_DIA_DA_SEMANA = 6;
+const ULTIMO_DIA_DO_MES_ACEITO = 28;
 
 const esquemaDoBackup = z
   .object({
@@ -33,11 +36,31 @@ const esquemaDoBackup = z
         `O caminho deve ter no máximo ${TAMANHO_MAXIMO_DO_CAMINHO} caracteres.`,
       )
       .refine((pasta) => pasta === '' || isAbsolute(pasta), 'Informe o caminho completo da pasta.'),
+    /* Ausentes, valem os padrões: uma tela antiga não manda a agenda. */
+    frequencia: z
+      .enum(FREQUENCIAS_DO_BACKUP, { error: 'Escolha a frequência do backup.' })
+      .default('intervalo'),
     intervaloHoras: z.coerce
       .number({ error: 'O intervalo deve ser um número de horas.' })
       .int('O intervalo deve ser um número inteiro de horas.')
       .min(1, 'O intervalo deve ser de pelo menos 1 hora.')
       .max(INTERVALO_MAXIMO_H, `O intervalo deve ser de no máximo ${INTERVALO_MAXIMO_H} horas.`),
+    horario: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Informe o horário no formato HH:MM.')
+      .default('18:00'),
+    diaDaSemana: z.coerce
+      .number()
+      .int('Escolha o dia da semana.')
+      .min(0, 'Escolha o dia da semana.')
+      .max(ULTIMO_DIA_DA_SEMANA, 'Escolha o dia da semana.')
+      .default(5),
+    diaDoMes: z.coerce
+      .number()
+      .int('O dia do mês deve ser um número inteiro.')
+      .min(1, 'O dia do mês deve ser de 1 a 28.')
+      .max(ULTIMO_DIA_DO_MES_ACEITO, 'O dia do mês deve ser de 1 a 28, que existem em todo mês.')
+      .default(1),
     copiasMantidas: z.coerce
       .number({ error: 'A quantidade de cópias deve ser um número.' })
       .int('A quantidade de cópias deve ser um número inteiro.')

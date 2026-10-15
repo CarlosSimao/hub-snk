@@ -4435,6 +4435,15 @@ button.selo-situacao:focus-visible {
   padding: 5px 8px;
 }
 
+.campo-numerico-inline input[type='time'] {
+  width: 96px;
+}
+
+.campo-numerico-inline select {
+  width: auto;
+  padding: 5px 8px;
+}
+
 .lista-de-copias {
   max-height: 120px;
   overflow-y: auto;

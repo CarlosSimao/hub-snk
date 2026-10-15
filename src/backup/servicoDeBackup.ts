@@ -14,6 +14,7 @@ import type { DadosDeNotificacao } from '../notificacoes/centralDeNotificacoes.t
 import { dataIsoLocal } from '../notificacoes/relogio.ts';
 import { FilaDeOperacoes } from '../repositorio/arquivo/filaDeOperacoes.ts';
 import type { ConfiguracaoDeBackup } from '../tipos.ts';
+import { ultimoHorarioAgendado } from './agendaDoBackup.ts';
 import { ArquivoDeEstadoDoBackup, type EstadoDoBackup } from './estadoDoBackup.ts';
 import {
   conferirPacote,
@@ -262,7 +263,10 @@ export class ServicoDeBackup {
       return false;
     }
     const ultimoMs = estado.local.ultimoEm ? Date.parse(estado.local.ultimoEm) : 0;
-    return agoraMs - ultimoMs >= configuracao.intervaloHoras * MILISSEGUNDOS_POR_HORA;
+    if (configuracao.frequencia === 'intervalo') {
+      return agoraMs - ultimoMs >= configuracao.intervaloHoras * MILISSEGUNDOS_POR_HORA;
+    }
+    return ultimoMs < ultimoHorarioAgendado(new Date(agoraMs), configuracao).getTime();
   }
 
   async #contaPodeGuardarCopia(): Promise<boolean> {
