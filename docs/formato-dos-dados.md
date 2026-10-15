@@ -137,10 +137,12 @@ Geral** que dizem quem usa o aplicativo (a empresa é a da pessoa, e não um cli
 cadastro). Os três são obrigatórios para abrir um relato ao suporte e seguem com ele.
 Arquivo de antes dos campos nasce com eles vazios.
 
-`backup` é a configuração da janela **Backup e Google Drive**: `ativo`, `pasta`,
-`intervaloHoras` e `copiasMantidas` do backup periódico, e `espelharNoDrive` da cópia
-no Google Drive. Arquivo de antes do campo nasce com tudo desligado, 24 horas e 10
-cópias. A conta do Google não fica aqui nem na pasta de dados: a autorização vai para o
+`backup` é a configuração da janela **Backup e Google Drive**: `ativo`, `pasta` e
+`copiasMantidas` do backup periódico, com a agenda dele, e `espelharNoDrive` da cópia
+no Google Drive. A agenda: `frequencia` `intervalo` grava a cada `intervaloHoras`;
+`diaria`, `semanal` e `mensal` gravam no `horario` (`HH:MM`, hora local), no
+`diaDaSemana` (0 é domingo) ou no `diaDoMes` (1 a 28). Arquivo de antes do campo nasce
+com tudo desligado, 24 horas e 10 cópias; arquivo de antes da agenda fica no intervalo. A conta do Google não fica aqui nem na pasta de dados: a autorização vai para o
 cofre do aplicativo (`%APPDATA%\HUB SNK\segredos.json`, cifrado), e o que o backup
 lembra desta máquina, para `%APPDATA%\HUB SNK\backup`.
 

@@ -62,7 +62,11 @@ function criarSimulacao() {
       configuracao: {
         ativo: false,
         pasta: '',
+        frequencia: 'intervalo',
         intervaloHoras: 24,
+        horario: '18:00',
+        diaDaSemana: 5,
+        diaDoMes: 1,
         copiasMantidas: 10,
         espelharNoDrive: false,
       },
@@ -196,12 +200,16 @@ export async function roteiro({ painel, print }) {
     ],
   });
   await fecharAvisos();
-  await painel.fill('#campo-backup-intervalo', '12');
-  await painel.locator('#campo-backup-intervalo').press('Tab');
-  await esperarAviso('Intervalo do backup salvo.');
+  await painel.selectOption('#campo-backup-frequencia', 'semanal');
+  await esperarAviso('Frequência do backup salva.');
+  await fecharAvisos();
+  await painel.selectOption('#campo-backup-dia-da-semana', '5');
+  await esperarAviso('Dia do backup salvo.');
   await print('periodico-03-intervalo', {
     destacando: [
-      painel.locator('label[for="campo-backup-intervalo"]'),
+      painel.locator('label[for="campo-backup-frequencia"]'),
+      painel.locator('label[for="campo-backup-dia-da-semana"]'),
+      painel.locator('label[for="campo-backup-horario"]'),
       painel.locator('label[for="campo-backup-copias"]'),
     ],
   });

@@ -27,6 +27,27 @@ function formatarData(iso) {
 /** De quanto em quanto a tela pergunta se o consentimento do Google já foi concluído. */
 const INTERVALO_DA_ESPERA_DA_AUTORIZACAO_MS = 2_000;
 
+const FREQUENCIAS = [
+  ['intervalo', 'A cada'],
+  ['diaria', 'Todo dia'],
+  ['semanal', 'Toda semana'],
+  ['mensal', 'Todo mês'],
+];
+
+/* Na ordem do `getDay()`: 0 é domingo. */
+const DIAS_DA_SEMANA = [
+  [0, 'no domingo'],
+  [1, 'na segunda'],
+  [2, 'na terça'],
+  [3, 'na quarta'],
+  [4, 'na quinta'],
+  [5, 'na sexta'],
+  [6, 'no sábado'],
+];
+
+/* Do 29 em diante não existe em todo mês. */
+const ULTIMO_DIA_DO_MES_ACEITO = 28;
+
 export function iniciarBackup(dependencias) {
   const {
     requisitar,
@@ -247,6 +268,88 @@ export function iniciarBackup(dependencias) {
     return campo;
   }
 
+  function criarSelecao(id, texto, opcoes, valor, aoMudar) {
+    const campo = criarElemento('label', 'campo-numerico-inline');
+    campo.htmlFor = id;
+    const selecao = criarElemento('select');
+    selecao.id = id;
+    selecao.append(...opcoes.map(([chave, rotulo]) => new Option(rotulo, String(chave))));
+    selecao.value = String(valor);
+    selecao.disabled = Boolean(estado.ocupado);
+    selecao.addEventListener('change', () => aoMudar(selecao.value));
+    campo.append(texto, selecao);
+    return campo;
+  }
+
+  function criarCampoDeHorario(valor) {
+    const campo = criarElemento('label', 'campo-numerico-inline');
+    campo.htmlFor = 'campo-backup-horario';
+    const entrada = criarElemento('input');
+    entrada.id = 'campo-backup-horario';
+    entrada.type = 'time';
+    entrada.value = valor;
+    entrada.disabled = Boolean(estado.ocupado);
+    entrada.addEventListener('change', () => {
+      if (!entrada.value) {
+        entrada.value = valor;
+        return;
+      }
+      void salvarConfiguracao({ horario: entrada.value }, 'Horário do backup salvo.');
+    });
+    campo.append('às', entrada);
+    return campo;
+  }
+
+  /* A cada N horas, ou num horário: todo dia, num dia da semana ou num dia do mês. */
+  function criarCamposDaAgenda(configuracao) {
+    const frequencia = criarSelecao(
+      'campo-backup-frequencia',
+      '',
+      FREQUENCIAS,
+      configuracao.frequencia,
+      (valor) => salvarConfiguracao({ frequencia: valor }, 'Frequência do backup salva.'),
+    );
+    if (configuracao.frequencia === 'intervalo') {
+      return [
+        frequencia,
+        criarCampoNumerico(
+          'campo-backup-intervalo',
+          '',
+          'h',
+          configuracao.intervaloHoras,
+          1,
+          720,
+          (intervaloHoras) => salvarConfiguracao({ intervaloHoras }, 'Intervalo do backup salvo.'),
+        ),
+      ];
+    }
+    const dia =
+      configuracao.frequencia === 'semanal'
+        ? [
+            criarSelecao(
+              'campo-backup-dia-da-semana',
+              '',
+              DIAS_DA_SEMANA,
+              configuracao.diaDaSemana,
+              (valor) => salvarConfiguracao({ diaDaSemana: Number(valor) }, 'Dia do backup salvo.'),
+            ),
+          ]
+        : configuracao.frequencia === 'mensal'
+          ? [
+              criarCampoNumerico(
+                'campo-backup-dia-do-mes',
+                'no dia',
+                '',
+                configuracao.diaDoMes,
+                1,
+                ULTIMO_DIA_DO_MES_ACEITO,
+                (diaDoMes) => salvarConfiguracao({ diaDoMes }, 'Dia do backup salvo.'),
+              ),
+            ]
+          : [];
+    return [frequencia, ...dia, criarCampoDeHorario(configuracao.horario)];
+  }
+
   function seloDoDrive() {
     const { drive } = estado;
     if (drive.conectado) return { classe: 'ok', texto: 'Conectado' };
@@ -446,15 +549,7 @@ export function iniciarBackup(dependencias) {
       criarLinha(
         caixa,
         criarElemento('span', 'rodape-espacador'),
-        criarCampoNumerico(
-          'campo-backup-intervalo',
-          'a cada',
-          'h',
-          configuracao.intervaloHoras,
-          1,
-          720,
-          (intervaloHoras) => salvarConfiguracao({ intervaloHoras }, 'Intervalo do backup salvo.'),
-        ),
+        ...criarCamposDaAgenda(configuracao),
         criarCampoNumerico(
           'campo-backup-copias',
           'manter as últimas',

@@ -12,6 +12,7 @@ import {
 } from '../../kanban/tiposDoKanban.ts';
 import {
   DESTINOS_DE_LINK,
+  FREQUENCIAS_DO_BACKUP,
   FUNCIONALIDADES,
   SEGURANCAS_SMTP,
   type AlertaDaAgenda,
@@ -21,6 +22,7 @@ import {
   type ConfiguracaoGlobal,
   type ConfiguracaoSmtp,
   type DestinoDeLink,
+  type FrequenciaDoBackup,
   type Funcionalidade,
 } from '../../tipos.ts';
 import {
@@ -76,12 +78,24 @@ const ASSISTENTE_DE_IA_INICIAL: ConfiguracaoDoAssistenteDeIa = {
 
 const INTERVALO_DO_BACKUP_PADRAO_H = 24;
 const COPIAS_DE_BACKUP_MANTIDAS_PADRAO = 10;
+/* Fim do expediente; sexta-feira; o dia 1, que existe em todo mês. */
+const HORARIO_DO_BACKUP_PADRAO = '18:00';
+const DIA_DA_SEMANA_DO_BACKUP_PADRAO = 5;
+const DIA_DO_MES_DO_BACKUP_PADRAO = 1;
+const ULTIMO_DIA_DA_SEMANA = 6;
+const ULTIMO_DIA_DO_MES_ACEITO = 28;
+const HORARIO_VALIDO = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /* Nasce desligado e sem pasta: o HUB SNK não grava fora da pasta de dados sem alguém pedir. */
 export const BACKUP_INICIAL: ConfiguracaoDeBackup = {
   ativo: false,
   pasta: '',
+  // Quem já tinha backup continua no intervalo em horas, como antes da agenda.
+  frequencia: 'intervalo',
   intervaloHoras: INTERVALO_DO_BACKUP_PADRAO_H,
+  horario: HORARIO_DO_BACKUP_PADRAO,
+  diaDaSemana: DIA_DA_SEMANA_DO_BACKUP_PADRAO,
+  diaDoMes: DIA_DO_MES_DO_BACKUP_PADRAO,
   copiasMantidas: COPIAS_DE_BACKUP_MANTIDAS_PADRAO,
   espelharNoDrive: false,
 };
@@ -268,6 +282,10 @@ function lerBackup(valor: unknown): ConfiguracaoDeBackup {
     return { ...BACKUP_INICIAL };
   }
 
+  const inteiroEntre = (bruto: unknown, minimo: number, maximo: number, padrao: number) => {
+    const numero = numeroOuPadrao(bruto, padrao);
+    return Number.isInteger(numero) && numero >= minimo && numero <= maximo ? numero : padrao;
+  };
   const inteiroPositivo = (bruto: unknown, padrao: number): number => {
     const numero = numeroOuPadrao(bruto, padrao);
     return Number.isInteger(numero) && numero >= 1 ? numero : padrao;
@@ -276,7 +294,21 @@ function lerBackup(valor: unknown): ConfiguracaoDeBackup {
   return {
     ativo: booleanoOuPadrao(valor.ativo, BACKUP_INICIAL.ativo),
     pasta: textoOuPadrao(valor.pasta, BACKUP_INICIAL.pasta).trim(),
+    frequencia: (FREQUENCIAS_DO_BACKUP as readonly unknown[]).includes(valor.frequencia)
+      ? (valor.frequencia as FrequenciaDoBackup)
+      : BACKUP_INICIAL.frequencia,
     intervaloHoras: inteiroPositivo(valor.intervaloHoras, BACKUP_INICIAL.intervaloHoras),
+    horario:
+      typeof valor.horario === 'string' && HORARIO_VALIDO.test(valor.horario)
+        ? valor.horario
+        : BACKUP_INICIAL.horario,
+    diaDaSemana: inteiroEntre(
+      valor.diaDaSemana,
+      0,
+      ULTIMO_DIA_DA_SEMANA,
+      BACKUP_INICIAL.diaDaSemana,
+    ),
+    diaDoMes: inteiroEntre(valor.diaDoMes, 1, ULTIMO_DIA_DO_MES_ACEITO, BACKUP_INICIAL.diaDoMes),
     copiasMantidas: inteiroPositivo(valor.copiasMantidas, BACKUP_INICIAL.copiasMantidas),
     espelharNoDrive: booleanoOuPadrao(valor.espelharNoDrive, BACKUP_INICIAL.espelharNoDrive),
   };

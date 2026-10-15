@@ -106,7 +106,11 @@ function configuracaoValida(extra: Record<string, unknown> = {}) {
   return {
     ativo: true,
     pasta: destino,
+    frequencia: 'semanal',
     intervaloHoras: 12,
+    horario: '08:30',
+    diaDaSemana: 1,
+    diaDoMes: 15,
     copiasMantidas: 5,
     espelharNoDrive: false,
     ...extra,
@@ -121,7 +125,11 @@ describe('GET /api/backup', () => {
       configuracao: {
         ativo: false,
         pasta: '',
+        frequencia: 'intervalo',
         intervaloHoras: 24,
+        horario: '18:00',
+        diaDaSemana: 5,
+        diaDoMes: 1,
         copiasMantidas: 10,
         espelharNoDrive: false,
       },
@@ -167,6 +175,10 @@ describe('PUT /api/backup/configuracao', () => {
       configuracaoValida({ intervaloHoras: 1.5 }),
       configuracaoValida({ copiasMantidas: 0 }),
       configuracaoValida({ copiasMantidas: 9999 }),
+      configuracaoValida({ frequencia: 'anual' }),
+      configuracaoValida({ horario: '24:00' }),
+      configuracaoValida({ diaDaSemana: 7 }),
+      configuracaoValida({ diaDoMes: 29 }),
       { ativo: true },
     ];
     for (const payload of recusadas) {

@@ -110,7 +110,11 @@ beforeEach(async () => {
   configuracao = {
     ativo: true,
     pasta: destino,
+    frequencia: 'intervalo',
     intervaloHoras: 24,
+    horario: '18:00',
+    diaDaSemana: 5,
+    diaDoMes: 1,
     copiasMantidas: 3,
     espelharNoDrive: false,
   };
@@ -172,6 +176,27 @@ describe('backup periódico numa pasta', () => {
     await alterarDados();
     await servico.conferir();
     assert.equal((await backupsGravados()).length, 2);
+  });
+
+  it('na agenda diária, grava a partir do horário e uma vez por dia', async () => {
+    configuracao = { ...configuracao, frequencia: 'diaria', horario: '18:00' };
+    const servico = criarServico();
+    await servico.conferir();
+    assert.equal((await backupsGravados()).length, 1, 'o atrasado de ontem sai na largada');
+
+    avancar(8 * UMA_HORA_MS);
+    await alterarDados();
+    await servico.conferir();
+    assert.equal((await backupsGravados()).length, 1, 'às 17:00 ainda não é hora');
+
+    avancar(UMA_HORA_MS);
+    await servico.conferir();
+    assert.equal((await backupsGravados()).length, 2, 'às 18:00 grava');
+
+    avancar(2 * UMA_HORA_MS);
+    await alterarDados();
+    await servico.conferir();
+    assert.equal((await backupsGravados()).length, 2, 'o de hoje já foi feito');
   });
 
   it('mantém só as cópias mais recentes e não apaga o que não é backup dele', async () => {
