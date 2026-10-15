@@ -1,0 +1,1445 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <!-- Gerada para a wiki: telas fictícias no lugar do WhatsApp Web e do Google. -->
+    <meta charset="utf-8" />
+    <link rel="icon" href="/favicon_dot_64px.png" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: #fff;
+        font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+      }
+      section {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        position: relative;
+        display: none;
+        font-size: 14px;
+        color: #1f1f1f;
+      }
+      .av {
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-weight: 600;
+        flex: none;
+      }
+      .linha {
+        display: flex;
+        align-items: center;
+      }
+      .cresce {
+        flex: 1;
+        min-width: 0;
+      }
+      .corta {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .ico {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: currentColor;
+        opacity: 0.55;
+        flex: none;
+      }
+
+      /* WhatsApp */
+      #whatsapp {
+        background: #f0f2f5;
+      }
+      #whatsapp .trilho {
+        width: 60px;
+        background: #f0f2f5;
+        border-right: 1px solid #e0e0e0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 22px;
+        padding-top: 18px;
+        color: #54656f;
+      }
+      #whatsapp .lista {
+        width: 400px;
+        background: #fff;
+        border-right: 1px solid #e9edef;
+        display: flex;
+        flex-direction: column;
+      }
+      #whatsapp .lista h1 {
+        font-size: 22px;
+        color: #1daa61;
+        padding: 18px 20px 12px;
+        font-weight: 700;
+      }
+      #whatsapp .busca {
+        margin: 0 14px 10px;
+        background: #f0f2f5;
+        border-radius: 20px;
+        padding: 9px 16px;
+        color: #667781;
+      }
+      #whatsapp .filtros {
+        display: flex;
+        gap: 8px;
+        padding: 0 14px 10px;
+      }
+      #whatsapp .filtros span {
+        padding: 5px 13px;
+        border-radius: 16px;
+        background: #f0f2f5;
+        color: #54656f;
+        font-size: 13px;
+      }
+      #whatsapp .filtros span.ativo {
+        background: #d9fdd3;
+        color: #008069;
+      }
+      #whatsapp .conversa {
+        display: flex;
+        gap: 13px;
+        padding: 10px 16px;
+        align-items: center;
+      }
+      #whatsapp .conversa.sel {
+        background: #f0f2f5;
+      }
+      #whatsapp .conversa .av {
+        width: 48px;
+        height: 48px;
+        font-size: 17px;
+      }
+      #whatsapp .conversa .nome {
+        font-size: 16px;
+        color: #111b21;
+      }
+      #whatsapp .conversa .prev {
+        color: #667781;
+        font-size: 14px;
+        margin-top: 2px;
+      }
+      #whatsapp .conversa .hora {
+        color: #667781;
+        font-size: 12px;
+      }
+      #whatsapp .conversa .hora.nova {
+        color: #1daa61;
+      }
+      #whatsapp .badge {
+        background: #25d366;
+        color: #fff;
+        border-radius: 10px;
+        font-size: 12px;
+        padding: 1px 7px;
+        margin-top: 4px;
+        float: right;
+      }
+      #whatsapp .chat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: #efeae2;
+      }
+      #whatsapp .topo {
+        background: #f0f2f5;
+        padding: 10px 16px;
+        gap: 13px;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      #whatsapp .topo .av {
+        width: 40px;
+        height: 40px;
+      }
+      #whatsapp .msgs {
+        flex: 1;
+        padding: 20px 60px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      #whatsapp .dia {
+        align-self: center;
+        background: #fff;
+        color: #54656f;
+        font-size: 12.5px;
+        padding: 5px 12px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+      }
+      #whatsapp .m {
+        max-width: 62%;
+        padding: 7px 10px 8px;
+        border-radius: 8px;
+        font-size: 14.5px;
+        line-height: 1.38;
+        box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+      }
+      #whatsapp .m.ela {
+        background: #fff;
+        align-self: flex-start;
+      }
+      #whatsapp .m.eu {
+        background: #d9fdd3;
+        align-self: flex-end;
+      }
+      #whatsapp .m small {
+        display: block;
+        text-align: right;
+        color: #667781;
+        font-size: 11px;
+        margin-top: 2px;
+      }
+      #whatsapp .m.eu small::after {
+        content: ' ✓✓';
+        color: #53bdeb;
+      }
+      #whatsapp .digitar {
+        background: #f0f2f5;
+        padding: 10px 16px;
+        gap: 14px;
+        color: #54656f;
+      }
+      #whatsapp .digitar div.cresce {
+        background: #fff;
+        border-radius: 10px;
+        padding: 11px 14px;
+        color: #667781;
+      }
+
+      /* Gmail */
+      #gmail {
+        background: #f8fafd;
+        flex-direction: column;
+      }
+      #gmail .barra {
+        height: 64px;
+        padding: 0 16px;
+        gap: 14px;
+      }
+      #gmail .logo {
+        font-size: 22px;
+        color: #444746;
+        width: 200px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #gmail .logo b {
+        width: 32px;
+        height: 24px;
+        border-radius: 4px;
+        background: linear-gradient(
+          135deg,
+          #ea4335 0 30%,
+          #fbbc04 30% 50%,
+          #34a853 50% 70%,
+          #4285f4 70%
+        );
+      }
+      #gmail .pesquisa {
+        flex: 1;
+        max-width: 720px;
+        background: #e9eef6;
+        border-radius: 24px;
+        padding: 12px 20px;
+        color: #444746;
+        font-size: 16px;
+      }
+      #gmail .corpo {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+      }
+      #gmail nav {
+        width: 236px;
+        padding: 0 8px 0 0;
+      }
+      #gmail .escrever {
+        margin: 8px 0 16px 8px;
+        width: 140px;
+        background: #c2e7ff;
+        border-radius: 16px;
+        padding: 18px 20px;
+        font-weight: 500;
+        color: #001d35;
+      }
+      #gmail nav div.item {
+        padding: 7px 12px 7px 26px;
+        border-radius: 0 16px 16px 0;
+        color: #202124;
+        display: flex;
+        justify-content: space-between;
+      }
+      #gmail nav div.item.sel {
+        background: #d3e3fd;
+        font-weight: 700;
+        color: #001d35;
+      }
+      #gmail nav h4 {
+        font-size: 15px;
+        font-weight: 500;
+        padding: 18px 26px 6px;
+      }
+      #gmail nav .marc {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 6px 26px;
+      }
+      #gmail nav .marc i {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+      }
+      #gmail .caixa {
+        flex: 1;
+        background: #fff;
+        border-radius: 16px;
+        margin: 0 16px 16px 0;
+        overflow: hidden;
+      }
+      #gmail .abas {
+        display: flex;
+        border-bottom: 1px solid #f1f3f4;
+        padding-top: 6px;
+      }
+      #gmail .abas div {
+        width: 220px;
+        padding: 14px 18px;
+        color: #444746;
+        font-weight: 500;
+      }
+      #gmail .abas div.sel {
+        color: #0b57d0;
+        box-shadow: inset 0 -3px #0b57d0;
+      }
+      #gmail .email {
+        display: flex;
+        gap: 16px;
+        padding: 0 18px;
+        height: 41px;
+        align-items: center;
+        border-bottom: 1px solid #f1f3f4;
+        color: #5f6368;
+      }
+      #gmail .email.nova {
+        background: #fff;
+        color: #1f1f1f;
+        font-weight: 700;
+      }
+      #gmail .email:not(.nova) {
+        background: #f2f6fc;
+      }
+      #gmail .email .de {
+        width: 200px;
+      }
+      #gmail .email .assunto {
+        flex: 1;
+      }
+      #gmail .email .assunto span {
+        font-weight: 400;
+        color: #5f6368;
+      }
+      #gmail .email .quando {
+        width: 70px;
+        text-align: right;
+        font-size: 12.5px;
+      }
+      #gmail .chk {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #c4c7c5;
+        border-radius: 2px;
+        flex: none;
+      }
+      #gmail .estrela {
+        color: #c4c7c5;
+        font-size: 17px;
+      }
+      #gmail .estrela.on {
+        color: #f4b400;
+      }
+      #gmail .etq {
+        font-size: 11px;
+        font-weight: 500;
+        padding: 1px 6px;
+        border-radius: 4px;
+        margin-right: 6px;
+      }
+
+      /* Google Chat */
+      #chat {
+        background: #f8fafd;
+        flex-direction: column;
+      }
+      #chat .barra {
+        height: 64px;
+        padding: 0 16px;
+        gap: 14px;
+      }
+      #chat .logo {
+        width: 236px;
+        font-size: 22px;
+        color: #444746;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      #chat .logo b {
+        width: 30px;
+        height: 26px;
+        border-radius: 6px 6px 6px 0;
+        background: #00ac47;
+      }
+      #chat .corpo {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+      }
+      #chat nav {
+        width: 290px;
+        padding-right: 8px;
+      }
+      #chat .novo {
+        margin: 4px 0 14px 10px;
+        width: 128px;
+        background: #c2e7ff;
+        border-radius: 16px;
+        padding: 16px 20px;
+        font-weight: 500;
+      }
+      #chat nav h4 {
+        font-size: 13px;
+        font-weight: 600;
+        color: #444746;
+        padding: 12px 20px 6px;
+      }
+      #chat nav .item {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 6px 20px;
+        border-radius: 0 18px 18px 0;
+        color: #1f1f1f;
+      }
+      #chat nav .item.sel {
+        background: #d3e3fd;
+        font-weight: 700;
+      }
+      #chat nav .item.nl {
+        font-weight: 700;
+      }
+      #chat nav .av {
+        width: 26px;
+        height: 26px;
+        font-size: 11px;
+      }
+      #chat nav .sq {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-weight: 700;
+        font-size: 12px;
+        flex: none;
+      }
+      #chat .sala {
+        flex: 1;
+        background: #fff;
+        border-radius: 16px;
+        margin: 0 16px 16px 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      #chat .sala .cab {
+        padding: 14px 22px;
+        border-bottom: 1px solid #e3e3e3;
+        gap: 12px;
+      }
+      #chat .sala .cab .sq {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: #0b57d0;
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+      }
+      #chat .msgs {
+        flex: 1;
+        padding: 18px 26px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      #chat .msg {
+        display: flex;
+        gap: 14px;
+      }
+      #chat .msg .av {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+      }
+      #chat .msg b {
+        font-size: 14px;
+      }
+      #chat .msg small {
+        color: #5f6368;
+        margin-left: 8px;
+      }
+      #chat .msg p {
+        margin-top: 3px;
+        line-height: 1.45;
+        color: #1f1f1f;
+      }
+      #chat .reacao {
+        display: inline-block;
+        margin-top: 6px;
+        background: #e8f0fe;
+        border: 1px solid #c2d7f7;
+        border-radius: 12px;
+        padding: 1px 9px;
+        font-size: 13px;
+      }
+      #chat .escrever {
+        margin: 0 22px 18px;
+        background: #f0f4f9;
+        border-radius: 24px;
+        padding: 13px 20px;
+        color: #5f6368;
+      }
+
+      /* Google Agenda */
+      #agenda {
+        background: #f8fafd;
+        flex-direction: column;
+      }
+      #agenda .barra {
+        height: 64px;
+        padding: 0 16px;
+        gap: 18px;
+      }
+      #agenda .logo {
+        width: 226px;
+        font-size: 22px;
+        color: #444746;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      #agenda .logo b {
+        width: 30px;
+        height: 30px;
+        border-radius: 5px;
+        border: 3px solid #4285f4;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        color: #4285f4;
+      }
+      #agenda .hoje {
+        border: 1px solid #747775;
+        border-radius: 18px;
+        padding: 7px 20px;
+        font-weight: 500;
+      }
+      #agenda .mes {
+        font-size: 22px;
+        color: #1f1f1f;
+      }
+      #agenda .corpo {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+      }
+      #agenda nav {
+        width: 250px;
+        padding: 4px 16px;
+      }
+      #agenda .criar {
+        width: 130px;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        border-radius: 16px;
+        padding: 16px 22px;
+        font-weight: 500;
+        margin-bottom: 18px;
+      }
+      #agenda .mini {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px 0;
+        text-align: center;
+        font-size: 11.5px;
+        color: #3c4043;
+      }
+      #agenda .mini b {
+        font-weight: 500;
+        color: #70757a;
+      }
+      #agenda .mini .h {
+        background: #0b57d0;
+        color: #fff;
+        border-radius: 50%;
+      }
+      #agenda nav h4 {
+        margin: 22px 0 8px;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      #agenda nav .cal {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 5px 0;
+      }
+      #agenda nav .cal i {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+      }
+      #agenda .grade {
+        flex: 1;
+        background: #fff;
+        border-radius: 16px;
+        margin: 0 16px 16px 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      #agenda .dias {
+        display: grid;
+        grid-template-columns: 56px repeat(5, 1fr);
+        border-bottom: 1px solid #dadce0;
+        padding: 10px 0 8px;
+      }
+      #agenda .dias div {
+        text-align: center;
+        color: #444746;
+        font-size: 11px;
+        font-weight: 500;
+      }
+      #agenda .dias div span {
+        display: block;
+        margin: 4px auto 0;
+        font-size: 24px;
+        width: 44px;
+        height: 44px;
+        line-height: 44px;
+        border-radius: 50%;
+        color: #1f1f1f;
+        font-weight: 400;
+      }
+      #agenda .dias div.h {
+        color: #0b57d0;
+      }
+      #agenda .dias div.h span {
+        background: #0b57d0;
+        color: #fff;
+      }
+      #agenda .horas {
+        flex: 1;
+        position: relative;
+        display: grid;
+        grid-template-columns: 56px repeat(5, 1fr);
+      }
+      #agenda .horas .col {
+        border-left: 1px solid #dadce0;
+        position: relative;
+        background: repeating-linear-gradient(#fff 0 55px, #dadce0 55px 56px);
+      }
+      #agenda .horas .rot {
+        position: relative;
+      }
+      #agenda .horas .rot span {
+        position: absolute;
+        right: 8px;
+        font-size: 10.5px;
+        color: #70757a;
+      }
+      #agenda .ev {
+        position: absolute;
+        left: 3px;
+        right: 6px;
+        border-radius: 6px;
+        padding: 4px 8px;
+        color: #fff;
+        font-size: 12px;
+        line-height: 1.3;
+        overflow: hidden;
+      }
+      #agenda .ev b {
+        display: block;
+        font-weight: 600;
+      }
+      #agenda .agora {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #ea4335;
+        z-index: 2;
+      }
+      #agenda .agora::before {
+        content: '';
+        position: absolute;
+        left: -6px;
+        top: -5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ea4335;
+      }
+
+      section.ativa {
+        display: flex;
+      }
+
+      /* Gmail: e-mail novo */
+      #gmail .novo-email {
+        position: absolute;
+        right: 24px;
+        bottom: 0;
+        width: 520px;
+        height: 470px;
+        background: #fff;
+        border-radius: 12px 12px 0 0;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+        display: none;
+        flex-direction: column;
+      }
+      #gmail.compondo .novo-email {
+        display: flex;
+      }
+      #gmail .novo-email header {
+        background: #f2f6fc;
+        border-radius: 12px 12px 0 0;
+        padding: 11px 16px;
+        font-weight: 500;
+        display: flex;
+        justify-content: space-between;
+      }
+      #gmail .novo-email .campo {
+        margin: 0 16px;
+        padding: 9px 0;
+        border-bottom: 1px solid #e8eaed;
+        color: #5f6368;
+      }
+      #gmail .novo-email .campo b {
+        font-weight: 400;
+        color: #1f1f1f;
+        background: #e8f0fe;
+        border-radius: 12px;
+        padding: 2px 10px;
+        margin-left: 6px;
+      }
+      #gmail .novo-email .corpo-do-email {
+        flex: 1;
+      }
+      #gmail .novo-email footer {
+        padding: 12px 16px;
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        color: #5f6368;
+      }
+      #gmail .novo-email footer span {
+        background: #0b57d0;
+        color: #fff;
+        border-radius: 18px;
+        padding: 9px 22px;
+        font-weight: 500;
+      }
+
+      /* Google Meet: página inicial */
+      #meet {
+        background: #fff;
+        flex-direction: column;
+      }
+      #meet .barra {
+        height: 64px;
+        padding: 0 24px;
+        gap: 12px;
+      }
+      #meet .logo {
+        font-size: 22px;
+        color: #444746;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      #meet .logo b {
+        width: 34px;
+        height: 26px;
+        border-radius: 6px;
+        background: linear-gradient(90deg, #00832d 0 55%, #ffba00 55% 100%);
+      }
+      #meet .hora {
+        color: #444746;
+        font-size: 17px;
+      }
+      #meet .inicio {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 48px;
+        padding: 0 56px;
+      }
+      #meet .chamada {
+        flex: 1;
+      }
+      #meet .chamada h1 {
+        font-size: 40px;
+        font-weight: 400;
+        line-height: 1.2;
+        color: #1f1f1f;
+      }
+      #meet .chamada p {
+        margin: 18px 0 32px;
+        font-size: 18px;
+        color: #444746;
+        line-height: 1.4;
+      }
+      #meet .acoes {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      #meet .acoes .nova {
+        background: #0b57d0;
+        color: #fff;
+        border-radius: 20px;
+        padding: 11px 20px;
+        font-weight: 500;
+      }
+      #meet .acoes .codigo {
+        border: 1px solid #747775;
+        border-radius: 6px;
+        padding: 11px 14px;
+        color: #5f6368;
+        width: 240px;
+      }
+      #meet .acoes .participar {
+        color: #9aa0a6;
+        font-weight: 500;
+      }
+      #meet .proximas {
+        width: 330px;
+        border: 1px solid #e0e3e7;
+        border-radius: 16px;
+        padding: 18px 20px;
+      }
+      #meet .proximas h2 {
+        font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 12px;
+      }
+      #meet .reuniao {
+        display: flex;
+        gap: 14px;
+        padding: 12px 0;
+        border-top: 1px solid #eef0f2;
+      }
+      #meet .reuniao b {
+        color: #0b57d0;
+        width: 46px;
+        flex: none;
+      }
+      #meet .reuniao small {
+        display: block;
+        color: #5f6368;
+        margin-top: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <section id="whatsapp">
+      <div class="trilho">
+        <i class="ico"></i><i class="ico"></i><i class="ico"></i><i class="ico"></i>
+      </div>
+      <div class="lista">
+        <h1>WhatsApp</h1>
+        <div class="busca">Pesquisar ou começar uma nova conversa</div>
+        <div class="filtros">
+          <span class="ativo">Tudo</span><span>Não lidas</span><span>Favoritas</span
+          ><span>Grupos</span>
+        </div>
+        <div class="conversa sel">
+          <div class="av" style="background: #7c4dff">MD</div>
+          <div class="cresce">
+            <div class="linha">
+              <span class="nome cresce">Marina Duarte · Boa Vista</span
+              ><span class="hora">10:42</span>
+            </div>
+            <div class="prev corta">✓✓ Combinado, às 14h então</div>
+          </div>
+        </div>
+        <div class="conversa">
+          <div class="av" style="background: #e65100">RC</div>
+          <div class="cresce">
+            <div class="linha">
+              <span class="nome cresce">Renata Campos · Alfa</span
+              ><span class="hora nova">10:31</span>
+            </div>
+            <div class="prev corta">
+              A nota 48.211 voltou com rejeição 539<span class="badge">2</span>
+            </div>
+          </div>
+        </div>
+        <div class="conversa">
+          <div class="av" style="background: #00897b">SP</div>
+          <div class="cresce">
+            <div class="linha">
+              <span class="nome cresce">Suporte Rota Sul</span><span class="hora nova">09:58</span>
+            </div>
+            <div class="prev corta">
+              Jorge: o frete não está calculando no pedido<span class="badge">5</span>
+            </div>
+          </div>
+        </div>
+        <div class="conversa">
+          <div class="av" style="background: #1565c0">PL</div>
+          <div class="cresce">
+            <div class="linha">
+              <span class="nome cresce">Paulo Henrique Lima</span><span class="hora">09:15</span>
+            </div>
+            <div class="prev corta">Obrigado pelo retorno, Ana!</div>
+          </div>
+        </div>
+        <div class="conversa">
+          <div class="av" style="background: #c2185b">EH</div>
+          <div class="cresce">
+            <div class="linha">
+              <span class="nome cresce">Equipe Horizonte – Obras</span
+              ><span class="hora">Ontem</span>
+            </div>
+            <div class="prev corta">Carla: subiu a versão nova na base de teste</div>
+          </div>
+        </div>
+        <div class="conversa">
+          <div class="av" style="background: #5d4037">FS</div>
+          <div class="cresce">
+            <div class="linha">
+              <span class="nome cresce">Fernando Souza · Vale do Café</span
+              ><span class="hora">Ontem</span>
+            </div>
+            <div class="prev corta">Pode olhar o relatório de cotas amanhã?</div>
+          </div>
+        </div>
+        <div class="conversa">
+          <div class="av" style="background: #455a64">CD</div>
+          <div class="cresce">
+            <div class="linha">
+              <span class="nome cresce">Consultoria Demo</span><span class="hora">Seg</span>
+            </div>
+            <div class="prev corta">Bruno: reunião de alinhamento às 9h</div>
+          </div>
+        </div>
+        <div class="conversa">
+          <div class="av" style="background: #2e7d32">NV</div>
+          <div class="cresce">
+            <div class="linha">
+              <span class="nome cresce">Norte Verde – TI</span><span class="hora">Seg</span>
+            </div>
+            <div class="prev corta">✓✓ Liberado o acesso à produção</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="topo linha">
+          <div class="av" style="background: #7c4dff">MD</div>
+          <div class="cresce">
+            <div style="font-size: 16px">Marina Duarte · Boa Vista</div>
+            <div style="font-size: 13px; color: #667781">online</div>
+          </div>
+          <i class="ico" style="color: #54656f"></i><i class="ico" style="color: #54656f"></i>
+        </div>
+        <div class="msgs">
+          <div class="dia">HOJE</div>
+          <div class="m ela">
+            Bom dia, Ana! A pesagem do lote 12 não integrou com a balança 😕<small>10:18</small>
+          </div>
+          <div class="m eu">
+            Bom dia, Marina! Já estou olhando na base de teste.<small>10:20</small>
+          </div>
+          <div class="m eu">
+            Achei: o código do brinco veio com zero à esquerda. Corrigi o parser e subi na
+            teste.<small>10:36</small>
+          </div>
+          <div class="m ela">
+            Perfeito! Consegue validar comigo hoje à tarde?<small>10:40</small>
+          </div>
+          <div class="m eu">Consigo sim. Te mando o link do Meet.<small>10:41</small></div>
+          <div class="m ela">Combinado, às 14h então 👍<small>10:42</small></div>
+        </div>
+        <div class="digitar linha">
+          <i class="ico"></i>
+          <div class="cresce">Digite uma mensagem</div>
+          <i class="ico"></i>
+        </div>
+      </div>
+    </section>
+
+    <section id="gmail">
+      <div class="barra linha">
+        <i class="ico" style="color: #444746"></i>
+        <div class="logo"><b></b>Gmail</div>
+        <div class="pesquisa">Pesquisar e-mail</div>
+        <div class="cresce"></div>
+        <div class="av" style="width: 34px; height: 34px; background: #0b8043; font-size: 14px">
+          AS
+        </div>
+      </div>
+      <div class="corpo">
+        <nav>
+          <div class="escrever">✎ Escrever</div>
+          <div class="item sel"><span>Caixa de entrada</span><span>7</span></div>
+          <div class="item"><span>Com estrela</span></div>
+          <div class="item"><span>Adiados</span></div>
+          <div class="item"><span>Enviados</span></div>
+          <div class="item"><span>Rascunhos</span><span>2</span></div>
+          <h4>Marcadores</h4>
+          <div class="marc"><i style="background: #16a765"></i>Clientes</div>
+          <div class="marc"><i style="background: #4986e7"></i>Ordens de serviço</div>
+          <div class="marc"><i style="background: #f691b2"></i>Projetos</div>
+          <div class="marc"><i style="background: #ffad46"></i>Faturamento</div>
+        </nav>
+        <div class="caixa">
+          <div class="abas">
+            <div class="sel">Principal</div>
+            <div>Promoções</div>
+            <div>Social</div>
+          </div>
+          <div class="email nova">
+            <i class="chk"></i><span class="estrela on">★</span
+            ><span class="de corta">Renata Campos</span
+            ><span class="assunto corta"
+              ><span class="etq" style="background: #ddf0e4; color: #0d652d">Clientes</span>Rejeição
+              539 na NF-e 48.211
+              <span>— Ana, segue o XML de retorno da Sefaz para análise…</span></span
+            ><span class="quando">10:31</span>
+          </div>
+          <div class="email nova">
+            <i class="chk"></i><span class="estrela">☆</span
+            ><span class="de corta">Portal de chamados</span
+            ><span class="assunto corta"
+              ><span class="etq" style="background: #dbe7fb; color: #174ea6">Ordens de serviço</span
+              >OS 2026-1187 atribuída a você
+              <span>— Transportadora Rota Sul: frete não calcula no pedido…</span></span
+            ><span class="quando">09:58</span>
+          </div>
+          <div class="email nova">
+            <i class="chk"></i><span class="estrela">☆</span
+            ><span class="de corta">Marina Duarte</span
+            ><span class="assunto corta"
+              >Validação da pesagem de rebanho
+              <span>— Combinamos às 14h, segue o roteiro de teste…</span></span
+            ><span class="quando">09:40</span>
+          </div>
+          <div class="email nova">
+            <i class="chk"></i><span class="estrela on">★</span
+            ><span class="de corta">Carla Mendes</span
+            ><span class="assunto corta"
+              ><span class="etq" style="background: #fde6ee; color: #a50e4b">Projetos</span
+              >Horizonte Obras — versão 3.4 na teste
+              <span>— Já podem homologar o apontamento de horas…</span></span
+            ><span class="quando">08:12</span>
+          </div>
+          <div class="email">
+            <i class="chk"></i><span class="estrela">☆</span
+            ><span class="de corta">Fernando Souza</span
+            ><span class="assunto corta"
+              >Relatório de cotas por cooperado
+              <span>— Bom dia! Conseguimos ver amanhã o ajuste do…</span></span
+            ><span class="quando">13 de out.</span>
+          </div>
+          <div class="email">
+            <i class="chk"></i><span class="estrela">☆</span
+            ><span class="de corta">Bruno Teixeira</span
+            ><span class="assunto corta"
+              >Agenda da semana — Consultoria Demo
+              <span>— Pessoal, segue a distribuição dos recursos…</span></span
+            ><span class="quando">13 de out.</span>
+          </div>
+          <div class="email">
+            <i class="chk"></i><span class="estrela">☆</span
+            ><span class="de corta">Paulo Henrique Lima</span
+            ><span class="assunto corta"
+              ><span class="etq" style="background: #fff0dc; color: #9c5700">Faturamento</span
+              >Aprovação das horas de setembro
+              <span>— Ana, aprovado. Pode seguir com a nota…</span></span
+            ><span class="quando">12 de out.</span>
+          </div>
+          <div class="email">
+            <i class="chk"></i><span class="estrela">☆</span
+            ><span class="de corta">Norte Verde – TI</span
+            ><span class="assunto corta"
+              >Acesso à base de produção liberado
+              <span>— Usuário SUP criado com o perfil de suporte…</span></span
+            ><span class="quando">12 de out.</span>
+          </div>
+          <div class="email">
+            <i class="chk"></i><span class="estrela">☆</span
+            ><span class="de corta">Metalúrgica Ferraço</span
+            ><span class="assunto corta"
+              >Ordem de produção travada no apontamento
+              <span>— Ao finalizar a OP 7.734 o sistema retorna…</span></span
+            ><span class="quando">11 de out.</span>
+          </div>
+          <div class="email">
+            <i class="chk"></i><span class="estrela">☆</span
+            ><span class="de corta">Laticínios Serra Azul</span
+            ><span class="assunto corta"
+              >Treinamento do módulo fiscal
+              <span>— Podemos marcar para a próxima quinta-feira?</span></span
+            ><span class="quando">10 de out.</span>
+          </div>
+          <div class="email">
+            <i class="chk"></i><span class="estrela">☆</span
+            ><span class="de corta">Renata Campos</span
+            ><span class="assunto corta"
+              >Cadastro de NCM das embalagens
+              <span>— Atualizamos os 42 itens conforme a planilha…</span></span
+            ><span class="quando">9 de out.</span>
+          </div>
+          <div class="email">
+            <i class="chk"></i><span class="estrela">☆</span
+            ><span class="de corta">Carla Mendes</span
+            ><span class="assunto corta"
+              >Ata da reunião de kickoff
+              <span>— Segue a ata com os próximos passos do projeto…</span></span
+            ><span class="quando">8 de out.</span>
+          </div>
+          <div class="email">
+            <i class="chk"></i><span class="estrela">☆</span
+            ><span class="de corta">Bruno Teixeira</span
+            ><span class="assunto corta"
+              >Banco de horas — outubro <span>— Lembrete: lançar as horas até sexta…</span></span
+            ><span class="quando">7 de out.</span>
+          </div>
+          <div class="email">
+            <i class="chk"></i><span class="estrela">☆</span
+            ><span class="de corta">Marina Duarte</span
+            ><span class="assunto corta"
+              >Lista de brincos do lote 12
+              <span>— Em anexo a planilha exportada da balança…</span></span
+            ><span class="quando">6 de out.</span>
+          </div>
+        </div>
+      </div>
+      <div class="novo-email">
+        <header>Nova mensagem <span>_ ⤢ ✕</span></header>
+        <div class="campo">Para<b id="para"></b></div>
+        <div class="campo">Assunto</div>
+        <div class="corpo-do-email"></div>
+        <footer><span>Enviar</span>A ⧉ ☺ 🖼 🔒 ✎</footer>
+      </div>
+    </section>
+
+    <section id="chat">
+      <div class="barra linha">
+        <i class="ico" style="color: #444746"></i>
+        <div class="logo"><b></b>Chat</div>
+        <div
+          class="pesquisa cresce"
+          style="
+            max-width: 720px;
+            background: #e9eef6;
+            border-radius: 24px;
+            padding: 12px 20px;
+            color: #444746;
+            font-size: 16px;
+          "
+        >
+          Pesquisar no chat
+        </div>
+        <div class="cresce"></div>
+        <div class="av" style="width: 34px; height: 34px; background: #0b8043; font-size: 14px">
+          AS
+        </div>
+      </div>
+      <div class="corpo">
+        <nav>
+          <div class="novo">＋ Novo chat</div>
+          <h4>Mensagens diretas</h4>
+          <div class="item nl">
+            <div class="av" style="background: #1565c0">BT</div>
+            Bruno Teixeira
+          </div>
+          <div class="item">
+            <div class="av" style="background: #c2185b">CM</div>
+            Carla Mendes
+          </div>
+          <div class="item">
+            <div class="av" style="background: #6a1b9a">LR</div>
+            Lucas Rocha
+          </div>
+          <h4>Espaços</h4>
+          <div class="item sel">
+            <div class="sq" style="background: #0b57d0">S</div>
+            Suporte – Consultoria Demo
+          </div>
+          <div class="item nl">
+            <div class="sq" style="background: #e37400">P</div>
+            Projeto Pesagem Boa Vista
+          </div>
+          <div class="item">
+            <div class="sq" style="background: #188038">A</div>
+            Agenda de recursos
+          </div>
+          <div class="item">
+            <div class="sq" style="background: #a142f4">D</div>
+            Devs Sankhya
+          </div>
+          <div class="item">
+            <div class="sq" style="background: #d93025">F</div>
+            Fiscal e NF-e
+          </div>
+        </nav>
+        <div class="sala">
+          <div class="cab linha">
+            <div class="sq">S</div>
+            <div>
+              <b style="font-size: 16px">Suporte – Consultoria Demo</b>
+              <div style="font-size: 12.5px; color: #5f6368">8 membros</div>
+            </div>
+          </div>
+          <div class="msgs">
+            <div class="msg">
+              <div class="av" style="background: #1565c0">BT</div>
+              <div>
+                <b>Bruno Teixeira</b><small>09:02</small>
+                <p>
+                  Bom dia, time! Rota Sul abriu a OS 2026-1187 sobre o frete no pedido. Quem pega?
+                </p>
+              </div>
+            </div>
+            <div class="msg">
+              <div class="av" style="background: #0b8043">AS</div>
+              <div>
+                <b>Ana Souza</b><small>09:05</small>
+                <p>Pego eu. Já tenho a base rotasul-prod salva no HUB, olho depois da daily.</p>
+                <span class="reacao">👍 3</span>
+              </div>
+            </div>
+            <div class="msg">
+              <div class="av" style="background: #6a1b9a">LR</div>
+              <div>
+                <b>Lucas Rocha</b><small>09:20</small>
+                <p>
+                  Ana, deve ser a regra de frete por faixa de peso que mudou na última atualização.
+                  Mudou o parâmetro de arredondamento.
+                </p>
+              </div>
+            </div>
+            <div class="msg">
+              <div class="av" style="background: #0b8043">AS</div>
+              <div>
+                <b>Ana Souza</b><small>10:04</small>
+                <p>
+                  Era isso mesmo! Ajustado na teste, aguardando o Jorge validar. Fecho a OS assim
+                  que ele confirmar ✅
+                </p>
+                <span class="reacao">🎉 4</span>
+              </div>
+            </div>
+            <div class="msg">
+              <div class="av" style="background: #c2185b">CM</div>
+              <div>
+                <b>Carla Mendes</b><small>10:12</small>
+                <p>Boa! Alguém consegue revisar o PR do horizonte-obras hoje?</p>
+              </div>
+            </div>
+          </div>
+          <div class="escrever">Mensagem para Suporte – Consultoria Demo</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="agenda">
+      <div class="barra linha">
+        <i class="ico" style="color: #444746"></i>
+        <div class="logo"><b>14</b>Agenda</div>
+        <span class="hoje">Hoje</span><span class="mes">Outubro de 2026</span>
+        <div class="cresce"></div>
+        <span class="hoje">Semana ▾</span>
+        <div class="av" style="width: 34px; height: 34px; background: #0b8043; font-size: 14px">
+          AS
+        </div>
+      </div>
+      <div class="corpo">
+        <nav>
+          <div class="criar">＋ Criar</div>
+          <div style="font-size: 14px; font-weight: 500; margin-bottom: 10px">outubro de 2026</div>
+          <div class="mini">
+            <b>D</b><b>S</b><b>T</b><b>Q</b><b>Q</b><b>S</b><b>S</b> <span></span><span></span
+            ><span></span><span></span><span>1</span><span>2</span><span>3</span> <span>4</span
+            ><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+            <span>11</span><span>12</span><span>13</span><span class="h">14</span><span>15</span
+            ><span>16</span><span>17</span> <span>18</span><span>19</span><span>20</span
+            ><span>21</span><span>22</span><span>23</span><span>24</span> <span>25</span
+            ><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span
+            ><span>31</span>
+          </div>
+          <h4>Minhas agendas</h4>
+          <div class="cal"><i style="background: #039be5"></i>Ana Souza</div>
+          <div class="cal"><i style="background: #33b679"></i>Clientes</div>
+          <div class="cal"><i style="background: #f4511e"></i>Ordens de serviço</div>
+          <div class="cal"><i style="background: #8e24aa"></i>Consultoria Demo</div>
+        </nav>
+        <div class="grade">
+          <div class="dias">
+            <div></div>
+            <div>SEG<span>12</span></div>
+            <div>TER<span>13</span></div>
+            <div class="h">QUA<span>14</span></div>
+            <div>QUI<span>15</span></div>
+            <div>SEX<span>16</span></div>
+          </div>
+          <div class="horas">
+            <div class="rot">
+              <span style="top: 50px">9h</span><span style="top: 106px">10h</span
+              ><span style="top: 162px">11h</span><span style="top: 218px">12h</span
+              ><span style="top: 274px">13h</span><span style="top: 330px">14h</span
+              ><span style="top: 386px">15h</span><span style="top: 442px">16h</span
+              ><span style="top: 498px">17h</span>
+            </div>
+            <div class="col">
+              <div class="ev" style="top: 56px; height: 26px; background: #8e24aa">
+                <b>Daily</b>
+              </div>
+              <div class="ev" style="top: 112px; height: 108px; background: #33b679">
+                <b>Indústria Alfa</b>Ajuste NCM das embalagens
+              </div>
+              <div class="ev" style="top: 336px; height: 164px; background: #f4511e">
+                <b>OS 2026-1172</b>Metalúrgica Ferraço · apontamento de OP
+              </div>
+            </div>
+            <div class="col">
+              <div class="ev" style="top: 56px; height: 26px; background: #8e24aa">
+                <b>Daily</b>
+              </div>
+              <div class="ev" style="top: 112px; height: 52px; background: #039be5">
+                <b>Revisão de PR</b>horizonte-obras
+              </div>
+              <div class="ev" style="top: 280px; height: 164px; background: #33b679">
+                <b>Vale do Café</b>Relatório de cotas por cooperado
+              </div>
+            </div>
+            <div class="col">
+              <div class="agora" style="top: 150px"></div>
+              <div class="ev" style="top: 56px; height: 26px; background: #8e24aa">
+                <b>Daily</b>
+              </div>
+              <div class="ev" style="top: 112px; height: 80px; background: #f4511e">
+                <b>OS 2026-1187</b>Rota Sul · frete no pedido
+              </div>
+              <div class="ev" style="top: 336px; height: 52px; background: #039be5">
+                <b>Validação pesagem</b>Marina Duarte · Meet
+              </div>
+              <div class="ev" style="top: 448px; height: 52px; background: #33b679">
+                <b>Laticínios Serra Azul</b>Treinamento fiscal
+              </div>
+            </div>
+            <div class="col">
+              <div class="ev" style="top: 56px; height: 26px; background: #8e24aa">
+                <b>Daily</b>
+              </div>
+              <div class="ev" style="top: 112px; height: 220px; background: #33b679">
+                <b>Construtora Horizonte</b>Homologação v3.4 · presencial
+              </div>
+              <div class="ev" style="top: 392px; height: 52px; background: #039be5">
+                <b>Banco de horas</b>lançar outubro
+              </div>
+            </div>
+            <div class="col">
+              <div class="ev" style="top: 56px; height: 26px; background: #8e24aa">
+                <b>Daily</b>
+              </div>
+              <div class="ev" style="top: 168px; height: 108px; background: #f4511e">
+                <b>OS 2026-1190</b>Norte Verde · acesso produção
+              </div>
+              <div class="ev" style="top: 392px; height: 80px; background: #8e24aa">
+                <b>Retrospectiva</b>Consultoria Demo
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="meet">
+      <div class="barra linha">
+        <div class="logo"><b></b>Google Meet</div>
+        <div class="cresce"></div>
+        <span class="hora">14:02 • qua., 14 de out.</span><i class="ico" style="color: #444746"></i
+        ><i class="ico" style="color: #444746"></i>
+        <div class="av" style="width: 34px; height: 34px; background: #0b8043; font-size: 14px">
+          AS
+        </div>
+      </div>
+      <div class="inicio">
+        <div class="chamada">
+          <h1>Videochamadas e reuniões para todos</h1>
+          <p>Conecte-se, colabore e comemore de qualquer lugar com o Google Meet</p>
+          <div class="acoes">
+            <span class="nova">＋ Nova reunião</span
+            ><span class="codigo">⌨ Digite um código ou link</span
+            ><span class="participar">Participar</span>
+          </div>
+        </div>
+        <div class="proximas">
+          <h2>Próximas reuniões</h2>
+          <div class="reuniao">
+            <b>14:00</b>
+            <div>Validação da pesagem<small>Marina Duarte · Fazenda Boa Vista</small></div>
+          </div>
+          <div class="reuniao">
+            <b>16:00</b>
+            <div>Treinamento fiscal<small>Laticínios Serra Azul</small></div>
+          </div>
+          <div class="reuniao">
+            <b>16:00</b>
+            <div>Retrospectiva<small>Consultoria Demo · sexta-feira</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <script>
+      // Uma página só para os cinco serviços: o host diz qual tela mostrar.
+      const TELA_POR_HOST = {
+        'web.whatsapp.com': ['whatsapp', '(2) WhatsApp'],
+        'mail.google.com': [
+          'gmail',
+          'Caixa de entrada (4) - ana.souza@consultoria.example - Gmail',
+        ],
+        'chat.google.com': ['chat', 'Chat'],
+        'calendar.google.com': ['agenda', 'Google Agenda - Semana de 12 de outubro de 2026'],
+        'meet.google.com': ['meet', 'Google Meet'],
+      };
+      const [tela, titulo] = TELA_POR_HOST[location.hostname] ?? TELA_POR_HOST['web.whatsapp.com'];
+      const secao = document.getElementById(tela);
+      secao.classList.add('ativa');
+      document.title = titulo;
+      const parametros = new URLSearchParams(location.search);
+      if (tela === 'gmail' && parametros.get('view') === 'cm') {
+        secao.classList.add('compondo');
+        document.getElementById('para').textContent = parametros.get('to') ?? '';
+      }
+    </script>
+  </body>
+</html>

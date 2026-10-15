@@ -138,7 +138,7 @@ async function simularAcoesDoSistema(painel) {
   );
 }
 
-export async function roteiro({ painel, aplicativo, print }) {
+export async function roteiro({ painel, aplicativo, print, printDoSistema }) {
   const linhaSelecionada = painel.locator('.busca-rapida-item.selecionado');
   /* Desce na lista até a linha do tipo pedido: Enter num repositório abriria a pasta. */
   const selecionarTipo = async (tipo) => {
@@ -260,4 +260,10 @@ export async function roteiro({ painel, aplicativo, print }) {
   await mostrarTeclasNaJanelaPrincipal(aplicativo);
   await print('teclas-de-atalho-02-lista');
   await tirarTeclasDaJanelaPrincipal(aplicativo);
+
+  // Menu do ícone da bandeja, na área de trabalho fictícia do Windows
+  await printDoSistema('atalho-global-01-bandeja', {
+    cena: 'menu',
+    destaque: 'Atalho global (Ctrl+Shift+Space)',
+  });
 }

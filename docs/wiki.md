@@ -25,7 +25,7 @@ workflow `.github/workflows/site.yml` junta dois lugares:
 | Origem                     | O que tem                                                                                                     | Quem atualiza                                  |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | **Capturador**, no Actions | Os prints do próprio HUB SNK, gerados a cada publicação rodando o aplicativo de verdade sobre dados fictícios | Sozinho: mudou a tela, o print acompanha       |
-| **Branch órfã `wiki-img`** | Os prints de telas de terceiros (WhatsApp, Gmail, Google Chat/Agenda/Meet, SankhyaOm, Experience)             | À mão, com sessão real e revisão antes do push |
+| **Branch órfã `wiki-img`** | Os prints de telas de terceiros (SankhyaOm, Experience, login do WhatsApp e do Google)                        | À mão, com sessão real e revisão antes do push |
 
 A `wiki-img` tem um commit só, sobrescrito a cada atualização (`push --force`): o histórico
 não cresce, por mais que os prints mudem.
@@ -45,9 +45,17 @@ que o passo manda clicar.
   Drive, assistentes de IA, versão nova no GitHub) é respondido por rota
   (`painel.route('**/api/...')`), no formato que o código espera. Nada é enviado de verdade:
   nem e-mail, nem relato ao suporte, nem push.
-- **Telas de terceiros e do sistema** (WhatsApp, Google, SankhyaOm, Experience, aviso do
-  Windows, Explorador, seletor de arquivo...) não são capturadas: o passo fica sem print e com
-  o comentário `<!-- print-pendente: ... -->` no HTML, para a fase da `wiki-img`.
+- **Painel da barra de comunicação:** o WhatsApp Web e o Google (Gmail, Chat, Agenda, Meet)
+  são respondidos, nas partições deles, pelas telas fictícias de `comunicacao-ficticia.html`
+  (`servirComunicacaoFicticia(aplicativo)`, de `comunicacao-ficticia.mjs`), com contagem de
+  não lidas para acender os botões. A página diz que essas telas são ilustrações.
+- **Bandeja, aviso do Windows e barra de tarefas:** `printDoSistema(nome, { cena, ... })`
+  renderiza uma área de trabalho fictícia do Windows 11 (`sistema-ficticio.html`), no tema da
+  captura, com o ícone, o menu da bandeja ou o aviso do HUB SNK e o contorno no que o passo
+  pede. As cenas estão no comentário do topo do arquivo.
+- **As outras telas de terceiros e as do sistema** (SankhyaOm, Experience, login do WhatsApp
+  e do Google, Explorador, seletor de arquivo, instalador...) não são capturadas: o passo fica sem print e com o comentário `<!-- print-pendente: ... -->` no
+  HTML, para a fase da `wiki-img`.
 - **Várias capturas ao mesmo tempo:** `CAPTURA_INSTANCIA=<n>` separa portas e pastas
   (`4120 + 10n`). A 7 não serve: cai na porta 4190, que o Chromium bloqueia.
 

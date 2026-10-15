@@ -188,7 +188,7 @@ function contornarItensDoMenu(menu, rotulos) {
   }, rotulos);
 }
 
-export async function roteiro({ painel, aplicativo, print }) {
+export async function roteiro({ painel, aplicativo, print, printDoSistema }) {
   const modal = painel.locator('#modal-configuracao');
   // Na janela da captura, a das Configurações rola um pouco: no fim aparecem as abas e o
   // rodapé (Salvar ou Fechar); no início, o título.
@@ -378,4 +378,7 @@ export async function roteiro({ painel, aplicativo, print }) {
   await print('outras-04-gitlab', {
     destacando: ['#modal-autosync-configuracao .grupo-de-acessos'],
   });
+
+  // Menu do ícone da bandeja, na área de trabalho fictícia do Windows
+  await printDoSistema('outras-05-menu-da-bandeja', { cena: 'menu' });
 }

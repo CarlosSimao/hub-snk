@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <!--
+      Área de trabalho fictícia do Windows 11, para os prints da wiki do que é do sistema:
+      ícone e menu da bandeja, aviso do Windows e ícone piscando na barra de tarefas.
+      Os parâmetros da URL escolhem a cena (veja `printDoSistema` em capturar.mjs).
+    -->
+    <style>
+      :root {
+        --papel: radial-gradient(900px 620px at 62% 58%, #2f6fd6 0%, #173b8a 38%, #0b1a42 72%);
+        --barra: rgba(28, 32, 42, 0.86);
+        --texto: #ffffff;
+        --texto-fraco: #c5cad3;
+        --cartao: #2b2b2b;
+        --borda: rgba(255, 255, 255, 0.08);
+        --realce: rgba(255, 255, 255, 0.08);
+        --marcado: #4cc2ff;
+      }
+      [data-tema='light'] {
+        --papel: radial-gradient(900px 620px at 62% 58%, #c9ddff 0%, #9cc0f5 40%, #e6eefb 80%);
+        --barra: rgba(238, 241, 246, 0.9);
+        --texto: #1b1b1b;
+        --texto-fraco: #5d5d5d;
+        --cartao: #f9f9f9;
+        --borda: rgba(0, 0, 0, 0.1);
+        --realce: rgba(0, 0, 0, 0.05);
+        --marcado: #005fb8;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      /* Ampliado: no tamanho real, a bandeja e o aviso ficariam miúdos no print da wiki. */
+      html {
+        zoom: 1.5;
+      }
+      html,
+      body {
+        width: 843px;
+        height: 548px;
+        overflow: hidden;
+        font:
+          14px 'Segoe UI',
+          'Segoe UI Variable',
+          Arial,
+          sans-serif;
+        color: var(--texto);
+        background: var(--papel);
+      }
+      .barra {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 48px;
+        background: var(--barra);
+        border-top: 1px solid var(--borda);
+        display: flex;
+        align-items: center;
+      }
+      .centro {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 4px;
+      }
+      .app {
+        width: 40px;
+        height: 40px;
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        position: relative;
+      }
+      .app i {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        background: var(--texto-fraco);
+        opacity: 0.55;
+      }
+      .app img {
+        width: 26px;
+        height: 26px;
+      }
+      .app.aberto::after {
+        content: '';
+        position: absolute;
+        bottom: 2px;
+        width: 6px;
+        height: 3px;
+        border-radius: 2px;
+        background: var(--texto-fraco);
+      }
+      .app.piscando {
+        background: rgba(255, 140, 0, 0.55);
+      }
+      .app.piscando::after {
+        width: 16px;
+        background: #ff8c00;
+      }
+      .iniciar {
+        display: grid;
+        grid-template-columns: 10px 10px;
+        gap: 2px;
+      }
+      .iniciar b {
+        width: 10px;
+        height: 10px;
+        background: #3a96dd;
+        border-radius: 1px;
+      }
+      .canto {
+        position: absolute;
+        right: 10px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .tray {
+        min-width: 32px;
+        height: 40px;
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        color: var(--texto);
+        font-size: 13px;
+      }
+      .tray img {
+        width: 16px;
+        height: 16px;
+      }
+      .relogio {
+        text-align: right;
+        font-size: 12px;
+        line-height: 1.35;
+        padding: 0 8px;
+      }
+      .aviso {
+        position: absolute;
+        right: 12px;
+        bottom: 60px;
+        width: 364px;
+        background: var(--cartao);
+        border: 1px solid var(--borda);
+        border-radius: 8px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+        padding: 12px 16px 16px;
+      }
+      .aviso header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--texto-fraco);
+        margin-bottom: 12px;
+      }
+      .aviso header img {
+        width: 16px;
+        height: 16px;
+      }
+      .aviso header span {
+        flex: 1;
+      }
+      .aviso strong {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .aviso p {
+        color: var(--texto-fraco);
+        line-height: 1.4;
+      }
+      .menu {
+        position: absolute;
+        bottom: 52px;
+        width: 330px;
+        background: var(--cartao);
+        border: 1px solid var(--borda);
+        border-radius: 8px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+        padding: 4px;
+      }
+      .menu .item {
+        display: flex;
+        align-items: center;
+        height: 32px;
+        padding: 0 12px 0 34px;
+        border-radius: 4px;
+        position: relative;
+      }
+      .menu .item.marcado::before {
+        content: '✓';
+        position: absolute;
+        left: 12px;
+        color: var(--marcado);
+        font-weight: 700;
+      }
+      .menu .item kbd {
+        margin-left: auto;
+        font: inherit;
+        font-size: 12px;
+        color: var(--texto-fraco);
+      }
+      .menu hr {
+        border: 0;
+        border-top: 1px solid var(--borda);
+        margin: 4px 0;
+      }
+      .dica {
+        position: absolute;
+        bottom: 54px;
+        padding: 6px 10px;
+        background: var(--cartao);
+        border: 1px solid var(--borda);
+        border-radius: 6px;
+        font-size: 12px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+      }
+      #icone-bandeja {
+        position: relative;
+      }
+      #icone-bandeja > .menu {
+        right: -40px;
+        bottom: 46px;
+        text-align: left;
+        font-size: 14px;
+      }
+      #icone-bandeja > .dica {
+        left: 50%;
+        bottom: 46px;
+        transform: translateX(-50%);
+        white-space: nowrap;
+      }
+      .destaque {
+        outline: 3px solid #f59e0b;
+        outline-offset: 2px;
+        border-radius: 6px;
+        box-shadow: 0 0 0 7px rgba(245, 158, 11, 0.25);
+      }
+      .menu .item.destaque {
+        outline-offset: -3px;
+        background: rgba(245, 158, 11, 0.12);
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="barra">
+      <div class="centro">
+        <div class="app">
+          <span class="iniciar"><b></b><b></b><b></b><b></b></span>
+        </div>
+        <div class="app"><i></i></div>
+        <div class="app aberto"><i></i></div>
+        <div class="app aberto"><i></i></div>
+        <div class="app aberto" id="app-hub">
+          <img src="../../desktop/assets/hub-snk.png" alt="" />
+        </div>
+        <div class="app"><i></i></div>
+      </div>
+      <div class="canto">
+        <div class="tray">⌃</div>
+        <div class="tray" id="icone-bandeja">
+          <img src="../../desktop/assets/hub-snk-bandeja@2x.png" alt="" />
+        </div>
+        <div class="tray" style="width: 92px">ᯤ &nbsp;🔊&nbsp; 🔋</div>
+        <div class="relogio">14:02<br />14/10/2026</div>
+        <div class="tray">🔔</div>
+      </div>
+    </div>
+
+    <div class="dica" id="dica" hidden>HUB SNK</div>
+
+    <div class="menu" id="menu" hidden>
+      <div class="item">Abrir o HUB SNK</div>
+      <div class="item">Busca rápida <kbd>Ctrl+Shift+Space</kbd></div>
+      <hr />
+      <div class="item marcado">Atalho global (Ctrl+Shift+Space)</div>
+      <div class="item" id="inicio-automatico">Iniciar HUB SNK automaticamente</div>
+      <hr />
+      <div class="item">Sair</div>
+    </div>
+
+    <div class="aviso" id="aviso" hidden>
+      <header>
+        <img src="../../desktop/assets/hub-snk.png" alt="" /><span>HUB SNK</span>⋯ &nbsp; ✕
+      </header>
+      <strong id="titulo-do-aviso"></strong>
+      <p id="corpo-do-aviso"></p>
+    </div>
+
+    <script>
+      // ?tema=dark|light&cena=aviso|bandeja|menu|piscando[&titulo=&corpo=][&destaque=<item do menu>]
+      const parametros = new URLSearchParams(location.search);
+      const cena = parametros.get('cena');
+      document.documentElement.dataset.tema = parametros.get('tema') ?? 'dark';
+      const icone = document.getElementById('icone-bandeja');
+
+      /** Pendura o elemento flutuante no ícone da bandeja: o CSS o põe logo acima dele. */
+      function acimaDoIcone(elemento) {
+        icone.append(elemento);
+        elemento.hidden = false;
+      }
+
+      if (cena === 'aviso') {
+        document.getElementById('titulo-do-aviso').textContent = parametros.get('titulo');
+        document.getElementById('corpo-do-aviso').textContent = parametros.get('corpo') ?? '';
+        document.getElementById('aviso').hidden = false;
+        document.getElementById('aviso').classList.add('destaque');
+      }
+      if (cena === 'bandeja') {
+        icone.classList.add('destaque');
+        acimaDoIcone(document.getElementById('dica'));
+      }
+      if (cena === 'menu') {
+        const menu = document.getElementById('menu');
+        acimaDoIcone(menu);
+        const destaque = parametros.get('destaque');
+        for (const item of menu.querySelectorAll('.item')) {
+          if (destaque && item.firstChild.textContent.trim() === destaque) {
+            item.classList.add('destaque');
+          }
+        }
+        if (!destaque) menu.classList.add('destaque');
+        // Vem desligado: só aparece marcado no passo que manda marcar.
+        if (destaque === 'Iniciar HUB SNK automaticamente') {
+          document.getElementById('inicio-automatico').classList.add('marcado');
+        }
+      }
+      if (cena === 'piscando') {
+        document.getElementById('app-hub').classList.add('piscando', 'destaque');
+      }
+    </script>
+  </body>
+</html>
