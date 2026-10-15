@@ -15,6 +15,7 @@ import {
   Notification,
   WebContentsView,
   app,
+  desktopCapturer,
   session,
   shell,
   webContents,
@@ -755,6 +756,28 @@ export class GerenciadorComunicacao {
       const concedida = PERMISSOES_COMUNICACAO.has(permissao);
       if (!concedida) logEvento('comunicacao-permissao-negada', { particao, permissao });
       responder(concedida);
+    });
+    // Sem este handler o Electron recusa o getDisplayMedia, e o Meet acusa erro ao apresentar.
+    // No Windows não há seletor do sistema: um menu nativo lista as telas e as janelas.
+    sessao.setDisplayMediaRequestHandler((pedido, responder) => {
+      void desktopCapturer.getSources({ types: ['screen', 'window'] }).then((fontes) => {
+        let respondido = false;
+        const menu = Menu.buildFromTemplate(
+          fontes.map((fonte) => ({
+            label: fonte.name,
+            click: () => {
+              respondido = true;
+              responder(
+                pedido.audioRequested ? { video: fonte, audio: 'loopback' } : { video: fonte },
+              );
+              logEvento('comunicacao-tela-compartilhada', { particao });
+            },
+          })),
+        );
+        // O clique chega depois do fechamento do menu: só cancela se nada foi escolhido.
+        menu.once('menu-will-close', () => setImmediate(() => respondido || responder({})));
+        menu.popup();
+      });
     });
   }
 
