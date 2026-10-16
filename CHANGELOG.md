@@ -9,6 +9,16 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.14.0] - 2026-10-16
+
+### Adicionado
+
+- **Lançar OS pela agenda**: no evento com tarefa aberta na Experience, o botão
+  **Lançar OS** abre o formulário já com início, fim e intervalo do evento. Basta
+  descrever as tarefas realizadas e escolher o tipo; a OS é gravada na Experience sem
+  abrir o site, e o selo do evento passa a mostrar o número dela. Enviar para a
+  aprovação do cliente é opcional e fica desmarcado.
+
 ## [2.13.0] - 2026-10-15
 
 ### Adicionado
@@ -842,7 +852,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.13.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.14.0...HEAD
+[2.14.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.13.0...v2.14.0
 [2.13.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.12.0...v2.13.0
 [2.12.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.11.0...v2.12.0
 [2.11.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.10.1...v2.11.0
