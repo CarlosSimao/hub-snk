@@ -793,6 +793,69 @@
       </form>
     </dialog>
 
+    <!-- Lançar OS: grava direto na Experience, sobre a tarefa aberta do dia. -->
+    <dialog class="modal" id="modal-lancar-os">
+      <form method="dialog" id="formulario-lancar-os" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Lançar OS</h2>
+          <p id="descricao-lancar-os"></p>
+        </div>
+
+        <div class="modal-corpo">
+          <div class="campo-duplo">
+            <div class="campo">
+              <label for="campo-inicio-os">Início</label>
+              <input id="campo-inicio-os" type="time" required />
+            </div>
+            <div class="campo">
+              <label for="campo-fim-os">Fim</label>
+              <input id="campo-fim-os" type="time" required />
+            </div>
+          </div>
+
+          <div class="campo-duplo">
+            <div class="campo">
+              <label for="campo-intervalo-os">Intervalo</label>
+              <input id="campo-intervalo-os" type="time" required />
+            </div>
+            <div class="campo">
+              <label for="campo-tipo-os">Tipo</label>
+              <select id="campo-tipo-os">
+                <option value="CONFORMIDADE">Conformidade</option>
+                <option value="NAO_CONFORMIDADE">Não Conformidade</option>
+                <option value="COMPLEMENTAR">Serviço Complementar</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="campo-tarefas-os">Tarefas realizadas</label>
+            <textarea
+              id="campo-tarefas-os"
+              class="campo-anotacoes"
+              rows="4"
+              maxlength="4000"
+              required
+            ></textarea>
+          </div>
+
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-aceite-os" /> Enviar para aprovação do cliente (manda
+            e-mail ao aprovador)
+          </label>
+
+          <p class="erro-formulario" id="erro-lancar-os" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-lancar-os">Cancelar</button>
+          <button class="btn primario" type="submit" id="btn-salvar-lancar-os">
+            Lançar na Experience
+          </button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog class="modal" id="modal-projeto">
       <form method="dialog" id="formulario-projeto" novalidate>
         <div class="modal-cabecalho">

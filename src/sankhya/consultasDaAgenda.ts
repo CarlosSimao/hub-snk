@@ -77,6 +77,15 @@ export async function importarAgendaDoPeriodo(parametros: {
   });
 }
 
+/** Os FAPs do parceiro, das negociações dele no ERP. */
+export async function fapsDoParceiroNoErp(
+  credenciais: Credenciais,
+  codparc: number,
+): Promise<number[]> {
+  const negociacoes = await credenciais.consultarNegociacoesDoParceiro(codparc);
+  return fapsDoParceiro(parsearNegociacoes(lerJson(negociacoes.conteudo)));
+}
+
 /**
  * Estado do dia no Sankhya Experience para o parceiro: sem tarefa, tarefa aberta ou OS
  * lançada. Descobre os FAPs dele (negociações do ERP) e testa o dia em cada um — sempre
@@ -90,8 +99,7 @@ export async function situacaoDoDiaDoParceiro(parametros: {
 }): Promise<SituacaoDoDiaDoParceiro> {
   const { credenciais, experience, codparc, dia } = parametros;
 
-  const negociacoes = await credenciais.consultarNegociacoesDoParceiro(codparc);
-  const faps = fapsDoParceiro(parsearNegociacoes(lerJson(negociacoes.conteudo)));
+  const faps = await fapsDoParceiroNoErp(credenciais, codparc);
   if (!faps.length) {
     return { situacao: { tipo: 'sem-tarefa' }, faps: [] };
   }

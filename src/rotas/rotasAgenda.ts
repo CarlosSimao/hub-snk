@@ -6,12 +6,14 @@ import { AgendaRecursos } from '../sankhya/agenda.ts';
 import { PayloadInvalidoError } from '../sankhya/agendaParser.ts';
 import {
   importarAgendaDoPeriodo,
+  fapsDoParceiroNoErp,
   lerCodusuConfigurado,
   RespostaDoSankhyaInvalidaError,
   situacaoDoDiaDoParceiro,
 } from '../sankhya/consultasDaAgenda.ts';
 import type { Credenciais } from '../sankhya/credenciais.ts';
-import { SessaoExpiradaError, type Experience } from '../sankhya/experience.ts';
+import { SessaoExpiradaError, type Experience, type OsLancada } from '../sankhya/experience.ts';
+import { TIPOS_DE_OS, validarHorariosDaOs } from '../sankhya/lancamentoDeOs.ts';
 import { PayloadDeNegociacoesInvalidoError } from '../sankhya/negociacoes.ts';
 import { MOTIVOS_OCORRENCIA, validarNovaOcorrencia } from '../sankhya/ocorrencias.ts';
 import { responderErroDoShell } from './comum/respostasDoShell.ts';
@@ -21,6 +23,31 @@ const esquemaDeConsulta = z.object({
   de: z.string().regex(ISO, 'Informe "de" no formato YYYY-MM-DD.'),
   ate: z.string().regex(ISO, 'Informe "ate" no formato YYYY-MM-DD.'),
 });
+
+const HORA = /^\d{2}:\d{2}$/;
+const esquemaDeLancamentoDeOs = z.object({
+  codparc: z.number().int().positive(),
+  dia: z.string().regex(ISO, 'Informe o dia no formato YYYY-MM-DD.'),
+  horaInicio: z.string().regex(HORA, 'Informe a hora inicial no formato HH:MM.'),
+  horaFim: z.string().regex(HORA, 'Informe a hora final no formato HH:MM.'),
+  intervalo: z.string().regex(HORA, 'Informe o intervalo no formato HH:MM.'),
+  tarefasRealizadas: z.string().trim().min(1, 'Descreva as tarefas realizadas.'),
+  tipo: z.enum(TIPOS_DE_OS),
+  enviarParaAceite: z.boolean(),
+});
+
+/** O aviso para a tela; vazio quando o aceite foi enviado. Nunca lança: a OS já existe. */
+async function enviarParaAceite(experience: Experience, os: OsLancada): Promise<string> {
+  if (!os.aceitePermitido) {
+    return 'A Experience pede o aprovador antes do aceite: envie pela aba Aceite de OS de lá.';
+  }
+  try {
+    await experience.enviarParaAceite(os);
+    return '';
+  } catch (erro) {
+    return `A OS foi lançada, mas o aceite não foi enviado: ${(erro as Error).message}`;
+  }
+}
 
 /** Erros das consultas ao Sankhya que viram resposta HTTP; o resto segue para o Fastify. */
 function responderErroDaConsulta(resposta: FastifyReply, erro: unknown): FastifyReply {
@@ -166,6 +193,50 @@ export function registrarRotasDeAgenda(
       }
     },
   );
+
+  /*
+   * Uma gravação por vez: o duplo clique, ou a mesma OS lançada de duas telas, viraria
+   * duas OS na Experience.
+   */
+  let lancandoOs = false;
+
+  /**
+   * Lança a OS do dia sobre a tarefa aberta do parceiro na Experience e, se pedido, envia
+   * para o aceite do cliente. Falha no aceite não desfaz a OS: volta como aviso, para a
+   * tela não oferecer lançar de novo.
+   */
+  servidor.post('/api/agenda/lancar-os', async (requisicao, resposta) => {
+    const dados = esquemaDeLancamentoDeOs.safeParse(requisicao.body);
+    if (!dados.success) {
+      return resposta
+        .status(400)
+        .send({ mensagem: dados.error.issues[0]?.message ?? 'Dados inválidos.' });
+    }
+    const { codparc, dia, horaInicio, horaFim, intervalo, tarefasRealizadas, tipo } = dados.data;
+    const horarios = { horaInicio, horaFim, intervalo };
+    const horarioInvalido = validarHorariosDaOs(horarios);
+    if (horarioInvalido) {
+      return resposta.status(400).send({ mensagem: horarioInvalido });
+    }
+    if (lancandoOs) {
+      return resposta.status(409).send({ mensagem: 'Já há uma OS sendo lançada. Aguarde.' });
+    }
+
+    lancandoOs = true;
+    try {
+      const fapIds = await fapsDoParceiroNoErp(credenciais, codparc);
+      const os = await experience.lancarOs({ fapIds, dia, horarios, tarefasRealizadas, tipo });
+      requisicao.log.info({ numeroOs: os.numeroOs, dia }, 'OS lançada na Experience');
+      const avisoDoAceite = dados.data.enviarParaAceite
+        ? await enviarParaAceite(experience, os)
+        : '';
+      return { numeroOs: os.numeroOs, avisoDoAceite };
+    } catch (erro) {
+      return responderErroDaConsulta(resposta, erro);
+    } finally {
+      lancandoOs = false;
+    }
+  });
 
   /**
    * Eventos do snapshot num período, recortados pelos parceiros deste cliente —
