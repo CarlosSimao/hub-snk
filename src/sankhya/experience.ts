@@ -6,10 +6,17 @@
  * mesmo com Origin e Referer corretos; `Authorization: Bearer <token>`
  * devolve 200.
  *
- * Escopo reduzido de propósito (só leitura): sem geração de OS nem
- * envio de e-mail.
+ * Quase tudo é leitura. A única escrita é o lançamento de OS (`lancarOs`) e o envio
+ * dela para o aceite do cliente (`enviarParaAceite`), no mesmo protocolo da tela.
  */
 import type { Credenciais } from './credenciais.ts';
+import {
+  MARCADOR_DE_OBSERVACOES,
+  montarCorpoDaOs,
+  montarInformacoesAdicionais,
+  type HorariosDaOs,
+  type TipoDeOs,
+} from './lancamentoDeOs.ts';
 import type { OrdemExperience, TarefaExperience } from '../tipos.ts';
 
 const API = 'https://d83n39pk6d.execute-api.sa-east-1.amazonaws.com/prod';
@@ -69,9 +76,6 @@ class FilaDeVagas {
 const MAX_CHAMADAS_SIMULTANEAS_NA_EXPERIENCE = 4;
 const filaDeChamadasNaExperience = new FilaDeVagas(MAX_CHAMADAS_SIMULTANEAS_NA_EXPERIENCE);
 
-/** Separa etapa/processos (já em campos próprios) do texto livre em "Tarefas Realizadas". */
-const MARCADOR_DE_OBSERVACOES = '--- Informações Adicionais ---';
-
 /** Só o texto digitado à mão, depois do marcador. Sem marcador, não há texto livre. */
 function extrairObservacoes(informacaoAdicional: string): string {
   const indice = informacaoAdicional.indexOf(MARCADOR_DE_OBSERVACOES);
@@ -80,6 +84,15 @@ function extrairObservacoes(informacaoAdicional: string): string {
 }
 
 export class SessaoExpiradaError extends Error {}
+
+export interface OsLancada {
+  implantationId: number;
+  personId: number;
+  orderId: number;
+  numeroOs: string;
+  /** `tab_user_accept`. Sem ele, a tela da Experience pede o aprovador antes do aceite: isso fica lá. */
+  aceitePermitido: boolean;
+}
 
 export type SituacaoDoDia =
   | { tipo: 'sem-tarefa' }
@@ -531,5 +544,127 @@ export class Experience {
         };
       }),
     );
+  }
+
+  /**
+   * Lança a OS do dia sobre as tarefas abertas dele, na ordem em que a tela da Experience
+   * faz: valida as tarefas, busca a etapa/processos e as horas de cada uma e grava.
+   *
+   * Nunca repete o `POST /orders`: sem resposta, a OS pode ter sido gravada do lado de
+   * lá, e uma segunda tentativa duplicaria.
+   */
+  async lancarOs(parametros: {
+    fapIds: number[];
+    dia: string;
+    horarios: HorariosDaOs;
+    tarefasRealizadas: string;
+    tipo: TipoDeOs;
+  }): Promise<OsLancada> {
+    const { fapIds, dia, horarios, tarefasRealizadas, tipo } = parametros;
+    const { implantationId, personId, tarefas } = await this.#tarefasAbertasDoDia(fapIds, dia);
+
+    await this.#chamar('/orders/tasks/validate', {
+      method: 'POST',
+      body: JSON.stringify({ tasks: tarefas, implantation_id: implantationId }),
+    });
+    const [observacoes, horas] = await Promise.all([
+      this.#chamar<{ data?: unknown }>(
+        `/orders/tasks/${tarefas[0]?.['id']}/get-tasks-observations`,
+      ),
+      this.#chamar<{ data?: Record<string, unknown>[] }>(
+        `/tasks/work_hours/implantation/${implantationId}/person/${personId}`,
+      ),
+    ]);
+    const tarefasComHoras = tarefas.map((tarefa) => {
+      const horasDaTarefa = horas.data?.find((linha) => linha['id'] === tarefa['id']);
+      return horasDaTarefa
+        ? {
+            ...tarefa,
+            horas_previstas: horasDaTarefa['horas_previstas'],
+            horas_realizadas: horasDaTarefa['horas_realizadas'],
+          }
+        : tarefa;
+    });
+
+    const corpo = montarCorpoDaOs({
+      implantationId,
+      personId,
+      dia,
+      horarios,
+      informacoesAdicionais: montarInformacoesAdicionais(
+        texto(observacoes.data),
+        tarefasRealizadas,
+      ),
+      tipo,
+      tarefas: tarefasComHoras,
+    });
+
+    let resposta: { data?: { order_id?: number; numos?: string; tab_user_accept?: string } };
+    try {
+      resposta = await this.#chamar('/orders', { method: 'POST', body: JSON.stringify(corpo) });
+    } catch (erro) {
+      if (erro instanceof TypeError || (erro instanceof Error && erro.name === 'TimeoutError')) {
+        throw new Error(
+          'A Experience não respondeu ao lançamento. A OS pode ter sido gravada: confira na ' +
+            'aba OS antes de lançar de novo.',
+        );
+      }
+      throw erro;
+    }
+
+    const orderId = Number(resposta.data?.order_id);
+    return {
+      implantationId,
+      personId,
+      orderId,
+      numeroOs: texto(resposta.data?.numos) || String(orderId),
+      aceitePermitido: resposta.data?.tab_user_accept === 'True',
+    };
+  }
+
+  /** Gera o aceite da OS e manda o e-mail ao aprovador do cliente, como o "Sim" da tela. */
+  async enviarParaAceite(
+    os: Pick<OsLancada, 'implantationId' | 'personId' | 'orderId'>,
+  ): Promise<void> {
+    const aceite = await this.#chamar<{ data?: { id?: number } }>('/accepted-os', {
+      method: 'POST',
+      body: JSON.stringify({
+        accepted_os: { person_id: os.personId, implantation_id: os.implantationId },
+        accepted_os_orders: { orders_id: [os.orderId] },
+      }),
+    });
+    const idDoAceite = Number(aceite.data?.id);
+    if (!Number.isFinite(idDoAceite)) {
+      throw new Error('A Experience não devolveu o aceite gerado.');
+    }
+    await this.#chamar('/accepted-os/send-email', {
+      method: 'POST',
+      body: JSON.stringify({ accepted_id: idDoAceite }),
+    });
+  }
+
+  /** As tarefas abertas do dia, como vieram da API, no primeiro FAP que tiver alguma. */
+  async #tarefasAbertasDoDia(
+    fapIds: number[],
+    dia: string,
+  ): Promise<{ implantationId: number; personId: number; tarefas: Record<string, unknown>[] }> {
+    const [implantacoes, personId] = await Promise.all([
+      this.#implantacoesComFap(),
+      this.descobrirPersonId(),
+    ]);
+    if (personId === null) {
+      throw new Error('Não identifiquei o seu usuário na Experience. Capture a sessão de novo.');
+    }
+
+    for (const fapId of fapIds) {
+      const implantationId = implantacoes.find((i) => i.fap === fapId)?.id;
+      if (implantationId === undefined) continue;
+
+      const tarefas = (await this.tarefas(implantationId, personId)).filter((t) => t.dia === dia);
+      if (tarefas.length) {
+        return { implantationId, personId, tarefas: tarefas.map((t) => t.bruto) };
+      }
+    }
+    throw new Error('Não há tarefa aberta neste dia na Experience para este cliente.');
   }
 }

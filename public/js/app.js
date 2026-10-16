@@ -581,6 +581,18 @@ const elementos = {
   erroOcorrencia: document.getElementById('erro-ocorrencia'),
   botaoCancelarOcorrencia: document.getElementById('btn-cancelar-ocorrencia'),
   botaoSalvarOcorrencia: document.getElementById('btn-salvar-ocorrencia'),
+  modalLancarOs: document.getElementById('modal-lancar-os'),
+  formularioLancarOs: document.getElementById('formulario-lancar-os'),
+  descricaoLancarOs: document.getElementById('descricao-lancar-os'),
+  campoInicioOs: document.getElementById('campo-inicio-os'),
+  campoFimOs: document.getElementById('campo-fim-os'),
+  campoIntervaloOs: document.getElementById('campo-intervalo-os'),
+  campoTipoOs: document.getElementById('campo-tipo-os'),
+  campoTarefasOs: document.getElementById('campo-tarefas-os'),
+  campoAceiteOs: document.getElementById('campo-aceite-os'),
+  erroLancarOs: document.getElementById('erro-lancar-os'),
+  botaoCancelarLancarOs: document.getElementById('btn-cancelar-lancar-os'),
+  botaoSalvarLancarOs: document.getElementById('btn-salvar-lancar-os'),
   mountAgendaGeral: document.getElementById('mount-agenda-geral'),
   avisoShellOs: document.getElementById('aviso-shell-os'),
   botaoAtualizarOs: document.getElementById('btn-atualizar-os'),
@@ -955,6 +967,7 @@ const api = {
     requisitar(
       `${CAMINHO_DA_API}/${id}/agenda-eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`,
     ),
+  lancarOs: (dados) => requisitar('/api/agenda/lancar-os', { metodo: 'POST', corpo: dados }),
   situacaoDoDiaNoExperience: (codparc, dia) =>
     requisitar(
       `/api/agenda/situacao-do-dia?codparc=${encodeURIComponent(codparc)}&dia=${encodeURIComponent(dia)}`,
@@ -3050,7 +3063,8 @@ function consultarSituacaoDoDia(codparc, dia, forcar = false) {
  * "Tarefas Realizadas"). Começa neutro ("verificando…") pra não travar a
  * lista inteira esperando o Experience responder.
  */
-function anexarSituacaoDoEvento(linhaHorario, informacoes, codparc, dia, forcarNaAbertura) {
+function anexarSituacaoDoEvento(linhaHorario, informacoes, evento, dia, forcarNaAbertura) {
+  const { codparc } = evento;
   const selo = criarElemento('span', 'selo-situacao', 'Verificando situação no Experience…');
   const botaoAtualizar = criarBotaoDeIcone(
     'btn tiny ghost',
@@ -3062,6 +3076,7 @@ function anexarSituacaoDoEvento(linhaHorario, informacoes, codparc, dia, forcarN
 
   let subbloco = null;
   let seloStatus = null;
+  let botaoLancarOs = null;
 
   async function carregar(forcar) {
     selo.className = 'selo-situacao';
@@ -3074,6 +3089,10 @@ function anexarSituacaoDoEvento(linhaHorario, informacoes, codparc, dia, forcarN
     if (seloStatus) {
       seloStatus.remove();
       seloStatus = null;
+    }
+    if (botaoLancarOs) {
+      botaoLancarOs.remove();
+      botaoLancarOs = null;
     }
 
     const resultado = await consultarSituacaoDoDia(codparc, dia, forcar);
@@ -3130,6 +3149,12 @@ function anexarSituacaoDoEvento(linhaHorario, informacoes, codparc, dia, forcarN
       selo.classList.add('atencao');
       selo.textContent = 'Tarefa aberta no Experience';
       selo.title = `FAP ${faps}`;
+      botaoLancarOs = criarElemento('button', 'btn tiny', 'Lançar OS');
+      botaoLancarOs.type = 'button';
+      botaoLancarOs.addEventListener('click', () =>
+        abrirModalDeLancarOs(evento, dia, () => carregar(true)),
+      );
+      selo.after(botaoLancarOs);
     } else {
       selo.classList.add('erro');
       selo.textContent = 'Sem tarefa aberta no Experience';
@@ -3565,7 +3590,7 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
         anexarSituacaoDoEvento(
           linhaHorario,
           informacoes,
-          evento.codparc,
+          evento,
           dia.dia,
           forcarAtualizacaoDaSituacao,
         );
@@ -3770,6 +3795,81 @@ async function salvarOcorrencia(evento) {
     elementos.botaoSalvarOcorrencia.disabled = false;
   } finally {
     elementos.botaoSalvarOcorrencia.textContent = 'Lançar';
+  }
+}
+
+/* ------------------------------ Lançar OS -------------------------------- */
+
+/** Dia todo ou evento de vários dias: o horário comercial, que o usuário ajusta. */
+const HORARIO_PADRAO_DA_OS = { inicio: '09:00', fim: '18:00' };
+/** Acima de seis horas, o dia já tem almoço: o intervalo começa em uma hora. */
+const MINUTOS_SEM_INTERVALO = 360;
+
+function minutosDoHorario(hora) {
+  return Number(hora.slice(0, 2)) * MINUTOS_POR_HORA + Number(hora.slice(3, 5));
+}
+
+/** Início e fim da OS a partir do evento da agenda (`inicio`/`fim` em `YYYY-MM-DD HH:MM:SS`). */
+function horarioDaOsPeloEvento(evento, dia) {
+  const doMesmoDia = evento.inicio.slice(0, 10) === dia && evento.fim.slice(0, 10) === dia;
+  if (evento.allday === 'S' || !doMesmoDia) return HORARIO_PADRAO_DA_OS;
+  return { inicio: evento.inicio.slice(11, 16), fim: evento.fim.slice(11, 16) };
+}
+
+let aoLancarOs = null;
+let lancamentoDeOsEmAndamento = null;
+
+function abrirModalDeLancarOs(evento, dia, aoConcluir) {
+  limparErro(elementos.erroLancarOs);
+  const { inicio, fim } = horarioDaOsPeloEvento(evento, dia);
+  const duracao = minutosDoHorario(fim) - minutosDoHorario(inicio);
+  elementos.descricaoLancarOs.textContent =
+    `${formatarDiaDeOs(dia)} · ${evento.nomeparc || evento.codparc}. ` +
+    'Lançada na Experience sobre a tarefa aberta do dia, em nome do usuário da sessão.';
+  elementos.campoInicioOs.value = inicio;
+  elementos.campoFimOs.value = fim;
+  elementos.campoIntervaloOs.value = duracao > MINUTOS_SEM_INTERVALO ? '01:00' : '00:00';
+  elementos.campoTipoOs.value = 'CONFORMIDADE';
+  elementos.campoTarefasOs.value = '';
+  elementos.campoAceiteOs.checked = false;
+  elementos.botaoSalvarLancarOs.disabled = false;
+  lancamentoDeOsEmAndamento = { codparc: evento.codparc, dia };
+  aoLancarOs = aoConcluir;
+  elementos.modalLancarOs.showModal();
+  elementos.campoTarefasOs.focus();
+}
+
+async function salvarLancamentoDeOs(evento) {
+  evento.preventDefault();
+  limparErro(elementos.erroLancarOs);
+  if (!elementos.campoTarefasOs.value.trim()) {
+    exibirErro(elementos.erroLancarOs, 'Descreva as tarefas realizadas.');
+    return;
+  }
+
+  elementos.botaoSalvarLancarOs.disabled = true;
+  elementos.botaoSalvarLancarOs.textContent = 'Lançando…';
+  try {
+    const { numeroOs, avisoDoAceite } = await api.lancarOs({
+      ...lancamentoDeOsEmAndamento,
+      horaInicio: elementos.campoInicioOs.value,
+      horaFim: elementos.campoFimOs.value,
+      intervalo: elementos.campoIntervaloOs.value,
+      tipo: elementos.campoTipoOs.value,
+      tarefasRealizadas: elementos.campoTarefasOs.value,
+      enviarParaAceite: elementos.campoAceiteOs.checked,
+    });
+    elementos.modalLancarOs.close();
+    exibirAviso(
+      avisoDoAceite ? `OS nº ${numeroOs} lançada. ${avisoDoAceite}` : `OS nº ${numeroOs} lançada.`,
+      avisoDoAceite ? 'erro' : 'sucesso',
+    );
+    await aoLancarOs?.();
+  } catch (erro) {
+    exibirErro(elementos.erroLancarOs, erro.message);
+    elementos.botaoSalvarLancarOs.disabled = false;
+  } finally {
+    elementos.botaoSalvarLancarOs.textContent = 'Lançar na Experience';
   }
 }
 
@@ -12378,6 +12478,8 @@ function registrarEventos() {
   elementos.botaoCancelarOcorrencia.addEventListener('click', () =>
     elementos.modalOcorrencia.close(),
   );
+  elementos.formularioLancarOs.addEventListener('submit', salvarLancamentoDeOs);
+  elementos.botaoCancelarLancarOs.addEventListener('click', () => elementos.modalLancarOs.close());
   elementos.mountAgendaGeral.append(widgetAgendaGeral.elemento);
   elementos.botaoAtualizarOs.append(criarIcone(ICONES.recarregar));
   elementos.botaoAtualizarOs.addEventListener('click', atualizarOsGeral);

@@ -54,6 +54,9 @@ function osLancada(numeroOs, horaInicio, horaFim, tempoRealizado, tarefasRealiza
   };
 }
 
+/** Vira `true` quando o roteiro lança a OS do Alfa: o selo passa a mostrar a OS. */
+let osDoAlfaLancada = false;
+
 /** Situação do parceiro no dia, no formato de `/api/agenda/situacao-do-dia`. */
 function situacaoNoExperience(codparc, diaIso) {
   if (codparc === PARCEIROS.boaVista.codparc) {
@@ -67,6 +70,8 @@ function situacaoNoExperience(codparc, diaIso) {
           'Homologação da pesagem em grupo com a equipe de TI.',
         );
   }
+  if (codparc === PARCEIROS.alfa.codparc && osDoAlfaLancada && diaIso === dia(DIA_DE_HOJE))
+    return osLancada('58240', '13:00', '18:00', '05:00', 'Treinamento do módulo de compras.');
   if (codparc === PARCEIROS.alfa.codparc)
     return { faps: [2987], situacao: { tipo: 'tarefa-aberta' } };
   if (codparc === PARCEIROS.serraAzul.codparc)
@@ -239,6 +244,11 @@ async function simularAgenda(painel, estado) {
   await painel.route(caminhoE('/api/agenda/ocorrencias'), (rota) =>
     rota.fulfill({ json: { mensagem: 'Ocorrência criada.' } }),
   );
+  // Nem à Experience.
+  await painel.route(caminhoE('/api/agenda/lancar-os'), (rota) => {
+    osDoAlfaLancada = true;
+    rota.fulfill({ json: { numeroOs: '58240', avisoDoAceite: '' } });
+  });
 }
 
 async function simularConsulta(painel, estado, esperaMs = 0) {
@@ -252,6 +262,8 @@ async function simularConsulta(painel, estado, esperaMs = 0) {
 }
 
 export async function roteiro({ painel, print }) {
+  // O roteiro roda uma vez por tema: a OS lançada no primeiro não pode valer no segundo.
+  osDoAlfaLancada = false;
   const estado = { importadoEm: Date.now() - 20 * 60_000 };
   await simularAgenda(painel, estado);
   await simularConsulta(painel, estado);
@@ -365,6 +377,24 @@ export async function roteiro({ painel, print }) {
   await painel.waitForSelector('.aviso');
   await esperarCarregamento();
   await print('ocorrencia-04-lancada', { destacando: ['.aviso'] });
+  await fecharAvisos();
+
+  // Lançar OS (a gravação é simulada: nada chega à Experience)
+  await mostrarDetalhe();
+  const botaoLancarOs = agenda('button').filter({ hasText: 'Lançar OS' }).first();
+  await print('lancar-os-01-botao', { destacando: [botaoLancarOs] });
+  await botaoLancarOs.click();
+  await painel.waitForSelector('#modal-lancar-os[open]');
+  await painel.fill('#campo-tarefas-os', 'Treinamento do módulo de compras.');
+  await print('lancar-os-02-formulario', {
+    destacando: ['#campo-inicio-os', '#campo-fim-os', '#campo-intervalo-os', '#campo-tarefas-os'],
+  });
+  await print('lancar-os-03-lancar', { destacando: ['#campo-aceite-os', '#btn-salvar-lancar-os'] });
+  await painel.click('#btn-salvar-lancar-os');
+  await painel.waitForSelector('.aviso');
+  await esperarSituacoes();
+  await mostrarDetalhe();
+  await print('lancar-os-04-lancada', { destacando: ['.aviso', agenda('.detalhe-dia-agenda')] });
   await fecharAvisos();
 
   // Aba Agenda do cliente

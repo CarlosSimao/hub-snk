@@ -6,7 +6,7 @@
     <title>Agenda de Recursos · Wiki do HUB SNK</title>
     <meta
       name="description"
-      content="Como ver a Agenda de Recursos do SankhyaOm no HUB SNK, conferir a situação de cada evento no Experience e lançar ocorrências, passo a passo."
+      content="Como ver a Agenda de Recursos do SankhyaOm no HUB SNK, conferir a situação de cada evento no Experience, lançar a OS do dia e lançar ocorrências, passo a passo."
     />
     <link rel="icon" href="../img/icone.png" />
     <script src="../tema.js"></script>
@@ -52,6 +52,7 @@
             <li>
               <a href="#lancar-ocorrencia">Lançar ocorrência (férias, folga, atestado)</a>
             </li>
+            <li><a href="#lancar-os">Lançar OS pelo evento</a></li>
             <li><a href="#aba-do-cliente">Aba Agenda do cliente</a></li>
             <li><a href="#avisos-de-erro">Sem o aplicativo e erros de configuração</a></li>
           </ol>
@@ -568,6 +569,105 @@
               <a href="sankhya-id.html#codigo-de-usuario">código de usuário SankhyaOm</a>
             </li>
             <li><a href="#atualizar-da-sankhya">Atualizar da Sankhya</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="lancar-os">
+          <h2>Lançar OS pelo evento</h2>
+          <p>
+            Lança no Experience a OS do dia sobre a tarefa aberta do cliente, com os horários do
+            evento já preenchidos, sem abrir o Experience. A OS é sempre do usuário da sessão do
+            Experience. Só funciona no aplicativo desktop.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Selecione o dia e, no evento com o selo
+              <strong>Tarefa aberta no Experience</strong>, clique em <strong>Lançar OS</strong>.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/lancar-os-01-botao.webp"
+                  alt="Botão Lançar OS destacado ao lado do selo Tarefa aberta no Experience"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Confira o <strong>Início</strong>, o <strong>Fim</strong> e o
+              <strong>Intervalo</strong>. Vêm do evento; evento de dia inteiro ou de vários dias
+              começa em 09:00 às 18:00, e o intervalo começa em uma hora quando o dia passa de seis
+              horas. Escolha o <strong>Tipo</strong> (o padrão é Conformidade) e descreva as
+              <strong>Tarefas realizadas</strong>.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/lancar-os-02-formulario.webp"
+                  alt="Janela Lançar OS com os horários e as tarefas realizadas destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Marque <strong>Enviar para aprovação do cliente</strong> só se quiser que o Experience
+              mande o e-mail ao aprovador. Clique em <strong>Lançar na Experience</strong>.
+              <strong>Cancelar</strong> fecha sem gravar.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/lancar-os-03-lancar.webp"
+                  alt="Caixa Enviar para aprovação do cliente e botão Lançar na Experience destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Um aviso traz o número da OS, e o selo do evento passa a mostrá-la.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/lancar-os-04-lancada.webp"
+                  alt="Aviso de OS lançada e o selo do evento com o número da OS"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            O início tem que ser antes do fim, e o intervalo, menor que o tempo entre os dois. Se o
+            Experience não responder ao lançamento, a OS pode ter sido gravada: confira na aba
+            <a href="ordens-de-servico.html">Ordens de Serviço</a> antes de lançar de novo. Se o
+            projeto pedir a escolha do aprovador, o aceite não sai pelo HUB SNK: envie pela aba
+            Aceite de OS do Experience.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-sessao-experience"
+                >Configurações › Sankhya ID › Experience</a
+              >: a sessão do Experience que grava a OS.
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-usuario-e-senha"
+                >Configurações › Sankhya ID › Usuário e senha</a
+              >: as negociações do cliente vêm do SankhyaOm.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#situacao-no-experience">Situação do evento no Experience</a></li>
+            <li>
+              <a href="sankhya-id.html#sessao-da-experience"
+                >Sessão da Experience em segundo plano</a
+              >
+            </li>
           </ul>
         </section>
 

@@ -206,7 +206,7 @@ Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | **Cadastro de clientes**    | Bases do ERP com usuário, senha e banco vinculado, repositórios Git, links avulsos, projetos e anotações livres                      |
 | **Guias do Sankhya**        | SankhyaOm e Experience dentro do aplicativo; cada base de cliente numa guia isolada, com usuário e senha preenchidos                 |
-| **Agenda de Recursos**      | Consultada por uma janela oculta que loga no SankhyaOm sozinha, cruzada com a Experience; lança ocorrência (férias, folga) no ERP    |
+| **Agenda de Recursos**      | Lida por uma janela oculta que loga no SankhyaOm sozinha; lança a OS do dia na Experience e ocorrências (férias, folga) no ERP       |
 | **Resumo do dia**           | A tela inicial do Painel: agenda de hoje, lembretes do dia, repositórios com pendência e OS não concluídas, cada item com seu atalho |
 | **Notificações**            | Sino do topo e aviso do Windows, com som e e-mail opcional: evento da agenda sem tarefa na Experience e lembretes                    |
 | **Lembretes**               | Aba própria no menu: numa data ou recorrentes (cron), ligados a um cliente ou projeto, com aviso e e-mail opcional                   |
