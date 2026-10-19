@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.15.0] - 2026-10-19
+
 ### Adicionado
 
 - **Lembrete dos dashboards implantados**: a cada 4 horas, um lembrete lista as bases
@@ -864,7 +866,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.14.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.15.0...HEAD
+[2.15.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.14.0...v2.15.0
 [2.14.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.13.0...v2.14.0
 [2.13.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.12.0...v2.13.0
 [2.12.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.11.0...v2.12.0
