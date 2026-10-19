@@ -80,6 +80,7 @@ src/                                        backend (Fastify), sem build: o Node
     centralDeNotificacoes.ts                repetida descartada, e-mail, gravação e aviso ao painel
     enviadorDeEmail.ts                      envio pelo SMTP da configuração (nodemailer)
     verificadorDaAgendaDoDia.ts             alerta de evento sem tarefa na Experience, na periodicidade configurada
+    avisoDeDashboardsImplantados.ts         lembrete de 4 em 4 horas das bases com o dashboard HUB - Workbench implantado
     disparoDeLembretes.ts                   quando cada lembrete dispara (croner)
     agendadorDeLembretes.ts                 confere os lembretes a cada 30 segundos e dispara os vencidos
     emailDoLembrete.ts                      assunto, HTML com a logo e texto puro do e-mail do lembrete

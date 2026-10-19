@@ -55,6 +55,7 @@
             <li><a href="#disparo">Quando o lembrete dispara</a></li>
             <li><a href="#servidor-de-email">Configurar o e-mail (SMTP)</a></li>
             <li><a href="#alerta-da-agenda">Alerta "Agenda sem tarefa na Experience"</a></li>
+            <li><a href="#dashboards-implantados">Lembrete dos dashboards implantados</a></li>
           </ol>
         </nav>
 
@@ -936,6 +937,30 @@
                 >selo "Sem tarefa na Experience"</a
               >.
             </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="dashboards-implantados">
+          <h2>Lembrete dos dashboards implantados</h2>
+          <p>
+            A cada 4 horas sai uma notificação com a lista das bases em que o dashboard HUB -
+            Workbench está implantado: uma linha por base, com o cliente, o tipo e o endereço. Sem
+            nenhuma base marcada, não sai nada. A notificação é uma só por período, mesmo que o HUB
+            SNK seja fechado e aberto de novo no meio dele.
+          </p>
+          <p class="nota">
+            Quem marca e desmarca a base é outra aplicação, que grava o campo
+            <code>dashboardImplantado</code> no cadastro de clientes. O HUB SNK não tem tela para a
+            marca e não a apaga quando você edita a base.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma no HUB SNK. Não envia e-mail.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="#painel-de-notificacoes">Sino e painel de notificações</a></li>
+            <li><a href="bases.html">Bases do cliente</a></li>
           </ul>
         </section>
       </main>

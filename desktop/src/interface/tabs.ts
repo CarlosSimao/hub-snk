@@ -215,8 +215,18 @@ function registrarDownload(sessaoRotulo: string, janelasFilhas: Set<BrowserWindo
       urlOrigem: origemSemQuery(item.getURL()),
       bytesTotais: item.getTotalBytes(),
     });
+    /*
+     * Janela que já mostra uma página (o log ao vivo de uma base local, com o botão
+     * Baixar) não foi aberta só para o download: fica aberta depois dele.
+     */
+    const paginaDaOrigem = webContentsOrigem.getURL();
+    const abertaSoParaODownload =
+      !paginaDaOrigem ||
+      paginaDaOrigem === 'about:blank' ||
+      item.getURLChain().includes(paginaDaOrigem);
     item.once('done', (_e2, estado) => {
       logEvento('download-concluido', { sessao: sessaoRotulo, nome: item.getFilename(), estado });
+      if (!abertaSoParaODownload) return;
       // UX real observada na PoC: um pop-up aberto só para servir um download não
       // navega para lugar nenhum depois — fica em branco até o usuário fechar na mão.
       for (const filha of janelasFilhas) {
