@@ -4,8 +4,8 @@
  * (lista branca de SSO + origin de base cadastrada vira aba própria isolada) e download.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { BrowserWindow, WebContentsView, app, session, shell } from 'electron';
+import { basename, join } from 'node:path';
+import { BrowserWindow, Notification, WebContentsView, app, session, shell } from 'electron';
 import {
   DOMINIOS_POPUP_PERMITIDOS,
   HUB_URL,
@@ -205,6 +205,26 @@ export function definirAcompanhamentoDeDownload(
   acompanharDownload = acompanhar;
 }
 
+/** Referência forte: sem ela o coletor de lixo pode levar a notificação e o clique nela. */
+const notificacoesDeDownload = new Set<Notification>();
+
+/**
+ * Janela que continua aberta depois do download (o log de uma base local) não mostra
+ * nada sozinha: sem o aviso, o arquivo só aparece na pasta Downloads. O clique abre a pasta.
+ */
+function avisarDownloadConcluido(caminho: string): void {
+  if (!Notification.isSupported()) return;
+  const notificacao = new Notification({
+    title: 'Download concluído',
+    body: `${basename(caminho)}\nClique para abrir a pasta.`,
+    icon: ICONE,
+  });
+  notificacoesDeDownload.add(notificacao);
+  notificacao.on('click', () => shell.showItemInFolder(caminho));
+  notificacao.on('close', () => notificacoesDeDownload.delete(notificacao));
+  notificacao.show();
+}
+
 function registrarDownload(sessaoRotulo: string, janelasFilhas: Set<BrowserWindow>) {
   return (_evt: unknown, item: Electron.DownloadItem, webContentsOrigem: Electron.WebContents) => {
     acompanharDownload?.(item);
@@ -226,7 +246,10 @@ function registrarDownload(sessaoRotulo: string, janelasFilhas: Set<BrowserWindo
       item.getURLChain().includes(paginaDaOrigem);
     item.once('done', (_e2, estado) => {
       logEvento('download-concluido', { sessao: sessaoRotulo, nome: item.getFilename(), estado });
-      if (!abertaSoParaODownload) return;
+      if (!abertaSoParaODownload) {
+        if (estado === 'completed') avisarDownloadConcluido(item.getSavePath());
+        return;
+      }
       // UX real observada na PoC: um pop-up aberto só para servir um download não
       // navega para lugar nenhum depois — fica em branco até o usuário fechar na mão.
       for (const filha of janelasFilhas) {

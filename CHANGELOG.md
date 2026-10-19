@@ -9,6 +9,17 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Corrigido
+
+- **Baixar o log**: ao terminar o download, aparece uma notificação "Download concluído"
+  com o nome do arquivo; clicar nela abre a pasta. Antes o arquivo só surgia em Downloads.
+
+### Adicionado
+
+- **Ajuda › Procurar atualizações**: consulta na hora se há versão nova e mostra o
+  resultado numa janela. Vale também com a atualização automática desligada. Versão nova
+  baixa em segundo plano e o aviso "pronta" aparece como de costume.
+
 ## [2.15.0] - 2026-10-19
 
 ### Adicionado

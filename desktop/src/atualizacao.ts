@@ -10,7 +10,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { Notification, app } from 'electron';
+import { Notification, app, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { ICONE } from './config';
 import { logEvento } from './log';
@@ -132,6 +132,58 @@ export function atualizarAgora(): SituacaoDoAtualizarAgora {
   instalarAoBaixar = true;
   consultar();
   return 'baixando';
+}
+
+/**
+ * O "Procurar atualizações" do menu Ajuda. Pedido explícito: vale também com a atualização
+ * automática desligada. Responde com uma janela em todos os desfechos, porque quem clica
+ * espera ver o resultado. A versão nova baixa em segundo plano e o aviso "pronta" é o de sempre.
+ */
+export async function procurarAtualizacoes(): Promise<void> {
+  if (!app.isPackaged || !ATUALIZACAO_AUTOMATICA_SUPORTADA) {
+    await dialog.showMessageBox({
+      type: 'info',
+      title: 'Procurar atualizações',
+      message: 'A atualização pelo menu não está disponível nesta instalação.',
+      detail: 'No Mac, atualize pelo aviso de versão nova do Painel.',
+    });
+    return;
+  }
+  logEvento('atualizacao-procura-pedida', { versaoPronta });
+  if (versaoPronta) {
+    const { response } = await dialog.showMessageBox({
+      type: 'info',
+      title: 'Procurar atualizações',
+      message: `A versão ${versaoPronta} já foi baixada.`,
+      buttons: ['Reiniciar agora', 'Depois'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 0) instalarAgora();
+    return;
+  }
+  try {
+    const resultado = await autoUpdater.checkForUpdates();
+    const novaVersao = resultado?.isUpdateAvailable ? resultado.updateInfo.version : null;
+    await dialog.showMessageBox({
+      type: 'info',
+      title: 'Procurar atualizações',
+      message: novaVersao
+        ? `Versão ${novaVersao} encontrada.`
+        : `Você já está na versão mais recente (${app.getVersion()}).`,
+      detail: novaVersao
+        ? 'Ela está sendo baixada em segundo plano. Você será avisado quando estiver pronta.'
+        : undefined,
+    });
+  } catch (err) {
+    logEvento('atualizacao-consulta-falhou', { erro: (err as Error).message });
+    await dialog.showMessageBox({
+      type: 'error',
+      title: 'Procurar atualizações',
+      message: 'Não foi possível consultar as atualizações.',
+      detail: (err as Error).message,
+    });
+  }
 }
 
 function registrarEventos(): void {
