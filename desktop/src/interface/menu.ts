@@ -19,6 +19,7 @@ import {
   ATUALIZACAO_AUTOMATICA_SUPORTADA,
   alternarAtualizacaoAutomatica,
   atualizacaoAutomaticaLigada,
+  procurarAtualizacoes,
   reiniciarParaAtualizar,
   versaoProntaParaInstalar,
 } from '../atualizacao';
@@ -198,6 +199,10 @@ export function montarMenu(
           label: `Reiniciar para atualizar para a versão ${versaoPronta ?? ''}`,
           visible: versaoPronta !== null,
           click: () => reiniciarParaAtualizar(),
+        },
+        {
+          label: 'Procurar atualizações',
+          click: () => void procurarAtualizacoes(),
         },
         {
           label: 'Atualizar automaticamente',
