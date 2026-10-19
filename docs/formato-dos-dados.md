@@ -273,6 +273,12 @@ Banco de dados gravado antes de `sgbd` e
 `identificadorOracle` existirem é lido como `oracle` e `service-name`. Não há
 migração manual a rodar.
 
+`dashboardImplantado` (opcional, `true` ou `false`) diz que o dashboard HUB - Workbench está
+implantado na base. Quem grava é outra aplicação, direto no arquivo; o HUB SNK só lê e
+preserva o campo ao editar a base ou substituí-la numa importação de cadastros. Ausente vale
+`false`. As bases com `true` entram no lembrete de 4 em 4 horas (ver
+[funcionalidades](funcionalidades.md#dashboard-hub---workbench-implantado)).
+
 ## Kanban dos projetos
 
 Três tabelas no `sankhya.db`, ao lado das da Agenda (`ag_*`):

@@ -9,6 +9,18 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- **Lembrete dos dashboards implantados**: a cada 4 horas, um lembrete lista as bases
+  com o dashboard HUB - Workbench implantado. A marca é o campo novo
+  `dashboardImplantado` da base no `clientes.json`, gravado por outra aplicação; sem
+  nenhuma base marcada, o lembrete não sai. Editar a base no HUB SNK preserva a marca.
+
+### Corrigido
+
+- **Log de base local**: o botão **Baixar** da janela do log fechava a janela junto com
+  o download. Agora ela continua aberta.
+
 ## [2.14.0] - 2026-10-16
 
 ### Adicionado

@@ -70,6 +70,16 @@ function chaveAchatadaDeNome(valor: string): string {
     .replace(FORA_DE_LETRA_OU_DIGITO, '');
 }
 
+/*
+ * Quem marca o dashboard implantado é outra aplicação: editar a base no HUB SNK não pode
+ * apagar a marca. Ausente continua ausente, para o arquivo não ganhar `false` à toa.
+ */
+function dashboardImplantadoDe(base: Base): Pick<Base, 'dashboardImplantado'> {
+  return typeof base.dashboardImplantado === 'boolean'
+    ? { dashboardImplantado: base.dashboardImplantado }
+    : {};
+}
+
 /**
  * Persistência dos clientes em um único arquivo JSON no disco local.
  *
@@ -271,12 +281,13 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
       const posicao = this.#obterPosicaoDaBase(cliente, idDaBase);
       this.#garantirAcessoDisponivel(cliente, dados, idDaBase);
 
-      // O banco vinculado não vem no formulário da base: preservá-lo é explícito.
+      // Banco vinculado e dashboard implantado não vêm no formulário: preservá-los é explícito.
       const baseAtual = cliente.bases[posicao] as Base;
       const baseAtualizada: Base = {
         id: idDaBase,
         ...this.#normalizarDadosDeBase(dados),
         ...(baseAtual.bancoDeDados ? { bancoDeDados: baseAtual.bancoDeDados } : {}),
+        ...dashboardImplantadoDe(baseAtual),
       };
 
       const bases = [...cliente.bases];
@@ -808,6 +819,7 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
       ...this.#normalizarDadosDeBase(dados),
       ...(semCredencialNoArquivo ? { usuario: atual.usuario, senha: atual.senha } : {}),
       ...(bancoDeDados ? { bancoDeDados } : {}),
+      ...dashboardImplantadoDe(atual),
     };
 
     const substituidas = [...bases];

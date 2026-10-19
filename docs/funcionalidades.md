@@ -491,6 +491,17 @@ Om e da Experience ativas no aplicativo. Sessão caída vira uma notificação d
 próprio HUB SNK, uma vez por dia; com o backend rodando sem o aplicativo
 (`npm run dev`), a verificação só registra no log.
 
+### Dashboard HUB - Workbench implantado
+
+A cada 4 horas sai **um** lembrete com a lista das bases marcadas com o dashboard HUB -
+Workbench implantado: uma linha por base, com o cliente, o tipo e a URL. Sem nenhuma base
+marcada, não sai nada. A marca é o campo `dashboardImplantado` da base no `clientes.json`,
+que outra aplicação liga e desliga; o HUB SNK não tem tela para ela e preserva o campo ao
+editar a base.
+
+O HUB SNK confere a cada 5 minutos, mas a notificação de uma janela de 4 horas sai uma vez
+só, mesmo que o aplicativo reinicie no meio dela. Sem e-mail.
+
 ## Lembretes
 
 O botão **Lembretes**, na barra logo abaixo do título do painel de notificações

@@ -25,6 +25,7 @@ import { RepositorioContatosArquivo } from './repositorio/arquivo/repositorioCon
 import { RepositorioLocalArquivo } from './repositorio/arquivo/repositorioLocalArquivo.ts';
 import { RepositorioNotificacoesArquivo } from './repositorio/arquivo/repositorioNotificacoesArquivo.ts';
 import { AgendadorDeLembretes } from './notificacoes/agendadorDeLembretes.ts';
+import { AvisoDeDashboardsImplantados } from './notificacoes/avisoDeDashboardsImplantados.ts';
 import { CentralDeNotificacoes } from './notificacoes/centralDeNotificacoes.ts';
 import { EnviadorDeEmail } from './notificacoes/enviadorDeEmail.ts';
 import { VerificadorDaAgendaDoDia } from './notificacoes/verificadorDaAgendaDoDia.ts';
@@ -140,6 +141,12 @@ async function iniciarServidor(): Promise<void> {
     clientes: repositorioDeClientes,
     contatos: repositorioDeContatos,
     caminhoDaLogo: join(configuracao.diretorioPublico, 'img', 'icone-192.png'),
+    emitir: (dados) => centralDeNotificacoes.emitir(dados),
+    agora: () => new Date(),
+    registrador: registradorDasNotificacoes,
+  });
+  const avisoDeDashboards = new AvisoDeDashboardsImplantados({
+    clientes: repositorioDeClientes,
     emitir: (dados) => centralDeNotificacoes.emitir(dados),
     agora: () => new Date(),
     registrador: registradorDasNotificacoes,
@@ -280,6 +287,7 @@ async function iniciarServidor(): Promise<void> {
   let observadorDosDados: FSWatcher | null = null;
   const encerrarOHub = criarEncerramento(async () => {
     agendadorDeLembretes.parar();
+    avisoDeDashboards.parar();
     verificadorDaAgenda.parar();
     servicoDeBackup.parar();
     contaDoGoogle.encerrar();
@@ -342,6 +350,7 @@ async function iniciarServidor(): Promise<void> {
   servidor.log.info(`Dados em ${configuracao.diretorioDeDados}`);
 
   agendadorDeLembretes.iniciar();
+  avisoDeDashboards.iniciar();
   verificadorDaAgenda.iniciar();
   servicoDeBackup.iniciar();
   if (restauracao) {

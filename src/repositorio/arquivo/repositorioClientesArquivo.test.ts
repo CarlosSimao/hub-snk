@@ -118,6 +118,36 @@ describe('RepositorioClientesArquivo', () => {
     assert.equal(atualizada.bancoDeDados?.nomeDoServico, 'ORCL');
   });
 
+  it('preserva o dashboardImplantado gravado por outra aplicação ao editar a base', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    const base = await repositorio.adicionarBase(cliente.id, BASE_DE_EXEMPLO);
+    const gravado = await lerArquivoGravado();
+    const [clienteGravado] = gravado['clientes'] as { bases: Record<string, unknown>[] }[];
+    clienteGravado!.bases[0]!['dashboardImplantado'] = true;
+    await writeFile(caminhoDoArquivo(), JSON.stringify(gravado));
+    repositorio.descartarCache();
+
+    const atualizada = await repositorio.atualizarBase(cliente.id, base.id, {
+      ...BASE_DE_EXEMPLO,
+      usuario: 'outro',
+    });
+
+    assert.equal(atualizada.dashboardImplantado, true);
+    const [clienteRegravado] = (await lerArquivoGravado())['clientes'] as {
+      bases: Record<string, unknown>[];
+    }[];
+    assert.equal(clienteRegravado!.bases[0]!['dashboardImplantado'], true);
+  });
+
+  it('base sem a marca continua sem o campo depois de editada', async () => {
+    const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
+    const base = await repositorio.adicionarBase(cliente.id, BASE_DE_EXEMPLO);
+
+    const atualizada = await repositorio.atualizarBase(cliente.id, base.id, BASE_DE_EXEMPLO);
+
+    assert.equal('dashboardImplantado' in atualizada, false);
+  });
+
   it('grava o SGBD e o identificador Oracle do banco', async () => {
     const cliente = await repositorio.criar({ nome: 'Indústria Alfa' });
     const base = await repositorio.adicionarBase(cliente.id, BASE_DE_EXEMPLO);

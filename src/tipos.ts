@@ -260,6 +260,12 @@ export interface Base {
   usuario: string;
   senha: string;
   bancoDeDados?: BancoDeDados;
+  /**
+   * Dashboard HUB - Workbench implantado nesta base. Quem grava é outra aplicação; o HUB
+   * SNK só lê (para o lembrete de 4 em 4 horas) e preserva ao editar a base. Ausente vale
+   * `false`.
+   */
+  dashboardImplantado?: boolean;
 }
 
 /**
