@@ -309,7 +309,7 @@ export class GerenciadorComunicacao {
   alternar(servico: string): boolean {
     if (!ehServicoComunicacao(servico) || this.#desabilitados.has(servico)) return false;
     if (this.#ativo === servico) {
-      this.ocultar();
+      this.ocultar('botao-da-barra');
       return true;
     }
     this.#mostrar(servico);
@@ -334,8 +334,14 @@ export class GerenciadorComunicacao {
     return true;
   }
 
-  ocultar(): void {
+  /** `origem` só entra no log: mostra o que escondeu o painel quando ninguém clicou nele. */
+  ocultar(origem = 'externo'): void {
     if (!this.#ativo) return;
+    logEvento('comunicacao-painel-ocultado', {
+      servico: this.#ativo,
+      origem,
+      focoEm: this.#descreverFoco(),
+    });
     this.#paineis.get(this.#ativo)?.setVisible(false);
     this.#definirAtivo(null);
   }
@@ -443,7 +449,7 @@ export class GerenciadorComunicacao {
    * para — a consulta periódica pula serviço desabilitado.
    */
   #descarregar(servico: ServicoComunicacao): void {
-    if (this.#ativo === servico) this.ocultar();
+    if (this.#ativo === servico) this.ocultar('servico-desabilitado');
     this.#esquecerNaoLidas(servico);
     const painel = this.#paineis.get(servico);
     if (!painel) return;
@@ -843,8 +849,16 @@ export class GerenciadorComunicacao {
     // quem ficou com ele.
     setImmediate(() => {
       if (!this.#ativo || this.#paineis.get(this.#ativo) !== painel) return;
-      if (this.#focoEstaNumaGuia(painel)) this.ocultar();
+      if (this.#focoEstaNumaGuia(painel)) this.ocultar('blur-foco-na-guia');
     });
+  }
+
+  /** Origem (sem query) da página que está com o foco, para o log de quem escondeu o painel. */
+  #descreverFoco(): string | null {
+    const focado = webContents.getFocusedWebContents();
+    if (!focado) return null;
+    if (focado === this.#janela.webContents) return 'barra-do-hub';
+    return origemSemQuery(focado.getURL());
   }
 
   /** Foco dentro da janela, mas fora do painel e da barra: está numa guia. */
@@ -865,7 +879,7 @@ export class GerenciadorComunicacao {
       const painel = this.#ativo ? this.#paineis.get(this.#ativo) : undefined;
       if (!painel) return;
       if (this.#focoEstaNumaGuia(painel)) {
-        this.ocultar();
+        this.ocultar('retomar-foco-na-guia');
         return;
       }
       painel.webContents.focus();

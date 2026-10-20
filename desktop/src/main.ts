@@ -284,7 +284,7 @@ function mostrarJanela(): void {
 function mostrarPainel(): void {
   mostrarJanela();
   // O painel de comunicação fica por cima das guias e cobriria a busca.
-  comunicacao?.ocultar();
+  comunicacao?.ocultar('mostrar-painel');
 }
 
 function abrirBuscaRapidaNaJanela(): void {
@@ -356,7 +356,7 @@ tratarDaBarraDeGuias('comunicacao:alternar', (servico: string) => ({
   ok: comunicacao?.alternar(servico) ?? false,
 }));
 tratarDaBarraDeGuias('comunicacao:ocultar', () => {
-  comunicacao?.ocultar();
+  comunicacao?.ocultar('barra-de-guias');
   return { ok: true };
 });
 tratarDaBarraDeGuias('comunicacao:estado', () => comunicacao?.estadoDosServicos() ?? []);
