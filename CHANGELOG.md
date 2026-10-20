@@ -9,6 +9,13 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Alterado
+
+- **Diagnóstico do painel de comunicação**: o log passa a registrar quando o painel do
+  WhatsApp, do Gmail ou do Google Chat se fecha, o que o fechou e onde foi a última tecla
+  ou clique antes disso. Serve para achar a causa do painel que some sozinho no meio da
+  leitura ou da escrita de um e-mail. O comportamento do painel não mudou.
+
 ## [2.16.0] - 2026-10-19
 
 ### Adicionado
