@@ -12,12 +12,17 @@
  */
 import { type BrowserWindow, type WebContents } from 'electron';
 import * as cofre from './cofreCredenciais';
-import { EXPERIENCE_URL } from '../config';
+import { EXPERIENCE_URL, PARTICAO } from '../config';
 import { logEvento } from '../log';
 import { criarJanelaOculta, preencherESubmeterLogin } from './loginOcultoSankhya';
 import { capturarTokenDeWebContents, type SessaoExperience } from './sessions';
 
-const PARTICAO_EXPERIENCE = 'persist:sankhya-hub-experience';
+/**
+ * A mesma partição da guia Experience, e não uma própria como a da Agenda: a Experience
+ * mantém uma sessão por usuário, e duas partições se derrubavam a cada ~7,5 min — a guia
+ * caía no login, relogava e roubava o foco.
+ */
+const PARTICAO_EXPERIENCE = PARTICAO;
 const INTERVALO_MS = 1_000;
 /** Tempo para o login web assentar e o token aparecer no `localStorage`. */
 const LOGIN_TIMEOUT_MS = 120_000;

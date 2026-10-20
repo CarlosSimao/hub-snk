@@ -856,7 +856,20 @@ export class GerenciadorComunicacao {
     // quem ficou com ele.
     setImmediate(() => {
       if (!this.#ativo || this.#paineis.get(this.#ativo) !== painel) return;
-      if (this.#focoEstaNumaGuia(painel)) this.ocultar('blur-foco-na-guia');
+      if (!this.#focoEstaNumaGuia(painel)) return;
+      // Guia que navega sozinha (a Experience caindo no login) também leva o foco: só é
+      // clique fora se a guia focada foi a que recebeu a última tecla ou clique.
+      const focado = webContents.getFocusedWebContents();
+      if (this.#ultimaEntrada?.pagina === focado) {
+        this.ocultar('blur-foco-na-guia');
+        return;
+      }
+      logEvento('comunicacao-foco-roubado', {
+        servico: this.#ativo,
+        focoEm: this.#descreverPagina(focado),
+        ultimaEntradaEm: this.#descreverPagina(this.#ultimaEntrada?.pagina),
+      });
+      painel.webContents.focus();
     });
   }
 
