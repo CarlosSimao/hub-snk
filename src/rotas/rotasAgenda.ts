@@ -5,6 +5,7 @@ import type { RepositorioConfiguracao } from '../repositorio/repositorioConfigur
 import { AgendaRecursos } from '../sankhya/agenda.ts';
 import { PayloadInvalidoError } from '../sankhya/agendaParser.ts';
 import {
+  descartarCacheDeFaps,
   importarAgendaDoPeriodo,
   fapsDoParceiroNoErp,
   lerCodusuConfigurado,
@@ -23,6 +24,9 @@ const esquemaDeConsulta = z.object({
   de: z.string().regex(ISO, 'Informe "de" no formato YYYY-MM-DD.'),
   ate: z.string().regex(ISO, 'Informe "ate" no formato YYYY-MM-DD.'),
 });
+
+/** Fora do padrão HTTP, mas o usual (nginx) para "o cliente desistiu antes da resposta". */
+const STATUS_CLIENTE_DESISTIU = 499;
 
 const HORA = /^\d{2}:\d{2}$/;
 const esquemaDeLancamentoDeOs = z.object({
@@ -173,6 +177,9 @@ export function registrarRotasDeAgenda(
    * tarefa, tarefa aberta, ou já com OS lançada (com o número). Descobre os
    * FAPs dele (negociações do ERP com `tipo: "2"`) e testa nesse dia em cada
    * um — é sempre pro usuário logado, sem seleção de pessoa.
+   *
+   * A tela fecha a requisição quando o usuário troca de dia; a consulta da Experience é
+   * cancelada junto, para não ocupar a fila de quem está na tela.
    */
   servidor.get<{ Querystring: { codparc?: string; dia?: string } }>(
     '/api/agenda/situacao-do-dia',
@@ -186,13 +193,38 @@ export function registrarRotasDeAgenda(
         return resposta.status(400).send({ mensagem: 'Informe ?dia= no formato YYYY-MM-DD.' });
       }
 
+      const cancelamento = new AbortController();
+      resposta.raw.on('close', () => {
+        if (!resposta.raw.writableFinished) cancelamento.abort();
+      });
+
       try {
-        return await situacaoDoDiaDoParceiro({ credenciais, experience, codparc, dia });
+        return await situacaoDoDiaDoParceiro({
+          credenciais,
+          experience,
+          codparc,
+          dia,
+          sinal: cancelamento.signal,
+          registrador: requisicao.log,
+        });
       } catch (erro) {
+        if (cancelamento.signal.aborted) {
+          return resposta.status(STATUS_CLIENTE_DESISTIU).send({ mensagem: 'Consulta cancelada.' });
+        }
         return responderErroDaConsulta(resposta, erro);
       }
     },
   );
+
+  /**
+   * Esquece os cadastros guardados (FAPs do parceiro, implantações, `person_id`) — os
+   * botões de atualizar da agenda chamam antes de recarregar, para trazer tudo novo.
+   */
+  servidor.post('/api/agenda/situacao/descartar-cache', async (_requisicao, resposta) => {
+    descartarCacheDeFaps();
+    experience.descartarCache();
+    return resposta.status(204).send();
+  });
 
   /*
    * Uma gravação por vez: o duplo clique, ou a mesma OS lançada de duas telas, viraria

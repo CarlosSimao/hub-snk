@@ -911,6 +911,7 @@ async function requisitar(caminho, opcoes = {}) {
     headers: opcoes.corpo ? { 'content-type': 'application/json' } : undefined,
     method: opcoes.metodo ?? 'GET',
     body: opcoes.corpo ? JSON.stringify(opcoes.corpo) : undefined,
+    signal: opcoes.sinal,
   });
 
   if (resposta.status === 204) {
@@ -968,10 +969,13 @@ const api = {
       `${CAMINHO_DA_API}/${id}/agenda-eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`,
     ),
   lancarOs: (dados) => requisitar('/api/agenda/lancar-os', { metodo: 'POST', corpo: dados }),
-  situacaoDoDiaNoExperience: (codparc, dia) =>
+  situacaoDoDiaNoExperience: (codparc, dia, sinal) =>
     requisitar(
       `/api/agenda/situacao-do-dia?codparc=${encodeURIComponent(codparc)}&dia=${encodeURIComponent(dia)}`,
+      { sinal },
     ),
+  descartarCacheDaSituacao: () =>
+    requisitar('/api/agenda/situacao/descartar-cache', { metodo: 'POST' }),
   consultarOsGeral: (de, ate) =>
     requisitar('/api/os/consultar', { metodo: 'POST', corpo: { de, ate } }),
   consultarOsDoCliente: (id, de, ate) =>
@@ -3039,21 +3043,35 @@ const cacheSituacaoDoDia = new Map();
  * Consulta (com cache) a situação de um cliente num dia no Experience.
  * `forcar` descarta o valor em cache e consulta de novo — usado no botão de
  * atualizar do card e sempre que o dia selecionado no calendário muda.
+ *
+ * `sinal` cancela a consulta quando o usuário sai do dia: ela sai do cache na hora, e
+ * quem ainda a aguardava recebe `{ cancelada: true }`.
  */
-function consultarSituacaoDoDia(codparc, dia, forcar = false) {
+function consultarSituacaoDoDia(codparc, dia, forcar = false, sinal = undefined) {
   const chave = `${codparc}|${dia}`;
   if (forcar) {
     cacheSituacaoDoDia.delete(chave);
   }
   if (!cacheSituacaoDoDia.has(chave)) {
-    cacheSituacaoDoDia.set(
-      chave,
-      api
-        .situacaoDoDiaNoExperience(codparc, dia)
-        .catch((erro) => ({ falhou: true, mensagem: erro.message })),
-    );
+    const consulta = api
+      .situacaoDoDiaNoExperience(codparc, dia, sinal)
+      .catch((erro) =>
+        erro.name === 'AbortError' ? { cancelada: true } : { falhou: true, mensagem: erro.message },
+      );
+    cacheSituacaoDoDia.set(chave, consulta);
+    sinal?.addEventListener('abort', () => {
+      if (cacheSituacaoDoDia.get(chave) === consulta) {
+        cacheSituacaoDoDia.delete(chave);
+      }
+    });
   }
   return cacheSituacaoDoDia.get(chave);
+}
+
+/** Os botões de atualizar da agenda trazem tudo novo: situação e cadastros guardados no servidor. */
+async function descartarCachesDaSituacao() {
+  cacheSituacaoDoDia.clear();
+  await api.descartarCacheDaSituacao();
 }
 
 /**
@@ -3063,7 +3081,7 @@ function consultarSituacaoDoDia(codparc, dia, forcar = false) {
  * "Tarefas Realizadas"). Começa neutro ("verificando…") pra não travar a
  * lista inteira esperando o Experience responder.
  */
-function anexarSituacaoDoEvento(linhaHorario, informacoes, evento, dia, forcarNaAbertura) {
+function anexarSituacaoDoEvento(linhaHorario, informacoes, evento, dia, forcarNaAbertura, sinal) {
   const { codparc } = evento;
   const selo = criarElemento('span', 'selo-situacao', 'Verificando situação no Experience…');
   const botaoAtualizar = criarBotaoDeIcone(
@@ -3095,8 +3113,14 @@ function anexarSituacaoDoEvento(linhaHorario, informacoes, evento, dia, forcarNa
       botaoLancarOs = null;
     }
 
-    const resultado = await consultarSituacaoDoDia(codparc, dia, forcar);
+    const resultado = await consultarSituacaoDoDia(codparc, dia, forcar, sinal);
 
+    if (resultado.cancelada) {
+      // Quem cancelou foi outro widget com a mesma consulta (agenda geral e do cliente
+      // dividem o cache); este ainda está na tela e consulta de novo.
+      if (selo.isConnected) void carregar(false);
+      return;
+    }
     if (resultado.falhou) {
       selo.classList.add('erro');
       selo.textContent = 'Não verifiquei a situação no Experience';
@@ -3483,6 +3507,8 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
     mes: mesInicial,
     diaSelecionado: dataIsoDeHoje(),
   };
+  /* Consultas de situação do dia em exibição; trocar de dia cancela as que ainda rodam. */
+  let consultasDoDia = { dia: null, cancelamento: new AbortController() };
 
   const rotuloMes = criarElemento('span', 'rotulo-mes-calendario');
   const navegacao = criarElemento('div', 'navegacao-calendario');
@@ -3543,6 +3569,12 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
     areaDetalhe.replaceChildren();
     if (!dia) return;
 
+    // Redesenhar o mesmo dia (abrir a aba e logo atualizar) reaproveita a consulta em curso.
+    if (consultasDoDia.dia !== dia.dia) {
+      consultasDoDia.cancelamento.abort();
+      consultasDoDia = { dia: dia.dia, cancelamento: new AbortController() };
+    }
+
     const titulo = new Date(`${dia.dia}T00:00:00`).toLocaleDateString('pt-BR', {
       weekday: 'long',
       day: '2-digit',
@@ -3593,6 +3625,7 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
           evento,
           dia.dia,
           forcarAtualizacaoDaSituacao,
+          consultasDoDia.cancelamento.signal,
         );
       }
 
@@ -10975,6 +11008,7 @@ async function selecionarCliente(id, abaInicial = null) {
 async function recarregarDetalhe(id) {
   try {
     await recarregarCliente(id);
+    await descartarCachesDaSituacao();
   } catch (erro) {
     exibirAviso(`Não foi possível recarregar o cliente: ${erro.message}`, 'erro');
     return;
@@ -12472,7 +12506,12 @@ function registrarEventos() {
   registrarEventosDoLembrete();
   registrarEventosDosContatos();
   elementos.botaoAtualizarAgenda.append(criarIcone(ICONES.recarregar));
-  elementos.botaoAtualizarAgenda.addEventListener('click', atualizarAgendaGeral);
+  elementos.botaoAtualizarAgenda.addEventListener('click', () =>
+    executarAcaoDoSistema(async () => {
+      await descartarCachesDaSituacao();
+      await atualizarAgendaGeral();
+    }, elementos.botaoAtualizarAgenda),
+  );
   elementos.botaoLancarOcorrencia.addEventListener('click', abrirModalDeOcorrencia);
   elementos.formularioOcorrencia.addEventListener('submit', salvarOcorrencia);
   elementos.botaoCancelarOcorrencia.addEventListener('click', () =>

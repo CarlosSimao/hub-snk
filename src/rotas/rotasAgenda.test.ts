@@ -117,3 +117,18 @@ describe('POST /api/agenda/lancar-os', () => {
     assert.equal((await primeira).statusCode, 200);
   });
 });
+
+describe('POST /api/agenda/situacao/descartar-cache', () => {
+  it('esquece os cadastros guardados na Experience', async () => {
+    let descartes = 0;
+    const servidor = criarServidor({ descartarCache: () => void (descartes += 1) });
+
+    const resposta = await servidor.inject({
+      method: 'POST',
+      url: '/api/agenda/situacao/descartar-cache',
+    });
+
+    assert.equal(resposta.statusCode, 204);
+    assert.equal(descartes, 1);
+  });
+});

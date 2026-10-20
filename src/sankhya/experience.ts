@@ -9,6 +9,7 @@
  * Quase tudo é leitura. A única escrita é o lançamento de OS (`lancarOs`) e o envio
  * dela para o aceite do cliente (`enviarParaAceite`), no mesmo protocolo da tela.
  */
+import { CacheComValidade } from './cacheComValidade.ts';
 import type { Credenciais } from './credenciais.ts';
 import {
   MARCADOR_DE_OBSERVACOES,
@@ -26,6 +27,11 @@ const STATUS_TAREFA = ['Hoje', 'Futura', 'Atrasada'];
 
 const MAX_PAGINAS = 20;
 const POR_PAGINA = 100;
+const TEMPO_LIMITE_DA_CHAMADA_MS = 30_000;
+
+/** Quanto vale o que quase nunca muda: implantações, `person_id`, FAPs do parceiro no ERP. */
+export const VALIDADE_DOS_CADASTROS_MS = 60 * 60 * 1000;
+const CHAVE_DAS_IMPLANTACOES = 'todas';
 
 /**
  * Fila de vagas: até `vagas` tarefas rodam ao mesmo tempo, o resto espera a vez.
@@ -63,9 +69,15 @@ class FilaDeVagas {
     }
   }
 
-  async executar<T>(tarefa: () => Promise<T>): Promise<T> {
+  /**
+   * `sinal` cancelado antes da vez desiste sem chamar a API — a consulta de um dia que o
+   * usuário já deixou não ocupa a vaga de quem está na tela. Ele ainda espera a vez na fila
+   * e a repassa na hora; tirar da fila antes exigiria saber a posição de cada um.
+   */
+  async executar<T>(tarefa: () => Promise<T>, sinal?: AbortSignal): Promise<T> {
     await this.#adquirir();
     try {
+      sinal?.throwIfAborted();
       return await tarefa();
     } finally {
       this.#liberar();
@@ -75,6 +87,12 @@ class FilaDeVagas {
 
 const MAX_CHAMADAS_SIMULTANEAS_NA_EXPERIENCE = 4;
 const filaDeChamadasNaExperience = new FilaDeVagas(MAX_CHAMADAS_SIMULTANEAS_NA_EXPERIENCE);
+
+/** O tempo limite de cada chamada, somado ao cancelamento de quem pediu, quando houver. */
+function sinalDaChamada(sinal?: AbortSignal | null): AbortSignal {
+  const tempoLimite = AbortSignal.timeout(TEMPO_LIMITE_DA_CHAMADA_MS);
+  return sinal ? AbortSignal.any([tempoLimite, sinal]) : tempoLimite;
+}
 
 /** Só o texto digitado à mão, depois do marcador. Sem marcador, não há texto livre. */
 function extrairObservacoes(informacaoAdicional: string): string {
@@ -126,6 +144,13 @@ function texto(valor: unknown): string {
 
 export class Experience {
   readonly #credenciais: Credenciais;
+  readonly #implantacoes = new CacheComValidade<string, { id: number; fap: number }[]>(
+    VALIDADE_DOS_CADASTROS_MS,
+  );
+  /** Por token: sessão capturada de novo pode ser de outra pessoa. */
+  readonly #personIdPorToken = new CacheComValidade<string, number | null>(
+    VALIDADE_DOS_CADASTROS_MS,
+  );
 
   constructor(credenciais: Credenciais) {
     this.#credenciais = credenciais;
@@ -149,6 +174,12 @@ export class Experience {
     await this.#token();
   }
 
+  /** Esquece implantações e `person_id` guardados — o botão de atualizar da agenda pede dado novo. */
+  descartarCache(): void {
+    this.#implantacoes.descartarTudo();
+    this.#personIdPorToken.descartarTudo();
+  }
+
   /**
    * O `person_id` do usuário logado — é uma conta GLOBAL da Experience, não
    * por projeto (`/persons/implantation/{id}` não existe; testado e devolve
@@ -157,7 +188,10 @@ export class Experience {
    */
   async descobrirPersonId(): Promise<number | null> {
     const token = await this.#token();
+    return this.#personIdPorToken.obter(token, () => this.#buscarPersonId(token));
+  }
 
+  async #buscarPersonId(token: string): Promise<number | null> {
     const payload = token.split('.')[1];
     if (!payload) return null;
 
@@ -189,24 +223,27 @@ export class Experience {
     caminho: string,
     filtros: Record<string, unknown>,
     converter: (linha: Record<string, unknown>) => T,
+    sinal?: AbortSignal,
   ): Promise<T[]> {
     const token = await this.#token();
     const itens: T[] = [];
 
     for (let pagina = 1; pagina <= MAX_PAGINAS; pagina += 1) {
-      const resposta = await filaDeChamadasNaExperience.executar(() =>
-        fetch(`${API}${caminho}`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            columns: [],
-            page: pagina,
-            length: POR_PAGINA,
-            order: {},
-            filters: filtros,
+      const resposta = await filaDeChamadasNaExperience.executar(
+        () =>
+          fetch(`${API}${caminho}`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              columns: [],
+              page: pagina,
+              length: POR_PAGINA,
+              order: {},
+              filters: filtros,
+            }),
+            signal: sinalDaChamada(sinal),
           }),
-          signal: AbortSignal.timeout(30_000),
-        }),
+        sinal,
       );
 
       if (resposta.status === 401 || resposta.status === 403) {
@@ -231,7 +268,7 @@ export class Experience {
     return itens;
   }
 
-  tarefas(projetoId: number, personId: number): Promise<TarefaExperience[]> {
+  tarefas(projetoId: number, personId: number, sinal?: AbortSignal): Promise<TarefaExperience[]> {
     return this.#paginar(
       `/tasks/filtering/implantation/${projetoId}/person/${personId}`,
       { status: STATUS_TAREFA, users: [personId] },
@@ -249,22 +286,25 @@ export class Experience {
         observacoes: texto(linha['additional_information']),
         bruto: linha,
       }),
+      sinal,
     );
   }
 
   /** Uma chamada avulsa, fora do padrão paginado. */
   async #chamar<T>(caminho: string, init: RequestInit = {}): Promise<T> {
     const token = await this.#token();
-    const resposta = await filaDeChamadasNaExperience.executar(() =>
-      fetch(`${API}${caminho}`, {
-        ...init,
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${token}`,
-          ...init.headers,
-        },
-        signal: AbortSignal.timeout(30_000),
-      }),
+    const resposta = await filaDeChamadasNaExperience.executar(
+      () =>
+        fetch(`${API}${caminho}`, {
+          ...init,
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${token}`,
+            ...init.headers,
+          },
+          signal: sinalDaChamada(init.signal),
+        }),
+      init.signal ?? undefined,
     );
 
     if (resposta.status === 401 || resposta.status === 403) {
@@ -293,7 +333,11 @@ export class Experience {
    * implantação que tem aquele FAP. Base para achar o `implantation_id` de um FAP
    * (um cliente pode ter mais de um).
    */
-  async #implantacoesComFap(): Promise<{ id: number; fap: number }[]> {
+  #implantacoesComFap(): Promise<{ id: number; fap: number }[]> {
+    return this.#implantacoes.obter(CHAVE_DAS_IMPLANTACOES, () => this.#buscarImplantacoesComFap());
+  }
+
+  async #buscarImplantacoesComFap(): Promise<{ id: number; fap: number }[]> {
     const implantacoes: { id: number; fap: number }[] = [];
     const colunas = [
       { name: 'impl.id', alias: 'id' },
@@ -333,7 +377,10 @@ export class Experience {
    * intervalo, tempo realizado) — o caso comum é uma tarefa por dia, e
    * `situacaoDoDia` já filtrou a OS pra um dia só.
    */
-  async #detalheDaOrdem(orderId: number): Promise<{
+  async #detalheDaOrdem(
+    orderId: number,
+    sinal?: AbortSignal,
+  ): Promise<{
     tarefasRealizadas: string;
     observacoes: string;
     horaInicio: string;
@@ -343,6 +390,7 @@ export class Experience {
   }> {
     const corpo = await this.#chamar<{ data?: { result?: Record<string, unknown>[] } }>(
       `/orders/${orderId}/tasks?columns=[]&page=1&length=${POR_PAGINA}&order=%7B%7D`,
+      { signal: sinal ?? null },
     );
     const linhas = corpo.data?.result ?? [];
     const primeira = linhas[0] ?? {};
@@ -376,11 +424,14 @@ export class Experience {
    * Testa um FAP por vez e para no primeiro que achar OS ou tarefa — não
    * precisa somar os FAPs, só saber o estado.
    *
-   * A lista de implantações (até `MAX_PAGINAS` páginas) e o `person_id` saem uma
-   * vez por chamada, não por FAP: roda para cada parceiro do dia a cada verificação
-   * da agenda, e o `person_id` não depende do projeto.
+   * A lista de implantações e o `person_id` vêm do cache (`VALIDADE_DOS_CADASTROS_MS`):
+   * a lista tem até `MAX_PAGINAS` páginas, e refazê-la a cada parceiro de cada dia era o
+   * grosso da espera. A situação em si (OS, tarefas) é sempre consultada.
+   *
+   * `sinal` cancela só a parte da situação: implantações e `person_id` são compartilhados
+   * pelo cache, e outra consulta pode estar esperando por eles.
    */
-  async situacaoDoDia(fapIds: number[], dia: string): Promise<SituacaoDoDia> {
+  async situacaoDoDia(fapIds: number[], dia: string, sinal?: AbortSignal): Promise<SituacaoDoDia> {
     if (fapIds.length === 0) return { tipo: 'sem-tarefa' };
 
     const [implantacoes, personId] = await Promise.all([
@@ -393,10 +444,10 @@ export class Experience {
       const implantationId = implantacoes.find((i) => i.fap === fapId)?.id ?? null;
       if (implantationId === null) continue;
 
-      const ordens = await this.ordens(implantationId, personId, dia, dia);
+      const ordens = await this.ordens(implantationId, personId, dia, dia, sinal);
       const ordemDoDia = ordens.find((o) => o.dia === dia);
       if (ordemDoDia) {
-        const detalhe = await this.#detalheDaOrdem(ordemDoDia.id);
+        const detalhe = await this.#detalheDaOrdem(ordemDoDia.id, sinal);
         return {
           tipo: 'os-lancada',
           numeroOs: ordemDoDia.numeroSankhya || String(ordemDoDia.id),
@@ -406,7 +457,7 @@ export class Experience {
         };
       }
 
-      const tarefas = await this.tarefas(implantationId, personId);
+      const tarefas = await this.tarefas(implantationId, personId, sinal);
       if (tarefas.some((t) => t.dia === dia)) {
         return { tipo: 'tarefa-aberta' };
       }
@@ -453,6 +504,7 @@ export class Experience {
     personId: number | null,
     de: string,
     ate: string,
+    sinal?: AbortSignal,
   ): Promise<OrdemExperience[]> {
     return this.#paginar(
       `/orders/filtering?implantation_ids=${projetoId}`,
@@ -463,6 +515,7 @@ export class Experience {
         ...(personId === null ? {} : { users: [personId] }),
       },
       (linha) => this.#converterOrdem(linha),
+      sinal,
     );
   }
 

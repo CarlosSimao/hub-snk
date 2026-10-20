@@ -6,8 +6,9 @@
 import type { EstadoAgendaRecursos } from '../tipos.ts';
 import type { AgendaRecursos } from './agenda.ts';
 import { parsearAgenda } from './agendaParser.ts';
+import { CacheComValidade } from './cacheComValidade.ts';
 import type { Credenciais } from './credenciais.ts';
-import type { Experience, SituacaoDoDia } from './experience.ts';
+import { VALIDADE_DOS_CADASTROS_MS, type Experience, type SituacaoDoDia } from './experience.ts';
 import { fapsDoParceiro, parsearNegociacoes } from './negociacoes.ts';
 
 /** O Sankhya respondeu algo que não é JSON. */
@@ -27,6 +28,19 @@ export interface PeriodoDaAgenda {
 export interface SituacaoDoDiaDoParceiro {
   situacao: SituacaoDoDia;
   faps: number[];
+}
+
+/** O mínimo do logger do Fastify que a medição de tempo usa. */
+interface RegistradorDeTempos {
+  info(dados: object, mensagem: string): void;
+}
+
+/** Negociações vêm da janela oculta do ERP, a etapa mais lenta, e quase nunca mudam. */
+const fapsPorParceiro = new CacheComValidade<number, number[]>(VALIDADE_DOS_CADASTROS_MS);
+
+/** Esquece os FAPs guardados — o botão de atualizar da agenda pede dado novo. */
+export function descartarCacheDeFaps(): void {
+  fapsPorParceiro.descartarTudo();
 }
 
 /**
@@ -77,32 +91,42 @@ export async function importarAgendaDoPeriodo(parametros: {
   });
 }
 
-/** Os FAPs do parceiro, das negociações dele no ERP. */
-export async function fapsDoParceiroNoErp(
-  credenciais: Credenciais,
-  codparc: number,
-): Promise<number[]> {
-  const negociacoes = await credenciais.consultarNegociacoesDoParceiro(codparc);
-  return fapsDoParceiro(parsearNegociacoes(lerJson(negociacoes.conteudo)));
+/** Os FAPs do parceiro, das negociações dele no ERP — guardados por `VALIDADE_DOS_CADASTROS_MS`. */
+export function fapsDoParceiroNoErp(credenciais: Credenciais, codparc: number): Promise<number[]> {
+  return fapsPorParceiro.obter(codparc, async () => {
+    const negociacoes = await credenciais.consultarNegociacoesDoParceiro(codparc);
+    return fapsDoParceiro(parsearNegociacoes(lerJson(negociacoes.conteudo)));
+  });
 }
 
 /**
  * Estado do dia no Sankhya Experience para o parceiro: sem tarefa, tarefa aberta ou OS
  * lançada. Descobre os FAPs dele (negociações do ERP) e testa o dia em cada um — sempre
  * para o usuário logado.
+ *
+ * Com `registrador`, registra quanto cada etapa levou: é o que mostra onde está a demora
+ * quando a agenda fica lenta.
  */
 export async function situacaoDoDiaDoParceiro(parametros: {
   credenciais: Credenciais;
   experience: Experience;
   codparc: number;
   dia: string;
+  sinal?: AbortSignal;
+  registrador?: RegistradorDeTempos;
 }): Promise<SituacaoDoDiaDoParceiro> {
-  const { credenciais, experience, codparc, dia } = parametros;
+  const { credenciais, experience, codparc, dia, sinal, registrador } = parametros;
 
+  const inicio = performance.now();
   const faps = await fapsDoParceiroNoErp(credenciais, codparc);
+  const fapsMs = Math.round(performance.now() - inicio);
   if (!faps.length) {
+    registrador?.info({ codparc, dia, fapsMs }, 'situação do dia: parceiro sem FAP');
     return { situacao: { tipo: 'sem-tarefa' }, faps: [] };
   }
 
-  return { situacao: await experience.situacaoDoDia(faps, dia), faps };
+  const situacao = await experience.situacaoDoDia(faps, dia, sinal);
+  const experienceMs = Math.round(performance.now() - inicio) - fapsMs;
+  registrador?.info({ codparc, dia, fapsMs, experienceMs }, 'situação do dia consultada');
+  return { situacao, faps };
 }
