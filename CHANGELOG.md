@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.17.2] - 2026-10-20
+
 ### Alterado
 
 - **Agenda mais rápida ao ver a situação do dia na Experience.** As informações que quase
@@ -934,7 +936,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.1...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.2...HEAD
+[2.17.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.1...v2.17.2
 [2.17.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.0...v2.17.1
 [2.17.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.16.1...v2.17.0
 [2.16.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.16.0...v2.16.1
