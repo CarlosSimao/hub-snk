@@ -9,6 +9,12 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- **Aviso de atualização em andamento**: ao reiniciar para atualizar, ou ao fechar o HUB
+  SNK com uma versão nova já baixada, uma notificação avisa que a instalação está em
+  andamento. Antes o programa só sumia, sem sinal de que voltaria.
+
 ### Corrigido
 
 - **Anexos e downloads das guias**: todo download concluído mostra a notificação "Download
