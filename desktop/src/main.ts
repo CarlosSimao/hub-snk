@@ -355,8 +355,8 @@ tratarDaBarraDeGuias('layout:definirLarguraLateral', (largura: number) => {
 tratarDaBarraDeGuias('comunicacao:alternar', (servico: string) => ({
   ok: comunicacao?.alternar(servico) ?? false,
 }));
-tratarDaBarraDeGuias('comunicacao:ocultar', () => {
-  comunicacao?.ocultar('barra-de-guias');
+tratarDaBarraDeGuias('comunicacao:ocultar', (origem: unknown) => {
+  comunicacao?.ocultar(`barra-de-guias:${typeof origem === 'string' ? origem : '?'}`);
   return { ok: true };
 });
 tratarDaBarraDeGuias('comunicacao:estado', () => comunicacao?.estadoDosServicos() ?? []);

@@ -61,7 +61,8 @@ contextBridge.exposeInMainWorld('hub', {
   comunicacao: {
     /** Abre o serviço no painel de meia tela, ou o esconde se já estiver aberto. */
     alternar: (servico: string) => ipcRenderer.invoke('comunicacao:alternar', servico),
-    ocultar: () => ipcRenderer.invoke('comunicacao:ocultar'),
+    /** `origem` só entra no log de quem escondeu o painel. */
+    ocultar: (origem: string) => ipcRenderer.invoke('comunicacao:ocultar', origem),
     /** Serviço aberto no painel, ou `null` quando ele some — a barra destaca o botão. */
     aoMudarAtivo: (cb: (servico: string | null) => void) =>
       ipcRenderer.on('comunicacao:ativo', (_e, servico) => cb(servico)),

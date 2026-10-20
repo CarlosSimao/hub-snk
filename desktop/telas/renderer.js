@@ -328,7 +328,7 @@ function tocarSomDeMensagemNova() {
 // numa guia o shell já percebe pela troca de foco.
 document.addEventListener('mousedown', (evento) => {
   if (!servicoAtivo || barraLateral.contains(evento.target)) return;
-  window.hub.comunicacao.ocultar();
+  window.hub.comunicacao.ocultar('clique-fora-do-painel');
 });
 
 function informarLarguraLateral() {
@@ -359,7 +359,7 @@ function aplicarLateralOculta(oculta) {
   botaoAlternarLateral.setAttribute('aria-label', rotulo);
   botaoAlternarLateral.setAttribute('aria-expanded', String(!oculta));
   // Sem os botões à vista, o painel aberto ficaria sem como ser fechado pela barra.
-  if (oculta && servicoAtivo) window.hub.comunicacao.ocultar();
+  if (oculta && servicoAtivo) window.hub.comunicacao.ocultar('barra-lateral-ocultada');
   informarLarguraLateral();
   // A barra de guias perde ou ganha largura e pode quebrar linha, mudando de altura.
   setTimeout(informarAlturaTopo, 0);
