@@ -9,6 +9,13 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Corrigido
+
+- **Anexos e downloads das guias**: todo download concluído mostra a notificação "Download
+  concluído"; clicar nela abre a pasta. Antes o anexo do Sankhya (como o da Solicitação de
+  Serviços) ia direto para Downloads só com uma piscada na tela, parecendo que nada tinha
+  acontecido.
+
 ## [2.16.1] - 2026-10-20
 
 ### Alterado
