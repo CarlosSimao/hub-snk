@@ -209,8 +209,9 @@ export function definirAcompanhamentoDeDownload(
 const notificacoesDeDownload = new Set<Notification>();
 
 /**
- * Janela que continua aberta depois do download (o log de uma base local) não mostra
- * nada sozinha: sem o aviso, o arquivo só aparece na pasta Downloads. O clique abre a pasta.
+ * O download vai direto para a pasta Downloads, sem diálogo: sem o aviso, o anexo do
+ * Sankhya (pop-up que abre e fecha na hora) parecia um clique que não fez nada. O clique
+ * no aviso abre a pasta.
  */
 function avisarDownloadConcluido(caminho: string): void {
   if (!Notification.isSupported()) return;
@@ -246,10 +247,8 @@ function registrarDownload(sessaoRotulo: string, janelasFilhas: Set<BrowserWindo
       item.getURLChain().includes(paginaDaOrigem);
     item.once('done', (_e2, estado) => {
       logEvento('download-concluido', { sessao: sessaoRotulo, nome: item.getFilename(), estado });
-      if (!abertaSoParaODownload) {
-        if (estado === 'completed') avisarDownloadConcluido(item.getSavePath());
-        return;
-      }
+      if (estado === 'completed') avisarDownloadConcluido(item.getSavePath());
+      if (!abertaSoParaODownload) return;
       // UX real observada na PoC: um pop-up aberto só para servir um download não
       // navega para lugar nenhum depois — fica em branco até o usuário fechar na mão.
       for (const filha of janelasFilhas) {

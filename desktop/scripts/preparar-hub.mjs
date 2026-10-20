@@ -15,6 +15,7 @@
  *   package.json   o `"type": "module"` daqui é o que faz o Node tratar o `src/` como ESM
  *   package-lock.json
  *   LICENSE
+ *   CHANGELOG.md   as notas que o shell mostra ao abrir atualizado (`desktop/src/novidades.ts`)
  *   credencial-google.json   a credencial OAuth do Google Drive (veja `gravarCredencialDoGoogle`)
  *   node_modules/  só produção
  *
@@ -39,7 +40,14 @@ const RAIZ_DESKTOP = resolve(AQUI, '..');
 const RAIZ_HUB = resolve(RAIZ_DESKTOP, '..');
 const DESTINO = join(RAIZ_DESKTOP, 'build', 'hub');
 
-const ITENS_DO_BACKEND = ['src', 'public', 'package.json', 'package-lock.json', 'LICENSE'];
+const ITENS_DO_BACKEND = [
+  'src',
+  'public',
+  'package.json',
+  'package-lock.json',
+  'LICENSE',
+  'CHANGELOG.md',
+];
 
 /** `npm` no Windows é `npm.cmd`; sem isto o spawn não acha o executável. */
 const NPM = process.platform === 'win32' ? 'npm.cmd' : 'npm';

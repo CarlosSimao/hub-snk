@@ -3,7 +3,8 @@
  *
  * Consulta pouco depois de abrir e a cada 6 h, baixa em segundo plano e oferece
  * "Reiniciar para atualizar" (notificação e menu Ajuda). Quem sai sem reiniciar recebe
- * a versão nova na saída, em silêncio. Desligada no menu Ajuda, nada é consultado nem
+ * a versão nova na saída, em silêncio. Nos dois casos uma notificação avisa que a
+ * instalação está em andamento. Desligada no menu Ajuda, nada é consultado nem
  * baixado: fica só o aviso de versão nova do Painel, que vem do backend.
  *
  * Só no aplicativo empacotado: em desenvolvimento não há instalador para trocar.
@@ -34,6 +35,8 @@ let aoMudar: () => void = () => {};
 let instalarAoBaixar = false;
 /** Referência forte: sem ela o coletor de lixo pode levar a notificação e o clique nela. */
 let notificacao: Notification | null = null;
+/** O `before-quit` do `main.ts` segura a saída e a repete depois de parar o backend. */
+let instalacaoAvisada = false;
 
 function arquivoDaPreferencia(): string {
   return join(app.getPath('userData'), 'atualizacao.json');
@@ -101,6 +104,24 @@ function avisarVersaoPronta(versao: string): void {
 }
 
 /**
+ * O instalador roda em silêncio depois que o HUB fecha, e sem aviso a saída parece
+ * travamento: quem reabre no meio atrapalha a troca dos arquivos. A notificação é do
+ * sistema, então continua na tela depois que o processo sai.
+ */
+function avisarInstalacao(reabreSozinho: boolean): void {
+  if (instalacaoAvisada || !versaoPronta || !Notification.isSupported()) return;
+  instalacaoAvisada = true;
+  notificacao = new Notification({
+    title: `Atualizando o HUB SNK para a versão ${versaoPronta}`,
+    body: reabreSozinho
+      ? 'Ele abre sozinho em instantes.'
+      : 'Aguarde alguns segundos antes de abrir de novo.',
+    icon: ICONE,
+  });
+  notificacao.show();
+}
+
+/**
  * Silencioso e abrindo o programa de novo no fim. O fechamento normal (`before-quit` do
  * `main.ts`) para o backend antes, o que o instalador precisa para trocar os arquivos.
  */
@@ -111,6 +132,7 @@ export function reiniciarParaAtualizar(): void {
 
 function instalarAgora(): void {
   logEvento('atualizacao-reiniciar', { versao: versaoPronta });
+  avisarInstalacao(true);
   autoUpdater.quitAndInstall(true, true);
 }
 
@@ -206,6 +228,10 @@ function registrarEventos(): void {
   autoUpdater.on('error', (err) => {
     instalarAoBaixar = false;
     logEvento('atualizacao-falhou', { erro: err.message });
+  });
+  // Saída comum com versão baixada: o `electron-updater` instala na saída, sem reabrir.
+  app.on('before-quit', () => {
+    if (autoUpdater.autoInstallOnAppQuit) avisarInstalacao(false);
   });
 }
 
