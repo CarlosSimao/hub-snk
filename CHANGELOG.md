@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.17.0] - 2026-10-20
+
 ### Adicionado
 
 - **Aviso de atualização em andamento**: ao reiniciar para atualizar, ou ao fechar o HUB
@@ -905,7 +907,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.16.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.0...HEAD
+[2.17.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.16.1...v2.17.0
 [2.16.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.16.0...v2.16.1
 [2.16.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.15.0...v2.16.0
 [2.15.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.14.0...v2.15.0
