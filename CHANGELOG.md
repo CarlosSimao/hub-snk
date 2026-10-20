@@ -9,6 +9,15 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.18.1] - 2026-10-20
+
+### Corrigido
+
+- **Web Connection não iniciava pelo W depois de fechado**: o iniciador do próprio Web
+  Connection continua rodando quando ele é fechado, preso e gastando processador, e impede
+  qualquer novo início, inclusive pelo atalho da área de trabalho. Agora o clique no **W**
+  encerra esse iniciador preso antes de abrir o Web Connection de novo.
+
 ## [2.18.0] - 2026-10-20
 
 ### Adicionado
@@ -946,7 +955,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.18.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.0...v2.18.1
 [2.18.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.2...v2.18.0
 [2.17.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.1...v2.17.2
 [2.17.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.0...v2.17.1

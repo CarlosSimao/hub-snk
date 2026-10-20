@@ -3,10 +3,12 @@
  * imprimir, ler certificado e acessar arquivos locais. Roda separado do HUB SNK; aqui só
  * se descobre se ele está no ar, onde está o executável que o inicia, e se o inicia.
  */
+import { execFile } from 'node:child_process';
 import type { Stats } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { dirname, extname, join } from 'node:path';
+import { basename, dirname, extname, join } from 'node:path';
+import { promisify } from 'node:util';
 import {
   abrirExecutavelNoSistema,
   ExecutavelNaoEncontradoError,
@@ -83,6 +85,33 @@ function ehArquivo(caminho: string): Promise<boolean> {
     (informacoes) => informacoes.isFile(),
     () => false,
   );
+}
+
+const executarArquivo = promisify(execFile);
+
+/** Código de saída do `taskkill` quando não há processo com o nome pedido. */
+const TASKKILL_NENHUM_PROCESSO = 128;
+
+/**
+ * Encerra cópias do iniciador que ficaram para trás. Só para chamar com o Web Connection
+ * fora do ar.
+ *
+ * O `iniciar_web_connection.exe` fica rodando como pai do Web Connection e não encerra
+ * quando ele fecha: fica preso, gastando CPU e segurando a trava de instância única. Com
+ * ele vivo, todo novo início (pelo HUB SNK ou pelo atalho do instalador) sai na hora sem
+ * abrir nada. Fora do Windows não há esse iniciador.
+ */
+export async function encerrarCopiasPresas(caminho: string): Promise<void> {
+  if (process.platform !== 'win32' || extname(caminho).toLowerCase() !== '.exe') {
+    return;
+  }
+  try {
+    await executarArquivo('taskkill', ['/F', '/IM', basename(caminho)], { windowsHide: true });
+  } catch (erro) {
+    if ((erro as { code?: unknown }).code !== TASKKILL_NENHUM_PROCESSO) {
+      throw erro;
+    }
+  }
 }
 
 /** Bits de execução do modo POSIX (dono, grupo e outros). */
