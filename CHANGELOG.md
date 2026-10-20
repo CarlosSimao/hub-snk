@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.16.1] - 2026-10-20
+
 ### Alterado
 
 - **Diagnóstico do painel de comunicação**: o log passa a registrar quando o painel do
@@ -887,6 +889,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.16.0...HEAD
+[2.16.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.16.0...v2.16.1
 [2.16.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.15.0...v2.16.0
 [2.15.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.14.0...v2.15.0
 [2.14.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.13.0...v2.14.0
