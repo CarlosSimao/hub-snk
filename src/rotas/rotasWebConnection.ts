@@ -11,6 +11,7 @@ import {
 import {
   caminhoDoExecutavel,
   consultarWebConnection,
+  encerrarCopiasPresas,
   iniciarExecutavel,
   type SituacaoDoWebConnection,
 } from '../sistema/webConnection.ts';
@@ -18,12 +19,14 @@ import {
 /** O que toca a máquina, separado para os testes não abrirem programa nem janela. */
 export interface DependenciasDoWebConnection {
   consultar(): Promise<SituacaoDoWebConnection>;
+  encerrarCopiasPresas(caminho: string): Promise<void>;
   abrirExecutavel(caminho: string): Promise<void>;
   selecionarArquivo(): Promise<string | null>;
 }
 
 const DEPENDENCIAS_PADRAO: DependenciasDoWebConnection = {
   consultar: () => consultarWebConnection(),
+  encerrarCopiasPresas,
   abrirExecutavel: iniciarExecutavel,
   selecionarArquivo: () => selecionarArquivoNoSistema(),
 };
@@ -44,7 +47,8 @@ export function registrarRotasDeWebConnection(
 
   /*
    * Já ligado, não abre outro: uma segunda instância disputaria as portas da primeira.
-   * Sem executável conhecido, `caminhoPendente` faz a tela oferecer o seletor.
+   * Desligado, encerra antes o iniciador que tenha ficado preso, senão o novo sai sem abrir
+   * nada. Sem executável conhecido, `caminhoPendente` faz a tela oferecer o seletor.
    */
   servidor.post('/api/web-connection/iniciar', async (_requisicao, resposta) => {
     if ((await dependencias.consultar()).ligado) {
@@ -60,6 +64,7 @@ export function registrarRotasDeWebConnection(
     }
 
     try {
+      await dependencias.encerrarCopiasPresas(caminho);
       await dependencias.abrirExecutavel(caminho);
       return resposta.status(204).send();
     } catch (erro) {
