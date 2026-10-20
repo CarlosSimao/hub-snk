@@ -14,6 +14,10 @@ número significa aqui.
 - **Aviso de atualização em andamento**: ao reiniciar para atualizar, ou ao fechar o HUB
   SNK com uma versão nova já baixada, uma notificação avisa que a instalação está em
   andamento. Antes o programa só sumia, sem sinal de que voltaria.
+- **Novidades da versão**: ao abrir o HUB SNK depois de uma atualização, uma janela lista
+  o que mudou desde a versão que estava instalada (até as 5 mais recentes) e tem o botão
+  **Ver changelog completo**. Na primeira instalação ela não aparece; aberto escondido na
+  bandeja, aparece quando a janela for mostrada.
 
 ### Corrigido
 

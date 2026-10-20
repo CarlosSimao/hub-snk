@@ -46,6 +46,7 @@ import { AtalhoGlobalDaBusca } from './interface/atalhoGlobal';
 import { abrirBuscaRapida } from './interface/buscaRapida';
 import { registrarEsquemaDoRuffle } from './interface/ruffle';
 import { iniciarAtualizacaoAutomatica } from './atualizacao';
+import { mostrarNovidadesSeAtualizado } from './novidades';
 import { completarPathComOShellDeLogin } from './pathDoShell';
 import {
   definirInicioAutomatico,
@@ -529,6 +530,7 @@ app.whenReady().then(async () => {
   reconstruirMenu();
   // Versão baixada ou atualização desligada: o item "Reiniciar para atualizar" muda.
   iniciarAtualizacaoAutomatica(reconstruirMenu);
+  if (janelaPrincipal) mostrarNovidadesSeAtualizado(janelaPrincipal);
   // O atalho antes da bandeja: no Linux o menu dela é montado agora, já com a situação.
   atalhoGlobal.aplicarEscolhaGravada();
   criarBandejaDoApp();
