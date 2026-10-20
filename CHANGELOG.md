@@ -9,6 +9,19 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.17.1] - 2026-10-20
+
+### Corrigido
+
+- **Guia Experience caindo no login a cada 7 minutos**: a guia e a busca da aba OS usavam
+  duas sessões da Experience, e uma derrubava a outra. A guia voltava à tela de login,
+  entrava de novo sozinha e, nessa hora, roubava o foco de onde você estivesse. Agora as
+  duas usam a mesma sessão.
+- **Painel do WhatsApp, Gmail ou Google Chat fechando sozinho**: uma guia que recarregava
+  por conta própria fechava o painel no meio da digitação. Agora o painel só fecha com um
+  clique numa guia; se uma guia tomar o foco sem você mexer nela, o painel continua aberto
+  e a digitação segue nele.
+
 ## [2.17.0] - 2026-10-20
 
 ### Adicionado
@@ -907,7 +920,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.0...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.1...HEAD
+[2.17.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.0...v2.17.1
 [2.17.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.16.1...v2.17.0
 [2.16.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.16.0...v2.16.1
 [2.16.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.15.0...v2.16.0
