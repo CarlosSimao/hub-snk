@@ -9,6 +9,22 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.17.2] - 2026-10-20
+
+### Alterado
+
+- **Agenda mais rápida ao ver a situação do dia na Experience.** As informações que quase
+  nunca mudam (projetos da Experience, seu usuário lá e os FAPs de cada cliente no ERP)
+  ficam guardadas por uma hora, em vez de serem buscadas de novo a cada dia aberto. A
+  situação do dia (OS lançada, tarefa aberta) continua sempre atualizada. Ao trocar de dia,
+  as consultas do dia anterior são canceladas e não atrasam as do dia na tela.
+
+### Corrigido
+
+- **Atualizar a Agenda não refazia a situação do dia aberto**: o botão de atualizar da aba
+  Agenda, e o de recarregar o cliente, mostravam a situação da Experience consultada antes.
+  Agora os dois trazem tudo novo.
+
 ## [2.17.1] - 2026-10-20
 
 ### Corrigido
@@ -920,7 +936,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.1...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.2...HEAD
+[2.17.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.1...v2.17.2
 [2.17.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.0...v2.17.1
 [2.17.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.16.1...v2.17.0
 [2.16.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.16.0...v2.16.1
