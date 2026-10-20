@@ -52,6 +52,7 @@
             <li><a href="#pop-ups-e-sso">Pop-ups e login com Microsoft/Google</a></li>
             <li><a href="#downloads">Downloads</a></li>
             <li><a href="#flash-ruffle">Telas Flash (Ruffle)</a></li>
+            <li><a href="#web-connection">Sankhya Web Connection</a></li>
           </ol>
         </nav>
 
@@ -572,6 +573,59 @@
               <a href="bases.html#abrir-base">base</a>
             </li>
             <li><a href="#fechar-e-recarregar">Recarregar a guia</a></li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="web-connection">
+          <h2>Sankhya Web Connection</h2>
+          <p>
+            O Sankhya Web Connection é o programa da sua máquina que as telas do SankhyaOm usam para
+            imprimir, ler o certificado digital e acessar arquivos locais. Ele continua separado do
+            HUB SNK: a letra <strong>W</strong>, no topo do Painel, mostra se ele está ligado e,
+            desligado, o inicia com um clique. Ela aparece para todos os perfis.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Olhe a cor do <strong>W</strong>: verde é ligado, cinza é desligado. Com o mouse em
+              cima, ligado, aparecem a versão e há quanto tempo ele está no ar. A situação é
+              conferida ao abrir o Painel e a cada 30 segundos.
+              <figure>
+                <img
+                  src="img/guias-e-navegacao/web-connection-01-indicador.webp"
+                  alt="Letra W do Web Connection destacada no topo do Painel"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Desligado, clique no <strong>W</strong>. Ele fica amarelo e pisca enquanto o programa
+              sobe, o que leva alguns segundos, e fica verde quando ele responde. Se não responder
+              em 1 minuto, um aviso diz isso.
+            </li>
+            <li>
+              Na primeira vez, se o Web Connection não estiver na pasta em que o instalador dele o
+              coloca no Windows (<code>Sankhya web\Sankhya_web_connectionx64</code>, na sua pasta de
+              usuário), o HUB SNK pede o executável que o inicia. A escolha fica guardada.
+              <!-- print-pendente: sistema: seletor de arquivo pedindo o executável do Web Connection -->
+            </li>
+          </ol>
+
+          <p class="nota">
+            No Linux e no Mac, o <strong>W</strong> mostra se o Web Connection está ligado, mas o
+            clique para iniciá-lo ainda não foi testado nesses sistemas, e não há pasta padrão: o
+            HUB SNK sempre pede o executável na primeira vez.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <p>Nenhuma.</p>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>Sankhya Web Connection instalado na máquina</li>
           </ul>
         </section>
       </main>

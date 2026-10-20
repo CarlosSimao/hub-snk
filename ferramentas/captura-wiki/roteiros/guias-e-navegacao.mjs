@@ -143,6 +143,11 @@ export async function roteiro({ painel, aplicativo, print }) {
   // Guias fixas
   await printNoAplicativo('guias-fixas-01-barra', [moldura.locator('#abas')]);
 
+  // Sankhya Web Connection: no Actions ele não roda e o indicador sai desligado; numa
+  // máquina com ele no ar, sai ligado. Os dois servem ao print.
+  await painel.locator('#indicador-web-connection:is(.ligado, .desligado)').waitFor();
+  await print('web-connection-01-indicador', { destacando: ['#indicador-web-connection'] });
+
   // Menu ☰
   await printNoAplicativo('menu-do-aplicativo-01-botao', [moldura.locator('#menu')]);
   let menu = await abrirMenu();

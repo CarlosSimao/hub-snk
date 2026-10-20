@@ -9,6 +9,16 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.18.0] - 2026-10-20
+
+### Adicionado
+
+- **Indicador do Sankhya Web Connection no topo**: a letra **W** fica verde com o Web
+  Connection ligado (com a versão e há quanto tempo, ao passar o mouse) e cinza com ele
+  desligado. Desligado, um clique o inicia; se ele não estiver na pasta padrão da
+  instalação, o HUB SNK pede o executável uma vez e guarda a escolha. O Web Connection
+  continua sendo um programa separado.
+
 ## [2.17.2] - 2026-10-20
 
 ### Alterado
@@ -936,7 +946,8 @@ Primeira versão distribuída ao time.
   `HUB_PERMITIR_REDE=1`, dito de propósito. A instalação mostra o que a
   exposição significa antes de gravar.
 
-[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.2...HEAD
+[não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.0...HEAD
+[2.18.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.2...v2.18.0
 [2.17.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.1...v2.17.2
 [2.17.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.0...v2.17.1
 [2.17.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.16.1...v2.17.0

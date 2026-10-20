@@ -208,6 +208,47 @@ body {
 }
 
 /*
+ * Letra W do Sankhya Web Connection, à direita do indicador do Git: cinza desligado,
+ * amarela piscando ao iniciar e verde ligado. Só desligado inicia o programa no clique;
+ * ligado, a versão fica no `title`.
+ */
+/* Com `.btn` na frente: sozinha, a classe perderia a cor para o `.btn`, declarado depois. */
+.btn.indicador-web-connection {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+
+.btn.indicador-web-connection.ligado,
+.btn.indicador-web-connection.iniciando {
+  cursor: default;
+}
+
+.btn.indicador-web-connection.ligado {
+  color: var(--marca);
+}
+
+/*
+ * Mesma exceção ao `prefers-reduced-motion` do indicador do Git: sem piscar, o amarelo
+ * se confunde com o verde para quem não distingue as duas cores. Só a opacidade: a
+ * escala da piscada do Git faria o botão inteiro pulsar.
+ */
+.btn.indicador-web-connection.iniciando {
+  color: var(--aviso);
+  animation: piscar-letra-web-connection 1.2s ease-in-out infinite !important;
+}
+
+@keyframes piscar-letra-web-connection {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+/*
  * Botão do topo que leva à configuração que falta: pisca antes de ela abrir. Mesma
  * exceção ao `prefers-reduced-motion` do indicador do Git: sem a piscada, o contorno
  * parado some no meio dos outros botões e a pessoa não vê onde a configuração fica.
