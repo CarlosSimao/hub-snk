@@ -68,6 +68,10 @@ export interface ConfiguracaoDoAssistenteDoRepositorio extends ConfiguracaoDoAss
  *
  * `boasVindasConcluidas` diz se a pessoa já passou pelo assistente de boas-vindas, que
  * pergunta a identificação, o perfil e o Terceiro no primeiro uso.
+ *
+ * `caminhoDoWebConnection` é o executável que inicia o Sankhya Web Connection, escolhido
+ * pelo indicador do topo quando ele não está na instalação padrão. Vazio usa a padrão.
+ * Campo interno, sem tela própria, como `experiencePersonId`.
  */
 export interface ConfiguracaoGlobal {
   intervaloDeExecucaoAutomaticaSegundos: number;
@@ -94,6 +98,7 @@ export interface ConfiguracaoGlobal {
   emailDoUsuario: string;
   backup: ConfiguracaoDeBackup;
   boasVindasConcluidas: boolean;
+  caminhoDoWebConnection: string;
 }
 
 /**

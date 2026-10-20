@@ -12,7 +12,8 @@ export type DadosDeAtalho = Omit<Atalho, 'id'> & { id?: string };
  *
  * `backup` fica de fora pelo mesmo motivo: é gravado pela janela de Backup, campo a
  * campo, por `definirBackup`. E `boasVindasConcluidas` também: só o assistente de
- * boas-vindas o liga, por `concluirBoasVindas`.
+ * boas-vindas o liga, por `concluirBoasVindas`. `caminhoDoWebConnection` é gravado pelo
+ * indicador do topo, por `definirCaminhoDoWebConnection`.
  */
 export interface ConfiguracaoParaSalvar extends Omit<
   ConfiguracaoGlobal,
@@ -21,6 +22,7 @@ export interface ConfiguracaoParaSalvar extends Omit<
   | 'sankhyaOmCodUsu'
   | 'backup'
   | 'boasVindasConcluidas'
+  | 'caminhoDoWebConnection'
   | 'perfil'
   | 'funcionalidadesOcultas'
   | 'terceiro'
@@ -77,4 +79,6 @@ export interface RepositorioConfiguracao {
   definirBackup(backup: ConfiguracaoDeBackup): Promise<ConfiguracaoGlobal>;
   /** Grava as respostas do assistente de boas-vindas e não o mostra mais. */
   concluirBoasVindas(respostas: RespostasDasBoasVindas): Promise<ConfiguracaoGlobal>;
+  /** Escrita isolada do executável do Web Connection, escolhido pelo indicador do topo. */
+  definirCaminhoDoWebConnection(caminho: string): Promise<ConfiguracaoGlobal>;
 }

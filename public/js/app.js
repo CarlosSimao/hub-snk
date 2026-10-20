@@ -428,6 +428,7 @@ const elementos = {
   botaoConfiguracao: document.getElementById('btn-configuracao'),
   botaoTema: document.getElementById('btn-tema'),
   indicadorGitGlobal: document.getElementById('indicador-git-global'),
+  indicadorWebConnection: document.getElementById('indicador-web-connection'),
 
   botaoVisualizacaoResumo: document.getElementById('btn-visualizacao-resumo'),
   visualizacaoResumo: document.getElementById('visualizacao-resumo'),
@@ -931,6 +932,8 @@ async function requisitar(caminho, opcoes = {}) {
     erro.gitAusente = Boolean(conteudo?.gitAusente);
     // A exclusão de coluna ou tipo do kanban em uso manda os cards que a impedem.
     erro.tarefas = Array.isArray(conteudo?.tarefas) ? conteudo.tarefas : [];
+    // O Web Connection sem executável conhecido: a tela oferece o seletor.
+    erro.caminhoPendente = Boolean(conteudo?.caminhoPendente);
     throw erro;
   }
 
@@ -976,6 +979,9 @@ const api = {
     ),
   descartarCacheDaSituacao: () =>
     requisitar('/api/agenda/situacao/descartar-cache', { metodo: 'POST' }),
+  situacaoDoWebConnection: () => requisitar('/api/web-connection/situacao'),
+  iniciarWebConnection: () => requisitar('/api/web-connection/iniciar', { metodo: 'POST' }),
+  localizarWebConnection: () => requisitar('/api/web-connection/localizar', { metodo: 'POST' }),
   consultarOsGeral: (de, ate) =>
     requisitar('/api/os/consultar', { metodo: 'POST', corpo: { de, ate } }),
   consultarOsDoCliente: (id, de, ate) =>
@@ -1980,6 +1986,110 @@ function renderizarIndicadorGitGlobal() {
   indicador.className = `indicador-git-global ${severidade}`;
   indicador.title = ROTULOS_DO_INDICADOR_GLOBAL[severidade];
   indicador.setAttribute('aria-label', ROTULOS_DO_INDICADOR_GLOBAL[severidade]);
+}
+
+/* ----------------------------- Web Connection ----------------------------- */
+
+const INTERVALO_DA_VERIFICACAO_DO_WEB_CONNECTION_MS = 30_000;
+/* O Java do Web Connection leva alguns segundos para abrir as portas depois de iniciado. */
+const INTERVALO_DA_ESPERA_DO_WEB_CONNECTION_MS = 2_000;
+const ESPERA_MAXIMA_DO_WEB_CONNECTION_MS = 60_000;
+
+let iniciandoWebConnection = false;
+let webConnectionLigado = false;
+
+function esperar(milissegundos) {
+  return new Promise((resolver) => setTimeout(resolver, milissegundos));
+}
+
+/**
+ * Letra W do topo. A cor sozinha não informa quem não distingue verde de cinza: o texto do
+ * `title`/`aria-label` diz o estado. `situacao` nula é "não deu para verificar".
+ */
+function renderizarIndicadorWebConnection(situacao) {
+  const indicador = elementos.indicadorWebConnection;
+  let estadoDoSelo = 'desligado';
+  let rotulo = 'Web Connection desligado. Clique para iniciar.';
+
+  if (iniciandoWebConnection) {
+    estadoDoSelo = 'iniciando';
+    rotulo = 'Iniciando o Web Connection…';
+  } else if (situacao === null) {
+    estadoDoSelo = 'desconhecido';
+    rotulo = 'Não foi possível verificar o Web Connection.';
+  } else if (situacao.ligado) {
+    estadoDoSelo = 'ligado';
+    rotulo = `Web Connection ligado — versão ${situacao.versao}, ligado há ${situacao.tempoLigado}.`;
+  }
+
+  // Sem `disabled`: o `.btn:disabled` apagaria a cor, que é a informação do botão.
+  webConnectionLigado = estadoDoSelo === 'ligado';
+  indicador.className = `btn ghost botao-icone indicador-web-connection ${estadoDoSelo}`;
+  indicador.title = rotulo;
+  indicador.setAttribute('aria-label', rotulo);
+}
+
+async function verificarWebConnection() {
+  let situacao = null;
+  try {
+    situacao = await api.situacaoDoWebConnection();
+  } catch {
+    // Sem resposta do backend, o selo mostra "não verificado" em vez do último estado.
+  }
+  renderizarIndicadorWebConnection(situacao);
+  return situacao;
+}
+
+/** Sem executável conhecido, abre o seletor uma vez. `false` se a pessoa cancelou. */
+async function pedirInicioDoWebConnection() {
+  try {
+    await api.iniciarWebConnection();
+    return true;
+  } catch (erro) {
+    if (!erro.caminhoPendente) throw erro;
+    exibirAviso(erro.message);
+    const escolhido = await api.localizarWebConnection();
+    if (!escolhido) return false;
+    await api.iniciarWebConnection();
+    return true;
+  }
+}
+
+async function aguardarWebConnectionLigar() {
+  const limite = Date.now() + ESPERA_MAXIMA_DO_WEB_CONNECTION_MS;
+  while (Date.now() < limite) {
+    await esperar(INTERVALO_DA_ESPERA_DO_WEB_CONNECTION_MS);
+    const situacao = await api.situacaoDoWebConnection().catch(() => null);
+    if (situacao?.ligado) return true;
+  }
+  return false;
+}
+
+async function iniciarWebConnection() {
+  if (webConnectionLigado || iniciandoWebConnection) return;
+  iniciandoWebConnection = true;
+  renderizarIndicadorWebConnection(null);
+  try {
+    const pedido = await pedirInicioDoWebConnection();
+    if (pedido && !(await aguardarWebConnectionLigar())) {
+      exibirAviso('O Web Connection foi aberto, mas não respondeu em 1 minuto.', 'erro');
+    }
+  } catch (erro) {
+    exibirAviso(`Não foi possível iniciar o Web Connection: ${erro.message}`, 'erro');
+  } finally {
+    iniciandoWebConnection = false;
+    await verificarWebConnection();
+  }
+}
+
+/** Verifica ao abrir e a cada 30 s, só com a janela visível. Fica à vista para todo perfil. */
+function iniciarIndicadorWebConnection() {
+  void verificarWebConnection();
+  setInterval(() => {
+    if (document.visibilityState === 'visible' && !iniciandoWebConnection) {
+      void verificarWebConnection();
+    }
+  }, INTERVALO_DA_VERIFICACAO_DO_WEB_CONNECTION_MS);
 }
 
 function criarLinhaDeRepositorio(cliente, repositorio) {
@@ -12506,6 +12616,7 @@ function registrarEventos() {
   registrarEventosDoLembrete();
   registrarEventosDosContatos();
   elementos.botaoAtualizarAgenda.append(criarIcone(ICONES.recarregar));
+  elementos.indicadorWebConnection.addEventListener('click', iniciarWebConnection);
   elementos.botaoAtualizarAgenda.addEventListener('click', () =>
     executarAcaoDoSistema(async () => {
       await descartarCachesDaSituacao();
@@ -12959,6 +13070,7 @@ async function iniciar() {
   }
 
   renderizarListaDeAtalhos();
+  iniciarIndicadorWebConnection();
   // O selo "sem OS" da agenda do Resumo sai das notificações: redesenha quando elas chegam.
   void carregarNotificacoes().then(renderizarResumoSeVisivel);
   conectarFluxoDeNotificacoes();

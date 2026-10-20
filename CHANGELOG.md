@@ -9,6 +9,14 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- **Indicador do Sankhya Web Connection no topo**: a letra **W** fica verde com o Web
+  Connection ligado (com a versão e há quanto tempo, ao passar o mouse) e cinza com ele
+  desligado. Desligado, um clique o inicia; se ele não estiver na pasta padrão da
+  instalação, o HUB SNK pede o executável uma vez e guarda a escolha. O Web Connection
+  continua sendo um programa separado.
+
 ## [2.17.2] - 2026-10-20
 
 ### Alterado

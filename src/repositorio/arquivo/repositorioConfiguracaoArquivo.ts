@@ -123,6 +123,7 @@ const CONFIGURACAO_INICIAL: ConfiguracaoGlobal = {
   terceiro: false,
   /* Instalação nova: o assistente de boas-vindas abre na primeira vez. */
   boasVindasConcluidas: false,
+  caminhoDoWebConnection: '',
 };
 
 /**
@@ -398,6 +399,8 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       backup: lerBackup(dados.backup),
       ...lerAcessos(dados),
       boasVindasConcluidas: lerBoasVindasConcluidas(dados),
+      // Arquivo de antes desta versão não tem o campo: usa a instalação padrão.
+      caminhoDoWebConnection: textoOuPadrao(dados.caminhoDoWebConnection, '').trim(),
     };
 
     if (precisaMigrar(conteudo)) {
@@ -448,6 +451,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       emailDoUsuario: configuracao.emailDoUsuario?.trim() ?? atual.emailDoUsuario,
       backup: atual.backup,
       boasVindasConcluidas: atual.boasVindasConcluidas,
+      caminhoDoWebConnection: atual.caminhoDoWebConnection,
     };
 
     await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);
@@ -462,6 +466,12 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
 
   definirSankhyaOmCodUsu(codusu: string): Promise<ConfiguracaoGlobal> {
     return this.#fila.enfileirar(() => this.#gravarCampo({ sankhyaOmCodUsu: codusu.trim() }));
+  }
+
+  definirCaminhoDoWebConnection(caminho: string): Promise<ConfiguracaoGlobal> {
+    return this.#fila.enfileirar(() =>
+      this.#gravarCampo({ caminhoDoWebConnection: caminho.trim() }),
+    );
   }
 
   definirBackup(backup: ConfiguracaoDeBackup): Promise<ConfiguracaoGlobal> {

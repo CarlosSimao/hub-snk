@@ -50,6 +50,7 @@ import { registrarRotasDeNotificacoes } from './rotas/rotasNotificacoes.ts';
 import { registrarRotasDeOs } from './rotas/rotasOs.ts';
 import { registrarRotasDeSankhya } from './rotas/rotasSankhya.ts';
 import { registrarRotasDeSistema } from './rotas/rotasSistema.ts';
+import { registrarRotasDeWebConnection } from './rotas/rotasWebConnection.ts';
 import { analisarEscopo } from './kanban/ia/analiseDeEscopo.ts';
 import { ArquivoDeTarefas } from './kanban/arquivoDeTarefas.ts';
 import { KanbanDosProjetos } from './kanban/kanbanDosProjetos.ts';
@@ -246,6 +247,7 @@ async function iniciarServidor(): Promise<void> {
   registrarRotasDeGit(servidor, repositorioDeClientes, repositorioDeConfiguracao);
   registrarRotasDeLocal(servidor, repositorioLocal, repositorioDeConfiguracao);
   registrarRotasDeAtalhos(servidor, repositorioDeConfiguracao);
+  registrarRotasDeWebConnection(servidor, repositorioDeConfiguracao);
 
   /*
    * O id da instalação e a fila de relatos ficam ao lado da pasta de log, que é local
