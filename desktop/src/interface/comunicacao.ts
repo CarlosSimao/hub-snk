@@ -223,6 +223,9 @@ const ESPERA_DA_RELEITURA_DO_FEED_MS = 3_000;
  */
 const ESPERA_PARA_CARREGAR_AO_ABRIR_MS = 5_000;
 
+/** Tecla ou clique: só isso é ação da pessoa. Passar o mouse por cima de uma guia não é. */
+const ENTRADAS_DO_USUARIO = new Set(['mouseDown', 'rawKeyDown', 'keyDown']);
+
 /**
  * Escolhas do menu da engrenagem da barra lateral.
  *
@@ -291,6 +294,7 @@ export class GerenciadorComunicacao {
   #ativo: ServicoComunicacao | null = null;
   #larguraLateral = 0;
   #alturaTopo = 0;
+  #ultimaEntrada: { pagina: Electron.WebContents; momento: number } | null = null;
 
   constructor(janela: BrowserWindow) {
     this.#janela = janela;
@@ -303,13 +307,14 @@ export class GerenciadorComunicacao {
       this.#retomarFocoDoPainel();
     });
     this.#iniciarConsultaDosFeeds();
+    this.#registrarEntradasDoUsuario();
   }
 
   /** Clicar no serviço aberto o esconde; clicar em outro troca um pelo outro. */
   alternar(servico: string): boolean {
     if (!ehServicoComunicacao(servico) || this.#desabilitados.has(servico)) return false;
     if (this.#ativo === servico) {
-      this.ocultar();
+      this.ocultar('botao-da-barra');
       return true;
     }
     this.#mostrar(servico);
@@ -334,8 +339,16 @@ export class GerenciadorComunicacao {
     return true;
   }
 
-  ocultar(): void {
+  /** `origem` só entra no log: mostra o que escondeu o painel quando ninguém clicou nele. */
+  ocultar(origem = 'externo'): void {
     if (!this.#ativo) return;
+    logEvento('comunicacao-painel-ocultado', {
+      servico: this.#ativo,
+      origem,
+      focoEm: this.#descreverPagina(webContents.getFocusedWebContents()),
+      ultimaEntradaEm: this.#descreverPagina(this.#ultimaEntrada?.pagina),
+      msDesdeUltimaEntrada: this.#ultimaEntrada ? Date.now() - this.#ultimaEntrada.momento : null,
+    });
     this.#paineis.get(this.#ativo)?.setVisible(false);
     this.#definirAtivo(null);
   }
@@ -443,7 +456,7 @@ export class GerenciadorComunicacao {
    * para — a consulta periódica pula serviço desabilitado.
    */
   #descarregar(servico: ServicoComunicacao): void {
-    if (this.#ativo === servico) this.ocultar();
+    if (this.#ativo === servico) this.ocultar('servico-desabilitado');
     this.#esquecerNaoLidas(servico);
     const painel = this.#paineis.get(servico);
     if (!painel) return;
@@ -843,8 +856,29 @@ export class GerenciadorComunicacao {
     // quem ficou com ele.
     setImmediate(() => {
       if (!this.#ativo || this.#paineis.get(this.#ativo) !== painel) return;
-      if (this.#focoEstaNumaGuia(painel)) this.ocultar();
+      if (this.#focoEstaNumaGuia(painel)) this.ocultar('blur-foco-na-guia');
     });
+  }
+
+  /**
+   * Guarda a última tecla ou clique em qualquer página do aplicativo. Sem isso, o log de
+   * quem escondeu o painel não separa o clique numa guia do foco roubado sem ninguém mexer.
+   */
+  #registrarEntradasDoUsuario(): void {
+    const ouvir = (pagina: Electron.WebContents) =>
+      pagina.on('input-event', (_e, entrada) => {
+        if (!ENTRADAS_DO_USUARIO.has(entrada.type)) return;
+        this.#ultimaEntrada = { pagina, momento: Date.now() };
+      });
+    webContents.getAllWebContents().forEach(ouvir);
+    app.on('web-contents-created', (_e, pagina) => ouvir(pagina));
+  }
+
+  /** Origem (sem query) da página, para o log de quem escondeu o painel. */
+  #descreverPagina(pagina: Electron.WebContents | null | undefined): string | null {
+    if (!pagina || pagina.isDestroyed()) return null;
+    if (pagina === this.#janela.webContents) return 'barra-do-hub';
+    return origemSemQuery(pagina.getURL());
   }
 
   /** Foco dentro da janela, mas fora do painel e da barra: está numa guia. */
@@ -865,7 +899,7 @@ export class GerenciadorComunicacao {
       const painel = this.#ativo ? this.#paineis.get(this.#ativo) : undefined;
       if (!painel) return;
       if (this.#focoEstaNumaGuia(painel)) {
-        this.ocultar();
+        this.ocultar('retomar-foco-na-guia');
         return;
       }
       painel.webContents.focus();

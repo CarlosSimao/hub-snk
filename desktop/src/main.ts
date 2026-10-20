@@ -284,7 +284,7 @@ function mostrarJanela(): void {
 function mostrarPainel(): void {
   mostrarJanela();
   // O painel de comunicação fica por cima das guias e cobriria a busca.
-  comunicacao?.ocultar();
+  comunicacao?.ocultar('mostrar-painel');
 }
 
 function abrirBuscaRapidaNaJanela(): void {
@@ -355,8 +355,8 @@ tratarDaBarraDeGuias('layout:definirLarguraLateral', (largura: number) => {
 tratarDaBarraDeGuias('comunicacao:alternar', (servico: string) => ({
   ok: comunicacao?.alternar(servico) ?? false,
 }));
-tratarDaBarraDeGuias('comunicacao:ocultar', () => {
-  comunicacao?.ocultar();
+tratarDaBarraDeGuias('comunicacao:ocultar', (origem: unknown) => {
+  comunicacao?.ocultar(`barra-de-guias:${typeof origem === 'string' ? origem : '?'}`);
   return { ok: true };
 });
 tratarDaBarraDeGuias('comunicacao:estado', () => comunicacao?.estadoDosServicos() ?? []);
