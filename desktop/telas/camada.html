@@ -7,6 +7,24 @@
       * {
         box-sizing: border-box;
       }
+      /* Mesmo modelo de barra de rolagem do painel (public/css/styles.css), em cores fixas. */
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        border-radius: 999px;
+        background: #232833;
+      }
+      ::-webkit-scrollbar-thumb {
+        min-height: 32px;
+        border: 2px solid #232833;
+        border-radius: 999px;
+        background: #97a5c0;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #e6e6e6;
+      }
       [hidden] {
         display: none !important;
       }

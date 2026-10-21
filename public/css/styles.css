@@ -52,6 +52,38 @@ body {
   padding: 0;
 }
 
+/*
+ * Barra de rolagem de tudo: a sobreposta do Windows 11 só aparece com o mouse em cima, e
+ * nada dizia que uma lista continuava. Os pseudo-elementos trocam por uma barra sempre à
+ * vista, nas cores do tema. As telas do shell (desktop/telas) repetem o modelo.
+ */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+/* A borda da cor do trilho afina a barra sem perder a área de clique. */
+::-webkit-scrollbar-thumb {
+  min-height: 32px;
+  min-width: 32px;
+  border: 2px solid var(--surface);
+  border-radius: 999px;
+  background: var(--text-dim);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 body {
   min-height: 100vh;
   background: var(--bg);
@@ -1625,6 +1657,19 @@ button.selo-situacao:focus-visible {
   width: min(880px, 94vw);
 }
 
+/* 75% maior que o modal comum: os chips dos contatos em cópia e a mensagem do alerta cabem. */
+#modal-cobranca-agenda {
+  width: min(770px, 94vw);
+}
+
+/*
+ * A lista de sugestões dos contatos (até 220px) abre por cima da observação: com ela
+ * baixa, a lista passava do pé do modal e o `<dialog>` ganhava barra de rolagem.
+ */
+#modal-cobranca-agenda .campo-anotacoes {
+  min-height: 180px;
+}
+
 /* -------------------------- credenciais do sankhya ------------------------ */
 
 .cartao-credencial {
@@ -3140,13 +3185,10 @@ button.selo-situacao:focus-visible {
   }
 
   /* Cada visualização que é filha direta de `main` rola por dentro, ocupando a altura útil
-     — sem isso (Agenda e OS ficavam de fora) o conteúdo era cortado por `main:overflow`. */
+     — sem isso o conteúdo era cortado por `main:overflow`. Pelo seletor, e não pela lista de
+     ids, para tela nova não nascer cortada (Contatos, Lembretes e Kanban ficaram de fora). */
   .detalhe,
-  #visualizacao-resumo,
-  #visualizacao-local,
-  #visualizacao-agenda,
-  #visualizacao-os,
-  #visualizacao-autosync {
+  main > .card {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
@@ -3757,6 +3799,8 @@ button.selo-situacao:focus-visible {
   border-radius: var(--radius-sm);
   background: var(--surface-solid);
   box-shadow: var(--shadow);
+  /* A rolagem do mouse fica na lista e não passa para o modal quando ela chega ao fim. */
+  overscroll-behavior: contain;
 }
 
 .opcoes-de-contatos[hidden] {
