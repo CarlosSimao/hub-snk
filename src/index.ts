@@ -40,6 +40,7 @@ import { registrarRotasDeAutosync } from './rotas/rotasAutosync.ts';
 import { registrarRotasDeClientes } from './rotas/rotasClientes.ts';
 import { registrarRotasDeConfiguracao } from './rotas/rotasConfiguracao.ts';
 import { registrarRotasDeContatos } from './rotas/rotasContatos.ts';
+import { registrarRotasDeEmail } from './rotas/rotasEmail.ts';
 import { registrarRotasDeGit } from './rotas/rotasGit.ts';
 import { registrarRotasDeKanban } from './rotas/rotasKanban.ts';
 import { registrarRotasDeMcp } from './rotas/rotasMcp.ts';
@@ -128,6 +129,7 @@ async function iniciarServidor(): Promise<void> {
   const repositorioDeLembretes = new RepositorioLembretesArquivo(configuracao.diretorioDeDados);
   const repositorioDeContatos = new RepositorioContatosArquivo(configuracao.diretorioDeDados);
   const enviadorDeEmail = new EnviadorDeEmail(repositorioDeConfiguracao);
+  const caminhoDaLogo = join(configuracao.diretorioPublico, 'img', 'icone-192.png');
   const registradorDasNotificacoes = {
     info: (mensagem: string) => servidor.log.info(mensagem),
     warn: (mensagem: string) => servidor.log.warn(mensagem),
@@ -141,7 +143,7 @@ async function iniciarServidor(): Promise<void> {
     lembretes: repositorioDeLembretes,
     clientes: repositorioDeClientes,
     contatos: repositorioDeContatos,
-    caminhoDaLogo: join(configuracao.diretorioPublico, 'img', 'icone-192.png'),
+    caminhoDaLogo,
     emitir: (dados) => centralDeNotificacoes.emitir(dados),
     agora: () => new Date(),
     registrador: registradorDasNotificacoes,
@@ -325,7 +327,13 @@ async function iniciarServidor(): Promise<void> {
     experience,
   );
   registrarRotasDeOs(servidor, experience, repositorioDeClientes, repositorioDeConfiguracao);
-  registrarRotasDeNotificacoes(servidor, centralDeNotificacoes, enviadorDeEmail);
+  registrarRotasDeNotificacoes(
+    servidor,
+    centralDeNotificacoes,
+    enviadorDeEmail,
+    repositorioDeContatos,
+    caminhoDaLogo,
+  );
   registrarRotasDeLembretes(
     servidor,
     repositorioDeLembretes,
@@ -333,6 +341,7 @@ async function iniciarServidor(): Promise<void> {
     repositorioDeContatos,
   );
   registrarRotasDeContatos(servidor, repositorioDeContatos, repositorioDeClientes);
+  registrarRotasDeEmail(servidor, repositorioDeContatos, enviadorDeEmail);
 
   /*
    * Leitura antecipada dos arquivos: arquivo em esquema desconhecido e

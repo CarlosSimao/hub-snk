@@ -251,6 +251,24 @@ export async function roteiro({ painel, aplicativo, print, printDoSistema }) {
     destacando: [itemDaNotificacao('Agenda sem tarefa na Experience')],
   });
 
+  // Cobrar a tarefa por e-mail (só mostrado: Cancelar não envia)
+  const botaoDeCobrar = painel
+    .locator('.notificacao-com-acao', { hasText: 'Agenda sem tarefa na Experience' })
+    .first()
+    .locator('[aria-label="Cobrar por e-mail"]');
+  await print('alerta-da-agenda-04-cobrar', { destacando: [botaoDeCobrar] });
+  await botaoDeCobrar.click();
+  await painel.waitForSelector('#modal-cobranca-agenda[open]');
+  await painel.locator('#lista-contatos-cobranca-agenda input').first().check();
+  await print('alerta-da-agenda-05-formulario', {
+    destacando: ['#formulario-cobranca-agenda .modal-corpo'],
+  });
+  await painel.click('#btn-cancelar-cobranca-agenda');
+  // O clique no modal, fora do painel, o fecha: o passo seguinte precisa dele aberto.
+  if (!(await painel.locator('#painel-notificacoes').isVisible())) {
+    await painel.click('#btn-notificacoes');
+  }
+
   // Marcar como lida e limpar
   await print('marcar-como-lida-e-limpar-01-uma', {
     destacando: [itemDaNotificacao('Emitir a NF de serviço')],

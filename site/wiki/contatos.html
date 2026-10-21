@@ -36,8 +36,8 @@
         <p class="introducao">
           Os contatos são as pessoas dos clientes, ou de fora deles, com quem você fala: nome,
           cargo, telefone e e-mail. Ficam na aba Contatos do menu e na aba Contatos de cada cliente,
-          abrem a conversa no WhatsApp ou um e-mail novo no Gmail e podem receber os lembretes por
-          e-mail.
+          abrem a conversa no WhatsApp, recebem e-mails escritos no próprio HUB SNK e podem receber
+          os lembretes por e-mail.
         </p>
 
         <nav class="nesta-pagina" aria-labelledby="titulo-nesta-pagina">
@@ -443,17 +443,26 @@
         <section class="funcionalidade" id="email">
           <h2>Escrever e-mail</h2>
           <p>
-            Abre no Gmail a tela de e-mail novo, já com o contato no campo Para. O botão só aparece
-            quando o contato tem e-mail. O e-mail sai da sua conta Google, não do servidor de e-mail
-            das Configurações. No aplicativo, abre no painel do Gmail da barra de comunicação, e
-            enviar ou descartar o rascunho volta o painel para a caixa de entrada; no navegador,
-            abre numa aba nova.
+            Abre o formulário <strong>Novo e-mail</strong> do HUB SNK, como o do Gmail: Para, Cc e
+            Cco, assunto, corpo com negrito, itálico, sublinhado, listas e link, e anexos (até 18 MB
+            no total). Só vão contatos cadastrados com e-mail, e o atalho
+            <strong>Cadastrar contato novo</strong> de cada campo cadastra um sem sair do e-mail. O
+            e-mail sai pelo servidor de e-mail das Configurações, sem o rodapé dos e-mails
+            automáticos.
+          </p>
+          <p>
+            Sem ao menos um contato em Para, o e-mail não sai. Antes de enviar, o HUB SNK avisa se
+            há destinatários de clientes diferentes, se o texto fala em anexo sem nenhum arquivo
+            anexado e se o assunto ou o corpo estão vazios; clique em
+            <strong>Enviar assim mesmo</strong> para seguir. Com o e-mail começado, o Esc não fecha
+            o formulário: para jogar fora, clique em <strong>Descartar</strong>.
           </p>
 
           <h3>Passo a passo</h3>
           <ol class="passos">
             <li>
-              Na linha do contato, clique no envelope <strong>Escrever e-mail</strong>.
+              Na linha do contato, clique no envelope <strong>Escrever e-mail</strong>. O botão só
+              aparece quando o contato tem e-mail.
               <figure>
                 <img
                   src="img/contatos/email-01-botao.webp"
@@ -465,12 +474,27 @@
               </figure>
             </li>
             <li>
-              O Gmail abre em <strong>Nova mensagem</strong>, endereçada ao contato. Escreva e envie
-              por ali.
+              O formulário abre com o contato em Para. Digite parte do nome, do e-mail ou do cliente
+              num campo para adicionar mais contatos; <strong>Cc</strong> e <strong>Cco</strong>
+              mostram os campos de cópia. Escreva o assunto e o corpo, anexe arquivos em
+              <strong>Anexar</strong> e clique em <strong>Enviar</strong>.
               <figure>
                 <img
-                  src="img/contatos/email-02-novo.webp"
-                  alt="Gmail aberto no painel com a Nova mensagem endereçada à Marina Duarte"
+                  src="img/contatos/email-02-formulario.webp"
+                  alt="Formulário Novo e-mail com a Marina Duarte em Para, assunto e corpo preenchidos"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Para escrever sem partir de um contato, clique em <strong>Novo e-mail</strong>, no
+              topo da aba Contatos: o formulário abre sem destinatário.
+              <figure>
+                <img
+                  src="img/contatos/email-03-avulso.webp"
+                  alt="Botão Novo e-mail destacado no topo da aba Contatos"
                   width="1264"
                   height="821"
                   loading="lazy"
@@ -482,21 +506,19 @@
           <h3>Configurações que dependem ou alteram</h3>
           <ul>
             <li>
-              <a href="configuracoes.html#outras-botoes-da-barra"
-                >Engrenagem da barra de comunicação › Botões da barra › Gmail</a
-              >: desligado, o e-mail novo não abre no painel e segue para onde os links abrem.
-            </li>
-            <li>
-              <a href="configuracoes.html#geral-abrir-os-links-em"
-                >Configurações › Geral › Abrir os links em</a
-              >: vale quando o Gmail está desligado na barra.
+              <a href="configuracoes.html#smtp-host">Configurações › SMTP</a>: sem ele, o formulário
+              avisa e leva até a configuração.
             </li>
           </ul>
 
           <h3>Depende de</h3>
           <ul>
             <li>E-mail preenchido no <a href="#cadastrar-contato">cadastro do contato</a></li>
-            <li><a href="comunicacao.html#gmail">Gmail</a> na barra de comunicação</li>
+            <li>
+              <a href="lembretes-e-notificacoes.html#servidor-de-email"
+                >Servidor de e-mail (SMTP)</a
+              >
+            </li>
           </ul>
         </section>
 

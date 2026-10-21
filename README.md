@@ -215,7 +215,7 @@ Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 | **Botões do repositório**   | Abrem a pasta, o terminal, a IDE configurada e o assistente de IA (num terminal novo); e editam o `.sankhya-mcp.env` do MCP Claude   |
 | **Busca rápida**            | `Ctrl+K` no aplicativo ou `Ctrl+Shift+Espaço` em qualquer programa: acha cliente, base, repositório, link, contato ou atalho e abre  |
 | **Buscar na página**        | `Ctrl+F` em qualquer guia, inclusive na Experience e no SankhyaOm: destaca as ocorrências e anda entre elas, como no Chrome          |
-| **Comunicação**             | WhatsApp Web, Gmail, Google Chat, Google Agenda e Meet na barra lateral; o contato abre a conversa ou um e-mail já endereçado        |
+| **Comunicação**             | WhatsApp Web, Gmail, Google Chat, Google Agenda e Meet na barra lateral; o contato abre a conversa ou um e-mail do HUB SNK           |
 | **Atalhos**                 | Lista de programas da sua máquina, iniciados com um clique pelo botão de raio, com busca a partir de seis cadastrados                |
 | **Bases locais (Local)**    | Ligam, param e reiniciam o WildFly da sua máquina, com a situação do serviço, o log ao vivo e o `.sankhya-mcp.env` da instalação     |
 | **Bancos locais (Local)**   | Ligam, param e reiniciam o container Docker do banco, conferindo se ele responde login com as credenciais cadastradas                |

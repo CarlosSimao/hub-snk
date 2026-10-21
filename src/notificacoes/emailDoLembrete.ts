@@ -9,17 +9,17 @@ import {
 } from './enviadorDeEmail.ts';
 
 /* O `cid` liga a imagem anexada ao `<img>` do corpo: a logo não depende de internet. */
-const CID_DA_LOGO = 'logo-hub-snk';
-const NOME_DO_ARQUIVO_DA_LOGO = 'hub-snk.png';
-const TAMANHO_DA_LOGO_PX = 40;
+export const CID_DA_LOGO = 'logo-hub-snk';
+export const NOME_DO_ARQUIVO_DA_LOGO = 'hub-snk.png';
+export const TAMANHO_DA_LOGO_PX = 40;
 
 /* As cores do painel, fixas: e-mail não lê variável de CSS. */
-const COR_DA_MARCA = '#66cb66';
-const COR_DO_FUNDO = '#f1f5f9';
-const COR_DO_CARTAO = '#ffffff';
-const COR_DO_CABECALHO = '#131c30';
-const COR_DO_TEXTO = '#1e293b';
-const COR_DO_TEXTO_SUTIL = '#64748b';
+export const COR_DA_MARCA = '#66cb66';
+export const COR_DO_FUNDO = '#f1f5f9';
+export const COR_DO_CARTAO = '#ffffff';
+export const COR_DO_CABECALHO = '#131c30';
+export const COR_DO_TEXTO = '#1e293b';
+export const COR_DO_TEXTO_SUTIL = '#64748b';
 const COR_DO_ATRASO = '#b45309';
 
 export interface DadosDoEmailDoLembrete {
@@ -45,12 +45,12 @@ const ENTIDADES_HTML: Readonly<Record<string, string>> = {
 };
 
 /** Texto digitado pelo usuário vira texto no HTML, nunca marcação. */
-function escaparHtml(valor: string): string {
+export function escaparHtml(valor: string): string {
   return valor.replace(/[&<>"']/g, (caractere) => ENTIDADES_HTML[caractere] ?? caractere);
 }
 
 /* A quebra de linha digitada no lembrete é mantida no corpo. */
-function paragrafoComQuebras(valor: string): string {
+export function paragrafoComQuebras(valor: string): string {
   return escaparHtml(valor).replace(/\r?\n/g, '<br>');
 }
 

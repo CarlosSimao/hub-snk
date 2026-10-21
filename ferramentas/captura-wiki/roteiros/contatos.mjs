@@ -2,8 +2,9 @@
  * Prints da página Contatos da wiki (`site/wiki/contatos.html`). A ordem importa: cada
  * passo parte do estado que o anterior deixou na tela.
  *
- * Os botões de WhatsApp e e-mail abrem o painel da barra de comunicação com as telas
- * fictícias de `comunicacao-ficticia.mjs`, no lugar do WhatsApp Web e do Gmail.
+ * O botão do WhatsApp abre o painel da barra de comunicação com a tela fictícia de
+ * `comunicacao-ficticia.mjs`, no lugar do WhatsApp Web. O do e-mail abre o formulário do
+ * próprio HUB SNK, que só é mostrado: Descartar não envia nada.
  */
 import { servirComunicacaoFicticia } from '../comunicacao-ficticia.mjs';
 
@@ -74,7 +75,7 @@ export async function roteiro({ aplicativo, painel, print }) {
   await print('cadastrar-03-salvo', { destacando: [linhaDoContato(NOVO_CONTATO.nome)] });
   await fecharAvisos();
 
-  // WhatsApp e e-mail: o botão e o painel que ele abre
+  // WhatsApp: o botão e o painel que ele abre
   await print('whatsapp-01-botao', {
     destacando: [botaoDoContato('Marina Duarte', 'Conversar no WhatsApp')],
   });
@@ -82,13 +83,17 @@ export async function roteiro({ aplicativo, painel, print }) {
   await abrirNoPainel(aplicativo, painel, botaoDoWhatsapp, 'web.whatsapp.com', '#whatsapp.ativa');
   await print('whatsapp-02-conversa');
   await moldura.click('#servicos [data-servico="whatsapp"]');
-  await print('email-01-botao', {
-    destacando: [botaoDoContato('Marina Duarte', 'Escrever e-mail')],
-  });
+
+  // E-mail: o formulário do HUB SNK, pelo contato e pelo botão avulso
   const botaoDoEmail = botaoDoContato('Marina Duarte', 'Escrever e-mail');
-  await abrirNoPainel(aplicativo, painel, botaoDoEmail, 'mail.google.com', '#gmail.compondo');
-  await print('email-02-novo');
-  await moldura.click('#servicos [data-servico="gmail"]');
+  await print('email-01-botao', { destacando: [botaoDoEmail] });
+  await botaoDoEmail.click();
+  await painel.waitForSelector('#modal-email[open]');
+  await painel.fill('#campo-assunto-email', 'Homologação da rotina de faturamento');
+  await painel.fill('#editor-email', 'Marina, segue o roteiro de testes para a homologação.');
+  await print('email-02-formulario', { destacando: ['#formulario-email .modal-corpo'] });
+  await painel.click('#btn-descartar-email');
+  await print('email-03-avulso', { destacando: ['#btn-novo-email-contatos'] });
 
   // Editar e excluir (o contato recém-criado, para a lista voltar ao que era)
   await print('editar-01-botao', {

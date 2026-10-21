@@ -16,6 +16,7 @@ import {
 } from './buscaRapida.js';
 import { abrirBoasVindas } from './boasVindas.js';
 import { iniciarBackup } from './backup.js';
+import { iniciarEscritaDeEmail } from './escritaDeEmail.js';
 import { iniciarKanban } from './kanban.js';
 import { iniciarConfiguracaoDoKanban } from './configuracaoDoKanban.js';
 import { lerArvoreDeFavoritos } from './leitorDeFavoritos.js';
@@ -38,8 +39,6 @@ const CODIGO_DO_BRASIL = '55';
 /* DDD e número, fixo ou celular: o que o cadastro costuma ter, sem o código do país. */
 const DIGITOS_DO_TELEFONE_NACIONAL = new Set([10, 11]);
 const MENOR_TELEFONE_COM_DDD = 10;
-/* Tela de e-mail novo do Gmail, que no desktop abre no painel de comunicação. */
-const ENDERECO_DE_EMAIL_NOVO_DO_GMAIL = 'https://mail.google.com/mail/?view=cm&fs=1';
 const CAMINHO_DA_IMPORTACAO = `${CAMINHO_DA_API}/importacao`;
 const CAMINHO_DA_IMPORTACAO_DE_REPOSITORIOS = `${CAMINHO_DA_API}/importacao-de-repositorios`;
 const CAMINHO_DA_IMPORTACAO_DE_CADASTROS = `${CAMINHO_DA_API}/importacao-de-cadastros`;
@@ -323,6 +322,8 @@ const estado = {
   lembreteEmEdicao: null,
   /* Ids dos contatos em cópia no lembrete aberto no modal. */
   contatosDoLembrete: [],
+  /* Alerta da agenda aberto no modal de cobrança por e-mail. */
+  notificacaoEmCobranca: null,
   contatos: [],
   /* Contato aberto no modal; `null` quando é um novo. */
   contatoEmEdicao: null,
@@ -330,6 +331,8 @@ const estado = {
   clienteFixoDoContato: null,
   /* Contato novo aberto pelo lembrete: nasce com e-mail e já entra na cópia ao salvar. */
   contatoParaOLembrete: false,
+  /* Contato novo aberto pela escrita de e-mail: recebe o salvo, que entra no campo de origem. */
+  aoCadastrarContato: null,
   /* Filtros da aba Contatos do menu principal. */
   filtroDeContatos: { nome: '', clienteId: '' },
   /*
@@ -517,6 +520,7 @@ const elementos = {
   botaoCancelarConfirmacaoAutosync: document.getElementById('btn-cancelar-autosync-confirmacao'),
   botaoConfirmarConfirmacaoAutosync: document.getElementById('btn-confirmar-autosync-confirmacao'),
   campoFiltroNomeContato: document.getElementById('campo-filtro-nome-contato'),
+  botaoNovoEmailContatos: document.getElementById('btn-novo-email-contatos'),
   campoFiltroClienteContato: document.getElementById('campo-filtro-cliente-contato'),
   modalContato: document.getElementById('modal-contato'),
   formularioContato: document.getElementById('formulario-contato'),
@@ -544,6 +548,15 @@ const elementos = {
   botaoMarcarNotificacoesLidas: document.getElementById('btn-marcar-notificacoes-lidas'),
   botaoLimparNotificacoes: document.getElementById('btn-limpar-notificacoes'),
   botaoFecharNotificacoes: document.getElementById('btn-fechar-notificacoes'),
+
+  modalCobrancaAgenda: document.getElementById('modal-cobranca-agenda'),
+  formularioCobrancaAgenda: document.getElementById('formulario-cobranca-agenda'),
+  alertaCobrancaAgenda: document.getElementById('alerta-cobranca-agenda'),
+  listaContatosCobrancaAgenda: document.getElementById('lista-contatos-cobranca-agenda'),
+  campoObservacaoCobrancaAgenda: document.getElementById('campo-observacao-cobranca-agenda'),
+  erroCobrancaAgenda: document.getElementById('erro-cobranca-agenda'),
+  botaoCancelarCobrancaAgenda: document.getElementById('btn-cancelar-cobranca-agenda'),
+  botaoEnviarCobrancaAgenda: document.getElementById('btn-enviar-cobranca-agenda'),
 
   modalLembrete: document.getElementById('modal-lembrete'),
   formularioLembrete: document.getElementById('formulario-lembrete'),
@@ -998,6 +1011,11 @@ const api = {
   limparNotificacoes: () => requisitar(CAMINHO_DAS_NOTIFICACOES, { metodo: 'DELETE' }),
   enviarEmailDeTeste: (smtp) =>
     requisitar(`${CAMINHO_DAS_NOTIFICACOES}/email-de-teste`, { metodo: 'POST', corpo: { smtp } }),
+  enviarCobrancaDaAgenda: (id, dados) =>
+    requisitar(`${CAMINHO_DAS_NOTIFICACOES}/${encodeURIComponent(id)}/cobranca`, {
+      metodo: 'POST',
+      corpo: dados,
+    }),
 
   listarLembretes: () => requisitar(CAMINHO_DOS_LEMBRETES),
   criarLembrete: (lembrete) =>
@@ -9656,20 +9674,109 @@ async function marcarNotificacaoComoLida(notificacao) {
   }
 }
 
+/* Só o alerta da agenda tem tarefa a cobrar na Experience. */
+function ehAlertaDeAgendaSemTarefa(notificacao) {
+  return notificacao.origem === 'agenda' && notificacao.tag === 'OS';
+}
+
+function criarAcaoDaNotificacao(notificacao) {
+  if (notificacao.chave === `atualizacao:${estado.versaoDisponivel}`) {
+    return criarBotaoDeAtualizarAgora();
+  }
+  if (ehAlertaDeAgendaSemTarefa(notificacao)) {
+    return criarBotaoDeIcone('btn tiny ghost', ICONES.envelope, 'Cobrar por e-mail', () =>
+      abrirModalDeCobrancaDaAgenda(notificacao),
+    );
+  }
+  return null;
+}
+
 function criarItemDeNotificacao(notificacao) {
   const item = criarElemento('button', `item-notificacao${notificacao.lida ? '' : ' nao-lida'}`);
   item.type = 'button';
   item.title = notificacao.lida ? '' : 'Marcar como lida';
   item.append(criarConteudoDaNotificacao(notificacao));
   item.addEventListener('click', () => marcarNotificacaoComoLida(notificacao));
-  if (notificacao.chave !== `atualizacao:${estado.versaoDisponivel}`) {
+  const acao = criarAcaoDaNotificacao(notificacao);
+  if (!acao) {
     return item;
   }
-  // Botão dentro de botão não vale: o Atualizar agora fica ao lado, desenhado dentro do cartão.
+  // Botão dentro de botão não vale: a ação fica ao lado, desenhada dentro do cartão.
   item.classList.add('com-acao');
   const cartao = criarElemento('div', 'notificacao-com-acao');
-  cartao.append(item, criarBotaoDeAtualizarAgora());
+  cartao.append(item, acao);
   return cartao;
+}
+
+/* ----------------------- cobrança do alerta da agenda ---------------------- */
+
+function criarCaixaDeContatoDaCobranca(contato) {
+  const rotulo = criarElemento('label', 'campo-checkbox');
+  const caixa = criarElemento('input');
+  caixa.type = 'checkbox';
+  caixa.value = contato.id;
+  const cliente = clienteDoContato(contato);
+  const detalhe = cliente ? `${contato.email} · ${cliente.nome}` : contato.email;
+  rotulo.append(caixa, ` ${contato.nome} — ${detalhe}`);
+  return rotulo;
+}
+
+function renderizarContatosDaCobranca() {
+  const comEmail = contatosOrdenados(estado.contatos.filter((contato) => contato.email));
+  elementos.listaContatosCobrancaAgenda.replaceChildren(
+    ...(comEmail.length > 0
+      ? comEmail.map(criarCaixaDeContatoDaCobranca)
+      : [criarElemento('p', 'texto-auxiliar', 'Nenhum contato com e-mail. Cadastre em Contatos.')]),
+  );
+}
+
+async function abrirModalDeCobrancaDaAgenda(notificacao) {
+  estado.notificacaoEmCobranca = notificacao;
+  limparErro(elementos.erroCobrancaAgenda);
+  elementos.alertaCobrancaAgenda.textContent = notificacao.mensagem;
+  elementos.campoObservacaoCobrancaAgenda.value = '';
+  renderizarContatosDaCobranca();
+  elementos.modalCobrancaAgenda.showModal();
+  // A lista pode ter mudado noutro lugar desde a última leitura.
+  await carregarContatos();
+  if (elementos.modalCobrancaAgenda.open) renderizarContatosDaCobranca();
+}
+
+function contatosEscolhidosNaCobranca() {
+  const marcadas = elementos.listaContatosCobrancaAgenda.querySelectorAll('input:checked');
+  return [...marcadas].map((caixa) => caixa.value);
+}
+
+async function enviarCobrancaDaAgenda(evento) {
+  evento.preventDefault();
+
+  const contatoIds = contatosEscolhidosNaCobranca();
+  if (contatoIds.length === 0) {
+    exibirErro(elementos.erroCobrancaAgenda, 'Escolha ao menos um contato.');
+    return;
+  }
+
+  limparErro(elementos.erroCobrancaAgenda);
+  elementos.botaoEnviarCobrancaAgenda.disabled = true;
+  try {
+    const { mensagem } = await api.enviarCobrancaDaAgenda(estado.notificacaoEmCobranca.id, {
+      contatoIds,
+      observacao: elementos.campoObservacaoCobrancaAgenda.value.trim(),
+    });
+    elementos.modalCobrancaAgenda.close();
+    exibirAviso(mensagem);
+  } catch (erro) {
+    exibirErro(elementos.erroCobrancaAgenda, erro.message);
+  } finally {
+    elementos.botaoEnviarCobrancaAgenda.disabled = false;
+  }
+}
+
+function registrarEventosDaCobrancaDaAgenda() {
+  elementos.formularioCobrancaAgenda.addEventListener('submit', enviarCobrancaDaAgenda);
+  elementos.botaoCancelarCobrancaAgenda.addEventListener('click', () =>
+    elementos.modalCobrancaAgenda.close(),
+  );
 }
 
 function criarBotaoDeAtualizarAgora() {
@@ -10439,8 +10546,11 @@ function criarLinhaDeContato(contato, { mostrarCliente }) {
     conversa.push(criarLinkDeIcone('btn tiny', ICONES.conversa, 'Conversar no WhatsApp', endereco));
   }
   if (contato.email) {
-    const endereco = `${ENDERECO_DE_EMAIL_NOVO_DO_GMAIL}&to=${encodeURIComponent(contato.email)}`;
-    conversa.push(criarLinkDeIcone('btn tiny', ICONES.envelope, 'Escrever e-mail', endereco));
+    conversa.push(
+      criarBotaoDeIcone('btn tiny', ICONES.envelope, 'Escrever e-mail', () =>
+        escritaDeEmail.abrir(contato),
+      ),
+    );
   }
 
   const linha = criarElemento('div', 'linha-recurso');
@@ -10521,8 +10631,14 @@ function preencherClientesDoContato(clienteId, clientesPermitidos = estado.clien
  * `paraOLembrete`: aberto pelo modal do lembrete, o e-mail passa a ser exigido e o campo
  * segue a regra da cópia do lembrete (`contatoPodeIrNoLembrete`): lembrete do cliente Y
  * oferece só "Sem cliente" e Y, já marcado; lembrete sem cliente oferece todos.
+ * `aoCadastrar`: aberto pela escrita de e-mail, o e-mail é exigido e o contato salvo
+ * volta para ela.
  */
-function abrirModalDeContato(contato, clienteFixo, { paraOLembrete = false } = {}) {
+function abrirModalDeContato(
+  contato,
+  clienteFixo,
+  { paraOLembrete = false, aoCadastrar = null } = {},
+) {
   const clienteDoLembrete = paraOLembrete
     ? (estado.clientes.find((cliente) => cliente.id === elementos.campoClienteLembrete.value) ??
       null)
@@ -10530,13 +10646,14 @@ function abrirModalDeContato(contato, clienteFixo, { paraOLembrete = false } = {
   estado.contatoEmEdicao = contato;
   estado.clienteFixoDoContato = clienteFixo;
   estado.contatoParaOLembrete = paraOLembrete;
+  estado.aoCadastrarContato = aoCadastrar;
   limparErro(elementos.erroContato);
   elementos.tituloModalContato.textContent = contato ? 'Editar contato' : 'Novo contato';
   elementos.campoNomeContato.value = contato?.nome ?? '';
   elementos.campoCargoContato.value = contato?.cargo ?? '';
   elementos.campoTelefoneContato.value = contato?.telefone ?? '';
   elementos.campoEmailContato.value = contato?.email ?? '';
-  elementos.opcionalEmailContato.hidden = paraOLembrete;
+  elementos.opcionalEmailContato.hidden = paraOLembrete || aoCadastrar !== null;
   elementos.grupoClienteContato.hidden = clienteFixo !== null;
   preencherClientesDoContato(
     clienteFixo?.id ?? clienteDoLembrete?.id ?? contato?.clienteId ?? null,
@@ -10570,6 +10687,9 @@ function validarFormularioDeContato(dados) {
   if (!dados.email && estado.contatoParaOLembrete) {
     return 'Informe o e-mail: é por ele que o contato recebe o lembrete.';
   }
+  if (!dados.email && estado.aoCadastrarContato) {
+    return 'Informe o e-mail: é por ele que o contato recebe a mensagem.';
+  }
   if (dados.email && !elementos.campoEmailContato.checkValidity()) return 'E-mail inválido.';
   return null;
 }
@@ -10597,6 +10717,7 @@ async function salvarContato(evento) {
     if (estado.contatoParaOLembrete && elementos.modalLembrete.open) {
       incluirContatoNovoNoLembrete(salvo);
     }
+    estado.aoCadastrarContato?.(salvo);
   } catch (erro) {
     exibirErro(elementos.erroContato, erro.message);
   } finally {
@@ -10625,6 +10746,8 @@ function registrarEventosDosContatos() {
     estado.filtroDeContatos.clienteId = elementos.campoFiltroClienteContato.value;
     renderizarContatos();
   });
+  elementos.botaoNovoEmailContatos.prepend(criarIcone(ICONES.envelope));
+  elementos.botaoNovoEmailContatos.addEventListener('click', () => void escritaDeEmail.abrir());
 }
 
 /* ------------------------------ busca rápida ------------------------------ */
@@ -12614,6 +12737,7 @@ function registrarEventos() {
   registrarEventosDasNotificacoes();
   registrarEventosDoAutosync();
   registrarEventosDoLembrete();
+  registrarEventosDaCobrancaDaAgenda();
   registrarEventosDosContatos();
   elementos.botaoAtualizarAgenda.append(criarIcone(ICONES.recarregar));
   elementos.indicadorWebConnection.addEventListener('click', iniciarWebConnection);
@@ -13110,6 +13234,27 @@ const backup = iniciarBackup({
   copiarParaAreaDeTransferencia,
   modal: elementos.modalConfiguracao,
   corpo: elementos.corpoBackup,
+});
+
+const escritaDeEmail = iniciarEscritaDeEmail({
+  requisitar,
+  criarElemento,
+  criarBotao,
+  criarBotaoDeIcone,
+  criarIcone,
+  exibirAviso,
+  exibirErro,
+  limparErro,
+  exibirErroComConfiguracao,
+  criarLinkDeConfiguracaoPendente,
+  lerConfiguracao: () => api.lerConfiguracao(),
+  smtpConfigurado,
+  contatos: () => estado.contatos,
+  carregarContatos,
+  clienteDoContato,
+  contatosOrdenados,
+  cadastrarContato: (aoCadastrar) => abrirModalDeContato(null, null, { aoCadastrar }),
+  modalDeConfiguracao: elementos.modalConfiguracao,
 });
 
 iniciar();
