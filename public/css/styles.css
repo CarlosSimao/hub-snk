@@ -146,7 +146,7 @@ body {
 }
 
 /*
- * Situação consolidada do Git, à direita do botão de atalhos. A cor sozinha não
+ * Situação consolidada do Git, à direita do W do Web Connection. A cor sozinha não
  * informa quem não distingue verde de vermelho: o `title`/`aria-label` vem do
  * app.js. O `hidden` do HTML precisa vencer o `display`, daí o seletor negado.
  */
@@ -208,7 +208,7 @@ body {
 }
 
 /*
- * Letra W do Sankhya Web Connection, à direita do indicador do Git: cinza desligado,
+ * Letra W do Sankhya Web Connection, entre os atalhos e o indicador do Git: cinza desligado,
  * amarela piscando ao iniciar e verde ligado. Só desligado inicia o programa no clique;
  * ligado, a versão fica no `title`.
  */
