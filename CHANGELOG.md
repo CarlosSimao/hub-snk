@@ -9,6 +9,21 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.19.2] - 2026-10-21
+
+### Corrigido
+
+- **Contatos, Lembretes e Kanban geral cortados no aplicativo**: com muitos registros, a
+  tela parava no meio de um card, sem barra de rolagem, e não dava para saber se havia
+  mais. Agora essas telas rolam por dentro, como as outras.
+- **Barras de rolagem invisíveis**: no Windows 11 a barra só aparecia com o mouse em
+  cima. Agora todas as barras do HUB SNK ficam sempre à vista, nas cores do tema.
+
+### Alterado
+
+- **Formulário de cobrança da agenda maior**: 75% mais largo e mais alto, para a lista de
+  contatos sugeridos caber inteira sem rolar o formulário.
+
 ## [2.19.1] - 2026-10-21
 
 ### Corrigido
@@ -994,6 +1009,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.19.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.1...v2.19.2
 [2.19.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.0...v2.19.1
 [2.19.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...v2.19.0
 [2.18.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.0...v2.18.1
