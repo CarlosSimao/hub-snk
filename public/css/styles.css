@@ -3426,6 +3426,282 @@ button.selo-situacao:focus-visible {
   }
 }
 
+/* --------------------------- escrita de e-mail --------------------------- */
+
+/* As linhas encostam umas nas outras, separadas só pelo traço, como no Gmail. */
+.corpo-do-email {
+  gap: 0;
+}
+
+.corpo-do-email > .aviso-configuracao,
+.corpo-do-email > .erro-formulario,
+.corpo-do-email > .anexos-do-email {
+  margin-top: 10px;
+}
+
+.corpo-do-email > .aviso-configuracao:first-child {
+  margin: 0 0 6px;
+}
+
+.linha-destinatarios {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  border-bottom: 1px solid var(--border);
+}
+
+.linha-destinatarios[hidden] {
+  display: none;
+}
+
+.rotulo-destinatarios {
+  flex: none;
+  width: 30px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.destinatarios {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 4px 0;
+}
+
+.busca-de-destinatario {
+  flex: 1;
+  min-width: 120px;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.busca-de-destinatario:focus {
+  outline: none;
+}
+
+.chip-de-destinatario,
+.anexo-do-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 2px 4px 2px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12px;
+}
+
+.chip-de-destinatario-remover {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.chip-de-destinatario-remover:hover,
+.chip-de-destinatario-remover:focus-visible {
+  background: var(--border);
+  color: var(--text);
+  outline: none;
+}
+
+.atalhos-de-copia {
+  display: flex;
+  gap: 8px;
+}
+
+.link-de-copia {
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.link-de-copia:hover,
+.link-de-copia:focus-visible {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.link-de-copia[hidden] {
+  display: none;
+}
+
+/* No topo do modal a lista abre para baixo, e não para cima como no lembrete. */
+.opcoes-de-contatos.abaixo {
+  top: calc(100% + 2px);
+  bottom: auto;
+  left: 38px;
+}
+
+.campo-assunto-email {
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.campo-assunto-email:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+
+.barra-de-formatacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0;
+}
+
+.grupo-link-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+}
+
+.grupo-link-email[hidden] {
+  display: none;
+}
+
+.grupo-link-email input {
+  width: 220px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.editor-de-email {
+  min-height: 220px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.editor-de-email:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.editor-de-email:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
+.editor-de-email a {
+  color: var(--accent);
+}
+
+.editor-de-email ul,
+.editor-de-email ol {
+  margin: 4px 0;
+  padding-left: 22px;
+}
+
+.anexos-do-email {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.anexos-do-email[hidden] {
+  display: none;
+}
+
+.anexo-do-email svg {
+  width: 13px;
+  height: 13px;
+  color: var(--text-dim);
+}
+
+.anexo-do-email-nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.anexo-do-email-tamanho {
+  color: var(--text-dim);
+}
+
+.avisos-do-email {
+  display: grid;
+  gap: 4px;
+}
+
+.avisos-do-email[hidden] {
+  display: none;
+}
+
+.avisos-do-email ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+/* Anexar fica do lado oposto de Descartar e Enviar, como no Gmail. */
+.rotulo-anexar {
+  margin-right: auto;
+  cursor: pointer;
+}
+
+/* Caixas dos contatos no modal de cobrança da agenda: a lista longa rola, o modal não. */
+.contatos-da-cobranca {
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* A lista fica dentro de um `.campo`: desfaz o rótulo miúdo e o input de largura total. */
+.contatos-da-cobranca .campo-checkbox {
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.contatos-da-cobranca .campo-checkbox input {
+  width: 15px;
+  padding: 0;
+}
+
 /* Contatos em cópia no modal do lembrete. */
 .contatos-do-lembrete {
   display: grid;

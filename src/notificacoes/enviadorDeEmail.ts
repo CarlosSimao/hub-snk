@@ -68,14 +68,27 @@ export interface ImagemEmbutida {
   caminho: string;
 }
 
+/** Arquivo que o usuário anexou, já em memória. */
+export interface AnexoDeEmail {
+  nomeDoArquivo: string;
+  conteudo: Buffer;
+  /** Tipo MIME informado pelo navegador; vazio deixa o nodemailer deduzir pelo nome. */
+  tipo: string;
+}
+
 export interface MensagemDeEmail {
   assunto: string;
   /** Sempre presente: é o corpo de quem não mostra HTML. */
   texto: string;
   html?: string;
-  /** Em cópia; o destinatário do SMTP vai sempre no "Para". */
+  /** Ausente vai para o destinatário do SMTP: é o caso das notificações. */
+  para?: string[];
   copia?: string[];
+  copiaOculta?: string[];
   imagensEmbutidas?: ImagemEmbutida[];
+  anexos?: AnexoDeEmail[];
+  /** E-mail escrito pela pessoa não é automático: sai sem o rodapé do HUB SNK. */
+  semRodape?: boolean;
 }
 
 export function smtpConfigurado(smtp: ConfiguracaoSmtp): boolean {
@@ -94,6 +107,24 @@ function criarTransporte(smtp: ConfiguracaoSmtp) {
     greetingTimeout: TEMPO_LIMITE_DO_SMTP_MS,
     socketTimeout: TEMPO_LIMITE_DO_SMTP_MS,
   });
+}
+
+function listaOuNada(enderecos: string[] | undefined): string[] | undefined {
+  return enderecos?.length ? enderecos : undefined;
+}
+
+function anexosDoEnvio(mensagem: MensagemDeEmail) {
+  const imagens = (mensagem.imagensEmbutidas ?? []).map((imagem) => ({
+    cid: imagem.cid,
+    filename: imagem.nomeDoArquivo,
+    path: imagem.caminho,
+  }));
+  const arquivos = (mensagem.anexos ?? []).map((anexo) => ({
+    filename: anexo.nomeDoArquivo,
+    content: anexo.conteudo,
+    contentType: anexo.tipo || undefined,
+  }));
+  return [...imagens, ...arquivos];
 }
 
 /** Envia os e-mails das notificações pelo SMTP da configuração global. */
@@ -123,16 +154,16 @@ export class EnviadorDeEmail {
     try {
       await transporte.sendMail({
         from: smtp.remetente,
-        to: smtp.destinatario,
-        cc: mensagem.copia?.length ? mensagem.copia : undefined,
+        to: listaOuNada(mensagem.para) ?? smtp.destinatario,
+        cc: listaOuNada(mensagem.copia),
+        bcc: listaOuNada(mensagem.copiaOculta),
         subject: mensagem.assunto,
-        text: textoComRodape(mensagem.texto, remetente),
-        html: mensagem.html === undefined ? undefined : htmlComRemetente(mensagem.html, remetente),
-        attachments: mensagem.imagensEmbutidas?.map((imagem) => ({
-          cid: imagem.cid,
-          filename: imagem.nomeDoArquivo,
-          path: imagem.caminho,
-        })),
+        text: mensagem.semRodape ? mensagem.texto : textoComRodape(mensagem.texto, remetente),
+        html:
+          mensagem.html === undefined || mensagem.semRodape
+            ? mensagem.html
+            : htmlComRemetente(mensagem.html, remetente),
+        attachments: anexosDoEnvio(mensagem),
       });
     } finally {
       transporte.close();

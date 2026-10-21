@@ -357,6 +357,10 @@
               Pessoas dos clientes, ou sem cliente, que podem receber os lembretes por e-mail.
             </p>
           </div>
+          <!-- O ícone é posto pelo app.js. -->
+          <button class="btn primario botao-com-icone" type="button" id="btn-novo-email-contatos">
+            Novo e-mail
+          </button>
         </div>
         <div class="filtros-de-contatos">
           <input
@@ -1072,6 +1076,149 @@
         <div class="modal-rodape">
           <button class="btn ghost" type="button" id="btn-cancelar-lembrete">Cancelar</button>
           <button class="btn primario" type="submit" id="btn-salvar-lembrete">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="modal-cobranca-agenda">
+      <form method="dialog" id="formulario-cobranca-agenda" novalidate>
+        <div class="modal-cabecalho">
+          <h2>Cobrar tarefa na Experience</h2>
+          <p>Envia por e-mail o alerta da agenda, pedindo a abertura da tarefa.</p>
+        </div>
+
+        <div class="modal-corpo">
+          <p class="texto-auxiliar" id="alerta-cobranca-agenda"></p>
+
+          <div class="campo">
+            <label>
+              Contatos em cópia
+              <span class="dica" tabindex="0"
+                >?<span class="dica-texto" role="tooltip"
+                  >O e-mail vai para o destinatário do SMTP, com estes contatos em cópia. Só
+                  aparecem contatos com e-mail.</span
+                ></span
+              >
+            </label>
+            <!-- As caixas dos contatos são montadas pelo app.js. -->
+            <div class="contatos-da-cobranca" id="lista-contatos-cobranca-agenda"></div>
+          </div>
+
+          <div class="campo">
+            <label for="campo-observacao-cobranca-agenda">
+              Observação <span class="opcional">opcional</span>
+            </label>
+            <textarea
+              id="campo-observacao-cobranca-agenda"
+              class="campo-anotacoes"
+              rows="3"
+              maxlength="2000"
+              placeholder="Ex.: Preciso da tarefa até o fim do dia para lançar as horas."
+            ></textarea>
+          </div>
+
+          <p class="erro-formulario" id="erro-cobranca-agenda" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <button class="btn ghost" type="button" id="btn-cancelar-cobranca-agenda">
+            Cancelar
+          </button>
+          <button class="btn primario" type="submit" id="btn-enviar-cobranca-agenda">Enviar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Escrita de e-mail como no Gmail, montada pelo escritaDeEmail.js. -->
+    <dialog class="modal largo" id="modal-email" aria-labelledby="titulo-modal-email">
+      <form method="dialog" id="formulario-email" novalidate>
+        <div class="modal-cabecalho">
+          <h2 id="titulo-modal-email">Novo e-mail</h2>
+          <p>Sai pelo SMTP de Configurações, só para contatos cadastrados.</p>
+        </div>
+
+        <div class="modal-corpo corpo-do-email">
+          <!-- Texto e link montados pelo escritaDeEmail.js quando o SMTP não está configurado. -->
+          <p class="aviso-configuracao" id="aviso-smtp-email" hidden></p>
+
+          <div class="linha-destinatarios" id="linha-para-email">
+            <span class="rotulo-destinatarios">Para</span>
+            <div class="destinatarios"></div>
+            <span class="atalhos-de-copia">
+              <button class="link-de-copia" type="button" id="btn-mostrar-copia-email">Cc</button>
+              <button class="link-de-copia" type="button" id="btn-mostrar-copia-oculta-email">
+                Cco
+              </button>
+            </span>
+            <div class="opcoes-de-contatos abaixo" hidden></div>
+          </div>
+          <div class="linha-destinatarios" id="linha-copia-email" hidden>
+            <span class="rotulo-destinatarios">Cc</span>
+            <div class="destinatarios"></div>
+            <div class="opcoes-de-contatos abaixo" hidden></div>
+          </div>
+          <div class="linha-destinatarios" id="linha-copia-oculta-email" hidden>
+            <span class="rotulo-destinatarios">Cco</span>
+            <div class="destinatarios"></div>
+            <div class="opcoes-de-contatos abaixo" hidden></div>
+          </div>
+
+          <input
+            class="campo-assunto-email"
+            id="campo-assunto-email"
+            type="text"
+            maxlength="300"
+            autocomplete="off"
+            placeholder="Assunto"
+            aria-label="Assunto"
+          />
+
+          <!-- Os botões de formatação são montados pelo escritaDeEmail.js. -->
+          <div
+            class="barra-de-formatacao"
+            id="barra-formatacao-email"
+            role="toolbar"
+            aria-label="Formatação"
+          >
+            <span class="grupo-link-email" id="grupo-link-email" hidden>
+              <input
+                id="campo-link-email"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="https://…"
+                aria-label="Endereço do link"
+              />
+              <button class="btn tiny primario" type="button" id="btn-inserir-link-email">
+                Inserir
+              </button>
+              <button class="btn tiny ghost" type="button" id="btn-cancelar-link-email">
+                Cancelar
+              </button>
+            </span>
+          </div>
+          <div
+            class="editor-de-email"
+            id="editor-email"
+            contenteditable="true"
+            role="textbox"
+            aria-multiline="true"
+            aria-label="Corpo do e-mail"
+            data-placeholder="Escreva o e-mail…"
+          ></div>
+
+          <div class="anexos-do-email" id="lista-anexos-email" hidden></div>
+          <div class="aviso-configuracao avisos-do-email" id="avisos-email" hidden></div>
+          <p class="erro-formulario" id="erro-email" hidden></p>
+        </div>
+
+        <div class="modal-rodape">
+          <label class="btn ghost botao-com-icone rotulo-anexar" id="rotulo-anexar-email">
+            Anexar
+            <input type="file" id="campo-anexos-email" multiple hidden />
+          </label>
+          <button class="btn ghost" type="button" id="btn-descartar-email">Descartar</button>
+          <button class="btn primario" type="submit" id="btn-enviar-email">Enviar</button>
         </div>
       </form>
     </dialog>
