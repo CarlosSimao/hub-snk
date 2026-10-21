@@ -9,6 +9,28 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.19.0] - 2026-10-21
+
+### Adicionado
+
+- **Cobrar a tarefa por e-mail pelo alerta da agenda**: a notificação **Agenda sem tarefa
+  na Experience** ganhou um envelope que abre um formulário para escolher os contatos em
+  cópia e escrever uma observação. O e-mail sai pelo SMTP das Configurações, com o layout do
+  HUB SNK e um destaque de atenção pedindo a abertura da tarefa na Experience.
+- **Escrever e-mail para os contatos pelo próprio HUB SNK**: o formulário **Novo e-mail**,
+  como o do Gmail, tem Para, Cc e Cco só com contatos cadastrados, assunto, corpo com
+  negrito, itálico, sublinhado, listas e link, e anexos até 18 MB. Dá para cadastrar um
+  contato sem sair do e-mail. Abre pelo botão **Novo e-mail** da aba Contatos ou, já com o
+  contato em Para, pelo envelope dele. Antes de enviar, o HUB SNK avisa se há destinatários
+  de clientes diferentes, se o texto fala em anexo sem arquivo e se falta assunto ou corpo.
+
+### Alterado
+
+- **O envelope do contato não abre mais o Gmail**: abre o formulário **Novo e-mail**, que
+  envia pelo SMTP das Configurações. Sem SMTP configurado, o formulário avisa e leva até a
+  configuração.
+- **O W do Web Connection fica antes do indicador do Git** no topo.
+
 ## [2.18.1] - 2026-10-20
 
 ### Corrigido
@@ -956,6 +978,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.19.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...v2.19.0
 [2.18.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.0...v2.18.1
 [2.18.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.2...v2.18.0
 [2.17.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.1...v2.17.2
