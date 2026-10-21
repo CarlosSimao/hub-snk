@@ -4,6 +4,11 @@ import type { ConfiguracaoSmtp } from '../tipos.ts';
 
 /* Servidor que não responde não pode segurar a verificação da agenda por minutos. */
 const TEMPO_LIMITE_DO_SMTP_MS = 15_000;
+/*
+ * Com anexo, a espera pela resposta passa dos 15 s: o Gmail levou 53 s para aceitar um
+ * anexo de 8 MB. O limite dos anexos é 18 MB (src/rotas/rotasEmail.ts).
+ */
+const TEMPO_LIMITE_DO_SMTP_COM_ANEXOS_MS = 5 * 60_000;
 
 /*
  * Todo e-mail do HUB SNK diz de onde veio: quem recebe em cópia pode não conhecer a
@@ -95,7 +100,12 @@ export function smtpConfigurado(smtp: ConfiguracaoSmtp): boolean {
   return smtp.host !== '' && smtp.remetente !== '' && smtp.destinatario !== '';
 }
 
-function criarTransporte(smtp: ConfiguracaoSmtp) {
+/** Conectar e cumprimentar seguem rápidos; só a espera com a conexão aberta cresce. */
+export function tempoLimiteDoSocket(mensagem: MensagemDeEmail): number {
+  return mensagem.anexos?.length ? TEMPO_LIMITE_DO_SMTP_COM_ANEXOS_MS : TEMPO_LIMITE_DO_SMTP_MS;
+}
+
+function criarTransporte(smtp: ConfiguracaoSmtp, mensagem: MensagemDeEmail) {
   return nodemailer.createTransport({
     host: smtp.host,
     port: smtp.porta,
@@ -105,7 +115,7 @@ function criarTransporte(smtp: ConfiguracaoSmtp) {
     auth: smtp.usuario === '' ? undefined : { user: smtp.usuario, pass: smtp.senha },
     connectionTimeout: TEMPO_LIMITE_DO_SMTP_MS,
     greetingTimeout: TEMPO_LIMITE_DO_SMTP_MS,
-    socketTimeout: TEMPO_LIMITE_DO_SMTP_MS,
+    socketTimeout: tempoLimiteDoSocket(mensagem),
   });
 }
 
@@ -150,7 +160,7 @@ export class EnviadorDeEmail {
     const { nomeDoUsuario, empresaDoUsuario, timeDoUsuario } = await this.#configuracao.ler();
     const remetente = { nome: nomeDoUsuario, empresa: empresaDoUsuario, time: timeDoUsuario };
 
-    const transporte = criarTransporte(smtp);
+    const transporte = criarTransporte(smtp, mensagem);
     try {
       await transporte.sendMail({
         from: smtp.remetente,
