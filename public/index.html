@@ -1095,13 +1095,16 @@
               Contatos em cópia
               <span class="dica" tabindex="0"
                 >?<span class="dica-texto" role="tooltip"
-                  >O e-mail vai para o destinatário do SMTP, com estes contatos em cópia. Só
-                  aparecem contatos com e-mail.</span
+                  >O e-mail vai para o destinatário do SMTP, com estes contatos em cópia. Digite
+                  parte do nome, do e-mail ou do cliente; só aparecem contatos com e-mail.</span
                 ></span
               >
             </label>
-            <!-- As caixas dos contatos são montadas pelo app.js. -->
-            <div class="contatos-da-cobranca" id="lista-contatos-cobranca-agenda"></div>
+            <!-- Os chips e a pesquisa são montados pelo campoDeContatos.js. -->
+            <div class="linha-destinatarios caixa-de-contatos" id="linha-contatos-cobranca-agenda">
+              <div class="destinatarios"></div>
+              <div class="opcoes-de-contatos abaixo" hidden></div>
+            </div>
           </div>
 
           <div class="campo">

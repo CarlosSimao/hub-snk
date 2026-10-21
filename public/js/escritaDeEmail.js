@@ -9,6 +9,8 @@
  * desembrulhado. O HTML do e-mail é gerado no backend (src/notificacoes/emailAvulso.ts).
  */
 
+import { criarCampoDeContatos } from './campoDeContatos.js';
+
 /* Mesmo limite do backend (src/rotas/rotasEmail.ts). */
 const MEGABYTE = 1024 * 1024;
 export const LIMITE_DOS_ANEXOS_BYTES = 18 * MEGABYTE;
@@ -21,6 +23,7 @@ const MENCAO_A_ANEXO = /\banex/i;
 const ESQUEMA_DE_LINK = /^(https?:|mailto:)/i;
 
 const CAMPOS_DE_DESTINATARIO = ['para', 'copia', 'copiaOculta'];
+const ROTULOS_DOS_CAMPOS = { para: 'Para', copia: 'Cc', copiaOculta: 'Cco' };
 
 const MARCA_DA_TAG = {
   B: 'strong',
@@ -174,7 +177,6 @@ export function iniciarEscritaDeEmail(dependencias) {
   };
 
   const estado = {
-    escolhidos: { para: [], copia: [], copiaOculta: [] },
     /** Arquivos na ordem em que foram anexados. */
     anexos: [],
     /** Avisos que a pessoa já viu: enviar de novo com os mesmos é o "enviar assim mesmo". */
@@ -187,8 +189,9 @@ export function iniciarEscritaDeEmail(dependencias) {
     return contatos().find((contato) => contato.id === id) ?? null;
   }
 
+  /* `campos` só existe depois: a função é chamada pelos campos, nunca antes de criá-los. */
   function todosOsEscolhidos() {
-    return CAMPOS_DE_DESTINATARIO.flatMap((campo) => estado.escolhidos[campo]);
+    return CAMPOS_DE_DESTINATARIO.flatMap((campo) => campos[campo].ids());
   }
 
   /* Qualquer mudança no e-mail vale como revisão: os avisos voltam a ser conferidos. */
@@ -200,138 +203,31 @@ export function iniciarEscritaDeEmail(dependencias) {
 
   /* ------------------------------ destinatários ----------------------------- */
 
-  function adicionarDestinatario(campo, id) {
-    if (todosOsEscolhidos().includes(id)) return;
-    estado.escolhidos[campo] = [...estado.escolhidos[campo], id];
-    esquecerAvisos();
-    renderizarDestinatarios(campo);
-  }
-
-  function removerDestinatario(campo, id) {
-    estado.escolhidos[campo] = estado.escolhidos[campo].filter((escolhido) => escolhido !== id);
-    esquecerAvisos();
-    renderizarDestinatarios(campo);
-  }
-
-  function criarChip(campo, contato) {
-    const chip = criarElemento('span', 'chip-de-destinatario');
-    const cliente = clienteDoContato(contato);
-    chip.title = cliente ? `${contato.email} · ${cliente.nome}` : contato.email;
-    const remover = criarBotao('chip-de-destinatario-remover', '✕', () =>
-      removerDestinatario(campo, contato.id),
-    );
-    remover.setAttribute('aria-label', `Tirar ${contato.nome}`);
-    chip.append(criarElemento('span', null, contato.nome), remover);
-    return chip;
-  }
-
-  function contatosSugeridos(busca) {
-    const termo = busca.trim().toLocaleLowerCase('pt-BR');
-    const escolhidos = todosOsEscolhidos();
-    return contatosOrdenados(
-      contatos().filter((contato) => {
-        if (!contato.email || escolhidos.includes(contato.id)) return false;
-        const cliente = clienteDoContato(contato)?.nome ?? '';
-        return `${contato.nome} ${contato.email} ${cliente}`
-          .toLocaleLowerCase('pt-BR')
-          .includes(termo);
+  const campos = Object.fromEntries(
+    CAMPOS_DE_DESTINATARIO.map((campo) => [
+      campo,
+      criarCampoDeContatos(linhas[campo], {
+        criarElemento,
+        criarBotao,
+        contatos,
+        clienteDoContato,
+        contatosOrdenados,
+        cadastrarContato,
+        rotulo: ROTULOS_DOS_CAMPOS[campo],
+        indisponiveis: todosOsEscolhidos,
+        aoMudar: esquecerAvisos,
       }),
-    );
-  }
-
-  function criarSugestao(campo, contato) {
-    const opcao = criarBotao('opcao-de-contato', '', () => {
-      adicionarDestinatario(campo, contato.id);
-      linhas[campo].querySelector('.busca-de-destinatario').focus();
-    });
-    const cliente = clienteDoContato(contato);
-    opcao.append(
-      criarElemento('span', 'opcao-de-contato-nome', contato.nome),
-      criarElemento(
-        'span',
-        'opcao-de-contato-detalhe',
-        cliente ? `${contato.email} · ${cliente.nome}` : contato.email,
-      ),
-    );
-    return opcao;
-  }
-
-  function renderizarSugestoes(campo, busca) {
-    const lista = linhas[campo].querySelector('.opcoes-de-contatos');
-    const sugeridos = contatosSugeridos(busca);
-    const novo = criarBotao(
-      'btn tiny ghost opcao-de-contato-novo',
-      'Cadastrar contato novo',
-      () => {
-        fecharSugestoes();
-        cadastrarContato((contato) => adicionarDestinatario(campo, contato.id));
-      },
-    );
-    lista.replaceChildren(
-      ...(sugeridos.length > 0
-        ? sugeridos.map((contato) => criarSugestao(campo, contato))
-        : [criarElemento('p', 'texto-auxiliar', 'Nenhum contato com e-mail encontrado.')]),
-      novo,
-    );
-    lista.hidden = false;
-  }
+    ]),
+  );
 
   function fecharSugestoes() {
-    for (const linha of Object.values(linhas)) {
-      linha.querySelector('.opcoes-de-contatos').hidden = true;
-    }
-  }
-
-  /* Como no Gmail: Enter escolhe o primeiro, Backspace no campo vazio tira o último. */
-  function tratarTeclaDaBusca(campo, evento) {
-    const busca = evento.target;
-    if (evento.key === 'Enter') {
-      evento.preventDefault();
-      const [primeiro] = contatosSugeridos(busca.value);
-      if (primeiro) adicionarDestinatario(campo, primeiro.id);
-      return;
-    }
-    if (evento.key === 'Backspace' && busca.value === '') {
-      const ultimo = estado.escolhidos[campo].at(-1);
-      if (ultimo) removerDestinatario(campo, ultimo);
-      return;
-    }
-    if (evento.key === 'Escape' && !linhas[campo].querySelector('.opcoes-de-contatos').hidden) {
-      evento.preventDefault();
-      fecharSugestoes();
-    }
-  }
-
-  function criarBusca(campo) {
-    const busca = criarElemento('input', 'busca-de-destinatario');
-    busca.type = 'text';
-    busca.autocomplete = 'off';
-    busca.placeholder = estado.escolhidos[campo].length === 0 ? 'Digite um nome…' : '';
-    busca.setAttribute('aria-label', `Adicionar contato em ${rotuloDoCampo(campo)}`);
-    busca.addEventListener('focus', () => renderizarSugestoes(campo, busca.value));
-    busca.addEventListener('input', () => renderizarSugestoes(campo, busca.value));
-    busca.addEventListener('keydown', (evento) => tratarTeclaDaBusca(campo, evento));
-    return busca;
-  }
-
-  function rotuloDoCampo(campo) {
-    return { para: 'Para', copia: 'Cc', copiaOculta: 'Cco' }[campo];
-  }
-
-  function renderizarDestinatarios(campo) {
-    const chips = estado.escolhidos[campo].map(contatoPorId).filter(Boolean);
-    const destino = linhas[campo].querySelector('.destinatarios');
-    const busca = criarBusca(campo);
-    destino.replaceChildren(...chips.map((contato) => criarChip(campo, contato)), busca);
-    if (!linhas[campo].querySelector('.opcoes-de-contatos').hidden) {
-      busca.focus();
-    }
+    Object.values(campos).forEach((campo) => campo.fecharSugestoes());
   }
 
   function mostrarLinha(campo) {
     linhas[campo].hidden = false;
     botoesDeMostrar[campo].hidden = true;
-    linhas[campo].querySelector('.busca-de-destinatario').focus();
+    campos[campo].focar();
   }
 
   /* --------------------------------- editor -------------------------------- */
@@ -484,7 +380,9 @@ export function iniciarEscritaDeEmail(dependencias) {
       })),
     );
     return {
-      ...estado.escolhidos,
+      para: campos.para.ids(),
+      copia: campos.copia.ids(),
+      copiaOculta: campos.copiaOculta.ids(),
       assunto: campoAssunto.value.trim(),
       corpo: serializarCorpo(editor),
       anexos,
@@ -494,7 +392,7 @@ export function iniciarEscritaDeEmail(dependencias) {
   async function enviar(evento) {
     evento.preventDefault();
     const problema = erroDoEnvio({
-      para: estado.escolhidos.para,
+      para: campos.para.ids(),
       tamanhoDosAnexos: tamanhoDosAnexos(),
     });
     if (problema) {
@@ -504,7 +402,9 @@ export function iniciarEscritaDeEmail(dependencias) {
     limparErro(erro);
     if (pararPelosAvisos()) return;
 
+    // Com anexo grande o servidor leva minutos para aceitar: o botão diz que está enviando.
     botaoEnviar.disabled = true;
+    botaoEnviar.textContent = 'Enviando…';
     try {
       const corpo = await montarCorpoDaRequisicao();
       const { mensagem } = await requisitar('/api/email', { metodo: 'POST', corpo });
@@ -514,6 +414,7 @@ export function iniciarEscritaDeEmail(dependencias) {
       exibirErroComConfiguracao(erro, falha);
     } finally {
       botaoEnviar.disabled = false;
+      botaoEnviar.textContent = 'Enviar';
     }
   }
 
@@ -536,7 +437,9 @@ export function iniciarEscritaDeEmail(dependencias) {
   }
 
   function reiniciar(contato) {
-    estado.escolhidos = { para: contato?.email ? [contato.id] : [], copia: [], copiaOculta: [] };
+    campos.para.definir(contato?.email ? [contato.id] : []);
+    campos.copia.definir([]);
+    campos.copiaOculta.definir([]);
     estado.anexos = [];
     campoAssunto.value = '';
     editor.replaceChildren();
@@ -548,7 +451,6 @@ export function iniciarEscritaDeEmail(dependencias) {
     linhas.copiaOculta.hidden = true;
     botoesDeMostrar.copia.hidden = false;
     botoesDeMostrar.copiaOculta.hidden = false;
-    CAMPOS_DE_DESTINATARIO.forEach(renderizarDestinatarios);
     renderizarAnexos();
   }
 
@@ -565,11 +467,12 @@ export function iniciarEscritaDeEmail(dependencias) {
   async function abrir(contato = null) {
     reiniciar(contato);
     modal.showModal();
-    (contato ? campoAssunto : linhas.para.querySelector('.busca-de-destinatario')).focus();
+    if (contato) campoAssunto.focus();
+    else campos.para.focar();
     void avisarSmtpPendente();
     // A lista pode ter mudado noutro lugar desde a última leitura.
     await carregarContatos();
-    if (modal.open) CAMPOS_DE_DESTINATARIO.forEach(renderizarDestinatarios);
+    if (modal.open) Object.values(campos).forEach((campo) => campo.renderizar());
   }
 
   function registrarEventos() {

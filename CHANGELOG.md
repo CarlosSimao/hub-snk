@@ -9,6 +9,22 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.19.1] - 2026-10-21
+
+### Corrigido
+
+- **Novo e-mail com anexo falhava com "Falha no envio pelo SMTP: Timeout"**: com anexo
+  grande, o servidor de e-mail leva mais de 15 segundos para aceitar a mensagem (o Gmail
+  levou quase um minuto para 8 MB), e o HUB SNK desistia antes. Com anexo, a espera agora é
+  de até 5 minutos, e o botão mostra **Enviando…** enquanto isso.
+
+### Alterado
+
+- **Contatos da cobrança da agenda por pesquisa**: em vez de uma caixa de seleção por
+  contato, o formulário **Cobrar tarefa na Experience** tem a mesma pesquisa do Novo e-mail:
+  digite parte do nome, do e-mail ou do cliente, escolha na lista e tire pelo **✕** o
+  contato escolhido por engano. O atalho **Cadastrar contato novo** também está lá.
+
 ## [2.19.0] - 2026-10-21
 
 ### Adicionado
@@ -978,6 +994,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.19.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.0...v2.19.1
 [2.19.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...v2.19.0
 [2.18.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.0...v2.18.1
 [2.18.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.17.2...v2.18.0

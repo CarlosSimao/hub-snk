@@ -3683,23 +3683,32 @@ button.selo-situacao:focus-visible {
   cursor: pointer;
 }
 
-/* Caixas dos contatos no modal de cobrança da agenda: a lista longa rola, o modal não. */
-.contatos-da-cobranca {
-  display: grid;
-  gap: 8px;
-  max-height: 220px;
-  overflow-y: auto;
+/* Campo de contatos fora do Novo e-mail (cobrança da agenda): caixa de input, sem rótulo ao lado. */
+.linha-destinatarios.caixa-de-contatos {
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
 }
 
-/* A lista fica dentro de um `.campo`: desfaz o rótulo miúdo e o input de largura total. */
-.contatos-da-cobranca .campo-checkbox {
-  font-size: 12.5px;
-  color: var(--text);
+.linha-destinatarios.caixa-de-contatos:focus-within {
+  border-color: var(--accent);
 }
 
-.contatos-da-cobranca .campo-checkbox input {
-  width: 15px;
-  padding: 0;
+.caixa-de-contatos .opcoes-de-contatos.abaixo {
+  left: 0;
+}
+
+/* Dentro de um `.campo` a pesquisa herdaria a borda e a largura total dos inputs. */
+.campo .busca-de-destinatario {
+  width: auto;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+}
+
+.campo .busca-de-destinatario:focus-visible {
+  outline: none;
 }
 
 /* Contatos em cópia no modal do lembrete. */

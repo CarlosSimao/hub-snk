@@ -1,6 +1,20 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { htmlComRemetente, textoComRodape } from './enviadorDeEmail.ts';
+import { htmlComRemetente, tempoLimiteDoSocket, textoComRodape } from './enviadorDeEmail.ts';
+
+describe('tempoLimiteDoSocket', () => {
+  it('espera mais quando há anexo, que o servidor demora para aceitar', () => {
+    const semAnexo = tempoLimiteDoSocket({ assunto: 'x', texto: 'x' });
+    const comAnexo = tempoLimiteDoSocket({
+      assunto: 'x',
+      texto: 'x',
+      anexos: [{ nomeDoArquivo: 'a.txt', conteudo: Buffer.from('a'), tipo: '' }],
+    });
+
+    assert.equal(semAnexo, 15_000);
+    assert.ok(comAnexo > semAnexo);
+  });
+});
 
 describe('textoComRodape', () => {
   it('acrescenta ao texto o aviso de e-mail automático com o link da página do HUB SNK', () => {
