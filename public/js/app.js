@@ -17,6 +17,7 @@ import {
 import { abrirBoasVindas } from './boasVindas.js';
 import { iniciarBackup } from './backup.js';
 import { iniciarEscritaDeEmail } from './escritaDeEmail.js';
+import { criarCampoDeContatos } from './campoDeContatos.js';
 import { iniciarKanban } from './kanban.js';
 import { iniciarConfiguracaoDoKanban } from './configuracaoDoKanban.js';
 import { lerArvoreDeFavoritos } from './leitorDeFavoritos.js';
@@ -552,7 +553,7 @@ const elementos = {
   modalCobrancaAgenda: document.getElementById('modal-cobranca-agenda'),
   formularioCobrancaAgenda: document.getElementById('formulario-cobranca-agenda'),
   alertaCobrancaAgenda: document.getElementById('alerta-cobranca-agenda'),
-  listaContatosCobrancaAgenda: document.getElementById('lista-contatos-cobranca-agenda'),
+  linhaContatosCobrancaAgenda: document.getElementById('linha-contatos-cobranca-agenda'),
   campoObservacaoCobrancaAgenda: document.getElementById('campo-observacao-cobranca-agenda'),
   erroCobrancaAgenda: document.getElementById('erro-cobranca-agenda'),
   botaoCancelarCobrancaAgenda: document.getElementById('btn-cancelar-cobranca-agenda'),
@@ -9710,47 +9711,26 @@ function criarItemDeNotificacao(notificacao) {
 
 /* ----------------------- cobrança do alerta da agenda ---------------------- */
 
-function criarCaixaDeContatoDaCobranca(contato) {
-  const rotulo = criarElemento('label', 'campo-checkbox');
-  const caixa = criarElemento('input');
-  caixa.type = 'checkbox';
-  caixa.value = contato.id;
-  const cliente = clienteDoContato(contato);
-  const detalhe = cliente ? `${contato.email} · ${cliente.nome}` : contato.email;
-  rotulo.append(caixa, ` ${contato.nome} — ${detalhe}`);
-  return rotulo;
-}
-
-function renderizarContatosDaCobranca() {
-  const comEmail = contatosOrdenados(estado.contatos.filter((contato) => contato.email));
-  elementos.listaContatosCobrancaAgenda.replaceChildren(
-    ...(comEmail.length > 0
-      ? comEmail.map(criarCaixaDeContatoDaCobranca)
-      : [criarElemento('p', 'texto-auxiliar', 'Nenhum contato com e-mail. Cadastre em Contatos.')]),
-  );
-}
+/* Criado ao registrar os eventos: a pesquisa e os chips dos contatos em cópia. */
+let campoDeContatosDaCobranca = null;
 
 async function abrirModalDeCobrancaDaAgenda(notificacao) {
   estado.notificacaoEmCobranca = notificacao;
   limparErro(elementos.erroCobrancaAgenda);
   elementos.alertaCobrancaAgenda.textContent = notificacao.mensagem;
   elementos.campoObservacaoCobrancaAgenda.value = '';
-  renderizarContatosDaCobranca();
+  campoDeContatosDaCobranca.definir([]);
   elementos.modalCobrancaAgenda.showModal();
+  campoDeContatosDaCobranca.focar();
   // A lista pode ter mudado noutro lugar desde a última leitura.
   await carregarContatos();
-  if (elementos.modalCobrancaAgenda.open) renderizarContatosDaCobranca();
-}
-
-function contatosEscolhidosNaCobranca() {
-  const marcadas = elementos.listaContatosCobrancaAgenda.querySelectorAll('input:checked');
-  return [...marcadas].map((caixa) => caixa.value);
+  if (elementos.modalCobrancaAgenda.open) campoDeContatosDaCobranca.renderizar();
 }
 
 async function enviarCobrancaDaAgenda(evento) {
   evento.preventDefault();
 
-  const contatoIds = contatosEscolhidosNaCobranca();
+  const contatoIds = campoDeContatosDaCobranca.ids();
   if (contatoIds.length === 0) {
     exibirErro(elementos.erroCobrancaAgenda, 'Escolha ao menos um contato.');
     return;
@@ -9766,17 +9746,30 @@ async function enviarCobrancaDaAgenda(evento) {
     elementos.modalCobrancaAgenda.close();
     exibirAviso(mensagem);
   } catch (erro) {
-    exibirErro(elementos.erroCobrancaAgenda, erro.message);
+    exibirErroComConfiguracao(elementos.erroCobrancaAgenda, erro);
   } finally {
     elementos.botaoEnviarCobrancaAgenda.disabled = false;
   }
 }
 
 function registrarEventosDaCobrancaDaAgenda() {
+  campoDeContatosDaCobranca = criarCampoDeContatos(elementos.linhaContatosCobrancaAgenda, {
+    criarElemento,
+    criarBotao,
+    contatos: () => estado.contatos,
+    clienteDoContato,
+    contatosOrdenados,
+    cadastrarContato: (aoCadastrar) => abrirModalDeContato(null, null, { aoCadastrar }),
+    rotulo: 'Contatos em cópia',
+  });
   elementos.formularioCobrancaAgenda.addEventListener('submit', enviarCobrancaDaAgenda);
   elementos.botaoCancelarCobrancaAgenda.addEventListener('click', () =>
     elementos.modalCobrancaAgenda.close(),
   );
+  // Clique fora da pesquisa fecha a lista de sugestões, como um menu.
+  elementos.modalCobrancaAgenda.addEventListener('click', (evento) => {
+    if (!evento.target.closest('.linha-destinatarios')) campoDeContatosDaCobranca.fecharSugestoes();
+  });
 }
 
 function criarBotaoDeAtualizarAgora() {

@@ -259,7 +259,10 @@ export async function roteiro({ painel, aplicativo, print, printDoSistema }) {
   await print('alerta-da-agenda-04-cobrar', { destacando: [botaoDeCobrar] });
   await botaoDeCobrar.click();
   await painel.waitForSelector('#modal-cobranca-agenda[open]');
-  await painel.locator('#lista-contatos-cobranca-agenda input').first().check();
+  const pesquisa = painel.locator('#linha-contatos-cobranca-agenda .busca-de-destinatario');
+  await pesquisa.fill('Marina');
+  await pesquisa.press('Enter');
+  await pesquisa.fill('pau');
   await print('alerta-da-agenda-05-formulario', {
     destacando: ['#formulario-cobranca-agenda .modal-corpo'],
   });
