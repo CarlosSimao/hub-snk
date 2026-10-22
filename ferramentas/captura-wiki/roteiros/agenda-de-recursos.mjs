@@ -369,8 +369,9 @@ export async function roteiro({ painel, print }) {
   await painel.click('#btn-lancar-ocorrencia');
   await painel.waitForSelector('#btn-salvar-ocorrencia:not([disabled])');
   await painel.selectOption('#campo-motivo-ocorrencia', { label: 'Folga' });
+  await painel.fill('#campo-observacao-ocorrencia', 'Compensação do feriado');
   await print('ocorrencia-02-formulario', {
-    destacando: ['#usuario-ocorrencia', '#campo-motivo-ocorrencia'],
+    destacando: ['#usuario-ocorrencia', '#campo-motivo-ocorrencia', '#campo-observacao-ocorrencia'],
   });
   await print('ocorrencia-03-lancar', { destacando: ['#btn-salvar-ocorrencia'] });
   await painel.click('#btn-salvar-ocorrencia');

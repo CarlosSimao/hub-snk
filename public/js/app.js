@@ -593,6 +593,7 @@ const elementos = {
   campoInicioOcorrencia: document.getElementById('campo-inicio-ocorrencia'),
   campoFimOcorrencia: document.getElementById('campo-fim-ocorrencia'),
   campoMotivoOcorrencia: document.getElementById('campo-motivo-ocorrencia'),
+  campoObservacaoOcorrencia: document.getElementById('campo-observacao-ocorrencia'),
   erroOcorrencia: document.getElementById('erro-ocorrencia'),
   botaoCancelarOcorrencia: document.getElementById('btn-cancelar-ocorrencia'),
   botaoSalvarOcorrencia: document.getElementById('btn-salvar-ocorrencia'),
@@ -3889,6 +3890,7 @@ async function abrirModalDeOcorrencia() {
   const dia = widgetAgendaGeral.diaSelecionado ?? dataIsoDeHoje();
   elementos.campoInicioOcorrencia.value = `${dia}T08:00`;
   elementos.campoFimOcorrencia.value = `${dia}T18:00`;
+  elementos.campoObservacaoOcorrencia.value = '';
   elementos.usuarioOcorrencia.textContent = 'Identificando o usuário logado no SankhyaOm…';
   elementos.modalOcorrencia.showModal();
 
@@ -3946,6 +3948,7 @@ async function salvarOcorrencia(evento) {
       inicio,
       fim,
       motivo: elementos.campoMotivoOcorrencia.value,
+      observacao: elementos.campoObservacaoOcorrencia.value,
     });
     elementos.modalOcorrencia.close();
     exibirAviso(mensagem);

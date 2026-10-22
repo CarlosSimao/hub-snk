@@ -350,6 +350,7 @@ export function criarBridgeServer(
               dtInicial: String(corpo['dtInicial'] ?? ''),
               dtFinal: String(corpo['dtFinal'] ?? ''),
               motivo: String(corpo['motivo'] ?? ''),
+              observacao: String(corpo['observacao'] ?? ''),
               codusuEsperado: Number.isInteger(esperado) && esperado > 0 ? esperado : null,
             });
             resultado = criada.ok ? { ok: true, corpo: { mensagem: criada.corpo } } : criada;

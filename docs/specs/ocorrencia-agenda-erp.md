@@ -31,7 +31,7 @@ proposital: a procedure do botão aplica as validações da tela (sobreposição
 | `DTINICIAL`  | H (data+hora) | Data inicial                             |
 | `DTFINAL`    | H (data+hora) | Data final                               |
 | `MOTIVO`     | S             | Motivo da ausência (código, ver §6)      |
-| `OBSERVACAO` | S             | Observação (o botão de criar não recebe) |
+| `OBSERVACAO` | S             | Observação (o botão de criar recebe) |
 
 ### Botões (TSIBTA)
 
@@ -161,6 +161,7 @@ livre.
           { "type": "D", "paramName": "DTINICIAL", "$": "02/10/2026 09:00:00" },
           { "type": "D", "paramName": "DTFINAL", "$": "02/10/2026 18:00:00" },
           { "type": "S", "paramName": "MOTIVO", "$": "15" },
+          { "type": "S", "paramName": "OBSERVACAO", "$": "Painel Deploy" },
           { "type": "S", "sequence": "1", "paramName": "__ESCOLHA_SIMNAO__", "$": "S" }
         ]
       }
@@ -186,7 +187,8 @@ Regras:
 - `CODUSU` vai como tipo **S** (é o que a tela manda), com o valor do §4.
 - Datas tipo **D**, formato **`dd/MM/yyyy HH:mm:ss`**.
 - `MOTIVO` é o **código** (§6), não o rótulo.
-- O botão **não** recebe `OBSERVACAO`.
+- `OBSERVACAO` (tipo **S**) é texto livre e opcional (capturado em 2026-10-22, HAR "lançamento
+  de ocorrência com observação"). O hub manda sempre, vazia quando o usuário não escreve.
 
 ### 5.1 Confirmação ("Confirma...?")
 
