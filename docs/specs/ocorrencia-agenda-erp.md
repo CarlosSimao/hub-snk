@@ -24,13 +24,13 @@ proposital: a procedure do botão aplica as validações da tela (sobreposição
 
 ### Tabela `AD_OCOAGE`
 
-| Campo        | Tipo          | Descrição                                |
-| ------------ | ------------- | ---------------------------------------- |
-| `SEQOCO`     | I             | Sequência (chave)                        |
-| `CODUSU`     | I             | Usuário                                  |
-| `DTINICIAL`  | H (data+hora) | Data inicial                             |
-| `DTFINAL`    | H (data+hora) | Data final                               |
-| `MOTIVO`     | S             | Motivo da ausência (código, ver §6)      |
+| Campo        | Tipo          | Descrição                            |
+| ------------ | ------------- | ------------------------------------ |
+| `SEQOCO`     | I             | Sequência (chave)                    |
+| `CODUSU`     | I             | Usuário                              |
+| `DTINICIAL`  | H (data+hora) | Data inicial                         |
+| `DTFINAL`    | H (data+hora) | Data final                           |
+| `MOTIVO`     | S             | Motivo da ausência (código, ver §6)  |
 | `OBSERVACAO` | S             | Observação (o botão de criar recebe) |
 
 ### Botões (TSIBTA)
