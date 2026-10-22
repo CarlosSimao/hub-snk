@@ -34,6 +34,7 @@ export interface NovaOcorrencia {
   dtInicial: string;
   dtFinal: string;
   motivo: string;
+  observacao: string;
   /** CODUSU configurado no hub; a sessão do ERP tem que ser dele. `null` não confere. */
   codusuEsperado: number | null;
 }
@@ -125,11 +126,12 @@ export async function criarOcorrencia(
       refreshType: 'ALL',
       params: {
         param: [
-          // A tela manda o CODUSU como texto; o botão não recebe OBSERVACAO.
+          // A tela manda o CODUSU como texto.
           { type: 'S', paramName: 'CODUSU', $: String(codusu) },
           { type: 'D', paramName: 'DTINICIAL', $: nova.dtInicial },
           { type: 'D', paramName: 'DTFINAL', $: nova.dtFinal },
           { type: 'S', paramName: 'MOTIVO', $: nova.motivo },
+          { type: 'S', paramName: 'OBSERVACAO', $: nova.observacao },
           CONFIRMA,
         ],
       },

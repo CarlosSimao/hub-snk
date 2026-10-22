@@ -37,7 +37,11 @@ export interface NovaOcorrencia {
   dtInicial: string;
   dtFinal: string;
   motivo: string;
+  /** Texto livre; vazio quando o usuário não escreveu nada. */
+  observacao: string;
 }
+
+const TAMANHO_MAXIMO_OBSERVACAO = 500;
 
 /** `YYYY-MM-DDTHH:mm[:ss]` -> `dd/MM/yyyy HH:mm:ss`; vazio se não casar. */
 export function paraDataHoraSankhya(valor: string): string {
@@ -47,7 +51,7 @@ export function paraDataHoraSankhya(valor: string): string {
 
 /** Valida o corpo da tela e converte para o que o botão do ERP espera. */
 export function validarNovaOcorrencia(
-  corpo: { inicio?: unknown; fim?: unknown; motivo?: unknown } | undefined,
+  corpo: { inicio?: unknown; fim?: unknown; motivo?: unknown; observacao?: unknown } | undefined,
 ): { ok: true; ocorrencia: NovaOcorrencia } | { ok: false; erro: string } {
   const inicio = String(corpo?.inicio ?? '');
   const fim = String(corpo?.fim ?? '');
@@ -62,5 +66,9 @@ export function validarNovaOcorrencia(
   if (!MOTIVOS_OCORRENCIA.some((m) => m.valor === motivo)) {
     return { ok: false, erro: 'Escolha um motivo da lista.' };
   }
-  return { ok: true, ocorrencia: { dtInicial, dtFinal, motivo } };
+  const observacao = String(corpo?.observacao ?? '').trim();
+  if (observacao.length > TAMANHO_MAXIMO_OBSERVACAO) {
+    return { ok: false, erro: `A observação aceita até ${TAMANHO_MAXIMO_OBSERVACAO} caracteres.` };
+  }
+  return { ok: true, ocorrencia: { dtInicial, dtFinal, motivo, observacao } };
 }

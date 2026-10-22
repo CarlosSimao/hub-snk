@@ -9,6 +9,13 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.20.0] - 2026-10-22
+
+### Adicionado
+
+- **Observação ao lançar ocorrência**: a janela Lançar ocorrência da agenda ganhou o campo
+  Observação (opcional, até 500 caracteres), gravado junto com a ocorrência no SankhyaOm.
+
 ## [2.19.2] - 2026-10-21
 
 ### Corrigido
@@ -1009,6 +1016,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.20.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.2...v2.20.0
 [2.19.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.1...v2.19.2
 [2.19.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.0...v2.19.1
 [2.19.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...v2.19.0
