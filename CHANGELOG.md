@@ -9,6 +9,22 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Alterado
+
+- **Escolha da tela no Meet**: a seleção do que compartilhar virou uma janela com as abas
+  Tela inteira e Janela, cada fonte com a miniatura de como está agora, no lugar do menu
+  de texto.
+
+### Corrigido
+
+- **Reunião do Meet em janela própria**: criar uma reunião instantânea no painel do Meet, ou
+  abrir um link de sala numa guia, no Painel ou numa base, agora abre a janela da reunião.
+- **Cancelar a escolha da tela no Meet** não mostra mais "Algo deu errado" nem minimiza a
+  janela da reunião.
+- **Assistente de IA na conta secundária**: o botão do assistente na aba Git abre o Claude
+  Code na conta secundária quando a pasta tem o arquivo `.claude-secundario`, como o
+  terminal já fazia.
+
 ## [2.20.0] - 2026-10-22
 
 ### Adicionado
