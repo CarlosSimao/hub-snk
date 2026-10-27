@@ -15,7 +15,6 @@ import {
   Notification,
   WebContentsView,
   app,
-  desktopCapturer,
   session,
   shell,
   webContents,
@@ -31,6 +30,7 @@ import {
 } from '../config';
 import { janelaEmUso } from './janelaEmUso';
 import { logEvento, origemSemQuery } from '../log';
+import { escolherFonteDeTela } from './seletorDeTela';
 import { ehEnderecoWeb } from './tabs';
 
 export interface EstadoServicoComunicacao {
@@ -121,10 +121,38 @@ function ehHostInterno(url: string): boolean {
 const HOST_DO_MEET = 'meet.google.com';
 
 /**
- * Caminho de uma sala do Meet: o código `abc-defg-hij`, o `new` da "Nova reunião" e o
+ * Cancelar o seletor de tela faz o `getDisplayMedia` do Electron rejeitar com `AbortError`,
+ * e o Meet mostra "Algo deu errado"; com `NotAllowedError` ele pede permissão de tela. Em vez
+ * de rejeitar, a janela da reunião recebe uma apresentação que termina na hora, o mesmo que
+ * o Meet vê quando o usuário clica em "Parar compartilhamento".
+ */
+const SCRIPT_DO_CANCELAMENTO_DA_APRESENTACAO = `(() => {
+  const midia = navigator.mediaDevices;
+  if (!midia || midia.__hubCancelamento) return;
+  const original = midia.getDisplayMedia.bind(midia);
+  const apresentacaoEncerrada = () => {
+    const fluxo = document.createElement('canvas').captureStream();
+    const faixa = fluxo.getVideoTracks()[0];
+    setTimeout(() => {
+      faixa.stop();
+      faixa.dispatchEvent(new Event('ended'));
+    }, 150);
+    return fluxo;
+  };
+  midia.getDisplayMedia = (...argumentos) =>
+    original(...argumentos).catch((erro) => {
+      if (erro && erro.name === 'AbortError') return apresentacaoEncerrada();
+      throw erro;
+    });
+  midia.__hubCancelamento = true;
+})()`;
+
+/**
+ * Caminho de uma sala do Meet: o código `abc-defg-hij` (também sob `/meet/`, que é por onde a
+ * reunião instantânea chega), o `new` da "Nova reunião" e o
  * `lookup/…` por onde o Google às vezes chega à sala. A página inicial fica de fora.
  */
-const CAMINHO_DE_SALA_DO_MEET = /^\/(?:[a-z]{3}-[a-z]{4}-[a-z]{3}|new|lookup\/[^/]+)$/;
+const CAMINHO_DE_SALA_DO_MEET = /^\/(?:meet\/)?(?:[a-z]{3}-[a-z]{4}-[a-z]{3}|new|lookup\/[^/]+)$/;
 
 /** Sala do Meet do endereço (o caminho, que identifica a reunião), ou `null` se não for uma. */
 function salaDoMeet(url: string): string | null {
@@ -136,7 +164,9 @@ function salaDoMeet(url: string): string | null {
   }
   if (endereco.protocol !== 'https:' || endereco.hostname !== HOST_DO_MEET) return null;
   const caminho = endereco.pathname.replace(/\/$/, '').toLowerCase();
-  return CAMINHO_DE_SALA_DO_MEET.test(caminho) ? caminho : null;
+  if (!CAMINHO_DE_SALA_DO_MEET.test(caminho)) return null;
+  // `/meet/abc-defg-hij` e `/abc-defg-hij` são a mesma sala.
+  return caminho.replace(/^\/meet\//, '/');
 }
 
 /**
@@ -289,7 +319,8 @@ export class GerenciadorComunicacao {
   readonly #notificacoes = new Set<Notification>();
   readonly #desabilitados: Set<ServicoComunicacao>;
   /** Janelas de reunião do Meet abertas, uma por sala. */
-  readonly #reunioes = new Set<BrowserWindow>();
+  /** Janela da reunião -> sala, gravada na abertura: a URL da janela ainda é vazia nos primeiros ms. */
+  readonly #reunioes = new Map<BrowserWindow, string>();
   #carregarAoAbrir: boolean;
   #ativo: ServicoComunicacao | null = null;
   #larguraLateral = 0;
@@ -336,6 +367,13 @@ export class GerenciadorComunicacao {
     if (!servico || this.#desabilitados.has(servico)) return false;
     logEvento('comunicacao-endereco-aberto', { servico, url: origemSemQuery(url) });
     this.#mostrar(servico, url);
+    return true;
+  }
+
+  /** Chamado pelas guias do HUB: só uma sala do Meet vira janela, o resto segue com quem chamou. */
+  abrirReuniao(url: string): boolean {
+    if (!salaDoMeet(url)) return false;
+    this.#abrirReuniao(url);
     return true;
   }
 
@@ -505,8 +543,10 @@ export class GerenciadorComunicacao {
   #abrirReuniao(endereco: string): void {
     const sala = salaDoMeet(endereco);
     const existente = [...this.#reunioes].find(
-      (janela) => !janela.isDestroyed() && salaDoMeet(janela.webContents.getURL()) === sala,
-    );
+      ([janela, salaDaJanela]) =>
+        !janela.isDestroyed() &&
+        (salaDaJanela === sala || salaDoMeet(janela.webContents.getURL()) === sala),
+    )?.[0];
     if (existente) {
       if (existente.isMinimized()) existente.restore();
       existente.show();
@@ -530,6 +570,13 @@ export class GerenciadorComunicacao {
       },
     });
     nova.setMenuBarVisibility(false);
+    nova.webContents.on('dom-ready', () => {
+      nova.webContents
+        .executeJavaScript(SCRIPT_DO_CANCELAMENTO_DA_APRESENTACAO)
+        .catch((erro: Error) => {
+          logEvento('comunicacao-cancelamento-nao-convertido', { erro: erro.message });
+        });
+    });
     // Link aberto de dentro da chamada não pode tomar o lugar dela: outra sala ganha a
     // janela dela, e o resto vai para o navegador do sistema.
     nova.webContents.setWindowOpenHandler(({ url: alvo }) => {
@@ -542,7 +589,8 @@ export class GerenciadorComunicacao {
     });
     nova.on('closed', () => this.#reunioes.delete(nova));
     void nova.loadURL(endereco);
-    this.#reunioes.add(nova);
+    // `/new` vira outra sala quando o Meet redireciona: não serve para reconhecer duplicata.
+    this.#reunioes.set(nova, sala === '/new' ? '' : (sala ?? ''));
     logEvento('comunicacao-reuniao-aberta', { url: origemSemQuery(endereco) });
   }
 
@@ -569,6 +617,21 @@ export class GerenciadorComunicacao {
     painel.webContents.on('did-navigate-in-page', (_e, url, principal) => {
       if (!principal || !salaDoMeet(url)) return;
       levarParaJanela(url);
+    });
+    // Rede de segurança: a sala pode chegar por caminhos que os três eventos acima não pegam
+    // (navegação iniciada pela própria página, troca de endereço sem evento de "navegou").
+    // O desvio repetido cai na janela da sala que já está aberta.
+    painel.webContents.on('did-start-navigation', (detalhes) => {
+      if (!detalhes.isMainFrame) return;
+      logEvento('comunicacao-navegacao', {
+        servico,
+        url: origemSemQuery(detalhes.url),
+        mesmoDocumento: detalhes.isSameDocument,
+      });
+      if (salaDoMeet(detalhes.url)) levarParaJanela(detalhes.url);
+    });
+    painel.webContents.on('did-navigate', (_e, url) => {
+      if (salaDoMeet(url)) levarParaJanela(url);
     });
   }
 
@@ -771,26 +834,26 @@ export class GerenciadorComunicacao {
       responder(concedida);
     });
     // Sem este handler o Electron recusa o getDisplayMedia, e o Meet acusa erro ao apresentar.
-    // No Windows não há seletor do sistema: um menu nativo lista as telas e as janelas.
+    // No Windows não há seletor do sistema: uma janela própria lista telas e janelas com miniatura.
     sessao.setDisplayMediaRequestHandler((pedido, responder) => {
-      void desktopCapturer.getSources({ types: ['screen', 'window'] }).then((fontes) => {
-        let respondido = false;
-        const menu = Menu.buildFromTemplate(
-          fontes.map((fonte) => ({
-            label: fonte.name,
-            click: () => {
-              respondido = true;
-              responder(
-                pedido.audioRequested ? { video: fonte, audio: 'loopback' } : { video: fonte },
-              );
-              logEvento('comunicacao-tela-compartilhada', { particao });
-            },
-          })),
-        );
-        // O clique chega depois do fechamento do menu: só cancela se nada foi escolhido.
-        menu.once('menu-will-close', () => setImmediate(() => respondido || responder({})));
-        menu.popup();
-      });
+      const origem = pedido.frame ? webContents.fromFrame(pedido.frame) : null;
+      const janelaDaReuniao = origem ? BrowserWindow.fromWebContents(origem) : null;
+      // `null` recusa o pedido: o Meet recebe "permissão negada", como ao cancelar no Chrome.
+      const recusar = () => responder(null);
+      escolherFonteDeTela(janelaDaReuniao, pedido.audioRequested)
+        .then((escolha) => {
+          if (!escolha) return recusar();
+          responder(
+            escolha.comAudio
+              ? { video: escolha.fonte, audio: 'loopback' }
+              : { video: escolha.fonte },
+          );
+          logEvento('comunicacao-tela-compartilhada', { particao });
+        })
+        .catch((erro: Error) => {
+          logEvento('comunicacao-seletor-de-tela-falhou', { particao, erro: erro.message });
+          recusar();
+        });
     });
   }
 

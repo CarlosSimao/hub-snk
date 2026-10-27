@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8" />
+    <title>Escolha o que compartilhar</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        border-radius: 999px;
+        background: #232833;
+      }
+      ::-webkit-scrollbar-thumb {
+        min-height: 32px;
+        border: 2px solid #232833;
+        border-radius: 999px;
+        background: #97a5c0;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #1b1f27;
+        font-family: system-ui, sans-serif;
+        font-size: 13px;
+        color: #e6e6e6;
+        user-select: none;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        padding: 18px 20px 0;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 16px;
+        font-weight: 600;
+      }
+      header p {
+        margin: 0;
+        color: #7d8595;
+      }
+      nav {
+        display: flex;
+        gap: 4px;
+        margin: 14px 20px 0;
+        border-bottom: 1px solid #2a2f3a;
+      }
+      nav button {
+        padding: 9px 14px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        background: none;
+        color: #7d8595;
+        font: inherit;
+        cursor: pointer;
+      }
+      nav button:hover {
+        color: #e6e6e6;
+      }
+      nav button[aria-selected='true'] {
+        border-bottom-color: #8ab4f8;
+        color: #8ab4f8;
+      }
+      #fontes {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+        gap: 12px;
+        align-content: start;
+        padding: 16px 20px;
+        overflow-y: auto;
+      }
+      .fonte {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px;
+        border: 2px solid transparent;
+        border-radius: 8px;
+        background: #232833;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      .fonte:hover {
+        background: #2a2f3a;
+      }
+      .fonte[aria-selected='true'] {
+        border-color: #8ab4f8;
+        background: #2a3342;
+      }
+      .miniatura {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        border-radius: 4px;
+        background: #11141a;
+        object-fit: contain;
+      }
+      .nome {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+      }
+      .nome img {
+        flex: none;
+        width: 16px;
+        height: 16px;
+      }
+      .nome span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .vazio {
+        grid-column: 1 / -1;
+        padding: 40px 0;
+        color: #7d8595;
+        text-align: center;
+      }
+      footer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        border-top: 1px solid #2a2f3a;
+      }
+      label {
+        margin-right: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+      label[hidden] {
+        display: none;
+      }
+      footer button {
+        padding: 7px 16px;
+        border: 1px solid #3a404d;
+        border-radius: 6px;
+        background: #232833;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+      footer button:hover:not(:disabled) {
+        background: #2a2f3a;
+      }
+      footer button.principal {
+        border-color: #8ab4f8;
+        background: #8ab4f8;
+        color: #11141a;
+        font-weight: 600;
+      }
+      footer button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Escolha o que compartilhar</h1>
+      <p>O Meet vai mostrar o conteúdo escolhido para os participantes.</p>
+    </header>
+    <nav role="tablist">
+      <button role="tab" data-tipo="tela" aria-selected="true">Tela inteira</button>
+      <button role="tab" data-tipo="janela" aria-selected="false">Janela</button>
+    </nav>
+    <section id="fontes" role="listbox"></section>
+    <footer>
+      <label id="rotuloDoAudio" hidden>
+        <input type="checkbox" id="audio" checked />
+        Compartilhar também o áudio do sistema
+      </label>
+      <button id="cancelar">Cancelar</button>
+      <button id="compartilhar" class="principal" disabled>Compartilhar</button>
+    </footer>
+    <script src="seletorDeTela.js"></script>
+  </body>
+</html>
