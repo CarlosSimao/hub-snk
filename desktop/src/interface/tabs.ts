@@ -333,6 +333,8 @@ function gravarGuiasEscondidas(escondidas: string[]): void {
 export interface PainelDeComunicacao {
   /** `false`: o endereço não é de um serviço habilitado, e segue o caminho normal. */
   abrirEndereco(url: string): boolean;
+  /** `true`: o endereço é uma sala do Meet e ela foi aberta na janela própria. */
+  abrirReuniao(url: string): boolean;
 }
 
 export class TabManager {
@@ -522,7 +524,16 @@ export class TabManager {
       }
       const permitido = origemPermitida(alvo, DOMINIOS_POPUP_PERMITIDOS);
       logEvento('popup-solicitado', { id, alvo: origemSemQuery(alvo), permitido });
-      if (!permitido) return { action: 'deny' };
+      if (!permitido) {
+        // Sem isto o link de fora (um sistema de terceiro aberto de dentro do ERP) morria
+        // em silêncio; as guias de base já mandam esse caso para o navegador do sistema.
+        if (ehEnderecoWeb(alvo)) {
+          void shell.openExternal(alvo).catch((erro: unknown) => {
+            logEvento('popup-externo-falhou', { id, erro: String(erro) });
+          });
+        }
+        return { action: 'deny' };
+      }
       return this.#permitirJanelaFilha(id, alvo, particao);
     });
     if (id === 'hub') {
@@ -588,6 +599,7 @@ export class TabManager {
     destino: string,
     particao: string,
   ): Electron.WindowOpenHandlerResponse {
+    if (this.#desviarReuniao(destino)) return { action: 'deny' };
     if (id === 'hub') {
       void this.#abrirLinkDoPainel(destino);
       return { action: 'deny' };
@@ -595,6 +607,11 @@ export class TabManager {
     const permitido = origemPermitida(destino, DOMINIOS_POPUP_PERMITIDOS);
     logEvento('popup-de-janela-filha', { id, alvo: origemSemQuery(destino), permitido });
     return permitido ? this.#permitirJanelaFilha(id, destino, particao) : { action: 'deny' };
+  }
+
+  /** Sala do Meet, venha de onde vier, abre na janela própria dela e não numa guia. */
+  #desviarReuniao(alvo: string): boolean {
+    return this.#painelDeComunicacao?.abrirReuniao(alvo) ?? false;
   }
 
   /**
@@ -608,6 +625,7 @@ export class TabManager {
    *  - qualquer outro endereço: navegador padrão.
    */
   async #abrirLinkDoPainel(alvo: string): Promise<void> {
+    if (this.#desviarReuniao(alvo)) return;
     const [destinoDosLinks] = await Promise.all([lerDestinoDosLinks(), this.carregarCadastro()]);
     const origin = origemDe(alvo);
 
@@ -943,6 +961,7 @@ export class TabManager {
    * recebe preload nem Ruffle: o conteúdo é de um site qualquer.
    */
   abrirAbaAvulsa(url: string = URL_INICIAL_AVULSA): string {
+    if (this.#desviarReuniao(url)) return '';
     const id = `${PREFIXO_AVULSA}${this.#proximaAvulsa++}`;
     const view = new WebContentsView({
       webPreferences: {
@@ -974,6 +993,7 @@ export class TabManager {
       logEvento('aba-avulsa-endereco-recusado', { id });
       return false;
     }
+    if (this.#desviarReuniao(url)) return true;
     this.#carregarNaAvulsa(id, view, url);
     return true;
   }
@@ -1006,13 +1026,24 @@ export class TabManager {
       this.#abasAvulsas.set(id, titulo || TITULO_AVULSA_PADRAO);
       this.#emitirGuias();
     });
+    const desviar = (evento: Electron.Event<{ url: string }>) => {
+      if (this.#desviarReuniao(evento.url)) evento.preventDefault();
+    };
+    conteudo.on('will-navigate', desviar);
+    conteudo.on('will-redirect', desviar);
     conteudo.on('did-navigate', () => this.#emitirListaAvulsas());
-    conteudo.on('did-navigate-in-page', (_evento, _url, ehFramePrincipal) => {
-      if (ehFramePrincipal) this.#emitirListaAvulsas();
+    conteudo.on('did-navigate-in-page', (_evento, url, ehFramePrincipal) => {
+      if (!ehFramePrincipal) return;
+      // O Meet troca o endereço sem navegar ao entrar na sala: a guia volta para onde estava.
+      if (this.#desviarReuniao(url) && conteudo.navigationHistory.canGoBack()) {
+        conteudo.navigationHistory.goBack();
+      }
+      this.#emitirListaAvulsas();
     });
     // Pop-up vira outra guia avulsa, como no Chrome. A página perde o `window.opener`:
     // um login que conversa com a janela de origem por ele pode não concluir.
     conteudo.setWindowOpenHandler(({ url: alvo }) => {
+      if (this.#desviarReuniao(alvo)) return { action: 'deny' };
       if (ehEnderecoWeb(alvo)) {
         this.abrirAbaAvulsa(alvo);
       } else {
@@ -1119,6 +1150,7 @@ export class TabManager {
     particao: string,
     alvo: string,
   ): Electron.WindowOpenHandlerResponse {
+    if (this.#desviarReuniao(alvo)) return { action: 'deny' };
     const hostDaBase = new URL(origin).hostname;
     const permitido =
       alvo === '' ||

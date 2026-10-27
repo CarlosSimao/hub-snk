@@ -9,6 +9,36 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.21.0] - 2026-10-27
+
+### Adicionado
+
+- **Salvar contato da conversa**: com o WhatsApp ou o Google Chat aberto no painel, o botão
+  Salvar contato da barra lateral abre o cadastro de contato do HUB já com o nome e o
+  telefone (WhatsApp, mais o e-mail de conta comercial) ou o e-mail (Chat) da conversa
+  aberta. Avisa quando falta um dado e quando o telefone ou o e-mail já pertence a outro
+  contato. Não vale para grupos.
+
+### Alterado
+
+- **Escolha da tela no Meet**: a seleção do que compartilhar virou uma janela com as abas
+  Tela inteira e Janela, cada fonte com a miniatura de como está agora, no lugar do menu
+  de texto.
+
+### Corrigido
+
+- **Reunião do Meet em janela própria**: criar uma reunião instantânea no painel do Meet, ou
+  abrir um link de sala numa guia, no Painel ou numa base, agora abre a janela da reunião.
+- **Cancelar a escolha da tela no Meet** não mostra mais "Algo deu errado" nem minimiza a
+  janela da reunião.
+- **Assistente de IA na conta secundária**: o botão do assistente na aba Git abre o Claude
+  Code na conta secundária quando a pasta tem o arquivo `.claude-secundario`, como o
+  terminal já fazia.
+- **Painel de comunicação aberto por cima do SankhyaOm**: clicar dentro de uma tela do ERP
+  agora esconde o painel, como já acontecia nas outras guias.
+- **Link de outro sistema aberto de dentro do Painel** não morre mais em silêncio: abre no
+  navegador do sistema, como nas guias de base.
+
 ## [2.20.1] - 2026-10-23
 
 ### Corrigido
@@ -1022,6 +1052,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.21.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.20.1...v2.21.0
 [2.20.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.20.0...v2.20.1
 [2.20.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.2...v2.20.0
 [2.19.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.1...v2.19.2

@@ -15,7 +15,6 @@ import {
   Notification,
   WebContentsView,
   app,
-  desktopCapturer,
   session,
   shell,
   webContents,
@@ -31,6 +30,7 @@ import {
 } from '../config';
 import { janelaEmUso } from './janelaEmUso';
 import { logEvento, origemSemQuery } from '../log';
+import { escolherFonteDeTela } from './seletorDeTela';
 import { ehEnderecoWeb } from './tabs';
 
 export interface EstadoServicoComunicacao {
@@ -121,10 +121,234 @@ function ehHostInterno(url: string): boolean {
 const HOST_DO_MEET = 'meet.google.com';
 
 /**
- * Caminho de uma sala do Meet: o código `abc-defg-hij`, o `new` da "Nova reunião" e o
+ * Cancelar o seletor de tela faz o `getDisplayMedia` do Electron rejeitar com `AbortError`,
+ * e o Meet mostra "Algo deu errado"; com `NotAllowedError` ele pede permissão de tela. Em vez
+ * de rejeitar, a janela da reunião recebe uma apresentação que termina na hora, o mesmo que
+ * o Meet vê quando o usuário clica em "Parar compartilhamento".
+ */
+const SCRIPT_DO_CANCELAMENTO_DA_APRESENTACAO = `(() => {
+  const midia = navigator.mediaDevices;
+  if (!midia || midia.__hubCancelamento) return;
+  const original = midia.getDisplayMedia.bind(midia);
+  const apresentacaoEncerrada = () => {
+    const fluxo = document.createElement('canvas').captureStream();
+    const faixa = fluxo.getVideoTracks()[0];
+    setTimeout(() => {
+      faixa.stop();
+      faixa.dispatchEvent(new Event('ended'));
+    }, 150);
+    return fluxo;
+  };
+  midia.getDisplayMedia = (...argumentos) =>
+    original(...argumentos).catch((erro) => {
+      if (erro && erro.name === 'AbortError') return apresentacaoEncerrada();
+      throw erro;
+    });
+  midia.__hubCancelamento = true;
+})()`;
+
+/**
+ * Lê a conversa aberta do WhatsApp Web. O DOM da conversa só dá o nome do cabeçalho: os
+ * `data-id` das mensagens viraram hash e o contato salvo é `@lid`, sem número. Quem diz se é
+ * grupo, o telefone (já no formato que o WhatsApp mostra) e o e-mail da conta comercial é o
+ * painel "Dados do perfil" — o e-mail nem fica no banco, só chega do servidor ao abrir o painel.
+ * Por isso o script abre o painel e fecha o que abriu; o painel do WhatsApp some logo depois para
+ * o modal abrir, e quem vê o perfil não avisa ninguém.
+ *
+ * Se o painel não abrir (o layout mudou), o banco local (`model-storage`) é a reserva: grupo pelo
+ * `subject` (só os grupos que ele guarda) e telefone pelo `name` do contato — nome com mais de um
+ * telefone fica sem, escolher um seria chute.
+ */
+const SCRIPT_DA_LEITURA_DO_WHATSAPP = String.raw`(async () => {
+  const ESPERA_MAXIMA_DO_PERFIL_MS = 1500;
+  const ESPERA_PELO_SELO_COMERCIAL_MS = 500;
+  const INTERVALO_MS = 100;
+  const PADRAO_EMAIL = /^[\w.+-]+@[\w-]+(\.[\w-]+)+$/;
+  const ehTelefone = (texto) => /^\+?[\d\s().-]+$/.test(texto) && texto.replace(/\D/g, '').length >= 8;
+  const lerPainel = (perfil) => {
+    if (perfil.querySelector('[data-testid="group-info-header"]')) return { grupo: true };
+    if (!perfil.querySelector('[data-testid="contact-info-header"]')) return null;
+    // O número não tem data-testid: é o primeiro texto com cara de telefone, no topo do painel.
+    const textoDoTelefone = [...perfil.querySelectorAll('span')]
+      .filter((elemento) => !elemento.childElementCount)
+      .map((elemento) => elemento.textContent.trim())
+      .find(ehTelefone);
+    const link = perfil.querySelector('[data-testid="business-info-email"]');
+    const email = link ? link.textContent.trim() : '';
+    return {
+      grupo: false,
+      telefone: textoDoTelefone || null,
+      email: PADRAO_EMAIL.test(email) ? email : null,
+    };
+  };
+  const lerPerfil = async (cabecalho) => {
+    const gatilho = cabecalho.querySelector('[data-testid="conversation-info-header"]');
+    const jaAberto = document.querySelector('[data-testid="chat-info-drawer"]');
+    if (!gatilho) return null;
+    if (!jaAberto) gatilho.click();
+    const inicio = Date.now();
+    let perfil = null;
+    while (Date.now() - inicio < ESPERA_MAXIMA_DO_PERFIL_MS) {
+      await new Promise((resolver) => setTimeout(resolver, INTERVALO_MS));
+      perfil = document.querySelector('[data-testid="chat-info-drawer"]');
+      if (!perfil) continue;
+      if (perfil.querySelector('[data-testid="group-info-header"], [data-testid="business-info-email"]')) break;
+      // Conta comercial mostra o selo antes do e-mail chegar; sem selo, não há e-mail a esperar.
+      const pessoaComum =
+        perfil.querySelector('[data-testid="contact-info-header"]') &&
+        !perfil.querySelector('[data-testid="business-title"]');
+      if (pessoaComum && Date.now() - inicio >= ESPERA_PELO_SELO_COMERCIAL_MS) break;
+    }
+    const leitura = perfil ? lerPainel(perfil) : null;
+    // Esc sem o perfil aberto fecha a conversa: só fecha o que este script abriu e ainda está lá.
+    const perfilAberto = document.querySelector('[data-testid="chat-info-drawer"]');
+    if (!jaAberto && perfilAberto) {
+      const fechar = perfilAberto.querySelector('button[aria-label="Fechar"]');
+      if (fechar) fechar.click();
+      else document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    }
+    return leitura;
+  };
+  const lerDoBanco = async (nome) => {
+    const banco = await new Promise((resolver, rejeitar) => {
+      const pedido = indexedDB.open('model-storage');
+      pedido.onsuccess = () => resolver(pedido.result);
+      pedido.onerror = () => rejeitar(pedido.error);
+    });
+    const lerTudo = (loja) => new Promise((resolver, rejeitar) => {
+      const pedido = banco.transaction(loja).objectStore(loja).getAll();
+      pedido.onsuccess = () => resolver(pedido.result);
+      pedido.onerror = () => rejeitar(pedido.error);
+    });
+    const [grupos, contatos] = await Promise.all([lerTudo('group-metadata'), lerTudo('contact')]);
+    banco.close();
+    const telefones = new Set(
+      contatos
+        .filter((contato) => contato.name === nome && /^\d+@c\.us$/.test(contato.phoneNumber || ''))
+        .map((contato) => contato.phoneNumber.split('@')[0]),
+    );
+    return {
+      grupo: grupos.some((grupo) => grupo.subject === nome),
+      telefone: telefones.size === 1 ? [...telefones][0] : null,
+    };
+  };
+  try {
+    const conversa = document.querySelector('#main');
+    if (!conversa) return { situacao: 'sem-conversa' };
+    const cabecalho = conversa.querySelector('header');
+    // Conta comercial tem o selo "Conta Comercial" num span[title] antes do nome.
+    const titulo =
+      cabecalho &&
+      (cabecalho.querySelector('[data-testid="conversation-info-header-chat-title"]') ||
+        cabecalho.querySelector('span[title]') ||
+        cabecalho.querySelector('span[dir="auto"]'));
+    const nome = titulo ? (titulo.getAttribute('title') || titulo.textContent || '').trim() : '';
+    if (!nome) return { situacao: 'falhou' };
+    const perfil = await lerPerfil(cabecalho);
+    if (perfil && perfil.grupo) return { situacao: 'grupo' };
+    // Contato não salvo mostra o número no lugar do nome.
+    const nomeEhTelefone = ehTelefone(nome);
+    const nomeDoContato = nomeEhTelefone ? null : nome;
+    const email = perfil ? perfil.email : null;
+    if (perfil && perfil.telefone) {
+      return { situacao: 'ok', nome: nomeDoContato, telefone: perfil.telefone, email };
+    }
+    if (nomeEhTelefone) return { situacao: 'ok', nome: null, telefone: nome, email };
+    const doBanco = await lerDoBanco(nome);
+    if (!perfil && doBanco.grupo) return { situacao: 'grupo' };
+    return { situacao: 'ok', nome, telefone: doBanco.telefone, email };
+  } catch {
+    return { situacao: 'falhou' };
+  }
+})()`;
+
+/**
+ * Lê a conversa aberta do Google Chat. O endereço fica em `/app/home` com a conversa aberta,
+ * então quem diz DM ou space é o `data-group-id` (`dm/...`, `space/...`) da área principal, e o
+ * `aria-label` dela é o nome. Grupo sem nome também é `dm/`: mais de dois autores denunciam.
+ * O e-mail é o `data-hovercard-id` das mensagens da outra pessoa — sem mensagem dela, fica nulo.
+ */
+const SCRIPT_DA_LEITURA_DO_CHAT = String.raw`(() => {
+  try {
+    const principal = document.querySelector('[role="main"][data-group-id]');
+    if (!principal) return { situacao: 'sem-conversa' };
+    const conversa = principal.getAttribute('data-group-id') || '';
+    if (!conversa.startsWith('dm/')) return { situacao: 'grupo' };
+    const autores = new Set(
+      [...principal.querySelectorAll('[data-member-id^="user/human/"]')].map((e) => e.getAttribute('data-member-id')),
+    );
+    if (autores.size > 2) return { situacao: 'grupo' };
+    const nome = (principal.getAttribute('aria-label') || '').trim();
+    if (!nome) return { situacao: 'falhou' };
+    const daOutraPessoa = [...principal.querySelectorAll('[data-hovercard-id][data-name]')].find(
+      (e) => e.getAttribute('data-name') === nome,
+    );
+    const achado = daOutraPessoa && /^[\w.+-]+@[\w-]+(?:\.[\w-]+)+$/.exec(daOutraPessoa.getAttribute('data-hovercard-id') || '');
+    return { situacao: 'ok', nome, telefone: null, email: achado ? achado[0] : null };
+  } catch {
+    return { situacao: 'falhou' };
+  }
+})()`;
+
+export type SituacaoDaLeituraDoContato = 'ok' | 'sem-conversa' | 'grupo' | 'falhou';
+
+export interface ContatoDaConversa {
+  situacao: SituacaoDaLeituraDoContato;
+  nome: string | null;
+  telefone: string | null;
+  email: string | null;
+}
+
+/** Quando mais de um frame responde, vale o que tem mais informação sobre a conversa. */
+const PRIORIDADE_DA_LEITURA: SituacaoDaLeituraDoContato[] = [
+  'ok',
+  'grupo',
+  'falhou',
+  'sem-conversa',
+];
+
+const CODIGO_DO_BRASIL = '55';
+const DIGITOS_DO_DDD = 2;
+const DIGITOS_DO_CELULAR = 9;
+const DIGITOS_DO_FIXO = 8;
+
+/** Só dígitos vira o formato que o WhatsApp mostra; texto já formatado segue como veio. */
+function formatarTelefone(telefone: string | null): string | null {
+  if (!telefone || !/^\d+$/.test(telefone)) return telefone;
+  const nacional = telefone.slice(CODIGO_DO_BRASIL.length);
+  const ehBrasil =
+    telefone.startsWith(CODIGO_DO_BRASIL) &&
+    [DIGITOS_DO_FIXO, DIGITOS_DO_CELULAR].includes(nacional.length - DIGITOS_DO_DDD);
+  if (!ehBrasil) return `+${telefone}`;
+  const ddd = nacional.slice(0, DIGITOS_DO_DDD);
+  const numero = nacional.slice(DIGITOS_DO_DDD);
+  const corte = numero.length - 4;
+  return `+${CODIGO_DO_BRASIL} ${ddd} ${numero.slice(0, corte)}-${numero.slice(corte)}`;
+}
+
+function textoOuNulo(valor: unknown): string | null {
+  return typeof valor === 'string' && valor.trim() ? valor.trim() : null;
+}
+
+function leituraValida(valor: unknown): ContatoDaConversa | null {
+  const leitura = valor as Partial<ContatoDaConversa> | null;
+  if (!leitura || !PRIORIDADE_DA_LEITURA.includes(leitura.situacao as SituacaoDaLeituraDoContato)) {
+    return null;
+  }
+  return {
+    situacao: leitura.situacao as SituacaoDaLeituraDoContato,
+    nome: textoOuNulo(leitura.nome),
+    telefone: formatarTelefone(textoOuNulo(leitura.telefone)),
+    email: textoOuNulo(leitura.email),
+  };
+}
+
+/**
+ * Caminho de uma sala do Meet: o código `abc-defg-hij` (também sob `/meet/`, que é por onde a
+ * reunião instantânea chega), o `new` da "Nova reunião" e o
  * `lookup/…` por onde o Google às vezes chega à sala. A página inicial fica de fora.
  */
-const CAMINHO_DE_SALA_DO_MEET = /^\/(?:[a-z]{3}-[a-z]{4}-[a-z]{3}|new|lookup\/[^/]+)$/;
+const CAMINHO_DE_SALA_DO_MEET = /^\/(?:meet\/)?(?:[a-z]{3}-[a-z]{4}-[a-z]{3}|new|lookup\/[^/]+)$/;
 
 /** Sala do Meet do endereço (o caminho, que identifica a reunião), ou `null` se não for uma. */
 function salaDoMeet(url: string): string | null {
@@ -136,7 +360,9 @@ function salaDoMeet(url: string): string | null {
   }
   if (endereco.protocol !== 'https:' || endereco.hostname !== HOST_DO_MEET) return null;
   const caminho = endereco.pathname.replace(/\/$/, '').toLowerCase();
-  return CAMINHO_DE_SALA_DO_MEET.test(caminho) ? caminho : null;
+  if (!CAMINHO_DE_SALA_DO_MEET.test(caminho)) return null;
+  // `/meet/abc-defg-hij` e `/abc-defg-hij` são a mesma sala.
+  return caminho.replace(/^\/meet\//, '/');
 }
 
 /**
@@ -227,6 +453,12 @@ const ESPERA_PARA_CARREGAR_AO_ABRIR_MS = 5_000;
 const ENTRADAS_DO_USUARIO = new Set(['mouseDown', 'rawKeyDown', 'keyDown']);
 
 /**
+ * Guia que navegou há menos que isso e levou o foco foi ela mesma (a Experience caindo no
+ * login), não um clique fora do painel.
+ */
+const JANELA_DE_FOCO_POR_NAVEGACAO_MS = 3_000;
+
+/**
  * Escolhas do menu da engrenagem da barra lateral.
  *
  * `carregarAoAbrir` vem desligado: o WhatsApp Web logado passa de 600 MB, e ninguém deve
@@ -289,12 +521,14 @@ export class GerenciadorComunicacao {
   readonly #notificacoes = new Set<Notification>();
   readonly #desabilitados: Set<ServicoComunicacao>;
   /** Janelas de reunião do Meet abertas, uma por sala. */
-  readonly #reunioes = new Set<BrowserWindow>();
+  /** Janela da reunião -> sala, gravada na abertura: a URL da janela ainda é vazia nos primeiros ms. */
+  readonly #reunioes = new Map<BrowserWindow, string>();
   #carregarAoAbrir: boolean;
   #ativo: ServicoComunicacao | null = null;
   #larguraLateral = 0;
   #alturaTopo = 0;
   #ultimaEntrada: { pagina: Electron.WebContents; momento: number } | null = null;
+  readonly #ultimaNavegacao = new WeakMap<Electron.WebContents, number>();
 
   constructor(janela: BrowserWindow) {
     this.#janela = janela;
@@ -339,6 +573,13 @@ export class GerenciadorComunicacao {
     return true;
   }
 
+  /** Chamado pelas guias do HUB: só uma sala do Meet vira janela, o resto segue com quem chamou. */
+  abrirReuniao(url: string): boolean {
+    if (!salaDoMeet(url)) return false;
+    this.#abrirReuniao(url);
+    return true;
+  }
+
   /** `origem` só entra no log: mostra o que escondeu o painel quando ninguém clicou nele. */
   ocultar(origem = 'externo'): void {
     if (!this.#ativo) return;
@@ -351,6 +592,42 @@ export class GerenciadorComunicacao {
     });
     this.#paineis.get(this.#ativo)?.setVisible(false);
     this.#definirAtivo(null);
+  }
+
+  /**
+   * Lê o contato da conversa aberta no painel ativo, ou `null` se o ativo não for o WhatsApp
+   * nem o Chat. Nunca lança: falha de leitura volta como `falhou`, para quem chamou avisar.
+   */
+  async lerContatoDaConversa(): Promise<{
+    servico: ServicoComunicacao;
+    contato: ContatoDaConversa;
+  } | null> {
+    const servico = this.#ativo;
+    const pagina = servico ? this.#paineis.get(servico)?.webContents : undefined;
+    if ((servico !== 'whatsapp' && servico !== 'chat') || !pagina || pagina.isDestroyed())
+      return null;
+    const script = servico === 'chat' ? SCRIPT_DA_LEITURA_DO_CHAT : SCRIPT_DA_LEITURA_DO_WHATSAPP;
+    // Os frames do Chat só se enxergam por aqui: o mesmo script roda em cada um.
+    const leituras = await Promise.all(
+      pagina.mainFrame.framesInSubtree.map((frame) =>
+        frame.executeJavaScript(script).then(leituraValida, (erro: Error) => {
+          logEvento('comunicacao-leitura-do-contato-erro', { servico, erro: erro.message });
+          return null;
+        }),
+      ),
+    );
+    const contato = PRIORIDADE_DA_LEITURA.map((situacao) =>
+      leituras.find((leitura) => leitura?.situacao === situacao),
+    ).find(Boolean) ?? { situacao: 'falhou', nome: null, telefone: null, email: null };
+    logEvento('comunicacao-leitura-do-contato', {
+      servico,
+      situacao: contato.situacao,
+      frames: leituras.length,
+      nome: !!contato.nome,
+      telefone: !!contato.telefone,
+      email: !!contato.email,
+    });
+    return { servico, contato };
   }
 
   estadoDosServicos(): EstadoServicoComunicacao[] {
@@ -505,8 +782,10 @@ export class GerenciadorComunicacao {
   #abrirReuniao(endereco: string): void {
     const sala = salaDoMeet(endereco);
     const existente = [...this.#reunioes].find(
-      (janela) => !janela.isDestroyed() && salaDoMeet(janela.webContents.getURL()) === sala,
-    );
+      ([janela, salaDaJanela]) =>
+        !janela.isDestroyed() &&
+        (salaDaJanela === sala || salaDoMeet(janela.webContents.getURL()) === sala),
+    )?.[0];
     if (existente) {
       if (existente.isMinimized()) existente.restore();
       existente.show();
@@ -530,6 +809,13 @@ export class GerenciadorComunicacao {
       },
     });
     nova.setMenuBarVisibility(false);
+    nova.webContents.on('dom-ready', () => {
+      nova.webContents
+        .executeJavaScript(SCRIPT_DO_CANCELAMENTO_DA_APRESENTACAO)
+        .catch((erro: Error) => {
+          logEvento('comunicacao-cancelamento-nao-convertido', { erro: erro.message });
+        });
+    });
     // Link aberto de dentro da chamada não pode tomar o lugar dela: outra sala ganha a
     // janela dela, e o resto vai para o navegador do sistema.
     nova.webContents.setWindowOpenHandler(({ url: alvo }) => {
@@ -542,7 +828,8 @@ export class GerenciadorComunicacao {
     });
     nova.on('closed', () => this.#reunioes.delete(nova));
     void nova.loadURL(endereco);
-    this.#reunioes.add(nova);
+    // `/new` vira outra sala quando o Meet redireciona: não serve para reconhecer duplicata.
+    this.#reunioes.set(nova, sala === '/new' ? '' : (sala ?? ''));
     logEvento('comunicacao-reuniao-aberta', { url: origemSemQuery(endereco) });
   }
 
@@ -569,6 +856,21 @@ export class GerenciadorComunicacao {
     painel.webContents.on('did-navigate-in-page', (_e, url, principal) => {
       if (!principal || !salaDoMeet(url)) return;
       levarParaJanela(url);
+    });
+    // Rede de segurança: a sala pode chegar por caminhos que os três eventos acima não pegam
+    // (navegação iniciada pela própria página, troca de endereço sem evento de "navegou").
+    // O desvio repetido cai na janela da sala que já está aberta.
+    painel.webContents.on('did-start-navigation', (detalhes) => {
+      if (!detalhes.isMainFrame) return;
+      logEvento('comunicacao-navegacao', {
+        servico,
+        url: origemSemQuery(detalhes.url),
+        mesmoDocumento: detalhes.isSameDocument,
+      });
+      if (salaDoMeet(detalhes.url)) levarParaJanela(detalhes.url);
+    });
+    painel.webContents.on('did-navigate', (_e, url) => {
+      if (salaDoMeet(url)) levarParaJanela(url);
     });
   }
 
@@ -771,26 +1073,26 @@ export class GerenciadorComunicacao {
       responder(concedida);
     });
     // Sem este handler o Electron recusa o getDisplayMedia, e o Meet acusa erro ao apresentar.
-    // No Windows não há seletor do sistema: um menu nativo lista as telas e as janelas.
+    // No Windows não há seletor do sistema: uma janela própria lista telas e janelas com miniatura.
     sessao.setDisplayMediaRequestHandler((pedido, responder) => {
-      void desktopCapturer.getSources({ types: ['screen', 'window'] }).then((fontes) => {
-        let respondido = false;
-        const menu = Menu.buildFromTemplate(
-          fontes.map((fonte) => ({
-            label: fonte.name,
-            click: () => {
-              respondido = true;
-              responder(
-                pedido.audioRequested ? { video: fonte, audio: 'loopback' } : { video: fonte },
-              );
-              logEvento('comunicacao-tela-compartilhada', { particao });
-            },
-          })),
-        );
-        // O clique chega depois do fechamento do menu: só cancela se nada foi escolhido.
-        menu.once('menu-will-close', () => setImmediate(() => respondido || responder({})));
-        menu.popup();
-      });
+      const origem = pedido.frame ? webContents.fromFrame(pedido.frame) : null;
+      const janelaDaReuniao = origem ? BrowserWindow.fromWebContents(origem) : null;
+      // `null` recusa o pedido: o Meet recebe "permissão negada", como ao cancelar no Chrome.
+      const recusar = () => responder(null);
+      escolherFonteDeTela(janelaDaReuniao, pedido.audioRequested)
+        .then((escolha) => {
+          if (!escolha) return recusar();
+          responder(
+            escolha.comAudio
+              ? { video: escolha.fonte, audio: 'loopback' }
+              : { video: escolha.fonte },
+          );
+          logEvento('comunicacao-tela-compartilhada', { particao });
+        })
+        .catch((erro: Error) => {
+          logEvento('comunicacao-seletor-de-tela-falhou', { particao, erro: erro.message });
+          recusar();
+        });
     });
   }
 
@@ -857,10 +1159,11 @@ export class GerenciadorComunicacao {
     setImmediate(() => {
       if (!this.#ativo || this.#paineis.get(this.#ativo) !== painel) return;
       if (!this.#focoEstaNumaGuia(painel)) return;
-      // Guia que navega sozinha (a Experience caindo no login) também leva o foco: só é
-      // clique fora se a guia focada foi a que recebeu a última tecla ou clique.
+      // Guia que navega sozinha (a Experience caindo no login) também leva o foco. O clique
+      // dentro do ERP nem sempre chega como `input-event` (telas ficam em iframes), então
+      // vale como clique fora a guia que recebeu a última entrada ou que não navegou agora.
       const focado = webContents.getFocusedWebContents();
-      if (this.#ultimaEntrada?.pagina === focado) {
+      if (this.#ultimaEntrada?.pagina === focado || !this.#navegouAgora(focado)) {
         this.ocultar('blur-foco-na-guia');
         return;
       }
@@ -878,13 +1181,23 @@ export class GerenciadorComunicacao {
    * quem escondeu o painel não separa o clique numa guia do foco roubado sem ninguém mexer.
    */
   #registrarEntradasDoUsuario(): void {
-    const ouvir = (pagina: Electron.WebContents) =>
+    const ouvir = (pagina: Electron.WebContents) => {
       pagina.on('input-event', (_e, entrada) => {
         if (!ENTRADAS_DO_USUARIO.has(entrada.type)) return;
         this.#ultimaEntrada = { pagina, momento: Date.now() };
       });
+      pagina.on('did-start-navigation', (detalhes) => {
+        if (detalhes.isMainFrame) this.#ultimaNavegacao.set(pagina, Date.now());
+      });
+    };
     webContents.getAllWebContents().forEach(ouvir);
     app.on('web-contents-created', (_e, pagina) => ouvir(pagina));
+  }
+
+  #navegouAgora(pagina: Electron.WebContents | null): boolean {
+    if (!pagina) return false;
+    const momento = this.#ultimaNavegacao.get(pagina);
+    return momento !== undefined && Date.now() - momento < JANELA_DE_FOCO_POR_NAVEGACAO_MS;
   }
 
   /** Origem (sem query) da página, para o log de quem escondeu o painel. */

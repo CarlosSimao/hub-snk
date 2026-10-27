@@ -6,6 +6,7 @@ import {
   app,
   BrowserWindow,
   Menu,
+  Notification,
   dialog,
   globalShortcut,
   ipcMain,
@@ -23,6 +24,7 @@ import {
   ICONE,
   ID_DO_APP_WINDOWS,
   PARTICAO,
+  SERVICOS_COMUNICACAO,
   userAgentLimpo,
 } from './config';
 import { logEvento } from './log';
@@ -358,6 +360,58 @@ tratarDaBarraDeGuias('comunicacao:alternar', (servico: string) => ({
 }));
 tratarDaBarraDeGuias('comunicacao:ocultar', (origem: unknown) => {
   comunicacao?.ocultar(`barra-de-guias:${typeof origem === 'string' ? origem : '?'}`);
+  return { ok: true };
+});
+function avisarDoContato(corpo: string): void {
+  if (!Notification.isSupported()) return;
+  new Notification({ title: 'Salvar contato', body: corpo, icon: ICONE }).show();
+}
+
+/** Função que a página do HUB expõe para receber o contato lido da conversa. */
+const FUNCAO_DO_HUB_PARA_CONTATO = 'hubContatoDaConversa';
+
+async function entregarContatoAoHub(dados: Record<string, string | null>): Promise<void> {
+  const script = `typeof window.${FUNCAO_DO_HUB_PARA_CONTATO} === 'function'
+    ? (window.${FUNCAO_DO_HUB_PARA_CONTATO}(${JSON.stringify(dados)}), true)
+    : false`;
+  try {
+    const entregue = await tabs?.aba('hub')?.webContents.executeJavaScript(script);
+    if (entregue) return;
+    logEvento('contato-da-conversa-hub-sem-funcao', { origem: dados.origem });
+  } catch (erro) {
+    logEvento('contato-da-conversa-hub-erro', {
+      origem: dados.origem,
+      erro: (erro as Error).message,
+    });
+  }
+  avisarDoContato('Não consegui entregar o contato ao HUB. Atualize o HUB e tente de novo.');
+}
+
+async function salvarContatoDaConversa(): Promise<void> {
+  const leitura = await comunicacao?.lerContatoDaConversa();
+  if (!leitura) return;
+  const { servico, contato } = leitura;
+  const rotulo = SERVICOS_COMUNICACAO[servico].rotulo;
+  if (contato.situacao === 'sem-conversa') {
+    avisarDoContato('Abra uma conversa para salvar o contato.');
+  } else if (contato.situacao === 'grupo') {
+    avisarDoContato('Conversa em grupo não é suportada. Abra a conversa individual do contato.');
+  } else if (contato.situacao === 'falhou' || !contato.nome) {
+    avisarDoContato(`Não consegui ler a conversa do ${rotulo}; o layout pode ter mudado.`);
+  } else {
+    comunicacao?.ocultar('salvar-contato');
+    tabs?.mostrar('hub');
+    await entregarContatoAoHub({
+      origem: servico,
+      nome: contato.nome,
+      telefone: contato.telefone,
+      email: contato.email,
+    });
+  }
+}
+
+tratarDaBarraDeGuias('comunicacao:salvarContato', async () => {
+  await salvarContatoDaConversa();
   return { ok: true };
 });
 tratarDaBarraDeGuias('comunicacao:estado', () => comunicacao?.estadoDosServicos() ?? []);

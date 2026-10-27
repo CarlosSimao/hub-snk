@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { argumentosDaSessao } from '../../kanban/ia/assistentesDeIa.ts';
-import { argumentosDasOpcoes, linhaDoAssistente } from './abrirAssistente.ts';
+import {
+  argumentosDasOpcoes,
+  linhaDoAssistente,
+  prefixoDaContaSecundaria,
+} from './abrirAssistente.ts';
 
 describe('argumentosDasOpcoes', () => {
   it('vazio não acrescenta nada', () => {
@@ -55,6 +59,22 @@ describe('argumentosDaSessao', () => {
       '-m',
       'pro',
     ]);
+  });
+});
+
+describe('prefixoDaContaSecundaria', () => {
+  it('no Windows define a variável do PowerShell antes do comando', () => {
+    assert.equal(
+      prefixoDaContaSecundaria('win32', 'C:\\Users\\Ana'),
+      "$env:CLAUDE_CONFIG_DIR = 'C:\\Users\\Ana\\.claude-conta2'; ",
+    );
+  });
+
+  it('no sh define a variável só para o comando', () => {
+    assert.equal(
+      prefixoDaContaSecundaria('linux', '/home/ana'),
+      "CLAUDE_CONFIG_DIR='/home/ana/.claude-conta2' ",
+    );
   });
 });
 

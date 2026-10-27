@@ -118,6 +118,32 @@ export async function roteiro({ aplicativo, painel, print, printDoSistema }) {
   // Cada serviço no painel
   await abrirServico('whatsapp');
   await print('whatsapp-01-conversas');
+
+  // Salvar contato da conversa: a tela fictícia não tem o painel do perfil que o botão lê, então
+  // o modal é aberto pela mesma função que o shell chama, com um contato fictício.
+  await printDaMoldura('salvar-01-botao', ['#salvarContato']);
+  await moldura.click(botao('whatsapp'));
+  const abrirContatoDaConversa = async (contato) => {
+    await painel.evaluate((dados) => window.hubContatoDaConversa(dados), contato);
+    await painel.waitForSelector('#modal-contato[open]');
+  };
+  await abrirContatoDaConversa({
+    origem: 'whatsapp',
+    nome: 'Rafael Souza',
+    telefone: '+55 34 99876-1122',
+    email: 'rafael.souza@boavista.example',
+  });
+  await print('salvar-02-formulario', { destacando: ['#modal-contato .modal-cabecalho'] });
+  await painel.click('#btn-cancelar-contato');
+  await abrirContatoDaConversa({
+    origem: 'whatsapp',
+    nome: 'Marina',
+    telefone: '+55 34 99812-4410',
+    email: null,
+  });
+  await print('salvar-03-ja-existe', { destacando: ['#avisos-contato-da-conversa'] });
+  await painel.click('#btn-cancelar-contato');
+
   await abrirServico('gmail');
   await printDaMoldura('gmail-01-caixa', [botao('gmail')]);
   await abrirServico('chat');

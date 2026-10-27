@@ -71,6 +71,8 @@ contextBridge.exposeInMainWorld('hub', {
     aoMudarServicos: (cb: (servicos: Array<{ servico: string; habilitado: boolean }>) => void) =>
       ipcRenderer.on('comunicacao:servicos', (_e, servicos) => cb(servicos)),
     abrirMenu: (x: number, y: number) => ipcRenderer.invoke('comunicacao:abrirMenu', x, y),
+    /** Lê a conversa aberta no WhatsApp/Chat e leva o contato para o HUB salvar. */
+    salvarContato: () => ipcRenderer.invoke('comunicacao:salvarContato'),
     /** `exata` falso: o serviço só diz que há não lidas, sem quantas (o Chat). */
     aoMudarNaoLidas: (
       cb: (dados: { servico: string; quantidade: number; exata: boolean }) => void,

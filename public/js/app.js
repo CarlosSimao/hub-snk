@@ -534,6 +534,7 @@ const elementos = {
   grupoClienteContato: document.getElementById('grupo-cliente-contato'),
   campoClienteContato: document.getElementById('campo-cliente-contato'),
   erroContato: document.getElementById('erro-contato'),
+  avisosContatoDaConversa: document.getElementById('avisos-contato-da-conversa'),
   botaoSalvarContato: document.getElementById('btn-salvar-contato'),
   botaoCancelarContato: document.getElementById('btn-cancelar-contato'),
 
@@ -10651,6 +10652,7 @@ function abrirModalDeContato(
   estado.contatoParaOLembrete = paraOLembrete;
   estado.aoCadastrarContato = aoCadastrar;
   limparErro(elementos.erroContato);
+  elementos.avisosContatoDaConversa.hidden = true;
   elementos.tituloModalContato.textContent = contato ? 'Editar contato' : 'Novo contato';
   elementos.campoNomeContato.value = contato?.nome ?? '';
   elementos.campoCargoContato.value = contato?.cargo ?? '';
@@ -10665,6 +10667,58 @@ function abrirModalDeContato(
 
   elementos.modalContato.showModal();
   elementos.campoNomeContato.focus();
+}
+
+function contatoExistenteDaConversa(telefone, email) {
+  const numero = telefone ? numeroParaWhatsApp(telefone) : null;
+  const emailNormalizado = email?.trim().toLowerCase();
+  return (
+    estado.contatos.find(
+      (contato) =>
+        (numero && numeroParaWhatsApp(contato.telefone) === numero) ||
+        (emailNormalizado && contato.email.trim().toLowerCase() === emailNormalizado),
+    ) ?? null
+  );
+}
+
+function avisosDoContatoDaConversa({ origem, nome, telefone, email }) {
+  const avisos = [];
+  if (!nome) avisos.push('Nome não encontrado na conversa, preencha.');
+  if (origem === 'whatsapp' && !telefone) {
+    avisos.push('Telefone não encontrado na conversa, preencha.');
+  }
+  if (origem === 'chat' && !email) avisos.push('E-mail não encontrado na conversa, preencha.');
+  return avisos.map((texto) => criarElemento('p', 'aviso-configuracao', texto));
+}
+
+function criarAvisoDeContatoExistente(existente) {
+  const aviso = criarElemento('p', 'aviso-configuracao', `Já existe: ${existente.nome} `);
+  aviso.append(
+    criarBotao('link-configuracao', 'Abrir existente', () => {
+      elementos.modalContato.close();
+      abrirModalDeContato(existente, null);
+    }),
+  );
+  return aviso;
+}
+
+/**
+ * Chamada pelo shell com a conversa aberta. Só pré-preenche: nada é salvo e o cliente
+ * fica para o usuário escolher. Recarrega os contatos para a duplicidade não olhar lista velha.
+ */
+async function abrirContatoDaConversa(dados) {
+  await carregarContatos();
+  if (elementos.modalContato.open) elementos.modalContato.close();
+  abrirModalDeContato(null, null);
+  elementos.campoNomeContato.value = dados.nome ?? '';
+  elementos.campoTelefoneContato.value = dados.telefone ?? '';
+  elementos.campoEmailContato.value = dados.email ?? '';
+
+  const existente = contatoExistenteDaConversa(dados.telefone, dados.email);
+  const avisos = avisosDoContatoDaConversa(dados);
+  if (existente) avisos.push(criarAvisoDeContatoExistente(existente));
+  elementos.avisosContatoDaConversa.replaceChildren(...avisos);
+  elementos.avisosContatoDaConversa.hidden = avisos.length === 0;
 }
 
 /* O campo Cliente só vale quando está na tela; escondido, manda o cliente fixado. */
@@ -10739,6 +10793,8 @@ function pedirExclusaoDeContato(contato) {
 }
 
 function registrarEventosDosContatos() {
+  // O shell chama pelo `executeJavaScript`, como na busca rápida.
+  window.hubContatoDaConversa = abrirContatoDaConversa;
   elementos.formularioContato.addEventListener('submit', salvarContato);
   elementos.botaoCancelarContato.addEventListener('click', () => elementos.modalContato.close());
   elementos.campoFiltroNomeContato.addEventListener('input', () => {
