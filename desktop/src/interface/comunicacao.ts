@@ -257,6 +257,12 @@ const ESPERA_PARA_CARREGAR_AO_ABRIR_MS = 5_000;
 const ENTRADAS_DO_USUARIO = new Set(['mouseDown', 'rawKeyDown', 'keyDown']);
 
 /**
+ * Guia que navegou há menos que isso e levou o foco foi ela mesma (a Experience caindo no
+ * login), não um clique fora do painel.
+ */
+const JANELA_DE_FOCO_POR_NAVEGACAO_MS = 3_000;
+
+/**
  * Escolhas do menu da engrenagem da barra lateral.
  *
  * `carregarAoAbrir` vem desligado: o WhatsApp Web logado passa de 600 MB, e ninguém deve
@@ -326,6 +332,7 @@ export class GerenciadorComunicacao {
   #larguraLateral = 0;
   #alturaTopo = 0;
   #ultimaEntrada: { pagina: Electron.WebContents; momento: number } | null = null;
+  readonly #ultimaNavegacao = new WeakMap<Electron.WebContents, number>();
 
   constructor(janela: BrowserWindow) {
     this.#janela = janela;
@@ -920,10 +927,11 @@ export class GerenciadorComunicacao {
     setImmediate(() => {
       if (!this.#ativo || this.#paineis.get(this.#ativo) !== painel) return;
       if (!this.#focoEstaNumaGuia(painel)) return;
-      // Guia que navega sozinha (a Experience caindo no login) também leva o foco: só é
-      // clique fora se a guia focada foi a que recebeu a última tecla ou clique.
+      // Guia que navega sozinha (a Experience caindo no login) também leva o foco. O clique
+      // dentro do ERP nem sempre chega como `input-event` (telas ficam em iframes), então
+      // vale como clique fora a guia que recebeu a última entrada ou que não navegou agora.
       const focado = webContents.getFocusedWebContents();
-      if (this.#ultimaEntrada?.pagina === focado) {
+      if (this.#ultimaEntrada?.pagina === focado || !this.#navegouAgora(focado)) {
         this.ocultar('blur-foco-na-guia');
         return;
       }
@@ -941,13 +949,23 @@ export class GerenciadorComunicacao {
    * quem escondeu o painel não separa o clique numa guia do foco roubado sem ninguém mexer.
    */
   #registrarEntradasDoUsuario(): void {
-    const ouvir = (pagina: Electron.WebContents) =>
+    const ouvir = (pagina: Electron.WebContents) => {
       pagina.on('input-event', (_e, entrada) => {
         if (!ENTRADAS_DO_USUARIO.has(entrada.type)) return;
         this.#ultimaEntrada = { pagina, momento: Date.now() };
       });
+      pagina.on('did-start-navigation', (detalhes) => {
+        if (detalhes.isMainFrame) this.#ultimaNavegacao.set(pagina, Date.now());
+      });
+    };
     webContents.getAllWebContents().forEach(ouvir);
     app.on('web-contents-created', (_e, pagina) => ouvir(pagina));
+  }
+
+  #navegouAgora(pagina: Electron.WebContents | null): boolean {
+    if (!pagina) return false;
+    const momento = this.#ultimaNavegacao.get(pagina);
+    return momento !== undefined && Date.now() - momento < JANELA_DE_FOCO_POR_NAVEGACAO_MS;
   }
 
   /** Origem (sem query) da página, para o log de quem escondeu o painel. */

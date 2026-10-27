@@ -524,7 +524,16 @@ export class TabManager {
       }
       const permitido = origemPermitida(alvo, DOMINIOS_POPUP_PERMITIDOS);
       logEvento('popup-solicitado', { id, alvo: origemSemQuery(alvo), permitido });
-      if (!permitido) return { action: 'deny' };
+      if (!permitido) {
+        // Sem isto o link de fora (um sistema de terceiro aberto de dentro do ERP) morria
+        // em silêncio; as guias de base já mandam esse caso para o navegador do sistema.
+        if (ehEnderecoWeb(alvo)) {
+          void shell.openExternal(alvo).catch((erro: unknown) => {
+            logEvento('popup-externo-falhou', { id, erro: String(erro) });
+          });
+        }
+        return { action: 'deny' };
+      }
       return this.#permitirJanelaFilha(id, alvo, particao);
     });
     if (id === 'hub') {
