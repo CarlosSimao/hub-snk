@@ -9,13 +9,15 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.21.0] - 2026-10-27
+
 ### Adicionado
 
 - **Salvar contato da conversa**: com o WhatsApp ou o Google Chat aberto no painel, o botão
   Salvar contato da barra lateral abre o cadastro de contato do HUB já com o nome e o
   telefone (WhatsApp, mais o e-mail de conta comercial) ou o e-mail (Chat) da conversa
-  aberta. Avisa quando falta um dado e
-  quando o telefone ou o e-mail já pertence a outro contato. Não vale para grupos.
+  aberta. Avisa quando falta um dado e quando o telefone ou o e-mail já pertence a outro
+  contato. Não vale para grupos.
 
 ### Alterado
 
@@ -32,6 +34,10 @@ número significa aqui.
 - **Assistente de IA na conta secundária**: o botão do assistente na aba Git abre o Claude
   Code na conta secundária quando a pasta tem o arquivo `.claude-secundario`, como o
   terminal já fazia.
+- **Painel de comunicação aberto por cima do SankhyaOm**: clicar dentro de uma tela do ERP
+  agora esconde o painel, como já acontecia nas outras guias.
+- **Link de outro sistema aberto de dentro do Painel** não morre mais em silêncio: abre no
+  navegador do sistema, como nas guias de base.
 
 ## [2.20.0] - 2026-10-22
 
@@ -1040,6 +1046,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.21.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.20.0...v2.21.0
 [2.20.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.2...v2.20.0
 [2.19.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.1...v2.19.2
 [2.19.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.0...v2.19.1
