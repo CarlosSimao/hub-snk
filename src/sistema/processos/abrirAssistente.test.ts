@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { argumentosDaSessao } from '../../kanban/ia/assistentesDeIa.ts';
 import {
@@ -74,7 +73,7 @@ describe('prefixoDaContaSecundaria', () => {
   it('no sh define a variável só para o comando', () => {
     assert.equal(
       prefixoDaContaSecundaria('linux', '/home/ana'),
-      `CLAUDE_CONFIG_DIR='${join('/home/ana', '.claude-conta2')}' `,
+      "CLAUDE_CONFIG_DIR='/home/ana/.claude-conta2' ",
     );
   });
 });

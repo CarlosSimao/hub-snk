@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { join, posix, win32 } from 'node:path';
 import {
   comandoInterativoDoAssistente,
   resolverAssistente,
@@ -50,7 +50,11 @@ const PASTA_DA_CONTA_SECUNDARIA = '.claude-conta2';
  * do shell. Quem troca de conta por lá (`CLAUDE_CONFIG_DIR`) precisa do mesmo efeito aqui.
  */
 export function prefixoDaContaSecundaria(plataforma: NodeJS.Platform, home: string): string {
-  const pastaDaConta = join(home, PASTA_DA_CONTA_SECUNDARIA);
+  // O separador segue a plataforma pedida, não a de quem roda (o teste do Windows roda no CI Linux).
+  const pastaDaConta = (plataforma === 'win32' ? win32 : posix).join(
+    home,
+    PASTA_DA_CONTA_SECUNDARIA,
+  );
   return plataforma === 'win32'
     ? `$env:CLAUDE_CONFIG_DIR = ${citar(pastaDaConta, plataforma)}; `
     : `CLAUDE_CONFIG_DIR=${citar(pastaDaConta, plataforma)} `;
