@@ -148,6 +148,112 @@ const SCRIPT_DO_CANCELAMENTO_DA_APRESENTACAO = `(() => {
 })()`;
 
 /**
+ * Lê a conversa aberta do WhatsApp Web, só do que já está no DOM (nada é clicado nem aberto).
+ * Roda em cada frame; quem não tem conversa devolve `sem-conversa`. O telefone vem do nome do
+ * cabeçalho (contato não salvo) ou do `data-id` das mensagens (`5511...@c.us`); conversas
+ * `@lid` não trazem número, e ele fica nulo.
+ */
+const SCRIPT_DA_LEITURA_DO_WHATSAPP = String.raw`(() => {
+  try {
+    const conversa = document.querySelector('#main');
+    if (!conversa) return { situacao: 'sem-conversa' };
+    const ids = [...conversa.querySelectorAll('[data-id]')].map((e) => e.getAttribute('data-id') || '');
+    if (ids.some((id) => id.includes('@g.us'))) return { situacao: 'grupo' };
+    const cabecalho = conversa.querySelector('header');
+    const titulo = cabecalho && (cabecalho.querySelector('span[title]') || cabecalho.querySelector('span[dir="auto"]'));
+    const nome = titulo ? (titulo.getAttribute('title') || titulo.textContent || '').trim() : '';
+    if (!nome) return { situacao: 'falhou' };
+    const nomeEhTelefone = /^\+?[\d\s().-]+$/.test(nome) && nome.replace(/\D/g, '').length >= 8;
+    const idComTelefone = ids.map((id) => /(\d{8,15})@c\.us/.exec(id)).find(Boolean);
+    const telefone = nomeEhTelefone ? nome : idComTelefone ? idComTelefone[1] : null;
+    return { situacao: 'ok', nome, telefone, email: null };
+  } catch {
+    return { situacao: 'falhou' };
+  }
+})()`;
+
+/**
+ * Lê a conversa aberta do Google Chat. O endereço fica em `/app/home` com a conversa aberta,
+ * então quem diz DM ou space é o `data-group-id` (`dm/...`, `space/...`) da área principal, e o
+ * `aria-label` dela é o nome. Grupo sem nome também é `dm/`: mais de dois autores denunciam.
+ * O e-mail é o `data-hovercard-id` das mensagens da outra pessoa — sem mensagem dela, fica nulo.
+ */
+const SCRIPT_DA_LEITURA_DO_CHAT = String.raw`(() => {
+  try {
+    const principal = document.querySelector('[role="main"][data-group-id]');
+    if (!principal) return { situacao: 'sem-conversa' };
+    const conversa = principal.getAttribute('data-group-id') || '';
+    if (!conversa.startsWith('dm/')) return { situacao: 'grupo' };
+    const autores = new Set(
+      [...principal.querySelectorAll('[data-member-id^="user/human/"]')].map((e) => e.getAttribute('data-member-id')),
+    );
+    if (autores.size > 2) return { situacao: 'grupo' };
+    const nome = (principal.getAttribute('aria-label') || '').trim();
+    if (!nome) return { situacao: 'falhou' };
+    const daOutraPessoa = [...principal.querySelectorAll('[data-hovercard-id][data-name]')].find(
+      (e) => e.getAttribute('data-name') === nome,
+    );
+    const achado = daOutraPessoa && /^[\w.+-]+@[\w-]+(?:\.[\w-]+)+$/.exec(daOutraPessoa.getAttribute('data-hovercard-id') || '');
+    return { situacao: 'ok', nome, telefone: null, email: achado ? achado[0] : null };
+  } catch {
+    return { situacao: 'falhou' };
+  }
+})()`;
+
+export type SituacaoDaLeituraDoContato = 'ok' | 'sem-conversa' | 'grupo' | 'falhou';
+
+export interface ContatoDaConversa {
+  situacao: SituacaoDaLeituraDoContato;
+  nome: string | null;
+  telefone: string | null;
+  email: string | null;
+}
+
+/** Quando mais de um frame responde, vale o que tem mais informação sobre a conversa. */
+const PRIORIDADE_DA_LEITURA: SituacaoDaLeituraDoContato[] = [
+  'ok',
+  'grupo',
+  'falhou',
+  'sem-conversa',
+];
+
+const CODIGO_DO_BRASIL = '55';
+const DIGITOS_DO_DDD = 2;
+const DIGITOS_DO_CELULAR = 9;
+const DIGITOS_DO_FIXO = 8;
+
+/** Só dígitos vira o formato que o WhatsApp mostra; texto já formatado segue como veio. */
+function formatarTelefone(telefone: string | null): string | null {
+  if (!telefone || !/^\d+$/.test(telefone)) return telefone;
+  const nacional = telefone.slice(CODIGO_DO_BRASIL.length);
+  const ehBrasil =
+    telefone.startsWith(CODIGO_DO_BRASIL) &&
+    [DIGITOS_DO_FIXO, DIGITOS_DO_CELULAR].includes(nacional.length - DIGITOS_DO_DDD);
+  if (!ehBrasil) return `+${telefone}`;
+  const ddd = nacional.slice(0, DIGITOS_DO_DDD);
+  const numero = nacional.slice(DIGITOS_DO_DDD);
+  const corte = numero.length - 4;
+  return `+${CODIGO_DO_BRASIL} ${ddd} ${numero.slice(0, corte)}-${numero.slice(corte)}`;
+}
+
+function textoOuNulo(valor: unknown): string | null {
+  return typeof valor === 'string' && valor.trim() ? valor.trim() : null;
+}
+
+function leituraValida(valor: unknown): ContatoDaConversa | null {
+  const leitura = valor as Partial<ContatoDaConversa> | null;
+  if (!leitura || !PRIORIDADE_DA_LEITURA.includes(leitura.situacao as SituacaoDaLeituraDoContato)) {
+    return null;
+  }
+  return {
+    situacao: leitura.situacao as SituacaoDaLeituraDoContato,
+    nome: textoOuNulo(leitura.nome),
+    telefone: formatarTelefone(textoOuNulo(leitura.telefone)),
+    email: textoOuNulo(leitura.email),
+  };
+}
+
+/**
  * Caminho de uma sala do Meet: o código `abc-defg-hij` (também sob `/meet/`, que é por onde a
  * reunião instantânea chega), o `new` da "Nova reunião" e o
  * `lookup/…` por onde o Google às vezes chega à sala. A página inicial fica de fora.
@@ -396,6 +502,42 @@ export class GerenciadorComunicacao {
     });
     this.#paineis.get(this.#ativo)?.setVisible(false);
     this.#definirAtivo(null);
+  }
+
+  /**
+   * Lê o contato da conversa aberta no painel ativo, ou `null` se o ativo não for o WhatsApp
+   * nem o Chat. Nunca lança: falha de leitura volta como `falhou`, para quem chamou avisar.
+   */
+  async lerContatoDaConversa(): Promise<{
+    servico: ServicoComunicacao;
+    contato: ContatoDaConversa;
+  } | null> {
+    const servico = this.#ativo;
+    const pagina = servico ? this.#paineis.get(servico)?.webContents : undefined;
+    if ((servico !== 'whatsapp' && servico !== 'chat') || !pagina || pagina.isDestroyed())
+      return null;
+    const script = servico === 'chat' ? SCRIPT_DA_LEITURA_DO_CHAT : SCRIPT_DA_LEITURA_DO_WHATSAPP;
+    // Os frames do Chat só se enxergam por aqui: o mesmo script roda em cada um.
+    const leituras = await Promise.all(
+      pagina.mainFrame.framesInSubtree.map((frame) =>
+        frame.executeJavaScript(script).then(leituraValida, (erro: Error) => {
+          logEvento('comunicacao-leitura-do-contato-erro', { servico, erro: erro.message });
+          return null;
+        }),
+      ),
+    );
+    const contato = PRIORIDADE_DA_LEITURA.map((situacao) =>
+      leituras.find((leitura) => leitura?.situacao === situacao),
+    ).find(Boolean) ?? { situacao: 'falhou', nome: null, telefone: null, email: null };
+    logEvento('comunicacao-leitura-do-contato', {
+      servico,
+      situacao: contato.situacao,
+      frames: leituras.length,
+      nome: !!contato.nome,
+      telefone: !!contato.telefone,
+      email: !!contato.email,
+    });
+    return { servico, contato };
   }
 
   estadoDosServicos(): EstadoServicoComunicacao[] {

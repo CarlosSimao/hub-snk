@@ -228,8 +228,13 @@ let servicoAtivo = null;
 const naoLidasPorServico = new Map();
 const LIMITE_DO_CONTADOR = 99;
 
+const botaoSalvarContato = document.getElementById('salvarContato');
+/** Só nestes serviços há uma conversa de onde tirar o contato. */
+const SERVICOS_COM_CONTATO = new Set(['whatsapp', 'chat']);
+
 function marcarServicoAtivo(servico) {
   servicoAtivo = servico;
+  botaoSalvarContato.hidden = !SERVICOS_COM_CONTATO.has(servico);
   for (const botao of botoesComunicacao) {
     botao.classList.toggle('ativa', botao.dataset.servico === servico);
   }
@@ -276,6 +281,7 @@ function aplicarServicosHabilitados(servicos) {
 for (const botao of botoesComunicacao) {
   botao.addEventListener('click', () => window.hub.comunicacao.alternar(botao.dataset.servico));
 }
+botaoSalvarContato.addEventListener('click', () => window.hub.comunicacao.salvarContato());
 window.hub.comunicacao.aoMudarAtivo(marcarServicoAtivo);
 window.hub.comunicacao.aoMudarNaoLidas(mostrarNaoLidas);
 window.hub.comunicacao.aoMensagemNova(tocarSomDeMensagemNova);
