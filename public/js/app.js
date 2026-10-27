@@ -9686,7 +9686,7 @@ function ehAlertaDeAgendaSemTarefa(notificacao) {
 
 function criarAcaoDaNotificacao(notificacao) {
   if (notificacao.chave === `atualizacao:${estado.versaoDisponivel}`) {
-    return criarBotaoDeAtualizarAgora();
+    return criarBotaoDeAtualizarAgora(notificacao);
   }
   if (ehAlertaDeAgendaSemTarefa(notificacao)) {
     return criarBotaoDeIcone('btn tiny ghost', ICONES.envelope, 'Cobrar por e-mail', () =>
@@ -9776,10 +9776,17 @@ function registrarEventosDaCobrancaDaAgenda() {
   });
 }
 
-function criarBotaoDeAtualizarAgora() {
+/* `notificacao` é a da versão nova, quando o botão nasce no sino: clicar nele já a marca como lida. */
+function criarBotaoDeAtualizarAgora(notificacao = null) {
   const botao = criarElemento('button', 'btn tiny primario', 'Atualizar agora');
   botao.type = 'button';
-  botao.addEventListener('click', () => void atualizarAgora(botao));
+  botao.addEventListener('click', async () => {
+    // Marca antes: depois do POST o aplicativo reinicia.
+    if (notificacao) {
+      await marcarNotificacaoComoLida(notificacao);
+    }
+    void atualizarAgora(botao);
+  });
   return botao;
 }
 

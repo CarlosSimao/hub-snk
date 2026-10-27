@@ -39,6 +39,12 @@ número significa aqui.
 - **Link de outro sistema aberto de dentro do Painel** não morre mais em silêncio: abre no
   navegador do sistema, como nas guias de base.
 
+## [2.20.1] - 2026-10-23
+
+### Corrigido
+
+- O botão "Atualizar agora" do sino de notificações agora marca a notifica
+
 ## [2.20.0] - 2026-10-22
 
 ### Adicionado
@@ -1046,7 +1052,8 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
-[2.21.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.20.0...v2.21.0
+[2.21.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.20.1...v2.21.0
+[2.20.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.20.0...v2.20.1
 [2.20.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.2...v2.20.0
 [2.19.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.1...v2.19.2
 [2.19.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.0...v2.19.1
