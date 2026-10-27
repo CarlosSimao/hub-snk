@@ -148,25 +148,115 @@ const SCRIPT_DO_CANCELAMENTO_DA_APRESENTACAO = `(() => {
 })()`;
 
 /**
- * Lê a conversa aberta do WhatsApp Web, só do que já está no DOM (nada é clicado nem aberto).
- * Roda em cada frame; quem não tem conversa devolve `sem-conversa`. O telefone vem do nome do
- * cabeçalho (contato não salvo) ou do `data-id` das mensagens (`5511...@c.us`); conversas
- * `@lid` não trazem número, e ele fica nulo.
+ * Lê a conversa aberta do WhatsApp Web. O DOM da conversa só dá o nome do cabeçalho: os
+ * `data-id` das mensagens viraram hash e o contato salvo é `@lid`, sem número. Quem diz se é
+ * grupo, o telefone (já no formato que o WhatsApp mostra) e o e-mail da conta comercial é o
+ * painel "Dados do perfil" — o e-mail nem fica no banco, só chega do servidor ao abrir o painel.
+ * Por isso o script abre o painel e fecha o que abriu; o painel do WhatsApp some logo depois para
+ * o modal abrir, e quem vê o perfil não avisa ninguém.
+ *
+ * Se o painel não abrir (o layout mudou), o banco local (`model-storage`) é a reserva: grupo pelo
+ * `subject` (só os grupos que ele guarda) e telefone pelo `name` do contato — nome com mais de um
+ * telefone fica sem, escolher um seria chute.
  */
-const SCRIPT_DA_LEITURA_DO_WHATSAPP = String.raw`(() => {
+const SCRIPT_DA_LEITURA_DO_WHATSAPP = String.raw`(async () => {
+  const ESPERA_MAXIMA_DO_PERFIL_MS = 1500;
+  const ESPERA_PELO_SELO_COMERCIAL_MS = 500;
+  const INTERVALO_MS = 100;
+  const PADRAO_EMAIL = /^[\w.+-]+@[\w-]+(\.[\w-]+)+$/;
+  const ehTelefone = (texto) => /^\+?[\d\s().-]+$/.test(texto) && texto.replace(/\D/g, '').length >= 8;
+  const lerPainel = (perfil) => {
+    if (perfil.querySelector('[data-testid="group-info-header"]')) return { grupo: true };
+    if (!perfil.querySelector('[data-testid="contact-info-header"]')) return null;
+    // O número não tem data-testid: é o primeiro texto com cara de telefone, no topo do painel.
+    const textoDoTelefone = [...perfil.querySelectorAll('span')]
+      .filter((elemento) => !elemento.childElementCount)
+      .map((elemento) => elemento.textContent.trim())
+      .find(ehTelefone);
+    const link = perfil.querySelector('[data-testid="business-info-email"]');
+    const email = link ? link.textContent.trim() : '';
+    return {
+      grupo: false,
+      telefone: textoDoTelefone || null,
+      email: PADRAO_EMAIL.test(email) ? email : null,
+    };
+  };
+  const lerPerfil = async (cabecalho) => {
+    const gatilho = cabecalho.querySelector('[data-testid="conversation-info-header"]');
+    const jaAberto = document.querySelector('[data-testid="chat-info-drawer"]');
+    if (!gatilho) return null;
+    if (!jaAberto) gatilho.click();
+    const inicio = Date.now();
+    let perfil = null;
+    while (Date.now() - inicio < ESPERA_MAXIMA_DO_PERFIL_MS) {
+      await new Promise((resolver) => setTimeout(resolver, INTERVALO_MS));
+      perfil = document.querySelector('[data-testid="chat-info-drawer"]');
+      if (!perfil) continue;
+      if (perfil.querySelector('[data-testid="group-info-header"], [data-testid="business-info-email"]')) break;
+      // Conta comercial mostra o selo antes do e-mail chegar; sem selo, não há e-mail a esperar.
+      const pessoaComum =
+        perfil.querySelector('[data-testid="contact-info-header"]') &&
+        !perfil.querySelector('[data-testid="business-title"]');
+      if (pessoaComum && Date.now() - inicio >= ESPERA_PELO_SELO_COMERCIAL_MS) break;
+    }
+    const leitura = perfil ? lerPainel(perfil) : null;
+    // Esc sem o perfil aberto fecha a conversa: só fecha o que este script abriu e ainda está lá.
+    const perfilAberto = document.querySelector('[data-testid="chat-info-drawer"]');
+    if (!jaAberto && perfilAberto) {
+      const fechar = perfilAberto.querySelector('button[aria-label="Fechar"]');
+      if (fechar) fechar.click();
+      else document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    }
+    return leitura;
+  };
+  const lerDoBanco = async (nome) => {
+    const banco = await new Promise((resolver, rejeitar) => {
+      const pedido = indexedDB.open('model-storage');
+      pedido.onsuccess = () => resolver(pedido.result);
+      pedido.onerror = () => rejeitar(pedido.error);
+    });
+    const lerTudo = (loja) => new Promise((resolver, rejeitar) => {
+      const pedido = banco.transaction(loja).objectStore(loja).getAll();
+      pedido.onsuccess = () => resolver(pedido.result);
+      pedido.onerror = () => rejeitar(pedido.error);
+    });
+    const [grupos, contatos] = await Promise.all([lerTudo('group-metadata'), lerTudo('contact')]);
+    banco.close();
+    const telefones = new Set(
+      contatos
+        .filter((contato) => contato.name === nome && /^\d+@c\.us$/.test(contato.phoneNumber || ''))
+        .map((contato) => contato.phoneNumber.split('@')[0]),
+    );
+    return {
+      grupo: grupos.some((grupo) => grupo.subject === nome),
+      telefone: telefones.size === 1 ? [...telefones][0] : null,
+    };
+  };
   try {
     const conversa = document.querySelector('#main');
     if (!conversa) return { situacao: 'sem-conversa' };
-    const ids = [...conversa.querySelectorAll('[data-id]')].map((e) => e.getAttribute('data-id') || '');
-    if (ids.some((id) => id.includes('@g.us'))) return { situacao: 'grupo' };
     const cabecalho = conversa.querySelector('header');
-    const titulo = cabecalho && (cabecalho.querySelector('span[title]') || cabecalho.querySelector('span[dir="auto"]'));
+    // Conta comercial tem o selo "Conta Comercial" num span[title] antes do nome.
+    const titulo =
+      cabecalho &&
+      (cabecalho.querySelector('[data-testid="conversation-info-header-chat-title"]') ||
+        cabecalho.querySelector('span[title]') ||
+        cabecalho.querySelector('span[dir="auto"]'));
     const nome = titulo ? (titulo.getAttribute('title') || titulo.textContent || '').trim() : '';
     if (!nome) return { situacao: 'falhou' };
-    const nomeEhTelefone = /^\+?[\d\s().-]+$/.test(nome) && nome.replace(/\D/g, '').length >= 8;
-    const idComTelefone = ids.map((id) => /(\d{8,15})@c\.us/.exec(id)).find(Boolean);
-    const telefone = nomeEhTelefone ? nome : idComTelefone ? idComTelefone[1] : null;
-    return { situacao: 'ok', nome, telefone, email: null };
+    const perfil = await lerPerfil(cabecalho);
+    if (perfil && perfil.grupo) return { situacao: 'grupo' };
+    // Contato não salvo mostra o número no lugar do nome.
+    const nomeEhTelefone = ehTelefone(nome);
+    const nomeDoContato = nomeEhTelefone ? null : nome;
+    const email = perfil ? perfil.email : null;
+    if (perfil && perfil.telefone) {
+      return { situacao: 'ok', nome: nomeDoContato, telefone: perfil.telefone, email };
+    }
+    if (nomeEhTelefone) return { situacao: 'ok', nome: null, telefone: nome, email };
+    const doBanco = await lerDoBanco(nome);
+    if (!perfil && doBanco.grupo) return { situacao: 'grupo' };
+    return { situacao: 'ok', nome, telefone: doBanco.telefone, email };
   } catch {
     return { situacao: 'falhou' };
   }

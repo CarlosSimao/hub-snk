@@ -13,7 +13,8 @@ número significa aqui.
 
 - **Salvar contato da conversa**: com o WhatsApp ou o Google Chat aberto no painel, o botão
   Salvar contato da barra lateral abre o cadastro de contato do HUB já com o nome e o
-  telefone (WhatsApp) ou o e-mail (Chat) da conversa aberta. Avisa quando falta um dado e
+  telefone (WhatsApp, mais o e-mail de conta comercial) ou o e-mail (Chat) da conversa
+  aberta. Avisa quando falta um dado e
   quando o telefone ou o e-mail já pertence a outro contato. Não vale para grupos.
 
 ### Alterado
