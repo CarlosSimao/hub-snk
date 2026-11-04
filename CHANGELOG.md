@@ -9,6 +9,13 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.21.1] - 2026-11-04
+
+### Corrigido
+
+- **Salvar contato do Google Chat** não recusa mais como grupo a conversa individual em que
+  alguém foi mencionado (`@Fulano`): a menção era contada como mais um participante.
+
 ## [2.21.0] - 2026-10-27
 
 ### Adicionado
@@ -1052,6 +1059,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.21.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.21.0...v2.21.1
 [2.21.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.20.1...v2.21.0
 [2.20.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.20.0...v2.20.1
 [2.20.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.19.2...v2.20.0
