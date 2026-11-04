@@ -266,6 +266,7 @@ const SCRIPT_DA_LEITURA_DO_WHATSAPP = String.raw`(async () => {
  * Lê a conversa aberta do Google Chat. O endereço fica em `/app/home` com a conversa aberta,
  * então quem diz DM ou space é o `data-group-id` (`dm/...`, `space/...`) da área principal, e o
  * `aria-label` dela é o nome. Grupo sem nome também é `dm/`: mais de dois autores denunciam.
+ * Menção (`@Fulano`) também tem `data-member-id`, mas não é autor: fica fora da contagem.
  * O e-mail é o `data-hovercard-id` das mensagens da outra pessoa — sem mensagem dela, fica nulo.
  */
 const SCRIPT_DA_LEITURA_DO_CHAT = String.raw`(() => {
@@ -275,7 +276,7 @@ const SCRIPT_DA_LEITURA_DO_CHAT = String.raw`(() => {
     const conversa = principal.getAttribute('data-group-id') || '';
     if (!conversa.startsWith('dm/')) return { situacao: 'grupo' };
     const autores = new Set(
-      [...principal.querySelectorAll('[data-member-id^="user/human/"]')].map((e) => e.getAttribute('data-member-id')),
+      [...principal.querySelectorAll('[data-member-id^="user/human/"]:not([data-user-mention-type])')].map((e) => e.getAttribute('data-member-id')),
     );
     if (autores.size > 2) return { situacao: 'grupo' };
     const nome = (principal.getAttribute('aria-label') || '').trim();

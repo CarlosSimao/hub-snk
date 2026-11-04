@@ -9,6 +9,11 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Corrigido
+
+- **Salvar contato do Google Chat** não recusa mais como grupo a conversa individual em que
+  alguém foi mencionado (`@Fulano`): a menção era contada como mais um participante.
+
 ## [2.21.0] - 2026-10-27
 
 ### Adicionado
