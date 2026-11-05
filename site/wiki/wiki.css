@@ -238,6 +238,50 @@ main h1 {
   font-size: 1.4rem;
 }
 
+/* Link da seção, criado pelo wiki.js: aparece ao passar o mouse no título. */
+.link-da-secao {
+  position: relative;
+  display: inline-flex;
+  margin-left: 8px;
+  vertical-align: middle;
+  color: var(--text-dim);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.funcionalidade h2:hover .link-da-secao,
+.funcionalidade dt:hover .link-da-secao,
+.link-da-secao:focus-visible,
+.link-da-secao[data-aviso] {
+  opacity: 1;
+}
+
+.link-da-secao:hover {
+  color: var(--marca-forte);
+}
+
+.link-da-secao[data-aviso]::after {
+  content: attr(data-aviso);
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--marca-forte);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* Sem hover no toque: o link fica sempre visível. */
+@media (hover: none) {
+  .link-da-secao {
+    opacity: 1;
+  }
+}
+
 .funcionalidade h3 {
   margin: 28px 0 10px;
   font-size: 0.8rem;
