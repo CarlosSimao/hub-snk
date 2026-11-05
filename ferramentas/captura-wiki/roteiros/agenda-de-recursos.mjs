@@ -211,7 +211,10 @@ const SOLICITACOES = {
       { rotulo: 'Status do orçamento', valor: 'Orçamento Aprovado' },
       { rotulo: 'Origem', valor: 'Projeto em Andamento' },
       { rotulo: 'Parceiro', valor: '1201 - FAZENDA BOA VISTA AGROPECUARIA LTDA' },
-      { rotulo: 'Solicitante', valor: 'MARCOS LIMA - GERENTE DE PROJETOS' },
+      {
+        rotulo: 'Solicitante',
+        valor: 'MARCOS.LIMA - GERENTE DE PROJETOS · marcos.lima@empresa.com.br',
+      },
       { rotulo: 'Executante', valor: 'ANA SOUZA' },
       { rotulo: 'Horas estimadas', valor: '16' },
       { rotulo: 'Abertura', valor: `${dia(1).split('-').reverse().join('/')} 09:12:40` },
@@ -258,6 +261,11 @@ const SOLICITACOES = {
       },
     ],
     relacionados: [{ codigo: 4087, origem: 'citado na DS 4102' }],
+    solicitante: {
+      nome: 'Marcos Lima',
+      cargo: 'GERENTE DE PROJETOS',
+      email: 'marcos.lima@empresa.com.br',
+    },
   },
   4087: {
     codigo: 4087,
@@ -272,6 +280,7 @@ const SOLICITACOES = {
     anexos: [],
     historico: [],
     relacionados: [],
+    solicitante: null,
   },
 };
 
@@ -325,6 +334,10 @@ async function simularAgenda(painel, estado) {
     const codigo = new URL(rota.request().url()).pathname.split('/').pop();
     rota.fulfill({ json: SOLICITACOES[codigo] });
   });
+  // O solicitante da DS principal vira contato: aqui nada é gravado.
+  await painel.route(/\/api\/agenda\/solicitacoes\/\d+\/contato-do-solicitante$/, (rota) =>
+    rota.fulfill({ json: { situacao: 'criado', nome: 'Marcos Lima' } }),
+  );
   // Nem à Experience.
   await painel.route(caminhoE('/api/agenda/lancar-os'), (rota) => {
     osDoAlfaLancada = true;

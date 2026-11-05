@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
+import type { RepositorioContatos } from '../repositorio/repositorioContatos.ts';
 import { AgendaRecursos } from '../sankhya/agenda.ts';
 import { PayloadInvalidoError } from '../sankhya/agendaParser.ts';
 import {
@@ -16,6 +17,7 @@ import type { Credenciais } from '../sankhya/credenciais.ts';
 import { SessaoExpiradaError, type Experience, type OsLancada } from '../sankhya/experience.ts';
 import { TIPOS_DE_OS, validarHorariosDaOs } from '../sankhya/lancamentoDeOs.ts';
 import { PayloadDeNegociacoesInvalidoError } from '../sankhya/negociacoes.ts';
+import { cadastrarSolicitante } from '../sankhya/contatoDoSolicitante.ts';
 import { MOTIVOS_OCORRENCIA, validarNovaOcorrencia } from '../sankhya/ocorrencias.ts';
 import {
   idsCitadosNaAgenda,
@@ -106,6 +108,7 @@ export function registrarRotasDeAgenda(
   configuracao: RepositorioConfiguracao,
   credenciais: Credenciais,
   experience: Experience,
+  contatos: RepositorioContatos,
 ): void {
   servidor.get('/api/agenda/estado', async () => agenda.estado());
 
@@ -135,6 +138,29 @@ export function registrarRotasDeAgenda(
       }
       try {
         return await solicitacoes.consultar(codigo, requisicao.query.atualizar === '1');
+      } catch (erro) {
+        if (erro instanceof SolicitacaoNaoEncontradaError) {
+          return resposta.status(404).send({ mensagem: erro.message });
+        }
+        return responderErroDaConsulta(resposta, erro);
+      }
+    },
+  );
+
+  /**
+   * O solicitante da DS principal do evento vira contato do HUB — ver
+   * `src/sankhya/contatoDoSolicitante.ts`. Usa a DS já consultada (cache), sem ir ao Sankhya.
+   */
+  servidor.post<{ Params: { codigo: string } }>(
+    '/api/agenda/solicitacoes/:codigo/contato-do-solicitante',
+    async (requisicao, resposta) => {
+      const codigo = Number(requisicao.params.codigo);
+      if (!Number.isInteger(codigo) || codigo <= 0) {
+        return resposta.status(400).send({ mensagem: 'Código da DS inválido.' });
+      }
+      try {
+        const ds = await solicitacoes.consultar(codigo);
+        return await cadastrarSolicitante(contatos, ds.solicitante);
       } catch (erro) {
         if (erro instanceof SolicitacaoNaoEncontradaError) {
           return resposta.status(404).send({ mensagem: erro.message });

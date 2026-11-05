@@ -9,6 +9,14 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- **Solicitante da DS nos contatos**: ao abrir a Solicitação de Serviços do evento da
+  agenda, o solicitante vai sozinho para os Contatos, com nome, cargo e e-mail, sem cliente.
+  O e-mail aparece também no campo Solicitante da DS. Sem e-mail no SankhyaOm, não é
+  cadastrado; com o e-mail já nos contatos, só o cargo vazio é completado. As DS
+  relacionadas não cadastram ninguém.
+
 ## [2.22.0] - 2026-11-05
 
 ### Adicionado

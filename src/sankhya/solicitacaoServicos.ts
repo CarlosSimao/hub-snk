@@ -91,6 +91,14 @@ export interface SolicitacaoDeServico {
   anexos: AnexoDaSolicitacao[];
   /** IDs citados na descrição e no histórico; os da agenda a tela junta. */
   relacionados: SolicitacaoRelacionada[];
+  /** Quem pediu a DS, para virar contato do HUB; `null` sem solicitante. */
+  solicitante: SolicitanteDaDs | null;
+}
+
+export interface SolicitanteDaDs {
+  nome: string;
+  cargo: string;
+  email: string;
 }
 
 export interface SolicitacaoBruta {
@@ -187,7 +195,9 @@ function camposVisiveis(r: Registro): CampoDaSolicitacao[] {
     },
     {
       rotulo: 'Solicitante',
-      valor: [r['Usuario.NOMEUSU'], r['CARGOSOL']].filter(Boolean).join(' - '),
+      valor: [[r['Usuario.NOMEUSU'], r['CARGOSOL']].filter(Boolean).join(' - '), r['Usuario.EMAIL']]
+        .filter(Boolean)
+        .join(' · '),
     },
     { rotulo: 'Unidade/BP', valor: r['UNIDADEBP'] ?? '' },
     { rotulo: 'Executante', valor: r['Usuario_AD001.NOMEUSU'] ?? '' },
@@ -255,7 +265,24 @@ export function interpretarSolicitacao(
     historico,
     anexos: [...anexoDoFormulario(registro['ANEXODOC'] ?? ''), ...anexosDoBotao],
     relacionados: relacionadosDoTexto(codigo, descricao, historico),
+    solicitante: solicitanteDaDs(registro),
   };
+}
+
+/** `EVERTON.MENDES` para `Everton Mendes`: o login é o único nome quando falta o completo. */
+export function nomeDoLogin(login: string): string {
+  return login
+    .toLowerCase()
+    .split(/[.\s_]+/)
+    .filter(Boolean)
+    .map((parte) => parte[0]!.toUpperCase() + parte.slice(1))
+    .join(' ');
+}
+
+function solicitanteDaDs(r: Registro): SolicitanteDaDs | null {
+  const nome = r['Usuario.NOMEUSUCPLT'] || nomeDoLogin(r['Usuario.NOMEUSU'] ?? '');
+  if (!nome) return null;
+  return { nome, cargo: r['CARGOSOL'] ?? '', email: r['Usuario.EMAIL'] ?? '' };
 }
 
 export interface PedidoDeAnexo {

@@ -990,6 +990,8 @@ const api = {
   lancarOs: (dados) => requisitar('/api/agenda/lancar-os', { metodo: 'POST', corpo: dados }),
   solicitacaoDeServico: (codigo, atualizar) =>
     requisitar(`/api/agenda/solicitacoes/${codigo}${atualizar ? '?atualizar=1' : ''}`),
+  contatoDoSolicitanteDaDs: (codigo) =>
+    requisitar(`/api/agenda/solicitacoes/${codigo}/contato-do-solicitante`, { metodo: 'POST' }),
   situacaoDoDiaNoExperience: (codparc, dia, sinal) =>
     requisitar(
       `/api/agenda/situacao-do-dia?codparc=${encodeURIComponent(codparc)}&dia=${encodeURIComponent(dia)}`,
@@ -3707,6 +3709,21 @@ function criarConteudoDaDs(ds, relacionadosDaAgenda, aoAtualizar) {
   return partes;
 }
 
+/** O backend cria o contato pelo e-mail, ou completa o cargo; o aviso só sai quando mudou algo. */
+async function salvarSolicitanteNosContatos(codigo) {
+  try {
+    const { situacao, nome } = await api.contatoDoSolicitanteDaDs(codigo);
+    if (situacao === 'criado') exibirAviso(`Contato ${nome} salvo nos contatos.`);
+    if (situacao === 'completado') exibirAviso(`Cargo de ${nome} completado nos contatos.`);
+    if (situacao === 'criado' || situacao === 'completado') await recarregarContatos();
+  } catch (falha) {
+    exibirAviso(
+      `O solicitante da DS ${codigo} não foi salvo nos contatos: ${falha.message}`,
+      'erro',
+    );
+  }
+}
+
 /** Recolhido: só busca no Sankhya quando o usuário abre. */
 function criarBlocoDaDs(codigo, origem, relacionadosDaAgenda) {
   const bloco = criarElemento('details', 'bloco-ds');
@@ -3722,6 +3739,8 @@ function criarBlocoDaDs(codigo, origem, relacionadosDaAgenda) {
     try {
       const ds = await api.solicitacaoDeServico(codigo, atualizar);
       area.replaceChildren(...criarConteudoDaDs(ds, relacionadosDaAgenda, () => carregar(true)));
+      // Só a DS principal do evento: a de um relacionado não vira contato.
+      if (relacionadosDaAgenda) void salvarSolicitanteNosContatos(codigo);
     } catch (falha) {
       // Reabrir tenta de novo.
       buscada = false;

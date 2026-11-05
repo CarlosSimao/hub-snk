@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import Fastify from 'fastify';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
+import type { RepositorioContatos } from '../repositorio/repositorioContatos.ts';
 import type { AgendaRecursos } from '../sankhya/agenda.ts';
 import type { Credenciais } from '../sankhya/credenciais.ts';
 import type { Experience, OsLancada } from '../sankhya/experience.ts';
@@ -42,6 +43,7 @@ function criarServidor(experience: Partial<Experience>) {
     {} as RepositorioConfiguracao,
     credenciais,
     experience as Experience,
+    {} as RepositorioContatos,
   );
   return servidor;
 }
