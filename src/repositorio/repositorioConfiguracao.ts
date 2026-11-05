@@ -23,6 +23,7 @@ export interface ConfiguracaoParaSalvar extends Omit<
   | 'backup'
   | 'boasVindasConcluidas'
   | 'caminhoDoWebConnection'
+  | 'avisoDaBranchPrincipal'
   | 'perfil'
   | 'funcionalidadesOcultas'
   | 'terceiro'
@@ -36,6 +37,8 @@ export interface ConfiguracaoParaSalvar extends Omit<
   | 'emailDoUsuario'
 > {
   atalhos: DadosDeAtalho[];
+  /** Ausente, preserva o que está gravado: uma tela antiga não manda o campo. */
+  avisoDaBranchPrincipal?: ConfiguracaoGlobal['avisoDaBranchPrincipal'];
   /** Ausentes, preservam o que está gravado: omitir não pode reexibir o que foi ocultado. */
   perfil?: ConfiguracaoGlobal['perfil'];
   funcionalidadesOcultas?: ConfiguracaoGlobal['funcionalidadesOcultas'];

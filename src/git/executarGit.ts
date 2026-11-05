@@ -19,6 +19,7 @@ const AMBIENTE_SEM_PROMPT: NodeJS.ProcessEnv = {
   GIT_TERMINAL_PROMPT: '0',
   GIT_ASKPASS: 'echo',
   SSH_ASKPASS: 'echo',
+  GCM_INTERACTIVE: 'never',
   GIT_OPTIONAL_LOCKS: '0',
 };
 

@@ -15,6 +15,7 @@ import {
   migrarArquivoDeDados,
   precisaMigrar,
 } from './arquivoDeDados.ts';
+import { lerBranchPadraoDoOrigin } from '../../git/branchPadraoDoOrigin.ts';
 import { FilaDeOperacoes } from './filaDeOperacoes.ts';
 import {
   AcessoDeBaseDuplicadoError,
@@ -87,6 +88,26 @@ function dashboardImplantadoDe(base: Base): Pick<Base, 'dashboardImplantado'> {
  * da gravação não deixe o arquivo corrompido, e as operações são serializadas
  * em fila para evitar que requisições concorrentes sobrescrevam umas às outras.
  */
+/**
+ * Cadastro de antes da branch principal ser obrigatória: preenche pelo `origin/HEAD`
+ * lido do disco. Sem ele, fica sem o campo (pendência) — a branch atual não é chute
+ * aceitável, pode ser justamente a de uma tarefa.
+ */
+async function preencherBranchPrincipalDoCliente(cliente: Cliente): Promise<Cliente> {
+  const repositorios = await Promise.all(
+    cliente.repositorios.map(async (repositorio) => {
+      if (repositorio.branchPrincipal || !repositorio.caminhoLocal) {
+        return repositorio;
+      }
+
+      const branchPrincipal = await lerBranchPadraoDoOrigin(repositorio.caminhoLocal);
+      return branchPrincipal ? { ...repositorio, branchPrincipal } : repositorio;
+    }),
+  );
+
+  return { ...cliente, repositorios };
+}
+
 export class RepositorioClientesArquivo implements RepositorioClientes {
   readonly #caminhoDoArquivo: string;
   #clientes: Cliente[] | null = null;
@@ -390,9 +411,16 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
 
         this.#garantirRepositorioDisponivel(cliente, item.url);
 
+        const dadosNormalizados = this.#normalizarDadosDeRepositorio(item);
+        const branchPrincipal =
+          dadosNormalizados.branchPrincipal ??
+          (dadosNormalizados.caminhoLocal
+            ? await lerBranchPadraoDoOrigin(dadosNormalizados.caminhoLocal)
+            : null);
         const novoRepositorio: RepositorioGit = {
           id: randomUUID(),
-          ...this.#normalizarDadosDeRepositorio(item),
+          ...dadosNormalizados,
+          ...(branchPrincipal ? { branchPrincipal } : {}),
         };
         const clienteComORepositorio: Cliente = {
           ...cliente,
@@ -736,13 +764,15 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
     return cliente;
   }
 
-  /** Caminho local em branco não vira string vazia: some do arquivo. */
+  /** Caminho local e branch principal em branco não viram string vazia: somem do arquivo. */
   #normalizarDadosDeRepositorio(dados: DadosDeRepositorio): DadosDeRepositorio {
     const caminhoLocal = dados.caminhoLocal?.trim();
+    const branchPrincipal = dados.branchPrincipal?.trim();
 
     return {
       url: dados.url.trim(),
       ...(caminhoLocal ? { caminhoLocal } : {}),
+      ...(branchPrincipal ? { branchPrincipal } : {}),
     };
   }
 
@@ -1061,6 +1091,8 @@ export class RepositorioClientesArquivo implements RepositorioClientes {
         nomesCompletos: Array.isArray(cliente.nomesCompletos) ? cliente.nomesCompletos : [],
       }),
     );
+
+    this.#clientes = await Promise.all(this.#clientes.map(preencherBranchPrincipalDoCliente));
 
     if (precisaMigrar(conteudo)) {
       await migrarArquivoDeDados({

@@ -38,20 +38,24 @@ interface EntradaDoCache {
  */
 const cache = new Map<string, EntradaDoCache>();
 
-/** O par pasta + URL cadastrada é o que define o diagnóstico. */
+/** Pasta, URL e branch principal cadastradas definem o diagnóstico. */
 function montarChave(repositorio: RepositorioParaVerificar): string {
-  return [repositorio.caminhoLocal, repositorio.urlCadastrada].join('\n');
+  return [
+    repositorio.caminhoLocal,
+    repositorio.urlCadastrada,
+    repositorio.branchPrincipal ?? '',
+  ].join('\n');
 }
 
 async function lerComCache(
   repositorio: RepositorioParaVerificar,
   configuracao: ConfiguracaoGlobal,
-  forcar: boolean,
+  ignorarCache: boolean,
 ): Promise<SituacaoGit> {
   const chave = montarChave(repositorio);
   const guardada = cache.get(chave);
 
-  if (!forcar && guardada && guardada.expiraEm > Date.now()) {
+  if (!ignorarCache && guardada && guardada.expiraEm > Date.now()) {
     return guardada.situacao;
   }
 
@@ -61,14 +65,18 @@ async function lerComCache(
   return situacao;
 }
 
-/** Verifica os repositórios em paralelo, com no máximo `LEITURAS_SIMULTANEAS` em andamento. */
+/**
+ * Verifica os repositórios em paralelo, com no máximo `LEITURAS_SIMULTANEAS` em andamento.
+ * `idsSemCache` ignora o cache só nesses repositórios, p. ex. os que acabaram de passar por `fetch`.
+ */
 export async function coletarSituacoes(
   repositorios: RepositorioParaVerificar[],
   configuracao: ConfiguracaoGlobal,
   forcar: boolean,
+  idsSemCache: ReadonlySet<string> = new Set(),
 ): Promise<Record<string, SituacaoGit>> {
   const situacoes = await mapearComLimite(repositorios, LEITURAS_SIMULTANEAS, (repositorio) =>
-    lerComCache(repositorio, configuracao, forcar),
+    lerComCache(repositorio, configuracao, forcar || idsSemCache.has(repositorio.id)),
   );
 
   return Object.fromEntries(

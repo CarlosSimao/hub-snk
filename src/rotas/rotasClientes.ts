@@ -165,7 +165,19 @@ const esquemaDeImportacaoDeFavoritos = z.object({
     ),
 });
 
+const TAMANHO_MAXIMO_DA_BRANCH = 255;
+
+const esquemaDeBranchPrincipal = z
+  .string({ error: 'Informe a branch principal.' })
+  .trim()
+  .min(1, 'Informe a branch principal.')
+  .max(
+    TAMANHO_MAXIMO_DA_BRANCH,
+    `A branch principal deve ter no máximo ${TAMANHO_MAXIMO_DA_BRANCH} caracteres.`,
+  );
+
 const esquemaDeDadosDeRepositorio = z.object({
+  branchPrincipal: esquemaDeBranchPrincipal,
   url: z
     .string({ error: 'Informe a URL do repositório.' })
     .trim()
@@ -191,6 +203,8 @@ const esquemaDeImportacaoDeRepositorios = z.object({
   repositorios: z
     .array(
       esquemaDeDadosDeRepositorio.extend({
+        /* Opcional (vazio vale ausente): a varredura não sabe a branch; o servidor tenta o `origin/HEAD`. */
+        branchPrincipal: z.string().trim().max(TAMANHO_MAXIMO_DA_BRANCH).optional(),
         nomeDoCliente: esquemaDeDadosDeCliente.shape.nome,
       }),
     )

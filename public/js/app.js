@@ -814,6 +814,8 @@ const elementos = {
   modalRepositorioSubtitulo: document.getElementById('modal-repositorio-subtitulo'),
   campoUrlRepositorio: document.getElementById('campo-url-repositorio'),
   campoCaminhoLocal: document.getElementById('campo-caminho-local'),
+  campoBranchPrincipal: document.getElementById('campo-branch-principal'),
+  campoAvisoDaBranchPrincipal: document.getElementById('campo-aviso-da-branch-principal'),
   botaoEscolherCaminhoLocal: document.getElementById('btn-escolher-caminho-local'),
   erroRepositorio: document.getElementById('erro-repositorio'),
   botaoSalvarRepositorio: document.getElementById('btn-salvar-repositorio'),
@@ -1162,8 +1164,23 @@ const api = {
     ),
 
   /* `forcar` ignora o cache do servidor: é o que o botão de recarregar usa. */
-  lerSituacaoGit: (forcar) =>
-    requisitar(forcar ? `${CAMINHO_DA_SITUACAO_GIT}?forcar=true` : CAMINHO_DA_SITUACAO_GIT),
+  lerSituacaoGit: (forcar, idDoClienteParaConsultarRemoto) => {
+    const parametros = new URLSearchParams();
+    if (forcar) {
+      parametros.set('forcar', 'true');
+    }
+    /* Faz o `git fetch` nos repositórios desse cliente antes de ler a situação. */
+    if (idDoClienteParaConsultarRemoto) {
+      parametros.set('consultarRemotoDoCliente', idDoClienteParaConsultarRemoto);
+    }
+    const consulta = parametros.toString();
+    return requisitar(
+      consulta ? `${CAMINHO_DA_SITUACAO_GIT}?${consulta}` : CAMINHO_DA_SITUACAO_GIT,
+    );
+  },
+
+  lerBranchPadrao: (caminho) =>
+    requisitar(`${CAMINHO_DO_SISTEMA}/branch-padrao?caminho=${encodeURIComponent(caminho)}`),
 
   lerConfiguracao: () => requisitar(CAMINHO_DA_CONFIGURACAO),
   assistentesDeIa: () => requisitar(`${CAMINHO_DA_CONFIGURACAO}/assistentes-de-ia`),
@@ -5896,6 +5913,7 @@ function abrirModalDeRepositorio(cliente, repositorio) {
   elementos.modalRepositorioSubtitulo.textContent = `Cliente: ${cliente.nome}`;
   elementos.campoUrlRepositorio.value = repositorio?.url ?? '';
   elementos.campoCaminhoLocal.value = repositorio?.caminhoLocal ?? '';
+  elementos.campoBranchPrincipal.value = repositorio?.branchPrincipal ?? '';
 
   limparErro(elementos.erroRepositorio);
   elementos.modalRepositorio.showModal();
@@ -5926,11 +5944,28 @@ async function escolherCaminhoLocalDoRepositorio() {
     // Sem resposta o usuário cancelou: o que já estava digitado continua valendo.
     if (escolha?.caminho) {
       elementos.campoCaminhoLocal.value = escolha.caminho;
+      await sugerirBranchPrincipalDaPasta(escolha.caminho);
     }
   } catch (erro) {
     exibirErro(elementos.erroRepositorio, erro.message);
   } finally {
     elementos.botaoEscolherCaminhoLocal.disabled = false;
+  }
+}
+
+/** Só preenche campo vazio: o que o usuário já digitou nunca é sobrescrito. */
+async function sugerirBranchPrincipalDaPasta(caminho) {
+  if (!caminho || elementos.campoBranchPrincipal.value.trim()) {
+    return;
+  }
+
+  try {
+    const { branchPadrao } = await api.lerBranchPadrao(caminho);
+    if (branchPadrao && !elementos.campoBranchPrincipal.value.trim()) {
+      elementos.campoBranchPrincipal.value = branchPadrao;
+    }
+  } catch {
+    // Sugestão opcional: sem ela o usuário digita a branch.
   }
 }
 
@@ -5948,10 +5983,16 @@ async function salvarRepositorio(evento) {
   const dados = {
     url: elementos.campoUrlRepositorio.value.trim(),
     caminhoLocal: elementos.campoCaminhoLocal.value.trim(),
+    branchPrincipal: elementos.campoBranchPrincipal.value.trim(),
   };
 
   if (!dados.caminhoLocal) {
     exibirErro(elementos.erroRepositorio, 'Informe o caminho local do repositório.');
+    return;
+  }
+
+  if (!dados.branchPrincipal) {
+    exibirErro(elementos.erroRepositorio, 'Informe a branch principal do repositório.');
     return;
   }
 
@@ -6852,7 +6893,7 @@ async function abrirModalDeConfiguracao() {
   elementos.campoTimeDoUsuario.value = '';
   elementos.campoEmailDoUsuario.value = '';
   preencherAcessosDaConfiguracao(PERFIL_PADRAO, [], false);
-  preencherNotificacoesDaConfiguracao(SMTP_PADRAO, ALERTA_DA_AGENDA_PADRAO);
+  preencherNotificacoesDaConfiguracao(SMTP_PADRAO, ALERTA_DA_AGENDA_PADRAO, true);
   exibirResultadoDoTesteDoSmtp(null);
   definirVisibilidadeDoCampo(elementos.campoSmtpSenha, elementos.botaoVerSenhaSmtp, false);
   preencherAssistenteDeIaDaConfiguracao(
@@ -6887,6 +6928,7 @@ async function abrirModalDeConfiguracao() {
     preencherNotificacoesDaConfiguracao(
       configuracao.smtp ?? SMTP_PADRAO,
       configuracao.alertaDaAgenda ?? ALERTA_DA_AGENDA_PADRAO,
+      configuracao.avisoDaBranchPrincipal ?? true,
     );
     preencherAssistenteDeIaDaConfiguracao(
       ASSISTENTES_DA_CONFIGURACAO.kanban,
@@ -7125,6 +7167,7 @@ async function salvarConfiguracao(evento) {
       terceiro: elementos.campoTerceiro.checked,
       smtp: lerSmtpDaConfiguracao(),
       alertaDaAgenda: lerAlertaDaAgendaDaConfiguracao(),
+      avisoDaBranchPrincipal: elementos.campoAvisoDaBranchPrincipal.checked,
       assistenteDeIa: lerAssistenteDeIaDaConfiguracao(ASSISTENTES_DA_CONFIGURACAO.kanban),
       assistenteDoRepositorio: {
         ...lerAssistenteDeIaDaConfiguracao(ASSISTENTES_DA_CONFIGURACAO.repositorio),
@@ -10134,7 +10177,8 @@ function registrarEventosDasNotificacoes() {
   window.addEventListener('hub-snk:abrir-notificacoes', () => definirPainelDeNotificacoes(true));
 }
 
-function preencherNotificacoesDaConfiguracao(smtp, alertaDaAgenda) {
+function preencherNotificacoesDaConfiguracao(smtp, alertaDaAgenda, avisoDaBranchPrincipal) {
+  elementos.campoAvisoDaBranchPrincipal.checked = avisoDaBranchPrincipal;
   elementos.campoSmtpHost.value = smtp.host;
   elementos.campoSmtpPorta.value = smtp.porta;
   elementos.campoSmtpSeguranca.value = smtp.seguranca;
@@ -11383,9 +11427,13 @@ async function recarregarClientes() {
  * cadastro, o HUB SNK só apareceria quando o último terminasse. Falha aqui não
  * interrompe nada — o cadastro continua utilizável sem os indicadores.
  */
-async function carregarSituacoesGit(forcar = false, silencioso = false) {
+async function carregarSituacoesGit(
+  forcar = false,
+  silencioso = false,
+  idDoClienteParaConsultarRemoto = undefined,
+) {
   try {
-    estado.situacoesGit = await api.lerSituacaoGit(forcar);
+    estado.situacoesGit = await api.lerSituacaoGit(forcar, idDoClienteParaConsultarRemoto);
   } catch (erro) {
     // Silencioso: o tique automático não deve encher a tela de avisos a cada minuto sem rede.
     if (!silencioso) {
@@ -11509,7 +11557,7 @@ async function recarregarDetalhe(id) {
   descartarSecoesConsultadasDoDetalhe();
   renderizar();
   carregarSituacoesDasBasesDoClienteSelecionado();
-  await carregarSituacoesGit(true);
+  await carregarSituacoesGit(true, false, id);
   exibirAviso('Informações recarregadas.');
 }
 
@@ -13193,6 +13241,9 @@ function registrarEventos() {
   elementos.botaoEscolherCaminhoLocal.title = 'Escolher a pasta';
   elementos.botaoEscolherCaminhoLocal.setAttribute('aria-label', 'Escolher a pasta');
   elementos.botaoEscolherCaminhoLocal.addEventListener('click', escolherCaminhoLocalDoRepositorio);
+  elementos.campoCaminhoLocal.addEventListener('change', () =>
+    sugerirBranchPrincipalDaPasta(elementos.campoCaminhoLocal.value.trim()),
+  );
   elementos.botaoCancelarRepositorio.addEventListener('click', () =>
     elementos.modalRepositorio.close(),
   );

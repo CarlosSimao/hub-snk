@@ -26,6 +26,9 @@ import { RepositorioLocalArquivo } from './repositorio/arquivo/repositorioLocalA
 import { RepositorioNotificacoesArquivo } from './repositorio/arquivo/repositorioNotificacoesArquivo.ts';
 import { AgendadorDeLembretes } from './notificacoes/agendadorDeLembretes.ts';
 import { AvisoDeDashboardsImplantados } from './notificacoes/avisoDeDashboardsImplantados.ts';
+import { VerificadorDeSincroniaGit } from './notificacoes/verificadorDeSincroniaGit.ts';
+import { coletarSituacoes } from './git/cacheDeSituacao.ts';
+import { consultarRemotoDosRepositorios } from './git/consultaDoRemoto.ts';
 import { CentralDeNotificacoes } from './notificacoes/centralDeNotificacoes.ts';
 import { EnviadorDeEmail } from './notificacoes/enviadorDeEmail.ts';
 import { VerificadorDaAgendaDoDia } from './notificacoes/verificadorDaAgendaDoDia.ts';
@@ -152,6 +155,14 @@ async function iniciarServidor(): Promise<void> {
     clientes: repositorioDeClientes,
     emitir: (dados) => centralDeNotificacoes.emitir(dados),
     agora: () => new Date(),
+    registrador: registradorDasNotificacoes,
+  });
+  const verificadorDeSincroniaGit = new VerificadorDeSincroniaGit({
+    clientes: repositorioDeClientes,
+    configuracao: repositorioDeConfiguracao,
+    consultarRemotos: consultarRemotoDosRepositorios,
+    coletarSituacoes,
+    emitir: (dados) => centralDeNotificacoes.emitir(dados),
     registrador: registradorDasNotificacoes,
   });
   const verificadorDaAgenda = new VerificadorDaAgendaDoDia({
@@ -292,6 +303,7 @@ async function iniciarServidor(): Promise<void> {
   const encerrarOHub = criarEncerramento(async () => {
     agendadorDeLembretes.parar();
     avisoDeDashboards.parar();
+    verificadorDeSincroniaGit.parar();
     verificadorDaAgenda.parar();
     servicoDeBackup.parar();
     contaDoGoogle.encerrar();
@@ -363,6 +375,7 @@ async function iniciarServidor(): Promise<void> {
 
   agendadorDeLembretes.iniciar();
   avisoDeDashboards.iniciar();
+  verificadorDeSincroniaGit.iniciar();
   verificadorDaAgenda.iniciar();
   servicoDeBackup.iniciar();
   if (restauracao) {

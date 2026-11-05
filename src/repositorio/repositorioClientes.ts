@@ -24,6 +24,8 @@ export type DadosDeBancoDeDados = BancoDeDados;
 export interface DadosDeRepositorio {
   url: string;
   caminhoLocal?: string;
+  /** Obrigatória na API; ausente só na importação em lote, que tenta detectá-la. */
+  branchPrincipal?: string;
 }
 
 export interface DadosDeLink {

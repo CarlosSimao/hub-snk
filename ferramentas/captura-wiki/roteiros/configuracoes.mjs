@@ -283,7 +283,7 @@ export async function roteiro({ painel, aplicativo, print, printDoSistema }) {
   await abrirAba('avisos');
   await painel.check('#campo-alerta-agenda-ativo');
   await painel.check('#campo-alerta-agenda-email');
-  await printDaAba('avisos', '01-aba');
+  await printDaAba('avisos', '01-aba', ['#campo-aviso-da-branch-principal']);
 
   // Kanban
   await abrirAba('kanban');

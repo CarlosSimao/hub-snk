@@ -12,6 +12,7 @@ const ESPERA_DOS_AVISOS_MS = 3500;
 const NOVO_REPOSITORIO = {
   caminho: 'C:\\Workspace\\boavista-balanca',
   url: 'https://github.com/consultoria-demo/boavista-balanca.git',
+  branchPrincipal: 'main',
 };
 
 async function simularProgramasDaMaquina(painel) {
@@ -93,6 +94,7 @@ export async function roteiro({ painel, print }) {
   await print('cadastrar-repositorio-01-botao', { destacando: [botaoAdicionar] });
   await botaoAdicionar.click();
   await painel.fill('#campo-caminho-local', NOVO_REPOSITORIO.caminho);
+  await painel.fill('#campo-branch-principal', NOVO_REPOSITORIO.branchPrincipal);
   await painel.fill('#campo-url-repositorio', NOVO_REPOSITORIO.url);
   await print('cadastrar-repositorio-02-formulario', {
     destacando: ['#formulario-repositorio .modal-corpo'],
@@ -132,6 +134,13 @@ export async function roteiro({ painel, print }) {
   await abrirCliente('Indústria Alfa');
   await print('diagnostico-02-amarelo', {
     destacando: [linha('alfa-embalagens').locator('.situacao-git')],
+  });
+
+  // A branch atual (main) não é a principal cadastrada (develop).
+  const alfa = linha('alfa-embalagens');
+  await alfa.locator('.situacao-git button.selo-situacao').click();
+  await print('pendencias-03-branch-principal', {
+    destacando: [alfa.locator('.lista-pendencias')],
   });
   await abrirCliente('Transportadora Rota Sul');
   await print('diagnostico-03-vermelho', {

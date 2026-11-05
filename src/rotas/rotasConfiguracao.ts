@@ -157,6 +157,10 @@ const esquemaDeConfiguracao = z.object({
   /* Pelo mesmo motivo dos acessos: um padrão aqui apagaria a senha do SMTP gravada. */
   smtp: esquemaDeSmtp.optional(),
   alertaDaAgenda: esquemaDeAlertaDaAgenda.optional(),
+  /* Ausente, preserva o gravado: uma tela ainda não recarregada não manda o campo. */
+  avisoDaBranchPrincipal: z
+    .boolean({ error: 'O aviso da branch principal deve ser verdadeiro ou falso.' })
+    .optional(),
   /* Ausente, preserva o assistente escolhido, pelo mesmo motivo dos acessos. */
   assistenteDeIa: esquemaDoAssistenteDeIa.optional(),
   assistenteDoRepositorio: esquemaDoAssistenteDeIa
