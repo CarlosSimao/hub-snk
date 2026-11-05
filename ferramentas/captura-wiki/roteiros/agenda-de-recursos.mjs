@@ -79,7 +79,7 @@ function situacaoNoExperience(codparc, diaIso) {
   return { faps: [], situacao: { tipo: 'sem-tarefa' } };
 }
 
-function evento(nuevento, parceiro, inicio, fim, descricao, diaTodo = false) {
+function evento(nuevento, parceiro, inicio, fim, descricao, diaTodo = false, solicitacoes = []) {
   return {
     nuevento,
     codusu: CODUSU_FICTICIO,
@@ -104,6 +104,7 @@ function evento(nuevento, parceiro, inicio, fim, descricao, diaTodo = false) {
     id: nuevento,
     descrcargo: 'Consultora',
     corHex: '#2e7d32',
+    solicitacoes,
   };
 }
 
@@ -113,7 +114,9 @@ const EVENTOS = [
     PARCEIROS.boaVista,
     `${dia(DIA_DE_HOJE)} 08:00:00`,
     `${dia(DIA_DE_HOJE)} 12:00:00`,
-    'Pesagem em grupo',
+    'Pesagem em grupo - Demanda ID 4102',
+    false,
+    [4102],
   ),
   evento(
     9002,
@@ -198,6 +201,80 @@ const MOTIVOS = [
   'Feriado',
 ].map((rotulo, indice) => ({ valor: String(indice), rotulo }));
 
+/** Solicitações de Serviços fictícias, no formato de `/api/agenda/solicitacoes/:codigo`. */
+const SOLICITACOES = {
+  4102: {
+    codigo: 4102,
+    titulo: 'DS 4102 - FAZENDA BOA VISTA AGROPECUARIA LTDA',
+    campos: [
+      { rotulo: 'Tipo', valor: 'Personalização e Customização' },
+      { rotulo: 'Status do orçamento', valor: 'Orçamento Aprovado' },
+      { rotulo: 'Origem', valor: 'Projeto em Andamento' },
+      { rotulo: 'Parceiro', valor: '1201 - FAZENDA BOA VISTA AGROPECUARIA LTDA' },
+      { rotulo: 'Solicitante', valor: 'MARCOS LIMA - GERENTE DE PROJETOS' },
+      { rotulo: 'Executante', valor: 'ANA SOUZA' },
+      { rotulo: 'Horas estimadas', valor: '16' },
+      { rotulo: 'Abertura', valor: `${dia(1).split('-').reverse().join('/')} 09:12:40` },
+    ],
+    descricao:
+      'Ajuste no evento de pesagem em grupo para aceitar lotes com mais de uma balança. ' +
+      'Complemento do desenvolvimento entregue na DS 4087.',
+    anexos: [
+      {
+        origem: 'formulario',
+        nome: 'Escopo - Pesagem em grupo.pdf',
+        descricao: 'Anexo do formulário',
+        usuario: '',
+        data: '',
+        nuAttach: '',
+        chave: '',
+        tipo: 'application/pdf',
+        previsualizavel: true,
+      },
+      {
+        origem: 'sistema',
+        nome: 'Orçamento - DS 4102.docx',
+        descricao: 'Orçamento de horas',
+        usuario: 'ANA SOUZA',
+        data: `${dia(1).split('-').reverse().join('/')} 14:30:05`,
+        nuAttach: '1',
+        chave: 'ficticia',
+        tipo: 'application/octet-stream',
+        previsualizavel: false,
+      },
+    ],
+    historico: [
+      {
+        data: `${dia(1).split('-').reverse().join('/')} 16:02:11`,
+        movimentacao: 'Orçamento Aprovado',
+        usuario: 'MARCOS LIMA',
+        observacao: 'Horas Estimadas: 16',
+      },
+      {
+        data: `${dia(1).split('-').reverse().join('/')} 09:12:40`,
+        movimentacao: 'Não Iniciado',
+        usuario: 'MARCOS LIMA',
+        observacao: 'Tarefa Criada',
+      },
+    ],
+    relacionados: [{ codigo: 4087, origem: 'citado na DS 4102' }],
+  },
+  4087: {
+    codigo: 4087,
+    titulo: 'DS 4087 - FAZENDA BOA VISTA AGROPECUARIA LTDA',
+    campos: [
+      { rotulo: 'Tipo', valor: 'Personalização e Customização' },
+      { rotulo: 'Status do orçamento', valor: 'Orçamento Aprovado' },
+      { rotulo: 'Executante', valor: 'ANA SOUZA' },
+      { rotulo: 'Horas estimadas', valor: '40' },
+    ],
+    descricao: 'Evento de pesagem em grupo na entrada de animais.',
+    anexos: [],
+    historico: [],
+    relacionados: [],
+  },
+};
+
 const caminhoE = (caminho) => (url) => url.pathname === caminho;
 /** Mesma função sempre: o `unroute` só tira a rota registrada com a mesma referência. */
 const ROTA_DA_CONSULTA = caminhoE('/api/agenda/consultar');
@@ -244,6 +321,10 @@ async function simularAgenda(painel, estado) {
   await painel.route(caminhoE('/api/agenda/ocorrencias'), (rota) =>
     rota.fulfill({ json: { mensagem: 'Ocorrência criada.' } }),
   );
+  await painel.route(/\/api\/agenda\/solicitacoes\/\d+$/, (rota) => {
+    const codigo = new URL(rota.request().url()).pathname.split('/').pop();
+    rota.fulfill({ json: SOLICITACOES[codigo] });
+  });
   // Nem à Experience.
   await painel.route(caminhoE('/api/agenda/lancar-os'), (rota) => {
     osDoAlfaLancada = true;
@@ -397,6 +478,23 @@ export async function roteiro({ painel, print }) {
   await mostrarDetalhe();
   await print('lancar-os-04-lancada', { destacando: ['.aviso', agenda('.detalhe-dia-agenda')] });
   await fecharAvisos();
+
+  // Solicitação de Serviços (DS) do evento
+  await mostrarDetalhe();
+  const blocoDaDs = agenda('.bloco-ds').first();
+  const noTopo = (alvo) => alvo.evaluate((elemento) => elemento.scrollIntoView({ block: 'start' }));
+  await print('ds-01-bloco', { destacando: [blocoDaDs] });
+  await blocoDaDs.locator('summary').first().click();
+  await blocoDaDs.locator('.campos-ds').first().waitFor();
+  await blocoDaDs.locator('.secao-ds', { hasText: 'Histórico' }).locator('summary').click();
+  await noTopo(blocoDaDs);
+  await print('ds-02-aberta', { destacando: [blocoDaDs] });
+  const relacionados = blocoDaDs.locator('.secao-ds', { hasText: 'IDs relacionados' });
+  await relacionados.locator('summary').first().click();
+  await relacionados.locator('.bloco-ds summary').click();
+  await relacionados.locator('.campos-ds').waitFor();
+  await noTopo(relacionados);
+  await print('ds-03-relacionados', { destacando: [relacionados] });
 
   // Aba Agenda do cliente
   await painel.click('#btn-visualizacao-clientes');

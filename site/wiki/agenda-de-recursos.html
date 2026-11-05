@@ -53,6 +53,9 @@
               <a href="#lancar-ocorrencia">Lançar ocorrência (férias, folga, atestado)</a>
             </li>
             <li><a href="#lancar-os">Lançar OS pelo evento</a></li>
+            <li>
+              <a href="#solicitacao-de-servicos">Solicitação de Serviços (DS) no evento</a>
+            </li>
             <li><a href="#aba-do-cliente">Aba Agenda do cliente</a></li>
             <li><a href="#avisos-de-erro">Sem o aplicativo e erros de configuração</a></li>
           </ol>
@@ -669,6 +672,91 @@
                 >Sessão da Experience em segundo plano</a
               >
             </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="solicitacao-de-servicos">
+          <h2>Solicitação de Serviços (DS) no evento</h2>
+          <p>
+            Quando o texto do evento cita uma Solicitação de Serviços com <strong>ID</strong> e o
+            número (<em>ID 4102</em>, <em>Demanda ID 4102</em>), o evento ganha um bloco com os
+            dados dela no SankhyaOm: tipo, status do orçamento, parceiro, solicitante, executante,
+            horas estimadas, datas, descrição, histórico e anexos. Número solto, sem o "ID" na
+            frente, não conta. A busca só acontece ao abrir o bloco, e só funciona no aplicativo
+            desktop.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Selecione o dia. O evento que cita a DS mostra o bloco <strong>DS</strong> fechado,
+              com o número dela.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/ds-01-bloco.webp"
+                  alt="Evento do dia com o bloco DS 4102 fechado destacado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Clique no bloco. Os dados vêm do SankhyaOm; campo vazio não aparece.
+              <strong>Atualizar</strong> busca de novo. Nos anexos, PDF e imagem abrem numa janela
+              própria, com zoom, impressão e o botão de baixar; os outros arquivos vão para a pasta
+              Downloads. O <strong>Histórico</strong> abre ao clicar, do mais novo para o mais
+              antigo.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/ds-02-aberta.webp"
+                  alt="Bloco da DS aberto com os campos, a descrição, os anexos e o histórico"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+            <li>
+              Em <strong>IDs relacionados</strong> ficam as outras DS citadas no evento e as citadas
+              na descrição ou no histórico da DS, cada uma dizendo de onde veio. Clique numa para
+              ver os dados dela; os relacionados de um relacionado não aparecem.
+              <figure>
+                <img
+                  src="img/agenda-de-recursos/ds-03-relacionados.webp"
+                  alt="Seção IDs relacionados aberta com a DS 4087 citada na DS 4102"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Com mais de um ID no evento, o primeiro é a DS do bloco e os outros vão para os
+            relacionados. Na agenda do <a href="resumo-do-dia.html#agenda-de-hoje">Resumo</a>, o
+            evento mostra só o selo com o número da DS.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#acessos-ds-na-agenda"
+                >Configurações › Acessos › DS na agenda</a
+              >: desmarcada, o bloco e o selo somem. Vem desmarcada nos perfis Consultor, Analista e
+              Gerente de Projetos.
+            </li>
+            <li>
+              <a href="configuracoes.html#sankhya-id-usuario-e-senha"
+                >Configurações › Sankhya ID › Usuário e senha</a
+              >: o login que consulta a DS no SankhyaOm.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li><a href="sankhya-id.html#salvar-sankhya-id">Sankhya ID salvo</a></li>
+            <li><a href="#navegar-no-calendario">Navegar no calendário e ver o dia</a></li>
           </ul>
         </section>
 
