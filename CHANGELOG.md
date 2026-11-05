@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.23.0] - 2026-11-05
+
 ### Adicionado
 
 - **Solicitante da DS nos contatos**: ao abrir a Solicitação de Serviços do evento da
@@ -1081,6 +1083,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.23.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.22.0...v2.23.0
 [2.22.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.21.1...v2.22.0
 [2.21.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.21.0...v2.21.1
 [2.21.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.20.1...v2.21.0
