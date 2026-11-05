@@ -3214,7 +3214,7 @@ async function descartarCachesDaSituacao() {
  * "Tarefas Realizadas"). Começa neutro ("verificando…") pra não travar a
  * lista inteira esperando o Experience responder.
  */
-function anexarSituacaoDoEvento(linhaHorario, informacoes, evento, dia, forcarNaAbertura, sinal) {
+function anexarSituacaoDoEvento(linhaHorario, evento, dia, forcarNaAbertura, sinal) {
   const { codparc } = evento;
   const selo = criarElemento('span', 'selo-situacao', 'Verificando situação no Experience…');
   const botaoAtualizar = criarBotaoDeIcone(
@@ -3300,7 +3300,8 @@ function anexarSituacaoDoEvento(linhaHorario, informacoes, evento, dia, forcarNa
             ),
           );
         }
-        informacoes.append(subbloco);
+        // Logo abaixo do horário: o bloco da DS do evento fica por último no card.
+        linhaHorario.after(subbloco);
       }
     } else if (situacao.tipo === 'tarefa-aberta') {
       selo.classList.add('atencao');
@@ -3926,7 +3927,6 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
         // aparece em todo dia que cobre, e cada um tem sua própria situação.
         anexarSituacaoDoEvento(
           linhaHorario,
-          informacoes,
           evento,
           dia.dia,
           forcarAtualizacaoDaSituacao,
