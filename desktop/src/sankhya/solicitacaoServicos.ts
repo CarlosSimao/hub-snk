@@ -27,6 +27,8 @@ export const CAMPOS_DA_SOLICITACAO = [
   'ORIGBASE',
   'CODUSU',
   'Usuario.NOMEUSU',
+  'Usuario.EMAIL',
+  'Usuario.NOMEUSUCPLT',
   'CARGOSOL',
   'UNIDADEBP',
   'CODUSUEXEC',

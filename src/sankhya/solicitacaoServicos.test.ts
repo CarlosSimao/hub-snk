@@ -99,6 +99,7 @@ test('interpreta a DS com códigos traduzidos, histórico do mais novo e anexos'
   ]);
   assert.ok(!ds.campos.some((c) => c.rotulo === 'Primeira agenda'), 'campo vazio fica de fora');
   assert.ok(!ds.campos.some((c) => c.valor === 'lixo'), 'COMPLEXIDADE não é exibida');
+  assert.deepEqual(ds.solicitante, { nome: 'Fulano', cargo: 'GERENTE', email: '' });
 
   assert.deepEqual(
     ds.historico.map((h) => h.data.slice(0, 10)),

@@ -325,6 +325,7 @@ async function iniciarServidor(): Promise<void> {
     repositorioDeConfiguracao,
     credenciaisSankhya,
     experience,
+    repositorioDeContatos,
   );
   registrarRotasDeOs(servidor, experience, repositorioDeClientes, repositorioDeConfiguracao);
   registrarRotasDeNotificacoes(
