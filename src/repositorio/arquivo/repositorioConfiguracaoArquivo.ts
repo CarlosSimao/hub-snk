@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import {
   ehPerfilProfissional,
+  FUNCIONALIDADES_ANTERIORES_AO_REGISTRO,
   FUNCIONALIDADES_OCULTAS_POR_PERFIL,
   PERFIL_PADRAO,
 } from '../../acessos.ts';
@@ -133,6 +134,16 @@ const CONFIGURACAO_INICIAL: ConfiguracaoGlobal = {
 interface ConfiguracaoAnterior {
   intervaloDeAtualizacaoDoStatusDoBancoSegundos?: number;
   tempoLimiteDeStatusDaBaseMs?: number;
+  /** Só no arquivo, nunca na API: ver `comFuncionalidadesConhecidas`. */
+  funcionalidadesConhecidas?: unknown;
+}
+
+/**
+ * Gravado junto da configuração: na leitura, o que nasceu depois desta lista segue o
+ * preset do perfil, e não a lista de ocultas gravada, que nunca soube dela.
+ */
+function comFuncionalidadesConhecidas(configuracao: ConfiguracaoGlobal) {
+  return { ...configuracao, funcionalidadesConhecidas: [...FUNCIONALIDADES] };
 }
 
 function lerTempoLimiteSegundos(dados: Partial<ConfiguracaoGlobal> & ConfiguracaoAnterior): number {
@@ -167,15 +178,20 @@ function normalizarFuncionalidadesOcultas(valores: readonly unknown[]): Funciona
 
 /**
  * Arquivo de antes dos acessos não tem perfil: vale o padrão, com tudo visível. Com o
- * perfil gravado e sem a lista, vale o preset desse perfil.
+ * perfil gravado e sem a lista, vale o preset desse perfil. Com a lista, o que ela não
+ * conhecia ao ser gravada (funcionalidade de versão mais nova) segue o preset.
  */
 function lerAcessos(
-  dados: Partial<Record<keyof ConfiguracaoGlobal, unknown>>,
+  dados: Partial<Record<keyof ConfiguracaoGlobal, unknown>> & ConfiguracaoAnterior,
 ): Pick<ConfiguracaoGlobal, 'perfil' | 'funcionalidadesOcultas' | 'terceiro'> {
   const perfil = ehPerfilProfissional(dados.perfil) ? dados.perfil : PERFIL_PADRAO;
+  const preset = FUNCIONALIDADES_OCULTAS_POR_PERFIL[perfil];
+  const conhecidas: readonly unknown[] = Array.isArray(dados.funcionalidadesConhecidas)
+    ? dados.funcionalidadesConhecidas
+    : FUNCIONALIDADES_ANTERIORES_AO_REGISTRO;
   const ocultas = Array.isArray(dados.funcionalidadesOcultas)
-    ? dados.funcionalidadesOcultas
-    : FUNCIONALIDADES_OCULTAS_POR_PERFIL[perfil];
+    ? [...dados.funcionalidadesOcultas, ...preset.filter((f) => !conhecidas.includes(f))]
+    : preset;
 
   return {
     perfil,
@@ -407,7 +423,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       await migrarArquivoDeDados({
         caminhoDoArquivo: this.#caminhoDoArquivo,
         chaveDoCorpo: CHAVE_DO_CORPO,
-        corpo: this.#configuracao,
+        corpo: comFuncionalidadesConhecidas(this.#configuracao),
         versaoDeOrigem: conteudo.versaoDeOrigem,
       });
     }
@@ -454,7 +470,11 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       caminhoDoWebConnection: atual.caminhoDoWebConnection,
     };
 
-    await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);
+    await gravarArquivoDeDados(
+      this.#caminhoDoArquivo,
+      CHAVE_DO_CORPO,
+      comFuncionalidadesConhecidas(normalizada),
+    );
 
     this.#configuracao = normalizada;
     return normalizada;
@@ -497,7 +517,11 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
     const atual = await this.#carregar();
     const normalizada: ConfiguracaoGlobal = { ...atual, ...campo };
 
-    await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, normalizada);
+    await gravarArquivoDeDados(
+      this.#caminhoDoArquivo,
+      CHAVE_DO_CORPO,
+      comFuncionalidadesConhecidas(normalizada),
+    );
 
     this.#configuracao = normalizada;
     return normalizada;

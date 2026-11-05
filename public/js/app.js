@@ -988,6 +988,8 @@ const api = {
       `${CAMINHO_DA_API}/${id}/agenda-eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`,
     ),
   lancarOs: (dados) => requisitar('/api/agenda/lancar-os', { metodo: 'POST', corpo: dados }),
+  solicitacaoDeServico: (codigo, atualizar) =>
+    requisitar(`/api/agenda/solicitacoes/${codigo}${atualizar ? '?atualizar=1' : ''}`),
   situacaoDoDiaNoExperience: (codparc, dia, sinal) =>
     requisitar(
       `/api/agenda/situacao-do-dia?codparc=${encodeURIComponent(codparc)}&dia=${encodeURIComponent(dia)}`,
@@ -3212,7 +3214,7 @@ async function descartarCachesDaSituacao() {
  * "Tarefas Realizadas"). Começa neutro ("verificando…") pra não travar a
  * lista inteira esperando o Experience responder.
  */
-function anexarSituacaoDoEvento(linhaHorario, informacoes, evento, dia, forcarNaAbertura, sinal) {
+function anexarSituacaoDoEvento(linhaHorario, evento, dia, forcarNaAbertura, sinal) {
   const { codparc } = evento;
   const selo = criarElemento('span', 'selo-situacao', 'Verificando situação no Experience…');
   const botaoAtualizar = criarBotaoDeIcone(
@@ -3298,7 +3300,8 @@ function anexarSituacaoDoEvento(linhaHorario, informacoes, evento, dia, forcarNa
             ),
           );
         }
-        informacoes.append(subbloco);
+        // Logo abaixo do horário: o bloco da DS do evento fica por último no card.
+        linhaHorario.after(subbloco);
       }
     } else if (situacao.tipo === 'tarefa-aberta') {
       selo.classList.add('atencao');
@@ -3569,6 +3572,178 @@ function criarBotaoDeVinculoDeCliente(evento, aoTrocarVinculo) {
   return botao;
 }
 
+/* -------------------- Solicitação de Serviços (DS) no evento -------------------- */
+
+/** Tempo para o download do `<a download>` pegar o blob antes de ele ser liberado. */
+const ESPERA_PARA_LIBERAR_DOWNLOAD_MS = 60_000;
+
+const DIMENSOES_DA_JANELA_DE_PREVIA = 'width=1100,height=850';
+
+function enderecoDoAnexoDaDs(codigo, anexo) {
+  const parametros = new URLSearchParams({ origem: anexo.origem, nome: anexo.nome });
+  if (anexo.origem === 'sistema') {
+    parametros.set('nuAttach', anexo.nuAttach);
+    parametros.set('chave', anexo.chave);
+  }
+  return `/api/agenda/solicitacoes/${codigo}/anexo?${parametros}`;
+}
+
+/** O arquivo do anexo como `blob:` — erro vem como mensagem, não como arquivo baixado. */
+async function buscarArquivoDoAnexoDaDs(codigo, anexo) {
+  const resposta = await fetch(enderecoDoAnexoDaDs(codigo, anexo));
+  if (!resposta.ok) {
+    const corpo = await resposta.json().catch(() => null);
+    throw new Error(corpo?.mensagem ?? `Falha ao buscar o anexo (HTTP ${resposta.status}).`);
+  }
+  return URL.createObjectURL(await resposta.blob());
+}
+
+/** Vai para a pasta Downloads pelo `will-download` do shell, com o aviso dele. */
+function salvarArquivoDoAnexo(endereco, nome) {
+  const link = criarElemento('a');
+  link.href = endereco;
+  link.download = nome;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(endereco), ESPERA_PARA_LIBERAR_DOWNLOAD_MS);
+}
+
+/**
+ * Janela própria, filha do painel no shell: o leitor de PDF do Chromium dá zoom, busca,
+ * impressão e o botão de baixar, com o nome do arquivo vindo do `content-disposition`.
+ */
+function abrirPreviaDoAnexoDaDs(codigo, anexo) {
+  const janela = window.open(
+    enderecoDoAnexoDaDs(codigo, anexo),
+    '_blank',
+    DIMENSOES_DA_JANELA_DE_PREVIA,
+  );
+  if (!janela) throw new Error('A janela da prévia foi bloqueada.');
+}
+
+/** PDF e imagem abrem na janela de prévia; o resto vai direto para Downloads. */
+function criarItemDeAnexoDaDs(codigo, anexo) {
+  const item = criarElemento('li', 'anexo-ds');
+  const erro = criarElemento('span', 'erro-formulario');
+  erro.hidden = true;
+  const botao = criarBotao('btn tiny ghost', anexo.nome, async () => {
+    erro.hidden = true;
+    botao.disabled = true;
+    try {
+      if (anexo.previsualizavel) abrirPreviaDoAnexoDaDs(codigo, anexo);
+      else salvarArquivoDoAnexo(await buscarArquivoDoAnexoDaDs(codigo, anexo), anexo.nome);
+    } catch (falha) {
+      erro.textContent = falha.message;
+      erro.hidden = false;
+    } finally {
+      botao.disabled = false;
+    }
+  });
+  botao.title = anexo.previsualizavel
+    ? 'Ver o arquivo numa janela própria'
+    : 'Baixar para a pasta Downloads';
+  const detalhes = [anexo.descricao, anexo.usuario, anexo.data].filter(Boolean).join(' · ');
+  item.append(botao);
+  if (detalhes) item.append(criarElemento('span', 'texto-auxiliar', detalhes));
+  item.append(erro);
+  return item;
+}
+
+function criarSecaoRecolhivelDaDs(titulo, filhos) {
+  const secao = criarElemento('details', 'secao-ds');
+  secao.append(criarElemento('summary', null, titulo), ...filhos);
+  return secao;
+}
+
+function criarHistoricoDaDs(historico) {
+  const lista = criarElemento('ul', 'lista-ds');
+  for (const ocorrencia of historico) {
+    const item = criarElemento('li');
+    const cabecalho = [ocorrencia.data, ocorrencia.movimentacao, ocorrencia.usuario];
+    item.append(criarElemento('strong', null, cabecalho.filter(Boolean).join(' · ')));
+    if (ocorrencia.observacao) item.append(criarElemento('p', 'texto-ds', ocorrencia.observacao));
+    lista.append(item);
+  }
+  return criarSecaoRecolhivelDaDs(`Histórico (${historico.length})`, [lista]);
+}
+
+/** Os da agenda primeiro; o mesmo ID citado em dois lugares aparece uma vez só. */
+function criarRelacionadosDaDs(ds, relacionadosDaAgenda) {
+  const vistos = new Set([ds.codigo]);
+  const relacionados = [...relacionadosDaAgenda, ...ds.relacionados].filter(({ codigo }) => {
+    if (vistos.has(codigo)) return false;
+    vistos.add(codigo);
+    return true;
+  });
+  if (!relacionados.length) return null;
+  const blocos = relacionados.map(({ codigo, origem }) => criarBlocoDaDs(codigo, origem, null));
+  return criarSecaoRecolhivelDaDs(`IDs relacionados (${relacionados.length})`, blocos);
+}
+
+/** `relacionadosDaAgenda` nulo é o bloco de um relacionado: sem relacionados dele. */
+function criarConteudoDaDs(ds, relacionadosDaAgenda, aoAtualizar) {
+  const cabecalho = criarElemento('div', 'cabecalho-ds');
+  cabecalho.append(
+    criarElemento('strong', null, ds.titulo),
+    criarBotao('btn tiny ghost', 'Atualizar', aoAtualizar),
+  );
+
+  const campos = criarElemento('dl', 'campos-ds');
+  for (const campo of ds.campos) {
+    campos.append(criarElemento('dt', null, campo.rotulo), criarElemento('dd', null, campo.valor));
+  }
+
+  const partes = [cabecalho, campos];
+  if (ds.descricao) partes.push(criarElemento('p', 'texto-ds', ds.descricao));
+  if (ds.anexos.length) {
+    const lista = criarElemento('ul', 'lista-ds');
+    lista.append(...ds.anexos.map((anexo) => criarItemDeAnexoDaDs(ds.codigo, anexo)));
+    partes.push(criarElemento('strong', null, 'Anexos'), lista);
+  }
+  if (ds.historico.length) partes.push(criarHistoricoDaDs(ds.historico));
+  if (relacionadosDaAgenda) {
+    const relacionados = criarRelacionadosDaDs(ds, relacionadosDaAgenda);
+    if (relacionados) partes.push(relacionados);
+  }
+  return partes;
+}
+
+/** Recolhido: só busca no Sankhya quando o usuário abre. */
+function criarBlocoDaDs(codigo, origem, relacionadosDaAgenda) {
+  const bloco = criarElemento('details', 'bloco-ds');
+  bloco.append(
+    criarElemento('summary', null, origem ? `DS ${codigo} · ${origem}` : `DS ${codigo}`),
+  );
+  const area = criarElemento('div', 'conteudo-ds');
+  bloco.append(area);
+
+  let buscada = false;
+  async function carregar(atualizar = false) {
+    area.replaceChildren(criarElemento('p', 'texto-auxiliar', 'Buscando no Sankhya…'));
+    try {
+      const ds = await api.solicitacaoDeServico(codigo, atualizar);
+      area.replaceChildren(...criarConteudoDaDs(ds, relacionadosDaAgenda, () => carregar(true)));
+    } catch (falha) {
+      // Reabrir tenta de novo.
+      buscada = false;
+      area.replaceChildren(criarElemento('p', 'erro-formulario', falha.message));
+    }
+  }
+  bloco.addEventListener('toggle', () => {
+    if (!bloco.open || buscada) return;
+    buscada = true;
+    void carregar();
+  });
+  return bloco;
+}
+
+/** O primeiro ID do texto do evento é a DS dele; os outros entram nos relacionados. */
+function criarBlocoDaDsDoEvento(evento) {
+  if (!funcionalidadeVisivel('agenda.solicitacoes') || !evento.solicitacoes?.length) return null;
+  const [principal, ...outros] = evento.solicitacoes;
+  const daAgenda = outros.map((codigo) => ({ codigo, origem: 'citado na agenda' }));
+  return criarBlocoDaDs(principal, '', daAgenda);
+}
+
 /**
  * Widget de calendário mensal da Agenda de Recursos: navegação de mês, grade
  * clicável e detalhe do dia selecionado, com a situação de cada evento no
@@ -3752,13 +3927,15 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
         // aparece em todo dia que cobre, e cada um tem sua própria situação.
         anexarSituacaoDoEvento(
           linhaHorario,
-          informacoes,
           evento,
           dia.dia,
           forcarAtualizacaoDaSituacao,
           consultasDoDia.cancelamento.signal,
         );
       }
+
+      const blocoDaDs = criarBlocoDaDsDoEvento(evento);
+      if (blocoDaDs) informacoes.append(blocoDaDs);
 
       linha.append(informacoes);
       areaDetalhe.append(linha);
@@ -4362,7 +4539,7 @@ function criarLinhaDoResumo({ titulo, detalhes, selo, acao }) {
   linhaTitulo.append(
     typeof titulo === 'string' ? criarElemento('p', 'recurso-nome', titulo) : titulo,
   );
-  if (selo) linhaTitulo.append(selo);
+  linhaTitulo.append(...[selo].flat().filter(Boolean));
   informacoes.append(linhaTitulo);
   for (const detalhe of detalhes.filter(Boolean)) {
     informacoes.append(criarElemento('p', 'texto-auxiliar', detalhe));
@@ -4414,9 +4591,12 @@ function criarLinhaDeEventoDoResumo(evento, semTarefa) {
   return criarLinhaDoResumo({
     titulo: criarTituloDoEvento(evento, titulo),
     detalhes: [horario, descricao !== titulo && descricao],
-    selo: semTarefa
-      ? criarElemento('span', 'selo-situacao erro', 'Sem tarefa na Experience')
-      : null,
+    selo: [
+      semTarefa && criarElemento('span', 'selo-situacao erro', 'Sem tarefa na Experience'),
+      funcionalidadeVisivel('agenda.solicitacoes') &&
+        evento.solicitacoes?.length &&
+        criarElemento('span', 'selo-situacao', `DS ${evento.solicitacoes[0]}`),
+    ],
     acao: criarBotaoDeIcone('btn tiny', ICONES.seta, 'Abrir na Agenda', () =>
       alternarVisualizacao('agenda'),
     ),

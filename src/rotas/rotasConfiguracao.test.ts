@@ -193,9 +193,15 @@ describe('GET /api/configuracao/perfis', () => {
     assert.equal(resposta.statusCode, 200);
     assert.deepEqual(resposta.json(), {
       desenvolvedor: [],
-      consultor: ['cliente.repositorios', 'autosync', 'cliente.autosync'],
-      analista: ['cliente.repositorios', 'autosync', 'cliente.autosync'],
-      'gerente-de-projeto': ['cliente.repositorios', 'local', 'autosync', 'cliente.autosync'],
+      consultor: ['cliente.repositorios', 'autosync', 'cliente.autosync', 'agenda.solicitacoes'],
+      analista: ['cliente.repositorios', 'autosync', 'cliente.autosync', 'agenda.solicitacoes'],
+      'gerente-de-projeto': [
+        'cliente.repositorios',
+        'local',
+        'autosync',
+        'cliente.autosync',
+        'agenda.solicitacoes',
+      ],
     });
   });
 });

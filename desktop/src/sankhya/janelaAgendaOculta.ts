@@ -31,8 +31,16 @@ export interface ResultadoFetch {
 export interface ConsultorDeAgenda {
   buscar(de: string, ate: string): Promise<ResultadoFetch>;
   buscarNegociacoes(codParceiro: string): Promise<ResultadoFetch>;
-  chamarNoMge(serviceName: string, requestBody: unknown): Promise<ResultadoFetch>;
+  chamarNoMge(
+    serviceName: string,
+    requestBody: unknown,
+    consulta?: Record<string, string>,
+  ): Promise<ResultadoFetch>;
+  baixarNoMge(caminho: string): Promise<ResultadoFetch>;
 }
+
+/** Acima disso o arquivo não atravessa a ponte: o base64 inteiro vai num JSON só. */
+const LIMITE_DO_ARQUIVO_BYTES = 25 * 1024 * 1024;
 
 /** Partição isolada da Agenda — nunca a da aba ERP visível, senão relogar uma afetaria a outra. */
 const PARTICAO_AGENDA = 'persist:sankhya-hub-agenda';
@@ -101,8 +109,15 @@ function scriptChamarServico(serviceName: string, requestBody: unknown): string 
  * corpo é decodificado pelo charset do cabeçalho: o Sankhya responde em ISO-8859-1 e
  * `Response.text()` estragaria os acentos.
  */
-function scriptFetchNoMge(serviceName: string, requestBody: unknown): string {
-  const url = `/mge/service.sbr?serviceName=${encodeURIComponent(serviceName)}&outputType=json`;
+function scriptFetchNoMge(
+  serviceName: string,
+  requestBody: unknown,
+  consulta: Record<string, string>,
+): string {
+  const extras = new URLSearchParams(consulta).toString();
+  const url =
+    `/mge/service.sbr?serviceName=${encodeURIComponent(serviceName)}&outputType=json` +
+    (extras ? `&${extras}` : '');
   const corpo = JSON.stringify({ serviceName, requestBody });
   return `(async () => {
     try {
@@ -121,6 +136,35 @@ function scriptFetchNoMge(serviceName: string, requestBody: unknown): string {
       return { ok: true, conteudo: new TextDecoder(cs.trim().toLowerCase()).decode(await r.arrayBuffer()) };
     } catch (e) {
       return { ok: false, erro: 'a chamada ao Sankhya falhou: ' + String(e) };
+    }
+  })()`;
+}
+
+/**
+ * Baixa um arquivo do `/mge` com os cookies da página e devolve o conteúdo em base64.
+ * HTML no lugar do arquivo é a tela de login: sessão caída.
+ */
+function scriptBaixarNoMge(caminho: string): string {
+  return `(async () => {
+    try {
+      const r = await fetch(${JSON.stringify(caminho)}, { credentials: 'same-origin' });
+      if (!r.ok) return { ok: false, erro: 'o Sankhya respondeu HTTP ' + r.status + ' ao baixar o arquivo' };
+      if (/text\\/html/i.test(r.headers.get('content-type') || '')) {
+        return { ok: false, erro: 'o Sankhya respondeu HTML em vez do arquivo — a sessão caiu' };
+      }
+      const blob = await r.blob();
+      if (blob.size > ${LIMITE_DO_ARQUIVO_BYTES}) {
+        return { ok: false, erro: 'arquivo maior que ${LIMITE_DO_ARQUIVO_BYTES / 1024 / 1024} MB — baixe pelo Sankhya' };
+      }
+      const dataUrl = await new Promise((ok, falha) => {
+        const leitor = new FileReader();
+        leitor.onload = () => ok(String(leitor.result));
+        leitor.onerror = () => falha(leitor.error);
+        leitor.readAsDataURL(blob);
+      });
+      return { ok: true, conteudo: dataUrl.slice(dataUrl.indexOf(',') + 1) };
+    } catch (e) {
+      return { ok: false, erro: 'o download no Sankhya falhou: ' + String(e) };
     }
   })()`;
 }
@@ -180,9 +224,28 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
    * Qualquer serviço do `/mge` (CRUD, botão de ação) chamado por `fetch` na página do
    * workspace, na mesma fila e com o mesmo relogin da Agenda. Devolve o JSON em texto.
    */
-  chamarNoMge(serviceName: string, requestBody: unknown): Promise<ResultadoFetch> {
+  chamarNoMge(
+    serviceName: string,
+    requestBody: unknown,
+    consulta: Record<string, string> = {},
+  ): Promise<ResultadoFetch> {
     return this.#enfileirar(() =>
-      this.#comRelogin(() => this.#fetchNoMge(serviceName, requestBody)),
+      this.#comRelogin(() => this.#fetchNoMge(serviceName, requestBody, consulta)),
+    );
+  }
+
+  /**
+   * Arquivo do `/mge` (`caminho` relativo à origem do ERP), em base64.
+   * ponytail: qualquer falha reloga, até um 404; separar quando isso pesar.
+   */
+  baixarNoMge(caminho: string): Promise<ResultadoFetch> {
+    return this.#enfileirar(() =>
+      this.#comRelogin(async () => {
+        const wc = this.#janela?.webContents;
+        if (!wc || wc.isDestroyed())
+          return { ok: false, erro: 'a janela da Agenda não está aberta' };
+        return (await wc.executeJavaScript(scriptBaixarNoMge(caminho), true)) as ResultadoFetch;
+      }),
     );
   }
 
@@ -227,14 +290,18 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
     return textoJson(resultado);
   }
 
-  async #fetchNoMge(serviceName: string, requestBody: unknown): Promise<ResultadoFetch> {
+  async #fetchNoMge(
+    serviceName: string,
+    requestBody: unknown,
+    consulta: Record<string, string>,
+  ): Promise<ResultadoFetch> {
     const wc = this.#janela?.webContents;
     if (!wc || wc.isDestroyed()) return { ok: false, erro: 'a janela da Agenda não está aberta' };
 
     const executar = async () =>
       textoJson(
         (await wc.executeJavaScript(
-          scriptFetchNoMge(serviceName, requestBody),
+          scriptFetchNoMge(serviceName, requestBody, consulta),
           true,
         )) as ResultadoFetch,
       );

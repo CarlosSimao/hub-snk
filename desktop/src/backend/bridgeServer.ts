@@ -17,6 +17,11 @@ import { autoLoginSankhya } from '../sankhya/autoLoginSankhya';
 import type { ConsultorDeAgenda, ResultadoFetch } from '../sankhya/janelaAgendaOculta';
 import type { TabManager } from '../interface/tabs';
 import { criarOcorrencia, usuarioLogado, type Resultado } from '../sankhya/ocorrencias';
+import {
+  baixarAnexoDoFormulario,
+  baixarAnexoDoSistema,
+  consultarSolicitacao,
+} from '../sankhya/solicitacaoServicos';
 
 function lerCorpo(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -252,6 +257,64 @@ function responderConsultaNaGuia(
 }
 
 /**
+ * Solicitação de Serviços (DS) pela janela oculta — ver `solicitacaoServicos.ts`. Só
+ * leitura; os caminhos de download são montados aqui, nunca recebidos prontos.
+ */
+async function tratarSolicitacoes(
+  req: IncomingMessage,
+  res: ServerResponse,
+  agenda: ConsultorDeAgenda,
+): Promise<void> {
+  const corpo = JSON.parse((await lerCorpo(req)) || '{}') as Record<string, unknown>;
+  const codigo = Number(corpo['codigo']);
+  if (!Number.isInteger(codigo) || codigo <= 0) {
+    responderJson(res, 400, { erro: 'informe { codigo } numérico' });
+    return;
+  }
+  const chamar = agenda.chamarNoMge.bind(agenda);
+  const baixar = agenda.baixarNoMge.bind(agenda);
+  const nomeArquivo = String(corpo['nomeArquivo'] ?? '');
+
+  if (req.url === '/solicitacoes/consultar') {
+    const r = await consultarSolicitacao(chamar, codigo);
+    if (!r.ok) {
+      responderJson(res, 409, { erro: r.erro ?? 'falha na consulta da DS' });
+      return;
+    }
+    responderJson(res, 200, r.corpo);
+    return;
+  }
+
+  if (req.url === '/solicitacoes/anexo' && corpo['origem'] === 'formulario' && nomeArquivo) {
+    responderConsultaNaGuia(
+      res,
+      await baixarAnexoDoFormulario(baixar, codigo, nomeArquivo),
+      'ds-anexo',
+    );
+    return;
+  }
+
+  const nuAttach = String(corpo['nuAttach'] ?? '');
+  const chave = String(corpo['chave'] ?? '');
+  if (
+    req.url === '/solicitacoes/anexo' &&
+    corpo['origem'] === 'sistema' &&
+    /^\d+$/.test(nuAttach) &&
+    chave &&
+    nomeArquivo
+  ) {
+    responderConsultaNaGuia(
+      res,
+      await baixarAnexoDoSistema(chamar, baixar, { codigo, nuAttach, nomeArquivo, chave }),
+      'ds-anexo',
+    );
+    return;
+  }
+
+  responderJson(res, 400, { erro: `pedido inválido: ${req.url}` });
+}
+
+/**
  * @param tabs Lido a cada requisicao (funcao, nao valor): o servidor sobe junto com a
  *   janela, e guardar a referencia no boot deixaria o bridge preso a um TabManager que
  *   pode ser recriado (`activate` no macOS, janela fechada e reaberta).
@@ -366,6 +429,15 @@ export function criarBridgeServer(
           if (acao === 'criar')
             logEvento('bridge-ocorrencia-criada', { motivo: String(corpo['motivo'] ?? '') });
           responderJson(res, 200, resultado.corpo);
+        } catch (err) {
+          responderJson(res, 500, { erro: String(err) });
+        }
+        return;
+      }
+
+      if (req.method === 'POST' && req.url?.startsWith('/solicitacoes/')) {
+        try {
+          await tratarSolicitacoes(req, res, agenda);
         } catch (err) {
           responderJson(res, 500, { erro: String(err) });
         }
