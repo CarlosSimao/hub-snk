@@ -746,6 +746,19 @@
           </div>
 
           <div class="campo">
+            <label for="campo-branch-principal">Branch principal</label>
+            <input
+              id="campo-branch-principal"
+              type="text"
+              maxlength="200"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Ex.: main"
+              required
+            />
+          </div>
+
+          <div class="campo">
             <label for="campo-url-repositorio">URL do repositório</label>
             <input
               id="campo-url-repositorio"
@@ -2037,6 +2050,10 @@
             aria-labelledby="aba-configuracao-avisos"
             hidden
           >
+            <label class="campo-checkbox">
+              <input type="checkbox" id="campo-aviso-da-branch-principal" /> Consultar o remoto e
+              avisar quando a branch principal ficar atrás
+            </label>
             <fieldset class="grupo-de-acessos" id="grupo-alerta-agenda">
               <legend>
                 Agenda sem tarefa na Experience

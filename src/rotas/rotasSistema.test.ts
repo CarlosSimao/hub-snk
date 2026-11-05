@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
@@ -105,5 +105,43 @@ describe('POST /api/sistema/atualizar', () => {
       const resposta = await servidor.inject({ method: 'POST', url: '/api/sistema/atualizar' });
       assert.deepEqual(resposta.json(), { situacao: 'indisponivel' });
     }
+  });
+});
+
+describe('GET /api/sistema/branch-padrao', () => {
+  it('devolve a branch do origin/HEAD, ou null quando a pasta não a registra', async () => {
+    const { servidor } = criarServidor();
+    const comOrigin = mkdtempSync(join(pasta, 'com-origin-'));
+    const pastaDoOrigin = join(comOrigin, '.git', 'refs', 'remotes', 'origin');
+    mkdirSync(pastaDoOrigin, { recursive: true });
+    writeFileSync(join(pastaDoOrigin, 'HEAD'), 'ref: refs/remotes/origin/main\n');
+
+    const encontrada = await servidor.inject({
+      method: 'GET',
+      url: '/api/sistema/branch-padrao',
+      query: { caminho: comOrigin },
+    });
+    const ausente = await servidor.inject({
+      method: 'GET',
+      url: '/api/sistema/branch-padrao',
+      query: { caminho: join(pasta, 'nao-existe') },
+    });
+
+    assert.deepEqual(encontrada.json(), { branchPadrao: 'main' });
+    assert.deepEqual(ausente.json(), { branchPadrao: null });
+  });
+
+  it('recusa caminho relativo ou ausente', async () => {
+    const { servidor } = criarServidor();
+
+    const relativo = await servidor.inject({
+      method: 'GET',
+      url: '/api/sistema/branch-padrao',
+      query: { caminho: 'repo' },
+    });
+    const semCaminho = await servidor.inject({ method: 'GET', url: '/api/sistema/branch-padrao' });
+
+    assert.equal(relativo.statusCode, 400);
+    assert.equal(semCaminho.statusCode, 400);
   });
 });

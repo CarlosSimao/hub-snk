@@ -99,6 +99,11 @@ export interface ConfiguracaoGlobal {
   backup: ConfiguracaoDeBackup;
   boasVindasConcluidas: boolean;
   caminhoDoWebConnection: string;
+  /**
+   * Liga o `git fetch` a cada 30 minutos nos repositórios que estão na branch principal e
+   * o aviso de branch principal atrás ou divergente do remoto.
+   */
+  avisoDaBranchPrincipal: boolean;
 }
 
 /**
@@ -285,6 +290,12 @@ export interface RepositorioGit {
   url: string;
   /** Pasta do clone na máquina. Ausente quando o repositório não foi clonado. */
   caminhoLocal?: string;
+  /**
+   * Branch em que o projeto deve estar e que deve acompanhar o remoto. Obrigatória no
+   * cadastro; ausente só em repositório antigo cujo `origin/HEAD` não deu para ler, que
+   * fica com a pendência `branch-principal-nao-informada` até ser editado.
+   */
+  branchPrincipal?: string;
 }
 
 /**

@@ -2,6 +2,7 @@ import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { NOME_DO_ARQUIVO_MCP } from '../sistema/arquivoMcp.ts';
 import type { PendenciaGit, Severidade, SituacaoGit } from '../tipos.ts';
+import { ultimaConsultaDoRemoto, type ConsultaDoRemoto } from './consultaDoRemoto.ts';
 import { executarGit, GitIndisponivelError } from './executarGit.ts';
 import {
   apontamParaOMesmoRepositorio,
@@ -31,30 +32,43 @@ const MARCAS_DE_OPERACAO = [
   { marca: 'REVERT_HEAD', descricao: 'revert' },
 ];
 
-interface EstadoDaArvore {
+export interface EstadoDaArvore {
   /** Nome da branch atual, apenas para exibição. `null` com o HEAD desanexado. */
   branch: string | null;
   semCommits: boolean;
   /** Falso quando a branch atual não segue nenhuma branch do remoto. */
   temUpstream: boolean;
+  /** Remoto do upstream (`origin` em `origin/main`); `null` sem upstream. */
+  remotoDoUpstream: string | null;
   /** Commits que existem só aqui. Confiável sem rede: são commits locais. */
   commitsAFrente: number;
+  /**
+   * Commits que existem só no remoto. Só vale logo depois de um `fetch` com sucesso:
+   * antes disso reflete a última sincronização e envelhece sem aviso.
+   */
+  commitsAtras: number;
   rastreadosAlterados: number;
   naoRastreados: number;
   conflitos: number;
 }
 
-interface Coleta {
+export interface Coleta {
   arvore: EstadoDaArvore;
   urlDoRemoto: string | null;
   operacaoEmAndamento: string | null;
   itensNoStash: number;
   mcpRastreado: boolean;
+  branchPrincipal: string | undefined;
+  /** Último `fetch` feito pelo HUB SNK neste processo; `undefined` se nunca rodou. */
+  consultaDoRemoto: ConsultaDoRemoto | undefined;
+  /** `null` quando não foi possível ou necessário conferir. */
+  principalExisteNoRemoto: boolean | null;
 }
 
 export interface DadosDoRepositorio {
   caminhoLocal: string;
   urlCadastrada: string;
+  branchPrincipal?: string;
 }
 
 function criarPendencia(
@@ -81,18 +95,15 @@ async function existe(caminho: string): Promise<boolean> {
   }
 }
 
-/**
- * Lê o `+N` de `# branch.ab +N -M`. O `-M` fica de fora de propósito: sem
- * `fetch`, ele reflete a última sincronização e envelhece sem aviso.
- */
-function lerCommitsAFrente(valor: string): number {
-  const aFrente = valor.trim().split(/\s+/)[0] ?? '';
+/** Lê um dos lados de `# branch.ab +N -M`; `sinal` é `+` para o N e `-` para o M. */
+function lerLadoDaDistancia(valor: string, sinal: '+' | '-'): number {
+  const lado =
+    valor
+      .trim()
+      .split(/\s+/)
+      .find((parte) => parte.startsWith(sinal)) ?? '';
+  const quantidade = Number.parseInt(lado.slice(1), 10);
 
-  if (!aFrente.startsWith('+')) {
-    return 0;
-  }
-
-  const quantidade = Number.parseInt(aFrente.slice(1), 10);
   return Number.isNaN(quantidade) ? 0 : quantidade;
 }
 
@@ -103,12 +114,14 @@ function lerCommitsAFrente(valor: string): number {
  * para o upstream no mesmo texto do estado dos arquivos — uma chamada em vez de
  * três.
  */
-function interpretarArvore(saida: string): EstadoDaArvore {
+export function interpretarArvore(saida: string): EstadoDaArvore {
   const arvore: EstadoDaArvore = {
     branch: null,
     semCommits: false,
     temUpstream: false,
+    remotoDoUpstream: null,
     commitsAFrente: 0,
+    commitsAtras: 0,
     rastreadosAlterados: 0,
     naoRastreados: 0,
     conflitos: 0,
@@ -122,8 +135,12 @@ function interpretarArvore(saida: string): EstadoDaArvore {
       arvore.branch = valor === '(detached)' ? null : valor;
     } else if (linha.startsWith('# branch.upstream ')) {
       arvore.temUpstream = true;
+      arvore.remotoDoUpstream =
+        linha.slice('# branch.upstream '.length).trim().split('/')[0] ?? null;
     } else if (linha.startsWith('# branch.ab ')) {
-      arvore.commitsAFrente = lerCommitsAFrente(linha.slice('# branch.ab '.length));
+      const distancia = linha.slice('# branch.ab '.length);
+      arvore.commitsAFrente = lerLadoDaDistancia(distancia, '+');
+      arvore.commitsAtras = lerLadoDaDistancia(distancia, '-');
     } else if (linha.startsWith('1 ') || linha.startsWith('2 ')) {
       arvore.rastreadosAlterados += 1;
     } else if (linha.startsWith('u ')) {
@@ -146,7 +163,30 @@ async function detectarOperacaoEmAndamento(diretorioGit: string): Promise<string
   return null;
 }
 
-async function coletar(caminhoLocal: string, diretorioGit: string): Promise<Coleta> {
+async function conferirPrincipalNoRemoto(
+  caminhoLocal: string,
+  remoto: string | null,
+  branchPrincipal: string | undefined,
+  consulta: ConsultaDoRemoto | undefined,
+): Promise<boolean | null> {
+  if (!consulta?.ok || !remoto || !branchPrincipal) {
+    return null;
+  }
+
+  const referencia = await executarGit(caminhoLocal, [
+    'rev-parse',
+    '--verify',
+    '--quiet',
+    `refs/remotes/${remoto}/${branchPrincipal}`,
+  ]);
+  return referencia.sucesso;
+}
+
+async function coletar(
+  caminhoLocal: string,
+  diretorioGit: string,
+  branchPrincipal: string | undefined,
+): Promise<Coleta> {
   const [status, remotos, stash, mcp, operacaoEmAndamento] = await Promise.all([
     executarGit(caminhoLocal, ['status', '--porcelain=v2', '--branch']),
     executarGit(caminhoLocal, ['remote', '-v']),
@@ -155,12 +195,23 @@ async function coletar(caminhoLocal: string, diretorioGit: string): Promise<Cole
     detectarOperacaoEmAndamento(diretorioGit),
   ]);
 
+  const arvore = interpretarArvore(status.saida);
+  const consultaDoRemoto = ultimaConsultaDoRemoto(caminhoLocal);
+
   return {
-    arvore: interpretarArvore(status.saida),
+    arvore,
     urlDoRemoto: escolherRemotoPrincipal(remotos.saida),
     operacaoEmAndamento,
     itensNoStash: stash.saida.split('\n').filter((linha) => linha.trim() !== '').length,
     mcpRastreado: mcp.saida.trim() !== '',
+    branchPrincipal,
+    consultaDoRemoto,
+    principalExisteNoRemoto: await conferirPrincipalNoRemoto(
+      caminhoLocal,
+      arvore.remotoDoUpstream,
+      branchPrincipal,
+      consultaDoRemoto,
+    ),
   };
 }
 
@@ -322,6 +373,101 @@ function verificarStash(coleta: Coleta): PendenciaGit[] {
   ];
 }
 
+/**
+ * Compara a branch atual com a principal cadastrada. O "atrás do remoto" só é
+ * afirmado depois de um `fetch` com sucesso feito pelo HUB SNK: sem ele, o `-M` do
+ * status é a foto da última sincronização e acusaria atraso (ou omitiria) por engano.
+ */
+export function verificarBranchPrincipal(coleta: Coleta): PendenciaGit[] {
+  const { branchPrincipal, consultaDoRemoto, principalExisteNoRemoto } = coleta;
+  const { branch, temUpstream, commitsAFrente, commitsAtras } = coleta.arvore;
+
+  if (!branchPrincipal) {
+    return [
+      criarPendencia(
+        'branch-principal-nao-informada',
+        'atencao',
+        'A branch principal deste repositório não foi informada: edite o cadastro para informá-la.',
+      ),
+    ];
+  }
+
+  if (branch !== branchPrincipal) {
+    const atual = branch === null ? 'com o HEAD desanexado' : `na branch ${branch}`;
+    return [
+      criarPendencia(
+        'fora-da-branch-principal',
+        'atencao',
+        `O repositório está ${atual}, fora da branch principal ${branchPrincipal}.`,
+        `git switch ${branchPrincipal}`,
+      ),
+    ];
+  }
+
+  if (!consultaDoRemoto) {
+    return [];
+  }
+
+  if (!consultaDoRemoto.ok) {
+    return [
+      criarPendencia(
+        'remoto-nao-consultado',
+        'desconhecido',
+        `Não foi possível consultar o remoto: não dá para saber se a ${branchPrincipal} está atrás dele.`,
+        'git fetch',
+      ),
+    ];
+  }
+
+  if (principalExisteNoRemoto === false) {
+    return [
+      criarPendencia(
+        'branch-principal-ausente-no-remoto',
+        'atencao',
+        `A branch principal ${branchPrincipal} não existe no remoto: confira o nome cadastrado.`,
+      ),
+    ];
+  }
+
+  if (!temUpstream || commitsAtras === 0) {
+    return [];
+  }
+
+  const atras = pluralizar(commitsAtras, 'commit', 'commits');
+
+  if (commitsAFrente > 0) {
+    return [
+      criarPendencia(
+        'branch-principal-divergente',
+        'erro',
+        `A ${branchPrincipal} divergiu do remoto: ${atras} atrás e ${pluralizar(commitsAFrente, 'commit', 'commits')} à frente.`,
+        'git pull --rebase',
+      ),
+    ];
+  }
+
+  const { rastreadosAlterados, naoRastreados } = coleta.arvore;
+  if (rastreadosAlterados > 0 || naoRastreados > 0) {
+    return [
+      criarPendencia(
+        'branch-principal-atras-com-alteracoes',
+        'atencao',
+        `A ${branchPrincipal} está ${atras} atrás do remoto e há alterações locais: atualize antes de commitar (guarde as alterações antes, se necessário).`,
+        'git pull --ff-only',
+      ),
+    ];
+  }
+
+  return [
+    criarPendencia(
+      'branch-principal-atras',
+      'atencao',
+      `A ${branchPrincipal} está ${atras} atrás do remoto.`,
+      'git pull --ff-only',
+    ),
+  ];
+}
+
 /* ----------------------------- montagem final ----------------------------- */
 
 function diagnosticar(coleta: Coleta, urlCadastrada: string): PendenciaGit[] {
@@ -333,6 +479,7 @@ function diagnosticar(coleta: Coleta, urlCadastrada: string): PendenciaGit[] {
     ...verificarAlteracoesLocais(coleta),
     ...verificarSincronizacaoComRemoto(coleta),
     ...verificarStash(coleta),
+    ...verificarBranchPrincipal(coleta),
   ];
 
   if (!coleta.arvore.semCommits) {
@@ -372,11 +519,13 @@ function montarSituacao(
  * respostas do diagnóstico, não falhas dele. Uma exceção aqui derrubaria a
  * leitura dos outros repositórios da lista.
  *
- * Só lê o disco — nenhuma chamada de rede, nenhum `fetch`.
+ * Só lê o disco — nenhuma chamada de rede, nenhum `fetch`. O resultado do último `fetch`
+ * feito por `consultaDoRemoto.ts` é lido da memória.
  */
 export async function lerSituacaoDoRepositorio({
   caminhoLocal,
   urlCadastrada,
+  branchPrincipal,
 }: DadosDoRepositorio): Promise<SituacaoGit> {
   try {
     /*
@@ -408,7 +557,7 @@ export async function lerSituacaoDoRepositorio({
       ]);
     }
 
-    const coleta = await coletar(caminhoLocal, diretorio.saida.trim());
+    const coleta = await coletar(caminhoLocal, diretorio.saida.trim(), branchPrincipal);
 
     // Sem remoto configurado, o provedor ainda pode ser deduzido do cadastro.
     return montarSituacao(

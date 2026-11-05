@@ -10,6 +10,7 @@ import {
   SeletorDePastaIndisponivelError,
 } from '../sistema/processos/selecionarPasta.ts';
 import { consultarUltimaVersaoPublicada } from '../sistema/versao/ultimaVersaoPublicada.ts';
+import { lerBranchPadraoDoOrigin } from '../git/branchPadraoDoOrigin.ts';
 import { varrerRepositoriosLocais } from '../git/varreduraDeRepositorios.ts';
 import { requisicaoVeioDoShell } from './seguranca/autenticacaoDoShell.ts';
 import { PonteDoDesktopIndisponivelError } from '../sankhya/ponteDoDesktop.ts';
@@ -35,6 +36,18 @@ const esquemaDeVarreduraDeRepositorios = z.object({
       QUANTIDADE_MAXIMA_DE_PASTAS_VARRIDAS,
       `Varra no máximo ${QUANTIDADE_MAXIMA_DE_PASTAS_VARRIDAS} pastas por vez.`,
     ),
+});
+
+const esquemaDeBranchPadrao = z.object({
+  caminho: z
+    .string({ error: 'Informe a pasta do repositório.' })
+    .trim()
+    .min(1, 'Informe a pasta do repositório.')
+    .max(
+      TAMANHO_MAXIMO_DO_CAMINHO,
+      `O caminho deve ter no máximo ${TAMANHO_MAXIMO_DO_CAMINHO} caracteres.`,
+    )
+    .refine(isAbsolute, 'Informe o caminho absoluto da pasta.'),
 });
 
 export interface EncerramentoPeloShell {
@@ -160,6 +173,20 @@ export function registrarRotasDeSistema(
       }
       throw erro;
     }
+  });
+
+  /*
+   * Sugestão para o campo "Branch principal" do cadastro: a branch padrão do `origin`,
+   * lida do disco. `null` quando a pasta não a registra; o usuário digita.
+   */
+  servidor.get('/api/sistema/branch-padrao', async (requisicao, resposta) => {
+    const consulta = esquemaDeBranchPadrao.safeParse(requisicao.query);
+    if (!consulta.success) {
+      const primeiraMensagem = consulta.error.issues[0]?.message ?? 'Dados inválidos.';
+      return resposta.status(400).send({ mensagem: primeiraMensagem });
+    }
+
+    return { branchPadrao: await lerBranchPadraoDoOrigin(consulta.data.caminho) };
   });
 
   /*

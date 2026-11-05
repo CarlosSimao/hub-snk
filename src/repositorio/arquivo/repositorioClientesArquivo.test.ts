@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
@@ -574,5 +574,49 @@ describe('RepositorioClientesArquivo — vínculo antigo de agenda por CODPARC',
     assert.equal('agendaCodparcs' in (comLista ?? {}), false);
     assert.equal('agendaCodparc' in (comSingular ?? {}), false);
     assert.equal('agendaRecursoUsuario' in (comSingular ?? {}), false);
+  });
+});
+
+describe('RepositorioClientesArquivo — branch principal dos repositórios antigos', () => {
+  async function criarPastaComOriginHead(conteudo: string): Promise<string> {
+    const pastaDoRepositorio = await mkdtemp(join(diretorio, 'repo-'));
+    const pastaDoOrigin = join(pastaDoRepositorio, '.git', 'refs', 'remotes', 'origin');
+    await mkdir(pastaDoOrigin, { recursive: true });
+    await writeFile(join(pastaDoOrigin, 'HEAD'), conteudo, 'utf8');
+    return pastaDoRepositorio;
+  }
+
+  it('preenche pelo origin/HEAD na leitura e deixa sem o campo quando não dá para ler', async () => {
+    const comOrigin = await criarPastaComOriginHead('ref: refs/remotes/origin/develop\n');
+    const semOrigin = await mkdtemp(join(diretorio, 'sem-origin-'));
+    await writeFile(
+      caminhoDoArquivo(),
+      JSON.stringify({
+        versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+        clientes: [
+          {
+            id: 'a',
+            nome: 'Indústria Alfa',
+            repositorios: [
+              { id: 'r1', url: 'https://exemplo.com/a.git', caminhoLocal: comOrigin },
+              { id: 'r2', url: 'https://exemplo.com/b.git', caminhoLocal: semOrigin },
+              { id: 'r3', url: 'https://exemplo.com/c.git' },
+              {
+                id: 'r4',
+                url: 'https://exemplo.com/d.git',
+                caminhoLocal: comOrigin,
+                branchPrincipal: 'main',
+              },
+            ],
+          },
+        ],
+      }),
+      'utf8',
+    );
+
+    const [cliente] = await repositorio.listar();
+    const branches = cliente?.repositorios.map((item) => item.branchPrincipal);
+
+    assert.deepEqual(branches, ['develop', undefined, undefined, 'main']);
   });
 });

@@ -125,6 +125,7 @@ const CONFIGURACAO_INICIAL: ConfiguracaoGlobal = {
   /* Instalação nova: o assistente de boas-vindas abre na primeira vez. */
   boasVindasConcluidas: false,
   caminhoDoWebConnection: '',
+  avisoDaBranchPrincipal: true,
 };
 
 /**
@@ -417,6 +418,8 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       boasVindasConcluidas: lerBoasVindasConcluidas(dados),
       // Arquivo de antes desta versão não tem o campo: usa a instalação padrão.
       caminhoDoWebConnection: textoOuPadrao(dados.caminhoDoWebConnection, '').trim(),
+      // Arquivo de antes desta versão não tem o campo: o aviso nasce ligado.
+      avisoDaBranchPrincipal: booleanoOuPadrao(dados.avisoDaBranchPrincipal, true),
     };
 
     if (precisaMigrar(conteudo)) {
@@ -468,6 +471,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       backup: atual.backup,
       boasVindasConcluidas: atual.boasVindasConcluidas,
       caminhoDoWebConnection: atual.caminhoDoWebConnection,
+      avisoDaBranchPrincipal: configuracao.avisoDaBranchPrincipal ?? atual.avisoDaBranchPrincipal,
     };
 
     await gravarArquivoDeDados(

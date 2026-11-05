@@ -514,3 +514,36 @@ describe('RepositorioConfiguracaoArquivo — boas-vindas', () => {
     assert.equal((await repositorio.ler()).boasVindasConcluidas, true);
   });
 });
+
+describe('RepositorioConfiguracaoArquivo — aviso da branch principal', () => {
+  it('nasce ligado, em arquivo novo e em arquivo antigo sem o campo', async () => {
+    assert.equal((await repositorio.ler()).avisoDaBranchPrincipal, true);
+
+    await writeFile(
+      caminhoDoArquivo(),
+      JSON.stringify({ tempoLimiteDeStatusDaBaseMs: 8000 }),
+      'utf8',
+    );
+    repositorio.descartarCache();
+
+    assert.equal((await repositorio.ler()).avisoDaBranchPrincipal, true);
+  });
+
+  it('respeita o desligado gravado e o preserva quando a tela não manda o campo', async () => {
+    await writeFile(caminhoDoArquivo(), JSON.stringify({ avisoDaBranchPrincipal: false }), 'utf8');
+    repositorio.descartarCache();
+    const atual = await repositorio.ler();
+
+    const salva = await repositorio.salvar({
+      intervaloDeExecucaoAutomaticaSegundos: atual.intervaloDeExecucaoAutomaticaSegundos,
+      tempoLimiteSegundos: atual.tempoLimiteSegundos,
+      caminhoDoSchemaMcp: '',
+      atalhos: [],
+      destinoDosLinks: 'hub',
+      caminhoDoExecutavelDaIde: '',
+    });
+
+    assert.equal(atual.avisoDaBranchPrincipal, false);
+    assert.equal(salva.avisoDaBranchPrincipal, false);
+  });
+});
