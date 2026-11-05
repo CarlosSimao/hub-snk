@@ -9,6 +9,20 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.22.0] - 2026-11-05
+
+### Adicionado
+
+- **Solicitação de Serviços (DS) no evento da agenda**: quando o texto do evento cita a DS
+  com "ID" e o número (`ID 3619`, `Demanda ID 3619`), o evento ganha um bloco com os dados
+  dela no SankhyaOm: tipo, status do orçamento, parceiro, solicitante, executante, horas
+  estimadas, datas, descrição, histórico e anexos. PDF e imagem abrem numa janela própria;
+  os outros anexos vão para a pasta Downloads. Os outros IDs citados no evento, na descrição
+  ou no histórico da DS aparecem em **IDs relacionados**. Na agenda do Resumo, o evento
+  ganha o selo da DS. Só no perfil Desenvolvedor: a opção **DS na agenda**, em
+  Configurações › Acessos, vem desmarcada nos outros perfis, inclusive em quem já usava o
+  HUB SNK.
+
 ## [2.21.1] - 2026-11-04
 
 ### Corrigido
@@ -1059,6 +1073,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.22.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.21.1...v2.22.0
 [2.21.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.21.0...v2.21.1
 [2.21.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.20.1...v2.21.0
 [2.20.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.20.0...v2.20.1

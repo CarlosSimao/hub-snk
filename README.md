@@ -202,27 +202,27 @@ Os logs do aplicativo ficam em `%APPDATA%\HUB SNK\log` (`desktop.log` e
 
 ## Funcionalidades
 
-| O quê                       | Resumo                                                                                                                               |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Cadastro de clientes**    | Bases do ERP com usuário, senha e banco vinculado, repositórios Git, links avulsos, projetos e anotações livres                      |
-| **Guias do Sankhya**        | SankhyaOm e Experience dentro do aplicativo; cada base de cliente numa guia isolada, com usuário e senha preenchidos                 |
-| **Agenda de Recursos**      | Lida por uma janela oculta que loga no SankhyaOm sozinha; lança a OS do dia na Experience e ocorrências (férias, folga) no ERP       |
-| **Resumo do dia**           | A tela inicial do Painel: agenda de hoje, lembretes do dia, repositórios com pendência e OS não concluídas, cada item com seu atalho |
-| **Notificações**            | Sino do topo e aviso do Windows, com som e e-mail opcional: evento da agenda sem tarefa na Experience e lembretes                    |
-| **Lembretes**               | Aba própria no menu: numa data ou recorrentes (cron), ligados a um cliente ou projeto, com aviso e e-mail opcional                   |
-| **Kanban**                  | Quadro por projeto e por cliente, mais um Kanban geral; colunas e tipos cadastráveis; a IA gera as tarefas do escopo. JSON e MCP     |
-| **Importação de favoritos** | Transforma favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, deduzindo Produção ou Teste do nome                         |
-| **Botões do repositório**   | Abrem a pasta, o terminal, a IDE configurada e o assistente de IA (num terminal novo); e editam o `.sankhya-mcp.env` do MCP Claude   |
-| **Busca rápida**            | `Ctrl+K` no aplicativo ou `Ctrl+Shift+Espaço` em qualquer programa: acha cliente, base, repositório, link, contato ou atalho e abre  |
-| **Buscar na página**        | `Ctrl+F` em qualquer guia, inclusive na Experience e no SankhyaOm: destaca as ocorrências e anda entre elas, como no Chrome          |
-| **Comunicação**             | WhatsApp Web, Gmail, Google Chat, Google Agenda e Meet na barra lateral; o contato abre a conversa ou um e-mail do HUB SNK           |
-| **Atalhos**                 | Lista de programas da sua máquina, iniciados com um clique pelo botão de raio, com busca a partir de seis cadastrados                |
-| **Bases locais (Local)**    | Ligam, param e reiniciam o WildFly da sua máquina, com a situação do serviço, o log ao vivo e o `.sankhya-mcp.env` da instalação     |
-| **Bancos locais (Local)**   | Ligam, param e reiniciam o container Docker do banco, conferindo se ele responde login com as credenciais cadastradas                |
-| **Diagnóstico Git**         | Selo por repositório com a branch e a pendência mais grave — commit faltando, conflito, segredo rastreado —, atualizado sozinho      |
-| **Git AutoSync**            | Opcional, instalado pela aba Git AutoSync: commit e push automáticos, também na seção AutoSync da aba Git do cliente                 |
-| **Telas Flash**             | _Hub_ › _Compatibilidade com Flash (Ruffle)_ abre as telas Flex legadas do SankhyaOm, que pedem o Flash Player                       |
-| **Backup**                  | Cópia sempre atual no seu Google Drive e backup periódico numa pasta à sua escolha, com restauração pela tela                        |
+| O quê                       | Resumo                                                                                                                                                                                                |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cadastro de clientes**    | Bases do ERP com usuário, senha e banco vinculado, repositórios Git, links avulsos, projetos e anotações livres                                                                                       |
+| **Guias do Sankhya**        | SankhyaOm e Experience dentro do aplicativo; cada base de cliente numa guia isolada, com usuário e senha preenchidos                                                                                  |
+| **Agenda de Recursos**      | Lida por uma janela oculta que loga no SankhyaOm sozinha; lança a OS do dia na Experience e ocorrências (férias, folga) no ERP; mostra a Solicitação de Serviços (DS) citada no evento, com os anexos |
+| **Resumo do dia**           | A tela inicial do Painel: agenda de hoje, lembretes do dia, repositórios com pendência e OS não concluídas, cada item com seu atalho                                                                  |
+| **Notificações**            | Sino do topo e aviso do Windows, com som e e-mail opcional: evento da agenda sem tarefa na Experience e lembretes                                                                                     |
+| **Lembretes**               | Aba própria no menu: numa data ou recorrentes (cron), ligados a um cliente ou projeto, com aviso e e-mail opcional                                                                                    |
+| **Kanban**                  | Quadro por projeto e por cliente, mais um Kanban geral; colunas e tipos cadastráveis; a IA gera as tarefas do escopo. JSON e MCP                                                                      |
+| **Importação de favoritos** | Transforma favoritos do Chrome, Edge, Opera, Firefox ou Safari em bases, deduzindo Produção ou Teste do nome                                                                                          |
+| **Botões do repositório**   | Abrem a pasta, o terminal, a IDE configurada e o assistente de IA (num terminal novo); e editam o `.sankhya-mcp.env` do MCP Claude                                                                    |
+| **Busca rápida**            | `Ctrl+K` no aplicativo ou `Ctrl+Shift+Espaço` em qualquer programa: acha cliente, base, repositório, link, contato ou atalho e abre                                                                   |
+| **Buscar na página**        | `Ctrl+F` em qualquer guia, inclusive na Experience e no SankhyaOm: destaca as ocorrências e anda entre elas, como no Chrome                                                                           |
+| **Comunicação**             | WhatsApp Web, Gmail, Google Chat, Google Agenda e Meet na barra lateral; o contato abre a conversa ou um e-mail do HUB SNK                                                                            |
+| **Atalhos**                 | Lista de programas da sua máquina, iniciados com um clique pelo botão de raio, com busca a partir de seis cadastrados                                                                                 |
+| **Bases locais (Local)**    | Ligam, param e reiniciam o WildFly da sua máquina, com a situação do serviço, o log ao vivo e o `.sankhya-mcp.env` da instalação                                                                      |
+| **Bancos locais (Local)**   | Ligam, param e reiniciam o container Docker do banco, conferindo se ele responde login com as credenciais cadastradas                                                                                 |
+| **Diagnóstico Git**         | Selo por repositório com a branch e a pendência mais grave — commit faltando, conflito, segredo rastreado —, atualizado sozinho                                                                       |
+| **Git AutoSync**            | Opcional, instalado pela aba Git AutoSync: commit e push automáticos, também na seção AutoSync da aba Git do cliente                                                                                  |
+| **Telas Flash**             | _Hub_ › _Compatibilidade com Flash (Ruffle)_ abre as telas Flex legadas do SankhyaOm, que pedem o Flash Player                                                                                        |
+| **Backup**                  | Cópia sempre atual no seu Google Drive e backup periódico numa pasta à sua escolha, com restauração pela tela                                                                                         |
 
 As bases e os bancos locais ficam no botão **Local**, no topo do painel, ao lado
 de _Clientes_: é o ambiente de desenvolvimento da sua própria máquina, separado do
