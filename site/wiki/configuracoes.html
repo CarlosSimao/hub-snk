@@ -599,7 +599,8 @@
             cliente não tem tarefa nem OS na Experience. Precisa do código de usuário e do login, os
             dois na aba <a href="#sankhya-id">Sankhya ID</a>. Grava no <strong>Salvar</strong> do
             rodapé. A aba some com <a href="#acessos-terceiro">Terceiro</a> marcado. O passo a passo
-            fica em <a href="lembretes-e-notificacoes.html#alerta-da-agenda">Alerta da agenda</a>.
+            fica em <a href="lembretes-e-notificacoes.html#alerta-da-agenda">Alerta da agenda</a>. A
+            aba traz ainda a opção da <a href="#avisos-branch-principal">branch principal</a>.
           </p>
 
           <h3>Passo a passo</h3>
@@ -620,6 +621,17 @@
 
           <h3>Campos</h3>
           <dl>
+            <dt id="avisos-branch-principal">
+              <strong>Consultar o remoto e avisar quando a branch principal ficar atrás</strong>
+            </dt>
+            <dd>
+              A cada 30 minutos, roda <code>git fetch</code> nos repositórios que estão na branch
+              principal e avisa, uma vez por mudança, quando ela fica atrás ou divergente do remoto.
+              Desmarcada, não consulta nem avisa; a consulta ao recarregar o cliente continua.
+              Padrão: marcada. Afeta:
+              <a href="repositorios-git.html#pendencias">pendências do repositório</a>.
+            </dd>
+
             <dt id="avisos-periodicidade"><strong>Periodicidade (minutos)</strong></dt>
             <dd>
               De quanto em quanto tempo a conferência roda. De 1 a 1440. Padrão: 120. A primeira

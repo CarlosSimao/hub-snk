@@ -127,8 +127,9 @@
         <section class="funcionalidade" id="cadastrar-repositorio">
           <h2>Cadastrar repositório</h2>
           <p>
-            Vincula um repositório ao cliente com dois campos obrigatórios: o
-            <strong>Caminho local</strong>, a pasta absoluta do clone (até 400 caracteres), e a
+            Vincula um repositório ao cliente com três campos obrigatórios: o
+            <strong>Caminho local</strong>, a pasta absoluta do clone (até 400 caracteres), a
+            <strong>Branch principal</strong>, pelo nome exato, e a
             <strong>URL do repositório</strong>, http ou https (até 300 caracteres). A pasta pode
             ainda não existir. O mesmo cliente não aceita a mesma URL duas vezes.
           </p>
@@ -151,9 +152,11 @@
             </li>
             <li>
               Na janela <strong>Cadastrar repositório</strong>, preencha o
-              <strong>Caminho local</strong> e a <strong>URL do repositório</strong>. O botão de
-              pasta ao lado do caminho abre o seletor de pastas do sistema; o campo continua
-              editável.
+              <strong>Caminho local</strong>, a <strong>Branch principal</strong> e a
+              <strong>URL do repositório</strong>. O botão de pasta ao lado do caminho abre o
+              seletor de pastas do sistema; o campo continua editável. Com a pasta já clonada, a
+              <strong>Branch principal</strong> vem preenchida com a branch padrão do remoto (a do
+              <code>origin/HEAD</code>); corrija se a principal for outra.
               <!-- print-pendente: sistema: seletor de pasta do Windows -->
               <figure>
                 <img
@@ -263,9 +266,11 @@
             Todo repositório com pasta local ganha um selo com a bolinha da situação, a branch atual
             e a pendência mais grave, com <strong>+N</strong> quando há outras. Verde está
             sincronizado com o remoto, amarelo tem pendência, vermelho precisa de ação e cinza não
-            pôde ser verificado. O diagnóstico só lê o disco: não acessa a rede nem pede senha, e
-            compara com a última posição do remoto que o clone conhece (a do último
-            <code>fetch</code>).
+            pôde ser verificado. O diagnóstico lê o disco e compara com a última posição do remoto
+            que o clone conhece (a do último <code>fetch</code>). A única ida à rede é a consulta ao
+            remoto (<code>git fetch</code>, sem pedir senha), feita só nos repositórios que estão na
+            branch principal: ao recarregar o cliente e a cada 30 minutos. Falhou, o selo mostra
+            remoto não consultado.
           </p>
 
           <h3>Passo a passo</h3>
@@ -388,9 +393,62 @@
             <code>.gitignore</code>, commits não enviados, branch sem upstream, stash e repositório
             sem commits.
           </p>
+          <p>As pendências da <strong>branch principal</strong>, e o que fazer em cada uma:</p>
+          <ul>
+            <li>
+              <strong>Branch principal não informada</strong> (amarelo): edite o cadastro e informe
+              a branch. Repositórios antigos são preenchidos sozinhos quando o clone tem o
+              <code>origin/HEAD</code>.
+            </li>
+            <li>
+              <strong>Fora da branch principal</strong> (amarelo): o repositório está em outra
+              branch ou com o HEAD desanexado. Rode <code>git switch &lt;principal&gt;</code>.
+            </li>
+            <li>
+              <strong>Principal atrás do remoto</strong> (amarelo): rode
+              <code>git pull --ff-only</code>.
+            </li>
+            <li>
+              <strong>Principal atrás do remoto, com alterações locais</strong> (amarelo): atualize
+              antes de commitar. Rode <code>git pull --ff-only</code>, guardando as alterações
+              antes, se necessário.
+            </li>
+            <li>
+              <strong>Principal divergente do remoto</strong> (vermelho): há commits à frente e
+              atrás. Rode <code>git pull --rebase</code>.
+            </li>
+            <li>
+              <strong>Principal ausente no remoto</strong> (amarelo): o nome cadastrado não existe
+              no remoto. Corrija a <strong>Branch principal</strong> no cadastro.
+            </li>
+            <li>
+              <strong>Remoto não consultado</strong> (cinza): a consulta falhou (rede, credencial ou
+              tempo limite). Rode <code>git fetch</code> no terminal e recarregue o cliente.
+            </li>
+          </ul>
+          <figure>
+            <img
+              src="img/repositorios-git/pendencias-03-branch-principal.webp"
+              alt="Lista de pendências com o aviso de repositório fora da branch principal"
+              width="1264"
+              height="821"
+              loading="lazy"
+            />
+          </figure>
+          <p class="nota">
+            As de atraso só aparecem depois de uma consulta ao remoto bem-sucedida e só na branch
+            principal. Atrasada ou divergente, ela também gera uma notificação, uma vez por mudança.
+          </p>
 
           <h3>Configurações que dependem ou alteram</h3>
-          <p>Nenhuma.</p>
+          <ul>
+            <li>
+              <a href="configuracoes.html#avisos-branch-principal"
+                >Configurações › Avisos › Consultar o remoto e avisar quando a branch principal
+                ficar atrás</a
+              >
+            </li>
+          </ul>
 
           <h3>Depende de</h3>
           <ul>

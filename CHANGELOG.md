@@ -9,6 +9,24 @@ número significa aqui.
 
 ## [Não publicado]
 
+### Adicionado
+
+- **Branch principal do repositório**: o cadastro do repositório ganha o campo **Branch
+  principal**, obrigatório. Ao escolher a pasta local, ele vem preenchido sozinho com a
+  branch padrão do remoto (a do `origin/HEAD`), e continua editável. Os repositórios já
+  cadastrados são preenchidos do mesmo jeito; quando não dá para descobrir, ficam com a
+  pendência **Branch principal não informada** até você editar o cadastro.
+- **Pendências novas no diagnóstico Git**: branch atual fora da principal, principal atrás
+  do remoto, atrás do remoto com alterações locais (atualize antes de commitar), divergente
+  do remoto, ausente no remoto e remoto não consultado, com o comando que resolve quando há.
+- **Consulta ao remoto**: o HUB SNK roda um `git fetch` (sem pedir senha) ao recarregar o
+  cliente e, a cada 30 minutos, nos repositórios que estão na branch principal. Fora dela, o
+  repositório não é consultado.
+- **Aviso de branch principal fora de sincronia**: quando a principal fica atrás ou
+  divergente do remoto, sai uma notificação, uma vez por mudança. Em **Configurações ›
+  Avisos**, a opção **Consultar o remoto e avisar quando a branch principal ficar atrás**
+  (ligada por padrão) desliga a consulta de 30 minutos e o aviso.
+
 ## [2.23.1] - 2026-11-05
 
 ### Alterado

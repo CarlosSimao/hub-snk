@@ -89,11 +89,11 @@ function cliente(id, nome, extras = {}) {
 }
 
 function montarClientes(pastaDosRepositorios) {
-  const repositorio = (id, nome, estado) => {
+  const repositorio = (id, nome, estado, branchPrincipal = 'main') => {
     const caminhoLocal = join(pastaDosRepositorios, nome);
     const url = `https://github.com/consultoria-demo/${nome}.git`;
     criarRepositorio(caminhoLocal, url, estado);
-    return { id, url, caminhoLocal };
+    return { id, url, caminhoLocal, branchPrincipal };
   };
 
   return [
@@ -135,7 +135,7 @@ function montarClientes(pastaDosRepositorios) {
         base(id('b-alfa-prod'), 'alfa-prod', 'producao', 'ADMIN', true),
         base(id('b-alfa-teste'), 'alfa-teste', 'teste', 'ADMIN', false),
       ],
-      repositorios: [repositorio(id('r-alfa'), 'alfa-embalagens', 'alterado')],
+      repositorios: [repositorio(id('r-alfa'), 'alfa-embalagens', 'alterado', 'develop')],
     }),
     cliente(id('c-rotasul'), 'Transportadora Rota Sul', {
       bases: [base(id('b-rotasul-prod'), 'rotasul-prod', 'producao', 'SUP', false)],

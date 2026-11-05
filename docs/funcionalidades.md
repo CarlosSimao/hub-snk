@@ -491,6 +491,17 @@ Om e da Experience ativas no aplicativo. Sessão caída vira uma notificação d
 próprio HUB SNK, uma vez por dia; com o backend rodando sem o aplicativo
 (`npm run dev`), a verificação só registra no log.
 
+### Branch principal fora de sincronia
+
+A cada 30 minutos, com a opção **Consultar o remoto e avisar quando a branch principal
+ficar atrás** (**Configurações › Avisos**, ligada por padrão) ativa, o HUB SNK consulta o
+remoto dos repositórios que estão na branch principal e relê a situação. Principal atrás,
+atrás com alterações locais ou divergente gera uma notificação do próprio HUB SNK, sem
+e-mail, com o cliente, o repositório e a branch. O aviso sai **uma vez por mudança**: a
+chave inclui a pendência e os commits atrás e à frente, então só uma nova mudança de
+estado avisa de novo. Desligada a opção, não há consulta de 30 minutos nem aviso; a
+consulta ao recarregar o cliente continua.
+
 ### Dashboard HUB - Workbench implantado
 
 A cada 4 horas sai **um** lembrete com a lista das bases marcadas com o dashboard HUB -
@@ -721,24 +732,42 @@ O que é verificado, e com que gravidade:
 | A branch atual não tem upstream — os commits dela só existem nesta máquina                 | Amarelo   |
 | Alterações guardadas no stash                                                              | Amarelo   |
 | O repositório ainda não tem nenhum commit                                                  | Amarelo   |
+| A branch principal não foi informada no cadastro                                           | Amarelo   |
+| A branch atual não é a principal cadastrada (inclui HEAD desanexado)                       | Amarelo   |
+| Na principal, atrás do remoto (`git pull --ff-only`)                                       | Amarelo   |
+| Na principal, atrás do remoto e com alterações locais — atualizar antes de commitar        | Amarelo   |
+| Na principal, divergente do remoto: commits à frente e atrás (`git pull --rebase`)         | Vermelho  |
+| A principal cadastrada não existe no remoto                                                | Amarelo   |
+| Na principal, e a última consulta ao remoto falhou (`git fetch`)                           | Cinza     |
 
 O provedor (GitHub ou GitLab) é deduzido do host do remoto. GitLab instalado no
 domínio da empresa (`gitlab.suaempresa.com.br`) é reconhecido pelo nome no host;
 um domínio sem pista nenhuma fica como desconhecido, sem palpite.
 
-O nome da branch atual aparece no selo apenas como informação: o diagnóstico não
-compara branches entre si.
+A **branch principal** é um campo obrigatório do repositório (nome exato, sem curinga).
+Ao informar a pasta local no cadastro, o campo é preenchido com a branch padrão do remoto,
+lida do arquivo `.git/refs/remotes/origin/HEAD` sem rodar `git`. Repositórios antigos, sem
+o campo, recebem o mesmo valor na leitura do `clientes.json`; sem o `origin/HEAD`, ficam
+com a pendência de branch não informada (a branch atual nunca é usada como palpite). Na
+importação em lote o campo é opcional e segue a mesma detecção.
+
+As pendências de atraso só valem na branch principal. Em qualquer outra branch o
+diagnóstico acusa apenas que o repositório está fora da principal.
 
 A contagem de commits não enviados sai do próprio repositório local, sem rede:
 são commits que existem aqui e não na última posição conhecida do remoto. O
 caminho inverso — commits que chegaram ao remoto e ainda não vieram para cá —
-fica de fora justamente por depender de `fetch`: sem ele o número envelhece sem
-aviso e acusaria pendência onde não há, ou silenciaria onde há.
+só entra depois de uma consulta ao remoto (`git fetch --quiet <remoto>`, o do upstream da
+branch): sem ela o número envelhece sem aviso. Fetch ainda não rodado, ou branch sem
+upstream, não gera pendência de atraso.
 
-Nenhuma parte do diagnóstico usa a rede: todos os comandos são leituras do
-disco. O `git` roda sem prompt de credencial, então nenhum repositório trava o
-HUB SNK esperando senha. O resultado fica em cache por 30 segundos, e o botão de
-recarregar do cliente refaz tudo ignorando o cache.
+O diagnóstico em si só lê o disco. A única chamada de rede é essa consulta, que roda só em
+repositório que está na branch principal, em dois momentos: ao **recarregar o cliente**
+(só os repositórios dele) e a cada **30 minutos**, em segundo plano. O `git` roda sem
+prompt de credencial (`GIT_TERMINAL_PROMPT=0`, `GCM_INTERACTIVE=never`) e com o tempo
+limite da configuração, então nenhum repositório trava o HUB SNK esperando senha; falha
+vira a pendência de remoto não consultado. O resultado fica em cache por 30 segundos, e o
+botão de recarregar do cliente refaz tudo ignorando o cache.
 
 ### Atualização automática
 
