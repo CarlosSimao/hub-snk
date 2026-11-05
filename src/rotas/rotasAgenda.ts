@@ -17,7 +17,31 @@ import { SessaoExpiradaError, type Experience, type OsLancada } from '../sankhya
 import { TIPOS_DE_OS, validarHorariosDaOs } from '../sankhya/lancamentoDeOs.ts';
 import { PayloadDeNegociacoesInvalidoError } from '../sankhya/negociacoes.ts';
 import { MOTIVOS_OCORRENCIA, validarNovaOcorrencia } from '../sankhya/ocorrencias.ts';
+import {
+  idsCitadosNaAgenda,
+  SolicitacaoNaoEncontradaError,
+  SolicitacoesDeServico,
+} from '../sankhya/solicitacaoServicos.ts';
+import type { EventoAgenda } from '../tipos.ts';
 import { responderErroDoShell } from './comum/respostasDoShell.ts';
+
+const esquemaDeAnexo = z.discriminatedUnion('origem', [
+  z.object({ origem: z.literal('formulario'), nome: z.string().min(1) }),
+  z.object({
+    origem: z.literal('sistema'),
+    nome: z.string().min(1),
+    nuAttach: z.string().regex(/^\d+$/),
+    chave: z.string().min(1),
+  }),
+]);
+
+/** Os IDs de DS citados no texto livre de cada evento, para a tela não repetir a regra. */
+function comSolicitacoes<T extends EventoAgenda>(eventos: T[]): (T & { solicitacoes: number[] })[] {
+  return eventos.map((evento) => ({
+    ...evento,
+    solicitacoes: idsCitadosNaAgenda(`${evento.descrabrev}\n${evento.descrlonga}`),
+  }));
+}
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const esquemaDeConsulta = z.object({
@@ -95,7 +119,52 @@ export function registrarRotasDeAgenda(
           .status(400)
           .send({ mensagem: 'Informe ?de= e ?ate= no formato YYYY-MM-DD.' });
       }
-      return { eventos: agenda.eventos(`${de} 00:00:00`, `${ate} 23:59:59`) };
+      return { eventos: comSolicitacoes(agenda.eventos(`${de} 00:00:00`, `${ate} 23:59:59`)) };
+    },
+  );
+
+  const solicitacoes = new SolicitacoesDeServico(credenciais);
+
+  /** Solicitação de Serviços (DS) citada num evento — ver `src/sankhya/solicitacaoServicos.ts`. */
+  servidor.get<{ Params: { codigo: string }; Querystring: { atualizar?: string } }>(
+    '/api/agenda/solicitacoes/:codigo',
+    async (requisicao, resposta) => {
+      const codigo = Number(requisicao.params.codigo);
+      if (!Number.isInteger(codigo) || codigo <= 0) {
+        return resposta.status(400).send({ mensagem: 'Código da DS inválido.' });
+      }
+      try {
+        return await solicitacoes.consultar(codigo, requisicao.query.atualizar === '1');
+      } catch (erro) {
+        if (erro instanceof SolicitacaoNaoEncontradaError) {
+          return resposta.status(404).send({ mensagem: erro.message });
+        }
+        return responderErroDaConsulta(resposta, erro);
+      }
+    },
+  );
+
+  /** O arquivo do anexo: a janela de prévia abre este endereço direto. */
+  servidor.get<{ Params: { codigo: string }; Querystring: Record<string, string | undefined> }>(
+    '/api/agenda/solicitacoes/:codigo/anexo',
+    async (requisicao, resposta) => {
+      const codigo = Number(requisicao.params.codigo);
+      const pedido = esquemaDeAnexo.safeParse(requisicao.query);
+      if (!Number.isInteger(codigo) || codigo <= 0 || !pedido.success) {
+        return resposta.status(400).send({ mensagem: 'Anexo inválido.' });
+      }
+      const { nome, ...resto } = pedido.data;
+      try {
+        const arquivo = await solicitacoes.baixarAnexo({ codigo, nomeArquivo: nome, ...resto });
+        // `filename*` em UTF-8 (o nome tem acento e espaço): é o título e o nome do
+        // download no leitor de PDF da janela de prévia.
+        return resposta
+          .header('content-type', arquivo.tipo)
+          .header('content-disposition', `inline; filename*=UTF-8''${encodeURIComponent(nome)}`)
+          .send(arquivo.conteudo);
+      } catch (erro) {
+        return responderErroDaConsulta(resposta, erro);
+      }
     },
   );
 
@@ -296,7 +365,9 @@ export function registrarRotasDeAgenda(
         return { eventos: [], semParceiroCasado: true };
       }
 
-      return { eventos: agenda.eventos(`${de} 00:00:00`, `${ate} 23:59:59`, codparcs) };
+      return {
+        eventos: comSolicitacoes(agenda.eventos(`${de} 00:00:00`, `${ate} 23:59:59`, codparcs)),
+      };
     },
   );
 }

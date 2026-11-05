@@ -11,6 +11,7 @@
 import type { NovaOcorrencia } from './ocorrencias.ts';
 import type { OpcoesDaPonte, PonteDoDesktop } from './ponteDoDesktop.ts';
 import type { SessaoDoDesktop, SessaoEmpurrada } from './sessaoDoDesktop.ts';
+import type { PedidoDeAnexo, SolicitacaoBruta } from './solicitacaoServicos.ts';
 import { SISTEMAS_SANKHYA, type SistemaSankhya, type StatusCredencial } from '../tipos.ts';
 
 /** O que sai do cofre decriptado. Nunca sai do backend. */
@@ -213,6 +214,32 @@ export class Credenciais {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ ...nova, codusuEsperado }),
+      },
+      { timeoutMs: TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS },
+    );
+  }
+
+  /** Solicitação de Serviços (DS) com histórico e anexos — o JSON cru de cada consulta. */
+  consultarSolicitacao(codigo: number): Promise<SolicitacaoBruta> {
+    return this.#requisitar<SolicitacaoBruta>(
+      '/solicitacoes/consultar',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ codigo }),
+      },
+      { timeoutMs: TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS },
+    );
+  }
+
+  /** Arquivo de um anexo da DS, em base64. */
+  baixarAnexoDaSolicitacao(pedido: PedidoDeAnexo): Promise<ConsultaNaGuia> {
+    return this.#requisitar<ConsultaNaGuia>(
+      '/solicitacoes/anexo',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(pedido),
       },
       { timeoutMs: TIMEOUT_DAS_CONSULTAS_NA_GUIA_MS },
     );

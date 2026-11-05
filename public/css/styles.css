@@ -4940,3 +4940,88 @@ button.selo-situacao:focus-visible {
 .erro-boas-vindas {
   padding: 0 16px 10px;
 }
+
+/* Solicitação de Serviços (DS) citada no evento da agenda: recolhida até ser aberta. */
+.bloco-ds {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+}
+
+.bloco-ds > summary,
+.secao-ds > summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.conteudo-ds {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.cabecalho-ds {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cabecalho-ds > strong {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.campos-ds {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.campos-ds dt {
+  color: var(--text-dim);
+}
+
+.campos-ds dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Descrição e observações vêm do Sankhya com quebras de linha que importam. */
+.texto-ds {
+  margin: 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lista-ds {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.anexo-ds {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.anexo-ds > .btn {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.secao-ds .bloco-ds {
+  margin-top: 6px;
+}

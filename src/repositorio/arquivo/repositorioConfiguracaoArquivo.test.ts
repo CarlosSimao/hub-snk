@@ -273,6 +273,7 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
       'cliente.repositorios',
       'autosync',
       'cliente.autosync',
+      'agenda.solicitacoes',
     ]);
   });
 
@@ -306,7 +307,7 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
       JSON.stringify({
         versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
         configuracao: {
-          perfil: 'analista',
+          perfil: 'desenvolvedor',
           funcionalidadesOcultas: ['agenda', 'agenda', 'removida-numa-versao-nova'],
         },
       }),
@@ -315,8 +316,39 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
 
     const configuracao = await repositorio.ler();
 
-    assert.equal(configuracao.perfil, 'analista');
+    assert.equal(configuracao.perfil, 'desenvolvedor');
     assert.deepEqual(configuracao.funcionalidadesOcultas, ['agenda']);
+  });
+
+  it('funcionalidade nova depois da lista gravada segue o preset do perfil', async () => {
+    const listaDaVersaoAnterior = (perfil: string) =>
+      JSON.stringify({
+        versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+        configuracao: { perfil, funcionalidadesOcultas: ['kanban'] },
+      });
+
+    await writeFile(caminhoDoArquivo(), listaDaVersaoAnterior('consultor'), 'utf8');
+    assert.deepEqual((await repositorio.ler()).funcionalidadesOcultas, [
+      'kanban',
+      'agenda.solicitacoes',
+    ]);
+
+    repositorio.descartarCache();
+    await writeFile(caminhoDoArquivo(), listaDaVersaoAnterior('desenvolvedor'), 'utf8');
+    assert.deepEqual((await repositorio.ler()).funcionalidadesOcultas, ['kanban']);
+  });
+
+  it('funcionalidade nova que o usuário voltou a mostrar não é ocultada de novo', async () => {
+    await repositorio.salvar({
+      ...CONFIGURACAO_SEM_ACESSOS,
+      perfil: 'consultor',
+      funcionalidadesOcultas: ['kanban'],
+    });
+
+    repositorio.descartarCache();
+    assert.deepEqual((await repositorio.ler()).funcionalidadesOcultas, ['kanban']);
+    const gravado = JSON.parse(await readFile(caminhoDoArquivo(), 'utf8'));
+    assert.ok(gravado.configuracao.funcionalidadesConhecidas.includes('agenda.solicitacoes'));
   });
 
   it('nasce com o SMTP vazio e o alerta da agenda desligado', async () => {
@@ -462,6 +494,7 @@ describe('RepositorioConfiguracaoArquivo — boas-vindas', () => {
       'local',
       'autosync',
       'cliente.autosync',
+      'agenda.solicitacoes',
     ]);
   });
 

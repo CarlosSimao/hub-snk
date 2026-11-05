@@ -12,7 +12,11 @@
  */
 import type { ResultadoFetch } from './janelaAgendaOculta';
 
-type Chamar = (serviceName: string, requestBody: unknown) => Promise<ResultadoFetch>;
+export type Chamar = (
+  serviceName: string,
+  requestBody: unknown,
+  consulta?: Record<string, string>,
+) => Promise<ResultadoFetch>;
 
 const BOTAO_CRIAR = { actionID: '1459', procName: 'STP_BTN_CRIA_OCOAGE_SNK' };
 const CONFIRMA = { type: 'S', sequence: '1', paramName: '__ESCOLHA_SIMNAO__', $: 'S' };
@@ -51,12 +55,13 @@ function mensagemSankhya(m: unknown): string {
 }
 
 /** `1` e `2` são sucesso; `0` erro, `3` sessão caída, `4` concorrência ou confirmação. */
-async function servico(
+export async function servico(
   chamar: Chamar,
   nome: string,
   requestBody: unknown,
+  consulta?: Record<string, string>,
 ): Promise<Resultado<{ responseBody?: unknown; mensagem: string }>> {
-  const r = await chamar(nome, requestBody);
+  const r = await chamar(nome, requestBody, consulta);
   if (!r.ok) return { ok: false, erro: r.erro };
   let j: { status?: unknown; statusMessage?: unknown; responseBody?: unknown };
   try {

@@ -453,6 +453,8 @@ export class TabManager {
         // áudio até o primeiro gesto do usuário na guia. Só no Painel: o ERP e a Experience
         // seguem com a política padrão.
         autoplayPolicy: id === 'hub' ? 'no-user-gesture-required' : undefined,
+        // Leitor de PDF embutido do Chromium, para a prévia dos anexos da DS na agenda.
+        plugins: id === 'hub' ? true : undefined,
         // Nenhum preload nas abas remotas: zero bridge para conteúdo de fora. A exceção é
         // o do Ruffle, registrado na sessão só quando ligado, que não expõe nada à página;
         // sem esta opção ele não chegaria aos iframes, onde ficam as telas do Sankhya.
@@ -578,6 +580,8 @@ export class TabManager {
             preload: undefined,
             // Tela do Sankhya aberta em janela própria também recebe o Ruffle.
             nodeIntegrationInSubFrames: true,
+            // Janela de prévia dos anexos da DS: sem o leitor de PDF, o Electron baixaria.
+            plugins: id === 'hub' ? true : undefined,
           },
         });
         this.#janelasFilhas.add(filha);

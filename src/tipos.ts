@@ -192,6 +192,7 @@ export type PerfilProfissional = (typeof PERFIS_PROFISSIONAIS)[number];
 export const FUNCIONALIDADES = [
   'local',
   'agenda',
+  'agenda.solicitacoes',
   'kanban',
   'os',
   'lembretes',
