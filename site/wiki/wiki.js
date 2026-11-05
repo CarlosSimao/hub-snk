@@ -88,7 +88,44 @@ function aplicarPrintsDoTema() {
   }
 }
 
+const ICONE_DE_LINK =
+  '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+const DURACAO_DO_AVISO_DE_COPIA_MS = 1500;
+
+/**
+ * Põe no título de cada seção (e em cada campo das Configurações) um link para a própria
+ * âncora, para compartilhar a URL que cai direto nela. O clique segue o link e ainda copia
+ * a URL completa.
+ */
+function adicionarLinksDasSecoes() {
+  const alvos = document.querySelectorAll('.funcionalidade[id] > h2, .funcionalidade dt[id]');
+  for (const alvo of alvos) {
+    const id = alvo.id || alvo.parentElement.id;
+    const link = document.createElement('a');
+    link.className = 'link-da-secao';
+    link.href = `#${id}`;
+    link.title = 'Copiar o link desta seção';
+    link.setAttribute('aria-label', 'Copiar o link desta seção');
+    link.innerHTML = ICONE_DE_LINK;
+    link.addEventListener('click', () => copiarLink(link));
+    alvo.append(link);
+  }
+}
+
+async function copiarLink(link) {
+  try {
+    await navigator.clipboard.writeText(link.href);
+  } catch (erro) {
+    // Sem permissão de área de transferência a URL já foi para a barra de endereço pelo próprio link.
+    console.warn('Não foi possível copiar o link da seção:', erro);
+    return;
+  }
+  link.dataset.aviso = 'Link copiado';
+  setTimeout(() => delete link.dataset.aviso, DURACAO_DO_AVISO_DE_COPIA_MS);
+}
+
 montarMenu();
 aplicarPrintsDoTema();
 ativarAmpliacao();
+adicionarLinksDasSecoes();
 document.addEventListener('mudanca-de-tema', aplicarPrintsDoTema);
