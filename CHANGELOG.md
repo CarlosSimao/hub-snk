@@ -9,6 +9,15 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.23.1] - 2026-11-05
+
+### Alterado
+
+- **Dependências atualizadas**: o aplicativo do Windows passa a usar o Electron 45, com as
+  correções de segurança do Chromium 156, e o atualizador automático, o empacotador e as
+  bibliotecas do servidor (agendador dos lembretes, validação e arquivos estáticos) foram
+  para as versões mais recentes. Nada muda no uso.
+
 ## [2.23.0] - 2026-11-05
 
 ### Adicionado
@@ -1083,6 +1092,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.23.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.23.0...v2.23.1
 [2.23.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.22.0...v2.23.0
 [2.22.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.21.1...v2.22.0
 [2.21.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.21.0...v2.21.1
