@@ -358,10 +358,59 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     assert.equal(configuracao.smtp.porta, 587);
     assert.equal(configuracao.smtp.seguranca, 'starttls');
     assert.equal(configuracao.alertaDaAgenda.ativo, false);
-    assert.equal(configuracao.alertaDaAgenda.intervaloMinutos, 120);
+    assert.equal(configuracao.alertaDaAgenda.intervaloHoras, 2);
     assert.equal(configuracao.alertaDaAgenda.incluirProximoDiaUtil, false);
     assert.equal(configuracao.alertaDaAgenda.repetirAteResolver, false);
     assert.equal(configuracao.alertaDaAgenda.enviarEmail, false);
+    assert.deepEqual(configuracao.alertaDaAgenda.contatoIdsEmCopia, []);
+    assert.equal(configuracao.cargoDoUsuario, '');
+  });
+
+  it('converte a periodicidade gravada em minutos para horas, arredondando para cima', async () => {
+    for (const [minutos, horas] of [
+      [10, 1],
+      [60, 1],
+      [90, 2],
+      [120, 2],
+      [1440, 24],
+    ] as const) {
+      await writeFile(
+        caminhoDoArquivo(),
+        JSON.stringify({
+          versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+          configuracao: { alertaDaAgenda: { ativo: true, intervaloMinutos: minutos } },
+        }),
+        'utf8',
+      );
+      repositorio.descartarCache();
+
+      assert.equal(
+        (await repositorio.ler()).alertaDaAgenda.intervaloHoras,
+        horas,
+        `${minutos} min`,
+      );
+    }
+  });
+
+  it('periodicidade em horas fora do aceito volta para dentro dos limites', async () => {
+    for (const [gravado, horas] of [
+      [0, 1],
+      [30, 24],
+      [1.5, 2],
+      ['3', 2],
+    ] as const) {
+      await writeFile(
+        caminhoDoArquivo(),
+        JSON.stringify({
+          versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+          configuracao: { alertaDaAgenda: { intervaloHoras: gravado } },
+        }),
+        'utf8',
+      );
+      repositorio.descartarCache();
+
+      assert.equal((await repositorio.ler()).alertaDaAgenda.intervaloHoras, horas, String(gravado));
+    }
   });
 
   it('lê o alerta da agenda gravado com a tolerância das versões anteriores', async () => {
@@ -380,10 +429,11 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
 
     assert.deepEqual(alertaDaAgenda, {
       ativo: true,
-      intervaloMinutos: 120,
+      intervaloHoras: 2,
       incluirProximoDiaUtil: false,
       repetirAteResolver: false,
       enviarEmail: false,
+      contatoIdsEmCopia: [],
     });
   });
 
@@ -409,10 +459,11 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
       },
       alertaDaAgenda: {
         ativo: true,
-        intervaloMinutos: 10,
+        intervaloHoras: 3,
         incluirProximoDiaUtil: true,
         repetirAteResolver: false,
-        enviarEmail: false,
+        enviarEmail: true,
+        contatoIdsEmCopia: ['gp'],
       },
     });
 
@@ -423,8 +474,9 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     assert.equal(configuracao.smtp.host, 'smtp.empresa.com.br');
     assert.equal(configuracao.smtp.senha, ' segredo ');
     assert.equal(configuracao.alertaDaAgenda.ativo, true);
-    assert.equal(configuracao.alertaDaAgenda.intervaloMinutos, 10);
+    assert.equal(configuracao.alertaDaAgenda.intervaloHoras, 3);
     assert.equal(configuracao.alertaDaAgenda.incluirProximoDiaUtil, true);
+    assert.deepEqual(configuracao.alertaDaAgenda.contatoIdsEmCopia, ['gp']);
   });
 
   it('descarta a segurança do SMTP editada à mão com valor desconhecido', async () => {
@@ -450,6 +502,7 @@ describe('RepositorioConfiguracaoArquivo — boas-vindas', () => {
     nomeDoUsuario: ' João Silva ',
     empresaDoUsuario: 'Acme',
     timeDoUsuario: 'Suporte',
+    cargoDoUsuario: ' Gerente de Projetos ',
     emailDoUsuario: 'joao@acme.com.br',
     perfil: 'gerente-de-projeto' as const,
     terceiro: true,
@@ -486,6 +539,7 @@ describe('RepositorioConfiguracaoArquivo — boas-vindas', () => {
     const configuracao = await repositorio.ler();
     assert.equal(configuracao.boasVindasConcluidas, true);
     assert.equal(configuracao.nomeDoUsuario, 'João Silva');
+    assert.equal(configuracao.cargoDoUsuario, 'Gerente de Projetos');
     assert.equal(configuracao.emailDoUsuario, 'joao@acme.com.br');
     assert.equal(configuracao.perfil, 'gerente-de-projeto');
     assert.equal(configuracao.terceiro, true);

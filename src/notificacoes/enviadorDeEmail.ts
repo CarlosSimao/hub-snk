@@ -90,6 +90,8 @@ export interface MensagemDeEmail {
   para?: string[];
   copia?: string[];
   copiaOculta?: string[];
+  /** Quem recebe a resposta, quando o remetente do SMTP é uma conta genérica. */
+  respostaPara?: string;
   imagensEmbutidas?: ImagemEmbutida[];
   anexos?: AnexoDeEmail[];
   /** E-mail escrito pela pessoa não é automático: sai sem o rodapé do HUB SNK. */
@@ -167,6 +169,7 @@ export class EnviadorDeEmail {
         to: listaOuNada(mensagem.para) ?? smtp.destinatario,
         cc: listaOuNada(mensagem.copia),
         bcc: listaOuNada(mensagem.copiaOculta),
+        replyTo: mensagem.respostaPara || undefined,
         subject: mensagem.assunto,
         text: mensagem.semRodape ? mensagem.texto : textoComRodape(mensagem.texto, remetente),
         html:

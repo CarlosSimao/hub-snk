@@ -12,6 +12,12 @@ const DADOS: DadosDoEmailDeCobrancaDaAgenda = {
   observacao: '',
   copia: ['ana@alfa.com'],
   caminhoDaLogo: '/public/img/icone-192.png',
+  cobrador: {
+    nomeDoUsuario: 'Carlos <Nascimento>',
+    cargoDoUsuario: 'Consultor',
+    timeDoUsuario: 'Implantação',
+    emailDoUsuario: 'carlos@empresa.com',
+  },
 };
 
 describe('montarEmailDeCobrancaDaAgenda', () => {
@@ -38,5 +44,33 @@ describe('montarEmailDeCobrancaDaAgenda', () => {
     assert.equal(sem.texto.includes('Urgente'), false);
     assert.ok(com.html?.includes('&lt;b&gt;Urgente&lt;/b&gt;<br>hoje'));
     assert.ok(com.texto.includes('<b>Urgente</b>\nhoje'));
+  });
+
+  it('mostra quem cobra, escapado, e manda a resposta para o e-mail dele', () => {
+    const email = montarEmailDeCobrancaDaAgenda(DADOS);
+
+    assert.ok(email.html?.includes('Cobrado por'));
+    assert.ok(email.html?.includes('Carlos &lt;Nascimento&gt;'));
+    assert.ok(
+      email.texto.includes(
+        'Cobrado por:\nNome: Carlos <Nascimento>\nCargo: Consultor\nTime: Implantação\nE-mail: carlos@empresa.com',
+      ),
+    );
+    assert.equal(email.respostaPara, 'carlos@empresa.com');
+  });
+
+  it('omite o que está vazio e, sem nada preenchido, o bloco e a resposta', () => {
+    const vazio = { nomeDoUsuario: '', cargoDoUsuario: '', timeDoUsuario: '', emailDoUsuario: '' };
+    const soNome = montarEmailDeCobrancaDaAgenda({
+      ...DADOS,
+      cobrador: { ...vazio, nomeDoUsuario: 'Carlos' },
+    });
+    const nada = montarEmailDeCobrancaDaAgenda({ ...DADOS, cobrador: vazio });
+
+    assert.ok(soNome.texto.includes('Cobrado por:\nNome: Carlos\n'));
+    assert.equal(soNome.texto.includes('Cargo:'), false);
+    assert.equal(nada.texto.includes('Cobrado por'), false);
+    assert.equal(nada.html?.includes('Cobrado por'), false);
+    assert.equal(nada.respostaPara, undefined);
   });
 });

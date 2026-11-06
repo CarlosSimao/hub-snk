@@ -4,6 +4,7 @@ import type { CentralDeNotificacoes } from '../notificacoes/centralDeNotificacoe
 import { montarEmailDeCobrancaDaAgenda } from '../notificacoes/emailDeCobrancaDaAgenda.ts';
 import type { EnviadorDeEmail } from '../notificacoes/enviadorDeEmail.ts';
 import { dataHoraLocal } from '../notificacoes/relogio.ts';
+import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
 import type { RepositorioContatos } from '../repositorio/repositorioContatos.ts';
 import type { Notificacao } from '../tipos.ts';
 import { esquemaDeSmtp } from './comum/esquemaDeNotificacoes.ts';
@@ -61,6 +62,7 @@ export function registrarRotasDeNotificacoes(
   enviadorDeEmail: EnviadorDeEmail,
   contatos: RepositorioContatos,
   caminhoDaLogo: string,
+  configuracao: RepositorioConfiguracao,
 ): void {
   /** Os e-mails dos contatos escolhidos, ou a mensagem do primeiro que não serve. */
   async function emailsDosContatos(
@@ -175,6 +177,7 @@ export function registrarRotasDeNotificacoes(
             observacao: dados.data.observacao,
             copia: contatosEscolhidos.emails,
             caminhoDaLogo,
+            cobrador: await configuracao.ler(),
           }),
         );
       } catch (erro) {

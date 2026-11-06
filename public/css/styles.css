@@ -3741,6 +3741,24 @@ button.selo-situacao:focus-visible {
   left: 0;
 }
 
+/* Fieldset só para desabilitar o que tem dentro (contatos em cópia do alerta): sem moldura. */
+.grupo-sem-borda {
+  margin: 10px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.grupo-sem-borda:disabled {
+  color: var(--text-dim);
+  cursor: not-allowed;
+}
+
+.grupo-sem-borda:disabled .caixa-de-contatos {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
 /* Dentro de um `.campo` a pesquisa herdaria a borda e a largura total dos inputs. */
 .campo .busca-de-destinatario {
   width: auto;

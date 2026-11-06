@@ -25,7 +25,7 @@ let pedidos: Pedido[];
 let respostaDoSuporte: number | null;
 let contador = 0;
 /** O que Configurações tem gravado de nome, empresa, time e e-mail. */
-let identificacao: { nome: string; empresa: string; time: string; email: string };
+let identificacao: { nome: string; empresa: string; time: string; cargo: string; email: string };
 
 function criarServico(): ServicoDeRelatos {
   return new ServicoDeRelatos({
@@ -53,7 +53,13 @@ beforeEach(() => {
   mkdirSync(pastaDeLog, { recursive: true });
   pedidos = [];
   respostaDoSuporte = 201;
-  identificacao = { nome: 'Ana Souza', empresa: 'Acme', time: 'Suporte', email: 'ana@acme.com' };
+  identificacao = {
+    nome: 'Ana Souza',
+    empresa: 'Acme',
+    time: 'Suporte',
+    cargo: 'Consultora',
+    email: 'ana@acme.com',
+  };
 });
 
 const fila = () => {
@@ -147,6 +153,7 @@ describe('ServicoDeRelatos', () => {
     assert.equal(contexto['usuario'], 'Ana Souza');
     assert.equal(contexto['empresa'], 'Acme');
     assert.equal(contexto['time'], 'Suporte');
+    assert.equal(contexto['cargo'], 'Consultora');
 
     const log = gunzipSync(Buffer.from(String(corpo['logGzipBase64']), 'base64')).toString('utf8');
     assert.ok(log.includes('token=[redigido]'));
@@ -282,7 +289,7 @@ describe('rotas de suporte', () => {
         payload: { tipo: 'BUG', mensagem: 'x', incluirLog: false },
       });
 
-    identificacao = { nome: '', empresa: '   ', time: '', email: '' };
+    identificacao = { nome: '', empresa: '   ', time: '', cargo: '', email: '' };
     const todosFaltando = await enviar();
     assert.equal(todosFaltando.statusCode, 400);
     assert.equal(
@@ -290,7 +297,13 @@ describe('rotas de suporte', () => {
       'Preencha em Configurações antes de enviar: Nome do usuário, Empresa, Time, E-mail.',
     );
 
-    identificacao = { nome: 'Ana Souza', empresa: 'Acme', time: ' ', email: 'ana@acme.com' };
+    identificacao = {
+      nome: 'Ana Souza',
+      empresa: 'Acme',
+      time: ' ',
+      cargo: '',
+      email: 'ana@acme.com',
+    };
     const soOTimeFaltando = await enviar();
     assert.equal(soOTimeFaltando.statusCode, 400);
     assert.equal(

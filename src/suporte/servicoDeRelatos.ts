@@ -16,11 +16,13 @@ export interface DadosDoRelato {
   incluirLog: boolean;
 }
 
-/** Quem usa o aplicativo (nome, empresa, time e e-mail), como preenchido em Configurações. */
+/** Quem usa o aplicativo (nome, empresa, time, cargo e e-mail), como preenchido em Configurações. */
 export interface IdentificacaoDoUsuario {
   nome: string;
   empresa: string;
   time: string;
+  /** Opcional: quem instalou antes do campo pode deixá-lo vazio e relatar mesmo assim. */
+  cargo: string;
   email: string;
 }
 
@@ -111,7 +113,7 @@ export class ServicoDeRelatos {
     return pendentes;
   }
 
-  /** Dados técnicos e a identificação (nome, empresa, time e e-mail) que acompanham todo relato. */
+  /** Dados técnicos e a identificação (nome, empresa, time, cargo e e-mail) que acompanham todo relato. */
   async contexto(): Promise<Record<string, string>> {
     const contexto: Record<string, string> = {
       appVersion: this.#opcoes.versaoDoAplicativo,
@@ -122,10 +124,11 @@ export class ServicoDeRelatos {
     const perfil = await this.#opcoes.lerPerfil?.().catch(() => undefined);
     if (perfil) contexto['perfil'] = perfil;
 
-    const { nome, empresa, time, email } = await this.#opcoes.lerIdentificacao();
+    const { nome, empresa, time, cargo, email } = await this.#opcoes.lerIdentificacao();
     if (nome.trim()) contexto['usuario'] = nome.trim();
     if (empresa.trim()) contexto['empresa'] = empresa.trim();
     if (time.trim()) contexto['time'] = time.trim();
+    if (cargo.trim()) contexto['cargo'] = cargo.trim();
     if (email.trim()) contexto['email'] = email.trim();
     return contexto;
   }

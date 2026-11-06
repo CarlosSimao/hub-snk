@@ -13,8 +13,10 @@ const TAMANHO_MAXIMO_DA_SENHA = 200;
 const TAMANHO_MAXIMO_DO_ENDERECO = 320;
 const PORTA_MINIMA = 1;
 const PORTA_MAXIMA = 65535;
-const INTERVALO_MINIMO_DO_ALERTA_MIN = 1;
-const INTERVALO_MAXIMO_DO_ALERTA_MIN = 1440;
+const INTERVALO_MINIMO_DO_ALERTA_H = 1;
+const INTERVALO_MAXIMO_DO_ALERTA_H = 24;
+/* Folga larga para uma lista de cópia; o teto só barra lixo mandado direto na API. */
+const MAXIMO_DE_CONTATOS_EM_COPIA = 50;
 
 /* Vazio é aceito: SMTP sem host é o e-mail desligado, e não um erro de cadastro. */
 const esquemaDeEnderecoOpcional = z
@@ -42,20 +44,24 @@ export const esquemaDeSmtp = z.object({
 
 export const esquemaDeAlertaDaAgenda = z.object({
   ativo: z.boolean({ error: 'Informe se o alerta da agenda está ligado.' }),
-  intervaloMinutos: z.coerce
+  intervaloHoras: z.coerce
     .number({ error: 'A periodicidade deve ser um número.' })
-    .int('A periodicidade deve ser um número inteiro de minutos.')
+    .int('A periodicidade deve ser um número inteiro de horas.')
     .min(
-      INTERVALO_MINIMO_DO_ALERTA_MIN,
-      `A periodicidade deve ser de pelo menos ${INTERVALO_MINIMO_DO_ALERTA_MIN} minuto.`,
+      INTERVALO_MINIMO_DO_ALERTA_H,
+      `A periodicidade deve ser de pelo menos ${INTERVALO_MINIMO_DO_ALERTA_H} hora.`,
     )
     .max(
-      INTERVALO_MAXIMO_DO_ALERTA_MIN,
-      `A periodicidade deve ser de no máximo ${INTERVALO_MAXIMO_DO_ALERTA_MIN} minutos.`,
+      INTERVALO_MAXIMO_DO_ALERTA_H,
+      `A periodicidade deve ser de no máximo ${INTERVALO_MAXIMO_DO_ALERTA_H} horas.`,
     ),
   incluirProximoDiaUtil: z.boolean({
     error: 'Informe se o alerta monitora o próximo dia útil.',
   }),
   repetirAteResolver: z.boolean({ error: 'Informe se o alerta repete o aviso.' }),
   enviarEmail: z.boolean({ error: 'Informe se o alerta da agenda envia e-mail.' }),
+  contatoIdsEmCopia: z
+    .array(z.string({ error: 'Contato em cópia inválido.' }))
+    .max(MAXIMO_DE_CONTATOS_EM_COPIA, `No máximo ${MAXIMO_DE_CONTATOS_EM_COPIA} contatos em cópia.`)
+    .default([]),
 });

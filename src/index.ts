@@ -32,6 +32,8 @@ import { consultarRemotoDosRepositorios } from './git/consultaDoRemoto.ts';
 import { CentralDeNotificacoes } from './notificacoes/centralDeNotificacoes.ts';
 import { EnviadorDeEmail } from './notificacoes/enviadorDeEmail.ts';
 import { VerificadorDaAgendaDoDia } from './notificacoes/verificadorDaAgendaDoDia.ts';
+import { cadastrarSolicitante } from './sankhya/contatoDoSolicitante.ts';
+import { SolicitacoesDeServico } from './sankhya/solicitacaoServicos.ts';
 import { registrarAutenticacaoDoPainel } from './rotas/seguranca/autenticacaoDoPainel.ts';
 import { registrarProtecaoDeOrigem } from './rotas/seguranca/protecaoDeOrigem.ts';
 import { registrarRotasDeAtalhos } from './rotas/rotasAtalhos.ts';
@@ -165,6 +167,7 @@ async function iniciarServidor(): Promise<void> {
     emitir: (dados) => centralDeNotificacoes.emitir(dados),
     registrador: registradorDasNotificacoes,
   });
+  const solicitacoesDoAlerta = new SolicitacoesDeServico(credenciaisSankhya);
   const verificadorDaAgenda = new VerificadorDaAgendaDoDia({
     configuracao: repositorioDeConfiguracao,
     emitir: (dados) => centralDeNotificacoes.emitir(dados),
@@ -187,6 +190,12 @@ async function iniciarServidor(): Promise<void> {
       });
       return situacao;
     },
+    contatos: () => repositorioDeContatos.listar(),
+    solicitanteComoContato: async (codigoDaDs) => {
+      const { solicitante } = await solicitacoesDoAlerta.consultar(codigoDaDs);
+      return (await cadastrarSolicitante(repositorioDeContatos, solicitante)).contatoId;
+    },
+    caminhoDaLogo,
     agora: () => new Date(),
     registrador: registradorDasNotificacoes,
   });
@@ -274,12 +283,13 @@ async function iniciarServidor(): Promise<void> {
     versaoDoAplicativo: pacote.version,
     lerPerfil: async () => (await repositorioDeConfiguracao.ler()).perfil,
     lerIdentificacao: async () => {
-      const { nomeDoUsuario, empresaDoUsuario, timeDoUsuario, emailDoUsuario } =
+      const { nomeDoUsuario, empresaDoUsuario, timeDoUsuario, cargoDoUsuario, emailDoUsuario } =
         await repositorioDeConfiguracao.ler();
       return {
         nome: nomeDoUsuario,
         empresa: empresaDoUsuario,
         time: timeDoUsuario,
+        cargo: cargoDoUsuario,
         email: emailDoUsuario,
       };
     },
@@ -346,6 +356,7 @@ async function iniciarServidor(): Promise<void> {
     enviadorDeEmail,
     repositorioDeContatos,
     caminhoDaLogo,
+    repositorioDeConfiguracao,
   );
   registrarRotasDeLembretes(
     servidor,

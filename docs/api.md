@@ -653,11 +653,20 @@ configuração. Ausentes, o que está gravado é preservado.
     "remetente": "voce@empresa.com.br",
     "destinatario": "voce@empresa.com.br"
   },
-  "alertaDaAgenda": { "ativo": true, "toleranciaMinutos": 30, "enviarEmail": true }
+  "alertaDaAgenda": {
+    "ativo": true,
+    "intervaloHoras": 2,
+    "incluirProximoDiaUtil": false,
+    "repetirAteResolver": false,
+    "enviarEmail": true,
+    "contatoIdsEmCopia": ["3f1c..."]
+  }
 }
 ```
 
-`seguranca` é `ssl`, `starttls` ou `nenhuma`.
+`seguranca` é `ssl`, `starttls` ou `nenhuma`. `intervaloHoras` é inteiro, de 1 a 24.
+`contatoIdsEmCopia` vai até 50 ids e é opcional (ausente vale `[]`); id de contato excluído
+ou sem e-mail é ignorado no envio.
 
 ### Assistente de IA
 
@@ -675,7 +684,7 @@ Cursor não têm a opção. Vazio usa o padrão do modelo. Os níveis de cada mo
 `GET /api/configuracao/assistentes-de-ia`, em `raciocinio` (`{ modelo: { niveis,
 padrao } }`; a chave vazia é o modelo padrão do assistente).
 
-### Nome, empresa, time e e-mail do usuário
+### Nome, empresa, time, cargo e e-mail do usuário
 
 Também no `PUT /api/configuracao`, e preservados quando ausentes:
 
@@ -684,6 +693,7 @@ Também no `PUT /api/configuracao`, e preservados quando ausentes:
   "nomeDoUsuario": "Ana Souza",
   "empresaDoUsuario": "Acme",
   "timeDoUsuario": "Suporte",
+  "cargoDoUsuario": "Consultora",
   "emailDoUsuario": "ana@acme.com"
 }
 ```
@@ -691,21 +701,25 @@ Também no `PUT /api/configuracao`, e preservados quando ausentes:
 Cada um vai até 120 caracteres (acima disso, `400`); o e-mail, se preenchido, precisa ser válido. Vazios são aceitos aqui, mas o
 `POST /api/suporte/relatos` responde `400` — `Preencha em Configurações antes de enviar:
 Nome do usuário, Empresa, Time, E-mail.`, com só os que faltam — enquanto algum dos quatro
-estiver vazio. Os valores seguem no `context` do relato (`usuario`, `empresa`, `time`, `email`) e
-aparecem em `GET /api/suporte/previa`.
+estiver vazio. O cargo não entra nessa conta. Os valores seguem no `context` do relato
+(`usuario`, `empresa`, `time`, `cargo`, `email`; o cargo só quando preenchido) e aparecem em
+`GET /api/suporte/previa`. Nome, cargo, time e e-mail também vão no bloco **Cobrado por**
+do e-mail do alerta da agenda, que responde (`Reply-To`) para o e-mail do usuário.
 
 ### Boas-vindas
 
 `PUT /api/configuracao/boas-vindas` grava o respondido no assistente do primeiro uso e
-liga `boasVindasConcluidas`. Os seis campos são obrigatórios (os quatro textos podem ir
-vazios), com as mesmas regras de tamanho e de e-mail acima; as funcionalidades ocultas
-viram o preset do perfil. Responde a configuração gravada.
+liga `boasVindasConcluidas`. Os campos são obrigatórios, menos `cargoDoUsuario`, que
+ausente vale vazio (os textos podem ir vazios), com as mesmas regras de tamanho e de
+e-mail acima; as funcionalidades ocultas viram o preset do perfil. Responde a
+configuração gravada.
 
 ```json
 {
   "nomeDoUsuario": "Ana Souza",
   "empresaDoUsuario": "Acme",
   "timeDoUsuario": "Suporte",
+  "cargoDoUsuario": "Consultora",
   "emailDoUsuario": "ana@acme.com",
   "perfil": "consultor",
   "terceiro": false

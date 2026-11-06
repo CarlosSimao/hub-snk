@@ -3,7 +3,7 @@ import { beforeEach, describe, it } from 'node:test';
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
 import { SessaoExpiradaError, type SituacaoDoDia } from '../sankhya/experience.ts';
 import { PonteDoDesktopIndisponivelError } from '../sankhya/ponteDoDesktop.ts';
-import type { AlertaDaAgenda, ConfiguracaoGlobal, EventoAgenda } from '../tipos.ts';
+import type { AlertaDaAgenda, ConfiguracaoGlobal, Contato, EventoAgenda } from '../tipos.ts';
 import type { DadosDeNotificacao } from './centralDeNotificacoes.ts';
 import { proximoDiaUtil } from './relogio.ts';
 import { diasMonitorados, VerificadorDaAgendaDoDia } from './verificadorDaAgendaDoDia.ts';
@@ -12,6 +12,20 @@ const CODUSU = 4817;
 const DIA = '2026-09-28';
 const SEXTA = '2026-10-02';
 const SEGUNDA_SEGUINTE = '2026-10-05';
+const DESTINATARIO_DO_SMTP = 'eu@empresa.com';
+
+function contato(id: string, email: string): Contato {
+  return {
+    id,
+    nome: `Contato ${id}`,
+    telefone: '',
+    email,
+    cargo: '',
+    clienteId: null,
+    criadoEm: '',
+    atualizadoEm: '',
+  };
+}
 
 function evento(campos: Partial<EventoAgenda>): EventoAgenda {
   return {
@@ -47,6 +61,10 @@ let consultasDeSituacao: number;
 let diasConsultados: string[];
 let emitidas: DadosDeNotificacao[];
 let agora: Date;
+let contatos: Contato[];
+/** Código da DS -> id do contato do solicitante, `null` sem e-mail, ou o erro da consulta. */
+let solicitantes: Map<number, string | null | Error>;
+let dsConsultadas: number[];
 
 function criarVerificador(): VerificadorDaAgendaDoDia {
   const configuracao = {
@@ -55,6 +73,11 @@ function criarVerificador(): VerificadorDaAgendaDoDia {
         alertaDaAgenda: alerta,
         sankhyaOmCodUsu: String(CODUSU),
         terceiro,
+        smtp: { destinatario: DESTINATARIO_DO_SMTP },
+        nomeDoUsuario: 'Carlos',
+        cargoDoUsuario: 'Consultor',
+        timeDoUsuario: 'Implantação',
+        emailDoUsuario: 'carlos@empresa.com',
       }) as ConfiguracaoGlobal,
   } as RepositorioConfiguracao;
 
@@ -74,6 +97,14 @@ function criarVerificador(): VerificadorDaAgendaDoDia {
       if (situacao instanceof Error) throw situacao;
       return situacao;
     },
+    contatos: async () => contatos,
+    solicitanteComoContato: async (codigo) => {
+      dsConsultadas.push(codigo);
+      const solicitante = solicitantes.get(codigo) ?? null;
+      if (solicitante instanceof Error) throw solicitante;
+      return solicitante;
+    },
+    caminhoDaLogo: '/img/logo.png',
     agora: () => agora,
     registrador: { info: () => {}, warn: () => {} },
   });
@@ -82,11 +113,15 @@ function criarVerificador(): VerificadorDaAgendaDoDia {
 beforeEach(() => {
   alerta = {
     ativo: true,
-    intervaloMinutos: 120,
+    intervaloHoras: 2,
     incluirProximoDiaUtil: false,
     repetirAteResolver: false,
     enviarEmail: true,
+    contatoIdsEmCopia: [],
   };
+  contatos = [];
+  solicitantes = new Map();
+  dsConsultadas = [];
   terceiro = false;
   eventos = [evento({})];
   situacoes = new Map();
@@ -244,6 +279,67 @@ describe('VerificadorDaAgendaDoDia', () => {
     assert.equal(emitidas.length, 1);
     assert.equal(emitidas[0]?.origem, 'sistema');
     assert.equal(emitidas[0]?.enviarEmail, false);
+  });
+
+  describe('cópia do e-mail', () => {
+    beforeEach(() => {
+      contatos = [
+        contato('gp', 'gp@empresa.com'),
+        contato('ana', 'ana@empresa.com'),
+        contato('eu', 'EU@empresa.com'),
+        contato('sem-email', ''),
+      ];
+      eventos = [evento({ descrlonga: 'Atendimento\n- ID 3536' })];
+      solicitantes.set(3536, 'ana');
+    });
+
+    it('copia os contatos configurados e o solicitante da DS do evento', async () => {
+      alerta = { ...alerta, contatoIdsEmCopia: ['gp'] };
+
+      await criarVerificador().verificar();
+
+      assert.deepEqual(dsConsultadas, [3536]);
+      assert.deepEqual(emitidas[0]?.email?.copia, ['gp@empresa.com', 'ana@empresa.com']);
+      assert.deepEqual(emitidas[0]?.contatoIdsEmCopia, ['gp', 'ana']);
+      assert.equal(emitidas[0]?.avisoDaCopia, '');
+    });
+
+    it('não repete e-mail, tira o destinatário do SMTP e pula contato sem e-mail', async () => {
+      alerta = { ...alerta, contatoIdsEmCopia: ['ana', 'eu', 'sem-email', 'excluido'] };
+
+      await criarVerificador().verificar();
+
+      assert.deepEqual(emitidas[0]?.email?.copia, ['ana@empresa.com']);
+    });
+
+    it('DS que não pôde ser consultada não segura o e-mail e fica anotada', async () => {
+      alerta = { ...alerta, contatoIdsEmCopia: ['gp'] };
+      solicitantes.set(3536, new Error('Sessão da Experience expirada.'));
+
+      await criarVerificador().verificar();
+
+      assert.deepEqual(emitidas[0]?.email?.copia, ['gp@empresa.com']);
+      assert.match(emitidas[0]?.avisoDaCopia ?? '', /DS 3536.*Sessão da Experience expirada/);
+    });
+
+    it('sai no layout da cobrança, com quem cobra e a resposta para ele', async () => {
+      await criarVerificador().verificar();
+
+      const email = emitidas[0]?.email;
+      assert.match(email?.assunto ?? '', /Atenção - Agenda sem tarefa/);
+      assert.match(email?.texto ?? '', /Cobrado por:\nNome: Carlos\nCargo: Consultor/);
+      assert.equal(email?.respostaPara, 'carlos@empresa.com');
+    });
+
+    it('sem e-mail marcado, nem consulta a DS', async () => {
+      alerta = { ...alerta, enviarEmail: false, contatoIdsEmCopia: ['gp'] };
+
+      await criarVerificador().verificar();
+
+      assert.deepEqual(dsConsultadas, []);
+      assert.equal(emitidas[0]?.email, undefined);
+      assert.equal(emitidas[0]?.contatoIdsEmCopia, undefined);
+    });
   });
 
   it('só registra, sem notificar, quando o shell desktop não está no ar', async () => {

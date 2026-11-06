@@ -283,6 +283,12 @@ export async function roteiro({ painel, aplicativo, print, printDoSistema }) {
   await abrirAba('avisos');
   await painel.check('#campo-alerta-agenda-ativo');
   await painel.check('#campo-alerta-agenda-email');
+  const copiaDoAlerta = painel.locator('#linha-contatos-alerta-agenda .busca-de-destinatario');
+  await copiaDoAlerta.fill('Marina');
+  await copiaDoAlerta.press('Enter');
+  await painel.locator('#linha-contatos-alerta-agenda .opcoes-de-contatos').evaluate((lista) => {
+    lista.hidden = true;
+  });
   await printDaAba('avisos', '01-aba', ['#campo-aviso-da-branch-principal']);
 
   // Kanban

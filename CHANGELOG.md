@@ -9,6 +9,31 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.25.0] - 2026-11-06
+
+### Adicionado
+
+- **Contatos em cópia do alerta da agenda**: em **Configurações › Avisos**, o alerta
+  **Agenda sem tarefa na Experience** ganha o campo **Contatos em cópia**. Com **Enviar por
+  e-mail** marcado, o e-mail do alerta vai para o destinatário do SMTP com esses contatos e
+  o solicitante de cada DS citada no evento (o `ID` na descrição) em cópia, em toda
+  repetição. O solicitante vira contato, se ainda não for. Se a DS não puder ser consultada,
+  o e-mail sai sem ele e a notificação diz por quê.
+- **Quem cobra no e-mail**: o e-mail do alerta e o da cobrança mostram o bloco **Cobrado
+  por**, com o seu nome, cargo, time e e-mail, e a resposta vai para o seu e-mail.
+- **Cargo**: campo opcional em **Configurações › Geral** e no assistente de boas-vindas. Vai
+  também no relato ao suporte, quando preenchido.
+
+### Alterado
+
+- **Periodicidade do alerta da agenda em horas**: de 1 a 24, só número inteiro, 2 por
+  padrão. Quem tinha a periodicidade em minutos passa a ter as horas arredondadas para cima
+  (45 minutos viram 1 hora).
+- **E-mail do alerta da agenda no layout da cobrança**: o aviso por e-mail passa a ter o
+  mesmo visual da cobrança, com o destaque do evento e o pedido de abertura da tarefa.
+- **Cobrança já preenchida**: o envelope **Cobrar por e-mail** abre com quem foi em cópia no
+  e-mail do alerta e com os contatos em cópia da aba Avisos.
+
 ## [2.24.0] - 2026-11-05
 
 ### Adicionado
@@ -1112,6 +1137,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.25.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.24.0...v2.25.0
 [2.24.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.23.1...v2.24.0
 [2.23.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.23.0...v2.23.1
 [2.23.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.22.0...v2.23.0

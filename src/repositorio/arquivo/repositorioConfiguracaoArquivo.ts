@@ -49,7 +49,9 @@ const MILISSEGUNDOS_POR_SEGUNDO = 1000;
 const DESTINO_DOS_LINKS_PADRAO: DestinoDeLink = 'hub';
 
 const PORTA_SMTP_PADRAO = 587;
-const INTERVALO_DO_ALERTA_DA_AGENDA_PADRAO_MIN = 120;
+const INTERVALO_DO_ALERTA_DA_AGENDA_PADRAO_H = 2;
+const INTERVALO_MAXIMO_DO_ALERTA_DA_AGENDA_H = 24;
+const MINUTOS_POR_HORA = 60;
 
 const SMTP_INICIAL: ConfiguracaoSmtp = {
   host: '',
@@ -64,10 +66,11 @@ const SMTP_INICIAL: ConfiguracaoSmtp = {
 /* Nasce desligado: sem SMTP e sem saber se o usuário lança OS, ligar sozinho só faria barulho. */
 const ALERTA_DA_AGENDA_INICIAL: AlertaDaAgenda = {
   ativo: false,
-  intervaloMinutos: INTERVALO_DO_ALERTA_DA_AGENDA_PADRAO_MIN,
+  intervaloHoras: INTERVALO_DO_ALERTA_DA_AGENDA_PADRAO_H,
   incluirProximoDiaUtil: false,
   repetirAteResolver: false,
   enviarEmail: false,
+  contatoIdsEmCopia: [],
 };
 
 /* `auto` funciona em qualquer máquina com algum assistente instalado, sem escolha prévia. */
@@ -117,6 +120,7 @@ const CONFIGURACAO_INICIAL: ConfiguracaoGlobal = {
   nomeDoUsuario: '',
   empresaDoUsuario: '',
   timeDoUsuario: '',
+  cargoDoUsuario: '',
   emailDoUsuario: '',
   backup: BACKUP_INICIAL,
   perfil: PERFIL_PADRAO,
@@ -249,24 +253,49 @@ function lerSmtp(valor: unknown): ConfiguracaoSmtp {
 }
 
 /**
+ * Periodicidade em horas inteiras. Arquivo de antes das horas traz `intervaloMinutos`:
+ * arredonda para cima, para o alerta nunca ficar mais frequente do que estava.
+ */
+function lerIntervaloDoAlertaEmHoras(valor: Record<string, unknown>): number {
+  const emHoras =
+    valor.intervaloHoras !== undefined
+      ? numeroOuPadrao(valor.intervaloHoras, INTERVALO_DO_ALERTA_DA_AGENDA_PADRAO_H)
+      : Math.ceil(
+          numeroOuPadrao(
+            valor.intervaloMinutos,
+            INTERVALO_DO_ALERTA_DA_AGENDA_PADRAO_H * MINUTOS_POR_HORA,
+          ) / MINUTOS_POR_HORA,
+        );
+  if (!Number.isInteger(emHoras)) {
+    return INTERVALO_DO_ALERTA_DA_AGENDA_PADRAO_H;
+  }
+  return Math.min(Math.max(emHoras, 1), INTERVALO_MAXIMO_DO_ALERTA_DA_AGENDA_H);
+}
+
+function listaDeTextos(valor: unknown): string[] {
+  return Array.isArray(valor) ? valor.filter((item) => typeof item === 'string') : [];
+}
+
+/**
  * Mesmo motivo do `lerSmtp`: arquivo de antes do alerta nasce com ele desligado. O
  * `toleranciaMinutos` das versões anteriores não é lido: a regra nova não tem tolerância.
  */
 function lerAlertaDaAgenda(valor: unknown): AlertaDaAgenda {
   if (!ehObjeto(valor)) {
-    return { ...ALERTA_DA_AGENDA_INICIAL };
+    return { ...ALERTA_DA_AGENDA_INICIAL, contatoIdsEmCopia: [] };
   }
 
   const padrao = ALERTA_DA_AGENDA_INICIAL;
   return {
     ativo: booleanoOuPadrao(valor.ativo, padrao.ativo),
-    intervaloMinutos: numeroOuPadrao(valor.intervaloMinutos, padrao.intervaloMinutos),
+    intervaloHoras: lerIntervaloDoAlertaEmHoras(valor),
     incluirProximoDiaUtil: booleanoOuPadrao(
       valor.incluirProximoDiaUtil,
       padrao.incluirProximoDiaUtil,
     ),
     repetirAteResolver: booleanoOuPadrao(valor.repetirAteResolver, padrao.repetirAteResolver),
     enviarEmail: booleanoOuPadrao(valor.enviarEmail, padrao.enviarEmail),
+    contatoIdsEmCopia: listaDeTextos(valor.contatoIdsEmCopia),
   };
 }
 
@@ -412,6 +441,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       nomeDoUsuario: textoOuPadrao(dados.nomeDoUsuario, '').trim(),
       empresaDoUsuario: textoOuPadrao(dados.empresaDoUsuario, '').trim(),
       timeDoUsuario: textoOuPadrao(dados.timeDoUsuario, '').trim(),
+      cargoDoUsuario: textoOuPadrao(dados.cargoDoUsuario, '').trim(),
       emailDoUsuario: textoOuPadrao(dados.emailDoUsuario, '').trim(),
       backup: lerBackup(dados.backup),
       ...lerAcessos(dados),
@@ -467,6 +497,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
       nomeDoUsuario: configuracao.nomeDoUsuario?.trim() ?? atual.nomeDoUsuario,
       empresaDoUsuario: configuracao.empresaDoUsuario?.trim() ?? atual.empresaDoUsuario,
       timeDoUsuario: configuracao.timeDoUsuario?.trim() ?? atual.timeDoUsuario,
+      cargoDoUsuario: configuracao.cargoDoUsuario?.trim() ?? atual.cargoDoUsuario,
       emailDoUsuario: configuracao.emailDoUsuario?.trim() ?? atual.emailDoUsuario,
       backup: atual.backup,
       boasVindasConcluidas: atual.boasVindasConcluidas,
@@ -508,6 +539,7 @@ export class RepositorioConfiguracaoArquivo implements RepositorioConfiguracao {
         nomeDoUsuario: respostas.nomeDoUsuario.trim(),
         empresaDoUsuario: respostas.empresaDoUsuario.trim(),
         timeDoUsuario: respostas.timeDoUsuario.trim(),
+        cargoDoUsuario: respostas.cargoDoUsuario.trim(),
         emailDoUsuario: respostas.emailDoUsuario.trim(),
         perfil: respostas.perfil,
         funcionalidadesOcultas: [...FUNCIONALIDADES_OCULTAS_POR_PERFIL[respostas.perfil]],
