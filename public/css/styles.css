@@ -430,6 +430,13 @@ a.btn {
   background: color-mix(in srgb, var(--marca) 12%, transparent);
 }
 
+/* Evento que o alerta da agenda não cobra: o sino riscado fica aceso em âmbar. */
+.btn.sem-cobranca {
+  color: var(--aviso);
+  border-color: color-mix(in srgb, var(--aviso) 45%, transparent);
+  background: color-mix(in srgb, var(--aviso) 12%, transparent);
+}
+
 /* Painel de vínculo do parceiro do evento a um cliente do HUB (agenda).
    Flutua com `position: fixed` (posicionado por JS ao lado do botão) para escapar do
    `overflow: hidden` do card do evento — inline ele empurrava e era cortado pelo card. */
@@ -3425,6 +3432,12 @@ button.selo-situacao:focus-visible {
 .opcoes-do-alerta {
   display: grid;
   gap: 4px;
+}
+
+/* Periodicidade e dias anteriores, um embaixo do outro, ao lado das opções. */
+.campos-do-alerta {
+  display: grid;
+  gap: 10px;
 }
 
 .resultado-teste-smtp {

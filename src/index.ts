@@ -22,6 +22,10 @@ import { RepositorioClientesArquivo } from './repositorio/arquivo/repositorioCli
 import { RepositorioConfiguracaoArquivo } from './repositorio/arquivo/repositorioConfiguracaoArquivo.ts';
 import { RepositorioLembretesArquivo } from './repositorio/arquivo/repositorioLembretesArquivo.ts';
 import { RepositorioContatosArquivo } from './repositorio/arquivo/repositorioContatosArquivo.ts';
+import {
+  NOME_DO_ARQUIVO_DOS_EVENTOS_SEM_COBRANCA,
+  RepositorioEventosSemCobrancaArquivo,
+} from './repositorio/arquivo/repositorioEventosSemCobrancaArquivo.ts';
 import { RepositorioLocalArquivo } from './repositorio/arquivo/repositorioLocalArquivo.ts';
 import { RepositorioNotificacoesArquivo } from './repositorio/arquivo/repositorioNotificacoesArquivo.ts';
 import { AgendadorDeLembretes } from './notificacoes/agendadorDeLembretes.ts';
@@ -133,6 +137,9 @@ async function iniciarServidor(): Promise<void> {
   const experience = new Experience(credenciaisSankhya);
   const repositorioDeLembretes = new RepositorioLembretesArquivo(configuracao.diretorioDeDados);
   const repositorioDeContatos = new RepositorioContatosArquivo(configuracao.diretorioDeDados);
+  const repositorioDeEventosSemCobranca = new RepositorioEventosSemCobrancaArquivo(
+    configuracao.diretorioDeDados,
+  );
   const enviadorDeEmail = new EnviadorDeEmail(repositorioDeConfiguracao);
   const caminhoDaLogo = join(configuracao.diretorioPublico, 'img', 'icone-192.png');
   const registradorDasNotificacoes = {
@@ -172,15 +179,16 @@ async function iniciarServidor(): Promise<void> {
     configuracao: repositorioDeConfiguracao,
     emitir: (dados) => centralDeNotificacoes.emitir(dados),
     jaEmitida: (chave) => centralDeNotificacoes.jaEmitida(chave),
-    atualizarAgendaDoDia: async (dia, codusuAlvo) => {
+    atualizarAgendaDoPeriodo: async (de, ate, codusuAlvo) => {
       await importarAgendaDoPeriodo({
         agenda: agendaDeRecursos,
         credenciais: credenciaisSankhya,
-        periodo: { de: dia, ate: dia },
+        periodo: { de, ate },
         codusuAlvo,
       });
     },
     eventosDoDia: (dia) => agendaDeRecursos.eventos(`${dia} 00:00:00`, `${dia} 23:59:59`),
+    eventosSemCobranca: () => repositorioDeEventosSemCobranca.listar(),
     situacaoDoDia: async (codparc, dia) => {
       const { situacao } = await situacaoDoDiaDoParceiro({
         credenciais: credenciaisSankhya,
@@ -347,7 +355,8 @@ async function iniciarServidor(): Promise<void> {
     repositorioDeConfiguracao,
     credenciaisSankhya,
     experience,
-    repositorioDeContatos,
+    cadastrarSolicitante,
+    repositorioDeEventosSemCobranca,
   );
   registrarRotasDeOs(servidor, experience, repositorioDeClientes, repositorioDeConfiguracao);
   registrarRotasDeNotificacoes(
@@ -428,6 +437,7 @@ async function iniciarServidor(): Promise<void> {
       ['local.json', repositorioLocal],
       ['lembretes.json', repositorioDeLembretes],
       ['contatos.json', repositorioDeContatos],
+      [NOME_DO_ARQUIVO_DOS_EVENTOS_SEM_COBRANCA, repositorioDeEventosSemCobranca],
     ]),
     registrador: {
       info: (mensagem) => servidor.log.info(mensagem),

@@ -15,6 +15,7 @@ import {
   DESTINOS_DE_LINK,
   FREQUENCIAS_DO_BACKUP,
   FUNCIONALIDADES,
+  MAXIMO_DE_DIAS_UTEIS_RETROATIVOS,
   SEGURANCAS_SMTP,
   type AlertaDaAgenda,
   type Atalho,
@@ -68,6 +69,7 @@ const ALERTA_DA_AGENDA_INICIAL: AlertaDaAgenda = {
   ativo: false,
   intervaloHoras: INTERVALO_DO_ALERTA_DA_AGENDA_PADRAO_H,
   incluirProximoDiaUtil: false,
+  diasUteisRetroativos: 0,
   repetirAteResolver: false,
   enviarEmail: false,
   contatoIdsEmCopia: [],
@@ -272,6 +274,15 @@ function lerIntervaloDoAlertaEmHoras(valor: Record<string, unknown>): number {
   return Math.min(Math.max(emHoras, 1), INTERVALO_MAXIMO_DO_ALERTA_DA_AGENDA_H);
 }
 
+/* Arquivo de antes da cobrança retroativa não tem o campo: nasce desligada. */
+function lerDiasUteisRetroativos(valor: unknown): number {
+  const dias = numeroOuPadrao(valor, 0);
+  if (!Number.isInteger(dias)) {
+    return 0;
+  }
+  return Math.min(Math.max(dias, 0), MAXIMO_DE_DIAS_UTEIS_RETROATIVOS);
+}
+
 function listaDeTextos(valor: unknown): string[] {
   return Array.isArray(valor) ? valor.filter((item) => typeof item === 'string') : [];
 }
@@ -293,6 +304,7 @@ function lerAlertaDaAgenda(valor: unknown): AlertaDaAgenda {
       valor.incluirProximoDiaUtil,
       padrao.incluirProximoDiaUtil,
     ),
+    diasUteisRetroativos: lerDiasUteisRetroativos(valor.diasUteisRetroativos),
     repetirAteResolver: booleanoOuPadrao(valor.repetirAteResolver, padrao.repetirAteResolver),
     enviarEmail: booleanoOuPadrao(valor.enviarEmail, padrao.enviarEmail),
     contatoIdsEmCopia: listaDeTextos(valor.contatoIdsEmCopia),

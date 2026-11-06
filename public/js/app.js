@@ -229,6 +229,9 @@ const ICONES = {
   info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 16v-4 M12 8h.01',
   /* Sino: o botão que abre o painel de notificações. */
   sino: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0',
+  /* Sino riscado: o evento que o alerta da agenda não cobra. */
+  sinoRiscado:
+    'M13.73 21a2 2 0 0 1-3.46 0 M18.63 13A17.89 17.89 0 0 1 18 8 M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14 M18 8a6 6 0 0 0-9.33-5 M1 1l22 22',
   /* Lupa: o botão que abre a busca rápida. */
   lupa: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.35-4.35',
   /* Mesmo desenho do botão do WhatsApp na barra lateral do aplicativo. */
@@ -252,6 +255,8 @@ const estado = {
   situacoesFiltradas: new Set(),
   /* Funcionalidades desmarcadas em Configurações › Acessos: só somem da tela. */
   funcionalidadesOcultas: new Set(),
+  /* Identificações dos eventos da agenda que o alerta não cobra (`identificacaoDoEvento`). */
+  eventosSemCobranca: new Set(),
   /* Perfil em vigor na tela; `null` enquanto a configuração não foi lida. */
   perfil: null,
   /* Acesso de terceiro: sem SankhyaOm nem Experience, o que depende deles some. */
@@ -705,6 +710,7 @@ const elementos = {
   campoAlertaAgendaAtivo: document.getElementById('campo-alerta-agenda-ativo'),
   campoAlertaAgendaIntervalo: document.getElementById('campo-alerta-agenda-intervalo'),
   campoAlertaAgendaProximoDiaUtil: document.getElementById('campo-alerta-agenda-proximo-dia-util'),
+  campoAlertaAgendaRetroativos: document.getElementById('campo-alerta-agenda-retroativos'),
   campoAlertaAgendaRepetir: document.getElementById('campo-alerta-agenda-repetir'),
   campoAlertaAgendaEmail: document.getElementById('campo-alerta-agenda-email'),
   grupoContatosAlertaAgenda: document.getElementById('grupo-contatos-alerta-agenda'),
@@ -988,6 +994,9 @@ const api = {
     requisitar('/api/agenda/ocorrencias', { metodo: 'POST', corpo: dados }),
   eventosDaAgenda: (de, ate) =>
     requisitar(`/api/agenda/eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`),
+  eventosSemCobranca: () => requisitar('/api/agenda/nao-cobrar'),
+  definirNaoCobrarTarefa: (identificacao, naoCobrar) =>
+    requisitar('/api/agenda/nao-cobrar', { metodo: 'PUT', corpo: { identificacao, naoCobrar } }),
   eventosDoClienteNaAgenda: (id, de, ate) =>
     requisitar(
       `${CAMINHO_DA_API}/${id}/agenda-eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`,
@@ -3594,6 +3603,49 @@ function criarBotaoDeVinculoDeCliente(evento, aoTrocarVinculo) {
   return botao;
 }
 
+/* Identificações dos eventos que o alerta da agenda não cobra; relida a cada mês carregado. */
+async function carregarEventosSemCobranca() {
+  try {
+    const { eventos } = await api.eventosSemCobranca();
+    estado.eventosSemCobranca = new Set(eventos);
+  } catch (erro) {
+    // A grade da agenda não depende disto: sem a lista, os botões só saem desmarcados.
+    console.warn('Eventos sem cobrança não carregados:', erro);
+  }
+}
+
+/** Botão ao lado do nome do parceiro: liga e desliga a cobrança de tarefa do evento. */
+function criarBotaoDeNaoCobrarTarefa(evento) {
+  const identificacao = identificacaoDoEvento(evento);
+  const botao = criarBotaoDeIcone('btn tiny ghost', ICONES.sinoRiscado, '', async () => {
+    const naoCobrar = !estado.eventosSemCobranca.has(identificacao);
+    botao.disabled = true;
+    try {
+      await api.definirNaoCobrarTarefa(identificacao, naoCobrar);
+      if (naoCobrar) estado.eventosSemCobranca.add(identificacao);
+      else estado.eventosSemCobranca.delete(identificacao);
+      atualizarBotao();
+    } catch (erro) {
+      exibirAviso(`Não foi possível alterar a cobrança: ${erro.message}`, 'erro');
+    } finally {
+      botao.disabled = false;
+    }
+  });
+
+  function atualizarBotao() {
+    const naoCobrar = estado.eventosSemCobranca.has(identificacao);
+    botao.classList.toggle('sem-cobranca', naoCobrar);
+    const rotulo = naoCobrar
+      ? 'O alerta da agenda não cobra tarefa deste evento — clique para voltar a cobrar'
+      : 'Não cobrar tarefa na Experience deste evento';
+    botao.title = rotulo;
+    botao.setAttribute('aria-label', rotulo);
+  }
+  atualizarBotao();
+
+  return botao;
+}
+
 /* -------------------- Solicitação de Serviços (DS) no evento -------------------- */
 
 /** Tempo para o download do `<a download>` pegar o blob antes de ele ser liberado. */
@@ -3948,6 +4000,9 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
         const linhaNome = criarElemento('div', 'linha-horario-situacao');
         linhaNome.append(criarTituloDoEvento(evento, tituloDoEvento));
         linhaNome.append(criarBotaoDeVinculoDeCliente(evento, () => renderizarDetalhe(dia, true)));
+        if (evento.codparc && !estado.terceiro) {
+          linhaNome.append(criarBotaoDeNaoCobrarTarefa(evento));
+        }
         informacoes.append(linhaNome);
       } else {
         informacoes.append(criarElemento('p', 'recurso-nome', tituloDoEvento));
@@ -3990,7 +4045,7 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
 
     const { de, ate } = limitesDoMesCliente(estadoWidget.mes);
     try {
-      const eventos = await buscarEventos(de, ate);
+      const [eventos] = await Promise.all([buscarEventos(de, ate), carregarEventosSemCobranca()]);
       const grade = criarGradeMensalDeEventos(estadoWidget.mes, eventos);
       areaCalendario.replaceChildren(criarGradeDoCalendario(grade, celula));
       status.textContent = eventos.length
@@ -4644,8 +4699,12 @@ function criarLinhaDeEventoDoResumo(evento, semTarefa) {
 
 /* Evento de vários dias (férias, semana de projeto) também é de hoje enquanto durar. */
 async function criarSecaoDaAgendaDoResumo(hoje) {
-  const { eventos } = await api.eventosDaAgenda(hoje, hoje);
+  const [{ eventos }] = await Promise.all([
+    api.eventosDaAgenda(hoje, hoje),
+    carregarEventosSemCobranca(),
+  ]);
   const semTarefa = eventosDeHojeSemTarefa(hoje);
+  for (const identificacao of estado.eventosSemCobranca) semTarefa.delete(identificacao);
   const deHoje = eventos
     .filter((evento) => evento.inicio.slice(0, 10) <= hoje && hoje <= evento.fim.slice(0, 10))
     .sort((a, b) => a.inicio.localeCompare(b.inicio));
@@ -9778,6 +9837,7 @@ const ALERTA_DA_AGENDA_PADRAO = {
   ativo: false,
   intervaloHoras: 2,
   incluirProximoDiaUtil: false,
+  diasUteisRetroativos: 0,
   repetirAteResolver: false,
   enviarEmail: false,
   contatoIdsEmCopia: [],
@@ -10241,6 +10301,7 @@ function preencherNotificacoesDaConfiguracao(smtp, alertaDaAgenda, avisoDaBranch
   elementos.campoAlertaAgendaAtivo.checked = alertaDaAgenda.ativo;
   elementos.campoAlertaAgendaIntervalo.value = alertaDaAgenda.intervaloHoras;
   elementos.campoAlertaAgendaProximoDiaUtil.checked = alertaDaAgenda.incluirProximoDiaUtil;
+  elementos.campoAlertaAgendaRetroativos.value = alertaDaAgenda.diasUteisRetroativos ?? 0;
   elementos.campoAlertaAgendaRepetir.checked = alertaDaAgenda.repetirAteResolver;
   elementos.campoAlertaAgendaEmail.checked = alertaDaAgenda.enviarEmail;
   elementos.grupoContatosAlertaAgenda.disabled = !alertaDaAgenda.enviarEmail;
@@ -10264,6 +10325,7 @@ function lerAlertaDaAgendaDaConfiguracao() {
     ativo: elementos.campoAlertaAgendaAtivo.checked,
     intervaloHoras: Number(elementos.campoAlertaAgendaIntervalo.value),
     incluirProximoDiaUtil: elementos.campoAlertaAgendaProximoDiaUtil.checked,
+    diasUteisRetroativos: Number(elementos.campoAlertaAgendaRetroativos.value),
     repetirAteResolver: elementos.campoAlertaAgendaRepetir.checked,
     enviarEmail: elementos.campoAlertaAgendaEmail.checked,
     contatoIdsEmCopia: campoDeContatosDoAlerta.ids(),

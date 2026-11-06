@@ -2087,16 +2087,39 @@
                 >
               </legend>
               <div class="grade-duas-colunas">
-                <div class="campo">
-                  <label for="campo-alerta-agenda-intervalo">Periodicidade (horas)</label>
-                  <input
-                    id="campo-alerta-agenda-intervalo"
-                    type="number"
-                    min="1"
-                    max="24"
-                    step="1"
-                    inputmode="numeric"
-                  />
+                <div class="campos-do-alerta">
+                  <div class="campo">
+                    <label for="campo-alerta-agenda-intervalo">Periodicidade (horas)</label>
+                    <input
+                      id="campo-alerta-agenda-intervalo"
+                      type="number"
+                      min="1"
+                      max="24"
+                      step="1"
+                      inputmode="numeric"
+                    />
+                  </div>
+                  <div class="campo">
+                    <label for="campo-alerta-agenda-retroativos">
+                      Cobrar dias úteis anteriores
+                      <span class="dica" tabindex="0"
+                        >?<span class="dica-texto" role="tooltip"
+                          >Quantos dias úteis para trás o alerta continua cobrando o atendimento já
+                          feito sem tarefa nem OS — uma vez por dia, ou a cada execução com a
+                          repetição marcada. 0 desliga. Para um evento que não deve ser cobrado, use
+                          o sino riscado ao lado do nome do parceiro na Agenda.</span
+                        ></span
+                      >
+                    </label>
+                    <input
+                      id="campo-alerta-agenda-retroativos"
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="1"
+                      inputmode="numeric"
+                    />
+                  </div>
                 </div>
                 <div class="opcoes-do-alerta">
                   <label class="campo-checkbox">

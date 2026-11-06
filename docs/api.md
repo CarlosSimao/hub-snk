@@ -389,6 +389,8 @@ cofre das credenciais é ele, e o backend fala com ele pela ponte local
 | `GET`    | `/api/clientes/:id/agenda-eventos?de=&ate=` | `200` — `{ eventos }` do snapshot no período, só dos parceiros do cliente                                            |
 | `POST`   | `/api/agenda/consultar`                     | `200` — consulta a Agenda de Recursos do usuário (`{ de, ate }`), mês a mês, e importa; `400` sem CODUSU configurado |
 | `GET`    | `/api/agenda/situacao-do-dia?codparc=&dia=` | `200` — sem tarefa, tarefa aberta ou OS lançada na Experience naquele dia                                            |
+| `GET`    | `/api/agenda/nao-cobrar`                    | `200` — `{ eventos }`, as identificações dos eventos que o alerta da agenda não cobra                                |
+| `PUT`    | `/api/agenda/nao-cobrar`                    | `204` — marca ou desmarca o evento (`{ identificacao, naoCobrar }`); `400` sem identificação                         |
 | `POST`   | `/api/os/consultar`                         | `200` — `{ itens, buscadoEm }`, as OS do usuário no período (`{ de, ate }`), em todos os projetos                    |
 | `POST`   | `/api/clientes/:id/os-consultar`            | `200` — as mesmas OS, só as das empresas do cliente                                                                  |
 
@@ -657,6 +659,7 @@ configuração. Ausentes, o que está gravado é preservado.
     "ativo": true,
     "intervaloHoras": 2,
     "incluirProximoDiaUtil": false,
+    "diasUteisRetroativos": 5,
     "repetirAteResolver": false,
     "enviarEmail": true,
     "contatoIdsEmCopia": ["3f1c..."]
@@ -665,6 +668,7 @@ configuração. Ausentes, o que está gravado é preservado.
 ```
 
 `seguranca` é `ssl`, `starttls` ou `nenhuma`. `intervaloHoras` é inteiro, de 1 a 24.
+`diasUteisRetroativos` é inteiro, de 0 (desligado) a 10, e é opcional (ausente vale `0`).
 `contatoIdsEmCopia` vai até 50 ids e é opcional (ausente vale `[]`); id de contato excluído
 ou sem e-mail é ignorado no envio.
 

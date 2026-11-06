@@ -70,6 +70,7 @@ cadastro.
       "ativo": true,
       "intervaloHoras": 2,
       "incluirProximoDiaUtil": false,
+      "diasUteisRetroativos": 5,
       "repetirAteResolver": false,
       "enviarEmail": true,
       "contatoIdsEmCopia": ["3f1c..."]
@@ -125,7 +126,8 @@ vazio, a aba OS não tem de quem buscar as OS.
 `smtp` é o servidor dos e-mails das notificações, com a senha em texto puro;
 `seguranca` é `ssl`, `starttls` ou `nenhuma`, e host vazio desliga o e-mail.
 `alertaDaAgenda` liga o aviso de evento da agenda sem tarefa nem OS na Experience,
-conferido a cada `intervaloHoras` (inteiro, de 1 a 24). Com `enviarEmail`, os
+conferido a cada `intervaloHoras` (inteiro, de 1 a 24), voltando `diasUteisRetroativos`
+dias úteis (0 a 10; arquivo de antes do campo vale 0, desligado). Com `enviarEmail`, os
 `contatoIdsEmCopia` (ids de `contatos.json`) e o solicitante da DS citada no evento vão
 em cópia do e-mail. Arquivo de antes destes campos nasce com o SMTP vazio (porta 587,
 STARTTLS) e o alerta desligado; arquivo com o antigo `intervaloMinutos` é lido em horas,
@@ -224,11 +226,33 @@ Só o `nome` é obrigatório; os outros textos ficam vazios. `clienteId` é `nul
 contato sem cliente, e excluir o cliente o passa a `null`. Um `clienteId` que não
 existe mais — pasta sincronizada com outra máquina — vale como sem cliente.
 
+`gestorId` é o id de outro contato, ou `null`: nunca o próprio contato nem um subordinado
+dele, e excluir o gestor passa os subordinados a `null`. O gestor do gestor sai do
+encadeamento. `gerente` liga sozinho quando o contato vira gestor de alguém e só o usuário
+o desliga. Arquivo de antes destes campos é lido sem gestor e com `gerente` desligado.
+
+Com o organograma do Google conectado (**Configurações › Sankhya**), o solicitante da DS
+aberta na agenda, ou citada no alerta da agenda, traz o gestor e o gestor do gestor do
+diretório do Google Workspace: quem não é contato é criado sem cliente, achado pelo
+e-mail; quem já é só ganha o cargo que faltava. O gestor que o diretório informa substitui
+o gravado; sem gestor no diretório, o gravado fica.
+
+## Eventos sem cobrança
+
+O conteúdo de `eventos` em `eventos-sem-cobranca.json` é a lista das identificações dos
+eventos da agenda marcados para o alerta não cobrar tarefa: o `NUEVENTO` como texto, ou
+`<codparc>-<inicio>` para evento sem número.
+
+```json
+["184233", "72965-2026-11-09 08:00:00"]
+```
+
 ## Notificações
 
 O conteúdo de `notificacoes` tem a `lista` (as 200 mais recentes) e as
 `chavesEmitidas`, que impedem notificar duas vezes o mesmo fato — o evento da
-agenda num dia, a ocorrência de um lembrete. Limpar o painel esvazia só a lista;
+agenda num dia de verificação (`agenda:<dia do evento>:<evento>#<dia da verificação>`, ou
+o instante com a repetição ligada), a ocorrência de um lembrete. Limpar o painel esvazia só a lista;
 as chaves ficam por sete dias.
 
 ## Cadastro de clientes
