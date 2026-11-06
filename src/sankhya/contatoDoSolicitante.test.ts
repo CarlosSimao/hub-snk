@@ -50,6 +50,7 @@ test('cria o contato sem cliente quando o e-mail é novo', async () => {
   assert.deepEqual(await cadastrarSolicitante(repositorio, EVERTON), {
     situacao: 'criado',
     nome: 'Everton Mendes',
+    contatoId: '1',
   });
   assert.deepEqual(
     contatos.map(({ nome, cargo, email, telefone, clienteId }) => ({
@@ -77,6 +78,7 @@ test('contato com cargo preenchido não muda', async () => {
   assert.deepEqual(await cadastrarSolicitante(repositorio, EVERTON), {
     situacao: 'existente',
     nome: 'Everton',
+    contatoId: 'a',
   });
   assert.equal(contatos[0]?.cargo, 'GP');
 });

@@ -179,14 +179,17 @@ const esquemaDeConfiguracao = z.object({
   nomeDoUsuario: esquemaDeIdentificacao('O nome do usuário').optional(),
   empresaDoUsuario: esquemaDeIdentificacao('A empresa').optional(),
   timeDoUsuario: esquemaDeIdentificacao('O time').optional(),
+  cargoDoUsuario: esquemaDeIdentificacao('O cargo').optional(),
   emailDoUsuario: esquemaDeEmail.optional(),
 });
 
-/* Tudo obrigatório: o assistente sempre manda os seis campos, mesmo vazios. */
+/* Tudo obrigatório: o assistente sempre manda os campos, mesmo vazios. */
 const esquemaDasBoasVindas = z.object({
   nomeDoUsuario: esquemaDeIdentificacao('O nome do usuário'),
   empresaDoUsuario: esquemaDeIdentificacao('A empresa'),
   timeDoUsuario: esquemaDeIdentificacao('O time'),
+  // Ausente numa tela anterior ao cargo: fica vazio, como o campo opcional que é.
+  cargoDoUsuario: esquemaDeIdentificacao('O cargo').default(''),
   emailDoUsuario: esquemaDeEmail,
   perfil: z.enum(PERFIS_PROFISSIONAIS, { error: 'Escolha um perfil válido.' }),
   terceiro: z.boolean({ error: 'Terceiro deve ser verdadeiro ou falso.' }),

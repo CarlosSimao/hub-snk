@@ -58,10 +58,10 @@ export interface ConfiguracaoDoAssistenteDoRepositorio extends ConfiguracaoDoAss
  * aviso de agenda sem tarefa na Experience. A senha do SMTP fica em texto puro neste
  * arquivo, como as senhas das bases no `clientes.json`.
  *
- * `nomeDoUsuario`, `empresaDoUsuario`, `timeDoUsuario` e `emailDoUsuario` dizem quem é a
- * pessoa que usa o aplicativo. A empresa é a dela (onde trabalha), e não o cadastro de clientes do
- * Sankhya. Os quatro são obrigatórios para abrir um relato ao suporte e viajam junto com
- * ele; fora isso, nada os exige.
+ * `nomeDoUsuario`, `empresaDoUsuario`, `timeDoUsuario`, `cargoDoUsuario` e `emailDoUsuario`
+ * dizem quem é a pessoa que usa o aplicativo. A empresa é a dela (onde trabalha), e não o
+ * cadastro de clientes do Sankhya. Nome, empresa, time e e-mail são obrigatórios para abrir
+ * um relato ao suporte; o cargo vai junto quando preenchido. Fora isso, nada os exige.
  *
  * `backup` é a cópia de segurança da pasta de dados: a periódica, numa pasta do
  * computador, e a mantida no Google Drive conectado.
@@ -95,6 +95,8 @@ export interface ConfiguracaoGlobal {
   nomeDoUsuario: string;
   empresaDoUsuario: string;
   timeDoUsuario: string;
+  /** Opcional: só aparece em quem cobra a tarefa da agenda e no relato ao suporte. */
+  cargoDoUsuario: string;
   emailDoUsuario: string;
   backup: ConfiguracaoDeBackup;
   boasVindasConcluidas: boolean;
@@ -159,15 +161,18 @@ export interface ConfiguracaoSmtp {
 
 /**
  * Aviso de evento da agenda sem tarefa nem OS na Experience. Roda a cada
- * `intervaloMinutos`, olha o dia atual e, com `incluirProximoDiaUtil`, também o próximo
+ * `intervaloHoras`, olha o dia atual e, com `incluirProximoDiaUtil`, também o próximo
  * dia útil. `repetirAteResolver` avisa em toda execução, e não uma vez por evento.
+ * Com `enviarEmail`, os `contatoIdsEmCopia` e o solicitante da DS citada no evento vão
+ * em cópia do e-mail.
  */
 export interface AlertaDaAgenda {
   ativo: boolean;
-  intervaloMinutos: number;
+  intervaloHoras: number;
   incluirProximoDiaUtil: boolean;
   repetirAteResolver: boolean;
   enviarEmail: boolean;
+  contatoIdsEmCopia: string[];
 }
 
 /**
@@ -599,6 +604,10 @@ export interface Notificacao {
   lida: boolean;
   /** Motivo da falha do e-mail; vazio quando foi enviado ou nem era para enviar. */
   erroDoEmail: string;
+  /** Contatos que foram em cópia do e-mail. A cobrança manual já abre com eles. */
+  contatoIdsEmCopia?: string[];
+  /** Por que alguém que deveria ir em cópia ficou de fora (a DS não pôde ser consultada). */
+  avisoDaCopia?: string;
 }
 
 /* -------------------------------- Lembretes ------------------------------- */

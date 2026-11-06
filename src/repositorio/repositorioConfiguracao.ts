@@ -34,6 +34,7 @@ export interface ConfiguracaoParaSalvar extends Omit<
   | 'nomeDoUsuario'
   | 'empresaDoUsuario'
   | 'timeDoUsuario'
+  | 'cargoDoUsuario'
   | 'emailDoUsuario'
 > {
   atalhos: DadosDeAtalho[];
@@ -53,13 +54,20 @@ export interface ConfiguracaoParaSalvar extends Omit<
   nomeDoUsuario?: ConfiguracaoGlobal['nomeDoUsuario'];
   empresaDoUsuario?: ConfiguracaoGlobal['empresaDoUsuario'];
   timeDoUsuario?: ConfiguracaoGlobal['timeDoUsuario'];
+  cargoDoUsuario?: ConfiguracaoGlobal['cargoDoUsuario'];
   emailDoUsuario?: ConfiguracaoGlobal['emailDoUsuario'];
 }
 
 /** O respondido no assistente de boas-vindas. As funcionalidades ocultas são o preset do perfil. */
 export type RespostasDasBoasVindas = Pick<
   ConfiguracaoGlobal,
-  'nomeDoUsuario' | 'empresaDoUsuario' | 'timeDoUsuario' | 'emailDoUsuario' | 'perfil' | 'terceiro'
+  | 'nomeDoUsuario'
+  | 'empresaDoUsuario'
+  | 'timeDoUsuario'
+  | 'cargoDoUsuario'
+  | 'emailDoUsuario'
+  | 'perfil'
+  | 'terceiro'
 >;
 
 /**

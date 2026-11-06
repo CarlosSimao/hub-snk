@@ -26,6 +26,8 @@ export interface DadosDeNotificacao {
   enviarEmail: boolean;
   /** E-mail próprio de quem gerou; sem ele, sai o padrão com o título e a mensagem. */
   email?: MensagemDeEmail;
+  contatoIdsEmCopia?: string[];
+  avisoDaCopia?: string;
 }
 
 export type OuvinteDeNotificacao = (notificacao: Notificacao) => void;
@@ -82,6 +84,8 @@ export class CentralDeNotificacoes {
         lida: false,
         erroDoEmail: dados.enviarEmail ? await this.#tentarEnviarEmail(dados) : '',
       };
+      if (dados.contatoIdsEmCopia?.length) notificacao.contatoIdsEmCopia = dados.contatoIdsEmCopia;
+      if (dados.avisoDaCopia) notificacao.avisoDaCopia = dados.avisoDaCopia;
 
       await this.#repositorio.adicionar(notificacao);
       this.#avisarOuvintes(notificacao);

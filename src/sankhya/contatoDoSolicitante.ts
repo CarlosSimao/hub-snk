@@ -12,6 +12,8 @@ export type SituacaoDoContato = 'criado' | 'completado' | 'existente' | 'sem-ema
 export interface ResultadoDoContato {
   situacao: SituacaoDoContato;
   nome: string;
+  /** `null` só em `sem-email`: sem e-mail não há contato. */
+  contatoId: string | null;
 }
 
 const mesmoEmail = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -20,22 +22,26 @@ export async function cadastrarSolicitante(
   contatos: RepositorioContatos,
   solicitante: SolicitanteDaDs | null,
 ): Promise<ResultadoDoContato> {
-  if (!solicitante?.email) return { situacao: 'sem-email', nome: solicitante?.nome ?? '' };
+  if (!solicitante?.email) {
+    return { situacao: 'sem-email', nome: solicitante?.nome ?? '', contatoId: null };
+  }
 
   const existente = (await contatos.listar()).find((c) => mesmoEmail(c.email, solicitante.email));
   if (!existente) {
-    await contatos.criar({
+    const criado = await contatos.criar({
       nome: solicitante.nome,
       cargo: solicitante.cargo,
       email: solicitante.email,
       telefone: '',
       clienteId: null,
     });
-    return { situacao: 'criado', nome: solicitante.nome };
+    return { situacao: 'criado', nome: solicitante.nome, contatoId: criado.id };
   }
 
-  if (existente.cargo || !solicitante.cargo) return { situacao: 'existente', nome: existente.nome };
+  if (existente.cargo || !solicitante.cargo) {
+    return { situacao: 'existente', nome: existente.nome, contatoId: existente.id };
+  }
   const { id, criadoEm: _criadoEm, atualizadoEm: _atualizadoEm, ...dados } = existente;
   await contatos.atualizar(id, { ...dados, cargo: solicitante.cargo });
-  return { situacao: 'completado', nome: existente.nome };
+  return { situacao: 'completado', nome: existente.nome, contatoId: id };
 }

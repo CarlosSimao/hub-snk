@@ -1551,6 +1551,25 @@
               </div>
 
               <div class="campo">
+                <label for="campo-cargo-do-usuario">
+                  Cargo <span class="opcional">opcional</span>
+                  <span class="dica" tabindex="0"
+                    >?<span class="dica-texto" role="tooltip"
+                      >O seu cargo. Aparece em quem cobra a tarefa no e-mail do alerta da agenda e
+                      vai junto com o relato ao suporte, quando preenchido.</span
+                    ></span
+                  >
+                </label>
+                <input
+                  id="campo-cargo-do-usuario"
+                  type="text"
+                  maxlength="120"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </div>
+
+              <div class="campo">
                 <label for="campo-email-do-usuario">
                   E-mail
                   <span class="dica" tabindex="0"
@@ -2069,8 +2088,15 @@
               </legend>
               <div class="grade-duas-colunas">
                 <div class="campo">
-                  <label for="campo-alerta-agenda-intervalo">Periodicidade (minutos)</label>
-                  <input id="campo-alerta-agenda-intervalo" type="number" min="1" max="1440" />
+                  <label for="campo-alerta-agenda-intervalo">Periodicidade (horas)</label>
+                  <input
+                    id="campo-alerta-agenda-intervalo"
+                    type="number"
+                    min="1"
+                    max="24"
+                    step="1"
+                    inputmode="numeric"
+                  />
                 </div>
                 <div class="opcoes-do-alerta">
                   <label class="campo-checkbox">
@@ -2089,6 +2115,27 @@
                   </label>
                 </div>
               </div>
+              <!-- Fieldset para desabilitar os chips junto com "Enviar por e-mail" sem perder a escolha. -->
+              <fieldset class="campo grupo-sem-borda" id="grupo-contatos-alerta-agenda">
+                <label>
+                  Contatos em cópia <span class="opcional">opcional</span>
+                  <span class="dica" tabindex="0"
+                    >?<span class="dica-texto" role="tooltip"
+                      >Com "Enviar por e-mail" marcado, o e-mail do alerta vai para o destinatário
+                      do SMTP com estes contatos e o solicitante da DS citada no evento (ID na
+                      descrição) em cópia. A cobrança manual já abre com eles.</span
+                    ></span
+                  >
+                </label>
+                <!-- Os chips e a pesquisa são montados pelo campoDeContatos.js. -->
+                <div
+                  class="linha-destinatarios caixa-de-contatos"
+                  id="linha-contatos-alerta-agenda"
+                >
+                  <div class="destinatarios"></div>
+                  <div class="opcoes-de-contatos abaixo" hidden></div>
+                </div>
+              </fieldset>
             </fieldset>
           </div>
 
@@ -3875,6 +3922,17 @@
               >Time <span class="opcional">(opcional)</span></label
             >
             <input id="campo-time-boas-vindas" type="text" maxlength="120" />
+          </div>
+          <div class="campo">
+            <label for="campo-cargo-boas-vindas"
+              >Cargo <span class="opcional">(opcional)</span></label
+            >
+            <input
+              id="campo-cargo-boas-vindas"
+              type="text"
+              maxlength="120"
+              autocomplete="organization-title"
+            />
           </div>
           <div class="campo">
             <label for="campo-email-boas-vindas"

@@ -25,6 +25,7 @@ const elementos = {
   nome: document.getElementById('campo-nome-boas-vindas'),
   empresa: document.getElementById('campo-empresa-boas-vindas'),
   time: document.getElementById('campo-time-boas-vindas'),
+  cargo: document.getElementById('campo-cargo-boas-vindas'),
   email: document.getElementById('campo-email-boas-vindas'),
   resumo: document.getElementById('resumo-boas-vindas'),
   erro: document.getElementById('erro-boas-vindas'),
@@ -38,6 +39,7 @@ function respostas() {
     nomeDoUsuario: elementos.nome.value.trim(),
     empresaDoUsuario: elementos.empresa.value.trim(),
     timeDoUsuario: elementos.time.value.trim(),
+    cargoDoUsuario: elementos.cargo.value.trim(),
     emailDoUsuario: elementos.email.value.trim(),
     perfil: dados.get('perfil'),
     terceiro: dados.get('acesso-ao-sankhya') === 'nao',
@@ -50,12 +52,20 @@ function exibirErro(mensagem) {
 }
 
 function preencherResumo() {
-  const { nomeDoUsuario, empresaDoUsuario, timeDoUsuario, emailDoUsuario, perfil, terceiro } =
-    respostas();
+  const {
+    nomeDoUsuario,
+    empresaDoUsuario,
+    timeDoUsuario,
+    cargoDoUsuario,
+    emailDoUsuario,
+    perfil,
+    terceiro,
+  } = respostas();
   const linhas = [
     ['Nome', nomeDoUsuario],
     ['Empresa', empresaDoUsuario],
     ['Time', timeDoUsuario],
+    ['Cargo', cargoDoUsuario],
     ['E-mail', emailDoUsuario],
     ['Perfil', NOMES_DOS_PERFIS[perfil]],
     ['Login no Sankhya', terceiro ? 'Não (terceiro)' : 'Sim'],

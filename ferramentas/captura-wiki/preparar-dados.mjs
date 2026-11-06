@@ -217,6 +217,7 @@ const configuracao = {
   nomeDoUsuario: 'Ana Souza',
   empresaDoUsuario: 'Consultoria Demo',
   timeDoUsuario: 'Implantação',
+  cargoDoUsuario: 'Consultora de Implantação',
 };
 
 function gravar(pasta, arquivo, chave, conteudo) {

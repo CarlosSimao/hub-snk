@@ -854,17 +854,28 @@
             dia <strong>Não foi possível conferir as tarefas da agenda</strong>, pedindo para
             conferir o login. Só funciona no aplicativo desktop.
           </p>
+          <p>
+            Com <strong>Enviar por e-mail</strong>, o aviso sai também por e-mail, no mesmo layout
+            da <a href="#cobrar-por-email">cobrança</a>, com o bloco
+            <strong>Cobrado por</strong> (seu nome, cargo, time e e-mail) e a resposta indo para o
+            seu e-mail. Vai para o destinatário do SMTP, com os contatos em cópia da aba Avisos e o
+            solicitante de cada DS citada no evento (o ID na descrição, como <code>ID 3536</code>)
+            em cópia; o solicitante vira contato do HUB SNK, se ainda não for. As cópias vão em toda
+            repetição. Se a DS não puder ser consultada, o e-mail sai sem o solicitante e a
+            notificação diz por quê.
+          </p>
 
           <h3>Passo a passo</h3>
           <ol class="passos">
             <li>
               Abra as <strong>Configurações</strong>, aba <strong>Avisos</strong>. Em
               <strong>Agenda sem tarefa na Experience</strong>, marque <strong>Ligado</strong> e
-              ajuste a <strong>Periodicidade (minutos)</strong> (120 por padrão, de 1 a 1440). Se
-              quiser, marque <strong>Monitorar também o próximo dia útil</strong> (pula sábado e
-              domingo, mas não feriados),
+              ajuste a <strong>Periodicidade (horas)</strong> (2 por padrão, de 1 a 24). Se quiser,
+              marque <strong>Monitorar também o próximo dia útil</strong> (pula sábado e domingo,
+              mas não feriados),
               <strong>Repetir o aviso a cada execução enquanto a pendência existir</strong> e
-              <strong>Enviar por e-mail</strong>. Clique em <strong>Salvar</strong>.
+              <strong>Enviar por e-mail</strong>, e escolha os <strong>Contatos em cópia</strong>.
+              Clique em <strong>Salvar</strong>.
               <figure>
                 <img
                   src="img/lembretes-e-notificacoes/alerta-da-agenda-01-avisos.webp"
@@ -903,11 +914,19 @@
           <ul>
             <li>
               <a href="configuracoes.html#avisos-ligado">Configurações › Avisos › Ligado</a>,
-              <a href="configuracoes.html#avisos-periodicidade">Periodicidade (minutos)</a>,
+              <a href="configuracoes.html#avisos-periodicidade">Periodicidade (horas)</a>,
               <a href="configuracoes.html#avisos-proximo-dia-util"
                 >Monitorar também o próximo dia útil</a
-              >, <a href="configuracoes.html#avisos-repetir-o-aviso">Repetir o aviso</a> e
-              <a href="configuracoes.html#avisos-enviar-por-email">Enviar por e-mail</a>
+              >, <a href="configuracoes.html#avisos-repetir-o-aviso">Repetir o aviso</a>,
+              <a href="configuracoes.html#avisos-enviar-por-email">Enviar por e-mail</a> e
+              <a href="configuracoes.html#avisos-contatos-em-copia">Contatos em cópia</a>
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-nome">Configurações › Geral › Nome do usuário</a>,
+              <a href="configuracoes.html#geral-cargo">Cargo</a>,
+              <a href="configuracoes.html#geral-time">Time</a> e
+              <a href="configuracoes.html#geral-email">E-mail</a>: o bloco
+              <strong>Cobrado por</strong> do e-mail.
             </li>
             <li>
               <a href="configuracoes.html#sankhya-id-codigo-de-usuario"
@@ -946,8 +965,11 @@
             A notificação <strong>Agenda sem tarefa na Experience</strong> tem um envelope no canto
             que manda o alerta por e-mail, pedindo a abertura da tarefa na Experience. O e-mail tem
             o layout do HUB SNK, um destaque de atenção com o parceiro, o dia e o horário do evento
-            e a data em que o alerta foi gerado. Vai para o destinatário do SMTP, com os contatos
-            escolhidos em cópia; dá para cobrar de novo quantas vezes precisar.
+            e a data em que o alerta foi gerado, além do bloco <strong>Cobrado por</strong> com seu
+            nome, cargo, time e e-mail; quem responder fala com você. Vai para o destinatário do
+            SMTP, com os contatos escolhidos em cópia; dá para cobrar de novo quantas vezes
+            precisar. O formulário já abre com quem foi em cópia no e-mail do alerta e com os
+            contatos em cópia da aba Avisos.
           </p>
 
           <h3>Passo a passo</h3>
@@ -986,6 +1008,18 @@
           <h3>Configurações que dependem ou alteram</h3>
           <ul>
             <li><a href="configuracoes.html#smtp-host">Configurações › SMTP</a></li>
+            <li>
+              <a href="configuracoes.html#avisos-contatos-em-copia"
+                >Configurações › Avisos › Contatos em cópia</a
+              >: já vêm escolhidos.
+            </li>
+            <li>
+              <a href="configuracoes.html#geral-nome">Configurações › Geral › Nome do usuário</a>,
+              <a href="configuracoes.html#geral-cargo">Cargo</a>,
+              <a href="configuracoes.html#geral-time">Time</a> e
+              <a href="configuracoes.html#geral-email">E-mail</a>: o bloco
+              <strong>Cobrado por</strong>.
+            </li>
           </ul>
 
           <h3>Depende de</h3>

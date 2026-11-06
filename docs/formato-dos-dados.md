@@ -66,7 +66,14 @@ cadastro.
       "remetente": "voce@empresa.com.br",
       "destinatario": "voce@empresa.com.br"
     },
-    "alertaDaAgenda": { "ativo": true, "toleranciaMinutos": 30, "enviarEmail": true },
+    "alertaDaAgenda": {
+      "ativo": true,
+      "intervaloHoras": 2,
+      "incluirProximoDiaUtil": false,
+      "repetirAteResolver": false,
+      "enviarEmail": true,
+      "contatoIdsEmCopia": ["3f1c..."]
+    },
     "assistenteDeIa": { "assistente": "auto", "modelo": "", "raciocinio": "" },
     "assistenteDoRepositorio": {
       "assistente": "claude",
@@ -76,7 +83,8 @@ cadastro.
     },
     "nomeDoUsuario": "Ana Souza",
     "empresaDoUsuario": "Acme",
-    "timeDoUsuario": "Suporte"
+    "timeDoUsuario": "Suporte",
+    "cargoDoUsuario": "Consultora"
   }
 }
 ```
@@ -116,9 +124,16 @@ vazio, a aba OS não tem de quem buscar as OS.
 
 `smtp` é o servidor dos e-mails das notificações, com a senha em texto puro;
 `seguranca` é `ssl`, `starttls` ou `nenhuma`, e host vazio desliga o e-mail.
-`alertaDaAgenda` liga o aviso de evento da agenda de hoje sem OS lançada. Arquivo
-de antes destes campos nasce com o SMTP vazio (porta 587, STARTTLS) e o alerta
-desligado.
+`alertaDaAgenda` liga o aviso de evento da agenda sem tarefa nem OS na Experience,
+conferido a cada `intervaloHoras` (inteiro, de 1 a 24). Com `enviarEmail`, os
+`contatoIdsEmCopia` (ids de `contatos.json`) e o solicitante da DS citada no evento vão
+em cópia do e-mail. Arquivo de antes destes campos nasce com o SMTP vazio (porta 587,
+STARTTLS) e o alerta desligado; arquivo com o antigo `intervaloMinutos` é lido em horas,
+arredondando para cima (45 viram 1).
+
+As notificações (`notificacoes.json`) do alerta que saiu por e-mail guardam
+`contatoIdsEmCopia`, quem foi em cópia, e `avisoDaCopia`, por que um solicitante ficou de
+fora; as duas chaves só existem quando há o que guardar.
 
 `assistenteDeIa` é quem gera as tarefas do kanban a partir do documento de escopo:
 `auto` (o primeiro instalado, na ordem `claude`, `codex`, `opencode`, `gemini`,
@@ -132,10 +147,12 @@ botão do assistente abre no terminal, na pasta do repositório. `opcoes` são a
 mais na linha do assistente, separados por espaço (aspas duplas juntam um valor com
 espaço); cada um vai citado, sem o shell interpretar. Vazio não acrescenta nada.
 
-`nomeDoUsuario`, `empresaDoUsuario` e `timeDoUsuario` são os campos de **Configurações ›
-Geral** que dizem quem usa o aplicativo (a empresa é a da pessoa, e não um cliente do
-cadastro). Os três são obrigatórios para abrir um relato ao suporte e seguem com ele.
-Arquivo de antes dos campos nasce com eles vazios.
+`nomeDoUsuario`, `empresaDoUsuario`, `timeDoUsuario` e `cargoDoUsuario` são os campos de
+**Configurações › Geral** que dizem quem usa o aplicativo (a empresa é a da pessoa, e não um
+cliente do cadastro). Nome, empresa e time são obrigatórios para abrir um relato ao suporte e
+seguem com ele; o cargo é opcional, segue no relato quando preenchido e aparece, com o nome,
+o time e o e-mail, em **Cobrado por** no e-mail do alerta da agenda. Arquivo de antes dos
+campos nasce com eles vazios.
 
 `backup` é a configuração da janela **Backup e Google Drive**: `ativo`, `pasta` e
 `copiasMantidas` do backup periódico, com a agenda dele, e `espelharNoDrive` da cópia

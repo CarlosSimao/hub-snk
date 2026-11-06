@@ -18,6 +18,7 @@ export function semear(pastaDeDados) {
     'nomeDoUsuario',
     'empresaDoUsuario',
     'timeDoUsuario',
+    'cargoDoUsuario',
   ]) {
     delete conteudo.configuracao[chave];
   }
@@ -60,6 +61,7 @@ export async function roteiro({ painel, aplicativo, print }) {
   await painel.fill('#campo-nome-boas-vindas', 'Ana Souza');
   await painel.fill('#campo-empresa-boas-vindas', 'Consultoria Demo');
   await painel.fill('#campo-time-boas-vindas', 'Implantação');
+  await painel.fill('#campo-cargo-boas-vindas', 'Consultora de Implantação');
   await painel.fill('#campo-email-boas-vindas', 'ana.souza@consultoria.example');
   await print('boas-vindas-01-identificacao', {
     destacando: [0, 1, 2, 3].map((i) => passo(1).locator('.campo').nth(i)),

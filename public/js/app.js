@@ -707,6 +707,8 @@ const elementos = {
   campoAlertaAgendaProximoDiaUtil: document.getElementById('campo-alerta-agenda-proximo-dia-util'),
   campoAlertaAgendaRepetir: document.getElementById('campo-alerta-agenda-repetir'),
   campoAlertaAgendaEmail: document.getElementById('campo-alerta-agenda-email'),
+  grupoContatosAlertaAgenda: document.getElementById('grupo-contatos-alerta-agenda'),
+  linhaContatosAlertaAgenda: document.getElementById('linha-contatos-alerta-agenda'),
   painelConfiguracaoSobre: document.getElementById('painel-configuracao-sobre'),
   campoPerfil: document.getElementById('campo-perfil'),
   campoTerceiro: document.getElementById('campo-terceiro'),
@@ -729,6 +731,7 @@ const elementos = {
   campoNomeDoUsuario: document.getElementById('campo-nome-do-usuario'),
   campoEmpresaDoUsuario: document.getElementById('campo-empresa-do-usuario'),
   campoTimeDoUsuario: document.getElementById('campo-time-do-usuario'),
+  campoCargoDoUsuario: document.getElementById('campo-cargo-do-usuario'),
   campoEmailDoUsuario: document.getElementById('campo-email-do-usuario'),
   botaoSelecionarExecutavelDaIde: document.getElementById('btn-selecionar-executavel-ide'),
   campoCaminhoSchemaMcp: document.getElementById('campo-caminho-schema-mcp'),
@@ -6891,6 +6894,7 @@ async function abrirModalDeConfiguracao() {
   elementos.campoNomeDoUsuario.value = '';
   elementos.campoEmpresaDoUsuario.value = '';
   elementos.campoTimeDoUsuario.value = '';
+  elementos.campoCargoDoUsuario.value = '';
   elementos.campoEmailDoUsuario.value = '';
   preencherAcessosDaConfiguracao(PERFIL_PADRAO, [], false);
   preencherNotificacoesDaConfiguracao(SMTP_PADRAO, ALERTA_DA_AGENDA_PADRAO, true);
@@ -6919,6 +6923,7 @@ async function abrirModalDeConfiguracao() {
     elementos.campoNomeDoUsuario.value = configuracao.nomeDoUsuario ?? '';
     elementos.campoEmpresaDoUsuario.value = configuracao.empresaDoUsuario ?? '';
     elementos.campoTimeDoUsuario.value = configuracao.timeDoUsuario ?? '';
+    elementos.campoCargoDoUsuario.value = configuracao.cargoDoUsuario ?? '';
     elementos.campoEmailDoUsuario.value = configuracao.emailDoUsuario ?? '';
     preencherAcessosDaConfiguracao(
       configuracao.perfil ?? PERFIL_PADRAO,
@@ -6958,6 +6963,8 @@ async function abrirModalDeConfiguracao() {
   // Recolhido a cada abertura: o que ficou expandido da última vez não conta.
   elementos.grupoSankhyaSchema.open = false;
   elementos.modalConfiguracao.showModal();
+  // Os chips dos contatos em cópia precisam da lista atual para mostrar os nomes.
+  void carregarContatos().then(() => campoDeContatosDoAlerta.renderizar());
   elementos.campoNomeDoUsuario.focus();
 }
 
@@ -7176,6 +7183,7 @@ async function salvarConfiguracao(evento) {
       nomeDoUsuario: elementos.campoNomeDoUsuario.value.trim(),
       empresaDoUsuario: elementos.campoEmpresaDoUsuario.value.trim(),
       timeDoUsuario: elementos.campoTimeDoUsuario.value.trim(),
+      cargoDoUsuario: elementos.campoCargoDoUsuario.value.trim(),
       emailDoUsuario: elementos.campoEmailDoUsuario.value.trim(),
     });
     elementos.modalConfiguracao.close();
@@ -9768,10 +9776,11 @@ const SMTP_PADRAO = {
 /* Mesmo padrão de fábrica do backend (repositorioConfiguracaoArquivo.ts). */
 const ALERTA_DA_AGENDA_PADRAO = {
   ativo: false,
-  intervaloMinutos: 120,
+  intervaloHoras: 2,
   incluirProximoDiaUtil: false,
   repetirAteResolver: false,
   enviarEmail: false,
+  contatoIdsEmCopia: [],
 };
 
 const LIMITE_DO_CONTADOR_DE_NOTIFICACOES = 99;
@@ -9904,6 +9913,9 @@ function criarConteudoDaNotificacao(notificacao) {
     erroDoEmail.append(' ', criarLinkDeConfiguracaoPendente('smtp'));
     conteudo.append(erroDoEmail);
   }
+  if (notificacao.avisoDaCopia) {
+    conteudo.append(criarElemento('p', 'notificacao-erro-email', notificacao.avisoDaCopia));
+  }
   return conteudo;
 }
 
@@ -9957,20 +9969,42 @@ function criarItemDeNotificacao(notificacao) {
 
 /* ----------------------- cobrança do alerta da agenda ---------------------- */
 
-/* Criado ao registrar os eventos: a pesquisa e os chips dos contatos em cópia. */
+/*
+ * Criados ao registrar os eventos: a pesquisa e os chips dos contatos em cópia da
+ * cobrança e os da aba Avisos, que a cobrança usa como ponto de partida.
+ */
 let campoDeContatosDaCobranca = null;
+let campoDeContatosDoAlerta = null;
 
+/**
+ * Já abre com quem foi em cópia no e-mail do alerta e com os contatos configurados na
+ * aba Avisos; sem conseguir ler a configuração, fica só com os do alerta.
+ */
 async function abrirModalDeCobrancaDaAgenda(notificacao) {
   estado.notificacaoEmCobranca = notificacao;
   limparErro(elementos.erroCobrancaAgenda);
   elementos.alertaCobrancaAgenda.textContent = notificacao.mensagem;
   elementos.campoObservacaoCobrancaAgenda.value = '';
-  campoDeContatosDaCobranca.definir([]);
+  campoDeContatosDaCobranca.definir(notificacao.contatoIdsEmCopia ?? []);
   elementos.modalCobrancaAgenda.showModal();
   campoDeContatosDaCobranca.focar();
   // A lista pode ter mudado noutro lugar desde a última leitura.
-  await carregarContatos();
-  if (elementos.modalCobrancaAgenda.open) campoDeContatosDaCobranca.renderizar();
+  const [configuracao] = await Promise.all([
+    api.lerConfiguracao().catch(() => null),
+    carregarContatos(),
+  ]);
+  if (!elementos.modalCobrancaAgenda.open) return;
+  const escolhidos = campoDeContatosDaCobranca.ids();
+  const novos = (configuracao?.alertaDaAgenda?.contatoIdsEmCopia ?? []).filter(
+    (id) => !escolhidos.includes(id),
+  );
+  // Sem nada a acrescentar, só redesenha: `definir` fecharia as sugestões já abertas.
+  if (novos.length === 0) {
+    campoDeContatosDaCobranca.renderizar();
+    return;
+  }
+  campoDeContatosDaCobranca.definir([...escolhidos, ...novos]);
+  campoDeContatosDaCobranca.focar();
 }
 
 async function enviarCobrancaDaAgenda(evento) {
@@ -10015,6 +10049,24 @@ function registrarEventosDaCobrancaDaAgenda() {
   // Clique fora da pesquisa fecha a lista de sugestões, como um menu.
   elementos.modalCobrancaAgenda.addEventListener('click', (evento) => {
     if (!evento.target.closest('.linha-destinatarios')) campoDeContatosDaCobranca.fecharSugestoes();
+  });
+
+  campoDeContatosDoAlerta = criarCampoDeContatos(elementos.linhaContatosAlertaAgenda, {
+    criarElemento,
+    criarBotao,
+    contatos: () => estado.contatos,
+    clienteDoContato,
+    contatosOrdenados,
+    cadastrarContato: (aoCadastrar) => abrirModalDeContato(null, null, { aoCadastrar }),
+    rotulo: 'Contatos em cópia do alerta',
+  });
+  // Desmarcar o e-mail só desabilita os chips: a escolha volta ao marcar de novo.
+  elementos.campoAlertaAgendaEmail.addEventListener('change', () => {
+    elementos.grupoContatosAlertaAgenda.disabled = !elementos.campoAlertaAgendaEmail.checked;
+    campoDeContatosDoAlerta.fecharSugestoes();
+  });
+  elementos.modalConfiguracao.addEventListener('click', (evento) => {
+    if (!evento.target.closest('.linha-destinatarios')) campoDeContatosDoAlerta.fecharSugestoes();
   });
 }
 
@@ -10187,10 +10239,12 @@ function preencherNotificacoesDaConfiguracao(smtp, alertaDaAgenda, avisoDaBranch
   elementos.campoSmtpRemetente.value = smtp.remetente;
   elementos.campoSmtpDestinatario.value = smtp.destinatario;
   elementos.campoAlertaAgendaAtivo.checked = alertaDaAgenda.ativo;
-  elementos.campoAlertaAgendaIntervalo.value = alertaDaAgenda.intervaloMinutos;
+  elementos.campoAlertaAgendaIntervalo.value = alertaDaAgenda.intervaloHoras;
   elementos.campoAlertaAgendaProximoDiaUtil.checked = alertaDaAgenda.incluirProximoDiaUtil;
   elementos.campoAlertaAgendaRepetir.checked = alertaDaAgenda.repetirAteResolver;
   elementos.campoAlertaAgendaEmail.checked = alertaDaAgenda.enviarEmail;
+  elementos.grupoContatosAlertaAgenda.disabled = !alertaDaAgenda.enviarEmail;
+  campoDeContatosDoAlerta.definir(alertaDaAgenda.contatoIdsEmCopia ?? []);
 }
 
 function lerSmtpDaConfiguracao() {
@@ -10208,10 +10262,11 @@ function lerSmtpDaConfiguracao() {
 function lerAlertaDaAgendaDaConfiguracao() {
   return {
     ativo: elementos.campoAlertaAgendaAtivo.checked,
-    intervaloMinutos: Number(elementos.campoAlertaAgendaIntervalo.value),
+    intervaloHoras: Number(elementos.campoAlertaAgendaIntervalo.value),
     incluirProximoDiaUtil: elementos.campoAlertaAgendaProximoDiaUtil.checked,
     repetirAteResolver: elementos.campoAlertaAgendaRepetir.checked,
     enviarEmail: elementos.campoAlertaAgendaEmail.checked,
+    contatoIdsEmCopia: campoDeContatosDoAlerta.ids(),
   };
 }
 

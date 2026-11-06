@@ -297,12 +297,27 @@
               <a href="#geral-nome">Nome do usuário</a>.
             </dd>
 
+            <dt id="geral-cargo"><strong>Cargo</strong> (opcional)</dt>
+            <dd>
+              O seu cargo, até 120 caracteres. Aparece em <strong>Cobrado por</strong>, no e-mail do
+              alerta da agenda, e vai junto com o relato ao suporte quando preenchido; vazio não
+              impede nada. Padrão: vazio. Afeta:
+              <a href="lembretes-e-notificacoes.html#alerta-da-agenda">e-mail do alerta da agenda</a
+              >, <a href="lembretes-e-notificacoes.html#cobrar-por-email">cobrança por e-mail</a> e
+              <a href="suporte.html#reportar-problema">Reportar problema</a>.
+            </dd>
+
             <dt id="geral-email"><strong>E-mail</strong></dt>
             <dd>
-              O seu e-mail, válido ou vazio. Vai junto com o relato ao suporte. Não é remetente nem
-              destinatário de nada: quem manda e recebe os e-mails é o <a href="#smtp">SMTP</a>.
-              Padrão: vazio. Afeta:
-              <a href="suporte.html#reportar-problema">Reportar problema</a> (obrigatório).
+              O seu e-mail, válido ou vazio. Vai junto com o relato ao suporte e aparece em
+              <strong>Cobrado por</strong> no e-mail do alerta da agenda, que responde para ele. Não
+              é remetente: quem manda e recebe os e-mails é o <a href="#smtp">SMTP</a>. Padrão:
+              vazio. Afeta: <a href="suporte.html#reportar-problema">Reportar problema</a>
+              (obrigatório),
+              <a href="lembretes-e-notificacoes.html#alerta-da-agenda"
+                >e-mail do alerta da agenda</a
+              >
+              e <a href="lembretes-e-notificacoes.html#cobrar-por-email">cobrança por e-mail</a>.
             </dd>
 
             <dt id="geral-intervalo-de-execucao-automatica">
@@ -632,10 +647,11 @@
               <a href="repositorios-git.html#pendencias">pendências do repositório</a>.
             </dd>
 
-            <dt id="avisos-periodicidade"><strong>Periodicidade (minutos)</strong></dt>
+            <dt id="avisos-periodicidade"><strong>Periodicidade (horas)</strong></dt>
             <dd>
-              De quanto em quanto tempo a conferência roda. De 1 a 1440. Padrão: 120. A primeira
-              roda uns 2 minutos depois de o HUB SNK abrir. Afeta:
+              De quanto em quanto tempo a conferência roda, em horas inteiras. De 1 a 24. Padrão: 2.
+              Quem tinha a periodicidade em minutos passa a ter as horas arredondadas para cima (45
+              minutos viram 1 hora). A primeira roda uns 2 minutos depois de o HUB SNK abrir. Afeta:
               <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a>.
             </dd>
 
@@ -667,8 +683,20 @@
 
             <dt id="avisos-enviar-por-email"><strong>Enviar por e-mail</strong></dt>
             <dd>
-              Manda o aviso também por e-mail, pelo <a href="#smtp">SMTP</a>. Padrão: desmarcado.
-              Afeta: <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a>.
+              Manda o aviso também por e-mail, pelo <a href="#smtp">SMTP</a>, para o destinatário do
+              SMTP, com os <a href="#avisos-contatos-em-copia">contatos em cópia</a> e o solicitante
+              da DS citada no evento em cópia. Padrão: desmarcado. Afeta:
+              <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a>.
+            </dd>
+
+            <dt id="avisos-contatos-em-copia"><strong>Contatos em cópia</strong> (opcional)</dt>
+            <dd>
+              Contatos cadastrados, com e-mail, que vão em cópia de todo e-mail do alerta, junto com
+              o solicitante da DS. Só vale com <strong>Enviar por e-mail</strong> marcado;
+              desmarcado, o campo fica desabilitado e a escolha continua guardada. A cobrança manual
+              já abre com eles. Padrão: nenhum. Afeta:
+              <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a> e
+              <a href="lembretes-e-notificacoes.html#cobrar-por-email">cobrança por e-mail</a>.
             </dd>
           </dl>
         </section>

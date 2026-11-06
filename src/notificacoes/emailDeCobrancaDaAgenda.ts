@@ -16,6 +16,7 @@ import {
   escaparHtml,
   paragrafoComQuebras,
 } from './emailDoLembrete.ts';
+import type { ConfiguracaoGlobal } from '../tipos.ts';
 import {
   AVISO_DE_EMAIL_AUTOMATICO,
   PAGINA_DO_HUB_SNK,
@@ -29,6 +30,12 @@ const COR_DA_BORDA_DO_ALERTA = '#f59e0b';
 
 const PEDIDO_DE_ACAO = 'Por favor, abra a tarefa na Experience para este atendimento.';
 
+/** Quem cobra, como preenchido em Configurações › Geral. */
+export type CobradorDaAgenda = Pick<
+  ConfiguracaoGlobal,
+  'nomeDoUsuario' | 'cargoDoUsuario' | 'timeDoUsuario' | 'emailDoUsuario'
+>;
+
 export interface DadosDoEmailDeCobrancaDaAgenda {
   /** Título da notificação: "Agenda sem tarefa na Experience". */
   titulo: string;
@@ -40,6 +47,43 @@ export interface DadosDoEmailDeCobrancaDaAgenda {
   observacao: string;
   copia: string[];
   caminhoDaLogo: string;
+  cobrador: CobradorDaAgenda;
+}
+
+/* Só o que está preenchido: identificação vazia não pode segurar o alerta. */
+function linhasDoCobrador(cobrador: CobradorDaAgenda): Array<[string, string]> {
+  const linhas: Array<[string, string]> = [
+    ['Nome', cobrador.nomeDoUsuario],
+    ['Cargo', cobrador.cargoDoUsuario],
+    ['Time', cobrador.timeDoUsuario],
+    ['E-mail', cobrador.emailDoUsuario],
+  ];
+  return linhas
+    .map(([rotulo, valor]): [string, string] => [rotulo, valor.trim()])
+    .filter(([, valor]) => valor !== '');
+}
+
+function blocoDoCobrador(cobrador: CobradorDaAgenda): string {
+  const linhas = linhasDoCobrador(cobrador);
+  if (linhas.length === 0) {
+    return '';
+  }
+  const celulas = linhas
+    .map(
+      ([rotulo, valor]) =>
+        `<tr><td style="padding:2px 12px 2px 0;font-size:13px;color:${COR_DO_TEXTO_SUTIL};white-space:nowrap;">${rotulo}</td><td style="padding:2px 0;font-size:13px;color:${COR_DO_TEXTO};">${escaparHtml(valor)}</td></tr>`,
+    )
+    .join('');
+  return `<p style="margin:16px 0 6px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:${COR_DO_TEXTO_SUTIL};">Cobrado por</p>
+          <table role="presentation" cellpadding="0" cellspacing="0">${celulas}</table>`;
+}
+
+function textoDoCobrador(cobrador: CobradorDaAgenda): string[] {
+  const linhas = linhasDoCobrador(cobrador);
+  if (linhas.length === 0) {
+    return [];
+  }
+  return ['', 'Cobrado por:', ...linhas.map(([rotulo, valor]) => `${rotulo}: ${valor}`)];
 }
 
 function blocoDaObservacao(observacao: string): string {
@@ -72,6 +116,7 @@ function montarHtml(dados: DadosDoEmailDeCobrancaDaAgenda): string {
               <td style="padding:12px 14px 12px 8px;font-size:14px;line-height:1.55;color:${COR_DO_TEXTO};">${paragrafoComQuebras(dados.mensagem)}</td>
             </tr>
           </table>
+          ${blocoDoCobrador(dados.cobrador)}
           <p style="margin:16px 0 0;font-size:14px;line-height:1.55;color:${COR_DO_TEXTO};">${PEDIDO_DE_ACAO}</p>
           ${blocoDaObservacao(dados.observacao)}
         </td></tr>
@@ -85,7 +130,8 @@ function montarHtml(dados: DadosDoEmailDeCobrancaDaAgenda): string {
 }
 
 function montarTexto(dados: DadosDoEmailDeCobrancaDaAgenda): string {
-  const linhas = [dados.titulo, '', dados.mensagem, '', PEDIDO_DE_ACAO];
+  const linhas = [dados.titulo, '', dados.mensagem, ...textoDoCobrador(dados.cobrador)];
+  linhas.push('', PEDIDO_DE_ACAO);
   if (dados.observacao) linhas.push('', dados.observacao);
   linhas.push('', `Alerta gerado em ${dados.geradoEm}`);
   return linhas.join('\n');
@@ -99,6 +145,7 @@ export function montarEmailDeCobrancaDaAgenda(
     texto: montarTexto(dados),
     html: montarHtml(dados),
     copia: dados.copia,
+    respostaPara: dados.cobrador.emailDoUsuario.trim() || undefined,
     imagensEmbutidas: [
       { cid: CID_DA_LOGO, nomeDoArquivo: NOME_DO_ARQUIVO_DA_LOGO, caminho: dados.caminhoDaLogo },
     ],
