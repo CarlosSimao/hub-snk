@@ -17,12 +17,13 @@ import type { Credenciais } from '../sankhya/credenciais.ts';
 import { SessaoExpiradaError, type Experience, type OsLancada } from '../sankhya/experience.ts';
 import { TIPOS_DE_OS, validarHorariosDaOs } from '../sankhya/lancamentoDeOs.ts';
 import { PayloadDeNegociacoesInvalidoError } from '../sankhya/negociacoes.ts';
-import { cadastrarSolicitante } from '../sankhya/contatoDoSolicitante.ts';
+import type { ResultadoDoContato } from '../sankhya/contatoDoSolicitante.ts';
 import { MOTIVOS_OCORRENCIA, validarNovaOcorrencia } from '../sankhya/ocorrencias.ts';
 import {
   idsCitadosNaAgenda,
   SolicitacaoNaoEncontradaError,
   SolicitacoesDeServico,
+  type SolicitanteDaDs,
 } from '../sankhya/solicitacaoServicos.ts';
 import type { EventoAgenda } from '../tipos.ts';
 import { responderErroDoShell } from './comum/respostasDoShell.ts';
@@ -187,7 +188,7 @@ export function registrarRotasDeAgenda(
       }
       try {
         const ds = await solicitacoes.consultar(codigo);
-        return await cadastrarSolicitante(contatos, ds.solicitante);
+        return await cadastrarSolicitante(ds.solicitante);
       } catch (erro) {
         if (erro instanceof SolicitacaoNaoEncontradaError) {
           return resposta.status(404).send({ mensagem: erro.message });

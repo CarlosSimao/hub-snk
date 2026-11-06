@@ -44,8 +44,9 @@
           <h2 id="titulo-nesta-pagina">Nesta página</h2>
           <ol>
             <li><a href="#lista-de-contatos">Lista de contatos</a></li>
-            <li><a href="#filtrar">Filtrar por nome e por cliente</a></li>
+            <li><a href="#filtrar">Filtrar por nome, cliente e gerente</a></li>
             <li><a href="#cadastrar-contato">Cadastrar contato</a></li>
+            <li><a href="#gestor">Gestor e gerente</a></li>
             <li><a href="#aba-do-cliente">Aba Contatos do cliente</a></li>
             <li><a href="#editar-e-excluir">Editar e excluir contato</a></li>
             <li><a href="#whatsapp">Conversar no WhatsApp</a></li>
@@ -58,8 +59,9 @@
           <h2>Lista de contatos</h2>
           <p>
             A aba <strong>Contatos</strong> do menu mostra todos os contatos, de qualquer cliente ou
-            sem cliente, em ordem alfabética. Cada linha traz o nome, o cargo e o cliente e,
-            embaixo, o telefone e o e-mail. A lista é lida de novo toda vez que a aba é aberta.
+            sem cliente, em ordem alfabética. Cada linha traz o nome (com o selo
+            <strong>Gerente</strong>, quando marcado), o cargo, o cliente e o gestor e, embaixo, o
+            telefone e o e-mail. A lista é lida de novo toda vez que a aba é aberta.
           </p>
 
           <h3>Passo a passo</h3>
@@ -116,12 +118,14 @@
         </section>
 
         <section class="funcionalidade" id="filtrar">
-          <h2>Filtrar por nome e por cliente</h2>
+          <h2>Filtrar por nome, cliente e gerente</h2>
           <p>
-            Dois filtros, que se somam. O de nome reduz a lista aos contatos que têm o texto
+            Três filtros, que se somam. O de nome reduz a lista aos contatos que têm o texto
             digitado em qualquer parte do nome, sem diferenciar maiúsculas nem acentos. O de cliente
             mostra só os contatos de um cliente, ou só os que não têm cliente. A escolha do cliente
             continua valendo quando você volta à aba, a não ser que o cliente tenha sido excluído.
+            <strong>Só gerentes</strong> deixa só os contatos com
+            <a href="#gestor">Gerente</a> marcado.
           </p>
 
           <h3>Passo a passo</h3>
@@ -152,6 +156,19 @@
                 />
               </figure>
             </li>
+            <li>
+              Marque <strong>Só gerentes</strong> para ver só os gerentes; desmarque para voltar a
+              ver todos.
+              <figure>
+                <img
+                  src="img/contatos/filtrar-03-gerentes.webp"
+                  alt="Lista de contatos com Só gerentes marcado"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
           </ol>
           <p class="nota">
             Quando nenhum contato passa nos filtros, a lista mostra
@@ -165,6 +182,7 @@
           <ul>
             <li><a href="#lista-de-contatos">Lista de contatos</a></li>
             <li><a href="#sem-cliente">Contatos sem cliente</a></li>
+            <li><a href="#gestor">Gestor e gerente</a></li>
           </ul>
         </section>
 
@@ -200,7 +218,8 @@
             <li>
               Na janela <strong>Novo contato</strong>, preencha <strong>Nome</strong>,
               <strong>Cargo</strong>, <strong>Telefone</strong> e <strong>E-mail</strong> e escolha
-              o <strong>Cliente</strong>, ou deixe <strong>Sem cliente</strong>.
+              o <strong>Cliente</strong>, ou deixe <strong>Sem cliente</strong>. O
+              <a href="#gestor">Gestor</a> e o <strong>Gerente</strong> são opcionais.
               <figure>
                 <img
                   src="img/contatos/cadastrar-02-formulario.webp"
@@ -248,6 +267,61 @@
               WhatsApp ou no Google Chat, em
               <a href="comunicacao.html#salvar-contato">Salvar contato da conversa</a>.
             </li>
+          </ul>
+        </section>
+
+        <section class="funcionalidade" id="gestor">
+          <h2>Gestor e gerente</h2>
+          <p>
+            Cada contato pode apontar outro contato como <strong>Gestor</strong>, e o gestor do
+            gestor sai daí. A lista do campo traz primeiro os <strong>Gerentes</strong> e não
+            oferece o próprio contato nem quem está abaixo dele, para a cadeia não dar volta.
+            <strong>Gerente</strong> marca quem é gestor de alguém: marca sozinho quando o contato
+            vira gestor e só você desmarca. Excluir um gestor deixa os subordinados sem gestor.
+          </p>
+
+          <h3>Passo a passo</h3>
+          <ol class="passos">
+            <li>
+              Abra o contato no lápis, escolha o <strong>Gestor</strong> e clique em
+              <strong>Salvar</strong>. Com gestor que também tem gestor, o
+              <strong>Gestor do gestor</strong> aparece embaixo do campo.
+              <figure>
+                <img
+                  src="img/contatos/gestor-01-formulario.webp"
+                  alt="Janela Editar contato com os campos Gestor e Gerente destacados"
+                  width="1264"
+                  height="821"
+                  loading="lazy"
+                />
+              </figure>
+            </li>
+          </ol>
+          <p class="nota">
+            Com o <a href="configuracoes.html#sankhya-id-organograma">Organograma do Google</a>
+            conectado, o solicitante da DS aberta na agenda traz sozinho o gestor e o gestor do
+            gestor do diretório da empresa: veja
+            <a href="agenda-de-recursos.html#solicitante-nos-contatos"
+              >Solicitação de Serviços (DS) no evento</a
+            >.
+          </p>
+
+          <h3>Configurações que dependem ou alteram</h3>
+          <ul>
+            <li>
+              <a href="configuracoes.html#sankhya-id-organograma"
+                >Configurações › Sankhya › Organograma do Google</a
+              >: conectado, os gestores do solicitante da DS entram sozinhos.
+            </li>
+          </ul>
+
+          <h3>Depende de</h3>
+          <ul>
+            <li>
+              <a href="#cadastrar-contato">Cadastrar contato</a>: o gestor precisa estar nos
+              contatos.
+            </li>
+            <li><a href="#filtrar">Filtrar por gerente</a></li>
           </ul>
         </section>
 

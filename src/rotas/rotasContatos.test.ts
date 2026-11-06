@@ -86,6 +86,19 @@ describe('PUT e DELETE /api/contatos/:id', () => {
     assert.deepEqual(lista.json().contatos, []);
   });
 
+  it('recusa gestor que é o próprio contato', async () => {
+    const { id } = (await cadastrar({ nome: 'Ana' })).json();
+
+    const resposta = await servidor.inject({
+      method: 'PUT',
+      url: `/api/contatos/${id}`,
+      payload: { nome: 'Ana', gestorId: id },
+    });
+
+    assert.equal(resposta.statusCode, 400);
+    assert.match(resposta.json().mensagem, /si mesmo/);
+  });
+
   it('responde 404 para contato que não existe', async () => {
     const resposta = await servidor.inject({ method: 'DELETE', url: '/api/contatos/nenhum' });
 

@@ -445,7 +445,7 @@ export function iniciarBackup(dependencias) {
           'Cópia enviada ao Google Drive.',
         ),
     );
-    enviar.disabled ||= !drive.podeGuardarCopia;
+    enviar.disabled ||= !drive.escopoConcedido;
     cartao.append(
       criarLinha(
         criarElemento(
@@ -459,7 +459,7 @@ export function iniciarBackup(dependencias) {
         ),
       ),
     );
-    if (!drive.podeGuardarCopia) {
+    if (!drive.escopoConcedido) {
       cartao.append(
         criarElemento(
           'p',
@@ -474,7 +474,7 @@ export function iniciarBackup(dependencias) {
       criarCaixa(
         'Manter no Google Drive uma cópia sempre atual dos dados',
         backup.configuracao.espelharNoDrive,
-        drive.podeGuardarCopia,
+        drive.escopoConcedido,
         (ligado) =>
           salvarConfiguracao(
             { espelharNoDrive: ligado },
@@ -645,7 +645,7 @@ export function iniciarBackup(dependencias) {
         estado.copias = (await requisitar('/api/backup/drive/copias')).copias;
       }),
     );
-    doDrive.disabled ||= !drive.conectado || !drive.podeGuardarCopia;
+    doDrive.disabled ||= !drive.conectado || !drive.escopoConcedido;
     cartao.append(
       criarAcoes(
         doDrive,

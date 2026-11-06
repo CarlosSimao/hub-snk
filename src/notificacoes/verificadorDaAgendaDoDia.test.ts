@@ -22,6 +22,8 @@ function contato(id: string, email: string): Contato {
     email,
     cargo: '',
     clienteId: null,
+    gestorId: null,
+    gerente: false,
     criadoEm: '',
     atualizadoEm: '',
   };

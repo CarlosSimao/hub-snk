@@ -123,7 +123,7 @@ beforeEach(async () => {
     cofreDisponivel: true,
     conectado: true,
     email: 'ana@exemplo.com',
-    podeGuardarCopia: true,
+    escopoConcedido: true,
     autorizando: false,
     erro: '',
   };
@@ -332,7 +332,7 @@ describe('cópia no Google Drive', () => {
     avancar(UM_MINUTO_MS);
     await servico.conferir();
 
-    conta = { ...conta, conectado: true, podeGuardarCopia: false };
+    conta = { ...conta, conectado: true, escopoConcedido: false };
     avancar(UM_MINUTO_MS);
     await servico.conferir();
 

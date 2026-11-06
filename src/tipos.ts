@@ -656,6 +656,10 @@ export interface Lembrete {
  * Pessoa de contato, opcionalmente ligada a um cliente. Só o nome é obrigatório: os
  * outros campos ficam vazios quando não informados. `clienteId` de um cliente que já
  * foi excluído vale como sem cliente.
+ *
+ * `gestorId` aponta para outro contato, nunca para o próprio nem para um subordinado; o
+ * gestor do gestor sai do encadeamento. `gerente` marca quem é gestor de alguém (ou foi):
+ * liga sozinho quando o contato vira gestor e só o usuário desliga.
  */
 export interface Contato {
   id: string;
@@ -664,6 +668,8 @@ export interface Contato {
   email: string;
   cargo: string;
   clienteId: string | null;
+  gestorId: string | null;
+  gerente: boolean;
   criadoEm: string;
   atualizadoEm: string;
 }

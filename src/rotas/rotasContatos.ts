@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
 import {
   ContatoNaoEncontradoError,
+  GestorInvalidoError,
   type DadosDeContato,
   type RepositorioContatos,
 } from '../repositorio/repositorioContatos.ts';
@@ -47,6 +48,9 @@ const esquemaDeContato = z.object({
     )
     .default(''),
   clienteId: z.string().min(1).nullable().default(null),
+  /* Ausentes, gestor e "Gerente" ficam como estão; no cadastro, sem gestor e desmarcado. */
+  gestorId: z.string().min(1).nullable().optional(),
+  gerente: z.boolean({ error: 'Informe se o contato é gerente.' }).optional(),
 });
 
 /** Registra as rotas do cadastro de contatos. */
@@ -71,9 +75,12 @@ export function registrarRotasDeContatos(
     return { dados: dados.data };
   }
 
-  function responderNaoEncontrado(resposta: FastifyReply, erro: unknown): FastifyReply {
+  function responderErro(resposta: FastifyReply, erro: unknown): FastifyReply {
     if (erro instanceof ContatoNaoEncontradoError) {
       return resposta.status(404).send({ mensagem: 'Contato não encontrado.' });
+    }
+    if (erro instanceof GestorInvalidoError) {
+      return resposta.status(400).send({ mensagem: erro.message });
     }
     throw erro;
   }
@@ -86,7 +93,11 @@ export function registrarRotasDeContatos(
       return resposta.status(400).send(corpo);
     }
 
-    return resposta.status(201).send(await repositorio.criar(corpo.dados));
+    try {
+      return resposta.status(201).send(await repositorio.criar(corpo.dados));
+    } catch (erro) {
+      return responderErro(resposta, erro);
+    }
   });
 
   servidor.put<{ Params: { id: string } }>('/api/contatos/:id', async (requisicao, resposta) => {
@@ -98,7 +109,7 @@ export function registrarRotasDeContatos(
     try {
       return await repositorio.atualizar(requisicao.params.id, corpo.dados);
     } catch (erro) {
-      return responderNaoEncontrado(resposta, erro);
+      return responderErro(resposta, erro);
     }
   });
 
@@ -106,7 +117,7 @@ export function registrarRotasDeContatos(
     try {
       await repositorio.remover(requisicao.params.id);
     } catch (erro) {
-      return responderNaoEncontrado(resposta, erro);
+      return responderErro(resposta, erro);
     }
     return resposta.status(204).send();
   });

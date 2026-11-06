@@ -1689,6 +1689,19 @@ button.selo-situacao:focus-visible {
   border-radius: 10px;
 }
 
+/*
+ * Último cartão da aba Sankhya: o balão da ajuda abre para cima. Para baixo, mesmo
+ * escondido, ele esticaria a área do modal e traria a barra de rolagem.
+ */
+#cartao-organograma {
+  position: relative;
+}
+
+#cartao-organograma .dica-texto {
+  top: auto;
+  bottom: calc(100% - 10px);
+}
+
 .cartao-credencial-cabecalho {
   display: flex;
   align-items: center;
@@ -3470,9 +3483,29 @@ button.selo-situacao:focus-visible {
 /* Filtros da aba Contatos: nome ocupa o que sobra, cliente tem largura de rótulo. */
 .filtros-de-contatos {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+  align-items: center;
   gap: 8px;
   padding: 0 20px 16px;
+}
+
+.filtro-so-gerentes {
+  white-space: nowrap;
+}
+
+/* Ao lado do nome, na lista de contatos. */
+.selo-gerente {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  vertical-align: middle;
 }
 
 @media (max-width: 640px) {

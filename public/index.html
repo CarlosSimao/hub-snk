@@ -376,6 +376,9 @@
             id="campo-filtro-cliente-contato"
             aria-label="Filtrar contatos por cliente"
           ></select>
+          <label class="campo-checkbox filtro-so-gerentes">
+            <input type="checkbox" id="campo-filtro-gerentes-contato" /> Só gerentes
+          </label>
         </div>
         <!-- A lista é montada pelo app.js. -->
         <div id="mount-contatos"></div>
@@ -1331,6 +1334,16 @@
             <!-- As opções são montadas pelo app.js. -->
             <select id="campo-cliente-contato"></select>
           </div>
+          <div class="campo">
+            <label for="campo-gestor-contato">Gestor <span class="opcional">opcional</span></label>
+            <!-- As opções são montadas pelo app.js: gerentes primeiro, sem o próprio contato
+                 nem os subordinados dele. -->
+            <select id="campo-gestor-contato"></select>
+            <span class="texto-auxiliar" id="gestor-do-gestor-contato" hidden></span>
+          </div>
+          <label class="campo-checkbox">
+            <input type="checkbox" id="campo-gerente-contato" /> Gerente
+          </label>
 
           <!-- Preenchido só quando o contato vem da conversa aberta no WhatsApp ou Google Chat. -->
           <div class="campo" id="avisos-contato-da-conversa" hidden></div>
@@ -1371,7 +1384,7 @@
             aria-selected="false"
             aria-controls="painel-configuracao-sankhya-id"
           >
-            Sankhya ID
+            Sankhya
           </button>
           <button
             class="aba"
@@ -1906,37 +1919,57 @@
             </section>
 
             <section class="cartao-credencial" data-sistema="sankhya-erp">
+              <!-- Selo e botões na linha do título: a aba não pode rolar em 1920x1080. -->
               <div class="cartao-credencial-cabecalho">
                 <h3>SankhyaOm</h3>
-                <span class="selo-situacao" data-papel="status"></span>
-              </div>
-
-              <div class="cartao-credencial-acoes">
-                <span class="rodape-espacador"></span>
-                <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
-                <button class="btn ghost" type="button" data-papel="capturar-sessao">
-                  Capturar sessão
-                </button>
+                <div class="cartao-credencial-acoes">
+                  <span class="selo-situacao" data-papel="status"></span>
+                  <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
+                  <button class="btn ghost" type="button" data-papel="capturar-sessao">
+                    Capturar sessão
+                  </button>
+                </div>
               </div>
 
               <p class="erro-formulario" data-papel="erro" hidden></p>
             </section>
 
             <section class="cartao-credencial" data-sistema="sankhya-experience">
+              <!-- Selo e botões na linha do título: a aba não pode rolar em 1920x1080. -->
               <div class="cartao-credencial-cabecalho">
                 <h3>Experience</h3>
-                <span class="selo-situacao" data-papel="status"></span>
-              </div>
-
-              <div class="cartao-credencial-acoes">
-                <span class="rodape-espacador"></span>
-                <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
-                <button class="btn ghost" type="button" data-papel="capturar-sessao">
-                  Capturar sessão
-                </button>
+                <div class="cartao-credencial-acoes">
+                  <span class="selo-situacao" data-papel="status"></span>
+                  <button class="btn ghost" type="button" data-papel="abrir-aba">Abrir guia</button>
+                  <button class="btn ghost" type="button" data-papel="capturar-sessao">
+                    Capturar sessão
+                  </button>
+                </div>
               </div>
 
               <p class="erro-formulario" data-papel="erro" hidden></p>
+            </section>
+
+            <section class="cartao-credencial" id="cartao-organograma">
+              <div class="cartao-credencial-cabecalho">
+                <h3>
+                  Organograma do Google
+                  <span class="dica" tabindex="0"
+                    >?<span class="dica-texto" role="tooltip"
+                      >Opcional. Conectado, o solicitante da DS aberta na agenda (ou citada no
+                      alerta da agenda) traz para os contatos o gestor e o gestor do gestor, lidos
+                      do diretório do Google Workspace. Conecte com o e-mail da empresa e marque a
+                      caixa de ver o diretório; o Google avisa que o app não foi verificado: siga
+                      por "Avançado".</span
+                    ></span
+                  >
+                </h3>
+                <div class="cartao-credencial-acoes">
+                  <span class="selo-situacao" id="situacao-organograma"></span>
+                  <button class="btn ghost" type="button" id="btn-organograma">Conectar</button>
+                </div>
+              </div>
+              <p class="texto-auxiliar" id="aviso-organograma" hidden></p>
             </section>
           </div>
 
@@ -2403,8 +2436,8 @@
               <span class="dica" tabindex="0"
                 >?<span class="dica-texto" role="tooltip"
                   >Para quem não tem acesso ao SankhyaOm nem à Experience. Oculta o que depende
-                  deles: Sankhya ID, Agenda e OS, os nomes completos do cliente, o alerta da agenda
-                  e as guias SankhyaOm e Experience do aplicativo.</span
+                  deles: a aba Sankhya, Agenda e OS, os nomes completos do cliente, o alerta da
+                  agenda e as guias SankhyaOm e Experience do aplicativo.</span
                 ></span
               >
             </label>
@@ -4017,8 +4050,8 @@
             <input type="radio" name="acesso-ao-sankhya" value="nao" />
             <strong>Não, sou terceiro</strong>
             <span
-              >Esconde o que depende desse login: Sankhya ID, Agenda, OS e as guias do SankhyaOm e
-              da Experience.</span
+              >Esconde o que depende desse login: a aba Sankhya, Agenda, OS e as guias do SankhyaOm
+              e da Experience.</span
             >
           </label>
         </div>

@@ -1,14 +1,14 @@
 /**
  * Solicitação de Serviços - DS (TSDCAB) do ERP corporativo, citada no texto livre dos
- * eventos da agenda ("ID 3619"). O shell busca pela janela oculta e devolve o JSON cru do
+ * eventos da agenda ("ID 3619" ou "DS 3619"). O shell busca pela janela oculta e devolve o JSON cru do
  * `DatasetSP.loadRecords`; aqui ele vira o que a tela mostra.
  */
 import { CacheComValidade } from './cacheComValidade.ts';
 import type { Credenciais } from './credenciais.ts';
 import { RespostaDoSankhyaInvalidaError } from './consultasDaAgenda.ts';
 
-/** Na agenda, só "ID" seguido do número conta: número solto é hora, ano, nota... */
-const ID_NA_AGENDA = /\bID\s*[:#-]?\s*(\d{4,})\b/gi;
+/** Na agenda, só "ID" ou "DS" seguido do número conta: número solto é hora, ano, nota... */
+const ID_NA_AGENDA = /\b(?:ID|DS)\s*[:#-]?\s*(\d{4,})\b/gi;
 /** No texto da DS também aparecem "DS3264", "DS 3264" e "ID DSTECH 3619". */
 const ID_NA_SOLICITACAO = /\b(?:ID(?:\s+DSTECH)?|DS)\s*[:#-]?\s*(\d{4,})\b/gi;
 

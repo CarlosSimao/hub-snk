@@ -118,7 +118,7 @@ a lista. Arquivo sem o campo vale `false`.
 sem o campo vale `true` quando tem `perfil` (quem já escolheu não é incomodado) e
 `false` quando não tem. Só `PUT /api/configuracao/boas-vindas` o liga.
 
-`sankhyaOmCodUsu` é o `CODUSU` digitado em **Configurações › Sankhya ID**, que
+`sankhyaOmCodUsu` é o `CODUSU` digitado em **Configurações › Sankhya**, que
 recorta a Agenda de Recursos para os seus eventos. `experiencePersonId` é o
 `person_id` da Experience, gravado sozinho ao capturar a sessão e nunca digitado;
 vazio, a aba OS não tem de quem buscar as OS.
@@ -216,6 +216,8 @@ O conteúdo de `contatos`:
     "email": "ana@cliente.com.br",
     "cargo": "Coordenadora de TI",
     "clienteId": "4fb3993a-f8b3-4e9a-be7d-c79556fa78e5",
+    "gestorId": "7a2e9c41-5b3d-4f8a-9e10-2c6b8d4f1a37",
+    "gerente": false,
     "criadoEm": "2026-09-28T12:00:00.000Z",
     "atualizadoEm": "2026-09-28T12:00:00.000Z"
   }

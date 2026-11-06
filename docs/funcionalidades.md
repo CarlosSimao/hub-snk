@@ -476,7 +476,7 @@ primeira vez dois minutos depois de abrir) os eventos da sua Agenda de Recursos 
 e, conforme as opções, dos **dias úteis anteriores** (0 a 10; 0 desliga) e do **próximo
 dia útil**:
 
-1. traz o dia de novo do SankhyaOm, pela guia já logada — sem conseguir, vale o
+1. traz o período de novo do SankhyaOm, pela guia já logada — sem conseguir, vale o
    que já estava no snapshot;
 2. pega só os eventos do seu `CODUSU` que têm parceiro (folga e evento interno
    ficam de fora) e que não estão marcados com o sino riscado (**não cobrar tarefa**,
@@ -662,7 +662,7 @@ A caixa **Terceiro**, na aba Acessos e no assistente de boas-vindas, é para
 quem não tem acesso ao SankhyaOm nem à Experience. Vale para qualquer perfil e,
 marcada, oculta tudo o que depende das credenciais Sankhya:
 
-- a aba **Sankhya ID** das Configurações;
+- a aba **Sankhya** das Configurações;
 - as abas **Agenda** e **OS** do menu principal e do cadastro do cliente, cujas
   caixas ficam desabilitadas na aba Acessos;
 - o campo **Nomes completos no Sankhya** do cliente, que só serve à Agenda e à OS;

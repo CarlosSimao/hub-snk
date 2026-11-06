@@ -340,7 +340,7 @@ const estado = {
   /* Contato novo aberto pela escrita de e-mail: recebe o salvo, que entra no campo de origem. */
   aoCadastrarContato: null,
   /* Filtros da aba Contatos do menu principal. */
-  filtroDeContatos: { nome: '', clienteId: '' },
+  filtroDeContatos: { nome: '', clienteId: '', soGerentes: false },
   /*
    * Git AutoSync. `visao` e `clientes` vêm do servidor; `emAndamento` e
    * `errosPorCaminho` são indexados pela chave normalizada do caminho e guardam a
@@ -528,6 +528,7 @@ const elementos = {
   campoFiltroNomeContato: document.getElementById('campo-filtro-nome-contato'),
   botaoNovoEmailContatos: document.getElementById('btn-novo-email-contatos'),
   campoFiltroClienteContato: document.getElementById('campo-filtro-cliente-contato'),
+  campoFiltroGerentesContato: document.getElementById('campo-filtro-gerentes-contato'),
   modalContato: document.getElementById('modal-contato'),
   formularioContato: document.getElementById('formulario-contato'),
   tituloModalContato: document.getElementById('modal-contato-titulo'),
@@ -538,6 +539,9 @@ const elementos = {
   opcionalEmailContato: document.getElementById('opcional-email-contato'),
   grupoClienteContato: document.getElementById('grupo-cliente-contato'),
   campoClienteContato: document.getElementById('campo-cliente-contato'),
+  campoGestorContato: document.getElementById('campo-gestor-contato'),
+  gestorDoGestorContato: document.getElementById('gestor-do-gestor-contato'),
+  campoGerenteContato: document.getElementById('campo-gerente-contato'),
   erroContato: document.getElementById('erro-contato'),
   avisosContatoDaConversa: document.getElementById('avisos-contato-da-conversa'),
   botaoSalvarContato: document.getElementById('btn-salvar-contato'),
@@ -656,6 +660,9 @@ const elementos = {
   avisoShellSankhya: document.getElementById('aviso-shell-sankhya'),
 
   modalConfiguracao: document.getElementById('modal-configuracao'),
+  situacaoOrganograma: document.getElementById('situacao-organograma'),
+  avisoOrganograma: document.getElementById('aviso-organograma'),
+  botaoOrganograma: document.getElementById('btn-organograma'),
   formularioConfiguracao: document.getElementById('formulario-configuracao'),
   abaConfiguracaoGeral: document.getElementById('aba-configuracao-geral'),
   abaConfiguracaoMcp: document.getElementById('aba-configuracao-mcp'),
@@ -6937,6 +6944,8 @@ function alternarListaDeAtalhos() {
 
 async function abrirModalDeConfiguracao() {
   limparErro(elementos.erroConfiguracao);
+  elementos.situacaoOrganograma.textContent = '';
+  void atualizarSituacaoDoOrganograma();
   selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGeral);
   elementos.campoCaminhoSchemaMcp.value = '';
   preencherCamposDoMcpGlobal(null);
@@ -10866,7 +10875,10 @@ async function recarregarContatosNasTelas() {
 }
 
 function contatoPassaNoFiltro(contato) {
-  const { nome, clienteId } = estado.filtroDeContatos;
+  const { nome, clienteId, soGerentes } = estado.filtroDeContatos;
+  if (soGerentes && !contato.gerente) {
+    return false;
+  }
   if (nome && !chaveDeBuscaDoContato(contato.nome).includes(chaveDeBuscaDoContato(nome))) {
     return false;
   }
@@ -10889,12 +10901,23 @@ function numeroParaWhatsApp(telefone) {
     : digitos;
 }
 
+function contatoPorId(id) {
+  return estado.contatos.find((contato) => contato.id === id) ?? null;
+}
+
 function criarLinhaDeContato(contato, { mostrarCliente }) {
   const info = criarElemento('div', 'recurso-info');
-  info.append(criarElemento('span', 'recurso-nome', contato.nome));
+  const nome = criarElemento('span', 'recurso-nome', contato.nome);
+  if (contato.gerente) {
+    nome.append(criarElemento('span', 'selo-gerente', 'Gerente'));
+  }
+  info.append(nome);
 
   const cliente = mostrarCliente ? clienteDoContato(contato) : null;
-  const detalhes = [contato.cargo, cliente?.nome].filter(Boolean).join(' · ');
+  const gestor = contatoPorId(contato.gestorId);
+  const detalhes = [contato.cargo, cliente?.nome, gestor && `Gestor: ${gestor.nome}`]
+    .filter(Boolean)
+    .join(' · ');
   if (detalhes) {
     info.append(criarElemento('span', 'recurso-url secundaria', detalhes));
   }
@@ -10990,6 +11013,52 @@ function preencherClientesDoContato(clienteId, clientesPermitidos = estado.clien
     : SEM_CLIENTE;
 }
 
+/** O contato e todos abaixo dele: nenhum pode ser o gestor dele, ou a cadeia vira ciclo. */
+function contatoESubordinados(contatoId) {
+  const ids = new Set([contatoId]);
+  let cresceu = true;
+  while (cresceu) {
+    cresceu = false;
+    for (const contato of estado.contatos) {
+      if (contato.gestorId && ids.has(contato.gestorId) && !ids.has(contato.id)) {
+        ids.add(contato.id);
+        cresceu = true;
+      }
+    }
+  }
+  return ids;
+}
+
+/* Gerentes primeiro: são os candidatos naturais. */
+function preencherGestoresDoContato(contato) {
+  const fora = contato ? contatoESubordinados(contato.id) : new Set();
+  const candidatos = contatosOrdenados(estado.contatos.filter((item) => !fora.has(item.id)));
+  const grupo = (rotulo, contatos) => {
+    const elemento = criarElemento('optgroup');
+    elemento.label = rotulo;
+    elemento.append(...contatos.map((item) => criarOpcao(item.id, item.nome)));
+    return elemento;
+  };
+  const gerentes = candidatos.filter((item) => item.gerente);
+  const demais = candidatos.filter((item) => !item.gerente);
+  elementos.campoGestorContato.replaceChildren(
+    criarOpcao('', 'Sem gestor'),
+    ...(gerentes.length ? [grupo('Gerentes', gerentes)] : []),
+    ...(demais.length ? [grupo('Demais contatos', demais)] : []),
+  );
+  elementos.campoGestorContato.value = contato?.gestorId ?? '';
+  mostrarGestorDoGestor();
+}
+
+function mostrarGestorDoGestor() {
+  const gestor = contatoPorId(elementos.campoGestorContato.value);
+  const doGestor = contatoPorId(gestor?.gestorId);
+  elementos.gestorDoGestorContato.textContent = doGestor
+    ? `Gestor do gestor: ${doGestor.nome}`
+    : '';
+  elementos.gestorDoGestorContato.hidden = !doGestor;
+}
+
 /**
  * `clienteFixo`: aberto pela aba do cliente, o campo Cliente some e vale esse cliente.
  * `paraOLembrete`: aberto pelo modal do lembrete, o e-mail passa a ser exigido e o campo
@@ -11024,6 +11093,8 @@ function abrirModalDeContato(
     clienteFixo?.id ?? clienteDoLembrete?.id ?? contato?.clienteId ?? null,
     clienteDoLembrete ? [clienteDoLembrete] : estado.clientes,
   );
+  preencherGestoresDoContato(contato);
+  elementos.campoGerenteContato.checked = contato?.gerente ?? false;
 
   elementos.modalContato.showModal();
   elementos.campoNomeContato.focus();
@@ -11096,6 +11167,8 @@ function lerFormularioDeContato() {
     telefone: elementos.campoTelefoneContato.value.trim(),
     email: elementos.campoEmailContato.value.trim(),
     clienteId: clienteDoFormularioDeContato(),
+    gestorId: elementos.campoGestorContato.value || null,
+    gerente: elementos.campoGerenteContato.checked,
   };
 }
 
@@ -11152,7 +11225,89 @@ function pedirExclusaoDeContato(contato) {
   );
 }
 
+/* ------------------------- organograma do Google ------------------------- */
+
+const CAMINHO_DO_ORGANOGRAMA = '/api/organograma';
+const INTERVALO_DA_ESPERA_DO_ORGANOGRAMA_MS = 2000;
+let situacaoDoOrganograma = null;
+let esperaDoOrganograma = null;
+
+/** O selo, curto, e o aviso embaixo dele, só quando há o que explicar. */
+function situacaoNaTelaDoOrganograma(situacao) {
+  if (!situacao.configurado) {
+    return {
+      selo: ['', 'Indisponível'],
+      aviso: 'Esta versão do HUB SNK não tem a integração com o Google.',
+    };
+  }
+  if (!situacao.cofreDisponivel) {
+    return {
+      selo: ['', 'Indisponível'],
+      aviso: 'Só funciona com o painel aberto pelo aplicativo HUB SNK.',
+    };
+  }
+  if (situacao.autorizando) {
+    return { selo: ['atencao', 'Aguardando a autorização no navegador'], aviso: '' };
+  }
+  if (situacao.conectado && !situacao.escopoConcedido) {
+    return {
+      selo: ['erro', 'Sem permissão do diretório'],
+      aviso: 'Desconecte e, ao conectar de novo, marque a caixa de ver o diretório.',
+    };
+  }
+  if (situacao.conectado) {
+    return { selo: ['ok', `Conectado: ${situacao.email || 'conta do Google'}`], aviso: '' };
+  }
+  return { selo: ['', 'Desconectado'], aviso: situacao.erro };
+}
+
+function mostrarSituacaoDoOrganograma(situacao) {
+  situacaoDoOrganograma = situacao;
+  const { selo, aviso } = situacaoNaTelaDoOrganograma(situacao);
+  const [estilo, texto] = selo;
+  elementos.situacaoOrganograma.className = `selo-situacao ${estilo}`.trim();
+  elementos.situacaoOrganograma.textContent = texto;
+  elementos.avisoOrganograma.textContent = aviso;
+  elementos.avisoOrganograma.hidden = !aviso;
+  elementos.botaoOrganograma.textContent =
+    situacao.conectado || situacao.autorizando ? 'Desconectar' : 'Conectar';
+  elementos.botaoOrganograma.disabled = !situacao.configurado || !situacao.cofreDisponivel;
+}
+
+/** Enquanto a tela do Google está aberta, confere de tempos em tempos se já autorizou. */
+async function atualizarSituacaoDoOrganograma() {
+  clearTimeout(esperaDoOrganograma);
+  try {
+    mostrarSituacaoDoOrganograma(await requisitar(CAMINHO_DO_ORGANOGRAMA));
+  } catch (erro) {
+    elementos.avisoOrganograma.textContent = erro.message;
+    elementos.avisoOrganograma.hidden = false;
+    return;
+  }
+  if (situacaoDoOrganograma.autorizando && elementos.modalConfiguracao.open) {
+    esperaDoOrganograma = setTimeout(
+      atualizarSituacaoDoOrganograma,
+      INTERVALO_DA_ESPERA_DO_ORGANOGRAMA_MS,
+    );
+  }
+}
+
+/** Desconectar serve também para desistir de uma autorização em aberto. */
+async function alternarOrganograma() {
+  const desconectar = situacaoDoOrganograma?.conectado || situacaoDoOrganograma?.autorizando;
+  elementos.botaoOrganograma.disabled = true;
+  try {
+    await (desconectar
+      ? requisitar(CAMINHO_DO_ORGANOGRAMA, { metodo: 'DELETE' })
+      : requisitar(`${CAMINHO_DO_ORGANOGRAMA}/conectar`, { metodo: 'POST' }));
+  } catch (erro) {
+    exibirAviso(erro.message, 'erro');
+  }
+  await atualizarSituacaoDoOrganograma();
+}
+
 function registrarEventosDosContatos() {
+  elementos.botaoOrganograma.addEventListener('click', () => void alternarOrganograma());
   // O shell chama pelo `executeJavaScript`, como na busca rápida.
   window.hubContatoDaConversa = abrirContatoDaConversa;
   elementos.formularioContato.addEventListener('submit', salvarContato);
@@ -11165,6 +11320,11 @@ function registrarEventosDosContatos() {
     estado.filtroDeContatos.clienteId = elementos.campoFiltroClienteContato.value;
     renderizarContatos();
   });
+  elementos.campoFiltroGerentesContato.addEventListener('change', () => {
+    estado.filtroDeContatos.soGerentes = elementos.campoFiltroGerentesContato.checked;
+    renderizarContatos();
+  });
+  elementos.campoGestorContato.addEventListener('change', mostrarGestorDoGestor);
   elementos.botaoNovoEmailContatos.prepend(criarIcone(ICONES.envelope));
   elementos.botaoNovoEmailContatos.addEventListener('click', () => void escritaDeEmail.abrir());
 }

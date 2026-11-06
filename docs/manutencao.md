@@ -296,8 +296,27 @@ e parecidos): são restritos, e trazem de volta o aviso, o teto e a exigência d
 com avaliação de segurança anual. Listar o conteúdo de pastas que o HUB SNK não criou
 exige um deles.
 
+### Organograma do Google
+
+O mesmo cliente OAuth serve ao **Organograma do Google** (Configurações › Sankhya), numa
+conexão separada que pede só `directory.readonly` e `email` e guarda outro token no cofre
+(`google-organograma`, em `desktop/src/backend/cofreDeSegredos.ts`). Com ele, os gestores
+do solicitante da DS viram contatos (`src/drive/organogramaDoGoogle.ts`).
+
+- Ative a **People API** no projeto do Google Cloud (_APIs e serviços_). Sem ela a busca
+  responde `403 SERVICE_DISABLED`, que vai para o log.
+- `directory.readonly` é **sensível**: quem conecta o organograma vê o aviso "O Google não
+  verificou este app" (segue por **Avançado**) e conta para o teto de 100 contas enquanto o
+  app não passar pela verificação. A conexão do Drive continua sem aviso, porque não pede
+  esse escopo.
+- A tela do Google lista cada permissão com uma caixa, e a do diretório pode vir
+  desmarcada: a conta conecta sem ela, e o cartão na aba Sankhya pede para desconectar e marcar.
+- Só funciona com conta do Google Workspace (o diretório é o do domínio). O gestor vem do
+  campo de gestor que o admin do Workspace preenche.
+
 Todo o fluxo roda contra dublês nos testes (`src/drive/*.test.ts`). Com a credencial
-criada, teste à mão: conectar, enviar a cópia, restaurar e desconectar.
+criada, teste à mão: conectar, enviar a cópia, restaurar e desconectar; no organograma,
+conectar e abrir na agenda uma DS cujo solicitante tenha gestor no diretório.
 
 ## Relato de problema
 

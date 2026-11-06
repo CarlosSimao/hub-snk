@@ -271,7 +271,7 @@ export class ServicoDeBackup {
 
   async #contaPodeGuardarCopia(): Promise<boolean> {
     const conta = await this.#dependencias.conta.situacao();
-    return conta.conectado && conta.podeGuardarCopia;
+    return conta.conectado && conta.escopoConcedido;
   }
 
   async #agendar(pacote: Buffer): Promise<ManifestoDoPacote> {

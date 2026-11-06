@@ -52,7 +52,7 @@ beforeEach(async () => {
         cofreDisponivel: true,
         conectado: true,
         email: 'ana@exemplo.com',
-        podeGuardarCopia: true,
+        escopoConcedido: true,
         autorizando: false,
         erro: '',
       }),

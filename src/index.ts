@@ -15,6 +15,11 @@ import { ClienteDoDrive } from './drive/clienteDoDrive.ts';
 import { CofreDoDriveNaPonte } from './drive/cofreDoDrive.ts';
 import { ContaDoGoogle } from './drive/contaDoGoogle.ts';
 import {
+  ENDERECO_DA_CONTA_OPENID,
+  ESCOPO_DO_DIRETORIO,
+  OrganogramaDoGoogle,
+} from './drive/organogramaDoGoogle.ts';
+import {
   ArquivoDeDadosInvalidoError,
   EsquemaMaisNovoError,
 } from './repositorio/arquivo/arquivoDeDados.ts';
@@ -36,13 +41,13 @@ import { consultarRemotoDosRepositorios } from './git/consultaDoRemoto.ts';
 import { CentralDeNotificacoes } from './notificacoes/centralDeNotificacoes.ts';
 import { EnviadorDeEmail } from './notificacoes/enviadorDeEmail.ts';
 import { VerificadorDaAgendaDoDia } from './notificacoes/verificadorDaAgendaDoDia.ts';
-import { cadastrarSolicitante } from './sankhya/contatoDoSolicitante.ts';
-import { SolicitacoesDeServico } from './sankhya/solicitacaoServicos.ts';
+import { cadastrarSolicitanteComGestores } from './sankhya/contatoDoSolicitante.ts';
+import { SolicitacoesDeServico, type SolicitanteDaDs } from './sankhya/solicitacaoServicos.ts';
 import { registrarAutenticacaoDoPainel } from './rotas/seguranca/autenticacaoDoPainel.ts';
 import { registrarProtecaoDeOrigem } from './rotas/seguranca/protecaoDeOrigem.ts';
 import { registrarRotasDeAtalhos } from './rotas/rotasAtalhos.ts';
 import { registrarRotasDeBackup } from './rotas/rotasBackup.ts';
-import { registrarRotasDeDrive } from './rotas/rotasDrive.ts';
+import { registrarRotasDaContaDoGoogle } from './rotas/rotasDrive.ts';
 import { registrarRotasDeSuporte } from './rotas/rotasSuporte.ts';
 import { ServicoDeRelatos } from './suporte/servicoDeRelatos.ts';
 import { registrarRotasDeAutosync } from './rotas/rotasAutosync.ts';
@@ -174,6 +179,22 @@ async function iniciarServidor(): Promise<void> {
     emitir: (dados) => centralDeNotificacoes.emitir(dados),
     registrador: registradorDasNotificacoes,
   });
+  const contaDoOrganograma = new ContaDoGoogle({
+    credencial: configuracao.credencialDoGoogle,
+    cofre: new CofreDoDriveNaPonte(ponteDoDesktop, 'google-organograma'),
+    abrirNoNavegador: abrirNoNavegadorPadrao,
+    nome: 'Organograma do Google',
+    escopos: [ESCOPO_DO_DIRETORIO, 'email'],
+    enderecoDaConta: ENDERECO_DA_CONTA_OPENID,
+  });
+  const organogramaDoGoogle = new OrganogramaDoGoogle(contaDoOrganograma);
+  const cadastrarSolicitante = (solicitante: SolicitanteDaDs | null) =>
+    cadastrarSolicitanteComGestores(
+      repositorioDeContatos,
+      solicitante,
+      organogramaDoGoogle,
+      registradorDasNotificacoes,
+    );
   const solicitacoesDoAlerta = new SolicitacoesDeServico(credenciaisSankhya);
   const verificadorDaAgenda = new VerificadorDaAgendaDoDia({
     configuracao: repositorioDeConfiguracao,
@@ -201,7 +222,7 @@ async function iniciarServidor(): Promise<void> {
     contatos: () => repositorioDeContatos.listar(),
     solicitanteComoContato: async (codigoDaDs) => {
       const { solicitante } = await solicitacoesDoAlerta.consultar(codigoDaDs);
-      return (await cadastrarSolicitante(repositorioDeContatos, solicitante)).contatoId;
+      return (await cadastrarSolicitante(solicitante)).contatoId;
     },
     caminhoDaLogo,
     agora: () => new Date(),
@@ -227,7 +248,10 @@ async function iniciarServidor(): Promise<void> {
     emitirNotificacao: (dados) => centralDeNotificacoes.emitir(dados),
   });
 
-  registrarRotasDeDrive(servidor, contaDoGoogle, () => servicoDeBackup.esquecerDrive());
+  registrarRotasDaContaDoGoogle(servidor, '/api/drive', contaDoGoogle, () =>
+    servicoDeBackup.esquecerDrive(),
+  );
+  registrarRotasDaContaDoGoogle(servidor, '/api/organograma', contaDoOrganograma);
   registrarRotasDeBackup(servidor, {
     backup: servicoDeBackup,
     configuracao: repositorioDeConfiguracao,
@@ -325,6 +349,7 @@ async function iniciarServidor(): Promise<void> {
     verificadorDaAgenda.parar();
     servicoDeBackup.parar();
     contaDoGoogle.encerrar();
+    contaDoOrganograma.encerrar();
     observadorDosDados?.close();
     await servidor.close();
     agendaDeRecursos.close();
