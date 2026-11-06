@@ -9,6 +9,8 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.26.0] - 2026-11-06
+
 ### Adicionado
 
 - **Gestor do contato**: a ficha do contato ganha o campo **Gestor** (outro contato) e a
@@ -1170,6 +1172,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.26.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.25.0...v2.26.0
 [2.25.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.24.0...v2.25.0
 [2.24.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.23.1...v2.24.0
 [2.23.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.23.0...v2.23.1
