@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SEGURANCAS_SMTP } from '../../tipos.ts';
+import { MAXIMO_DE_DIAS_UTEIS_RETROATIVOS, SEGURANCAS_SMTP } from '../../tipos.ts';
 
 /**
  * Validação do SMTP e do alerta da agenda.
@@ -58,6 +58,16 @@ export const esquemaDeAlertaDaAgenda = z.object({
   incluirProximoDiaUtil: z.boolean({
     error: 'Informe se o alerta monitora o próximo dia útil.',
   }),
+  /* Padrão desligado: uma tela ainda não recarregada não manda o campo. */
+  diasUteisRetroativos: z.coerce
+    .number({ error: 'Os dias retroativos devem ser um número.' })
+    .int('Os dias retroativos devem ser um número inteiro.')
+    .min(0, 'Os dias retroativos não podem ser negativos.')
+    .max(
+      MAXIMO_DE_DIAS_UTEIS_RETROATIVOS,
+      `Os dias retroativos devem ser no máximo ${MAXIMO_DE_DIAS_UTEIS_RETROATIVOS}.`,
+    )
+    .default(0),
   repetirAteResolver: z.boolean({ error: 'Informe se o alerta repete o aviso.' }),
   enviarEmail: z.boolean({ error: 'Informe se o alerta da agenda envia e-mail.' }),
   contatoIdsEmCopia: z

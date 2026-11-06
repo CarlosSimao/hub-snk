@@ -109,12 +109,12 @@
           <ul>
             <li>
               <a href="configuracoes.html#sankhya-id-codigo-de-usuario"
-                >Configurações › Sankhya ID › Meu código de usuário SankhyaOm</a
+                >Configurações › Sankhya › Meu código de usuário SankhyaOm</a
               >: obrigatório; é ele que recorta a agenda só para você.
             </li>
             <li>
               <a href="configuracoes.html#sankhya-id-usuario-e-senha"
-                >Configurações › Sankhya ID › Usuário e senha</a
+                >Configurações › Sankhya › Usuário e senha</a
               >: o login que o aplicativo usa para consultar o SankhyaOm.
             </li>
             <li>
@@ -245,17 +245,17 @@
           <ul>
             <li>
               <a href="configuracoes.html#sankhya-id-codigo-de-usuario"
-                >Configurações › Sankhya ID › Meu código de usuário SankhyaOm</a
+                >Configurações › Sankhya › Meu código de usuário SankhyaOm</a
               >: sem ele, a consulta é recusada.
             </li>
             <li>
               <a href="configuracoes.html#sankhya-id-usuario-e-senha"
-                >Configurações › Sankhya ID › Usuário e senha</a
+                >Configurações › Sankhya › Usuário e senha</a
               >: sem eles, a consulta é recusada.
             </li>
             <li>
               <a href="configuracoes.html#sankhya-id-sessao-sankhyaom"
-                >Configurações › Sankhya ID › SankhyaOm</a
+                >Configurações › Sankhya › SankhyaOm</a
               >: a sessão do SankhyaOm que a consulta usa.
             </li>
           </ul>
@@ -320,12 +320,12 @@
           <ul>
             <li>
               <a href="configuracoes.html#sankhya-id-sessao-experience"
-                >Configurações › Sankhya ID › Experience</a
+                >Configurações › Sankhya › Experience</a
               >: a sessão do Experience que a consulta usa.
             </li>
             <li>
               <a href="configuracoes.html#sankhya-id-usuario-e-senha"
-                >Configurações › Sankhya ID › Usuário e senha</a
+                >Configurações › Sankhya › Usuário e senha</a
               >: as negociações do cliente vêm do SankhyaOm.
             </li>
           </ul>
@@ -551,17 +551,17 @@
           <ul>
             <li>
               <a href="configuracoes.html#sankhya-id-usuario-e-senha"
-                >Configurações › Sankhya ID › Usuário e senha</a
+                >Configurações › Sankhya › Usuário e senha</a
               >: a ocorrência é gravada com esse login.
             </li>
             <li>
               <a href="configuracoes.html#sankhya-id-codigo-de-usuario"
-                >Configurações › Sankhya ID › Meu código de usuário SankhyaOm</a
+                >Configurações › Sankhya › Meu código de usuário SankhyaOm</a
               >: tem que ser o mesmo do login salvo, ou o lançamento é bloqueado.
             </li>
             <li>
               <a href="configuracoes.html#sankhya-id-sessao-sankhyaom"
-                >Configurações › Sankhya ID › SankhyaOm</a
+                >Configurações › Sankhya › SankhyaOm</a
               >: a sessão do SankhyaOm que grava a ocorrência.
             </li>
           </ul>
@@ -654,12 +654,12 @@
           <ul>
             <li>
               <a href="configuracoes.html#sankhya-id-sessao-experience"
-                >Configurações › Sankhya ID › Experience</a
+                >Configurações › Sankhya › Experience</a
               >: a sessão do Experience que grava a OS.
             </li>
             <li>
               <a href="configuracoes.html#sankhya-id-usuario-e-senha"
-                >Configurações › Sankhya ID › Usuário e senha</a
+                >Configurações › Sankhya › Usuário e senha</a
               >: as negociações do cliente vêm do SankhyaOm.
             </li>
           </ul>
@@ -678,12 +678,12 @@
         <section class="funcionalidade" id="solicitacao-de-servicos">
           <h2>Solicitação de Serviços (DS) no evento</h2>
           <p>
-            Quando o texto do evento cita uma Solicitação de Serviços com <strong>ID</strong> e o
-            número (<em>ID 4102</em>, <em>Demanda ID 4102</em>), o evento ganha um bloco com os
-            dados dela no SankhyaOm: tipo, status do orçamento, parceiro, solicitante, executante,
-            horas estimadas, datas, descrição, histórico e anexos. Número solto, sem o "ID" na
-            frente, não conta. A busca só acontece ao abrir o bloco, e só funciona no aplicativo
-            desktop.
+            Quando o texto do evento cita uma Solicitação de Serviços com <strong>ID</strong> ou
+            <strong>DS</strong> e o número (<em>ID 4102</em>, <em>Demanda ID 4102</em>,
+            <em>DS 4102</em>), o evento ganha um bloco com os dados dela no SankhyaOm: tipo, status
+            do orçamento, parceiro, solicitante, executante, horas estimadas, datas, descrição,
+            histórico e anexos. Número solto, sem o "ID" ou o "DS" na frente, não conta. A busca só
+            acontece ao abrir o bloco, e só funciona no aplicativo desktop.
           </p>
 
           <h3>Passo a passo</h3>
@@ -742,7 +742,10 @@
             <a href="contatos.html#lista-de-contatos">Contatos</a>, com nome, cargo e e-mail e sem
             cliente, e um aviso confirma. Sem e-mail no SankhyaOm, não é cadastrado. Se o e-mail já
             estiver nos contatos, só o cargo vazio é completado; o que você digitou não muda. As DS
-            relacionadas não cadastram ninguém.
+            relacionadas não cadastram ninguém. Com o
+            <a href="configuracoes.html#sankhya-id-organograma">Organograma do Google</a> conectado,
+            o <a href="contatos.html#gestor">gestor</a> do solicitante e o gestor dele vêm junto, do
+            diretório da empresa, e o gestor que o diretório informa substitui o gravado.
           </p>
 
           <h3>Configurações que dependem ou alteram</h3>
@@ -755,7 +758,7 @@
             </li>
             <li>
               <a href="configuracoes.html#sankhya-id-usuario-e-senha"
-                >Configurações › Sankhya ID › Usuário e senha</a
+                >Configurações › Sankhya › Usuário e senha</a
               >: o login que consulta a DS no SankhyaOm.
             </li>
           </ul>
@@ -807,7 +810,7 @@
             </li>
             <li>
               <a href="configuracoes.html#sankhya-id-codigo-de-usuario"
-                >Configurações › Sankhya ID › Meu código de usuário SankhyaOm</a
+                >Configurações › Sankhya › Meu código de usuário SankhyaOm</a
               >
               e
               <a href="configuracoes.html#sankhya-id-usuario-e-senha">Usuário e senha</a>: para a
@@ -854,11 +857,11 @@
             </li>
             <li>
               Clique em <strong>Abrir configuração</strong>. A engrenagem do topo pisca e as
-              Configurações abrem na aba <strong>Sankhya ID</strong>, no campo que falta.
+              Configurações abrem na aba <strong>Sankhya</strong>, no campo que falta.
               <figure>
                 <img
                   src="img/agenda-de-recursos/avisos-02-configuracao.webp"
-                  alt="Configurações abertas na aba Sankhya ID com o campo do código de usuário destacado"
+                  alt="Configurações abertas na aba Sankhya com o campo do código de usuário destacado"
                   width="1264"
                   height="821"
                   loading="lazy"
@@ -871,7 +874,7 @@
           <ul>
             <li>
               <a href="configuracoes.html#sankhya-id-codigo-de-usuario"
-                >Configurações › Sankhya ID › Meu código de usuário SankhyaOm</a
+                >Configurações › Sankhya › Meu código de usuário SankhyaOm</a
               >, <a href="configuracoes.html#sankhya-id-usuario-e-senha">Usuário e senha</a> e
               <a href="configuracoes.html#sankhya-id-sessao-experience">Experience</a>: os campos
               para onde o atalho leva.

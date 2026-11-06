@@ -92,7 +92,7 @@ Na primeira abertura, um assistente de boas-vindas pergunta, em quatro passos r�
 
 Tudo pode ser mudado depois em _Configurações_ › _Geral_ e _Configurações_ › _Acessos_.
 Com o cadastro vazio, o painel abre na aba **Clientes** e, para quem não é Terceiro,
-com a aba **Sankhya ID** das Configurações já aberta.
+com a aba **Sankhya** das Configurações já aberta.
 
 ### Atualizar e desinstalar
 

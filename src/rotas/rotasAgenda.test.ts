@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { beforeEach, describe, it } from 'node:test';
 import Fastify from 'fastify';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
-import type { RepositorioContatos } from '../repositorio/repositorioContatos.ts';
+import type { RepositorioEventosSemCobranca } from '../repositorio/repositorioEventosSemCobranca.ts';
 import type { AgendaRecursos } from '../sankhya/agenda.ts';
 import type { Credenciais } from '../sankhya/credenciais.ts';
 import type { Experience, OsLancada } from '../sankhya/experience.ts';
@@ -28,8 +28,23 @@ const PEDIDO = {
   enviarParaAceite: true,
 };
 
+let semCobranca: Set<string>;
+
+beforeEach(() => {
+  semCobranca = new Set();
+});
+
+const repositorioSemCobranca: RepositorioEventosSemCobranca = {
+  descartarCache: () => {},
+  listar: async () => new Set(semCobranca),
+  definir: async (identificacao, naoCobrar) => {
+    if (naoCobrar) semCobranca.add(identificacao);
+    else semCobranca.delete(identificacao);
+  },
+};
+
 /** Só o que a rota de lançamento usa: os FAPs do parceiro no ERP e a Experience. */
-function criarServidor(experience: Partial<Experience>) {
+function criarServidor(experience: Partial<Experience> = {}) {
   const credenciais = {
     consultarNegociacoesDoParceiro: async () => ({
       conteudo: JSON.stringify({ responseBody: { negociacoes: [] } }),
@@ -43,7 +58,8 @@ function criarServidor(experience: Partial<Experience>) {
     {} as RepositorioConfiguracao,
     credenciais,
     experience as Experience,
-    {} as RepositorioContatos,
+    async () => ({ situacao: 'sem-email', nome: '', contatoId: null }),
+    repositorioSemCobranca,
   );
   return servidor;
 }
@@ -132,5 +148,30 @@ describe('POST /api/agenda/situacao/descartar-cache', () => {
 
     assert.equal(resposta.statusCode, 204);
     assert.equal(descartes, 1);
+  });
+});
+
+describe('/api/agenda/nao-cobrar', () => {
+  function definir(servidor: ReturnType<typeof criarServidor>, corpo: object) {
+    return servidor.inject({ method: 'PUT', url: '/api/agenda/nao-cobrar', payload: corpo });
+  }
+
+  it('marca, lista e desmarca o evento', async () => {
+    const servidor = criarServidor();
+
+    const marcacao = await definir(servidor, { identificacao: '123', naoCobrar: true });
+    const lista = await servidor.inject({ method: 'GET', url: '/api/agenda/nao-cobrar' });
+    await definir(servidor, { identificacao: '123', naoCobrar: false });
+
+    assert.equal(marcacao.statusCode, 204);
+    assert.deepEqual(lista.json(), { eventos: ['123'] });
+    assert.deepEqual(semCobranca, new Set());
+  });
+
+  it('recusa identificação vazia', async () => {
+    const resposta = await definir(criarServidor(), { identificacao: '  ', naoCobrar: true });
+
+    assert.equal(resposta.statusCode, 400);
+    assert.deepEqual(semCobranca, new Set());
   });
 });

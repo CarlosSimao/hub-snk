@@ -68,7 +68,7 @@ const contaDoGoogle = {
   cofreDisponivel: true,
   conectado: true,
   email: 'ana.souza@consultoria.example',
-  podeGuardarCopia: true,
+  escopoConcedido: true,
   autorizando: false,
   erro: '',
 };
@@ -147,6 +147,7 @@ async function simularOQueVemDeFora(painel) {
   await responder('**/api/sankhya/id/senha', { senha: 'senha-ficticia' });
   await responder('**/api/configuracao/assistentes-de-ia', assistentesDeIa);
   await responder('**/api/drive', contaDoGoogle);
+  await responder('**/api/organograma', contaDoGoogle);
   await responder('**/api/backup', situacaoDoBackup);
   await responder('**/api/mcp/configuracao', {
     nome: 'hub-snk-kanban',

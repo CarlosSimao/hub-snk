@@ -1,5 +1,7 @@
 /**
- * Conta do Google conectada ao HUB SNK: a autorização OAuth e o token de acesso.
+ * Conta do Google conectada ao HUB SNK: a autorização OAuth e o token de acesso. Há uma
+ * instância por uso — o Drive do backup e o organograma —, cada uma com o seu escopo e o
+ * seu token: quem conecta uma não dá à outra a permissão que não pediu.
  *
  * É o fluxo de aplicativo instalado do Google: o consentimento abre no navegador padrão,
  * e o Google devolve o código para um servidor que só existe durante a autorização, numa
@@ -19,12 +21,13 @@ export const ESCOPO_DOS_ARQUIVOS_DO_HUB = 'https://www.googleapis.com/auth/drive
  * Só este: é o único escopo do Drive que o Google não classifica como sensível ou restrito,
  * então a tela de consentimento não leva o aviso de app não verificado nem o teto de 100 contas.
  */
-const ESCOPOS_PEDIDOS = [ESCOPO_DOS_ARQUIVOS_DO_HUB];
+const ESCOPOS_DO_DRIVE = [ESCOPO_DOS_ARQUIVOS_DO_HUB];
 
 const ENDERECO_DE_AUTORIZACAO = 'https://accounts.google.com/o/oauth2/v2/auth';
 const ENDERECO_DE_TOKEN = 'https://oauth2.googleapis.com/token';
 const ENDERECO_DE_REVOGACAO = 'https://oauth2.googleapis.com/revoke';
-const ENDERECO_DA_CONTA = 'https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)';
+const ENDERECO_DA_CONTA_NO_DRIVE =
+  'https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)';
 
 const HOST_DO_RETORNO = '127.0.0.1';
 /** Quanto a tela do Google pode ficar aberta antes de a tentativa ser abandonada. */
@@ -34,14 +37,14 @@ const TEMPO_LIMITE_DAS_CHAMADAS_MS = 20_000;
 const FOLGA_DO_TOKEN_MS = 60_000;
 
 export class DriveNaoConfiguradoError extends Error {
-  constructor() {
-    super('Esta versão do HUB SNK ainda não tem a integração com o Google Drive configurada.');
+  constructor(nome = 'Google Drive') {
+    super(`Esta versão do HUB SNK ainda não tem a integração com o ${nome} configurada.`);
     this.name = 'DriveNaoConfiguradoError';
   }
 }
 
 export class DriveNaoConectadoError extends Error {
-  constructor(mensagem = 'O Google Drive não está conectado.') {
+  constructor(mensagem: string) {
     super(mensagem);
     this.name = 'DriveNaoConectadoError';
   }
@@ -66,8 +69,11 @@ export interface SituacaoDaConta {
   cofreDisponivel: boolean;
   conectado: boolean;
   email: string;
-  /** O usuário pode desmarcar a permissão na tela do Google: sem ela, a cópia não é guardada. */
-  podeGuardarCopia: boolean;
+  /**
+   * O usuário pode desmarcar a permissão na tela do Google: sem a do primeiro escopo pedido,
+   * a cópia do Drive não é guardada, e o organograma não é lido.
+   */
+  escopoConcedido: boolean;
   /** Há uma tela de consentimento aberta, à espera do usuário. */
   autorizando: boolean;
   /** Por que a última tentativa de conectar falhou; vazio quando não houve falha. */
@@ -85,6 +91,12 @@ interface Dependencias {
   credencial: CredencialDoGoogle;
   cofre: CofreDoDrive;
   abrirNoNavegador: (endereco: string) => Promise<void>;
+  /** O que a conta serve, nas mensagens: "Google Drive" quando ausente. */
+  nome?: string;
+  /** O primeiro é o que importa; os outros só ajudam (o e-mail da conta, por exemplo). */
+  escopos?: string[];
+  /** Devolve `{ user: { emailAddress } }` (Drive) ou `{ email }` (OpenID). */
+  enderecoDaConta?: string;
   buscar?: typeof fetch;
   agora?: () => number;
 }
@@ -145,6 +157,9 @@ export class ContaDoGoogle implements FonteDeToken {
   readonly #credencial: CredencialDoGoogle;
   readonly #cofre: CofreDoDrive;
   readonly #abrirNoNavegador: (endereco: string) => Promise<void>;
+  readonly #nome: string;
+  readonly #escopos: string[];
+  readonly #enderecoDaConta: string;
   readonly #buscar: typeof fetch;
   readonly #agora: () => number;
   #tentativa: TentativaDeAutorizacao | null = null;
@@ -156,6 +171,9 @@ export class ContaDoGoogle implements FonteDeToken {
     this.#credencial = dependencias.credencial;
     this.#cofre = dependencias.cofre;
     this.#abrirNoNavegador = dependencias.abrirNoNavegador;
+    this.#nome = dependencias.nome ?? 'Google Drive';
+    this.#escopos = dependencias.escopos ?? ESCOPOS_DO_DRIVE;
+    this.#enderecoDaConta = dependencias.enderecoDaConta ?? ENDERECO_DA_CONTA_NO_DRIVE;
     this.#buscar = dependencias.buscar ?? fetch;
     this.#agora = dependencias.agora ?? Date.now;
   }
@@ -179,7 +197,7 @@ export class ContaDoGoogle implements FonteDeToken {
         cofreDisponivel: true,
         conectado: segredo !== null,
         email: segredo?.email ?? '',
-        podeGuardarCopia: escopos.has(ESCOPO_DOS_ARQUIVOS_DO_HUB),
+        escopoConcedido: escopos.has(this.#escopos[0] ?? ''),
       };
     } catch {
       return {
@@ -187,7 +205,7 @@ export class ContaDoGoogle implements FonteDeToken {
         cofreDisponivel: false,
         conectado: false,
         email: '',
-        podeGuardarCopia: false,
+        escopoConcedido: false,
       };
     }
   }
@@ -198,7 +216,7 @@ export class ContaDoGoogle implements FonteDeToken {
    */
   async iniciarAutorizacao(): Promise<{ url: string }> {
     if (!this.configurado) {
-      throw new DriveNaoConfiguradoError();
+      throw new DriveNaoConfiguradoError(this.#nome);
     }
     // Antes de mandar o usuário ao Google: sem cofre, o token não teria onde ficar.
     await this.#cofre.ler();
@@ -230,7 +248,7 @@ export class ContaDoGoogle implements FonteDeToken {
       client_id: this.#credencial.clientId,
       redirect_uri: enderecoDeRetorno,
       response_type: 'code',
-      scope: ESCOPOS_PEDIDOS.join(' '),
+      scope: this.#escopos.join(' '),
       state: estado,
       code_challenge: emBase64Url(createHash('sha256').update(verificador).digest()),
       code_challenge_method: 'S256',
@@ -289,11 +307,11 @@ export class ContaDoGoogle implements FonteDeToken {
 
   async #renovarTokenDeAcesso(): Promise<string> {
     if (!this.configurado) {
-      throw new DriveNaoConfiguradoError();
+      throw new DriveNaoConfiguradoError(this.#nome);
     }
     const segredo = await this.#cofre.ler();
     if (!segredo) {
-      throw new DriveNaoConectadoError();
+      throw new DriveNaoConectadoError(`O ${this.#nome} não está conectado.`);
     }
 
     const resposta = await this.#pedirToken({
@@ -305,7 +323,7 @@ export class ContaDoGoogle implements FonteDeToken {
       // não adianta. Sem o token guardado, a tela volta a oferecer "Conectar".
       await this.#cofre.remover();
       throw new DriveNaoConectadoError(
-        'O acesso ao Google Drive foi revogado ou expirou. Conecte a conta de novo.',
+        `O acesso ao ${this.#nome} foi revogado ou expirou. Conecte a conta de novo.`,
       );
     }
     return this.#guardarTokenDeAcesso(resposta);
@@ -362,7 +380,7 @@ export class ContaDoGoogle implements FonteDeToken {
       endereco.pathname !== '/' ||
       endereco.searchParams.get('state') !== tentativa.estado
     ) {
-      responder(404, 'Endereço desconhecido', 'Volte ao HUB SNK e conecte o Google Drive por lá.');
+      responder(404, 'Endereço desconhecido', `Volte ao HUB SNK e conecte o ${this.#nome} por lá.`);
       return;
     }
 
@@ -378,7 +396,7 @@ export class ContaDoGoogle implements FonteDeToken {
       const email = await this.#concluirAutorizacao(codigo, tentativa);
       responder(
         200,
-        'Google Drive conectado',
+        `${this.#nome} conectado`,
         email
           ? `O HUB SNK já está usando a conta ${escaparHtml(email)}. Pode fechar esta aba.`
           : 'O HUB SNK já está usando a sua conta. Pode fechar esta aba.',
@@ -422,12 +440,15 @@ export class ContaDoGoogle implements FonteDeToken {
   /** O e-mail só serve para a tela dizer qual conta está conectada: sem ele, segue vazio. */
   async #lerEmailDaConta(tokenDeAcesso: string): Promise<string> {
     try {
-      const resposta = await this.#buscar(ENDERECO_DA_CONTA, {
+      const resposta = await this.#buscar(this.#enderecoDaConta, {
         headers: { authorization: `Bearer ${tokenDeAcesso}` },
         signal: AbortSignal.timeout(TEMPO_LIMITE_DAS_CHAMADAS_MS),
       });
-      const corpo = (await resposta.json()) as { user?: { emailAddress?: string } };
-      return corpo.user?.emailAddress ?? '';
+      const corpo = (await resposta.json()) as {
+        user?: { emailAddress?: string };
+        email?: string;
+      };
+      return corpo.user?.emailAddress ?? corpo.email ?? '';
     } catch {
       return '';
     }

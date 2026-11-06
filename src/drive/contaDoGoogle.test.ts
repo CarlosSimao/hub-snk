@@ -139,7 +139,7 @@ describe('autorização', () => {
       cofreDisponivel: true,
       conectado: true,
       email: 'ana@exemplo.com',
-      podeGuardarCopia: true,
+      escopoConcedido: true,
       autorizando: false,
       erro: '',
     });
@@ -161,7 +161,34 @@ describe('autorização', () => {
 
     const situacao = await conta.situacao();
     assert.equal(situacao.conectado, true);
-    assert.equal(situacao.podeGuardarCopia, false);
+    assert.equal(situacao.escopoConcedido, false);
+  });
+
+  it('outra conta (o organograma) pede os seus escopos e lê o e-mail pelo OpenID', async () => {
+    const ESCOPO_DO_DIRETORIO = 'https://www.googleapis.com/auth/directory.readonly';
+    const organograma = new ContaDoGoogle({
+      credencial: CREDENCIAL,
+      cofre,
+      abrirNoNavegador: async () => {},
+      nome: 'Organograma do Google',
+      escopos: [ESCOPO_DO_DIRETORIO, 'email'],
+      enderecoDaConta: 'https://openidconnect.googleapis.com/v1/userinfo',
+      buscar: async (entrada, init) =>
+        String(entrada).includes('userinfo')
+          ? Response.json({ email: 'carlos@exemplo.com' })
+          : googleFalso(entrada, init),
+    });
+    respostaDoToken = { ...respostaDoToken, scope: `${ESCOPO_DO_DIRETORIO} openid` };
+
+    const { url } = await organograma.iniciarAutorizacao();
+    const pagina = await voltarDoGoogle(url, { code: 'codigo' });
+
+    assert.equal(new URL(url).searchParams.get('scope'), `${ESCOPO_DO_DIRETORIO} email`);
+    assert.match(await pagina.text(), /Organograma do Google conectado.*carlos@exemplo\.com/s);
+    const situacao = await organograma.situacao();
+    assert.equal(situacao.email, 'carlos@exemplo.com');
+    assert.equal(situacao.escopoConcedido, true);
+    organograma.encerrar();
   });
 
   it('ignora o retorno com outro state: não troca código nem encerra a tentativa', async () => {

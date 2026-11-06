@@ -62,7 +62,7 @@ teclado, bandeja, Dock, atalho global, início automático — só se vê aqui.
 
 ## 6. Sankhya ID e Keychain
 
-- [ ] Configurações › Sankhya ID: salvar usuário e senha sem erro.
+- [ ] Configurações › Sankhya: salvar usuário e senha sem erro.
 - [ ] As guias SankhyaOm e Experience fazem login sozinhas.
 - [ ] Sair e abrir de novo: login automático continua, sem pedido de senha.
 - [ ] O app Acesso às Chaves mostra o item **HUB SNK Safe Storage**.

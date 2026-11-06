@@ -1,5 +1,6 @@
 /**
- * Segredos do backend que não são do Sankhya — hoje, a autorização do Google Drive —,
+ * Segredos do backend que não são do Sankhya — hoje, as autorizações do Google (Drive e
+ * organograma) —,
  * cifrados com o `safeStorage` do Electron (DPAPI no Windows).
  *
  * Arquivo próprio, separado do `credenciais.json`: remover o Sankhya ID regrava aquele
@@ -11,7 +12,7 @@ import { app, safeStorage } from 'electron';
 import { logEvento } from '../log';
 
 /** O backend só guarda o que está nesta lista: o nome vem da URL da ponte. */
-export const SEGREDOS = ['google-drive'] as const;
+export const SEGREDOS = ['google-drive', 'google-organograma'] as const;
 export type NomeDoSegredo = (typeof SEGREDOS)[number];
 
 export function ehSegredoValido(valor: string): valor is NomeDoSegredo {

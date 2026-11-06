@@ -7,7 +7,7 @@ import {
   SolicitacaoNaoEncontradaError,
 } from './solicitacaoServicos.ts';
 
-test('agenda: só "ID" seguido do número conta', () => {
+test('agenda: só "ID" ou "DS" seguido do número conta', () => {
   assert.deepEqual(idsCitadosNaAgenda('ID 3536'), [3536]);
   assert.deepEqual(
     idsCitadosNaAgenda('Processos: Atendimento Avulso\n- Atendimento\nOBS:\n- ID 3216\n'),
@@ -16,8 +16,10 @@ test('agenda: só "ID" seguido do número conta', () => {
   assert.deepEqual(idsCitadosNaAgenda('Demanda ID 3238'), [3238]);
   assert.deepEqual(idsCitadosNaAgenda('id: 3238, ID#3240 e ID-3241'), [3238, 3240, 3241]);
   assert.deepEqual(idsCitadosNaAgenda('ID 3238 de novo ID 3238'), [3238]);
-  assert.deepEqual(idsCitadosNaAgenda('Reunião 0830 a 1200 em 2026, nota 12345, DS 3619'), []);
+  assert.deepEqual(idsCitadosNaAgenda('Reunião 0830 a 1200 em 2026, nota 12345'), []);
   assert.deepEqual(idsCitadosNaAgenda('IDENTIFICADOR 3619 e ID 361'), []);
+  assert.deepEqual(idsCitadosNaAgenda('DS 3525, ds:3526, DS3527 e ID 3525'), [3525, 3526, 3527]);
+  assert.deepEqual(idsCitadosNaAgenda('DSTECH 3619 e ADS 3620'), []);
 });
 
 test('DS: aceita também "DS3264", "DS 3264" e "ID DSTECH 3619"', () => {

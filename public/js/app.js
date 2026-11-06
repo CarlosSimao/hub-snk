@@ -229,6 +229,9 @@ const ICONES = {
   info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 16v-4 M12 8h.01',
   /* Sino: o botão que abre o painel de notificações. */
   sino: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0',
+  /* Sino riscado: o evento que o alerta da agenda não cobra. */
+  sinoRiscado:
+    'M13.73 21a2 2 0 0 1-3.46 0 M18.63 13A17.89 17.89 0 0 1 18 8 M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14 M18 8a6 6 0 0 0-9.33-5 M1 1l22 22',
   /* Lupa: o botão que abre a busca rápida. */
   lupa: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.35-4.35',
   /* Mesmo desenho do botão do WhatsApp na barra lateral do aplicativo. */
@@ -252,6 +255,8 @@ const estado = {
   situacoesFiltradas: new Set(),
   /* Funcionalidades desmarcadas em Configurações › Acessos: só somem da tela. */
   funcionalidadesOcultas: new Set(),
+  /* Identificações dos eventos da agenda que o alerta não cobra (`identificacaoDoEvento`). */
+  eventosSemCobranca: new Set(),
   /* Perfil em vigor na tela; `null` enquanto a configuração não foi lida. */
   perfil: null,
   /* Acesso de terceiro: sem SankhyaOm nem Experience, o que depende deles some. */
@@ -335,7 +340,7 @@ const estado = {
   /* Contato novo aberto pela escrita de e-mail: recebe o salvo, que entra no campo de origem. */
   aoCadastrarContato: null,
   /* Filtros da aba Contatos do menu principal. */
-  filtroDeContatos: { nome: '', clienteId: '' },
+  filtroDeContatos: { nome: '', clienteId: '', soGerentes: false },
   /*
    * Git AutoSync. `visao` e `clientes` vêm do servidor; `emAndamento` e
    * `errosPorCaminho` são indexados pela chave normalizada do caminho e guardam a
@@ -523,6 +528,7 @@ const elementos = {
   campoFiltroNomeContato: document.getElementById('campo-filtro-nome-contato'),
   botaoNovoEmailContatos: document.getElementById('btn-novo-email-contatos'),
   campoFiltroClienteContato: document.getElementById('campo-filtro-cliente-contato'),
+  campoFiltroGerentesContato: document.getElementById('campo-filtro-gerentes-contato'),
   modalContato: document.getElementById('modal-contato'),
   formularioContato: document.getElementById('formulario-contato'),
   tituloModalContato: document.getElementById('modal-contato-titulo'),
@@ -533,6 +539,9 @@ const elementos = {
   opcionalEmailContato: document.getElementById('opcional-email-contato'),
   grupoClienteContato: document.getElementById('grupo-cliente-contato'),
   campoClienteContato: document.getElementById('campo-cliente-contato'),
+  campoGestorContato: document.getElementById('campo-gestor-contato'),
+  gestorDoGestorContato: document.getElementById('gestor-do-gestor-contato'),
+  campoGerenteContato: document.getElementById('campo-gerente-contato'),
   erroContato: document.getElementById('erro-contato'),
   avisosContatoDaConversa: document.getElementById('avisos-contato-da-conversa'),
   botaoSalvarContato: document.getElementById('btn-salvar-contato'),
@@ -651,6 +660,9 @@ const elementos = {
   avisoShellSankhya: document.getElementById('aviso-shell-sankhya'),
 
   modalConfiguracao: document.getElementById('modal-configuracao'),
+  situacaoOrganograma: document.getElementById('situacao-organograma'),
+  avisoOrganograma: document.getElementById('aviso-organograma'),
+  botaoOrganograma: document.getElementById('btn-organograma'),
   formularioConfiguracao: document.getElementById('formulario-configuracao'),
   abaConfiguracaoGeral: document.getElementById('aba-configuracao-geral'),
   abaConfiguracaoMcp: document.getElementById('aba-configuracao-mcp'),
@@ -705,6 +717,7 @@ const elementos = {
   campoAlertaAgendaAtivo: document.getElementById('campo-alerta-agenda-ativo'),
   campoAlertaAgendaIntervalo: document.getElementById('campo-alerta-agenda-intervalo'),
   campoAlertaAgendaProximoDiaUtil: document.getElementById('campo-alerta-agenda-proximo-dia-util'),
+  campoAlertaAgendaRetroativos: document.getElementById('campo-alerta-agenda-retroativos'),
   campoAlertaAgendaRepetir: document.getElementById('campo-alerta-agenda-repetir'),
   campoAlertaAgendaEmail: document.getElementById('campo-alerta-agenda-email'),
   grupoContatosAlertaAgenda: document.getElementById('grupo-contatos-alerta-agenda'),
@@ -988,6 +1001,9 @@ const api = {
     requisitar('/api/agenda/ocorrencias', { metodo: 'POST', corpo: dados }),
   eventosDaAgenda: (de, ate) =>
     requisitar(`/api/agenda/eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`),
+  eventosSemCobranca: () => requisitar('/api/agenda/nao-cobrar'),
+  definirNaoCobrarTarefa: (identificacao, naoCobrar) =>
+    requisitar('/api/agenda/nao-cobrar', { metodo: 'PUT', corpo: { identificacao, naoCobrar } }),
   eventosDoClienteNaAgenda: (id, de, ate) =>
     requisitar(
       `${CAMINHO_DA_API}/${id}/agenda-eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`,
@@ -3594,6 +3610,49 @@ function criarBotaoDeVinculoDeCliente(evento, aoTrocarVinculo) {
   return botao;
 }
 
+/* Identificações dos eventos que o alerta da agenda não cobra; relida a cada mês carregado. */
+async function carregarEventosSemCobranca() {
+  try {
+    const { eventos } = await api.eventosSemCobranca();
+    estado.eventosSemCobranca = new Set(eventos);
+  } catch (erro) {
+    // A grade da agenda não depende disto: sem a lista, os botões só saem desmarcados.
+    console.warn('Eventos sem cobrança não carregados:', erro);
+  }
+}
+
+/** Botão ao lado do nome do parceiro: liga e desliga a cobrança de tarefa do evento. */
+function criarBotaoDeNaoCobrarTarefa(evento) {
+  const identificacao = identificacaoDoEvento(evento);
+  const botao = criarBotaoDeIcone('btn tiny ghost', ICONES.sinoRiscado, '', async () => {
+    const naoCobrar = !estado.eventosSemCobranca.has(identificacao);
+    botao.disabled = true;
+    try {
+      await api.definirNaoCobrarTarefa(identificacao, naoCobrar);
+      if (naoCobrar) estado.eventosSemCobranca.add(identificacao);
+      else estado.eventosSemCobranca.delete(identificacao);
+      atualizarBotao();
+    } catch (erro) {
+      exibirAviso(`Não foi possível alterar a cobrança: ${erro.message}`, 'erro');
+    } finally {
+      botao.disabled = false;
+    }
+  });
+
+  function atualizarBotao() {
+    const naoCobrar = estado.eventosSemCobranca.has(identificacao);
+    botao.classList.toggle('sem-cobranca', naoCobrar);
+    const rotulo = naoCobrar
+      ? 'O alerta da agenda não cobra tarefa deste evento — clique para voltar a cobrar'
+      : 'Não cobrar tarefa na Experience deste evento';
+    botao.title = rotulo;
+    botao.setAttribute('aria-label', rotulo);
+  }
+  atualizarBotao();
+
+  return botao;
+}
+
 /* -------------------- Solicitação de Serviços (DS) no evento -------------------- */
 
 /** Tempo para o download do `<a download>` pegar o blob antes de ele ser liberado. */
@@ -3948,6 +4007,9 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
         const linhaNome = criarElemento('div', 'linha-horario-situacao');
         linhaNome.append(criarTituloDoEvento(evento, tituloDoEvento));
         linhaNome.append(criarBotaoDeVinculoDeCliente(evento, () => renderizarDetalhe(dia, true)));
+        if (evento.codparc && !estado.terceiro) {
+          linhaNome.append(criarBotaoDeNaoCobrarTarefa(evento));
+        }
         informacoes.append(linhaNome);
       } else {
         informacoes.append(criarElemento('p', 'recurso-nome', tituloDoEvento));
@@ -3990,7 +4052,7 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
 
     const { de, ate } = limitesDoMesCliente(estadoWidget.mes);
     try {
-      const eventos = await buscarEventos(de, ate);
+      const [eventos] = await Promise.all([buscarEventos(de, ate), carregarEventosSemCobranca()]);
       const grade = criarGradeMensalDeEventos(estadoWidget.mes, eventos);
       areaCalendario.replaceChildren(criarGradeDoCalendario(grade, celula));
       status.textContent = eventos.length
@@ -4644,8 +4706,12 @@ function criarLinhaDeEventoDoResumo(evento, semTarefa) {
 
 /* Evento de vários dias (férias, semana de projeto) também é de hoje enquanto durar. */
 async function criarSecaoDaAgendaDoResumo(hoje) {
-  const { eventos } = await api.eventosDaAgenda(hoje, hoje);
+  const [{ eventos }] = await Promise.all([
+    api.eventosDaAgenda(hoje, hoje),
+    carregarEventosSemCobranca(),
+  ]);
   const semTarefa = eventosDeHojeSemTarefa(hoje);
+  for (const identificacao of estado.eventosSemCobranca) semTarefa.delete(identificacao);
   const deHoje = eventos
     .filter((evento) => evento.inicio.slice(0, 10) <= hoje && hoje <= evento.fim.slice(0, 10))
     .sort((a, b) => a.inicio.localeCompare(b.inicio));
@@ -6878,6 +6944,8 @@ function alternarListaDeAtalhos() {
 
 async function abrirModalDeConfiguracao() {
   limparErro(elementos.erroConfiguracao);
+  elementos.situacaoOrganograma.textContent = '';
+  void atualizarSituacaoDoOrganograma();
   selecionarAbaDaConfiguracao(elementos.abaConfiguracaoGeral);
   elementos.campoCaminhoSchemaMcp.value = '';
   preencherCamposDoMcpGlobal(null);
@@ -9778,6 +9846,7 @@ const ALERTA_DA_AGENDA_PADRAO = {
   ativo: false,
   intervaloHoras: 2,
   incluirProximoDiaUtil: false,
+  diasUteisRetroativos: 0,
   repetirAteResolver: false,
   enviarEmail: false,
   contatoIdsEmCopia: [],
@@ -10241,6 +10310,7 @@ function preencherNotificacoesDaConfiguracao(smtp, alertaDaAgenda, avisoDaBranch
   elementos.campoAlertaAgendaAtivo.checked = alertaDaAgenda.ativo;
   elementos.campoAlertaAgendaIntervalo.value = alertaDaAgenda.intervaloHoras;
   elementos.campoAlertaAgendaProximoDiaUtil.checked = alertaDaAgenda.incluirProximoDiaUtil;
+  elementos.campoAlertaAgendaRetroativos.value = alertaDaAgenda.diasUteisRetroativos ?? 0;
   elementos.campoAlertaAgendaRepetir.checked = alertaDaAgenda.repetirAteResolver;
   elementos.campoAlertaAgendaEmail.checked = alertaDaAgenda.enviarEmail;
   elementos.grupoContatosAlertaAgenda.disabled = !alertaDaAgenda.enviarEmail;
@@ -10264,6 +10334,7 @@ function lerAlertaDaAgendaDaConfiguracao() {
     ativo: elementos.campoAlertaAgendaAtivo.checked,
     intervaloHoras: Number(elementos.campoAlertaAgendaIntervalo.value),
     incluirProximoDiaUtil: elementos.campoAlertaAgendaProximoDiaUtil.checked,
+    diasUteisRetroativos: Number(elementos.campoAlertaAgendaRetroativos.value),
     repetirAteResolver: elementos.campoAlertaAgendaRepetir.checked,
     enviarEmail: elementos.campoAlertaAgendaEmail.checked,
     contatoIdsEmCopia: campoDeContatosDoAlerta.ids(),
@@ -10804,7 +10875,10 @@ async function recarregarContatosNasTelas() {
 }
 
 function contatoPassaNoFiltro(contato) {
-  const { nome, clienteId } = estado.filtroDeContatos;
+  const { nome, clienteId, soGerentes } = estado.filtroDeContatos;
+  if (soGerentes && !contato.gerente) {
+    return false;
+  }
   if (nome && !chaveDeBuscaDoContato(contato.nome).includes(chaveDeBuscaDoContato(nome))) {
     return false;
   }
@@ -10827,12 +10901,23 @@ function numeroParaWhatsApp(telefone) {
     : digitos;
 }
 
+function contatoPorId(id) {
+  return estado.contatos.find((contato) => contato.id === id) ?? null;
+}
+
 function criarLinhaDeContato(contato, { mostrarCliente }) {
   const info = criarElemento('div', 'recurso-info');
-  info.append(criarElemento('span', 'recurso-nome', contato.nome));
+  const nome = criarElemento('span', 'recurso-nome', contato.nome);
+  if (contato.gerente) {
+    nome.append(criarElemento('span', 'selo-gerente', 'Gerente'));
+  }
+  info.append(nome);
 
   const cliente = mostrarCliente ? clienteDoContato(contato) : null;
-  const detalhes = [contato.cargo, cliente?.nome].filter(Boolean).join(' · ');
+  const gestor = contatoPorId(contato.gestorId);
+  const detalhes = [contato.cargo, cliente?.nome, gestor && `Gestor: ${gestor.nome}`]
+    .filter(Boolean)
+    .join(' · ');
   if (detalhes) {
     info.append(criarElemento('span', 'recurso-url secundaria', detalhes));
   }
@@ -10928,6 +11013,52 @@ function preencherClientesDoContato(clienteId, clientesPermitidos = estado.clien
     : SEM_CLIENTE;
 }
 
+/** O contato e todos abaixo dele: nenhum pode ser o gestor dele, ou a cadeia vira ciclo. */
+function contatoESubordinados(contatoId) {
+  const ids = new Set([contatoId]);
+  let cresceu = true;
+  while (cresceu) {
+    cresceu = false;
+    for (const contato of estado.contatos) {
+      if (contato.gestorId && ids.has(contato.gestorId) && !ids.has(contato.id)) {
+        ids.add(contato.id);
+        cresceu = true;
+      }
+    }
+  }
+  return ids;
+}
+
+/* Gerentes primeiro: são os candidatos naturais. */
+function preencherGestoresDoContato(contato) {
+  const fora = contato ? contatoESubordinados(contato.id) : new Set();
+  const candidatos = contatosOrdenados(estado.contatos.filter((item) => !fora.has(item.id)));
+  const grupo = (rotulo, contatos) => {
+    const elemento = criarElemento('optgroup');
+    elemento.label = rotulo;
+    elemento.append(...contatos.map((item) => criarOpcao(item.id, item.nome)));
+    return elemento;
+  };
+  const gerentes = candidatos.filter((item) => item.gerente);
+  const demais = candidatos.filter((item) => !item.gerente);
+  elementos.campoGestorContato.replaceChildren(
+    criarOpcao('', 'Sem gestor'),
+    ...(gerentes.length ? [grupo('Gerentes', gerentes)] : []),
+    ...(demais.length ? [grupo('Demais contatos', demais)] : []),
+  );
+  elementos.campoGestorContato.value = contato?.gestorId ?? '';
+  mostrarGestorDoGestor();
+}
+
+function mostrarGestorDoGestor() {
+  const gestor = contatoPorId(elementos.campoGestorContato.value);
+  const doGestor = contatoPorId(gestor?.gestorId);
+  elementos.gestorDoGestorContato.textContent = doGestor
+    ? `Gestor do gestor: ${doGestor.nome}`
+    : '';
+  elementos.gestorDoGestorContato.hidden = !doGestor;
+}
+
 /**
  * `clienteFixo`: aberto pela aba do cliente, o campo Cliente some e vale esse cliente.
  * `paraOLembrete`: aberto pelo modal do lembrete, o e-mail passa a ser exigido e o campo
@@ -10962,6 +11093,8 @@ function abrirModalDeContato(
     clienteFixo?.id ?? clienteDoLembrete?.id ?? contato?.clienteId ?? null,
     clienteDoLembrete ? [clienteDoLembrete] : estado.clientes,
   );
+  preencherGestoresDoContato(contato);
+  elementos.campoGerenteContato.checked = contato?.gerente ?? false;
 
   elementos.modalContato.showModal();
   elementos.campoNomeContato.focus();
@@ -11034,6 +11167,8 @@ function lerFormularioDeContato() {
     telefone: elementos.campoTelefoneContato.value.trim(),
     email: elementos.campoEmailContato.value.trim(),
     clienteId: clienteDoFormularioDeContato(),
+    gestorId: elementos.campoGestorContato.value || null,
+    gerente: elementos.campoGerenteContato.checked,
   };
 }
 
@@ -11090,7 +11225,89 @@ function pedirExclusaoDeContato(contato) {
   );
 }
 
+/* ------------------------- organograma do Google ------------------------- */
+
+const CAMINHO_DO_ORGANOGRAMA = '/api/organograma';
+const INTERVALO_DA_ESPERA_DO_ORGANOGRAMA_MS = 2000;
+let situacaoDoOrganograma = null;
+let esperaDoOrganograma = null;
+
+/** O selo, curto, e o aviso embaixo dele, só quando há o que explicar. */
+function situacaoNaTelaDoOrganograma(situacao) {
+  if (!situacao.configurado) {
+    return {
+      selo: ['', 'Indisponível'],
+      aviso: 'Esta versão do HUB SNK não tem a integração com o Google.',
+    };
+  }
+  if (!situacao.cofreDisponivel) {
+    return {
+      selo: ['', 'Indisponível'],
+      aviso: 'Só funciona com o painel aberto pelo aplicativo HUB SNK.',
+    };
+  }
+  if (situacao.autorizando) {
+    return { selo: ['atencao', 'Aguardando a autorização no navegador'], aviso: '' };
+  }
+  if (situacao.conectado && !situacao.escopoConcedido) {
+    return {
+      selo: ['erro', 'Sem permissão do diretório'],
+      aviso: 'Desconecte e, ao conectar de novo, marque a caixa de ver o diretório.',
+    };
+  }
+  if (situacao.conectado) {
+    return { selo: ['ok', `Conectado: ${situacao.email || 'conta do Google'}`], aviso: '' };
+  }
+  return { selo: ['', 'Desconectado'], aviso: situacao.erro };
+}
+
+function mostrarSituacaoDoOrganograma(situacao) {
+  situacaoDoOrganograma = situacao;
+  const { selo, aviso } = situacaoNaTelaDoOrganograma(situacao);
+  const [estilo, texto] = selo;
+  elementos.situacaoOrganograma.className = `selo-situacao ${estilo}`.trim();
+  elementos.situacaoOrganograma.textContent = texto;
+  elementos.avisoOrganograma.textContent = aviso;
+  elementos.avisoOrganograma.hidden = !aviso;
+  elementos.botaoOrganograma.textContent =
+    situacao.conectado || situacao.autorizando ? 'Desconectar' : 'Conectar';
+  elementos.botaoOrganograma.disabled = !situacao.configurado || !situacao.cofreDisponivel;
+}
+
+/** Enquanto a tela do Google está aberta, confere de tempos em tempos se já autorizou. */
+async function atualizarSituacaoDoOrganograma() {
+  clearTimeout(esperaDoOrganograma);
+  try {
+    mostrarSituacaoDoOrganograma(await requisitar(CAMINHO_DO_ORGANOGRAMA));
+  } catch (erro) {
+    elementos.avisoOrganograma.textContent = erro.message;
+    elementos.avisoOrganograma.hidden = false;
+    return;
+  }
+  if (situacaoDoOrganograma.autorizando && elementos.modalConfiguracao.open) {
+    esperaDoOrganograma = setTimeout(
+      atualizarSituacaoDoOrganograma,
+      INTERVALO_DA_ESPERA_DO_ORGANOGRAMA_MS,
+    );
+  }
+}
+
+/** Desconectar serve também para desistir de uma autorização em aberto. */
+async function alternarOrganograma() {
+  const desconectar = situacaoDoOrganograma?.conectado || situacaoDoOrganograma?.autorizando;
+  elementos.botaoOrganograma.disabled = true;
+  try {
+    await (desconectar
+      ? requisitar(CAMINHO_DO_ORGANOGRAMA, { metodo: 'DELETE' })
+      : requisitar(`${CAMINHO_DO_ORGANOGRAMA}/conectar`, { metodo: 'POST' }));
+  } catch (erro) {
+    exibirAviso(erro.message, 'erro');
+  }
+  await atualizarSituacaoDoOrganograma();
+}
+
 function registrarEventosDosContatos() {
+  elementos.botaoOrganograma.addEventListener('click', () => void alternarOrganograma());
   // O shell chama pelo `executeJavaScript`, como na busca rápida.
   window.hubContatoDaConversa = abrirContatoDaConversa;
   elementos.formularioContato.addEventListener('submit', salvarContato);
@@ -11103,6 +11320,11 @@ function registrarEventosDosContatos() {
     estado.filtroDeContatos.clienteId = elementos.campoFiltroClienteContato.value;
     renderizarContatos();
   });
+  elementos.campoFiltroGerentesContato.addEventListener('change', () => {
+    estado.filtroDeContatos.soGerentes = elementos.campoFiltroGerentesContato.checked;
+    renderizarContatos();
+  });
+  elementos.campoGestorContato.addEventListener('change', mostrarGestorDoGestor);
   elementos.botaoNovoEmailContatos.prepend(criarIcone(ICONES.envelope));
   elementos.botaoNovoEmailContatos.addEventListener('click', () => void escritaDeEmail.abrir());
 }

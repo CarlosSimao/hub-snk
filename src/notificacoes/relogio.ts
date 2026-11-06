@@ -36,9 +36,33 @@ const SABADO = 6;
  * calendário de feriados. Meio-dia local evita que a troca do horário de verão mude a data.
  */
 export function proximoDiaUtil(dia: string): string {
+  return diaUtilVizinho(dia, 1);
+}
+
+/** Dia útil anterior a `dia`, com a mesma regra do `proximoDiaUtil`. */
+export function diaUtilAnterior(dia: string): string {
+  return diaUtilVizinho(dia, -1);
+}
+
+function diaUtilVizinho(dia: string, passo: 1 | -1): string {
   const data = new Date(`${dia}T12:00:00`);
   do {
-    data.setDate(data.getDate() + 1);
+    data.setDate(data.getDate() + passo);
   } while (data.getDay() === DOMINGO || data.getDay() === SABADO);
   return dataIsoLocal(data);
+}
+
+/** Dia de calendário seguinte a `dia`, fim de semana incluído. */
+export function diaSeguinte(dia: string): string {
+  const data = new Date(`${dia}T12:00:00`);
+  data.setDate(data.getDate() + 1);
+  return dataIsoLocal(data);
+}
+
+const MILISSEGUNDOS_POR_DIA = 24 * 60 * 60_000;
+
+/** Dias corridos de `de` a `ate`: sexta → segunda são 3. Em UTC, sem horário de verão. */
+export function diasEntre(de: string, ate: string): number {
+  const emUtc = (dia: string) => Date.parse(`${dia}T00:00:00Z`);
+  return Math.round((emUtc(ate) - emUtc(de)) / MILISSEGUNDOS_POR_DIA);
 }

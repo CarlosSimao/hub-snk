@@ -47,7 +47,7 @@
               <a href="#abrir-configuracao-pelo-erro">Atalho "Abrir configuração" num erro</a>
             </li>
             <li><a href="#geral">Aba Geral</a></li>
-            <li><a href="#sankhya-id">Aba Sankhya ID</a></li>
+            <li><a href="#sankhya-id">Aba Sankhya</a></li>
             <li><a href="#smtp">Aba SMTP</a></li>
             <li><a href="#atalhos">Aba Atalhos</a></li>
             <li><a href="#avisos">Aba Avisos</a></li>
@@ -67,9 +67,9 @@
             As Configurações valem para todos os clientes. Abrem sempre na aba Geral, com os valores
             gravados. Há dois jeitos de gravar: nas abas Geral, SMTP, Atalhos, Avisos, MCP, IA,
             Acessos e Sobre, nada vale até o <strong>Salvar</strong> do rodapé, que grava todas
-            essas abas de uma vez; nas abas Sankhya ID, Kanban e Backup, cada botão e cada campo
-            grava na hora, e o rodapé só tem <strong>Fechar</strong>. O tema, na aba Geral, também
-            muda na hora.
+            essas abas de uma vez; nas abas Sankhya, Kanban e Backup, cada botão e cada campo grava
+            na hora, e o rodapé só tem <strong>Fechar</strong>. O tema, na aba Geral, também muda na
+            hora.
           </p>
 
           <h3>Passo a passo</h3>
@@ -168,16 +168,15 @@
           <ul>
             <li>
               código de usuário do SankhyaOm (Agenda de Recursos):
-              <a href="#sankhya-id-codigo-de-usuario">Sankhya ID › Meu código de usuário</a>;
+              <a href="#sankhya-id-codigo-de-usuario">Sankhya › Meu código de usuário</a>;
             </li>
             <li>
               login no SankhyaOm (Agenda de Recursos):
-              <a href="#sankhya-id-usuario-e-senha">Sankhya ID › Usuário</a>;
+              <a href="#sankhya-id-usuario-e-senha">Sankhya › Usuário</a>;
             </li>
             <li>
               sessão da Experience (OS):
-              <a href="#sankhya-id-sessao-experience">Sankhya ID › Capturar sessão da Experience</a
-              >;
+              <a href="#sankhya-id-sessao-experience">Sankhya › Capturar sessão da Experience</a>;
             </li>
             <li>
               IDE (botão Abrir IDE):
@@ -383,22 +382,23 @@
         </section>
 
         <section class="funcionalidade" id="sankhya-id">
-          <h2>Aba Sankhya ID</h2>
+          <h2>Aba Sankhya</h2>
           <p>
             O usuário e a senha que o HUB SNK usa para entrar sozinho no SankhyaOm e na Experience,
-            e o seu código de usuário. Tudo grava na hora, cada coisa no seu botão. Só no aplicativo
-            desktop. A aba some com <a href="#acessos-terceiro">Terceiro</a> marcado. O passo a
-            passo fica em <a href="sankhya-id.html">Sankhya ID e login automático</a>.
+            o seu código de usuário e a conexão com o organograma do Google. Tudo grava na hora,
+            cada coisa no seu botão. Só no aplicativo desktop. A aba some com
+            <a href="#acessos-terceiro">Terceiro</a> marcado. O passo a passo fica em
+            <a href="sankhya-id.html">Sankhya ID e login automático</a>.
           </p>
 
           <h3>Passo a passo</h3>
           <ol class="passos">
             <li>
-              Abra as Configurações, aba <strong>Sankhya ID</strong>.
+              Abra as Configurações, aba <strong>Sankhya</strong>.
               <figure>
                 <img
                   src="img/configuracoes/sankhya-id-01-aba.webp"
-                  alt="Aba Sankhya ID com o código de usuário, o cartão Usuário e senha e os cartões SankhyaOm e Experience com sessão ativa"
+                  alt="Aba Sankhya com o código de usuário, o cartão Usuário e senha, os cartões SankhyaOm e Experience com sessão ativa e o Organograma do Google conectado"
                   width="1264"
                   height="821"
                   loading="lazy"
@@ -470,6 +470,25 @@
               <a href="ordens-de-servico.html">Ordens de Serviço</a>,
               <a href="resumo-do-dia.html#os-nao-concluidas">OS não concluídas</a> e
               <a href="agenda-de-recursos.html#situacao-no-experience">situação no Experience</a>.
+            </dd>
+
+            <dt id="sankhya-id-organograma">
+              Cartão <strong>Organograma do Google</strong> (opcional): <strong>Conectar</strong> e
+              <strong>Desconectar</strong>
+            </dt>
+            <dd>
+              <strong>Conectar</strong> abre a autorização do Google no navegador padrão: entre com
+              o e-mail da empresa, siga por <strong>Avançado</strong> no aviso de app não verificado
+              e marque a caixa de ver o diretório. Conectado, o solicitante da DS aberta na agenda,
+              ou citada no alerta da agenda, traz para os contatos o gestor e o gestor do gestor,
+              lidos do diretório do Google Workspace. O selo mostra <strong>Conectado: …</strong>,
+              <strong>Desconectado</strong> ou
+              <strong>Sem permissão do diretório</strong> (desconecte e marque a caixa ao conectar
+              de novo). <strong>Desconectar</strong> tira o acesso. É uma conexão separada da do
+              Google Drive do backup, e o token fica no cofre do aplicativo. Afeta:
+              <a href="contatos.html#gestor">gestor e gerente</a> e o
+              <a href="agenda-de-recursos.html#solicitante-nos-contatos">solicitante nos contatos</a
+              >.
             </dd>
           </dl>
           <p class="nota">
@@ -612,7 +631,7 @@
             O alerta <strong>Agenda sem tarefa na Experience</strong>: na periodicidade escolhida, o
             HUB SNK confere os eventos de hoje na sua Agenda de Recursos e avisa quando o dia de um
             cliente não tem tarefa nem OS na Experience. Precisa do código de usuário e do login, os
-            dois na aba <a href="#sankhya-id">Sankhya ID</a>. Grava no <strong>Salvar</strong> do
+            dois na aba <a href="#sankhya-id">Sankhya</a>. Grava no <strong>Salvar</strong> do
             rodapé. A aba some com <a href="#acessos-terceiro">Terceiro</a> marcado. O passo a passo
             fica em <a href="lembretes-e-notificacoes.html#alerta-da-agenda">Alerta da agenda</a>. A
             aba traz ainda a opção da <a href="#avisos-branch-principal">branch principal</a>.
@@ -673,11 +692,19 @@
               <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a>.
             </dd>
 
+            <dt id="avisos-dias-anteriores"><strong>Cobrar dias úteis anteriores</strong></dt>
+            <dd>
+              Quantos dias úteis para trás o alerta continua cobrando o atendimento já feito sem
+              tarefa nem OS, uma vez por dia (ou a cada execução, com a repetição marcada). De 0 a
+              10; 0 desliga. Padrão: 0. Afeta:
+              <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a>.
+            </dd>
+
             <dt id="avisos-repetir-o-aviso">
               <strong>Repetir o aviso a cada execução enquanto a pendência existir</strong>
             </dt>
             <dd>
-              Sem ela, cada evento avisa uma vez só. Padrão: desmarcado. Afeta:
+              Sem ela, cada evento avisa uma vez por dia. Padrão: desmarcado. Afeta:
               <a href="lembretes-e-notificacoes.html#alerta-da-agenda">alerta da agenda</a>.
             </dd>
 
@@ -992,8 +1019,8 @@
 
             <dt id="acessos-terceiro"><strong>Terceiro</strong></dt>
             <dd>
-              Para quem não tem acesso ao SankhyaOm nem à Experience. Esconde a aba Sankhya ID, a
-              aba Avisos e o alerta da agenda, os nomes completos do cliente e as guias SankhyaOm e
+              Para quem não tem acesso ao SankhyaOm nem à Experience. Esconde a aba Sankhya, a aba
+              Avisos e o alerta da agenda, os nomes completos do cliente e as guias SankhyaOm e
               Experience, e desliga o login automático. As caixas Agenda e OS ficam bloqueadas.
               Padrão: desmarcado. Afeta:
               <a href="sankhya-id.html#sem-login-no-sankhya">Terceiro</a>,

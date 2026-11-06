@@ -19,7 +19,8 @@ export interface CofreDoDrive {
   remover(): Promise<void>;
 }
 
-const CAMINHO_NA_PONTE = '/segredos/google-drive';
+/** Os nomes que o cofre do desktop aceita (`desktop/src/backend/cofreDeSegredos.ts`). */
+export type NomeDoSegredoDoGoogle = 'google-drive' | 'google-organograma';
 
 function ehSegredo(valor: unknown): valor is SegredoDoDrive {
   if (typeof valor !== 'object' || valor === null) {
@@ -41,13 +42,15 @@ function ehSegredo(valor: unknown): valor is SegredoDoDrive {
  */
 export class CofreDoDriveNaPonte implements CofreDoDrive {
   readonly #ponte: PonteDoDesktop;
+  readonly #caminhoNaPonte: string;
 
-  constructor(ponte: PonteDoDesktop) {
+  constructor(ponte: PonteDoDesktop, nome: NomeDoSegredoDoGoogle = 'google-drive') {
     this.#ponte = ponte;
+    this.#caminhoNaPonte = `/segredos/${nome}`;
   }
 
   async ler(): Promise<SegredoDoDrive | null> {
-    const { valor } = await this.#ponte.requisitar<{ valor: string | null }>(CAMINHO_NA_PONTE);
+    const { valor } = await this.#ponte.requisitar<{ valor: string | null }>(this.#caminhoNaPonte);
     if (!valor) {
       return null;
     }
@@ -62,7 +65,7 @@ export class CofreDoDriveNaPonte implements CofreDoDrive {
   }
 
   async gravar(segredo: SegredoDoDrive): Promise<void> {
-    await this.#ponte.requisitar(CAMINHO_NA_PONTE, {
+    await this.#ponte.requisitar(this.#caminhoNaPonte, {
       method: 'PUT',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ valor: JSON.stringify(segredo) }),
@@ -70,6 +73,6 @@ export class CofreDoDriveNaPonte implements CofreDoDrive {
   }
 
   async remover(): Promise<void> {
-    await this.#ponte.requisitar(CAMINHO_NA_PONTE, { method: 'DELETE' });
+    await this.#ponte.requisitar(this.#caminhoNaPonte, { method: 'DELETE' });
   }
 }

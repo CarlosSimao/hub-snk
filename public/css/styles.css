@@ -430,6 +430,13 @@ a.btn {
   background: color-mix(in srgb, var(--marca) 12%, transparent);
 }
 
+/* Evento que o alerta da agenda não cobra: o sino riscado fica aceso em âmbar. */
+.btn.sem-cobranca {
+  color: var(--aviso);
+  border-color: color-mix(in srgb, var(--aviso) 45%, transparent);
+  background: color-mix(in srgb, var(--aviso) 12%, transparent);
+}
+
 /* Painel de vínculo do parceiro do evento a um cliente do HUB (agenda).
    Flutua com `position: fixed` (posicionado por JS ao lado do botão) para escapar do
    `overflow: hidden` do card do evento — inline ele empurrava e era cortado pelo card. */
@@ -1680,6 +1687,19 @@ button.selo-situacao:focus-visible {
   margin-bottom: 14px;
   border: 1px solid var(--border);
   border-radius: 10px;
+}
+
+/*
+ * Último cartão da aba Sankhya: o balão da ajuda abre para cima. Para baixo, mesmo
+ * escondido, ele esticaria a área do modal e traria a barra de rolagem.
+ */
+#cartao-organograma {
+  position: relative;
+}
+
+#cartao-organograma .dica-texto {
+  top: auto;
+  bottom: calc(100% - 10px);
 }
 
 .cartao-credencial-cabecalho {
@@ -3427,6 +3447,12 @@ button.selo-situacao:focus-visible {
   gap: 4px;
 }
 
+/* Periodicidade e dias anteriores, um embaixo do outro, ao lado das opções. */
+.campos-do-alerta {
+  display: grid;
+  gap: 10px;
+}
+
 .resultado-teste-smtp {
   margin: 10px 0 0;
   padding: 8px 12px;
@@ -3457,9 +3483,29 @@ button.selo-situacao:focus-visible {
 /* Filtros da aba Contatos: nome ocupa o que sobra, cliente tem largura de rótulo. */
 .filtros-de-contatos {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+  align-items: center;
   gap: 8px;
   padding: 0 20px 16px;
+}
+
+.filtro-so-gerentes {
+  white-space: nowrap;
+}
+
+/* Ao lado do nome, na lista de contatos. */
+.selo-gerente {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  vertical-align: middle;
 }
 
 @media (max-width: 640px) {

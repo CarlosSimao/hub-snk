@@ -5,7 +5,7 @@ import { SessaoExpiradaError, type SituacaoDoDia } from '../sankhya/experience.t
 import { PonteDoDesktopIndisponivelError } from '../sankhya/ponteDoDesktop.ts';
 import type { AlertaDaAgenda, ConfiguracaoGlobal, Contato, EventoAgenda } from '../tipos.ts';
 import type { DadosDeNotificacao } from './centralDeNotificacoes.ts';
-import { proximoDiaUtil } from './relogio.ts';
+import { diasEntre, diaUtilAnterior, proximoDiaUtil } from './relogio.ts';
 import { diasMonitorados, VerificadorDaAgendaDoDia } from './verificadorDaAgendaDoDia.ts';
 
 const CODUSU = 4817;
@@ -22,6 +22,8 @@ function contato(id: string, email: string): Contato {
     email,
     cargo: '',
     clienteId: null,
+    gestorId: null,
+    gerente: false,
     criadoEm: '',
     atualizadoEm: '',
   };
@@ -65,6 +67,8 @@ let contatos: Contato[];
 /** Código da DS -> id do contato do solicitante, `null` sem e-mail, ou o erro da consulta. */
 let solicitantes: Map<number, string | null | Error>;
 let dsConsultadas: number[];
+let semCobranca: Set<string>;
+let periodosAtualizados: string[];
 
 function criarVerificador(): VerificadorDaAgendaDoDia {
   const configuracao = {
@@ -88,8 +92,9 @@ function criarVerificador(): VerificadorDaAgendaDoDia {
       if (!emitidas.some((emitida) => emitida.chave === dados.chave)) emitidas.push(dados);
     },
     jaEmitida: async (chave) => emitidas.some((dados) => dados.chave === chave),
-    atualizarAgendaDoDia: async () => {},
+    atualizarAgendaDoPeriodo: async (de, ate) => void periodosAtualizados.push(`${de}..${ate}`),
     eventosDoDia: (dia) => eventos.filter((item) => item.inicio.startsWith(dia)),
+    eventosSemCobranca: async () => semCobranca,
     situacaoDoDia: async (codparc, dia) => {
       consultasDeSituacao += 1;
       diasConsultados.push(dia);
@@ -115,6 +120,7 @@ beforeEach(() => {
     ativo: true,
     intervaloHoras: 2,
     incluirProximoDiaUtil: false,
+    diasUteisRetroativos: 0,
     repetirAteResolver: false,
     enviarEmail: true,
     contatoIdsEmCopia: [],
@@ -122,6 +128,8 @@ beforeEach(() => {
   contatos = [];
   solicitantes = new Map();
   dsConsultadas = [];
+  semCobranca = new Set();
+  periodosAtualizados = [];
   terceiro = false;
   eventos = [evento({})];
   situacoes = new Map();
@@ -147,6 +155,19 @@ describe('proximoDiaUtil', () => {
   });
 });
 
+describe('diaUtilAnterior e diasEntre', () => {
+  it('a segunda volta para a sexta', () => {
+    assert.equal(diaUtilAnterior(SEGUNDA_SEGUINTE), SEXTA);
+    assert.equal(diaUtilAnterior('2026-10-04'), SEXTA);
+  });
+
+  it('conta os dias corridos, fim de semana e virada de mês incluídos', () => {
+    assert.equal(diasEntre(SEXTA, SEGUNDA_SEGUINTE), 3);
+    assert.equal(diasEntre(DIA, SEXTA), 4);
+    assert.equal(diasEntre('2026-09-30', '2026-10-01'), 1);
+  });
+});
+
 describe('diasMonitorados', () => {
   it('por padrão, só o dia atual', () => {
     assert.deepEqual(diasMonitorados(SEXTA, alerta), [SEXTA]);
@@ -156,6 +177,16 @@ describe('diasMonitorados', () => {
     assert.deepEqual(diasMonitorados(SEXTA, { ...alerta, incluirProximoDiaUtil: true }), [
       SEXTA,
       SEGUNDA_SEGUINTE,
+    ]);
+  });
+
+  it('com dias retroativos, volta os dias úteis e inclui o fim de semana no meio', () => {
+    assert.deepEqual(diasMonitorados('2026-10-06', { ...alerta, diasUteisRetroativos: 2 }), [
+      SEXTA,
+      '2026-10-03',
+      '2026-10-04',
+      SEGUNDA_SEGUINTE,
+      '2026-10-06',
     ]);
   });
 });
@@ -209,6 +240,74 @@ describe('VerificadorDaAgendaDoDia', () => {
     assert.equal(emitidas.length, 1);
     assert.match(emitidas[0]?.chave ?? '', new RegExp(`^agenda:${SEGUNDA_SEGUINTE}:`));
     assert.match(emitidas[0]?.mensagem ?? '', /05\/10\/2026, 08:00–12:00/);
+  });
+
+  it('sem repetição, avisa na véspera e de novo no próprio dia', async () => {
+    alerta = { ...alerta, incluirProximoDiaUtil: true };
+    agora = new Date(2026, 9, 2, 9, 0);
+    eventos = [
+      evento({ inicio: `${SEGUNDA_SEGUINTE} 08:00:00`, fim: `${SEGUNDA_SEGUINTE} 12:00:00` }),
+    ];
+    const verificador = criarVerificador();
+
+    await verificador.verificar();
+    agora = new Date(2026, 9, 5, 9, 0);
+    await verificador.verificar();
+
+    assert.equal(emitidas.length, 2);
+    assert.match(emitidas[1]?.mensagem ?? '', /hoje, 08:00–12:00/);
+  });
+
+  it('com dias retroativos, cobra o atendimento passado sem tarefa, em dias corridos', async () => {
+    alerta = { ...alerta, diasUteisRetroativos: 5 };
+    agora = new Date(2026, 9, 5, 9, 0);
+
+    await criarVerificador().verificar();
+
+    assert.deepEqual(periodosAtualizados, [`${DIA}..${SEGUNDA_SEGUINTE}`]);
+    assert.equal(emitidas.length, 1);
+    assert.equal(emitidas[0]?.titulo, 'Tarefa não lançada na Experience');
+    assert.match(
+      emitidas[0]?.mensagem ?? '',
+      /28\/09\/2026, 08:00–12:00\): nenhuma tarefa nem OS no dia, há 7 dias\./,
+    );
+    assert.equal(
+      emitidas[0]?.email?.assunto,
+      '[HUB SNK] Atenção - Tarefa não lançada na Experience (há 7 dias)',
+    );
+  });
+
+  it('sem repetição, cobra o atendimento passado uma vez por dia', async () => {
+    alerta = { ...alerta, diasUteisRetroativos: 5 };
+    agora = new Date(2026, 8, 29, 9, 0);
+    const verificador = criarVerificador();
+
+    await verificador.verificar();
+    await verificador.verificar();
+    agora = new Date(2026, 8, 30, 9, 0);
+    await verificador.verificar();
+
+    assert.equal(emitidas.length, 2);
+    assert.match(emitidas[0]?.mensagem ?? '', /há 1 dia\./);
+  });
+
+  it('não olha o dia que saiu da janela retroativa', async () => {
+    alerta = { ...alerta, diasUteisRetroativos: 1 };
+    agora = new Date(2026, 9, 2, 9, 0);
+
+    await criarVerificador().verificar();
+
+    assert.equal(consultasDeSituacao, 0);
+    assert.equal(emitidas.length, 0);
+  });
+
+  it('não cobra o evento marcado, nem consulta a Experience por ele', async () => {
+    semCobranca = new Set(['1']);
+
+    await criarVerificador().verificar();
+
+    assert.equal(consultasDeSituacao, 0);
+    assert.equal(emitidas.length, 0);
   });
 
   it('ignora evento sem parceiro e de outro usuário', async () => {

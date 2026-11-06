@@ -52,7 +52,7 @@ function criarSimulacao() {
     cofreDisponivel: true,
     conectado: false,
     email: '',
-    podeGuardarCopia: false,
+    escopoConcedido: false,
     autorizando: false,
     erro: '',
   };
@@ -169,7 +169,7 @@ export async function roteiro({ painel, print }) {
     autorizando: false,
     conectado: true,
     email: CONTA,
-    podeGuardarCopia: true,
+    escopoConcedido: true,
   });
   await esperarAviso('Google Drive conectado');
   await print('conectar-03-conectado', {

@@ -162,14 +162,19 @@ export interface ConfiguracaoSmtp {
 /**
  * Aviso de evento da agenda sem tarefa nem OS na Experience. Roda a cada
  * `intervaloHoras`, olha o dia atual e, com `incluirProximoDiaUtil`, também o próximo
- * dia útil. `repetirAteResolver` avisa em toda execução, e não uma vez por evento.
- * Com `enviarEmail`, os `contatoIdsEmCopia` e o solicitante da DS citada no evento vão
- * em cópia do e-mail.
+ * dia útil, e `diasUteisRetroativos` volta essa quantidade de dias úteis para cobrar o
+ * atendimento já feito sem tarefa. Sem `repetirAteResolver`, avisa uma vez por evento por
+ * dia; com ele, em toda execução. Com `enviarEmail`, os `contatoIdsEmCopia` e o
+ * solicitante da DS citada no evento vão em cópia do e-mail.
  */
+/* Duas semanas úteis: mais que isso, a cobrança vira ruído de atendimento já esquecido. */
+export const MAXIMO_DE_DIAS_UTEIS_RETROATIVOS = 10;
+
 export interface AlertaDaAgenda {
   ativo: boolean;
   intervaloHoras: number;
   incluirProximoDiaUtil: boolean;
+  diasUteisRetroativos: number;
   repetirAteResolver: boolean;
   enviarEmail: boolean;
   contatoIdsEmCopia: string[];
@@ -651,6 +656,10 @@ export interface Lembrete {
  * Pessoa de contato, opcionalmente ligada a um cliente. Só o nome é obrigatório: os
  * outros campos ficam vazios quando não informados. `clienteId` de um cliente que já
  * foi excluído vale como sem cliente.
+ *
+ * `gestorId` aponta para outro contato, nunca para o próprio nem para um subordinado; o
+ * gestor do gestor sai do encadeamento. `gerente` marca quem é gestor de alguém (ou foi):
+ * liga sozinho quando o contato vira gestor e só o usuário desliga.
  */
 export interface Contato {
   id: string;
@@ -659,6 +668,8 @@ export interface Contato {
   email: string;
   cargo: string;
   clienteId: string | null;
+  gestorId: string | null;
+  gerente: boolean;
   criadoEm: string;
   atualizadoEm: string;
 }

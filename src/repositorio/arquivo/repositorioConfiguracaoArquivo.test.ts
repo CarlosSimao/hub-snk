@@ -431,6 +431,7 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
       ativo: true,
       intervaloHoras: 2,
       incluirProximoDiaUtil: false,
+      diasUteisRetroativos: 0,
       repetirAteResolver: false,
       enviarEmail: false,
       contatoIdsEmCopia: [],
@@ -461,6 +462,7 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
         ativo: true,
         intervaloHoras: 3,
         incluirProximoDiaUtil: true,
+        diasUteisRetroativos: 5,
         repetirAteResolver: false,
         enviarEmail: true,
         contatoIdsEmCopia: ['gp'],
@@ -476,6 +478,7 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     assert.equal(configuracao.alertaDaAgenda.ativo, true);
     assert.equal(configuracao.alertaDaAgenda.intervaloHoras, 3);
     assert.equal(configuracao.alertaDaAgenda.incluirProximoDiaUtil, true);
+    assert.equal(configuracao.alertaDaAgenda.diasUteisRetroativos, 5);
     assert.deepEqual(configuracao.alertaDaAgenda.contatoIdsEmCopia, ['gp']);
   });
 

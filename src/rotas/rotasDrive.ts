@@ -7,25 +7,27 @@ import {
 import { responderErroDoShell } from './comum/respostasDoShell.ts';
 
 /**
- * Conexão do HUB SNK com a conta do Google Drive do usuário.
+ * Conexão do HUB SNK com uma conta do Google — a do Drive (`/api/drive`) ou a do
+ * organograma (`/api/organograma`), cada uma com o seu caminho.
  *
  * `aoDesconectar` avisa quem guardava algo da conta — o backup, que lembra o que já
  * enviou a ela.
  */
-export function registrarRotasDeDrive(
+export function registrarRotasDaContaDoGoogle(
   servidor: FastifyInstance,
+  caminho: string,
   conta: ContaDoGoogle,
   aoDesconectar: () => Promise<void> = async () => {},
 ): void {
   /* A tela consulta esta rota em intervalos curtos enquanto o consentimento está aberto. */
-  servidor.get('/api/drive', async () => conta.situacao());
+  servidor.get(caminho, async () => conta.situacao());
 
   /*
    * Abre o consentimento do Google no navegador padrão. A resposta sai logo, com o
    * endereço da tela: a conexão em si termina depois, quando o usuário autoriza, e
-   * aparece em `GET /api/drive`.
+   * aparece no `GET` do caminho.
    */
-  servidor.post('/api/drive/conectar', async (_requisicao, resposta) => {
+  servidor.post(`${caminho}/conectar`, async (_requisicao, resposta) => {
     try {
       return await conta.iniciarAutorizacao();
     } catch (erro) {
@@ -40,7 +42,7 @@ export function registrarRotasDeDrive(
     }
   });
 
-  servidor.delete('/api/drive', async (_requisicao, resposta) => {
+  servidor.delete(caminho, async (_requisicao, resposta) => {
     try {
       await conta.desconectar();
       await aoDesconectar();

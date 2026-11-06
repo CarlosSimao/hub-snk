@@ -9,6 +9,41 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.26.0] - 2026-11-06
+
+### Adicionado
+
+- **Gestor do contato**: a ficha do contato ganha o campo **Gestor** (outro contato) e a
+  caixa **Gerente**. O gestor do gestor aparece embaixo do campo. Quem vira gestor de alguém
+  fica com **Gerente** marcado; excluir um gestor deixa os subordinados sem gestor.
+- **Só gerentes**: filtro novo na aba **Contatos**, ao lado dos de nome e cliente. A lista
+  mostra o selo **Gerente** e o gestor de cada contato.
+- **Organograma do Google**: no novo cartão da aba **Configurações › Sankhya**, conecte a conta do Google da
+  empresa para que o solicitante da DS aberta na agenda (ou citada no alerta da agenda)
+  traga para os contatos o gestor e o gestor do gestor, lidos do diretório do Google
+  Workspace. O gestor que o diretório informa substitui o gravado. É uma conexão separada da
+  do Google Drive, e o Google avisa que o app não foi verificado: siga por **Avançado** e
+  marque a caixa de ver o diretório.
+- **Cobrar atendimento passado sem tarefa**: o alerta **Agenda sem tarefa na Experience**
+  ganha, em **Configurações › Avisos**, o campo **Cobrar dias úteis anteriores** (0 a 10;
+  0, o padrão, desliga). O atendimento que já passou sem tarefa nem OS é cobrado uma vez
+  por dia, com o título **Tarefa não lançada na Experience** e "há X dias" (dias
+  corridos) na mensagem e no assunto do e-mail, até sair da janela.
+- **Não cobrar tarefa**: o sino riscado ao lado do nome do parceiro, no card do evento na
+  **Agenda**, tira o evento do alerta — nem notificação, nem e-mail, nem selo no Resumo.
+
+### Alterado
+
+- **Alerta da agenda na véspera e no dia**: sem **Repetir o aviso**, o evento cobrado na
+  véspera (com **Monitorar também o próximo dia útil**) volta a ser cobrado no próprio dia.
+  Antes, o aviso da véspera valia pelos dois.
+
+- **DS citada como "DS" no evento**: além de `ID 3619`, o evento da agenda reconhece a
+  Solicitação de Serviços escrita como `DS 3619` (ou `DS3619`): o bloco da DS, o solicitante
+  nos contatos e a cópia do alerta da agenda passam a valer para ela.
+- **Aba Sankhya**: a aba **Sankhya ID** das Configurações passa a se chamar **Sankhya**. Os
+  cartões SankhyaOm e Experience trazem o selo e os botões na linha do título.
+
 ## [2.25.0] - 2026-11-06
 
 ### Adicionado
@@ -1137,6 +1172,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.26.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.25.0...v2.26.0
 [2.25.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.24.0...v2.25.0
 [2.24.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.23.1...v2.24.0
 [2.23.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.23.0...v2.23.1

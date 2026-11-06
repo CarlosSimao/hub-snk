@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
-import type { RepositorioContatos } from '../repositorio/repositorioContatos.ts';
+import type { RepositorioEventosSemCobranca } from '../repositorio/repositorioEventosSemCobranca.ts';
 import { AgendaRecursos } from '../sankhya/agenda.ts';
 import { PayloadInvalidoError } from '../sankhya/agendaParser.ts';
 import {
@@ -17,12 +17,13 @@ import type { Credenciais } from '../sankhya/credenciais.ts';
 import { SessaoExpiradaError, type Experience, type OsLancada } from '../sankhya/experience.ts';
 import { TIPOS_DE_OS, validarHorariosDaOs } from '../sankhya/lancamentoDeOs.ts';
 import { PayloadDeNegociacoesInvalidoError } from '../sankhya/negociacoes.ts';
-import { cadastrarSolicitante } from '../sankhya/contatoDoSolicitante.ts';
+import type { ResultadoDoContato } from '../sankhya/contatoDoSolicitante.ts';
 import { MOTIVOS_OCORRENCIA, validarNovaOcorrencia } from '../sankhya/ocorrencias.ts';
 import {
   idsCitadosNaAgenda,
   SolicitacaoNaoEncontradaError,
   SolicitacoesDeServico,
+  type SolicitanteDaDs,
 } from '../sankhya/solicitacaoServicos.ts';
 import type { EventoAgenda } from '../tipos.ts';
 import { responderErroDoShell } from './comum/respostasDoShell.ts';
@@ -49,6 +50,17 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const esquemaDeConsulta = z.object({
   de: z.string().regex(ISO, 'Informe "de" no formato YYYY-MM-DD.'),
   ate: z.string().regex(ISO, 'Informe "ate" no formato YYYY-MM-DD.'),
+});
+
+/* `nuevento` ou `codparc-inicio`: o teto só barra lixo mandado direto na API. */
+const TAMANHO_MAXIMO_DA_IDENTIFICACAO_DO_EVENTO = 60;
+const esquemaDeNaoCobrar = z.object({
+  identificacao: z
+    .string({ error: 'Informe a identificação do evento.' })
+    .trim()
+    .min(1, 'Informe a identificação do evento.')
+    .max(TAMANHO_MAXIMO_DA_IDENTIFICACAO_DO_EVENTO, 'Identificação de evento inválida.'),
+  naoCobrar: z.boolean({ error: 'Informe se o evento deve ficar sem cobrança.' }),
 });
 
 /** Fora do padrão HTTP, mas o usual (nginx) para "o cliente desistiu antes da resposta". */
@@ -108,9 +120,25 @@ export function registrarRotasDeAgenda(
   configuracao: RepositorioConfiguracao,
   credenciais: Credenciais,
   experience: Experience,
-  contatos: RepositorioContatos,
+  cadastrarSolicitante: (solicitante: SolicitanteDaDs | null) => Promise<ResultadoDoContato>,
+  eventosSemCobranca: RepositorioEventosSemCobranca,
 ): void {
   servidor.get('/api/agenda/estado', async () => agenda.estado());
+
+  /** Eventos marcados para o alerta da agenda não cobrar tarefa na Experience. */
+  servidor.get('/api/agenda/nao-cobrar', async () => ({
+    eventos: [...(await eventosSemCobranca.listar())],
+  }));
+
+  servidor.put('/api/agenda/nao-cobrar', async (requisicao, resposta) => {
+    const validacao = esquemaDeNaoCobrar.safeParse(requisicao.body);
+    if (!validacao.success) {
+      return resposta.status(400).send({ mensagem: validacao.error.issues[0]?.message });
+    }
+    const { identificacao, naoCobrar } = validacao.data;
+    await eventosSemCobranca.definir(identificacao, naoCobrar);
+    return resposta.status(204).send();
+  });
 
   /** Eventos do snapshot num período, sem recorte por cliente — a visão geral da aba Agenda. */
   servidor.get<{ Querystring: { de?: string; ate?: string } }>(
@@ -160,7 +188,7 @@ export function registrarRotasDeAgenda(
       }
       try {
         const ds = await solicitacoes.consultar(codigo);
-        return await cadastrarSolicitante(contatos, ds.solicitante);
+        return await cadastrarSolicitante(ds.solicitante);
       } catch (erro) {
         if (erro instanceof SolicitacaoNaoEncontradaError) {
           return resposta.status(404).send({ mensagem: erro.message });

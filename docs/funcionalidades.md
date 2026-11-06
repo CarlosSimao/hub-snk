@@ -471,22 +471,26 @@ no próprio layout.
 
 ### Agenda do dia sem OS lançada
 
-Ligado em **Configurações › Avisos**, o HUB SNK confere a cada 15 minutos (a
-primeira vez dois minutos depois de abrir) os eventos de hoje da sua Agenda de
-Recursos:
+Ligado em **Configurações › Avisos**, o HUB SNK confere na periodicidade escolhida (a
+primeira vez dois minutos depois de abrir) os eventos da sua Agenda de Recursos de hoje
+e, conforme as opções, dos **dias úteis anteriores** (0 a 10; 0 desliga) e do **próximo
+dia útil**:
 
-1. traz o dia de novo do SankhyaOm, pela guia já logada — sem conseguir, vale o
+1. traz o período de novo do SankhyaOm, pela guia já logada — sem conseguir, vale o
    que já estava no snapshot;
 2. pega só os eventos do seu `CODUSU` que têm parceiro (folga e evento interno
-   ficam de fora);
-3. para cada evento que terminou há mais que a tolerância configurada (padrão, 30
-   minutos), confere na Experience se o parceiro tem **OS lançada** no dia. Tarefa
-   aberta sem OS conta como não lançada.
+   ficam de fora) e que não estão marcados com o sino riscado (**não cobrar tarefa**,
+   no card do evento na Agenda);
+3. para cada evento, confere na Experience se o parceiro tem **tarefa aberta** ou **OS
+   lançada** no dia.
 
-Sem OS, sai uma notificação — e o e-mail, se marcado — **uma vez por evento por
-dia**. Evento de dia inteiro, ou que continua amanhã, usa as 18h como fim.
+Sem nenhuma das duas, sai uma notificação — e o e-mail, se marcado — **uma vez por
+evento por dia de verificação**: o evento de segunda é cobrado na sexta (véspera), de
+novo na segunda e, com dias anteriores ligados, a cada dia até sair da janela. Para o dia
+que já passou, o título é **Tarefa não lançada na Experience**, com "há X dias" (dias
+corridos) na mensagem e no assunto do e-mail. Com **Repetir o aviso**, sai a cada execução em vez de uma vez por dia.
 
-Precisa do código de usuário do SankhyaOm (em **Configurações › Sankhya ID**) e das sessões do Sankhya
+Precisa do código de usuário do SankhyaOm (em **Configurações › Sankhya**) e das sessões do Sankhya
 Om e da Experience ativas no aplicativo. Sessão caída vira uma notificação do
 próprio HUB SNK, uma vez por dia; com o backend rodando sem o aplicativo
 (`npm run dev`), a verificação só registra no log.
@@ -658,7 +662,7 @@ A caixa **Terceiro**, na aba Acessos e no assistente de boas-vindas, é para
 quem não tem acesso ao SankhyaOm nem à Experience. Vale para qualquer perfil e,
 marcada, oculta tudo o que depende das credenciais Sankhya:
 
-- a aba **Sankhya ID** das Configurações;
+- a aba **Sankhya** das Configurações;
 - as abas **Agenda** e **OS** do menu principal e do cadastro do cliente, cujas
   caixas ficam desabilitadas na aba Acessos;
 - o campo **Nomes completos no Sankhya** do cliente, que só serve à Agenda e à OS;

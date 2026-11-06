@@ -59,6 +59,16 @@ export async function roteiro({ aplicativo, painel, print }) {
   await painel.selectOption('#campo-filtro-cliente-contato', { label: 'Fazenda Boa Vista' });
   await print('filtrar-02-cliente', { destacando: ['#campo-filtro-cliente-contato'] });
   await painel.selectOption('#campo-filtro-cliente-contato', { label: 'Todos os clientes' });
+  await painel.check('#campo-filtro-gerentes-contato');
+  await print('filtrar-03-gerentes', { destacando: ['#campo-filtro-gerentes-contato'] });
+  await painel.uncheck('#campo-filtro-gerentes-contato');
+
+  // Gestor e "Gerente": a Marina responde ao Paulo (dados fictícios)
+  await botaoDoContato('Marina Duarte', 'Editar contato').click();
+  await print('gestor-01-formulario', {
+    destacando: ['#campo-gestor-contato', '#campo-gerente-contato'],
+  });
+  await painel.click('#btn-cancelar-contato');
 
   // Cadastrar contato
   const botaoNovo = listaDoMenu.locator('[aria-label="Novo contato"]');
@@ -116,7 +126,7 @@ export async function roteiro({ aplicativo, painel, print }) {
   await painel.locator('.item-cliente', { hasText: 'Fazenda Boa Vista' }).click();
   const abaContatos = painel.locator('.detalhe-abas button', { hasText: 'Contatos' });
   await abaContatos.click();
-  await painel.locator('#detalhe .linha-recurso', { hasText: 'Paulo Henrique Lima' }).waitFor();
+  await painel.locator('#detalhe .recurso-nome', { hasText: 'Paulo Henrique Lima' }).waitFor();
   await print('aba-do-cliente-01-aba', { destacando: [abaContatos] });
   await painel.locator('#detalhe [aria-label="Novo contato"]').click();
   await print('aba-do-cliente-02-novo', { destacando: ['#formulario-contato .modal-corpo'] });

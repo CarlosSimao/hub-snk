@@ -197,6 +197,9 @@ const contatos = [
   telefone,
   email,
   clienteId: id(apelidoDoCliente),
+  // Marina responde ao Paulo: a ficha mostra o gestor e a lista, o selo "Gerente".
+  gestorId: apelido === 'ct-marina' ? id('ct-paulo') : null,
+  gerente: apelido === 'ct-paulo',
   criadoEm: AGORA,
   atualizadoEm: AGORA,
 }));

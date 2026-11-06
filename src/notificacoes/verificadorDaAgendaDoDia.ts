@@ -9,6 +9,9 @@ import { montarEmailDeCobrancaDaAgenda } from './emailDeCobrancaDaAgenda.ts';
 import {
   dataHoraLocal,
   dataIsoLocal,
+  diaSeguinte,
+  diasEntre,
+  diaUtilAnterior,
   horaLocal,
   lerDataHoraDaAgenda,
   proximoDiaUtil,
@@ -29,19 +32,24 @@ const MILISSEGUNDOS_POR_HORA = 60 * 60_000;
 const DIA_INTEIRO = 'S';
 
 /*
- * Separa, na chave da notificação repetida, a identificação do evento do momento da
- * execução. Não é `:`, que já aparece no `inicio` da identificação de evento sem número.
+ * Separa, na chave da notificação, a identificação do evento de quando ela foi emitida.
+ * Não é `:`, que já aparece no `inicio` da identificação de evento sem número.
  */
 const SEPARADOR_DA_REPETICAO = '#';
+
+const TITULO_DO_DIA_ATUAL_OU_FUTURO = 'Agenda sem tarefa na Experience';
+const TITULO_DO_DIA_PASSADO = 'Tarefa não lançada na Experience';
 
 /** O que o verificador usa de fora. Funções, e não as classes, para os testes não precisarem do Sankhya. */
 export interface DependenciasDoVerificadorDaAgenda {
   configuracao: RepositorioConfiguracao;
   emitir(dados: DadosDeNotificacao): Promise<unknown>;
   jaEmitida(chave: string): Promise<boolean>;
-  /** Traz o dia de novo do Sankhya para o snapshot. */
-  atualizarAgendaDoDia(dia: string, codusu: number): Promise<void>;
+  /** Traz o período de novo do Sankhya para o snapshot. */
+  atualizarAgendaDoPeriodo(de: string, ate: string, codusu: number): Promise<void>;
   eventosDoDia(dia: string): EventoAgenda[];
+  /** Identificações dos eventos marcados para não cobrar tarefa. */
+  eventosSemCobranca(): Promise<Set<string>>;
   situacaoDoDia(codparc: number, dia: string): Promise<SituacaoDoDia>;
   contatos(): Promise<Contato[]>;
   /** Consulta a DS e devolve o id do solicitante já cadastrado como contato; `null` sem e-mail. */
@@ -55,18 +63,45 @@ function descreverErro(erro: unknown): string {
   return erro instanceof Error ? erro.message : String(erro);
 }
 
-/** O dia atual e, quando o alerta pede, o próximo dia útil. */
+/**
+ * Os dias retroativos (todo dia de calendário desde o N-ésimo dia útil anterior, para
+ * pegar evento de fim de semana), o dia atual e, quando o alerta pede, o próximo dia útil.
+ */
 export function diasMonitorados(hoje: string, alerta: AlertaDaAgenda): string[] {
-  return alerta.incluirProximoDiaUtil ? [hoje, proximoDiaUtil(hoje)] : [hoje];
+  let inicio = hoje;
+  for (let passo = 0; passo < alerta.diasUteisRetroativos; passo++) {
+    inicio = diaUtilAnterior(inicio);
+  }
+
+  const dias: string[] = [];
+  for (let dia = inicio; dia < hoje; dia = diaSeguinte(dia)) {
+    dias.push(dia);
+  }
+  dias.push(hoje);
+  if (alerta.incluirProximoDiaUtil) {
+    dias.push(proximoDiaUtil(hoje));
+  }
+  return dias;
+}
+
+/** Mesma identificação que a tela usa para marcar o evento como "não cobrar". */
+export function identificacaoDoEvento(evento: EventoAgenda): string {
+  return String(evento.nuevento ?? `${evento.codparc}-${evento.inicio}`);
 }
 
 /**
- * Sem repetição, a chave é a do evento no dia e a central não emite a mesma duas vezes.
- * Com repetição, cada execução ganha a sua; o Resumo lê só o trecho antes do separador.
+ * `agenda:<dia do evento>:<evento>#<emissão>`. Sem repetição, a emissão é o dia da
+ * verificação: um aviso por evento por dia, inclusive na véspera e no próprio dia. Com
+ * repetição, é o instante, e cada execução avisa. O Resumo lê só o trecho antes do `#`.
  */
-function chaveDoEvento(evento: EventoAgenda, dia: string, repeticao: number | null): string {
-  const chave = `agenda:${dia}:${evento.nuevento ?? `${evento.codparc}-${evento.inicio}`}`;
-  return repeticao === null ? chave : `${chave}${SEPARADOR_DA_REPETICAO}${repeticao}`;
+function chaveDoEvento(evento: EventoAgenda, dia: string, emissao: string): string {
+  return `agenda:${dia}:${identificacaoDoEvento(evento)}${SEPARADOR_DA_REPETICAO}${emissao}`;
+}
+
+/** Há quantos dias corridos foi o atendimento passado: "há 1 dia", "há 3 dias". */
+function descreverAtraso(dia: string, hoje: string): string {
+  const dias = diasEntre(dia, hoje);
+  return dias === 1 ? 'há 1 dia' : `há ${dias} dias`;
 }
 
 function descreverHorario(evento: EventoAgenda): string {
@@ -86,7 +121,7 @@ interface CopiaDoEvento {
 interface ContextoDaVerificacao {
   dia: string;
   hoje: string;
-  repeticao: number | null;
+  emissao: string;
   configuracao: ConfiguracaoGlobal;
   geradoEm: string;
 }
@@ -103,9 +138,10 @@ function descreverDia(dia: string, hoje: string): string {
 
 /**
  * Alerta de agenda sem tarefa na Experience: na periodicidade configurada, relê a agenda
- * de hoje — e, se pedido, a do próximo dia útil — e, para cada evento de parceiro,
- * confere na Experience se o dia tem tarefa ou OS. Sem nenhuma das duas, notifica: uma
- * vez por evento por dia ou, com a repetição ligada, a cada execução até resolver.
+ * de hoje — e, se pedido, a dos dias úteis anteriores e a do próximo dia útil — e, para
+ * cada evento de parceiro não marcado como "não cobrar", confere na Experience se o dia
+ * tem tarefa ou OS. Sem nenhuma das duas, notifica: uma vez por evento por dia ou, com a
+ * repetição ligada, a cada execução até resolver ou o dia sair da janela.
  */
 export class VerificadorDaAgendaDoDia {
   readonly #dependencias: DependenciasDoVerificadorDaAgenda;
@@ -152,16 +188,20 @@ export class VerificadorDaAgendaDoDia {
 
     const momento = agora();
     const hoje = dataIsoLocal(momento);
-    const repeticao = alertaDaAgenda.repetirAteResolver ? momento.getTime() : null;
-    for (const dia of diasMonitorados(hoje, alertaDaAgenda)) {
-      await this.#atualizarAgenda(dia, codusu);
+    const emissao = alertaDaAgenda.repetirAteResolver ? String(momento.getTime()) : hoje;
+    const dias = diasMonitorados(hoje, alertaDaAgenda);
+    await this.#atualizarAgenda(dias[0] as string, dias.at(-1) as string, codusu);
+    const semCobranca = await this.#dependencias.eventosSemCobranca();
+
+    for (const dia of dias) {
       const eventos = this.#dependencias
         .eventosDoDia(dia)
-        .filter((evento) => evento.codusu === codusu && evento.codparc !== null);
+        .filter((evento) => evento.codusu === codusu && evento.codparc !== null)
+        .filter((evento) => !semCobranca.has(identificacaoDoEvento(evento)));
       const conseguiuConsultar = await this.#notificarEventosSemTarefa(eventos, {
         dia,
         hoje,
-        repeticao,
+        emissao,
         configuracao: configuracaoLida,
         geradoEm: dataHoraLocal(momento),
       });
@@ -194,12 +234,12 @@ export class VerificadorDaAgendaDoDia {
   }
 
   /** Sem conseguir atualizar, segue com o snapshot que já existe: melhor que não avisar. */
-  async #atualizarAgenda(dia: string, codusu: number): Promise<void> {
+  async #atualizarAgenda(de: string, ate: string, codusu: number): Promise<void> {
     try {
-      await this.#dependencias.atualizarAgendaDoDia(dia, codusu);
+      await this.#dependencias.atualizarAgendaDoPeriodo(de, ate, codusu);
     } catch (erro) {
       this.#dependencias.registrador.warn(
-        `Agenda de ${dia} não foi atualizada do Sankhya; vale o snapshot: ${descreverErro(erro)}`,
+        `Agenda de ${de} a ${ate} não foi atualizada do Sankhya; vale o snapshot: ${descreverErro(erro)}`,
       );
     }
   }
@@ -209,11 +249,11 @@ export class VerificadorDaAgendaDoDia {
     eventos: EventoAgenda[],
     contexto: ContextoDaVerificacao,
   ): Promise<boolean> {
-    const { dia, hoje, repeticao } = contexto;
+    const { dia, hoje, emissao } = contexto;
     const situacoesPorParceiro = new Map<number, SituacaoDoDia>();
 
     for (const evento of eventos) {
-      const chave = chaveDoEvento(evento, dia, repeticao);
+      const chave = chaveDoEvento(evento, dia, emissao);
       if (await this.#dependencias.jaEmitida(chave)) {
         continue;
       }
@@ -247,12 +287,14 @@ export class VerificadorDaAgendaDoDia {
     contexto: ContextoDaVerificacao,
   ): Promise<void> {
     const { dia, hoje, configuracao, geradoEm } = contexto;
+    const passado = dia < hoje;
+    const atraso = passado ? descreverAtraso(dia, hoje) : '';
     const alerta: DadosDeNotificacao = {
       origem: 'agenda',
       tag: 'OS',
       chave,
-      titulo: 'Agenda sem tarefa na Experience',
-      mensagem: `${evento.nomeparc} (${descreverDia(dia, hoje)}, ${descreverHorario(evento)}): nenhuma tarefa nem OS no dia.`,
+      titulo: passado ? TITULO_DO_DIA_PASSADO : TITULO_DO_DIA_ATUAL_OU_FUTURO,
+      mensagem: `${evento.nomeparc} (${descreverDia(dia, hoje)}, ${descreverHorario(evento)}): nenhuma tarefa nem OS no dia${atraso && `, ${atraso}`}.`,
       enviarEmail: configuracao.alertaDaAgenda.enviarEmail,
     };
     if (!alerta.enviarEmail) {
@@ -266,7 +308,8 @@ export class VerificadorDaAgendaDoDia {
       contatoIdsEmCopia: copia.contatoIds,
       avisoDaCopia: copia.aviso,
       email: montarEmailDeCobrancaDaAgenda({
-        titulo: alerta.titulo,
+        // O assunto do e-mail leva o atraso, que a notificação já mostra na mensagem.
+        titulo: atraso ? `${alerta.titulo} (${atraso})` : alerta.titulo,
         mensagem: alerta.mensagem,
         geradoEm,
         observacao: '',
