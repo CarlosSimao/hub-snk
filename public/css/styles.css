@@ -430,7 +430,29 @@ a.btn {
   background: color-mix(in srgb, var(--marca) 12%, transparent);
 }
 
-/* Evento que o alerta da agenda não cobra: o sino riscado fica aceso em âmbar. */
+/* Escolhas da cobrança do evento: mesmo painel do vínculo, sem a busca. */
+.painel-cobranca-titulo {
+  margin: 0;
+  padding: 2px 10px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+
+.painel-vinculo-opcao:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.painel-cobranca-motivo {
+  margin: 0 10px 4px;
+}
+
+.painel-cobranca-motivo:empty {
+  display: none;
+}
+
+/* Evento com decisão de cobrança (não cobrar, só no HUB, com ou sem gestor): sino em âmbar. */
 .btn.sem-cobranca {
   color: var(--aviso);
   border-color: color-mix(in srgb, var(--aviso) 45%, transparent);
@@ -3348,10 +3370,17 @@ button.selo-situacao:focus-visible {
   padding-bottom: 44px;
 }
 
-.notificacao-com-acao > .btn {
+.notificacao-com-acao > .btn,
+.notificacao-com-acao > .acoes-da-notificacao {
   position: absolute;
   right: 12px;
   bottom: 10px;
+}
+
+.acoes-da-notificacao {
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 
 .notificacao-conteudo {

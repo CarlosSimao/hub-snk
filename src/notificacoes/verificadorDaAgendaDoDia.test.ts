@@ -1,10 +1,18 @@
 import assert from 'node:assert/strict';
-import { beforeEach, describe, it } from 'node:test';
+import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
 import { SessaoExpiradaError, type SituacaoDoDia } from '../sankhya/experience.ts';
 import { PonteDoDesktopIndisponivelError } from '../sankhya/ponteDoDesktop.ts';
-import type { AlertaDaAgenda, ConfiguracaoGlobal, Contato, EventoAgenda } from '../tipos.ts';
+import type {
+  AlertaDaAgenda,
+  ConfiguracaoGlobal,
+  Contato,
+  DecisaoDeCobranca,
+  EventoAgenda,
+  GestorDoSolicitante,
+} from '../tipos.ts';
 import type { DadosDeNotificacao } from './centralDeNotificacoes.ts';
+import type { EstadoDoAlertaDaAgenda } from './estadoDoAlertaDaAgenda.ts';
 import { diasEntre, diaUtilAnterior, proximoDiaUtil } from './relogio.ts';
 import { diasMonitorados, VerificadorDaAgendaDoDia } from './verificadorDaAgendaDoDia.ts';
 
@@ -67,7 +75,10 @@ let contatos: Contato[];
 /** Código da DS -> id do contato do solicitante, `null` sem e-mail, ou o erro da consulta. */
 let solicitantes: Map<number, string | null | Error>;
 let dsConsultadas: number[];
-let semCobranca: Set<string>;
+let decisoes: Map<string, DecisaoDeCobranca>;
+let gestorAtual: GestorDoSolicitante;
+/* Compartilhado entre verificadores: é o que sobrevive a fechar e reabrir o HUB. */
+let estadoGravado: EstadoDoAlertaDaAgenda;
 let periodosAtualizados: string[];
 
 function criarVerificador(): VerificadorDaAgendaDoDia {
@@ -94,7 +105,8 @@ function criarVerificador(): VerificadorDaAgendaDoDia {
     jaEmitida: async (chave) => emitidas.some((dados) => dados.chave === chave),
     atualizarAgendaDoPeriodo: async (de, ate) => void periodosAtualizados.push(`${de}..${ate}`),
     eventosDoDia: (dia) => eventos.filter((item) => item.inicio.startsWith(dia)),
-    eventosSemCobranca: async () => semCobranca,
+    decisoesDeCobranca: async () => decisoes,
+    gestorDoSolicitante: async () => gestorAtual,
     situacaoDoDia: async (codparc, dia) => {
       consultasDeSituacao += 1;
       diasConsultados.push(dia);
@@ -112,6 +124,10 @@ function criarVerificador(): VerificadorDaAgendaDoDia {
     caminhoDaLogo: '/img/logo.png',
     agora: () => agora,
     registrador: { info: () => {}, warn: () => {} },
+    estado: {
+      ler: async () => estadoGravado,
+      gravar: async (estado) => void (estadoGravado = estado),
+    },
   });
 }
 
@@ -121,6 +137,7 @@ beforeEach(() => {
     intervaloHoras: 2,
     incluirProximoDiaUtil: false,
     diasUteisRetroativos: 0,
+    diasParaGerencia: 0,
     repetirAteResolver: false,
     enviarEmail: true,
     contatoIdsEmCopia: [],
@@ -128,7 +145,9 @@ beforeEach(() => {
   contatos = [];
   solicitantes = new Map();
   dsConsultadas = [];
-  semCobranca = new Set();
+  decisoes = new Map();
+  gestorAtual = { codigoDaDs: 0, solicitante: null, gestor: null, motivo: '' };
+  estadoGravado = { ultimaVerificacaoEm: '', emailsAoGestor: [] };
   periodosAtualizados = [];
   terceiro = false;
   eventos = [evento({})];
@@ -302,7 +321,7 @@ describe('VerificadorDaAgendaDoDia', () => {
   });
 
   it('não cobra o evento marcado, nem consulta a Experience por ele', async () => {
-    semCobranca = new Set(['1']);
+    decisoes = new Map([['1', { modo: 'nao-cobrar', gestorConfirmadoId: null }]]);
 
     await criarVerificador().verificar();
 
@@ -438,6 +457,161 @@ describe('VerificadorDaAgendaDoDia', () => {
       assert.deepEqual(dsConsultadas, []);
       assert.equal(emitidas[0]?.email, undefined);
       assert.equal(emitidas[0]?.contatoIdsEmCopia, undefined);
+    });
+  });
+
+  describe('dias para a gerência', () => {
+    const SEGUNDO_DIA_UTIL = new Date(2026, 8, 30, 9, 0);
+
+    function decidir(decisao: DecisaoDeCobranca) {
+      decisoes = new Map([['1', decisao]]);
+    }
+
+    beforeEach(() => {
+      alerta = { ...alerta, diasUteisRetroativos: 5, diasParaGerencia: 2 };
+      eventos = [evento({ descrlonga: 'Atendimento\n- ID 3536' })];
+      contatos = [contato('ana', 'ana@cliente.com'), contato('bruno', 'bruno@cliente.com')];
+      solicitantes.set(3536, 'ana');
+      gestorAtual = {
+        codigoDaDs: 3536,
+        solicitante: { id: 'ana', nome: 'Ana Souza', email: 'ana@cliente.com' },
+        gestor: { id: 'bruno', nome: 'Bruno Lima', email: 'bruno@cliente.com' },
+        motivo: '',
+      };
+      agora = SEGUNDO_DIA_UTIL;
+    });
+
+    it('antes do dia da gerência, o e-mail sai como sempre', async () => {
+      agora = new Date(2026, 8, 29, 9, 0);
+
+      await criarVerificador().verificar();
+
+      assert.equal(emitidas[0]?.enviarEmail, true);
+      assert.deepEqual(emitidas[0]?.email?.copia, ['ana@cliente.com']);
+      assert.equal(emitidas[0]?.cobranca, undefined);
+    });
+
+    it('no dia da gerência, pausa o e-mail e pede a decisão', async () => {
+      await criarVerificador().verificar();
+
+      assert.equal(emitidas[0]?.enviarEmail, false);
+      assert.equal(emitidas[0]?.email, undefined);
+      assert.match(
+        emitidas[0]?.mensagem ?? '',
+        /há 2 dias\. E-mail pausado após 2 dias úteis: decida a cobrança\.$/,
+      );
+      assert.deepEqual(emitidas[0]?.cobranca, { identificacao: '1', dia: DIA, codigoDaDs: 3536 });
+    });
+
+    it('com o campo em 0 ou sem a janela retroativa, não pausa', async () => {
+      alerta = { ...alerta, diasParaGerencia: 0 };
+
+      await criarVerificador().verificar();
+
+      assert.equal(emitidas[0]?.enviarEmail, true);
+    });
+
+    it('"só no HUB" notifica sem e-mail e sem pedir decisão', async () => {
+      decidir({ modo: 'so-hub', gestorConfirmadoId: null });
+
+      await criarVerificador().verificar();
+
+      assert.equal(emitidas[0]?.enviarEmail, false);
+      assert.equal(emitidas[0]?.cobranca, undefined);
+      assert.doesNotMatch(emitidas[0]?.mensagem ?? '', /pausado/);
+    });
+
+    it('"sem o gestor" volta ao e-mail de antes', async () => {
+      decidir({ modo: 'sem-gestor', gestorConfirmadoId: null });
+
+      await criarVerificador().verificar();
+
+      assert.equal(emitidas[0]?.enviarEmail, true);
+      assert.deepEqual(emitidas[0]?.email?.copia, ['ana@cliente.com']);
+    });
+
+    it('"com o gestor" copia o gestor confirmado', async () => {
+      decidir({ modo: 'com-gestor', gestorConfirmadoId: 'bruno' });
+
+      await criarVerificador().verificar();
+
+      assert.deepEqual(emitidas[0]?.email?.copia, ['ana@cliente.com', 'bruno@cliente.com']);
+      assert.deepEqual(emitidas[0]?.contatoIdsEmCopia, ['ana', 'bruno']);
+    });
+
+    it('nunca copia um gestor diferente do confirmado: pede a decisão de novo', async () => {
+      decidir({ modo: 'com-gestor', gestorConfirmadoId: 'carla' });
+
+      await criarVerificador().verificar();
+
+      assert.equal(emitidas[0]?.enviarEmail, false);
+      assert.match(emitidas[0]?.mensagem ?? '', /O gestor de Ana Souza mudou: confirme de novo\.$/);
+      assert.equal(emitidas[0]?.cobranca?.codigoDaDs, 3536);
+    });
+
+    it('o limite de um e-mail por dia ao gestor vale depois de reabrir o HUB', async () => {
+      alerta = { ...alerta, repetirAteResolver: true };
+      decidir({ modo: 'com-gestor', gestorConfirmadoId: 'bruno' });
+
+      await criarVerificador().verificar();
+      agora = new Date(2026, 8, 30, 11, 0);
+      await criarVerificador().verificar();
+
+      assert.equal(emitidas.length, 2);
+      assert.equal(emitidas[1]?.enviarEmail, false);
+      assert.deepEqual(estadoGravado.emailsAoGestor, ['1#2026-09-30']);
+    });
+
+    it('com repetição, o gestor recebe um e-mail por dia', async () => {
+      alerta = { ...alerta, repetirAteResolver: true };
+      decidir({ modo: 'com-gestor', gestorConfirmadoId: 'bruno' });
+      const verificador = criarVerificador();
+
+      await verificador.verificar();
+      agora = new Date(2026, 8, 30, 11, 0);
+      await verificador.verificar();
+
+      assert.equal(emitidas.length, 2);
+      assert.equal(emitidas[0]?.enviarEmail, true);
+      assert.equal(emitidas[1]?.enviarEmail, false);
+    });
+  });
+
+  describe('reabrir o HUB', () => {
+    const ESPERA_DA_PRIMEIRA_VERIFICACAO_MS = 2 * 60_000;
+    const HORA_MS = 60 * 60_000;
+
+    async function abrirEEsperarAPrimeiraVerificacao(): Promise<VerificadorDaAgendaDoDia> {
+      const verificador = criarVerificador();
+      verificador.iniciar();
+      mock.timers.tick(ESPERA_DA_PRIMEIRA_VERIFICACAO_MS);
+      for (let volta = 0; volta < 20; volta++) await new Promise((r) => setImmediate(r));
+      return verificador;
+    }
+
+    beforeEach(() => {
+      alerta = { ...alerta, intervaloHoras: 4 };
+      mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
+    });
+
+    afterEach(() => mock.timers.reset());
+
+    it('não verifica antes do intervalo contado da última verificação gravada', async () => {
+      estadoGravado.ultimaVerificacaoEm = new Date(agora.getTime() - HORA_MS).toISOString();
+
+      (await abrirEEsperarAPrimeiraVerificacao()).parar();
+
+      assert.equal(consultasDeSituacao, 0);
+      assert.equal(emitidas.length, 0);
+    });
+
+    it('passado o intervalo, verifica e grava a hora da verificação', async () => {
+      estadoGravado.ultimaVerificacaoEm = new Date(agora.getTime() - 5 * HORA_MS).toISOString();
+
+      (await abrirEEsperarAPrimeiraVerificacao()).parar();
+
+      assert.equal(emitidas.length, 1);
+      assert.equal(estadoGravado.ultimaVerificacaoEm, agora.toISOString());
     });
   });
 

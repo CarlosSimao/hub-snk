@@ -2153,6 +2153,28 @@
                       inputmode="numeric"
                     />
                   </div>
+                  <div class="campo">
+                    <label for="campo-alerta-agenda-gerencia">
+                      Dias úteis para envolver a gerência do solicitante
+                      <span class="dica" tabindex="0"
+                        >?<span class="dica-texto" role="tooltip"
+                          >No dia útil X de atraso, o e-mail da cobrança para e o HUB pede a sua
+                          decisão: só no HUB, e-mail sem o gestor ou e-mail com o gestor do
+                          solicitante em cópia. O gestor nunca vai em cópia sem você confirmar. Até
+                          os dias úteis anteriores; 0 desliga. Precisa de "Enviar por e-mail" e dos
+                          dias úteis anteriores.</span
+                        ></span
+                      >
+                    </label>
+                    <input
+                      id="campo-alerta-agenda-gerencia"
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="1"
+                      inputmode="numeric"
+                    />
+                  </div>
                 </div>
                 <div class="opcoes-do-alerta">
                   <label class="campo-checkbox">
@@ -3859,6 +3881,20 @@
           Confirmar
         </button>
       </div>
+    </dialog>
+
+    <!-- Confirmação explícita antes de o gestor do solicitante ir em cópia da cobrança. -->
+    <dialog class="modal" id="modal-cobranca-gestor">
+      <form method="dialog">
+        <div class="modal-cabecalho">
+          <h2>Copiar o gestor na cobrança</h2>
+          <p id="texto-cobranca-gestor"></p>
+        </div>
+        <div class="modal-rodape">
+          <button class="btn ghost" value="cancelar">Cancelar</button>
+          <button class="btn primario" value="confirmar">Copiar o gestor</button>
+        </div>
+      </form>
     </dialog>
 
     <!-- Popover para subir à camada superior junto com os modais: ver `exibirAviso`. -->

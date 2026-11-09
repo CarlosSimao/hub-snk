@@ -70,6 +70,7 @@ const ALERTA_DA_AGENDA_INICIAL: AlertaDaAgenda = {
   intervaloHoras: INTERVALO_DO_ALERTA_DA_AGENDA_PADRAO_H,
   incluirProximoDiaUtil: false,
   diasUteisRetroativos: 0,
+  diasParaGerencia: 0,
   repetirAteResolver: false,
   enviarEmail: false,
   contatoIdsEmCopia: [],
@@ -274,13 +275,13 @@ function lerIntervaloDoAlertaEmHoras(valor: Record<string, unknown>): number {
   return Math.min(Math.max(emHoras, 1), INTERVALO_MAXIMO_DO_ALERTA_DA_AGENDA_H);
 }
 
-/* Arquivo de antes da cobrança retroativa não tem o campo: nasce desligada. */
-function lerDiasUteisRetroativos(valor: unknown): number {
+/* Arquivo de antes do campo não o tem: nasce desligado. Fora da faixa, vai para a borda. */
+function lerDiasUteis(valor: unknown, maximo: number): number {
   const dias = numeroOuPadrao(valor, 0);
   if (!Number.isInteger(dias)) {
     return 0;
   }
-  return Math.min(Math.max(dias, 0), MAXIMO_DE_DIAS_UTEIS_RETROATIVOS);
+  return Math.min(Math.max(dias, 0), maximo);
 }
 
 function listaDeTextos(valor: unknown): string[] {
@@ -297,6 +298,10 @@ function lerAlertaDaAgenda(valor: unknown): AlertaDaAgenda {
   }
 
   const padrao = ALERTA_DA_AGENDA_INICIAL;
+  const diasUteisRetroativos = lerDiasUteis(
+    valor.diasUteisRetroativos,
+    MAXIMO_DE_DIAS_UTEIS_RETROATIVOS,
+  );
   return {
     ativo: booleanoOuPadrao(valor.ativo, padrao.ativo),
     intervaloHoras: lerIntervaloDoAlertaEmHoras(valor),
@@ -304,7 +309,9 @@ function lerAlertaDaAgenda(valor: unknown): AlertaDaAgenda {
       valor.incluirProximoDiaUtil,
       padrao.incluirProximoDiaUtil,
     ),
-    diasUteisRetroativos: lerDiasUteisRetroativos(valor.diasUteisRetroativos),
+    diasUteisRetroativos,
+    // Guardado mesmo acima da janela: com o campo desabilitado na tela, o valor fica.
+    diasParaGerencia: lerDiasUteis(valor.diasParaGerencia, MAXIMO_DE_DIAS_UTEIS_RETROATIVOS),
     repetirAteResolver: booleanoOuPadrao(valor.repetirAteResolver, padrao.repetirAteResolver),
     enviarEmail: booleanoOuPadrao(valor.enviarEmail, padrao.enviarEmail),
     contatoIdsEmCopia: listaDeTextos(valor.contatoIdsEmCopia),

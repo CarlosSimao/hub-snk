@@ -11,6 +11,7 @@
 import { DriveNaoConectadoError } from '../drive/contaDoGoogle.ts';
 import type { PessoaDoDiretorio } from '../drive/organogramaDoGoogle.ts';
 import type { RepositorioContatos } from '../repositorio/repositorioContatos.ts';
+import type { Contato, GestorDoSolicitante, PessoaDaCobranca } from '../tipos.ts';
 import type { SolicitanteDaDs } from './solicitacaoServicos.ts';
 
 export type SituacaoDoContato = 'criado' | 'completado' | 'existente' | 'sem-email';
@@ -140,4 +141,46 @@ async function definirGestor(
   }
   const { id, criadoEm: _criadoEm, atualizadoEm: _atualizadoEm, ...dados } = contato;
   await contatos.atualizar(id, { ...dados, gestorId });
+}
+
+function pessoa(contato: Contato): PessoaDaCobranca {
+  return { id: contato.id, nome: contato.nome, email: contato.email };
+}
+
+/**
+ * O gestor direto do solicitante (`contatoId`, já cadastrado) para a cópia da cobrança.
+ * Sem ele, `motivo` diz o que falta, para a tela mostrar na opção desabilitada.
+ */
+export function gestorDoSolicitante(
+  codigoDaDs: number,
+  contatoId: string | null,
+  contatos: Contato[],
+): GestorDoSolicitante {
+  const solicitante = contatos.find((contato) => contato.id === contatoId);
+  if (!solicitante) {
+    return {
+      codigoDaDs,
+      solicitante: null,
+      gestor: null,
+      motivo: `A DS ${codigoDaDs} não tem solicitante com e-mail.`,
+    };
+  }
+
+  const gestor = contatos.find((contato) => contato.id === solicitante.gestorId);
+  const resultado = { codigoDaDs, solicitante: pessoa(solicitante), gestor: null, motivo: '' };
+  if (!gestor) {
+    return {
+      ...resultado,
+      motivo:
+        `${solicitante.nome} não tem gestor nos contatos: conecte o organograma do Google ` +
+        'em Configurações › Sankhya ou informe o gestor na ficha do contato.',
+    };
+  }
+  if (!gestor.email) {
+    return {
+      ...resultado,
+      motivo: `${gestor.nome}, gestor de ${solicitante.nome}, está sem e-mail.`,
+    };
+  }
+  return { ...resultado, gestor: pessoa(gestor) };
 }

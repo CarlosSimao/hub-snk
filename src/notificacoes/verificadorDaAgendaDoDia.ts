@@ -3,14 +3,24 @@ import { lerCodusuConfigurado } from '../sankhya/consultasDaAgenda.ts';
 import type { SituacaoDoDia } from '../sankhya/experience.ts';
 import { PonteDoDesktopIndisponivelError } from '../sankhya/ponteDoDesktop.ts';
 import { idsCitadosNaAgenda } from '../sankhya/solicitacaoServicos.ts';
-import type { AlertaDaAgenda, ConfiguracaoGlobal, Contato, EventoAgenda } from '../tipos.ts';
+import type {
+  AlertaDaAgenda,
+  ConfiguracaoGlobal,
+  Contato,
+  DecisaoDeCobranca,
+  EventoAgenda,
+  GestorDoSolicitante,
+  PessoaDaCobranca,
+} from '../tipos.ts';
 import type { DadosDeNotificacao, RegistradorDeNotificacoes } from './centralDeNotificacoes.ts';
 import { montarEmailDeCobrancaDaAgenda } from './emailDeCobrancaDaAgenda.ts';
+import type { GuardaDoEstadoDoAlerta } from './estadoDoAlertaDaAgenda.ts';
 import {
   dataHoraLocal,
   dataIsoLocal,
   diaSeguinte,
   diasEntre,
+  diasUteisEntre,
   diaUtilAnterior,
   horaLocal,
   lerDataHoraDaAgenda,
@@ -48,8 +58,10 @@ export interface DependenciasDoVerificadorDaAgenda {
   /** Traz o período de novo do Sankhya para o snapshot. */
   atualizarAgendaDoPeriodo(de: string, ate: string, codusu: number): Promise<void>;
   eventosDoDia(dia: string): EventoAgenda[];
-  /** Identificações dos eventos marcados para não cobrar tarefa. */
-  eventosSemCobranca(): Promise<Set<string>>;
+  /** O que o usuário decidiu para a cobrança de cada evento; fora do mapa, cobra normal. */
+  decisoesDeCobranca(): Promise<Map<string, DecisaoDeCobranca>>;
+  /** O solicitante da DS e o gestor dele, para a cópia que o usuário confirmou. */
+  gestorDoSolicitante(codigoDaDs: number): Promise<GestorDoSolicitante>;
   situacaoDoDia(codparc: number, dia: string): Promise<SituacaoDoDia>;
   contatos(): Promise<Contato[]>;
   /** Consulta a DS e devolve o id do solicitante já cadastrado como contato; `null` sem e-mail. */
@@ -57,6 +69,8 @@ export interface DependenciasDoVerificadorDaAgenda {
   caminhoDaLogo: string;
   agora(): Date;
   registrador: RegistradorDeNotificacoes;
+  /** Última verificação e e-mails ao gestor: sobrevivem a fechar e reabrir o HUB. */
+  estado: GuardaDoEstadoDoAlerta;
 }
 
 function descreverErro(erro: unknown): string {
@@ -123,7 +137,33 @@ interface ContextoDaVerificacao {
   hoje: string;
   emissao: string;
   configuracao: ConfiguracaoGlobal;
+  decisoes: Map<string, DecisaoDeCobranca>;
   geradoEm: string;
+}
+
+/**
+ * Como sai o e-mail do alerta de um evento. `pausado`: passou dos dias para a gerência e
+ * espera a decisão do usuário; `motivo` diz o que a notificação pede.
+ */
+type EnvioDoEmail =
+  | { tipo: 'sem-email' }
+  | { tipo: 'normal' }
+  | { tipo: 'pausado'; motivo: string }
+  | { tipo: 'com-gestor'; gestor: PessoaDaCobranca };
+
+/** A regra da gerência só vale com e-mail, janela retroativa e o próprio campo ligados. */
+function pausaLigada(alerta: AlertaDaAgenda): boolean {
+  return alerta.enviarEmail && alerta.diasUteisRetroativos > 0 && alerta.diasParaGerencia > 0;
+}
+
+/** No dia útil `diasParaGerencia` de atraso o e-mail já pausa (com X = janela, ainda vale). */
+function chegouNaGerencia(alerta: AlertaDaAgenda, dia: string, hoje: string): boolean {
+  return pausaLigada(alerta) && dia < hoje && diasUteisEntre(dia, hoje) >= alerta.diasParaGerencia;
+}
+
+/** A DS do gestor é a primeira citada: o evento tem um solicitante só. */
+function primeiraDsDoEvento(evento: EventoAgenda): number | null {
+  return idsCitadosNaAgenda(`${evento.descrabrev}\n${evento.descrlonga}`)[0] ?? null;
 }
 
 const mesmoEmail = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -147,7 +187,6 @@ export class VerificadorDaAgendaDoDia {
   readonly #dependencias: DependenciasDoVerificadorDaAgenda;
   #espera: NodeJS.Timeout | null = null;
   #relogio: NodeJS.Timeout | null = null;
-  #ultimaVerificacao: number | null = null;
   #verificando = false;
 
   constructor(dependencias: DependenciasDoVerificadorDaAgenda) {
@@ -191,18 +230,19 @@ export class VerificadorDaAgendaDoDia {
     const emissao = alertaDaAgenda.repetirAteResolver ? String(momento.getTime()) : hoje;
     const dias = diasMonitorados(hoje, alertaDaAgenda);
     await this.#atualizarAgenda(dias[0] as string, dias.at(-1) as string, codusu);
-    const semCobranca = await this.#dependencias.eventosSemCobranca();
+    const decisoes = await this.#dependencias.decisoesDeCobranca();
 
     for (const dia of dias) {
       const eventos = this.#dependencias
         .eventosDoDia(dia)
         .filter((evento) => evento.codusu === codusu && evento.codparc !== null)
-        .filter((evento) => !semCobranca.has(identificacaoDoEvento(evento)));
+        .filter((evento) => decisoes.get(identificacaoDoEvento(evento))?.modo !== 'nao-cobrar');
       const conseguiuConsultar = await this.#notificarEventosSemTarefa(eventos, {
         dia,
         hoje,
         emissao,
         configuracao: configuracaoLida,
+        decisoes,
         geradoEm: dataHoraLocal(momento),
       });
       if (!conseguiuConsultar) {
@@ -221,10 +261,16 @@ export class VerificadorDaAgendaDoDia {
       const { alertaDaAgenda } = await this.#dependencias.configuracao.ler();
       const agora = this.#dependencias.agora().getTime();
       const intervalo = alertaDaAgenda.intervaloHoras * MILISSEGUNDOS_POR_HORA;
-      if (this.#ultimaVerificacao !== null && agora - this.#ultimaVerificacao < intervalo) {
+      const estado = await this.#dependencias.estado.ler();
+      const ultima = Date.parse(estado.ultimaVerificacaoEm);
+      // Reabrir o HUB não antecipa a verificação: o intervalo conta da última, gravada.
+      if (!Number.isNaN(ultima) && agora - ultima < intervalo) {
         return;
       }
-      this.#ultimaVerificacao = agora;
+      await this.#dependencias.estado.gravar({
+        ...estado,
+        ultimaVerificacaoEm: new Date(agora).toISOString(),
+      });
       await this.verificar();
     } catch (erro) {
       this.#dependencias.registrador.warn(`Verificação da agenda falhou: ${descreverErro(erro)}`);
@@ -289,20 +335,30 @@ export class VerificadorDaAgendaDoDia {
     const { dia, hoje, configuracao, geradoEm } = contexto;
     const passado = dia < hoje;
     const atraso = passado ? descreverAtraso(dia, hoje) : '';
+    const envio = await this.#decidirEnvio(evento, contexto);
     const alerta: DadosDeNotificacao = {
       origem: 'agenda',
       tag: 'OS',
       chave,
       titulo: passado ? TITULO_DO_DIA_PASSADO : TITULO_DO_DIA_ATUAL_OU_FUTURO,
       mensagem: `${evento.nomeparc} (${descreverDia(dia, hoje)}, ${descreverHorario(evento)}): nenhuma tarefa nem OS no dia${atraso && `, ${atraso}`}.`,
-      enviarEmail: configuracao.alertaDaAgenda.enviarEmail,
+      enviarEmail: envio.tipo === 'normal' || envio.tipo === 'com-gestor',
     };
+    if (envio.tipo === 'pausado') {
+      alerta.mensagem += ` ${envio.motivo}`;
+      alerta.cobranca = {
+        identificacao: identificacaoDoEvento(evento),
+        dia,
+        codigoDaDs: primeiraDsDoEvento(evento),
+      };
+    }
     if (!alerta.enviarEmail) {
       await this.#dependencias.emitir(alerta);
       return;
     }
 
-    const copia = await this.#copiaDoEvento(evento, configuracao);
+    const gestorEmCopia = envio.tipo === 'com-gestor' ? [envio.gestor.id] : [];
+    const copia = await this.#copiaDoEvento(evento, configuracao, gestorEmCopia);
     await this.#dependencias.emitir({
       ...alerta,
       contatoIdsEmCopia: copia.contatoIds,
@@ -318,6 +374,77 @@ export class VerificadorDaAgendaDoDia {
         cobrador: configuracao,
       }),
     });
+    if (envio.tipo === 'com-gestor') {
+      await this.#registrarEmailAoGestor(`${identificacaoDoEvento(evento)}#${hoje}`, hoje);
+    }
+  }
+
+  /**
+   * Antes dos dias para a gerência, o e-mail sai como sempre. Depois, só com a decisão do
+   * usuário — e o gestor só vai em cópia se for o mesmo que ele confirmou.
+   */
+  async #decidirEnvio(
+    evento: EventoAgenda,
+    contexto: ContextoDaVerificacao,
+  ): Promise<EnvioDoEmail> {
+    const { dia, hoje, configuracao, decisoes } = contexto;
+    const alerta = configuracao.alertaDaAgenda;
+    if (!alerta.enviarEmail) {
+      return { tipo: 'sem-email' };
+    }
+    if (!chegouNaGerencia(alerta, dia, hoje)) {
+      return { tipo: 'normal' };
+    }
+
+    const decisao = decisoes.get(identificacaoDoEvento(evento));
+    const pausado = `E-mail pausado após ${alerta.diasParaGerencia} dias úteis: decida a cobrança.`;
+    switch (decisao?.modo) {
+      case 'so-hub':
+        return { tipo: 'sem-email' };
+      case 'sem-gestor':
+        return { tipo: 'normal' };
+      case 'com-gestor':
+        return this.#envioComGestor(evento, decisao.gestorConfirmadoId, hoje, pausado);
+      default:
+        return { tipo: 'pausado', motivo: pausado };
+    }
+  }
+
+  /** Só os de hoje ficam: o limite é de um e-mail ao gestor por evento por dia. */
+  async #registrarEmailAoGestor(enviado: string, hoje: string): Promise<void> {
+    const estado = await this.#dependencias.estado.ler();
+    const deHoje = estado.emailsAoGestor.filter((item) => item.endsWith(`#${hoje}`));
+    await this.#dependencias.estado.gravar({ ...estado, emailsAoGestor: [...deHoje, enviado] });
+  }
+
+  /** O gestor atual do solicitante precisa ser o confirmado; senão, volta a pedir decisão. */
+  async #envioComGestor(
+    evento: EventoAgenda,
+    gestorConfirmadoId: string | null,
+    hoje: string,
+    pausado: string,
+  ): Promise<EnvioDoEmail> {
+    const { emailsAoGestor } = await this.#dependencias.estado.ler();
+    if (emailsAoGestor.includes(`${identificacaoDoEvento(evento)}#${hoje}`)) {
+      return { tipo: 'sem-email' };
+    }
+    const codigo = primeiraDsDoEvento(evento);
+    if (codigo === null) {
+      return { tipo: 'pausado', motivo: `${pausado} O evento não cita mais a DS.` };
+    }
+
+    try {
+      const { gestor, solicitante } = await this.#dependencias.gestorDoSolicitante(codigo);
+      if (gestor && gestor.id === gestorConfirmadoId) {
+        return { tipo: 'com-gestor', gestor };
+      }
+      const nome = solicitante?.nome ?? 'o solicitante';
+      return { tipo: 'pausado', motivo: `${pausado} O gestor de ${nome} mudou: confirme de novo.` };
+    } catch (erro) {
+      const motivo = `${pausado} O gestor não pôde ser conferido: ${descreverErro(erro)}`;
+      this.#dependencias.registrador.warn(`Alerta da agenda: ${motivo}`);
+      return { tipo: 'pausado', motivo };
+    }
   }
 
   /**
@@ -327,9 +454,14 @@ export class VerificadorDaAgendaDoDia {
   async #copiaDoEvento(
     evento: EventoAgenda,
     configuracao: ConfiguracaoGlobal,
+    gestorEmCopia: string[],
   ): Promise<CopiaDoEvento> {
     const { contatoIds: solicitantes, aviso } = await this.#solicitantesDoEvento(evento);
-    const ids = new Set([...configuracao.alertaDaAgenda.contatoIdsEmCopia, ...solicitantes]);
+    const ids = new Set([
+      ...configuracao.alertaDaAgenda.contatoIdsEmCopia,
+      ...solicitantes,
+      ...gestorEmCopia,
+    ]);
     const cadastrados = await this.#dependencias.contatos();
 
     const copia: CopiaDoEvento = { contatoIds: [], emails: [], aviso };

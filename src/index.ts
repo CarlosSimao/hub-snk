@@ -40,8 +40,12 @@ import { coletarSituacoes } from './git/cacheDeSituacao.ts';
 import { consultarRemotoDosRepositorios } from './git/consultaDoRemoto.ts';
 import { CentralDeNotificacoes } from './notificacoes/centralDeNotificacoes.ts';
 import { EnviadorDeEmail } from './notificacoes/enviadorDeEmail.ts';
+import { ArquivoDeEstadoDoAlertaDaAgenda } from './notificacoes/estadoDoAlertaDaAgenda.ts';
 import { VerificadorDaAgendaDoDia } from './notificacoes/verificadorDaAgendaDoDia.ts';
-import { cadastrarSolicitanteComGestores } from './sankhya/contatoDoSolicitante.ts';
+import {
+  cadastrarSolicitanteComGestores,
+  gestorDoSolicitante,
+} from './sankhya/contatoDoSolicitante.ts';
 import { SolicitacoesDeServico, type SolicitanteDaDs } from './sankhya/solicitacaoServicos.ts';
 import { registrarAutenticacaoDoPainel } from './rotas/seguranca/autenticacaoDoPainel.ts';
 import { registrarProtecaoDeOrigem } from './rotas/seguranca/protecaoDeOrigem.ts';
@@ -196,6 +200,11 @@ async function iniciarServidor(): Promise<void> {
       registradorDasNotificacoes,
     );
   const solicitacoesDoAlerta = new SolicitacoesDeServico(credenciaisSankhya);
+  const consultarGestorDoSolicitante = async (codigoDaDs: number) => {
+    const { solicitante } = await solicitacoesDoAlerta.consultar(codigoDaDs);
+    const { contatoId } = await cadastrarSolicitante(solicitante);
+    return gestorDoSolicitante(codigoDaDs, contatoId, await repositorioDeContatos.listar());
+  };
   const verificadorDaAgenda = new VerificadorDaAgendaDoDia({
     configuracao: repositorioDeConfiguracao,
     emitir: (dados) => centralDeNotificacoes.emitir(dados),
@@ -209,7 +218,8 @@ async function iniciarServidor(): Promise<void> {
       });
     },
     eventosDoDia: (dia) => agendaDeRecursos.eventos(`${dia} 00:00:00`, `${dia} 23:59:59`),
-    eventosSemCobranca: () => repositorioDeEventosSemCobranca.listar(),
+    decisoesDeCobranca: () => repositorioDeEventosSemCobranca.listar(),
+    gestorDoSolicitante: consultarGestorDoSolicitante,
     situacaoDoDia: async (codparc, dia) => {
       const { situacao } = await situacaoDoDiaDoParceiro({
         credenciais: credenciaisSankhya,
@@ -227,6 +237,9 @@ async function iniciarServidor(): Promise<void> {
     caminhoDaLogo,
     agora: () => new Date(),
     registrador: registradorDasNotificacoes,
+    estado: new ArquivoDeEstadoDoAlertaDaAgenda(
+      join(configuracao.pastaDeLog, '..', 'alerta-da-agenda'),
+    ),
   });
 
   const contaDoGoogle = new ContaDoGoogle({
@@ -381,7 +394,10 @@ async function iniciarServidor(): Promise<void> {
     credenciaisSankhya,
     experience,
     cadastrarSolicitante,
-    repositorioDeEventosSemCobranca,
+    {
+      decisoes: repositorioDeEventosSemCobranca,
+      gestorDoSolicitante: consultarGestorDoSolicitante,
+    },
   );
   registrarRotasDeOs(servidor, experience, repositorioDeClientes, repositorioDeConfiguracao);
   registrarRotasDeNotificacoes(

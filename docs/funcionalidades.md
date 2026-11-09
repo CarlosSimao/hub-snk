@@ -471,16 +471,19 @@ no próprio layout.
 
 ### Agenda do dia sem OS lançada
 
-Ligado em **Configurações › Avisos**, o HUB SNK confere na periodicidade escolhida (a
-primeira vez dois minutos depois de abrir) os eventos da sua Agenda de Recursos de hoje
+Ligado em **Configurações › Avisos**, o HUB SNK confere na periodicidade escolhida os
+eventos da sua Agenda de Recursos de hoje
 e, conforme as opções, dos **dias úteis anteriores** (0 a 10; 0 desliga) e do **próximo
-dia útil**:
+dia útil**. A periodicidade conta da última verificação, gravada nesta máquina
+(`alerta-da-agenda/estado.json`, ao lado da pasta de log): fechar e reabrir o HUB não
+antecipa a verificação nem repete o aviso. Sem verificação anterior, ou passado o
+intervalo, a primeira roda dois minutos depois de abrir. A cada verificação:
 
 1. traz o período de novo do SankhyaOm, pela guia já logada — sem conseguir, vale o
    que já estava no snapshot;
 2. pega só os eventos do seu `CODUSU` que têm parceiro (folga e evento interno
-   ficam de fora) e que não estão marcados com o sino riscado (**não cobrar tarefa**,
-   no card do evento na Agenda);
+   ficam de fora) e que não estão em **Não cobrar** (botão **Cobrança deste evento**, no
+   card do evento na Agenda);
 3. para cada evento, confere na Experience se o parceiro tem **tarefa aberta** ou **OS
    lançada** no dia.
 
@@ -489,6 +492,25 @@ evento por dia de verificação**: o evento de segunda é cobrado na sexta (vés
 novo na segunda e, com dias anteriores ligados, a cada dia até sair da janela. Para o dia
 que já passou, o título é **Tarefa não lançada na Experience**, com "há X dias" (dias
 corridos) na mensagem e no assunto do e-mail. Com **Repetir o aviso**, sai a cada execução em vez de uma vez por dia.
+
+**Dias úteis para envolver a gerência** (`diasParaGerencia`, de 0 a `diasUteisRetroativos`;
+0 desliga): no dia útil de atraso X, o e-mail do alerta daquele evento **pausa** (X igual à
+janela ainda vale). A notificação do HUB segue normal, termina em "E-mail pausado após X
+dias úteis: decida a cobrança." e leva o botão **Decidir cobrança**; antes do dia X nada
+muda. A decisão é por evento, no botão **Cobrança deste evento** do card ou no da
+notificação: **Cobrar normalmente** e **Não cobrar** sempre; depois da pausa, também **Só no
+HUB, sem e-mail**, **E-mail sem o gestor** (volta ao e-mail de antes) e **E-mail com o gestor
+em cópia**.
+
+O gestor em cópia é só o gestor direto do solicitante da primeira DS citada no evento (o
+campo Gestor do contato). Antes de valer, o HUB mostra a confirmação com nome e e-mail do
+gestor e do solicitante e o número da DS, e a decisão grava qual gestor foi confirmado: se o
+gestor do solicitante mudar, o e-mail volta a ficar pausado e a notificação diz "O gestor de
+<nome> mudou: confirme de novo.". Com **Repetir o aviso**, o gestor recebe no máximo um
+e-mail por dia por evento, mesmo que o HUB seja fechado e reaberto. Sem DS, sem gestor nos contatos ou com gestor sem e-mail, a
+opção fica desabilitada com o motivo. A janela não estende: o evento sai da cobrança no fim
+dos dias úteis anteriores, qualquer que seja a decisão, e a cobrança manual pelo envelope
+**Cobrar por e-mail** não é afetada.
 
 Precisa do código de usuário do SankhyaOm (em **Configurações › Sankhya**) e das sessões do Sankhya
 Om e da Experience ativas no aplicativo. Sessão caída vira uma notificação do

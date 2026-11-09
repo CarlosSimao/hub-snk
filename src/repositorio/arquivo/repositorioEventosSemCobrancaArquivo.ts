@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import type { RepositorioEventosSemCobranca } from '../repositorioEventosSemCobranca.ts';
+import { MODOS_DE_COBRANCA, type DecisaoDeCobranca, type ModoDeCobranca } from '../../tipos.ts';
 import {
   gravarArquivoDeDados,
   lerArquivoDeDados,
@@ -11,13 +12,49 @@ import { FilaDeOperacoes } from './filaDeOperacoes.ts';
 export const NOME_DO_ARQUIVO_DOS_EVENTOS_SEM_COBRANCA = 'eventos-sem-cobranca.json';
 const CHAVE_DO_CORPO = 'eventos';
 
+type DecisoesGravadas = Record<string, DecisaoDeCobranca>;
+
+function ehModo(valor: unknown): valor is ModoDeCobranca {
+  return MODOS_DE_COBRANCA.includes(valor as ModoDeCobranca);
+}
+
+/**
+ * Até a v2.26.0 o corpo era a lista dos eventos sem cobrança: cada um vira `nao-cobrar`.
+ * Decisão inválida é descartada, e o evento volta a ser cobrado normalmente.
+ */
+function lerDecisoes(corpo: unknown): Map<string, DecisaoDeCobranca> {
+  if (Array.isArray(corpo)) {
+    return new Map(
+      corpo
+        .filter((item): item is string => typeof item === 'string')
+        .map((id) => [id, { modo: 'nao-cobrar', gestorConfirmadoId: null }]),
+    );
+  }
+  if (typeof corpo !== 'object' || corpo === null) {
+    return new Map();
+  }
+
+  const decisoes = new Map<string, DecisaoDeCobranca>();
+  for (const [id, bruta] of Object.entries(corpo as Record<string, Partial<DecisaoDeCobranca>>)) {
+    if (!ehModo(bruta?.modo)) continue;
+    const gestorConfirmadoId =
+      typeof bruta.gestorConfirmadoId === 'string' ? bruta.gestorConfirmadoId : null;
+    if (bruta.modo === 'com-gestor' && !gestorConfirmadoId) continue;
+    decisoes.set(id, {
+      modo: bruta.modo,
+      gestorConfirmadoId: bruta.modo === 'com-gestor' ? gestorConfirmadoId : null,
+    });
+  }
+  return decisoes;
+}
+
 /*
- * Marcações num arquivo JSON próprio, na pasta de dados: é decisão do usuário, como os
+ * Decisões num arquivo JSON próprio, na pasta de dados: é escolha do usuário, como os
  * lembretes, e vai junto no backup. Sem limpeza das antigas: cada uma é um texto curto.
  */
 export class RepositorioEventosSemCobrancaArquivo implements RepositorioEventosSemCobranca {
   readonly #caminhoDoArquivo: string;
-  #eventos: Set<string> | null = null;
+  #decisoes: Map<string, DecisaoDeCobranca> | null = null;
   readonly #fila = new FilaDeOperacoes();
 
   constructor(diretorioDeDados: string) {
@@ -25,50 +62,45 @@ export class RepositorioEventosSemCobrancaArquivo implements RepositorioEventosS
   }
 
   descartarCache(): void {
-    this.#eventos = null;
+    this.#decisoes = null;
   }
 
-  async #ler(): Promise<Set<string>> {
-    if (this.#eventos) {
-      return this.#eventos;
+  async #ler(): Promise<Map<string, DecisaoDeCobranca>> {
+    if (this.#decisoes) {
+      return this.#decisoes;
     }
 
     const conteudo = await lerArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO);
-    const lidos = Array.isArray(conteudo?.corpo)
-      ? conteudo.corpo.filter((item): item is string => typeof item === 'string')
-      : [];
-    this.#eventos = new Set(lidos);
+    this.#decisoes = lerDecisoes(conteudo?.corpo);
 
     if (conteudo && precisaMigrar(conteudo)) {
       await migrarArquivoDeDados({
         caminhoDoArquivo: this.#caminhoDoArquivo,
         chaveDoCorpo: CHAVE_DO_CORPO,
-        corpo: lidos,
+        corpo: Object.fromEntries(this.#decisoes) satisfies DecisoesGravadas,
         versaoDeOrigem: conteudo.versaoDeOrigem,
       });
     }
 
-    return this.#eventos;
+    return this.#decisoes;
   }
 
-  listar(): Promise<Set<string>> {
-    return this.#fila.enfileirar(async () => new Set(await this.#ler()));
+  listar(): Promise<Map<string, DecisaoDeCobranca>> {
+    return this.#fila.enfileirar(async () => new Map(await this.#ler()));
   }
 
-  definir(identificacao: string, naoCobrar: boolean): Promise<void> {
+  definir(identificacao: string, decisao: DecisaoDeCobranca | null): Promise<void> {
     return this.#fila.enfileirar(async () => {
-      const eventos = new Set(await this.#ler());
-      if (naoCobrar === eventos.has(identificacao)) {
+      const decisoes = new Map(await this.#ler());
+      if (decisao) {
+        decisoes.set(identificacao, decisao);
+      } else if (!decisoes.delete(identificacao)) {
         return;
       }
 
-      if (naoCobrar) {
-        eventos.add(identificacao);
-      } else {
-        eventos.delete(identificacao);
-      }
-      await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, [...eventos]);
-      this.#eventos = eventos;
+      const corpo: DecisoesGravadas = Object.fromEntries(decisoes);
+      await gravarArquivoDeDados(this.#caminhoDoArquivo, CHAVE_DO_CORPO, corpo);
+      this.#decisoes = decisoes;
     });
   }
 }

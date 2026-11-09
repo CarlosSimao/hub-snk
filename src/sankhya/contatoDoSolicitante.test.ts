@@ -8,7 +8,11 @@ import type { PessoaDoDiretorio } from '../drive/organogramaDoGoogle.ts';
 import { RepositorioContatosArquivo } from '../repositorio/arquivo/repositorioContatosArquivo.ts';
 import type { DadosDeContato, RepositorioContatos } from '../repositorio/repositorioContatos.ts';
 import type { Contato } from '../tipos.ts';
-import { cadastrarSolicitante, cadastrarSolicitanteComGestores } from './contatoDoSolicitante.ts';
+import {
+  cadastrarSolicitante,
+  cadastrarSolicitanteComGestores,
+  gestorDoSolicitante,
+} from './contatoDoSolicitante.ts';
 import { nomeDoLogin } from './solicitacaoServicos.ts';
 
 function repositorioEmMemoria(iniciais: Contato[] = []) {
@@ -201,5 +205,50 @@ describe('gestores do solicitante pelo organograma', () => {
     assert.equal(resultado.situacao, 'existente');
     assert.deepEqual(avisos, ['Gestores de everton@x.com fora dos contatos: HTTP 500']);
     assert.equal((await contatos.listar()).length, 1);
+  });
+});
+
+describe('gestorDoSolicitante', () => {
+  function pessoaDosContatos(id: string, email: string, gestorId: string | null = null): Contato {
+    return {
+      id,
+      nome: `Contato ${id}`,
+      telefone: '',
+      email,
+      cargo: '',
+      clienteId: null,
+      gestorId,
+      gerente: false,
+      criadoEm: '',
+      atualizadoEm: '',
+    };
+  }
+
+  it('devolve o solicitante e o gestor direto', () => {
+    const contatos = [
+      pessoaDosContatos('ana', 'ana@cliente.com', 'bruno'),
+      pessoaDosContatos('bruno', 'bruno@cliente.com', 'carla'),
+      pessoaDosContatos('carla', 'carla@cliente.com'),
+    ];
+
+    assert.deepEqual(gestorDoSolicitante(3536, 'ana', contatos), {
+      codigoDaDs: 3536,
+      solicitante: { id: 'ana', nome: 'Contato ana', email: 'ana@cliente.com' },
+      gestor: { id: 'bruno', nome: 'Contato bruno', email: 'bruno@cliente.com' },
+      motivo: '',
+    });
+  });
+
+  it('explica o que falta: solicitante sem e-mail, sem gestor ou gestor sem e-mail', () => {
+    const semGestor = [pessoaDosContatos('ana', 'ana@cliente.com')];
+    const gestorSemEmail = [
+      pessoaDosContatos('ana', 'ana@cliente.com', 'bruno'),
+      pessoaDosContatos('bruno', ''),
+    ];
+
+    assert.match(gestorDoSolicitante(3536, null, []).motivo, /DS 3536 não tem solicitante/);
+    assert.match(gestorDoSolicitante(3536, 'ana', semGestor).motivo, /não tem gestor nos contatos/);
+    assert.match(gestorDoSolicitante(3536, 'ana', gestorSemEmail).motivo, /está sem e-mail/);
+    assert.equal(gestorDoSolicitante(3536, 'ana', gestorSemEmail).gestor, null);
   });
 });

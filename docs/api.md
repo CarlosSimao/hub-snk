@@ -384,25 +384,26 @@ cofre das credenciais é ele, e o backend fala com ele pela ponte local
 (`npm run dev`, sem o aplicativo aberto), elas respondem
 `503 { "mensagem": "...", "shellIndisponivel": true }`.
 
-| Método   | Rota                                        | Resposta                                                                                                             |
-| -------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/api/sankhya/shell`                        | `200` — `{ "disponivel": true }` quando o aplicativo desktop responde                                                |
-| `GET`    | `/api/sankhya/credenciais`                  | `200` — estado das credenciais do ERP e da Experience, sem senha                                                     |
-| `GET`    | `/api/sankhya/credenciais/:sistema/senha`   | `200` — `{ senha }` em claro, para a janela de credenciais mostrar                                                   |
-| `POST`   | `/api/sankhya/credenciais/:sistema`         | `200` — credencial gravada no cofre do aplicativo (`{ usuario, senha }`)                                             |
-| `DELETE` | `/api/sankhya/credenciais/:sistema`         | `200` — credencial removida                                                                                          |
-| `POST`   | `/api/sankhya/navegador/abrir/:sistema`     | `200` — a guia do sistema passa a ser a guia ativa do aplicativo                                                     |
-| `POST`   | `/api/sankhya/navegador/capturar/:sistema`  | `200` — sessão da guia guardada no cofre; `409` quando a guia não está logada                                        |
-| `POST`   | `/api/sankhya/navegador/autologin/:sistema` | `200` — loga na guia com a credencial do cofre e captura a sessão; `409` quando não consegue                         |
-| `GET`    | `/api/agenda/estado`                        | `200` — quantos recursos e eventos há no snapshot e quando foi importado                                             |
-| `GET`    | `/api/agenda/eventos?de=&ate=`              | `200` — `{ eventos }` do snapshot no período, de todos os parceiros                                                  |
-| `GET`    | `/api/clientes/:id/agenda-eventos?de=&ate=` | `200` — `{ eventos }` do snapshot no período, só dos parceiros do cliente                                            |
-| `POST`   | `/api/agenda/consultar`                     | `200` — consulta a Agenda de Recursos do usuário (`{ de, ate }`), mês a mês, e importa; `400` sem CODUSU configurado |
-| `GET`    | `/api/agenda/situacao-do-dia?codparc=&dia=` | `200` — sem tarefa, tarefa aberta ou OS lançada na Experience naquele dia                                            |
-| `GET`    | `/api/agenda/nao-cobrar`                    | `200` — `{ eventos }`, as identificações dos eventos que o alerta da agenda não cobra                                |
-| `PUT`    | `/api/agenda/nao-cobrar`                    | `204` — marca ou desmarca o evento (`{ identificacao, naoCobrar }`); `400` sem identificação                         |
-| `POST`   | `/api/os/consultar`                         | `200` — `{ itens, buscadoEm }`, as OS do usuário no período (`{ de, ate }`), em todos os projetos                    |
-| `POST`   | `/api/clientes/:id/os-consultar`            | `200` — as mesmas OS, só as das empresas do cliente                                                                  |
+| Método   | Rota                                        | Resposta                                                                                                                                   |
+| -------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET`    | `/api/sankhya/shell`                        | `200` — `{ "disponivel": true }` quando o aplicativo desktop responde                                                                      |
+| `GET`    | `/api/sankhya/credenciais`                  | `200` — estado das credenciais do ERP e da Experience, sem senha                                                                           |
+| `GET`    | `/api/sankhya/credenciais/:sistema/senha`   | `200` — `{ senha }` em claro, para a janela de credenciais mostrar                                                                         |
+| `POST`   | `/api/sankhya/credenciais/:sistema`         | `200` — credencial gravada no cofre do aplicativo (`{ usuario, senha }`)                                                                   |
+| `DELETE` | `/api/sankhya/credenciais/:sistema`         | `200` — credencial removida                                                                                                                |
+| `POST`   | `/api/sankhya/navegador/abrir/:sistema`     | `200` — a guia do sistema passa a ser a guia ativa do aplicativo                                                                           |
+| `POST`   | `/api/sankhya/navegador/capturar/:sistema`  | `200` — sessão da guia guardada no cofre; `409` quando a guia não está logada                                                              |
+| `POST`   | `/api/sankhya/navegador/autologin/:sistema` | `200` — loga na guia com a credencial do cofre e captura a sessão; `409` quando não consegue                                               |
+| `GET`    | `/api/agenda/estado`                        | `200` — quantos recursos e eventos há no snapshot e quando foi importado                                                                   |
+| `GET`    | `/api/agenda/eventos?de=&ate=`              | `200` — `{ eventos }` do snapshot no período, de todos os parceiros                                                                        |
+| `GET`    | `/api/clientes/:id/agenda-eventos?de=&ate=` | `200` — `{ eventos }` do snapshot no período, só dos parceiros do cliente                                                                  |
+| `POST`   | `/api/agenda/consultar`                     | `200` — consulta a Agenda de Recursos do usuário (`{ de, ate }`), mês a mês, e importa; `400` sem CODUSU configurado                       |
+| `GET`    | `/api/agenda/situacao-do-dia?codparc=&dia=` | `200` — sem tarefa, tarefa aberta ou OS lançada na Experience naquele dia                                                                  |
+| `GET`    | `/api/agenda/cobranca`                      | `200` — `{ decisoes }`, a decisão de cobrança de cada evento, por identificação                                                            |
+| `PUT`    | `/api/agenda/cobranca`                      | `204` — grava a decisão (`{ identificacao, modo, gestorConfirmadoId? }`); `cobrar` a apaga; `400` em `com-gestor` sem `gestorConfirmadoId` |
+| `GET`    | `/api/agenda/solicitacoes/:codigo/gestor`   | `200` — `{ codigoDaDs, solicitante, gestor, motivo }`, para confirmar a cópia ao gestor; `404` DS inexistente                              |
+| `POST`   | `/api/os/consultar`                         | `200` — `{ itens, buscadoEm }`, as OS do usuário no período (`{ de, ate }`), em todos os projetos                                          |
+| `POST`   | `/api/clientes/:id/os-consultar`            | `200` — as mesmas OS, só as das empresas do cliente                                                                                        |
 
 `:sistema` é `sankhya-erp` ou `sankhya-experience`; outro valor responde `404`.
 Datas vão sempre no formato `YYYY-MM-DD`, e fora dele a resposta é `400`.
@@ -676,6 +677,7 @@ configuração. Ausentes, o que está gravado é preservado.
     "intervaloHoras": 2,
     "incluirProximoDiaUtil": false,
     "diasUteisRetroativos": 5,
+    "diasParaGerencia": 3,
     "repetirAteResolver": false,
     "enviarEmail": true,
     "contatoIdsEmCopia": ["3f1c..."]
@@ -685,6 +687,10 @@ configuração. Ausentes, o que está gravado é preservado.
 
 `seguranca` é `ssl`, `starttls` ou `nenhuma`. `intervaloHoras` é inteiro, de 1 a 24.
 `diasUteisRetroativos` é inteiro, de 0 (desligado) a 10, e é opcional (ausente vale `0`).
+`diasParaGerencia` é inteiro, em dias úteis de atraso, de 0 (desligado) até
+`diasUteisRetroativos`, e é opcional (ausente vale `0`); valor maior responde `400` com
+"Os dias para a gerência não podem passar dos dias úteis anteriores.". Sem `enviarEmail` ou
+com `diasUteisRetroativos` em `0` a regra não se aplica: o valor fica guardado, sem efeito.
 `contatoIdsEmCopia` vai até 50 ids e é opcional (ausente vale `[]`); id de contato excluído
 ou sem e-mail é ignorado no envio.
 

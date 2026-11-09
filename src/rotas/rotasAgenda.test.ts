@@ -3,11 +3,12 @@ import { beforeEach, describe, it } from 'node:test';
 import Fastify from 'fastify';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
 import type { RepositorioConfiguracao } from '../repositorio/repositorioConfiguracao.ts';
-import type { RepositorioEventosSemCobranca } from '../repositorio/repositorioEventosSemCobranca.ts';
 import type { AgendaRecursos } from '../sankhya/agenda.ts';
 import type { Credenciais } from '../sankhya/credenciais.ts';
 import type { Experience, OsLancada } from '../sankhya/experience.ts';
-import { registrarRotasDeAgenda } from './rotasAgenda.ts';
+import { SolicitacaoNaoEncontradaError } from '../sankhya/solicitacaoServicos.ts';
+import type { DecisaoDeCobranca, GestorDoSolicitante } from '../tipos.ts';
+import { registrarRotasDeAgenda, type DependenciasDaCobranca } from './rotasAgenda.ts';
 
 const OS: OsLancada = {
   implantationId: 9245,
@@ -28,18 +29,32 @@ const PEDIDO = {
   enviarParaAceite: true,
 };
 
-let semCobranca: Set<string>;
+let decisoes: Map<string, DecisaoDeCobranca>;
 
 beforeEach(() => {
-  semCobranca = new Set();
+  decisoes = new Map();
 });
 
-const repositorioSemCobranca: RepositorioEventosSemCobranca = {
-  descartarCache: () => {},
-  listar: async () => new Set(semCobranca),
-  definir: async (identificacao, naoCobrar) => {
-    if (naoCobrar) semCobranca.add(identificacao);
-    else semCobranca.delete(identificacao);
+const GESTOR_DA_DS: GestorDoSolicitante = {
+  codigoDaDs: 3536,
+  solicitante: { id: 'ana', nome: 'Ana Souza', email: 'ana@cliente.com' },
+  gestor: { id: 'bruno', nome: 'Bruno Lima', email: 'bruno@cliente.com' },
+  motivo: '',
+};
+
+const cobranca: DependenciasDaCobranca = {
+  decisoes: {
+    descartarCache: () => {},
+    listar: async () => new Map(decisoes),
+    definir: async (identificacao, decisao) => {
+      if (decisao) decisoes.set(identificacao, decisao);
+      else decisoes.delete(identificacao);
+    },
+  },
+  gestorDoSolicitante: async (codigo) => {
+    if (codigo !== GESTOR_DA_DS.codigoDaDs)
+      throw new SolicitacaoNaoEncontradaError(`DS ${codigo} não encontrada.`);
+    return GESTOR_DA_DS;
   },
 };
 
@@ -59,7 +74,7 @@ function criarServidor(experience: Partial<Experience> = {}) {
     credenciais,
     experience as Experience,
     async () => ({ situacao: 'sem-email', nome: '', contatoId: null }),
-    repositorioSemCobranca,
+    cobranca,
   );
   return servidor;
 }
@@ -151,27 +166,71 @@ describe('POST /api/agenda/situacao/descartar-cache', () => {
   });
 });
 
-describe('/api/agenda/nao-cobrar', () => {
+describe('/api/agenda/cobranca', () => {
   function definir(servidor: ReturnType<typeof criarServidor>, corpo: object) {
-    return servidor.inject({ method: 'PUT', url: '/api/agenda/nao-cobrar', payload: corpo });
+    return servidor.inject({ method: 'PUT', url: '/api/agenda/cobranca', payload: corpo });
   }
 
-  it('marca, lista e desmarca o evento', async () => {
+  it('grava, lista e apaga a decisão do evento', async () => {
     const servidor = criarServidor();
 
-    const marcacao = await definir(servidor, { identificacao: '123', naoCobrar: true });
-    const lista = await servidor.inject({ method: 'GET', url: '/api/agenda/nao-cobrar' });
-    await definir(servidor, { identificacao: '123', naoCobrar: false });
+    const gravacao = await definir(servidor, { identificacao: '123', modo: 'nao-cobrar' });
+    const lista = await servidor.inject({ method: 'GET', url: '/api/agenda/cobranca' });
+    await definir(servidor, { identificacao: '123', modo: 'cobrar' });
 
-    assert.equal(marcacao.statusCode, 204);
-    assert.deepEqual(lista.json(), { eventos: ['123'] });
-    assert.deepEqual(semCobranca, new Set());
+    assert.equal(gravacao.statusCode, 204);
+    assert.deepEqual(lista.json(), {
+      decisoes: { 123: { modo: 'nao-cobrar', gestorConfirmadoId: null } },
+    });
+    assert.deepEqual(decisoes, new Map());
   });
 
-  it('recusa identificação vazia', async () => {
-    const resposta = await definir(criarServidor(), { identificacao: '  ', naoCobrar: true });
+  it('guarda o gestor confirmado só no "com gestor"', async () => {
+    const servidor = criarServidor();
 
-    assert.equal(resposta.statusCode, 400);
-    assert.deepEqual(semCobranca, new Set());
+    await definir(servidor, {
+      identificacao: '1',
+      modo: 'com-gestor',
+      gestorConfirmadoId: 'bruno',
+    });
+    await definir(servidor, { identificacao: '2', modo: 'so-hub', gestorConfirmadoId: 'bruno' });
+
+    assert.deepEqual(decisoes.get('1'), { modo: 'com-gestor', gestorConfirmadoId: 'bruno' });
+    assert.deepEqual(decisoes.get('2'), { modo: 'so-hub', gestorConfirmadoId: null });
+  });
+
+  it('recusa "com gestor" sem o gestor confirmado, modo desconhecido e evento vazio', async () => {
+    const servidor = criarServidor();
+
+    const semGestor = await definir(servidor, { identificacao: '1', modo: 'com-gestor' });
+    const modoInvalido = await definir(servidor, { identificacao: '1', modo: 'talvez' });
+    const semEvento = await definir(servidor, { identificacao: '  ', modo: 'nao-cobrar' });
+
+    assert.equal(semGestor.statusCode, 400);
+    assert.match(semGestor.json().mensagem, /Confirme o gestor/);
+    assert.equal(modoInvalido.statusCode, 400);
+    assert.equal(semEvento.statusCode, 400);
+    assert.deepEqual(decisoes, new Map());
+  });
+});
+
+describe('GET /api/agenda/solicitacoes/:codigo/gestor', () => {
+  it('devolve o solicitante e o gestor da DS', async () => {
+    const resposta = await criarServidor().inject({
+      method: 'GET',
+      url: '/api/agenda/solicitacoes/3536/gestor',
+    });
+
+    assert.equal(resposta.statusCode, 200);
+    assert.deepEqual(resposta.json(), GESTOR_DA_DS);
+  });
+
+  it('responde 404 para a DS que não existe', async () => {
+    const resposta = await criarServidor().inject({
+      method: 'GET',
+      url: '/api/agenda/solicitacoes/9999/gestor',
+    });
+
+    assert.equal(resposta.statusCode, 404);
   });
 });

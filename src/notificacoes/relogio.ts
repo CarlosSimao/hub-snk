@@ -59,6 +59,15 @@ export function diaSeguinte(dia: string): string {
   return dataIsoLocal(data);
 }
 
+/** Quantos dias úteis vão de `de` (exclusive) a `ate` (inclusive): sexta → segunda é 1. */
+export function diasUteisEntre(de: string, ate: string): number {
+  let quantidade = 0;
+  for (let dia = proximoDiaUtil(de); dia <= ate; dia = proximoDiaUtil(dia)) {
+    quantidade += 1;
+  }
+  return quantidade;
+}
+
 const MILISSEGUNDOS_POR_DIA = 24 * 60 * 60_000;
 
 /** Dias corridos de `de` a `ate`: sexta → segunda são 3. Em UTC, sem horário de verão. */
