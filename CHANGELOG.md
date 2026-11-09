@@ -9,6 +9,32 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.27.0] - 2026-11-09
+
+### Adicionado
+
+- **Dias úteis para envolver a gerência**: o alerta **Agenda sem tarefa na Experience** ganha,
+  em **Configurações › Avisos**, o campo **Dias úteis para envolver a gerência** (0, o
+  padrão, desliga; não passa de **Cobrar dias úteis anteriores**). No dia útil de atraso
+  escolhido, o e-mail daquele evento para de sair; a notificação do HUB continua, termina em
+  "E-mail pausado após X dias úteis: decida a cobrança." e ganha o botão **Decidir cobrança**.
+- **Decisão de cobrança por evento**: escolha **Cobrar normalmente**, **Não cobrar**, **Só no
+  HUB, sem e-mail**, **E-mail sem o gestor** ou **E-mail com o gestor em cópia**. As três
+  últimas aparecem depois da pausa.
+- **Gestor em cópia com confirmação**: só o gestor direto do solicitante da primeira DS do
+  evento. Antes de valer, o HUB mostra nome e e-mail do gestor e do solicitante e o número da
+  DS. Se o gestor do solicitante mudar, o e-mail volta a ficar pausado até você confirmar de
+  novo. Com **Repetir o aviso**, o gestor recebe no máximo um e-mail por dia por evento.
+
+### Alterado
+
+- **Alerta da agenda ao reabrir o HUB**: a periodicidade passa a contar da última
+  verificação, gravada na máquina. Fechar e reabrir o HUB não dispara a verificação antes
+  da hora nem repete o e-mail com **Repetir o aviso** ligado.
+- **Não cobrar tarefa**: o sino riscado do card do evento na **Agenda** virou o botão
+  **Cobrança deste evento**, que abre a escolha acima. Quem já tinha eventos marcados
+  continua com eles em **Não cobrar**.
+
 ## [2.26.0] - 2026-11-06
 
 ### Adicionado
@@ -37,7 +63,6 @@ número significa aqui.
 - **Alerta da agenda na véspera e no dia**: sem **Repetir o aviso**, o evento cobrado na
   véspera (com **Monitorar também o próximo dia útil**) volta a ser cobrado no próprio dia.
   Antes, o aviso da véspera valia pelos dois.
-
 - **DS citada como "DS" no evento**: além de `ID 3619`, o evento da agenda reconhece a
   Solicitação de Serviços escrita como `DS 3619` (ou `DS3619`): o bloco da DS, o solicitante
   nos contatos e a cópia do alerta da agenda passam a valer para ela.
@@ -1172,6 +1197,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.27.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.26.0...v2.27.0
 [2.26.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.25.0...v2.26.0
 [2.25.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.24.0...v2.25.0
 [2.24.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.23.1...v2.24.0
