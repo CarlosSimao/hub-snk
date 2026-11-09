@@ -42,36 +42,57 @@ export const esquemaDeSmtp = z.object({
   destinatario: esquemaDeEnderecoOpcional,
 });
 
-export const esquemaDeAlertaDaAgenda = z.object({
-  ativo: z.boolean({ error: 'Informe se o alerta da agenda está ligado.' }),
-  intervaloHoras: z.coerce
-    .number({ error: 'A periodicidade deve ser um número.' })
-    .int('A periodicidade deve ser um número inteiro de horas.')
-    .min(
-      INTERVALO_MINIMO_DO_ALERTA_H,
-      `A periodicidade deve ser de pelo menos ${INTERVALO_MINIMO_DO_ALERTA_H} hora.`,
-    )
-    .max(
-      INTERVALO_MAXIMO_DO_ALERTA_H,
-      `A periodicidade deve ser de no máximo ${INTERVALO_MAXIMO_DO_ALERTA_H} horas.`,
-    ),
-  incluirProximoDiaUtil: z.boolean({
-    error: 'Informe se o alerta monitora o próximo dia útil.',
-  }),
-  /* Padrão desligado: uma tela ainda não recarregada não manda o campo. */
-  diasUteisRetroativos: z.coerce
-    .number({ error: 'Os dias retroativos devem ser um número.' })
-    .int('Os dias retroativos devem ser um número inteiro.')
-    .min(0, 'Os dias retroativos não podem ser negativos.')
-    .max(
-      MAXIMO_DE_DIAS_UTEIS_RETROATIVOS,
-      `Os dias retroativos devem ser no máximo ${MAXIMO_DE_DIAS_UTEIS_RETROATIVOS}.`,
-    )
-    .default(0),
-  repetirAteResolver: z.boolean({ error: 'Informe se o alerta repete o aviso.' }),
-  enviarEmail: z.boolean({ error: 'Informe se o alerta da agenda envia e-mail.' }),
-  contatoIdsEmCopia: z
-    .array(z.string({ error: 'Contato em cópia inválido.' }))
-    .max(MAXIMO_DE_CONTATOS_EM_COPIA, `No máximo ${MAXIMO_DE_CONTATOS_EM_COPIA} contatos em cópia.`)
-    .default([]),
-});
+export const esquemaDeAlertaDaAgenda = z
+  .object({
+    ativo: z.boolean({ error: 'Informe se o alerta da agenda está ligado.' }),
+    intervaloHoras: z.coerce
+      .number({ error: 'A periodicidade deve ser um número.' })
+      .int('A periodicidade deve ser um número inteiro de horas.')
+      .min(
+        INTERVALO_MINIMO_DO_ALERTA_H,
+        `A periodicidade deve ser de pelo menos ${INTERVALO_MINIMO_DO_ALERTA_H} hora.`,
+      )
+      .max(
+        INTERVALO_MAXIMO_DO_ALERTA_H,
+        `A periodicidade deve ser de no máximo ${INTERVALO_MAXIMO_DO_ALERTA_H} horas.`,
+      ),
+    incluirProximoDiaUtil: z.boolean({
+      error: 'Informe se o alerta monitora o próximo dia útil.',
+    }),
+    /* Padrão desligado: uma tela ainda não recarregada não manda o campo. */
+    diasUteisRetroativos: z.coerce
+      .number({ error: 'Os dias retroativos devem ser um número.' })
+      .int('Os dias retroativos devem ser um número inteiro.')
+      .min(0, 'Os dias retroativos não podem ser negativos.')
+      .max(
+        MAXIMO_DE_DIAS_UTEIS_RETROATIVOS,
+        `Os dias retroativos devem ser no máximo ${MAXIMO_DE_DIAS_UTEIS_RETROATIVOS}.`,
+      )
+      .default(0),
+    repetirAteResolver: z.boolean({ error: 'Informe se o alerta repete o aviso.' }),
+    enviarEmail: z.boolean({ error: 'Informe se o alerta da agenda envia e-mail.' }),
+    contatoIdsEmCopia: z
+      .array(z.string({ error: 'Contato em cópia inválido.' }))
+      .max(
+        MAXIMO_DE_CONTATOS_EM_COPIA,
+        `No máximo ${MAXIMO_DE_CONTATOS_EM_COPIA} contatos em cópia.`,
+      )
+      .default([]),
+    /* Padrão desligado, pelo mesmo motivo dos dias retroativos. */
+    diasParaGerencia: z.coerce
+      .number({ error: 'Os dias para a gerência devem ser um número.' })
+      .int('Os dias para a gerência devem ser um número inteiro.')
+      .min(0, 'Os dias para a gerência não podem ser negativos.')
+      .default(0),
+  })
+  /* Com o campo desabilitado na tela (sem e-mail ou sem janela), o valor guardado não vale. */
+  .refine(
+    (alerta) =>
+      !alerta.enviarEmail ||
+      alerta.diasUteisRetroativos === 0 ||
+      alerta.diasParaGerencia <= alerta.diasUteisRetroativos,
+    {
+      error: 'Os dias para a gerência não podem passar dos dias úteis anteriores.',
+      path: ['diasParaGerencia'],
+    },
+  );

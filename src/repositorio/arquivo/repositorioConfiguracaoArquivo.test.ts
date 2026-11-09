@@ -432,10 +432,24 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
       intervaloHoras: 2,
       incluirProximoDiaUtil: false,
       diasUteisRetroativos: 0,
+      diasParaGerencia: 0,
       repetirAteResolver: false,
       enviarEmail: false,
       contatoIdsEmCopia: [],
     });
+  });
+
+  it('guarda os dias para a gerência mesmo com a janela zerada', async () => {
+    await writeFile(
+      caminhoDoArquivo(),
+      JSON.stringify({
+        versaoDoEsquema: VERSAO_ATUAL_DO_ESQUEMA,
+        configuracao: { alertaDaAgenda: { diasUteisRetroativos: 0, diasParaGerencia: 3 } },
+      }),
+      'utf8',
+    );
+
+    assert.equal((await repositorio.ler()).alertaDaAgenda.diasParaGerencia, 3);
   });
 
   it('preserva o SMTP gravado quando a tela não o manda', async () => {
@@ -463,6 +477,7 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
         intervaloHoras: 3,
         incluirProximoDiaUtil: true,
         diasUteisRetroativos: 5,
+        diasParaGerencia: 3,
         repetirAteResolver: false,
         enviarEmail: true,
         contatoIdsEmCopia: ['gp'],
@@ -479,6 +494,7 @@ describe('RepositorioConfiguracaoArquivo — acessos', () => {
     assert.equal(configuracao.alertaDaAgenda.intervaloHoras, 3);
     assert.equal(configuracao.alertaDaAgenda.incluirProximoDiaUtil, true);
     assert.equal(configuracao.alertaDaAgenda.diasUteisRetroativos, 5);
+    assert.equal(configuracao.alertaDaAgenda.diasParaGerencia, 3);
     assert.deepEqual(configuracao.alertaDaAgenda.contatoIdsEmCopia, ['gp']);
   });
 

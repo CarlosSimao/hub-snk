@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import type { RepositorioNotificacoes } from '../repositorio/repositorioNotificacoes.ts';
-import type { Notificacao, OrigemDeNotificacao, TagDeNotificacao } from '../tipos.ts';
+import type {
+  CobrancaDaNotificacao,
+  Notificacao,
+  OrigemDeNotificacao,
+  TagDeNotificacao,
+} from '../tipos.ts';
 import type { MensagemDeEmail } from './enviadorDeEmail.ts';
 
 const PREFIXO_DO_ASSUNTO = '[HUB SNK]';
@@ -28,6 +33,7 @@ export interface DadosDeNotificacao {
   email?: MensagemDeEmail;
   contatoIdsEmCopia?: string[];
   avisoDaCopia?: string;
+  cobranca?: CobrancaDaNotificacao;
 }
 
 export type OuvinteDeNotificacao = (notificacao: Notificacao) => void;
@@ -86,6 +92,7 @@ export class CentralDeNotificacoes {
       };
       if (dados.contatoIdsEmCopia?.length) notificacao.contatoIdsEmCopia = dados.contatoIdsEmCopia;
       if (dados.avisoDaCopia) notificacao.avisoDaCopia = dados.avisoDaCopia;
+      if (dados.cobranca) notificacao.cobranca = dados.cobranca;
 
       await this.#repositorio.adicionar(notificacao);
       this.#avisarOuvintes(notificacao);

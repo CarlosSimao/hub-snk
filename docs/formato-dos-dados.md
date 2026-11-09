@@ -71,6 +71,7 @@ cadastro.
       "intervaloHoras": 2,
       "incluirProximoDiaUtil": false,
       "diasUteisRetroativos": 5,
+      "diasParaGerencia": 3,
       "repetirAteResolver": false,
       "enviarEmail": true,
       "contatoIdsEmCopia": ["3f1c..."]
@@ -127,11 +128,18 @@ vazio, a aba OS não tem de quem buscar as OS.
 `seguranca` é `ssl`, `starttls` ou `nenhuma`, e host vazio desliga o e-mail.
 `alertaDaAgenda` liga o aviso de evento da agenda sem tarefa nem OS na Experience,
 conferido a cada `intervaloHoras` (inteiro, de 1 a 24), voltando `diasUteisRetroativos`
-dias úteis (0 a 10; arquivo de antes do campo vale 0, desligado). Com `enviarEmail`, os
+dias úteis (0 a 10; arquivo de antes do campo vale 0, desligado). `diasParaGerencia` é o
+dia útil de atraso em que o e-mail do evento pausa até o usuário decidir (0, o padrão,
+desliga, até 10). Sem `enviarEmail` ou com `diasUteisRetroativos` em 0 ele fica guardado,
+sem efeito. Com `enviarEmail`, os
 `contatoIdsEmCopia` (ids de `contatos.json`) e o solicitante da DS citada no evento vão
 em cópia do e-mail. Arquivo de antes destes campos nasce com o SMTP vazio (porta 587,
 STARTTLS) e o alerta desligado; arquivo com o antigo `intervaloMinutos` é lido em horas,
 arredondando para cima (45 viram 1).
+
+A notificação do alerta com o e-mail pausado guarda
+`cobranca: { identificacao, dia, codigoDaDs }`, o evento, o dia dele e a DS, que o botão
+**Decidir cobrança** usa para abrir a decisão.
 
 As notificações (`notificacoes.json`) do alerta que saiu por e-mail guardam
 `contatoIdsEmCopia`, quem foi em cópia, e `avisoDaCopia`, por que um solicitante ficou de
@@ -241,13 +249,25 @@ o gravado; sem gestor no diretório, o gravado fica.
 
 ## Eventos sem cobrança
 
-O conteúdo de `eventos` em `eventos-sem-cobranca.json` é a lista das identificações dos
-eventos da agenda marcados para o alerta não cobrar tarefa: o `NUEVENTO` como texto, ou
+O conteúdo de `eventos` em `eventos-sem-cobranca.json` é um objeto com a decisão de
+cobrança de cada evento da agenda, pela identificação: o `NUEVENTO` como texto, ou
 `<codparc>-<inicio>` para evento sem número.
 
 ```json
-["184233", "72965-2026-11-09 08:00:00"]
+{
+  "184233": { "modo": "nao-cobrar", "gestorConfirmadoId": null },
+  "72965-2026-11-09 08:00:00": {
+    "modo": "com-gestor",
+    "gestorConfirmadoId": "7a2e9c41-5b3d-4f8a-9e10-2c6b8d4f1a37"
+  }
+}
 ```
+
+`modo` é `nao-cobrar` (fora do alerta), `so-hub` (notifica sem e-mail), `sem-gestor` (e-mail
+como antes da pausa) ou `com-gestor`; evento sem entrada é cobrado normalmente.
+`gestorConfirmadoId` é o id do contato que o usuário confirmou como gestor, e só vale em
+`com-gestor`: se o gestor do solicitante for outro, o e-mail volta a ficar pausado. A lista
+de identificações da v2.26.0 é lida como `nao-cobrar`.
 
 ## Notificações
 

@@ -159,22 +159,25 @@ export interface ConfiguracaoSmtp {
   destinatario: string;
 }
 
+/* Duas semanas úteis: mais que isso, a cobrança vira ruído de atendimento já esquecido. */
+export const MAXIMO_DE_DIAS_UTEIS_RETROATIVOS = 10;
+
 /**
  * Aviso de evento da agenda sem tarefa nem OS na Experience. Roda a cada
  * `intervaloHoras`, olha o dia atual e, com `incluirProximoDiaUtil`, também o próximo
  * dia útil, e `diasUteisRetroativos` volta essa quantidade de dias úteis para cobrar o
  * atendimento já feito sem tarefa. Sem `repetirAteResolver`, avisa uma vez por evento por
  * dia; com ele, em toda execução. Com `enviarEmail`, os `contatoIdsEmCopia` e o
- * solicitante da DS citada no evento vão em cópia do e-mail.
+ * solicitante da DS citada no evento vão em cópia do e-mail. Com `diasParaGerencia`
+ * (dias úteis de atraso, até `diasUteisRetroativos`; 0 desliga), o e-mail do evento
+ * passado para nesse dia e espera a decisão do usuário (`DecisaoDeCobranca`).
  */
-/* Duas semanas úteis: mais que isso, a cobrança vira ruído de atendimento já esquecido. */
-export const MAXIMO_DE_DIAS_UTEIS_RETROATIVOS = 10;
-
 export interface AlertaDaAgenda {
   ativo: boolean;
   intervaloHoras: number;
   incluirProximoDiaUtil: boolean;
   diasUteisRetroativos: number;
+  diasParaGerencia: number;
   repetirAteResolver: boolean;
   enviarEmail: boolean;
   contatoIdsEmCopia: string[];
@@ -613,6 +616,48 @@ export interface Notificacao {
   contatoIdsEmCopia?: string[];
   /** Por que alguém que deveria ir em cópia ficou de fora (a DS não pôde ser consultada). */
   avisoDaCopia?: string;
+  /** Alerta da agenda com o e-mail pausado: o evento que espera a decisão da cobrança. */
+  cobranca?: CobrancaDaNotificacao;
+}
+
+export interface CobrancaDaNotificacao {
+  /** A mesma de `identificacaoDoEvento`. */
+  identificacao: string;
+  /** Dia do evento, `YYYY-MM-DD`. */
+  dia: string;
+  /** A primeira DS citada no evento, a do gestor; `null` sem DS. */
+  codigoDaDs: number | null;
+}
+
+/**
+ * O que o usuário decidiu para a cobrança de um evento da agenda. Sem decisão, cobra
+ * normalmente. `nao-cobrar` tira o evento do alerta; as outras só valem depois que o
+ * e-mail pausou em `diasParaGerencia`: `so-hub` notifica sem e-mail, `sem-gestor` volta ao
+ * e-mail de antes e `com-gestor` copia o gestor confirmado (`gestorConfirmadoId`).
+ */
+export const MODOS_DE_COBRANCA = ['nao-cobrar', 'so-hub', 'sem-gestor', 'com-gestor'] as const;
+
+export type ModoDeCobranca = (typeof MODOS_DE_COBRANCA)[number];
+
+export interface DecisaoDeCobranca {
+  modo: ModoDeCobranca;
+  /** Só em `com-gestor`: o contato que o usuário confirmou. Outro gestor não é copiado. */
+  gestorConfirmadoId: string | null;
+}
+
+/** Contato resumido para a confirmação da cópia ao gestor. */
+export interface PessoaDaCobranca {
+  id: string;
+  nome: string;
+  email: string;
+}
+
+/** O solicitante da DS do evento e o gestor dele; `motivo` explica o que faltou. */
+export interface GestorDoSolicitante {
+  codigoDaDs: number;
+  solicitante: PessoaDaCobranca | null;
+  gestor: PessoaDaCobranca | null;
+  motivo: string;
 }
 
 /* -------------------------------- Lembretes ------------------------------- */

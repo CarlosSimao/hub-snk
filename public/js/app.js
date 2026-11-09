@@ -255,8 +255,10 @@ const estado = {
   situacoesFiltradas: new Set(),
   /* Funcionalidades desmarcadas em Configurações › Acessos: só somem da tela. */
   funcionalidadesOcultas: new Set(),
-  /* Identificações dos eventos da agenda que o alerta não cobra (`identificacaoDoEvento`). */
-  eventosSemCobranca: new Set(),
+  /* Decisão da cobrança de cada evento da agenda, por `identificacaoDoEvento`. */
+  decisoesDeCobranca: new Map(),
+  /* O alerta da agenda gravado: diz se a cobrança de um evento passado já pausou o e-mail. */
+  alertaDaAgenda: null,
   /* Perfil em vigor na tela; `null` enquanto a configuração não foi lida. */
   perfil: null,
   /* Acesso de terceiro: sem SankhyaOm nem Experience, o que depende deles some. */
@@ -718,6 +720,9 @@ const elementos = {
   campoAlertaAgendaIntervalo: document.getElementById('campo-alerta-agenda-intervalo'),
   campoAlertaAgendaProximoDiaUtil: document.getElementById('campo-alerta-agenda-proximo-dia-util'),
   campoAlertaAgendaRetroativos: document.getElementById('campo-alerta-agenda-retroativos'),
+  campoAlertaAgendaGerencia: document.getElementById('campo-alerta-agenda-gerencia'),
+  modalCobrancaGestor: document.getElementById('modal-cobranca-gestor'),
+  textoCobrancaGestor: document.getElementById('texto-cobranca-gestor'),
   campoAlertaAgendaRepetir: document.getElementById('campo-alerta-agenda-repetir'),
   campoAlertaAgendaEmail: document.getElementById('campo-alerta-agenda-email'),
   grupoContatosAlertaAgenda: document.getElementById('grupo-contatos-alerta-agenda'),
@@ -1001,9 +1006,13 @@ const api = {
     requisitar('/api/agenda/ocorrencias', { metodo: 'POST', corpo: dados }),
   eventosDaAgenda: (de, ate) =>
     requisitar(`/api/agenda/eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`),
-  eventosSemCobranca: () => requisitar('/api/agenda/nao-cobrar'),
-  definirNaoCobrarTarefa: (identificacao, naoCobrar) =>
-    requisitar('/api/agenda/nao-cobrar', { metodo: 'PUT', corpo: { identificacao, naoCobrar } }),
+  decisoesDeCobranca: () => requisitar('/api/agenda/cobranca'),
+  definirCobranca: (identificacao, modo, gestorConfirmadoId) =>
+    requisitar('/api/agenda/cobranca', {
+      metodo: 'PUT',
+      corpo: { identificacao, modo, gestorConfirmadoId },
+    }),
+  gestorDoSolicitanteDaDs: (codigo) => requisitar(`/api/agenda/solicitacoes/${codigo}/gestor`),
   eventosDoClienteNaAgenda: (id, de, ate) =>
     requisitar(
       `${CAMINHO_DA_API}/${id}/agenda-eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`,
@@ -3540,6 +3549,19 @@ function criarTituloDoEvento(evento, titulo) {
   return link;
 }
 
+/** Ancora o popover abaixo do botão; se não couber, joga pra cima. Preso à viewport. */
+function posicionarPopover(popover, ancora) {
+  const alvo = ancora.getBoundingClientRect();
+  const largura = popover.offsetWidth;
+  const altura = popover.offsetHeight;
+  const margem = 8;
+  const esquerda = Math.min(Math.max(alvo.left, margem), window.innerWidth - largura - margem);
+  const cabeAbaixo = alvo.bottom + altura + margem <= window.innerHeight;
+  const topo = cabeAbaixo ? alvo.bottom + 4 : Math.max(alvo.top - altura - 4, margem);
+  popover.style.left = `${esquerda}px`;
+  popover.style.top = `${topo}px`;
+}
+
 /**
  * Botão ao lado do nome do parceiro no card de evento: vincula esse nome do Sankhya a um
  * cliente do HUB (existente ou novo). Fica "vinculado" (verde) quando já há um cliente com
@@ -3564,20 +3586,6 @@ function criarBotaoDeVinculoDeCliente(evento, aoTrocarVinculo) {
     if (clientePorNomeSankhya(evento.nomeparc)?.id !== idDoDonoAoAbrir) aoTrocarVinculo();
   }
 
-  /** Ancora o popover abaixo do botão; se não couber, joga pra cima. Preso à viewport. */
-  function posicionar() {
-    if (!seletor) return;
-    const alvo = botao.getBoundingClientRect();
-    const largura = seletor.offsetWidth;
-    const altura = seletor.offsetHeight;
-    const margem = 8;
-    const esquerda = Math.min(Math.max(alvo.left, margem), window.innerWidth - largura - margem);
-    const cabeAbaixo = alvo.bottom + altura + margem <= window.innerHeight;
-    const topo = cabeAbaixo ? alvo.bottom + 4 : Math.max(alvo.top - altura - 4, margem);
-    seletor.style.left = `${esquerda}px`;
-    seletor.style.top = `${topo}px`;
-  }
-
   const botao = criarBotaoDeIcone('btn tiny ghost', ICONES.link, '', () => {
     if (seletor) {
       fechar();
@@ -3586,7 +3594,7 @@ function criarBotaoDeVinculoDeCliente(evento, aoTrocarVinculo) {
     idDoDonoAoAbrir = clientePorNomeSankhya(evento.nomeparc)?.id ?? null;
     seletor = criarSeletorDeVinculoDeCliente(evento.nomeparc, fechar);
     document.body.append(seletor);
-    posicionar();
+    posicionarPopover(seletor, botao);
 
     fecharForaDoPainel = (evt) => {
       if (!seletor?.contains(evt.target) && evt.target !== botao && !botao.contains(evt.target)) {
@@ -3610,41 +3618,187 @@ function criarBotaoDeVinculoDeCliente(evento, aoTrocarVinculo) {
   return botao;
 }
 
-/* Identificações dos eventos que o alerta da agenda não cobra; relida a cada mês carregado. */
-async function carregarEventosSemCobranca() {
+/* ------------------------ cobrança de um evento da agenda ------------------------ */
+
+/* `cobrar` não é decisão gravada: apaga a que houver e o evento volta ao alerta normal. */
+const OPCOES_DE_COBRANCA = [
+  { modo: 'cobrar', rotulo: 'Cobrar normalmente', soComEmailPausado: false },
+  { modo: 'nao-cobrar', rotulo: 'Não cobrar', soComEmailPausado: false },
+  { modo: 'so-hub', rotulo: 'Só no HUB, sem e-mail', soComEmailPausado: true },
+  { modo: 'sem-gestor', rotulo: 'E-mail sem o gestor', soComEmailPausado: true },
+  { modo: 'com-gestor', rotulo: 'E-mail com o gestor em cópia', soComEmailPausado: true },
+];
+
+/* O seletor aberto, para abrir outro (ou clicar de novo no mesmo botão) fechar este. */
+let seletorDeCobrancaAberto = null;
+
+/* Decisões e alerta relidos a cada mês carregado: o card e o Resumo dependem dos dois. */
+async function carregarDecisoesDeCobranca() {
   try {
-    const { eventos } = await api.eventosSemCobranca();
-    estado.eventosSemCobranca = new Set(eventos);
+    const [{ decisoes }, configuracao] = await Promise.all([
+      api.decisoesDeCobranca(),
+      api.lerConfiguracao(),
+    ]);
+    estado.decisoesDeCobranca = new Map(Object.entries(decisoes));
+    estado.alertaDaAgenda = configuracao.alertaDaAgenda ?? ALERTA_DA_AGENDA_PADRAO;
   } catch (erro) {
-    // A grade da agenda não depende disto: sem a lista, os botões só saem desmarcados.
-    console.warn('Eventos sem cobrança não carregados:', erro);
+    // A grade da agenda não depende disto: sem as decisões, os botões só saem apagados.
+    console.warn('Decisões de cobrança não carregadas:', erro);
   }
 }
 
-/** Botão ao lado do nome do parceiro: liga e desliga a cobrança de tarefa do evento. */
-function criarBotaoDeNaoCobrarTarefa(evento) {
-  const identificacao = identificacaoDoEvento(evento);
-  const botao = criarBotaoDeIcone('btn tiny ghost', ICONES.sinoRiscado, '', async () => {
-    const naoCobrar = !estado.eventosSemCobranca.has(identificacao);
-    botao.disabled = true;
+const DOMINGO = 0;
+const SABADO = 6;
+
+/** Dias úteis de `de` (exclusive) a `ate` (inclusive), como no verificador do alerta. */
+function diasUteisEntre(de, ate) {
+  let quantidade = 0;
+  const data = new Date(`${de}T12:00:00`);
+  for (;;) {
+    data.setDate(data.getDate() + 1);
+    if (diaLocalDoInstante(data) > ate) return quantidade;
+    if (data.getDay() !== DOMINGO && data.getDay() !== SABADO) quantidade += 1;
+  }
+}
+
+/* Mesma regra do verificador: o e-mail do dia passado pausa no dia útil `diasParaGerencia`. */
+function emailDaCobrancaPausado(dia) {
+  const alerta = estado.alertaDaAgenda;
+  const hoje = dataIsoDeHoje();
+  const regraLigada =
+    alerta?.ativo &&
+    alerta.enviarEmail &&
+    alerta.diasUteisRetroativos > 0 &&
+    alerta.diasParaGerencia > 0;
+  return Boolean(regraLigada && dia < hoje && diasUteisEntre(dia, hoje) >= alerta.diasParaGerencia);
+}
+
+function rotuloDoModoDeCobranca(modo) {
+  return OPCOES_DE_COBRANCA.find((opcao) => opcao.modo === modo)?.rotulo ?? modo;
+}
+
+/** Só no "sim": o gestor nunca vai em cópia sem o usuário ver quem é. */
+function confirmarCopiaAoGestor({ codigoDaDs, solicitante, gestor }) {
+  const modal = elementos.modalCobrancaGestor;
+  elementos.textoCobrancaGestor.replaceChildren(
+    'Enviar a cobrança deste evento com cópia para ',
+    criarElemento('strong', null, gestor.nome),
+    ` (${gestor.email}), gestor de `,
+    criarElemento('strong', null, solicitante.nome),
+    ` (${solicitante.email}), solicitante da DS ${codigoDaDs}?`,
+  );
+  modal.returnValue = '';
+  modal.showModal();
+  return new Promise((resolver) => {
+    modal.addEventListener('close', () => resolver(modal.returnValue === 'confirmar'), {
+      once: true,
+    });
+  });
+}
+
+async function gravarCobranca(identificacao, modo, gestorConfirmadoId = null) {
+  await api.definirCobranca(identificacao, modo, gestorConfirmadoId ?? undefined);
+  if (modo === 'cobrar') estado.decisoesDeCobranca.delete(identificacao);
+  else estado.decisoesDeCobranca.set(identificacao, { modo, gestorConfirmadoId });
+  exibirAviso(`Cobrança do evento: ${rotuloDoModoDeCobranca(modo).toLowerCase()}.`);
+}
+
+/**
+ * Popover com as escolhas da cobrança de um evento, ancorado no botão que o abriu. As
+ * opções de e-mail só aparecem com o e-mail já pausado; a do gestor busca quem é na hora.
+ */
+function abrirSeletorDeCobranca({ ancora, identificacao, codigoDaDs, emailPausado, aoMudar }) {
+  const reabrindoOMesmo = seletorDeCobrancaAberto?.ancora === ancora;
+  seletorDeCobrancaAberto?.fechar();
+  if (reabrindoOMesmo) return;
+
+  const painel = criarElemento('div', 'painel-vinculo painel-cobranca');
+  painel.append(criarElemento('p', 'painel-cobranca-titulo', 'Cobrança deste evento'));
+  const lista = criarElemento('ul', 'painel-vinculo-lista');
+  const atual = estado.decisoesDeCobranca.get(identificacao)?.modo ?? 'cobrar';
+
+  function fechar() {
+    document.removeEventListener('pointerdown', fecharForaDoPainel, true);
+    painel.remove();
+    seletorDeCobrancaAberto = null;
+  }
+  function fecharForaDoPainel(evento) {
+    if (!painel.contains(evento.target) && !ancora.contains(evento.target)) fechar();
+  }
+
+  async function escolherComGestor(motivo) {
+    motivo.textContent = 'Buscando o gestor do solicitante…';
+    const pessoas = await api.gestorDoSolicitanteDaDs(codigoDaDs);
+    if (!pessoas.gestor) {
+      motivo.textContent = pessoas.motivo;
+      return;
+    }
+    fechar();
+    if (!(await confirmarCopiaAoGestor({ ...pessoas, codigoDaDs }))) return;
+    await gravarCobranca(identificacao, 'com-gestor', pessoas.gestor.id);
+    aoMudar?.();
+  }
+
+  async function escolher(opcao, motivo) {
+    painel.classList.add('ocupado');
     try {
-      await api.definirNaoCobrarTarefa(identificacao, naoCobrar);
-      if (naoCobrar) estado.eventosSemCobranca.add(identificacao);
-      else estado.eventosSemCobranca.delete(identificacao);
-      atualizarBotao();
+      if (opcao.modo === 'com-gestor') {
+        await escolherComGestor(motivo);
+        return;
+      }
+      await gravarCobranca(identificacao, opcao.modo);
+      fechar();
+      aoMudar?.();
     } catch (erro) {
       exibirAviso(`Não foi possível alterar a cobrança: ${erro.message}`, 'erro');
     } finally {
-      botao.disabled = false;
+      painel.classList.remove('ocupado');
     }
-  });
+  }
+
+  for (const opcao of OPCOES_DE_COBRANCA) {
+    if (opcao.soComEmailPausado && !emailPausado) continue;
+    const motivo = criarElemento('p', 'texto-auxiliar painel-cobranca-motivo');
+    const botao = criarBotao(
+      `painel-vinculo-opcao${opcao.modo === atual ? ' atual' : ''}`,
+      opcao.rotulo,
+      () => void escolher(opcao, motivo),
+    );
+    if (opcao.modo === 'com-gestor' && !codigoDaDs) {
+      botao.disabled = true;
+      motivo.textContent = 'O evento não cita DS.';
+    }
+    const item = criarElemento('li');
+    item.append(botao, motivo);
+    lista.append(item);
+  }
+  painel.append(lista);
+
+  document.body.append(painel);
+  posicionarPopover(painel, ancora);
+  document.addEventListener('pointerdown', fecharForaDoPainel, true);
+  seletorDeCobrancaAberto = { ancora, fechar };
+}
+
+/** Botão ao lado do nome do parceiro: abre as escolhas da cobrança do evento no dia visto. */
+function criarBotaoDeCobrancaDoEvento(evento, dia) {
+  const identificacao = identificacaoDoEvento(evento);
+  const botao = criarBotaoDeIcone('btn tiny ghost', ICONES.sinoRiscado, '', () =>
+    abrirSeletorDeCobranca({
+      ancora: botao,
+      identificacao,
+      codigoDaDs: evento.solicitacoes?.[0] ?? null,
+      emailPausado: emailDaCobrancaPausado(dia),
+      aoMudar: atualizarBotao,
+    }),
+  );
 
   function atualizarBotao() {
-    const naoCobrar = estado.eventosSemCobranca.has(identificacao);
-    botao.classList.toggle('sem-cobranca', naoCobrar);
-    const rotulo = naoCobrar
-      ? 'O alerta da agenda não cobra tarefa deste evento — clique para voltar a cobrar'
-      : 'Não cobrar tarefa na Experience deste evento';
+    const decisao = estado.decisoesDeCobranca.get(identificacao);
+    botao.classList.toggle('sem-cobranca', Boolean(decisao));
+    const rotulo = decisao
+      ? `Cobrança deste evento: ${rotuloDoModoDeCobranca(decisao.modo)} — clique para mudar`
+      : 'Cobrança deste evento';
     botao.title = rotulo;
     botao.setAttribute('aria-label', rotulo);
   }
@@ -4008,7 +4162,7 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
         linhaNome.append(criarTituloDoEvento(evento, tituloDoEvento));
         linhaNome.append(criarBotaoDeVinculoDeCliente(evento, () => renderizarDetalhe(dia, true)));
         if (evento.codparc && !estado.terceiro) {
-          linhaNome.append(criarBotaoDeNaoCobrarTarefa(evento));
+          linhaNome.append(criarBotaoDeCobrancaDoEvento(evento, dia.dia));
         }
         informacoes.append(linhaNome);
       } else {
@@ -4052,7 +4206,7 @@ function criarWidgetDeAgenda({ buscarEventos, aoMudarMes, mesInicial = mesAtualI
 
     const { de, ate } = limitesDoMesCliente(estadoWidget.mes);
     try {
-      const [eventos] = await Promise.all([buscarEventos(de, ate), carregarEventosSemCobranca()]);
+      const [eventos] = await Promise.all([buscarEventos(de, ate), carregarDecisoesDeCobranca()]);
       const grade = criarGradeMensalDeEventos(estadoWidget.mes, eventos);
       areaCalendario.replaceChildren(criarGradeDoCalendario(grade, celula));
       status.textContent = eventos.length
@@ -4708,10 +4862,12 @@ function criarLinhaDeEventoDoResumo(evento, semTarefa) {
 async function criarSecaoDaAgendaDoResumo(hoje) {
   const [{ eventos }] = await Promise.all([
     api.eventosDaAgenda(hoje, hoje),
-    carregarEventosSemCobranca(),
+    carregarDecisoesDeCobranca(),
   ]);
   const semTarefa = eventosDeHojeSemTarefa(hoje);
-  for (const identificacao of estado.eventosSemCobranca) semTarefa.delete(identificacao);
+  for (const [identificacao, { modo }] of estado.decisoesDeCobranca) {
+    if (modo === 'nao-cobrar') semTarefa.delete(identificacao);
+  }
   const deHoje = eventos
     .filter((evento) => evento.inicio.slice(0, 10) <= hoje && hoje <= evento.fim.slice(0, 10))
     .sort((a, b) => a.inicio.localeCompare(b.inicio));
@@ -7223,6 +7379,14 @@ async function salvarConfiguracao(evento) {
     return;
   }
 
+  const alertaDaAgenda = lerAlertaDaAgendaDaConfiguracao();
+  const erroDoAlerta = validarAlertaDaAgenda(alertaDaAgenda);
+  if (erroDoAlerta) {
+    selecionarAbaDaConfiguracao(elementos.abaConfiguracaoAvisos);
+    exibirErro(elementos.erroConfiguracao, erroDoAlerta);
+    return;
+  }
+
   limparErro(elementos.erroConfiguracao);
   elementos.botaoSalvarConfiguracao.disabled = true;
 
@@ -7241,7 +7405,7 @@ async function salvarConfiguracao(evento) {
       funcionalidadesOcultas: lerFuncionalidadesOcultasDaConfiguracao(),
       terceiro: elementos.campoTerceiro.checked,
       smtp: lerSmtpDaConfiguracao(),
-      alertaDaAgenda: lerAlertaDaAgendaDaConfiguracao(),
+      alertaDaAgenda,
       avisoDaBranchPrincipal: elementos.campoAvisoDaBranchPrincipal.checked,
       assistenteDeIa: lerAssistenteDeIaDaConfiguracao(ASSISTENTES_DA_CONFIGURACAO.kanban),
       assistenteDoRepositorio: {
@@ -9847,6 +10011,7 @@ const ALERTA_DA_AGENDA_PADRAO = {
   intervaloHoras: 2,
   incluirProximoDiaUtil: false,
   diasUteisRetroativos: 0,
+  diasParaGerencia: 0,
   repetirAteResolver: false,
   enviarEmail: false,
   contatoIdsEmCopia: [],
@@ -10011,12 +10176,30 @@ function criarAcaoDaNotificacao(notificacao) {
   if (notificacao.chave === `atualizacao:${estado.versaoDisponivel}`) {
     return criarBotaoDeAtualizarAgora(notificacao);
   }
-  if (ehAlertaDeAgendaSemTarefa(notificacao)) {
-    return criarBotaoDeIcone('btn tiny ghost', ICONES.envelope, 'Cobrar por e-mail', () =>
-      abrirModalDeCobrancaDaAgenda(notificacao),
-    );
+  if (!ehAlertaDeAgendaSemTarefa(notificacao)) {
+    return null;
   }
-  return null;
+  const cobrarPorEmail = criarBotaoDeIcone(
+    'btn tiny ghost',
+    ICONES.envelope,
+    'Cobrar por e-mail',
+    () => abrirModalDeCobrancaDaAgenda(notificacao),
+  );
+  if (!notificacao.cobranca) {
+    return cobrarPorEmail;
+  }
+  const acoes = criarElemento('div', 'acoes-da-notificacao');
+  acoes.append(criarBotaoDeDecidirCobranca(notificacao.cobranca), cobrarPorEmail);
+  return acoes;
+}
+
+/* Só nasce com o e-mail pausado: as cinco escolhas valem, sem recalcular a pausa. */
+function criarBotaoDeDecidirCobranca({ identificacao, codigoDaDs }) {
+  const botao = criarBotao('btn tiny', 'Decidir cobrança', async () => {
+    await carregarDecisoesDeCobranca();
+    abrirSeletorDeCobranca({ ancora: botao, identificacao, codigoDaDs, emailPausado: true });
+  });
+  return botao;
 }
 
 function criarItemDeNotificacao(notificacao) {
@@ -10133,7 +10316,9 @@ function registrarEventosDaCobrancaDaAgenda() {
   elementos.campoAlertaAgendaEmail.addEventListener('change', () => {
     elementos.grupoContatosAlertaAgenda.disabled = !elementos.campoAlertaAgendaEmail.checked;
     campoDeContatosDoAlerta.fecharSugestoes();
+    atualizarCampoDeGerencia();
   });
+  elementos.campoAlertaAgendaRetroativos.addEventListener('input', atualizarCampoDeGerencia);
   elementos.modalConfiguracao.addEventListener('click', (evento) => {
     if (!evento.target.closest('.linha-destinatarios')) campoDeContatosDoAlerta.fecharSugestoes();
   });
@@ -10311,10 +10496,34 @@ function preencherNotificacoesDaConfiguracao(smtp, alertaDaAgenda, avisoDaBranch
   elementos.campoAlertaAgendaIntervalo.value = alertaDaAgenda.intervaloHoras;
   elementos.campoAlertaAgendaProximoDiaUtil.checked = alertaDaAgenda.incluirProximoDiaUtil;
   elementos.campoAlertaAgendaRetroativos.value = alertaDaAgenda.diasUteisRetroativos ?? 0;
+  elementos.campoAlertaAgendaGerencia.value = alertaDaAgenda.diasParaGerencia ?? 0;
   elementos.campoAlertaAgendaRepetir.checked = alertaDaAgenda.repetirAteResolver;
   elementos.campoAlertaAgendaEmail.checked = alertaDaAgenda.enviarEmail;
   elementos.grupoContatosAlertaAgenda.disabled = !alertaDaAgenda.enviarEmail;
+  atualizarCampoDeGerencia();
   campoDeContatosDoAlerta.definir(alertaDaAgenda.contatoIdsEmCopia ?? []);
+}
+
+const MENSAGEM_DA_GERENCIA_ACIMA_DOS_RETROATIVOS =
+  'Os dias para a gerência não podem passar dos dias úteis anteriores.';
+
+/*
+ * Sem e-mail ou sem dias anteriores a regra não tem o que pausar: o campo desabilita, mas
+ * guarda o valor, que volta a valer quando os dois religarem.
+ */
+function atualizarCampoDeGerencia() {
+  const retroativos = Number(elementos.campoAlertaAgendaRetroativos.value);
+  elementos.campoAlertaAgendaGerencia.max = String(retroativos);
+  elementos.campoAlertaAgendaGerencia.disabled =
+    !elementos.campoAlertaAgendaEmail.checked || retroativos === 0;
+}
+
+/** O backend recusa o mesmo; aqui a mensagem sai antes, já na aba Avisos. */
+function validarAlertaDaAgenda(alerta) {
+  const regraLigada = !elementos.campoAlertaAgendaGerencia.disabled;
+  return regraLigada && alerta.diasParaGerencia > alerta.diasUteisRetroativos
+    ? MENSAGEM_DA_GERENCIA_ACIMA_DOS_RETROATIVOS
+    : '';
 }
 
 function lerSmtpDaConfiguracao() {
@@ -10335,6 +10544,7 @@ function lerAlertaDaAgendaDaConfiguracao() {
     intervaloHoras: Number(elementos.campoAlertaAgendaIntervalo.value),
     incluirProximoDiaUtil: elementos.campoAlertaAgendaProximoDiaUtil.checked,
     diasUteisRetroativos: Number(elementos.campoAlertaAgendaRetroativos.value),
+    diasParaGerencia: Number(elementos.campoAlertaAgendaGerencia.value),
     repetirAteResolver: elementos.campoAlertaAgendaRepetir.checked,
     enviarEmail: elementos.campoAlertaAgendaEmail.checked,
     contatoIdsEmCopia: campoDeContatosDoAlerta.ids(),

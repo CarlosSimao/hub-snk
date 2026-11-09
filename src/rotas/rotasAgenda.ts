@@ -25,7 +25,7 @@ import {
   SolicitacoesDeServico,
   type SolicitanteDaDs,
 } from '../sankhya/solicitacaoServicos.ts';
-import type { EventoAgenda } from '../tipos.ts';
+import { MODOS_DE_COBRANCA, type EventoAgenda, type GestorDoSolicitante } from '../tipos.ts';
 import { responderErroDoShell } from './comum/respostasDoShell.ts';
 
 const esquemaDeAnexo = z.discriminatedUnion('origem', [
@@ -54,14 +54,30 @@ const esquemaDeConsulta = z.object({
 
 /* `nuevento` ou `codparc-inicio`: o teto só barra lixo mandado direto na API. */
 const TAMANHO_MAXIMO_DA_IDENTIFICACAO_DO_EVENTO = 60;
-const esquemaDeNaoCobrar = z.object({
-  identificacao: z
-    .string({ error: 'Informe a identificação do evento.' })
-    .trim()
-    .min(1, 'Informe a identificação do evento.')
-    .max(TAMANHO_MAXIMO_DA_IDENTIFICACAO_DO_EVENTO, 'Identificação de evento inválida.'),
-  naoCobrar: z.boolean({ error: 'Informe se o evento deve ficar sem cobrança.' }),
-});
+/* `cobrar` apaga a decisão: o evento volta a ser cobrado normalmente. */
+const MODO_COBRAR_NORMALMENTE = 'cobrar';
+const esquemaDeDecisaoDeCobranca = z
+  .object({
+    identificacao: z
+      .string({ error: 'Informe a identificação do evento.' })
+      .trim()
+      .min(1, 'Informe a identificação do evento.')
+      .max(TAMANHO_MAXIMO_DA_IDENTIFICACAO_DO_EVENTO, 'Identificação de evento inválida.'),
+    modo: z.enum([MODO_COBRAR_NORMALMENTE, ...MODOS_DE_COBRANCA], {
+      error: 'Modo de cobrança inválido.',
+    }),
+    gestorConfirmadoId: z.string().trim().min(1).optional(),
+  })
+  .refine((decisao) => decisao.modo !== 'com-gestor' || decisao.gestorConfirmadoId, {
+    error: 'Confirme o gestor que vai em cópia.',
+    path: ['gestorConfirmadoId'],
+  });
+
+/** O que as rotas da cobrança usam: as decisões gravadas e o gestor do solicitante. */
+export interface DependenciasDaCobranca {
+  decisoes: RepositorioEventosSemCobranca;
+  gestorDoSolicitante(codigoDaDs: number): Promise<GestorDoSolicitante>;
+}
 
 /** Fora do padrão HTTP, mas o usual (nginx) para "o cliente desistiu antes da resposta". */
 const STATUS_CLIENTE_DESISTIU = 499;
@@ -121,22 +137,26 @@ export function registrarRotasDeAgenda(
   credenciais: Credenciais,
   experience: Experience,
   cadastrarSolicitante: (solicitante: SolicitanteDaDs | null) => Promise<ResultadoDoContato>,
-  eventosSemCobranca: RepositorioEventosSemCobranca,
+  cobranca: DependenciasDaCobranca,
 ): void {
   servidor.get('/api/agenda/estado', async () => agenda.estado());
 
-  /** Eventos marcados para o alerta da agenda não cobrar tarefa na Experience. */
-  servidor.get('/api/agenda/nao-cobrar', async () => ({
-    eventos: [...(await eventosSemCobranca.listar())],
+  /** O que o usuário decidiu para a cobrança de cada evento do alerta da agenda. */
+  servidor.get('/api/agenda/cobranca', async () => ({
+    decisoes: Object.fromEntries(await cobranca.decisoes.listar()),
   }));
 
-  servidor.put('/api/agenda/nao-cobrar', async (requisicao, resposta) => {
-    const validacao = esquemaDeNaoCobrar.safeParse(requisicao.body);
+  servidor.put('/api/agenda/cobranca', async (requisicao, resposta) => {
+    const validacao = esquemaDeDecisaoDeCobranca.safeParse(requisicao.body);
     if (!validacao.success) {
       return resposta.status(400).send({ mensagem: validacao.error.issues[0]?.message });
     }
-    const { identificacao, naoCobrar } = validacao.data;
-    await eventosSemCobranca.definir(identificacao, naoCobrar);
+    const { identificacao, modo, gestorConfirmadoId } = validacao.data;
+    const decisao =
+      modo === MODO_COBRAR_NORMALMENTE
+        ? null
+        : { modo, gestorConfirmadoId: modo === 'com-gestor' ? (gestorConfirmadoId ?? null) : null };
+    await cobranca.decisoes.definir(identificacao, decisao);
     return resposta.status(204).send();
   });
 
@@ -189,6 +209,25 @@ export function registrarRotasDeAgenda(
       try {
         const ds = await solicitacoes.consultar(codigo);
         return await cadastrarSolicitante(ds.solicitante);
+      } catch (erro) {
+        if (erro instanceof SolicitacaoNaoEncontradaError) {
+          return resposta.status(404).send({ mensagem: erro.message });
+        }
+        return responderErroDaConsulta(resposta, erro);
+      }
+    },
+  );
+
+  /** O solicitante da DS e o gestor dele, para confirmar a cópia da cobrança ao gestor. */
+  servidor.get<{ Params: { codigo: string } }>(
+    '/api/agenda/solicitacoes/:codigo/gestor',
+    async (requisicao, resposta) => {
+      const codigo = Number(requisicao.params.codigo);
+      if (!Number.isInteger(codigo) || codigo <= 0) {
+        return resposta.status(400).send({ mensagem: 'Código da DS inválido.' });
+      }
+      try {
+        return await cobranca.gestorDoSolicitante(codigo);
       } catch (erro) {
         if (erro instanceof SolicitacaoNaoEncontradaError) {
           return resposta.status(404).send({ mensagem: erro.message });
