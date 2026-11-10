@@ -9,6 +9,14 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.27.1] - 2026-11-10
+
+### Corrigido
+
+- **Selo "Sem tarefa na Experience" no Resumo**: o evento de hoje ficava marcado pelo aviso
+  da véspera (o do próximo dia útil), mesmo com a tarefa já aberta na Experience. Agora só
+  o aviso emitido hoje marca o evento.
+
 ## [2.27.0] - 2026-11-09
 
 ### Adicionado
@@ -1197,6 +1205,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.27.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.0...v2.27.1
 [2.27.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.26.0...v2.27.0
 [2.26.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.25.0...v2.26.0
 [2.25.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.24.0...v2.25.0
