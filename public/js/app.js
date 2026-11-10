@@ -4815,6 +4815,9 @@ function diaLocalDoInstante(iso) {
 /**
  * Eventos de hoje que o alerta da agenda já apontou sem tarefa na Experience. Só com o
  * alerta ligado: sem ele, os eventos ficam sem selo, não "com tarefa".
+ *
+ * Só vale o aviso emitido hoje: o da véspera (próximo dia útil) é anterior à tarefa que
+ * pode ter sido criada depois, e a verificação de hoje, que a achou, não emite nada.
  */
 function eventosDeHojeSemTarefa(hoje) {
   const prefixo = `${PREFIXO_DAS_NOTIFICACOES_DA_AGENDA}${hoje}:`;
@@ -4822,6 +4825,7 @@ function eventosDeHojeSemTarefa(hoje) {
     estado.notificacoes
       .filter((notificacao) => notificacao.origem === 'agenda')
       .filter((notificacao) => notificacao.chave.startsWith(prefixo))
+      .filter((notificacao) => diaLocalDoInstante(notificacao.criadaEm) === hoje)
       .map(
         (notificacao) =>
           notificacao.chave.slice(prefixo.length).split(SEPARADOR_DA_REPETICAO_DO_ALERTA)[0],
