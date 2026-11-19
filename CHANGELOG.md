@@ -9,6 +9,23 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.27.2] - 2026-11-19
+
+### Corrigido
+
+- **Bloqueio do Sankhya ID pelo login automático**: com a senha salva desatualizada, o HUB
+  podia enviá-la muitas vezes seguidas e bloquear a conta. As guias SankhyaOm e Experience e
+  as janelas da Agenda e da Experience tentavam entrar ao mesmo tempo, e reabrir ou
+  atualizar o aplicativo zerava a contagem. Agora a senha salva sai no máximo **2 vezes** sem
+  conseguir entrar, contando tudo junto, inclusive depois de reabrir ou atualizar o HUB. Só
+  salvar o Sankhya ID de novo libera novas tentativas.
+
+### Adicionado
+
+- **Aviso de login automático suspenso**: quando o HUB para de tentar, o sino mostra
+  **Login automático do Sankhya suspenso**, com o que fazer: desbloquear o Sankhya ID pelo
+  e-mail, se ele chegou, e salvar usuário e senha de novo em **Configurações › Sankhya**.
+
 ## [2.27.1] - 2026-11-10
 
 ### Corrigido
@@ -1205,6 +1222,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.27.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.1...v2.27.2
 [2.27.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.0...v2.27.1
 [2.27.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.26.0...v2.27.0
 [2.26.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.25.0...v2.26.0
