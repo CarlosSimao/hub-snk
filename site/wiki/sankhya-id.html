@@ -388,13 +388,23 @@
           <h2>Proteção contra bloqueio da conta</h2>
           <p>
             Se a senha foi trocada fora do HUB SNK, o login automático repetiria a senha antiga até
-            o Sankhya bloquear a conta. Para evitar isso, depois de duas recusas seguidas da senha
-            todo login automático para: nas guias, na Agenda e na sessão do Experience. Ele volta
-            quando você salva o Sankhya ID de novo ou reabre o aplicativo.
+            o Sankhya bloquear a conta. Para evitar isso, o HUB SNK envia a senha salva no máximo
+            <strong>duas vezes</strong> sem conseguir entrar. Depois disso, todo login automático
+            para: nas guias, na Agenda e na sessão do Experience. As duas tentativas valem para tudo
+            junto, mesmo quando as guias e a Agenda tentam entrar ao mesmo tempo, e reabrir ou
+            atualizar o aplicativo não libera tentativas novas. Só salvar o Sankhya ID de novo
+            libera.
           </p>
 
           <h3>Passo a passo</h3>
           <ol class="passos">
+            <li>
+              O sino mostra a notificação <strong>Login automático do Sankhya suspenso</strong>.
+            </li>
+            <li>
+              Se chegou e-mail de <strong>Sankhya ID - Desbloqueio do usuário</strong>, desbloqueie
+              a conta pelo e-mail antes de continuar.
+            </li>
             <li>
               Na Agenda, a mensagem acima do calendário avisa que o
               <strong>login automático</strong> foi <strong>suspenso</strong>.

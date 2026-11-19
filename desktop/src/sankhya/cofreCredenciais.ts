@@ -53,46 +53,117 @@ interface SessaoGravada {
  * O login único fica em `id`; cada sistema guarda só a sessão dele. As entradas de antes
  * do Sankhya ID ainda trazem `usuario` e `senha`, que `ler()` migra e descarta.
  */
-type CofreGravado = { id?: IdentificacaoGravada } & Partial<
-  Record<Sistema, SessaoGravada & { usuario?: string; senha?: string }>
->;
+type CofreGravado = {
+  id?: IdentificacaoGravada;
+  tentativasDeLogin?: TentativasDeLogin;
+} & Partial<Record<Sistema, SessaoGravada & { usuario?: string; senha?: string }>>;
+
+/** Senhas que o login automático enviou desde o último login confirmado. */
+interface TentativasDeLogin {
+  quantidade: number;
+  /** Quando a primeira delas saiu: identifica a suspensão no aviso do HUB. */
+  desde: string;
+}
 
 const ARQUIVO = join(app.getPath('userData'), 'credenciais.json');
 
 /*
  * Com a senha trocada fora do HUB SNK, as janelas ocultas e o login automático das guias
- * repetiriam a senha antiga para sempre — a cada consulta da Agenda, a cada renovação do
- * token da Experience — até o Sankhya bloquear a conta. Depois deste tanto de recusas
- * seguidas, o login automático para até a senha ser regravada. Em memória de propósito:
- * reabrir o aplicativo dá uma nova chance.
+ * repetiriam a senha antiga — a cada consulta da Agenda, a cada renovação do token da
+ * Experience — até o Sankhya bloquear a conta. Depois deste tanto de senhas enviadas sem
+ * login confirmado, o login automático para até a senha ser regravada.
+ *
+ * Gravado no cofre, e não em memória: visto em produção, a atualização automática e o
+ * usuário reabrindo o HUB zeravam a contagem a cada abertura, e a conta foi bloqueada.
  */
-const LIMITE_DE_LOGINS_RECUSADOS = 2;
-let loginsRecusadosSeguidos = 0;
+const LIMITE_DE_TENTATIVAS_DE_LOGIN = 2;
+
+/** Vezes tomadas por quem está a ponto de enviar a senha e ainda não enviou. */
+let tentativasReservadas = 0;
+let ouvinteDaSuspensao: ((desde: string) => void) | null = null;
+let suspensaoAvisada = '';
 
 export const MENSAGEM_DE_LOGIN_SUSPENSO =
-  'login automático suspenso: o Sankhya recusou a senha salva mais de uma vez seguida — ' +
-  'confira usuário e senha no Sankhya ID e salve de novo';
+  `login automático suspenso: ${LIMITE_DE_TENTATIVAS_DE_LOGIN} tentativas seguidas sem ` +
+  'sucesso com a senha salva — confira usuário e senha no Sankhya ID e salve de novo';
+// O roteiro da wiki (`ferramentas/captura-wiki/roteiros/sankhya-id.mjs`) repete este texto.
+
+function tentativasGravadas(): TentativasDeLogin {
+  return ler().tentativasDeLogin ?? { quantidade: 0, desde: '' };
+}
 
 /**
  * Um contador só, porque a senha é uma só: recusa em qualquer dos dois sistemas já é a
  * senha errada, e insistir no outro bloquearia a conta do mesmo jeito.
  */
 export function loginAutomaticoSuspenso(): boolean {
-  return loginsRecusadosSeguidos >= LIMITE_DE_LOGINS_RECUSADOS;
+  return tentativasGravadas().quantidade >= LIMITE_DE_TENTATIVAS_DE_LOGIN;
 }
 
-/** Chamado por quem submeteu a senha, com o veredito do próprio critério de sucesso. */
+/**
+ * Toma a vez de enviar a senha, ou `null` quando o limite já foi atingido. Conta também as
+ * vezes tomadas e ainda não concluídas: ao abrir o HUB, as guias e as janelas ocultas
+ * logam ao mesmo tempo, e conferir só antes de começar deixava todas passarem.
+ *
+ * Quem recebe a vez chama a função devolvida dizendo se a senha foi enviada; a tentativa é
+ * gravada na hora, antes do veredito, para um HUB fechado no meio do login não a devolver.
+ */
+export function reservarTentativaDeLogin(): ((senhaEnviada: boolean) => void) | null {
+  const emUso = tentativasGravadas().quantidade + tentativasReservadas;
+  if (emUso >= LIMITE_DE_TENTATIVAS_DE_LOGIN) return null;
+
+  tentativasReservadas += 1;
+  return (senhaEnviada) => {
+    tentativasReservadas -= 1;
+    if (senhaEnviada) contarTentativa();
+  };
+}
+
+function contarTentativa(): void {
+  const cofre = ler();
+  const anteriores = cofre.tentativasDeLogin;
+  cofre.tentativasDeLogin = {
+    quantidade: (anteriores?.quantidade ?? 0) + 1,
+    desde: anteriores?.desde || new Date().toISOString(),
+  };
+  gravarArquivo(cofre);
+}
+
+/** Só regrava o cofre quando havia tentativa contada: login confirmado acontece toda hora. */
+function zerarTentativas(): void {
+  const cofre = ler();
+  if (!cofre.tentativasDeLogin) return;
+  delete cofre.tentativasDeLogin;
+  gravarArquivo(cofre);
+}
+
+/** Chamado por quem enviou a senha, com o veredito do próprio critério de sucesso. */
 export function registrarLoginAutomatico(sistema: Sistema, aceito: boolean): void {
   if (aceito) {
-    loginsRecusadosSeguidos = 0;
+    zerarTentativas();
     return;
   }
-  loginsRecusadosSeguidos += 1;
-  logEvento('login-automatico-recusado', {
-    sistema,
-    recusados: loginsRecusadosSeguidos,
-    suspenso: loginAutomaticoSuspenso(),
-  });
+  const tentativas = tentativasGravadas();
+  const suspenso = loginAutomaticoSuspenso();
+  logEvento('login-automatico-recusado', { sistema, tentativas: tentativas.quantidade, suspenso });
+  if (suspenso) avisarSuspensao(tentativas.desde);
+}
+
+/**
+ * Quem avisa o usuário de que o login automático parou. Se já estiver parado ao
+ * registrar, avisa na hora: tentativa interrompida pelo fechamento do HUB não chega a um
+ * veredito, e a suspensão só aparece na abertura seguinte.
+ */
+export function aoSuspenderLoginAutomatico(ouvinte: (desde: string) => void): void {
+  ouvinteDaSuspensao = ouvinte;
+  if (loginAutomaticoSuspenso()) avisarSuspensao(tentativasGravadas().desde);
+}
+
+/** Uma vez por suspensão: as janelas que falham juntas não repetem o aviso. */
+function avisarSuspensao(desde: string): void {
+  if (!ouvinteDaSuspensao || desde === suspensaoAvisada) return;
+  suspensaoAvisada = desde;
+  ouvinteDaSuspensao(desde);
 }
 
 function cifrar(valor: string): string {
@@ -193,8 +264,9 @@ export function gravar(usuario: string, senha: string): StatusDoSankhyaId {
   };
   // A sessão já capturada de cada sistema sobrevive a uma troca de senha: invalidá-la aqui
   // desconectaria o hub sem motivo.
+  // Senha regravada é o usuário dizendo que corrigiu: o login automático volta a tentar.
+  delete cofre.tentativasDeLogin;
   gravarArquivo(cofre);
-  loginsRecusadosSeguidos = 0;
   return statusDoId(cofre.id);
 }
 
@@ -214,10 +286,9 @@ export function gravarSessao(
   return statusDe(cofre, sistema);
 }
 
-/** Tira o Sankhya ID e as duas sessões: sem a senha, nada delas se renovaria mesmo. */
+/** Tira o Sankhya ID, as duas sessões e as tentativas contadas: sem senha, nada se renovaria. */
 export function remover(): StatusDoSankhyaId {
   gravarArquivo({});
-  loginsRecusadosSeguidos = 0;
   return statusDoId(undefined);
 }
 

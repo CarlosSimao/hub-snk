@@ -13,7 +13,7 @@ const HORAS_DE_SESSAO = 8;
 
 /** Texto exato do aplicativo (`desktop/src/sankhya/cofreCredenciais.ts`) para o login suspenso. */
 const MENSAGEM_DE_LOGIN_SUSPENSO =
-  'login automático suspenso: o Sankhya recusou a senha salva mais de uma vez seguida — ' +
+  'login automático suspenso: 2 tentativas seguidas sem sucesso com a senha salva — ' +
   'confira usuário e senha no Sankhya ID e salve de novo';
 
 const caminhoE = (caminho) => (url) => url.pathname === caminho;
