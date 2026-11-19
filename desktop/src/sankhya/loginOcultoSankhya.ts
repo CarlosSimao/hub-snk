@@ -9,7 +9,9 @@
  */
 import { BrowserWindow, type WebContents } from 'electron';
 import { paginaNoHost, scriptAutofillTick, scriptSubmeterLogin } from './autofill';
+import * as cofre from './cofreCredenciais';
 import { HOSTS_DE_LOGIN_SANKHYA } from '../config';
+import { logEvento } from '../log';
 
 const JANELA_PREENCHIMENTO_MS = 90_000;
 const INTERVALO_MS = 1_000;
@@ -47,12 +49,23 @@ function esperarSenhaPreenchida(wc: WebContents, usuario: string, senha: string)
         }
         // Fora do Sankhya (redirect, página intermediária), espera o próximo tick sem preencher.
         if (!paginaNoHost(wc, hostDoSankhya)) return;
+        // A vez é tomada antes do tick porque é ele quem digita a senha: tomada depois, outra
+        // guia ou janela logando ao mesmo tempo já teria enviado a dela.
+        const concluirTentativa = cofre.reservarTentativaDeLogin();
+        if (!concluirTentativa) {
+          clearInterval(intervalo);
+          logEvento('login-automatico-sem-vez');
+          resolve(false);
+          return;
+        }
+        let enviouSenha = false;
         try {
           const resultado = (await wc.executeJavaScript(
             scriptAutofillTick(usuario, senha, preencheuUsuario),
             true,
           )) as { ok: boolean; etapa?: string };
-          if (resultado.ok && resultado.etapa === 'senha') {
+          enviouSenha = resultado.ok && resultado.etapa === 'senha';
+          if (enviouSenha) {
             clearInterval(intervalo);
             resolve(true);
           } else if (resultado.ok && resultado.etapa === 'usuario') {
@@ -61,6 +74,8 @@ function esperarSenhaPreenchida(wc: WebContents, usuario: string, senha: string)
         } catch {
           clearInterval(intervalo);
           resolve(false);
+        } finally {
+          concluirTentativa(enviouSenha);
         }
       })();
     }, INTERVALO_MS);

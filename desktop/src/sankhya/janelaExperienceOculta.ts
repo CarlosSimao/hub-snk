@@ -94,7 +94,8 @@ export class JanelaExperienceOculta {
       return SEM_SESSAO;
     }
     const sessao = await this.#esperarToken(wc);
-    cofre.registrarLoginAutomatico('sankhya-experience', sessao.presente);
+    // Token vencido que ficou no `localStorage` não prova o login que acabou de ser tentado.
+    cofre.registrarLoginAutomatico('sankhya-experience', tokenValido(sessao));
     return sessao;
   }
 

@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import Fastify, { type FastifyInstance } from 'fastify';
+import type { DadosDeNotificacao } from '../notificacoes/centralDeNotificacoes.ts';
 import { PonteDoDesktopIndisponivelError } from '../sankhya/ponteDoDesktop.ts';
 import { registrarRotasDeSistema } from './rotasSistema.ts';
 
@@ -72,6 +73,58 @@ describe('POST /api/sistema/encerrar', () => {
     assert.equal(semToken.statusCode, 401);
     assert.equal(tokenErrado.statusCode, 401);
     assert.equal(pedidosDeEncerramento(), 0);
+  });
+});
+
+describe('POST /api/sistema/login-automatico-suspenso', () => {
+  function servidorQueNotifica(): { servidor: FastifyInstance; emitidas: DadosDeNotificacao[] } {
+    const emitidas: DadosDeNotificacao[] = [];
+    const servidor = Fastify();
+    registrarRotasDeSistema(servidor, {
+      arquivoTokenDoDesktop: arquivoDeToken,
+      encerrar: () => {},
+      emitirNotificacao: async (dados) => {
+        emitidas.push(dados);
+      },
+    });
+    return { servidor, emitidas };
+  }
+
+  it('notifica no sino, sem e-mail, com a suspensão na chave', async () => {
+    const { servidor, emitidas } = servidorQueNotifica();
+
+    const resposta = await servidor.inject({
+      method: 'POST',
+      url: '/api/sistema/login-automatico-suspenso',
+      headers: { 'x-hub-token': TOKEN_DO_SHELL },
+      payload: { desde: '2026-11-19T19:13:08.000Z' },
+    });
+
+    assert.equal(resposta.statusCode, 204);
+    assert.equal(emitidas.length, 1);
+    assert.equal(emitidas[0]?.chave, 'login-automatico-suspenso:2026-11-19T19:13:08.000Z');
+    assert.equal(emitidas[0]?.origem, 'sistema');
+    assert.equal(emitidas[0]?.enviarEmail, false);
+  });
+
+  it('só aceita o shell, e exige o início da suspensão', async () => {
+    const { servidor, emitidas } = servidorQueNotifica();
+
+    const semToken = await servidor.inject({
+      method: 'POST',
+      url: '/api/sistema/login-automatico-suspenso',
+      payload: { desde: '2026-11-19T19:13:08.000Z' },
+    });
+    const semDesde = await servidor.inject({
+      method: 'POST',
+      url: '/api/sistema/login-automatico-suspenso',
+      headers: { 'x-hub-token': TOKEN_DO_SHELL },
+      payload: {},
+    });
+
+    assert.equal(semToken.statusCode, 401);
+    assert.equal(semDesde.statusCode, 400);
+    assert.equal(emitidas.length, 0);
   });
 });
 

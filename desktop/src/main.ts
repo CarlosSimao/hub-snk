@@ -37,7 +37,11 @@ import { BarraDeBusca } from './interface/barraDeBusca';
 import { JanelaAgendaOculta } from './sankhya/janelaAgendaOculta';
 import { JanelaExperienceOculta } from './sankhya/janelaExperienceOculta';
 import { criarBridgeServer } from './backend/bridgeServer';
-import { pushSessaoExperience, limparSessaoExperience } from './backend/backendClient';
+import {
+  avisarLoginAutomaticoSuspenso,
+  pushSessaoExperience,
+  limparSessaoExperience,
+} from './backend/backendClient';
 import { iniciarBackend, pararBackend } from './backend/backendProcess';
 import { autoLoginSankhya } from './sankhya/autoLoginSankhya';
 import * as cofre from './sankhya/cofreCredenciais';
@@ -568,6 +572,8 @@ app.whenReady().then(async () => {
     logEvento('backend-falhou-no-boot');
     dialog.showErrorBox('HUB SNK — o backend não subiu', backend.erro);
   }
+  // Depois do backend: o aviso vira notificação no sino, que mora nele.
+  cofre.aoSuspenderLoginAutomatico((desde) => void avisarLoginAutomaticoSuspenso(desde));
 
   await gravarTokenParaOPainel();
   criarJanela();

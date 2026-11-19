@@ -91,6 +91,10 @@ export async function autoLoginSankhya(
       segredo.senha,
     );
     if (!preencheu) {
+      // Outra guia ou janela oculta pode ter esgotado as tentativas durante a espera.
+      if (cofre.loginAutomaticoSuspenso()) {
+        return { ok: false, cookies: 0, erro: cofre.MENSAGEM_DE_LOGIN_SUSPENSO };
+      }
       logEvento('autologin-sankhya-sem-tela-reconhecida', { sistema });
       return {
         ok: false,
@@ -99,26 +103,31 @@ export async function autoLoginSankhya(
       };
     }
 
-    if (sistema === 'sankhya-erp' && !(await chegouAoWorkspaceDoErp(view.webContents))) {
-      cofre.registrarLoginAutomatico(sistema, false);
-      return {
-        ok: false,
-        cookies: 0,
-        erro: 'o SankhyaOm não aceitou o login automático — confira usuário e senha salvos',
-      };
+    if (sistema === 'sankhya-erp') {
+      const aceito = await chegouAoWorkspaceDoErp(view.webContents);
+      // O workspace já prova a senha: uma falha só na captura não conta contra ela.
+      cofre.registrarLoginAutomatico(sistema, aceito);
+      if (!aceito) {
+        return {
+          ok: false,
+          cookies: 0,
+          erro: 'o SankhyaOm não aceitou o login automático — confira usuário e senha salvos',
+        };
+      }
     }
 
     await pausa(PAUSA_APOS_SENHA_MS);
     for (let tentativa = 0; tentativa < TENTATIVAS_DE_CAPTURA; tentativa++) {
       const resultado = await capturar(tabs, sistema);
       if (resultado.ok) {
-        cofre.registrarLoginAutomatico(sistema, true);
+        if (sistema === 'sankhya-experience') cofre.registrarLoginAutomatico(sistema, true);
         logEvento('autologin-sankhya-concluido', { sistema });
         return resultado;
       }
       await pausa(INTERVALO_MS);
     }
-    cofre.registrarLoginAutomatico(sistema, false);
+    // Na Experience, o token é a única prova do login; no ERP, o veredito já saiu acima.
+    if (sistema === 'sankhya-experience') cofre.registrarLoginAutomatico(sistema, false);
     return {
       ok: false,
       cookies: 0,

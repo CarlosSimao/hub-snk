@@ -15,6 +15,12 @@ import { varrerRepositoriosLocais } from '../git/varreduraDeRepositorios.ts';
 import { requisicaoVeioDoShell } from './seguranca/autenticacaoDoShell.ts';
 import { PonteDoDesktopIndisponivelError } from '../sankhya/ponteDoDesktop.ts';
 
+const MENSAGEM_DO_LOGIN_SUSPENSO =
+  'O HUB SNK parou de entrar sozinho no SankhyaOm e na Experience depois de 2 tentativas ' +
+  'sem sucesso com a senha salva, para não bloquear o seu Sankhya ID. Se chegou e-mail de ' +
+  'desbloqueio do Sankhya ID, desbloqueie pelo e-mail. Depois confira usuário e senha em ' +
+  'Configurações › Sankhya e salve de novo.';
+
 const TAMANHO_MAXIMO_DO_CAMINHO = 400;
 const QUANTIDADE_MAXIMA_DE_PASTAS_VARRIDAS = 20;
 
@@ -104,6 +110,35 @@ export function registrarRotasDeSistema(
     setImmediate(encerramento.encerrar);
     return resposta;
   });
+
+  /*
+   * O shell para o login automático depois de 2 senhas enviadas sem sucesso, para não
+   * bloquear o Sankhya ID. Sem este aviso, o usuário só via os e-mails de bloqueio,
+   * reabria o HUB e salvava a senha de novo, e cada uma dessas ações liberava novas
+   * tentativas. `desde` identifica a suspensão: as janelas que falham juntas não repetem
+   * a notificação.
+   */
+  servidor.post<{ Body: { desde?: unknown } | undefined }>(
+    '/api/sistema/login-automatico-suspenso',
+    async (requisicao, resposta) => {
+      if (!requisicaoVeioDoShell(requisicao, resposta, encerramento.arquivoTokenDoDesktop)) {
+        return resposta;
+      }
+      const desde = requisicao.body?.desde;
+      if (typeof desde !== 'string' || !desde.trim()) {
+        return resposta.status(400).send({ mensagem: 'Informe desde, o início da suspensão.' });
+      }
+
+      await encerramento.emitirNotificacao?.({
+        origem: 'sistema',
+        chave: `login-automatico-suspenso:${desde}`,
+        titulo: 'Login automático do Sankhya suspenso',
+        mensagem: MENSAGEM_DO_LOGIN_SUSPENSO,
+        enviarEmail: false,
+      });
+      return resposta.status(204).send();
+    },
+  );
 
   /*
    * Separada da rota acima de propósito: a versão instalada é leitura local e

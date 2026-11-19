@@ -39,6 +39,15 @@ export function pushSessaoExperience(dados: {
   });
 }
 
+/** `desde` identifica a suspensão: o backend não repete a notificação da mesma. */
+export function avisarLoginAutomaticoSuspenso(desde: string): Promise<boolean> {
+  return chamar('/api/sistema/login-automatico-suspenso', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ desde }),
+  });
+}
+
 export function limparSessaoExperience(): Promise<boolean> {
   return chamar('/api/sankhya/desktop/sessao/sankhya-experience', { method: 'DELETE' });
 }
