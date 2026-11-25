@@ -26,6 +26,10 @@ describe('parsearNegociacoes', () => {
   it('recusa resposta com status de falha', () => {
     assert.throws(() => parsearNegociacoes({ status: '0' }), PayloadDeNegociacoesInvalidoError);
   });
+
+  it('recusa resposta sem status, como a de rede caída', () => {
+    assert.throws(() => parsearNegociacoes({}), PayloadDeNegociacoesInvalidoError);
+  });
 });
 
 describe('fapsDoParceiro', () => {

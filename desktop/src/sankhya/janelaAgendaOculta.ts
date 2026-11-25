@@ -97,9 +97,15 @@ function scriptChamarServico(serviceName: string, requestBody: unknown): string 
   return `new Promise((resolve) => {
     ${trechoLocalizarServiceProxy()}
     const devolver = (dados) => resolve({ ok: true, conteudo: JSON.stringify(dados) });
+    // Rejeição com \`status\` é resposta do Sankhya; sem ele (rede caída ao voltar da
+    // hibernação) virava "{}" com ok e passava por resposta vazia.
+    const recusar = (motivo) =>
+      motivo && typeof motivo === 'object' && 'status' in motivo
+        ? devolver(motivo)
+        : resolve({ ok: false, erro: 'a chamada ao Sankhya falhou: ' + String(motivo) });
     serviceProxy
       .callService(${JSON.stringify(serviceName)}, ${corpo}, { ignorePopUpErrorMsgs: true })
-      .then(devolver, devolver);
+      .then(devolver, recusar);
   })`;
 }
 

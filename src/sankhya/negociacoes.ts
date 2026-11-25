@@ -35,8 +35,9 @@ export function parsearNegociacoes(bruto: unknown): Negociacao[] {
   }
   const raiz = bruto as Record<string, unknown>;
 
+  // Sem `status` não é resposta do Sankhya: aceitar viraria "parceiro sem FAP" e cobrança falsa.
   const status = String(raiz['status'] ?? '');
-  if (status && status !== '1') {
+  if (status !== '1') {
     throw new PayloadDeNegociacoesInvalidoError(
       `a captura veio com status "${status}" — o Sankhya recusou a chamada`,
     );
