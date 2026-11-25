@@ -35,16 +35,19 @@ export function parsearNegociacoes(bruto: unknown): Negociacao[] {
   }
   const raiz = bruto as Record<string, unknown>;
 
-  // Sem `status` não é resposta do Sankhya: aceitar viraria "parceiro sem FAP" e cobrança falsa.
   const status = String(raiz['status'] ?? '');
-  if (status !== '1') {
+  if (status && status !== '1') {
     throw new PayloadDeNegociacoesInvalidoError(
       `a captura veio com status "${status}" — o Sankhya recusou a chamada`,
     );
   }
 
   const corpo = raiz['responseBody'] as Record<string, unknown> | undefined;
-  const negociacoes = corpo?.['negociacoes'] as Record<string, unknown> | undefined;
+  // Sem `responseBody` não é resposta do Sankhya: aceitar viraria "parceiro sem FAP" e cobrança falsa.
+  if (!corpo || typeof corpo !== 'object') {
+    throw new PayloadDeNegociacoesInvalidoError('a resposta veio sem `responseBody`');
+  }
+  const negociacoes = corpo['negociacoes'] as Record<string, unknown> | undefined;
   const lista = comoLista(negociacoes?.['negociacao']);
 
   return lista.map((n) => ({

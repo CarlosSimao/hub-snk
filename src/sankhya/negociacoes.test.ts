@@ -27,7 +27,7 @@ describe('parsearNegociacoes', () => {
     assert.throws(() => parsearNegociacoes({ status: '0' }), PayloadDeNegociacoesInvalidoError);
   });
 
-  it('recusa resposta sem status, como a de rede caída', () => {
+  it('recusa resposta sem responseBody, como a de rede caída', () => {
     assert.throws(() => parsearNegociacoes({}), PayloadDeNegociacoesInvalidoError);
   });
 });
