@@ -9,6 +9,17 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.27.3] - 2026-11-25
+
+### Corrigido
+
+- **Falso "Agenda sem tarefa" depois de hibernar**: quando o computador voltava da
+  hibernação com a rede ainda desligada, o alerta da agenda podia avisar **Agenda sem tarefa
+  na Experience** para um cliente que já tinha tarefa aberta, inclusive para o próximo dia
+  útil. A consulta ao Sankhya falhava, e o HUB entendia que o cliente não tinha projeto. Agora
+  a falha é tentada de novo e, se continuar, o sino mostra **Não foi possível conferir as
+  tarefas da agenda**, sem cobrar.
+
 ## [2.27.2] - 2026-11-19
 
 ### Corrigido
@@ -1222,6 +1233,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.27.3]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.2...v2.27.3
 [2.27.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.1...v2.27.2
 [2.27.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.0...v2.27.1
 [2.27.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.26.0...v2.27.0
