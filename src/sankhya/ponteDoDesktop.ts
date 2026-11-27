@@ -33,6 +33,12 @@ export interface OpcoesDaPonte {
   timeoutMs?: number;
 }
 
+/** Arquivo vindo do shell: o corpo ainda por ler e o tamanho, quando o shell o informa. */
+export interface ArquivoDaPonte {
+  corpo: ReadableStream<Uint8Array>;
+  tamanho: number | null;
+}
+
 /**
  * Lê o token gravado pelo shell. Arquivo ausente ou vazio é o shell fora do ar,
  * não defeito: quem roda só o backend (`npm run dev`) cai sempre aqui.
@@ -66,28 +72,60 @@ export class PonteDoDesktop {
     init: RequestInit = {},
     opcoes: OpcoesDaPonte = {},
   ): Promise<T> {
-    const token = lerTokenDoDesktop(this.#arquivoToken);
+    const resposta = await this.#enviar(
+      caminho,
+      init,
+      AbortSignal.timeout(opcoes.timeoutMs ?? TIMEOUT_PADRAO_MS),
+    );
+    const corpo = (await resposta.json().catch(() => ({}))) as { erro?: string } & T;
+    if (!resposta.ok) throw this.#erroDaResposta(resposta, corpo);
+    return corpo;
+  }
 
-    let resposta: Response;
+  /**
+   * Arquivo em fluxo. O prazo vale só até a resposta começar: um arquivo grande pode levar
+   * mais que ele para chegar inteiro, e quem lê o corpo é que decide quando desistir.
+   */
+  async requisitarArquivo(
+    caminho: string,
+    init: RequestInit = {},
+    opcoes: OpcoesDaPonte = {},
+  ): Promise<ArquivoDaPonte> {
+    const controle = new AbortController();
+    const prazo = setTimeout(
+      () => controle.abort(new Error('tempo esgotado esperando o shell desktop')),
+      opcoes.timeoutMs ?? TIMEOUT_PADRAO_MS,
+    );
+    const resposta = await this.#enviar(caminho, init, controle.signal).finally(() =>
+      clearTimeout(prazo),
+    );
+    if (!resposta.ok || !resposta.body) {
+      const corpo = (await resposta.json().catch(() => ({}))) as { erro?: string };
+      throw this.#erroDaResposta(resposta, corpo);
+    }
+    const tamanho = Number(resposta.headers.get('content-length'));
+    return { corpo: resposta.body, tamanho: tamanho > 0 ? tamanho : null };
+  }
+
+  async #enviar(caminho: string, init: RequestInit, signal: AbortSignal): Promise<Response> {
+    const token = lerTokenDoDesktop(this.#arquivoToken);
     try {
-      resposta = await fetch(`${this.#baseUrl}${caminho}`, {
+      return await fetch(`${this.#baseUrl}${caminho}`, {
         ...init,
         headers: { ...init.headers, 'x-hub-token': token },
-        signal: AbortSignal.timeout(opcoes.timeoutMs ?? TIMEOUT_PADRAO_MS),
+        signal,
       });
     } catch (erro) {
       throw new PonteDoDesktopIndisponivelError(
         `não consegui falar com o shell desktop em ${this.#baseUrl}: ${(erro as Error).message}`,
       );
     }
+  }
 
-    const corpo = (await resposta.json().catch(() => ({}))) as { erro?: string } & T;
-    if (!resposta.ok) {
-      throw new PonteDoDesktopError(
-        corpo.erro ?? `shell desktop respondeu HTTP ${resposta.status}`,
-        resposta.status,
-      );
-    }
-    return corpo;
+  #erroDaResposta(resposta: Response, corpo: { erro?: string }): PonteDoDesktopError {
+    return new PonteDoDesktopError(
+      corpo.erro ?? `shell desktop respondeu HTTP ${resposta.status}`,
+      resposta.status,
+    );
   }
 }

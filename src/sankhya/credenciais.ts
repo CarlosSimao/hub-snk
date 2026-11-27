@@ -9,7 +9,7 @@
  * a janela de credenciais a mostra, decisão consciente de quem usa o hub.
  */
 import type { NovaOcorrencia } from './ocorrencias.ts';
-import type { OpcoesDaPonte, PonteDoDesktop } from './ponteDoDesktop.ts';
+import type { ArquivoDaPonte, OpcoesDaPonte, PonteDoDesktop } from './ponteDoDesktop.ts';
 import type { SessaoDoDesktop, SessaoEmpurrada } from './sessaoDoDesktop.ts';
 import type { PedidoDeAnexo, SolicitacaoBruta } from './solicitacaoServicos.ts';
 import { SISTEMAS_SANKHYA, type SistemaSankhya, type StatusCredencial } from '../tipos.ts';
@@ -232,9 +232,9 @@ export class Credenciais {
     );
   }
 
-  /** Arquivo de um anexo da DS, em base64. */
-  baixarAnexoDaSolicitacao(pedido: PedidoDeAnexo): Promise<ConsultaNaGuia> {
-    return this.#requisitar<ConsultaNaGuia>(
+  /** Arquivo de um anexo da DS, em fluxo: vídeo de dezenas de MB não cabe num JSON. */
+  baixarAnexoDaSolicitacao(pedido: PedidoDeAnexo): Promise<ArquivoDaPonte> {
+    return this.#ponte.requisitarArquivo(
       '/solicitacoes/anexo',
       {
         method: 'POST',

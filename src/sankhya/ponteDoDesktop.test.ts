@@ -101,3 +101,51 @@ describe('PonteDoDesktop', () => {
     await assert.rejects(() => ponte.requisitar('/health'), PonteDoDesktopIndisponivelError);
   });
 });
+
+describe('PonteDoDesktop.requisitarArquivo', () => {
+  it('entrega o arquivo inteiro mesmo quando ele termina depois do prazo', async () => {
+    const PRAZO_MS = 50;
+    const { url, servidor } = await subirShellFalso((_requisicao, resposta) => {
+      resposta.writeHead(200, {
+        'content-type': 'application/octet-stream',
+        'content-length': '6',
+      });
+      resposta.write('abc');
+      setTimeout(() => resposta.end('def'), PRAZO_MS * 3);
+    });
+
+    try {
+      const ponte = new PonteDoDesktop(url, arquivoDeToken);
+      const arquivo = await ponte.requisitarArquivo(
+        '/solicitacoes/anexo',
+        {},
+        { timeoutMs: PRAZO_MS },
+      );
+
+      assert.equal(arquivo.tamanho, 6);
+      assert.equal(await new Response(arquivo.corpo).text(), 'abcdef');
+    } finally {
+      servidor.close();
+    }
+  });
+
+  it('transforma a falha do shell em erro de negócio com a mensagem dele', async () => {
+    const { url, servidor } = await subirShellFalso((_requisicao, resposta) => {
+      resposta.writeHead(409, { 'content-type': 'application/json' });
+      resposta.end(JSON.stringify({ erro: 'o Sankhya respondeu HTTP 404 ao baixar o arquivo' }));
+    });
+
+    try {
+      const ponte = new PonteDoDesktop(url, arquivoDeToken);
+      await assert.rejects(
+        () => ponte.requisitarArquivo('/solicitacoes/anexo'),
+        (erro: unknown) =>
+          erro instanceof PonteDoDesktopError &&
+          erro.status === 409 &&
+          erro.message === 'o Sankhya respondeu HTTP 404 ao baixar o arquivo',
+      );
+    } finally {
+      servidor.close();
+    }
+  });
+});

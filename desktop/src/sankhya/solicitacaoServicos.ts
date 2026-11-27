@@ -6,10 +6,10 @@
  * Aqui só se busca: o JSON volta em texto e quem interpreta é o backend
  * (`src/sankhya/solicitacaoServicos.ts`), onde há testes.
  */
-import type { ResultadoFetch } from './janelaAgendaOculta';
+import type { ArquivoDoMge } from './janelaAgendaOculta';
 import { servico, type Chamar, type Resultado } from './ocorrencias';
 
-type Baixar = (caminho: string) => Promise<ResultadoFetch>;
+type Baixar = (caminho: string) => Promise<ArquivoDoMge>;
 
 const RESOURCE_ID = 'solicitacaoservicos.br.com.sankhya.servicosds.solicitacaoservicos';
 /** Sem o `resourceID` da tela o Sankhya pode negar o serviço para a sessão. */
@@ -159,7 +159,7 @@ export async function baixarAnexoDoSistema(
   chamar: Chamar,
   baixar: Baixar,
   anexo: AnexoDoSistema,
-): Promise<ResultadoFetch> {
+): Promise<ArquivoDoMge> {
   const r = await servico(
     chamar,
     'AnexoSistemaSP.baixar',
@@ -175,7 +175,7 @@ export async function baixarAnexoDoSistema(
     },
     CONSULTA_DA_TELA,
   );
-  if (!r.ok) return { ok: false, erro: r.erro };
+  if (!r.ok) return { ok: false, erro: r.erro ?? 'o Sankhya recusou o pedido do anexo' };
   const chave = (r.corpo?.responseBody as { chave?: { valor?: unknown } } | undefined)?.chave
     ?.valor;
   if (typeof chave !== 'string' || !chave) {
@@ -191,7 +191,7 @@ export function baixarAnexoDoFormulario(
   baixar: Baixar,
   codigo: number,
   nomeArquivo: string,
-): Promise<ResultadoFetch> {
+): Promise<ArquivoDoMge> {
   const consulta = new URLSearchParams({
     fileName: 'sab://ANEXODOC',
     downloadFileName: nomeArquivo,
