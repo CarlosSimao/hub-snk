@@ -9,6 +9,18 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.27.5] - 2026-11-27
+
+### Corrigido
+
+- **Anexo grande da DS não baixava**: um anexo acima de 25 MB da Solicitação de Serviços
+  aberta na agenda, como um vídeo, falhava com **o Sankhya respondeu HTML em vez do arquivo —
+  a sessão caiu**, mesmo com o SankhyaOm logado. Agora o anexo baixa inteiro, de qualquer
+  tamanho, e uma falha de verdade aparece com o motivo real.
+- **Painel de downloads travava a janela na primeira vez**: o primeiro clique no botão de
+  downloads, no canto superior direito, não mostrava nada e deixava a janela sem responder
+  a cliques até apertar Esc. Agora o painel abre já no primeiro clique.
+
 ## [2.27.4] - 2026-11-27
 
 ### Corrigido
@@ -1242,6 +1254,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.27.5]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.4...v2.27.5
 [2.27.4]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.3...v2.27.4
 [2.27.3]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.2...v2.27.3
 [2.27.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.1...v2.27.2
