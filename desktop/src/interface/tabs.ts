@@ -11,6 +11,7 @@ import {
   HUB_URL,
   ICONE,
   PARTICAO_AVULSA,
+  PARTICAO_GOOGLE,
   URL_INICIAL_AVULSA,
 } from '../config';
 import { urlDoTextoDigitado } from './enderecoDigitado';
@@ -158,6 +159,8 @@ export interface GuiaInfo {
   rotulo: string;
   visivel: boolean;
 }
+
+const DOMINIO_GOOGLE = 'google.com';
 
 function origemPermitida(url: string, lista: string[]): boolean {
   try {
@@ -677,9 +680,13 @@ export class TabManager {
    * Link geral ou de projeto numa guia do HUB SNK, isolada por origem e sem autofill.
    * Mesma origem de uma guia já aberta (a da base, por exemplo) navega aquela guia
    * até o endereço do link, em vez de só trazê-la para a frente.
+   *
+   * Link do Google usa a partição persistente do Gmail do painel: a guia efêmera pedia o
+   * login a cada reinício, e assim quem já entrou no Gmail abre o documento logado.
    */
   #abrirLinkNoHub(origin: string, alvo: string, titulo: string): void {
     if (!origin) return;
+    const particao = origemPermitida(alvo, [DOMINIO_GOOGLE]) ? PARTICAO_GOOGLE : undefined;
     this.abrirAbaCliente(
       origin,
       alvo,
@@ -691,7 +698,7 @@ export class TabManager {
         usuario: '',
         temSenha: false,
       },
-      { autofill: false, forcarUrl: true },
+      { autofill: false, forcarUrl: true, particao },
     );
   }
 
@@ -1081,7 +1088,7 @@ export class TabManager {
     origin: string,
     url: string,
     info: InfoBaseCliente,
-    opcoes: { autofill?: boolean; forcarUrl?: boolean } = {},
+    opcoes: { autofill?: boolean; forcarUrl?: boolean; particao?: string } = {},
   ): void {
     const existente = this.#abas.get(origin);
     if (existente) {
@@ -1092,7 +1099,7 @@ export class TabManager {
       this.mostrar(origin);
       return;
     }
-    const particao = `link:${origin}`;
+    const particao = opcoes.particao ?? `link:${origin}`;
     const view = new WebContentsView({
       webPreferences: {
         partition: particao,
@@ -1108,8 +1115,13 @@ export class TabManager {
     // listener de `will-download` só existia na sessão padrão e nas partições das abas
     // principais, então baixar de dentro de uma aba de cliente falhava em silêncio.
     this.#registrarDownloadsDaParticao(particao);
-    prepararParticaoParaRuffle(particao);
-    manterHttpsDaBase(particao, origin);
+    // Partição emprestada (a do Google) é a mesma do Gmail do painel: o preload do Ruffle
+    // entraria lá também, e o `onBeforeRequest` é um só por sessão — a guia seguinte de
+    // outro host do Google trocaria o da anterior. O Google já força HTTPS por HSTS.
+    if (!opcoes.particao) {
+      prepararParticaoParaRuffle(particao);
+      manterHttpsDaBase(particao, origin);
+    }
     view.webContents.on('did-finish-load', () => {
       logEvento('aba-cliente-carregada', {
         clienteId: info.clienteId,

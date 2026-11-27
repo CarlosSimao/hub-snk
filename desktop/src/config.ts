@@ -98,7 +98,7 @@ const INTERVALO_FEED_GMAIL_MS = 60_000;
  * os dois. Nenhuma delas é a `PARTICAO` das guias — o cookie pessoal do Google não chega
  * ao Sankhya, e o do Sankhya não chega ao Google.
  */
-const PARTICAO_GOOGLE = 'persist:hub-google';
+export const PARTICAO_GOOGLE = 'persist:hub-google';
 
 export const SERVICOS_COMUNICACAO: Record<ServicoComunicacao, DefinicaoServicoComunicacao> = {
   whatsapp: {
