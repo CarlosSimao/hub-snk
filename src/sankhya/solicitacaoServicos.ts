@@ -48,6 +48,8 @@ const EXTENSOES_PREVISUALIZAVEIS: Record<string, string> = {
   gif: 'image/gif',
   webp: 'image/webp',
   bmp: 'image/bmp',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
 };
 
 export class SolicitacaoNaoEncontradaError extends Error {}

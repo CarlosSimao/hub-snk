@@ -9,6 +9,15 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.28.0] - 2026-11-27
+
+### Adicionado
+
+- **Vídeo da DS toca no HUB SNK**: anexo MP4 ou WebM da Solicitação de Serviços aberta na
+  agenda abre na janela de prévia, como o PDF e a imagem, com play, volume, tela cheia e
+  velocidade. Ele começa a tocar enquanto chega; para guardar o vídeo, use **⋮ › Baixar** no
+  player. Outros formatos de vídeo (MOV, AVI, WMV) continuam indo para a pasta Downloads.
+
 ## [2.27.5] - 2026-11-27
 
 ### Corrigido
@@ -1254,6 +1263,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.28.0]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.5...v2.28.0
 [2.27.5]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.4...v2.27.5
 [2.27.4]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.3...v2.27.4
 [2.27.3]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.2...v2.27.3

@@ -81,7 +81,10 @@ const HISTORICO = JSON.stringify({
 });
 const ANEXOS = JSON.stringify({
   fields: ['NUATTACH', 'NOMEARQUIVO', 'CHAVEARQUIVO', 'DESCRICAO', 'Usuario.NOMEUSU', 'DHCAD'],
-  result: [['99', 'ORCAMENTO.docx', 'abc', 'Orçamento', 'BELTRANO', '29/10/2026 12:45:50']],
+  result: [
+    ['99', 'ORCAMENTO.docx', 'abc', 'Orçamento', 'BELTRANO', '29/10/2026 12:45:50'],
+    ['98', 'Precificação.MP4', 'def', 'Vídeo', 'BELTRANO', '01/10/2026 14:55:31'],
+  ],
 });
 
 test('interpreta a DS com códigos traduzidos, histórico do mais novo e anexos', () => {
@@ -114,6 +117,7 @@ test('interpreta a DS com códigos traduzidos, histórico do mais novo e anexos'
     [
       ['formulario', 'Escopo.docx.pdf', 'application/pdf', true],
       ['sistema', 'ORCAMENTO.docx', 'application/octet-stream', false],
+      ['sistema', 'Precificação.MP4', 'video/mp4', true],
     ],
   );
   assert.equal(ds.anexos[1]?.nuAttach, '99');

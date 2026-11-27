@@ -3855,7 +3855,7 @@ function abrirPreviaDoAnexoDaDs(codigo, anexo) {
   if (!janela) throw new Error('A janela da prévia foi bloqueada.');
 }
 
-/** PDF e imagem abrem na janela de prévia; o resto vai direto para Downloads. */
+/** PDF, imagem e vídeo abrem na janela de prévia; o resto vai direto para Downloads. */
 function criarItemDeAnexoDaDs(codigo, anexo) {
   const item = criarElemento('li', 'anexo-ds');
   const erro = criarElemento('span', 'erro-formulario');
@@ -3874,7 +3874,7 @@ function criarItemDeAnexoDaDs(codigo, anexo) {
     }
   });
   botao.title = anexo.previsualizavel
-    ? 'Ver o arquivo numa janela própria'
+    ? 'Ver ou tocar o arquivo numa janela própria'
     : 'Baixar para a pasta Downloads';
   const detalhes = [anexo.descricao, anexo.usuario, anexo.data].filter(Boolean).join(' · ');
   item.append(botao);
