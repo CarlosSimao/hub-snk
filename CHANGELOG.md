@@ -9,6 +9,15 @@ número significa aqui.
 
 ## [Não publicado]
 
+## [2.27.4] - 2026-11-27
+
+### Corrigido
+
+- **Login do Google pedido de novo nos links**: um link geral ou de projeto do Google (Docs,
+  Planilhas, Drive) aberto numa guia do HUB SNK pedia o login da conta Google toda vez que o
+  aplicativo era reaberto. Agora a guia usa a mesma conta do Gmail do painel de comunicação:
+  o login fica salvo e, se você já entrou no Gmail pelo HUB, o documento abre direto.
+
 ## [2.27.3] - 2026-11-25
 
 ### Corrigido
@@ -1233,6 +1242,7 @@ Primeira versão distribuída ao time.
   exposição significa antes de gravar.
 
 [não publicado]: https://github.com/CarlosSimao/hub-snk/compare/v2.18.1...HEAD
+[2.27.4]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.3...v2.27.4
 [2.27.3]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.2...v2.27.3
 [2.27.2]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.1...v2.27.2
 [2.27.1]: https://github.com/CarlosSimao/hub-snk/compare/v2.27.0...v2.27.1
