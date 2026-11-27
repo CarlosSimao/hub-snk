@@ -5,6 +5,8 @@
  * Porta fixa, token de arquivo (`x-hub-token`) e só em 127.0.0.1.
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { Readable } from 'node:stream';
+import type { ReadableStream as ReadableStreamWeb } from 'node:stream/web';
 import { app, dialog } from 'electron';
 import { BRIDGE_HOST, BRIDGE_PORT } from '../config';
 import { garantirToken } from './tokenStore';
@@ -14,7 +16,11 @@ import * as cofre from '../sankhya/cofreCredenciais';
 import * as segredos from './cofreDeSegredos';
 import * as navegador from '../sankhya/navegador';
 import { autoLoginSankhya } from '../sankhya/autoLoginSankhya';
-import type { ConsultorDeAgenda, ResultadoFetch } from '../sankhya/janelaAgendaOculta';
+import type {
+  ArquivoDoMge,
+  ConsultorDeAgenda,
+  ResultadoFetch,
+} from '../sankhya/janelaAgendaOculta';
 import type { TabManager } from '../interface/tabs';
 import { criarOcorrencia, usuarioLogado, type Resultado } from '../sankhya/ocorrencias';
 import {
@@ -257,6 +263,34 @@ function responderConsultaNaGuia(
 }
 
 /**
+ * Anexo de DS: o corpo vai em fluxo para o backend, sem passar inteiro pela memória.
+ * Falha antes de começar é 409, como nas consultas; no meio do envio, a conexão é cortada.
+ */
+function responderArquivoDaGuia(res: ServerResponse, arquivo: ArquivoDoMge): void {
+  if (!arquivo.ok) {
+    logEvento('bridge-consulta-na-guia-falhou', { consulta: 'ds-anexo', erro: arquivo.erro });
+    responderJson(res, 409, { erro: arquivo.erro });
+    return;
+  }
+  const tamanho = arquivo.resposta.headers.get('content-length');
+  res.writeHead(200, {
+    'content-type': 'application/octet-stream',
+    ...(tamanho ? { 'content-length': tamanho } : {}),
+  });
+  const corpo = arquivo.resposta.body;
+  if (!corpo) {
+    res.end();
+    return;
+  }
+  Readable.fromWeb(corpo as ReadableStreamWeb<Uint8Array>)
+    .on('error', (erro) => {
+      logEvento('bridge-anexo-interrompido', { erro: String(erro) });
+      res.destroy(erro);
+    })
+    .pipe(res);
+}
+
+/**
  * Solicitação de Serviços (DS) pela janela oculta — ver `solicitacaoServicos.ts`. Só
  * leitura; os caminhos de download são montados aqui, nunca recebidos prontos.
  */
@@ -286,11 +320,7 @@ async function tratarSolicitacoes(
   }
 
   if (req.url === '/solicitacoes/anexo' && corpo['origem'] === 'formulario' && nomeArquivo) {
-    responderConsultaNaGuia(
-      res,
-      await baixarAnexoDoFormulario(baixar, codigo, nomeArquivo),
-      'ds-anexo',
-    );
+    responderArquivoDaGuia(res, await baixarAnexoDoFormulario(baixar, codigo, nomeArquivo));
     return;
   }
 
@@ -303,10 +333,9 @@ async function tratarSolicitacoes(
     chave &&
     nomeArquivo
   ) {
-    responderConsultaNaGuia(
+    responderArquivoDaGuia(
       res,
       await baixarAnexoDoSistema(chamar, baixar, { codigo, nuAttach, nomeArquivo, chave }),
-      'ds-anexo',
     );
     return;
   }

@@ -11,7 +11,7 @@
  * Como é uma janela dedicada e escondida, recarregá-la para relogar não atrapalha nada do
  * usuário — ao contrário do fluxo antigo, que pegava carona na aba visível e a derrubava.
  */
-import { type BrowserWindow, type WebContents } from 'electron';
+import { session, type BrowserWindow, type WebContents } from 'electron';
 import * as cofre from './cofreCredenciais';
 import { ERP_URL, URL_WORKSPACE_ERP } from '../config';
 import { logEvento } from '../log';
@@ -23,6 +23,9 @@ export interface ResultadoFetch {
   conteudo?: string;
   erro?: string;
 }
+
+/** Arquivo do `/mge`: a resposta com o corpo ainda por ler, ou o motivo da falha. */
+export type ArquivoDoMge = { ok: true; resposta: Response } | { ok: false; erro: string };
 
 /**
  * Contrato do que consulta a Agenda de Recursos, para o `bridgeServer` não depender da
@@ -36,11 +39,10 @@ export interface ConsultorDeAgenda {
     requestBody: unknown,
     consulta?: Record<string, string>,
   ): Promise<ResultadoFetch>;
-  baixarNoMge(caminho: string): Promise<ResultadoFetch>;
+  baixarNoMge(caminho: string): Promise<ArquivoDoMge>;
 }
 
-/** Acima disso o arquivo não atravessa a ponte: o base64 inteiro vai num JSON só. */
-const LIMITE_DO_ARQUIVO_BYTES = 25 * 1024 * 1024;
+const MENSAGEM_DE_HTML_NO_ARQUIVO = 'o Sankhya respondeu HTML em vez do arquivo — a sessão caiu';
 
 /** Partição isolada da Agenda — nunca a da aba ERP visível, senão relogar uma afetaria a outra. */
 const PARTICAO_AGENDA = 'persist:sankhya-hub-agenda';
@@ -147,32 +149,27 @@ function scriptFetchNoMge(
 }
 
 /**
- * Baixa um arquivo do `/mge` com os cookies da página e devolve o conteúdo em base64.
- * HTML no lugar do arquivo é a tela de login: sessão caída.
+ * Baixa um arquivo do `/mge` pelo processo principal, com os cookies da partição da janela.
+ * O corpo fica na resposta, para seguir em fluxo: antes ele vinha inteiro em base64 de
+ * dentro da página, e um teto de 25 MB barrava vídeo. HTML no lugar do arquivo é a tela de
+ * login (sessão caída).
  */
-function scriptBaixarNoMge(caminho: string): string {
-  return `(async () => {
-    try {
-      const r = await fetch(${JSON.stringify(caminho)}, { credentials: 'same-origin' });
-      if (!r.ok) return { ok: false, erro: 'o Sankhya respondeu HTTP ' + r.status + ' ao baixar o arquivo' };
-      if (/text\\/html/i.test(r.headers.get('content-type') || '')) {
-        return { ok: false, erro: 'o Sankhya respondeu HTML em vez do arquivo — a sessão caiu' };
-      }
-      const blob = await r.blob();
-      if (blob.size > ${LIMITE_DO_ARQUIVO_BYTES}) {
-        return { ok: false, erro: 'arquivo maior que ${LIMITE_DO_ARQUIVO_BYTES / 1024 / 1024} MB — baixe pelo Sankhya' };
-      }
-      const dataUrl = await new Promise((ok, falha) => {
-        const leitor = new FileReader();
-        leitor.onload = () => ok(String(leitor.result));
-        leitor.onerror = () => falha(leitor.error);
-        leitor.readAsDataURL(blob);
-      });
-      return { ok: true, conteudo: dataUrl.slice(dataUrl.indexOf(',') + 1) };
-    } catch (e) {
-      return { ok: false, erro: 'o download no Sankhya falhou: ' + String(e) };
-    }
-  })()`;
+async function baixarPelaSessao(caminho: string): Promise<ArquivoDoMge> {
+  let resposta: Response;
+  try {
+    resposta = await session.fromPartition(PARTICAO_AGENDA).fetch(new URL(caminho, ERP_URL).href);
+  } catch (erro) {
+    return { ok: false, erro: `o download no Sankhya falhou: ${String(erro)}` };
+  }
+  if (!resposta.ok) {
+    await resposta.body?.cancel();
+    return { ok: false, erro: `o Sankhya respondeu HTTP ${resposta.status} ao baixar o arquivo` };
+  }
+  if (/text\/html/i.test(resposta.headers.get('content-type') ?? '')) {
+    await resposta.body?.cancel();
+    return { ok: false, erro: MENSAGEM_DE_HTML_NO_ARQUIVO };
+  }
+  return { ok: true, resposta };
 }
 
 /** `true` quando o iframe da tela já está montado e o `ServiceProxy` dele acessível. */
@@ -241,18 +238,26 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
   }
 
   /**
-   * Arquivo do `/mge` (`caminho` relativo à origem do ERP), em base64.
-   * ponytail: qualquer falha reloga, até um 404; separar quando isso pesar.
+   * Arquivo do `/mge` (`caminho` relativo à origem do ERP). Só a sessão caída reloga e
+   * tenta de novo: relogar por qualquer falha escondia o motivo real (o arquivo grande
+   * demais virava "a sessão caiu", porque a chave do anexo morre com a sessão antiga).
    */
-  baixarNoMge(caminho: string): Promise<ResultadoFetch> {
-    return this.#enfileirar(() =>
-      this.#comRelogin(async () => {
-        const wc = this.#janela?.webContents;
-        if (!wc || wc.isDestroyed())
-          return { ok: false, erro: 'a janela da Agenda não está aberta' };
-        return (await wc.executeJavaScript(scriptBaixarNoMge(caminho), true)) as ResultadoFetch;
-      }),
-    );
+  baixarNoMge(caminho: string): Promise<ArquivoDoMge> {
+    return this.#enfileirar(async () => {
+      const prontidao = await this.#garantirPronta();
+      if (!prontidao.ok) return { ok: false, erro: prontidao.erro ?? 'a janela da Agenda falhou' };
+
+      const primeira = await baixarPelaSessao(caminho);
+      if (primeira.ok || primeira.erro !== MENSAGEM_DE_HTML_NO_ARQUIVO) return primeira;
+
+      logEvento('agenda-oculta-relogin', { motivo: primeira.erro });
+      this.destruir();
+      const novaProntidao = await this.#garantirPronta();
+      if (!novaProntidao.ok) {
+        return { ok: false, erro: novaProntidao.erro ?? 'a janela da Agenda falhou' };
+      }
+      return baixarPelaSessao(caminho);
+    });
   }
 
   /** Fecha a janela — usado no encerramento do app. */
@@ -261,7 +266,7 @@ export class JanelaAgendaOculta implements ConsultorDeAgenda {
     this.#janela = null;
   }
 
-  #enfileirar(tarefa: () => Promise<ResultadoFetch>): Promise<ResultadoFetch> {
+  #enfileirar<T>(tarefa: () => Promise<T>): Promise<T> {
     const execucao = this.#fila.then(tarefa);
     this.#fila = execucao.catch(() => undefined);
     return execucao;

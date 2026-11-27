@@ -1,3 +1,5 @@
+import { Readable } from 'node:stream';
+import type { ReadableStream as ReadableStreamWeb } from 'node:stream/web';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import type { RepositorioClientes } from '../repositorio/repositorioClientes.ts';
@@ -249,12 +251,13 @@ export function registrarRotasDeAgenda(
       const { nome, ...resto } = pedido.data;
       try {
         const arquivo = await solicitacoes.baixarAnexo({ codigo, nomeArquivo: nome, ...resto });
+        if (arquivo.tamanho !== null) resposta.header('content-length', arquivo.tamanho);
         // `filename*` em UTF-8 (o nome tem acento e espaço): é o título e o nome do
         // download no leitor de PDF da janela de prévia.
         return resposta
           .header('content-type', arquivo.tipo)
           .header('content-disposition', `inline; filename*=UTF-8''${encodeURIComponent(nome)}`)
-          .send(arquivo.conteudo);
+          .send(Readable.fromWeb(arquivo.conteudo as ReadableStreamWeb<Uint8Array>));
       } catch (erro) {
         return responderErroDaConsulta(resposta, erro);
       }

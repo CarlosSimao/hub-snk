@@ -294,7 +294,8 @@ export interface PedidoDeAnexo {
 }
 
 export interface ArquivoDoAnexo {
-  conteudo: Buffer;
+  conteudo: ReadableStream<Uint8Array>;
+  tamanho: number | null;
   tipo: string;
 }
 
@@ -315,7 +316,7 @@ export class SolicitacoesDeServico {
   }
 
   async baixarAnexo(pedido: PedidoDeAnexo): Promise<ArquivoDoAnexo> {
-    const { conteudo } = await this.#credenciais.baixarAnexoDaSolicitacao(pedido);
-    return { conteudo: Buffer.from(conteudo, 'base64'), tipo: tipoPeloNome(pedido.nomeArquivo) };
+    const { corpo, tamanho } = await this.#credenciais.baixarAnexoDaSolicitacao(pedido);
+    return { conteudo: corpo, tamanho, tipo: tipoPeloNome(pedido.nomeArquivo) };
   }
 }

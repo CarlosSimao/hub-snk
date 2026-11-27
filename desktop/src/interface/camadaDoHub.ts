@@ -223,7 +223,9 @@ export class CamadaDoHub {
     camada.setBackgroundColor(FUNDO_TRANSPARENTE);
     camada.webContents.on('will-navigate', (evento) => evento.preventDefault());
     camada.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-    camada.webContents.on('did-finish-load', () => this.#enviar());
+    // Não o `did-finish-load`: nele o `isLoading()` ainda é `true` e o `#enviar` desistia,
+    // deixando a camada vazia e invisível por cima da janela, comendo os cliques.
+    camada.webContents.on('did-stop-loading', () => this.#enviar());
     camada.webContents.loadFile(join(__dirname, '..', '..', 'telas', 'camada.html'));
     this.#camada = camada;
     return camada;
